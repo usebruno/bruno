@@ -44,11 +44,11 @@ module.exports = runESMImports().then(() => defineConfig([
         indent: 2,
         quotes: 'single',
         semi: true,
-        arrowParens: false,
         jsx: true,
       }).rules,
+      '@stylistic/comma-dangle': ['error', 'never'],
       '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
-      '@stylistic/arrow-parens': ['error', 'as-needed'],
+      '@stylistic/arrow-parens': ['error', 'always'],
       '@stylistic/curly-newline': ['error', {
         multiline: true,
         minElements: 2,
