@@ -326,7 +326,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowRemoveCollectionModal(true);
               }}
