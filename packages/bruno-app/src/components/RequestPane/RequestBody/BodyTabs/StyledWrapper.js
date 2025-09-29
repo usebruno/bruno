@@ -50,7 +50,7 @@ const Wrapper = styled.div`
     padding: 6px 12px;
     border: none;
     border-radius: 4px;
-    color: var(--color-tab-inactive);
+    color: ${props => props.theme.tabs?.inactive?.color || props.theme.colors?.text?.muted || '#6b7280'};
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 500;
@@ -140,7 +140,7 @@ const Wrapper = styled.div`
     border: 1px dashed ${props => props.theme.border || 'rgba(0, 0, 0, 0.2)'};
     border-radius: 4px;
     background: transparent;
-    color: var(--color-tab-inactive);
+    color: ${props => props.theme.tabs?.inactive?.color || props.theme.colors?.text?.muted || '#9ca3af'};
     cursor: pointer;
     transition: all 0.15s ease;
     margin-left: 4px;
