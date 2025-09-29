@@ -53,5 +53,4 @@ test.describe('Import WSDL Collection', () => {
     // Cleanup: close any open modals
     await page.locator('[data-test-id="modal-close-button"]').click();
   });
-
 });

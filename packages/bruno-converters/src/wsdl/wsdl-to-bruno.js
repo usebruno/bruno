@@ -24,40 +24,40 @@ export const validateSchema = (collection = {}) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
-      if (["http", "graphql"].includes(item.type)) {
+      if (['http', 'graphql'].includes(item.type)) {
         item.type = `${item.type}-request`;
         if (item.request.query) {
           item.request.params = item.request.query.map((queryItem) => ({
             ...queryItem,
-            type: "query",
+            type: 'query',
             uid: queryItem.uid || generateUID(),
           }));
         }
         delete item.request.query;
-        let multipartFormData = get(item, "request.body.multipartForm");
+        let multipartFormData = get(item, 'request.body.multipartForm');
         if (multipartFormData) {
           each(multipartFormData, (form) => {
             if (!form.type) {
-              form.type = "text";
+              form.type = 'text';
             }
           });
         }
       }
       // Handle already transformed types
-      if (["http-request", "graphql-request"].includes(item.type)) {
+      if (['http-request', 'graphql-request'].includes(item.type)) {
         if (item.request.query) {
           item.request.params = item.request.query.map((queryItem) => ({
             ...queryItem,
-            type: "query",
+            type: 'query',
             uid: queryItem.uid || generateUID(),
           }));
         }
         delete item.request.query;
-        let multipartFormData = get(item, "request.body.multipartForm");
+        let multipartFormData = get(item, 'request.body.multipartForm');
         if (multipartFormData) {
           each(multipartFormData, (form) => {
             if (!form.type) {
-              form.type = "text";
+              form.type = 'text';
             }
           });
         }
@@ -72,7 +72,7 @@ export const transformItemsInCollection = (collection) => {
 };
 
 const isItemARequest = (item) => {
-  return ["http-request", "graphql-request"].includes(item.type);
+  return ['http-request', 'graphql-request'].includes(item.type);
 };
 
 export const hydrateSeqInCollection = (collection) => {
@@ -1070,7 +1070,7 @@ const parseWSDLCollection = (wsdlData) => {
 
     // Collect all operations from all ports in this service
     const allOperations = [];
-    
+
     for (const port of service.ports) {
       // Find operations for this port
       const bindingName = port.binding && typeof port.binding === 'string' && port.binding.includes(':') ? port.binding.split(':')[1] : port.binding;

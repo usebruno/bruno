@@ -13,4 +13,4 @@ describe('wsdl-to-bruno', () => {
   it('should throw error for invalid XML', async () => {
     await expect(wsdlToBruno('<invalid>xml</invalid>')).rejects.toThrow('Import WSDL collection failed');
   });
-}); 
+});
