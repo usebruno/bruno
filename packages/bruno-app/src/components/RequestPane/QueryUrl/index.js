@@ -80,7 +80,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
   return (
     <StyledWrapper className="flex items-center">
-      <div className="flex items-center h-full method-selector-container">
+      <div className="flex flex-1 items-center h-full method-selector-container">
         {isGrpc ? (
           <div className="flex items-center justify-center h-full w-16">
             <span className="text-xs text-indigo-500 font-bold">gRPC</span>
@@ -112,6 +112,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div
+            title="Generate Code"
             className="infotip mr-3"
             onClick={(e) => {
               handleGenerateCode(e);
@@ -128,6 +129,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             </span>
           </div>
           <div
+            title="Save Request"
             className="infotip mr-3"
             onClick={(e) => {
               e.stopPropagation();
@@ -145,7 +147,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} data-testid="send-arrow-icon" />
         </div>
       </div>
       {generateCodeItemModalOpen && (

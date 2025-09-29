@@ -1,5 +1,6 @@
 import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
+import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
@@ -232,6 +233,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         return;
       }
 
+      const isGrpcRequest = si.type === 'grpc-request'
+
       const di = {
         uid: si.uid,
         type: si.type,
@@ -246,8 +249,6 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         di.request = {
           url: si.request.url,
           method: si.request.method,
-          methodType: si.request.methodType,
-          protoPath: si.request.protoPath,
           headers: copyHeaders(si.request.headers),
           params: copyParams(si.request.params),
           body: {
@@ -268,6 +269,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           tests: si.request.tests,
           docs: si.request.docs
         };
+
+        if (isGrpcRequest) {
+          di.request.methodType = si.request.methodType;
+          di.request.protoPath = si.request.protoPath;
+          delete di.request.params;
+        }
+        
 
         // Handle auth object dynamically
         di.request.auth = {
@@ -329,6 +337,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'authorization_code':
@@ -349,6 +358,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'implicit':
@@ -364,6 +374,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'client_credentials':
@@ -381,6 +392,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
             }
@@ -495,7 +507,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  collectionToSave.environments = collection.environments || [];
+  // Save environments without runtime metadata (ephemeral/persistedValue)
+  collectionToSave.environments = (collection.environments || []).map((env) => ({
+    ...env,
+    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
+  }));
 
   collectionToSave.root = {
     request: {}

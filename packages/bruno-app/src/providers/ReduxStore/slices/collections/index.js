@@ -284,7 +284,20 @@ export const collectionsSlice = createSlice({
             const variable = find(activeEnvironment.variables, (v) => v.name === key);
 
             if (variable) {
-              variable.value = value;
+              // For updates coming from scripts, treat them as ephemeral overlays.
+              if (variable.value !== value) {
+                /*
+                 Overlay (persist: false): keep new value in Redux for UI and mark ephemeral
+                 so it isn't written to disk. persistedValue stores the previous on-disk value;
+                 save/persist uses that base unless the key is explicitly persisted.
+                */
+                const previousValue = variable.value;
+                variable.value = value;
+                variable.ephemeral = true;
+                if (variable.persistedValue === undefined) {
+                  variable.persistedValue = previousValue;
+                }
+              }
             } else {
               // __name__ is a private variable used to store the name of the environment
               // this is not a user defined variable and hence should not be updated
@@ -295,7 +308,8 @@ export const collectionsSlice = createSlice({
                   secret: false,
                   enabled: true,
                   type: 'text',
-                  uid: uuid()
+                  uid: uuid(),
+                  ephemeral: true,
                 });
               }
             }
@@ -2275,7 +2289,21 @@ export const collectionsSlice = createSlice({
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
 
         if (existingEnv) {
+          const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.variables = environment.variables;
+          /*
+           Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
+          */
+          prevEphemerals.forEach((ev) => {
+            const target = existingEnv.variables?.find((v) => v.name === ev.name);
+            if (target) {
+              if (target.value !== ev.value) {
+                if (target.persistedValue === undefined) target.persistedValue = target.value;
+                target.value = ev.value;
+              }
+              target.ephemeral = true;
+            }
+          });
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));
@@ -2412,6 +2440,9 @@ export const collectionsSlice = createSlice({
         if (type === 'testrun-ended') {
           const info = collection.runnerResult.info;
           info.status = 'ended';
+          if (action.payload.runCompletionTime) {
+            info.runCompletionTime = action.payload.runCompletionTime;
+          }
           if (action.payload.statusText) {
             info.statusText = action.payload.statusText;
           }

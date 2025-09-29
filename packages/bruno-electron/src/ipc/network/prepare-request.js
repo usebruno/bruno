@@ -43,8 +43,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'wsse':
-        const username = get(request, 'auth.wsse.username', '');
-        const password = get(request, 'auth.wsse.password', '');
+        const username = get(collectionAuth, 'wsse.username', '');
+        const password = get(collectionAuth, 'wsse.password', '');
 
         const ts = new Date().toISOString();
         const nonce = crypto.randomBytes(16).toString('hex');
@@ -193,7 +193,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
               username: get(request, 'auth.oauth2.username'),
               password: get(request, 'auth.oauth2.password'),
               clientId: get(request, 'auth.oauth2.clientId'),
@@ -215,7 +215,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
               authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
@@ -251,7 +251,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
