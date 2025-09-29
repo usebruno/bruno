@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   IconArrowsSort,
   IconFolders,
@@ -6,7 +8,7 @@ import {
   IconX,
 } from '@tabler/icons';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { useDispatch, useSelector } from 'react-redux';
+import RemoveCollections from '../RemoveCollections/index';
 
 const CollectionsBadge = () => {
   const dispatch = useDispatch();
@@ -37,6 +39,14 @@ const CollectionsBadge = () => {
     sortIcon = <IconSortDescendingLetters size={18} strokeWidth={1.5} />;
   }
 
+  const [collectionsToClose, setCollectionsToClose] = useState([]);
+  const addAllCollectionsToClose = () => {
+    setCollectionsToClose(collections.map(c => c.uid));
+  };
+  const emptyCollections = () => {
+    setCollectionsToClose([]);
+  };
+
   return (
     <div className="items-center mt-2 relative">
       <div className="collections-badge flex items-center justify-between px-2">
@@ -48,20 +58,19 @@ const CollectionsBadge = () => {
         </div>
         {collections.length >= 1 && (
           <div className="flex items-center">
-            <button className="me-1" onClick={() => sortCollectionOrder()}>
+            <button onClick={() => sortCollectionOrder()}>
               {sortIcon}
             </button>
-            <button
-              onClick={() => {
-                alert('toto');
-              }}
-            >
+            <button className="ml-1" onClick={addAllCollectionsToClose}>
               <IconX
                 size={16}
                 strokeWidth={1.5}
                 className="cursor-pointer"
               />
             </button>
+            {collectionsToClose.length > 0 && (
+              <RemoveCollections collectionUids={collectionsToClose} onClose={emptyCollections} />
+            )}
           </div>
         )}
       </div>
