@@ -51,7 +51,7 @@ const Welcome = () => {
 
   const handleImportSettings = () => {
     try {
-      const collection = convertOpenapiToBruno(openApiData, { grouping: groupingType });
+      const collection = convertOpenapiToBruno(openApiData, { groupBy: groupingType });
       console.log('collection', collection);
       setImportedCollection(collection);
       setImportSettingsModalOpen(false);

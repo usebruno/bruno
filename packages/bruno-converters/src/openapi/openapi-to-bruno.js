@@ -602,7 +602,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
         .reduce((acc, val) => acc.concat(val), []); // flatten
 
     // Support both tag-based and path-based grouping
-    const groupingType = options.grouping || 'tags';
+    const groupingType = options.groupBy || 'tags';
 
     if (groupingType === 'path') {
       brunoCollection.items = groupRequestsByPath(allRequests, usedNames);
