@@ -43,7 +43,7 @@ const TitleBar = () => {
 
   const handleImportSettings = () => {
     try {
-      const collection = convertOpenapiToBruno(openApiData, { grouping: groupingType });
+      const collection = convertOpenapiToBruno(openApiData, { groupBy: groupingType });
       setImportedCollection(collection);
       setImportSettingsModalOpen(false);
       setImportCollectionLocationModalOpen(true);
