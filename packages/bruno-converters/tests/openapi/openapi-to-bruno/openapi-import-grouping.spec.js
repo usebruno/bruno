@@ -25,7 +25,7 @@ const openApiSpec = {
 
 describe('openapi-import-grouping', () => {
   it('should handle path based grouping', () => {
-    const result = openApiToBruno(openApiSpec, { grouping: 'path' });
+    const result = openApiToBruno(openApiSpec, { groupBy: 'path' });
 
     // Should have one folder containing both requests
     expect(result.items).toHaveLength(1);
@@ -56,7 +56,7 @@ describe('openapi-import-grouping', () => {
   });
 
   it('should handle tag based grouping', () => {
-    const result = openApiToBruno(openApiSpec, { grouping: 'tags' });
+    const result = openApiToBruno(openApiSpec, { groupBy: 'tags' });
 
     // With tags grouping, requests without tags should be ungrouped
     expect(result.items).toHaveLength(2);
