@@ -20,8 +20,8 @@ module.exports = runESMImports().then(() => defineConfig([
       parser: require('@typescript-eslint/parser'),
       parserOptions: {
         ecmaVersion: 'latest',
-        sourceType: 'module',
-      },
+        sourceType: 'module'
+      }
     },
     files: [
       './eslint.config.js',
