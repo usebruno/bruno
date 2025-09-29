@@ -165,14 +165,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     'application/xml'
   ]
 
-  const handleImportWSDLCollection = () => {
-    importWSDLCollection()
-      .then(({ collection }) => {
-        handleSubmit({ collection });
-      })
-      .catch((err) => toastError(err, 'WSDL Import collection failed'))
-  };
-
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
       <div className="flex flex-col">

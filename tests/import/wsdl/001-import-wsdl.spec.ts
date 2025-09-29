@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import * as path from 'path';
 
 test.describe('Import WSDL Collection', () => {
-  const testDataDir = path.join(__dirname, '..' 'test-data');
+  const testDataDir = path.join(__dirname, '..', 'test-data');
 
   test('Import WSDL successfully', async ({ page }) => {
     const wsdlFile = path.join(testDataDir, 'wsdl.xml');
