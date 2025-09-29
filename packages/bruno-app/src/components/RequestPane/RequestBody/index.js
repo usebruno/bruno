@@ -79,7 +79,7 @@ const RequestBody = ({ item, collection }) => {
     const activeTab = bodyTabs.find(tab => tab.id === activeBodyTab);
     if (!activeTab) {
       console.warn(`Active tab with id ${activeBodyTab} not found, falling back to first tab`);
-      return bodyTabs[0];
+      return bodyTabs.length > 0 ? bodyTabs[0] : null;
     }
     return activeTab;
   };
