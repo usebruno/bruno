@@ -1,6 +1,7 @@
 {
   "name": "@usebruno/app",
   "version": "2.0.0",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "rsbuild dev",
@@ -11,11 +12,11 @@
     "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\""
   },
   "dependencies": {
-    "@babel/preset-env": "^7.26.0",
     "@fontsource/inter": "^5.0.15",
     "@prantlf/jsonlint": "^16.0.0",
     "@reduxjs/toolkit": "^1.8.0",
     "@tabler/icons": "^1.46.0",
+    "@testing-library/user-event": "^14.6.1",
     "@tippyjs/react": "^4.2.6",
     "@usebruno/common": "0.1.0",
     "@usebruno/graphql-docs": "0.1.0",
@@ -67,39 +68,54 @@
     "react-hot-toast": "^2.4.0",
     "react-i18next": "^15.0.1",
     "react-inspector": "^6.0.2",
+    "react-json-view": "^1.21.3",
     "react-pdf": "9.1.1",
     "react-player": "^2.16.0",
     "react-redux": "^7.2.9",
     "react-tooltip": "^5.5.2",
     "sass": "^1.46.0",
     "semver": "^7.7.1",
+    "shell-quote": "^1.8.3",
     "strip-json-comments": "^5.0.1",
     "styled-components": "^5.3.3",
     "system": "^2.0.1",
     "url": "^0.11.3",
     "xml-formatter": "^3.5.0",
-    "yargs-parser": "^21.1.1",
     "yup": "^0.32.11"
   },
   "devDependencies": {
+    "@babel/core": "^7.27.1",
+    "@babel/preset-env": "^7.27.2",
+    "@babel/preset-react": "^7.27.1",
     "@rsbuild/core": "^1.1.2",
     "@rsbuild/plugin-babel": "^1.0.3",
     "@rsbuild/plugin-node-polyfill": "^1.2.0",
     "@rsbuild/plugin-react": "^1.0.7",
     "@rsbuild/plugin-sass": "^1.1.0",
     "@rsbuild/plugin-styled-components": "1.1.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
     "autoprefixer": "10.4.20",
+    "babel-jest": "^29.7.0",
     "babel-plugin-react-compiler": "19.0.0-beta-a7bf2bd-20241110",
+    "babel-plugin-styled-components": "^2.1.4",
     "cross-env": "^7.0.3",
     "css-loader": "7.1.2",
     "file-loader": "^6.2.0",
     "html-loader": "^3.0.1",
     "html-webpack-plugin": "^5.5.0",
+    "jest-environment-jsdom": "^29.7.0",
     "mini-css-extract-plugin": "^2.4.5",
     "postcss": "8.4.47",
     "style-loader": "^3.3.1",
     "tailwindcss": "^3.4.1",
     "webpack": "^5.64.4",
     "webpack-cli": "^4.9.1"
+  },
+  "overrides": {
+    "httpsnippet": {
+      "form-data": "4.0.4"
+    }
   }
 }

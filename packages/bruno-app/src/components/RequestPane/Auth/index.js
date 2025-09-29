@@ -7,6 +7,8 @@ import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
 import NTLMAuth from './NTLMAuth';
+import { updateAuth } from 'providers/ReduxStore/slices/collections';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import ApiKeyAuth from './ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
@@ -27,6 +29,16 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
 const Auth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  
+  // Create a request object to pass to the auth components
+  const request = item.draft 
+    ? get(item, 'draft.request', {})
+    : get(item, 'request', {});
+
+  // Save function for request level
+  const save = () => {
+    return saveRequest(item.uid, collection.uid);
+  };
 
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
@@ -42,7 +54,7 @@ const Auth = ({ item, collection }) => {
     for (let i of [...requestTreePath].reverse()) {
       if (i.type === 'folder') {
         const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
           effectiveSource = {
             type: 'folder',
             name: i.name,
@@ -59,28 +71,28 @@ const Auth = ({ item, collection }) => {
   const getAuthView = () => {
     switch (authMode) {
       case 'awsv4': {
-        return <AwsV4Auth collection={collection} item={item} />;
+        return <AwsV4Auth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'basic': {
-        return <BasicAuth collection={collection} item={item} />;
+        return <BasicAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'bearer': {
-        return <BearerAuth collection={collection} item={item} />;
+        return <BearerAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'digest': {
-        return <DigestAuth collection={collection} item={item} />;
+        return <DigestAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'ntlm': {
-        return <NTLMAuth collection={collection} item={item} />;
+        return <NTLMAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }      
       case 'oauth2': {
-        return <OAuth2 collection={collection} item={item} />;
+        return <OAuth2 collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'wsse': {
-        return <WsseAuth collection={collection} item={item} />;
+        return <WsseAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'apikey': {
-        return <ApiKeyAuth collection={collection} item={item} />;
+        return <ApiKeyAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'inherit': {
         const source = getEffectiveAuthSource();
@@ -97,7 +109,7 @@ const Auth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full mt-1 overflow-y-scroll">
+    <StyledWrapper className="w-full mt-1 overflow-auto">
       <div className="flex flex-grow justify-start items-center">
         <AuthMode item={item} collection={collection} />
       </div>

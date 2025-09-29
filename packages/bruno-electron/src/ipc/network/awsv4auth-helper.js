@@ -9,11 +9,11 @@ async function resolveAwsV4Credentials(request) {
   const awsv4 = request.awsv4config;
   if (isStrPresent(awsv4.profileName)) {
     try {
-      credentialsProvider = fromIni({
+      const credentialsProvider = fromIni({
         profile: awsv4.profileName,
         ignoreCache: true
       });
-      credentials = await credentialsProvider();
+      const credentials = await credentialsProvider();
       awsv4.accessKeyId = credentials.accessKeyId;
       awsv4.secretAccessKey = credentials.secretAccessKey;
       awsv4.sessionToken = credentials.sessionToken;

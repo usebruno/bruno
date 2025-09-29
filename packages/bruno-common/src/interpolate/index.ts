@@ -5,28 +5,57 @@
  * Ex: interpolate('Hello, my name is ${user.name} and I am ${user.age} years old', {
  *  "user.name": "Bruno",
  *  "user": {
- *   "age": 4
+ *   "age": 6
  *  }
  * });
- * Output: Hello, my name is Bruno and I am 4 years old
+ * Output: Hello, my name is Bruno and I am 6 years old
  */
 
-import { Set } from 'typescript';
-import { flattenObject } from '../utils';
+import { mockDataFunctions } from '../utils/faker-functions';
+import { get } from "lodash-es";
 
-const interpolate = (str: string, obj: Record<string, any>): string => {
-  if (!str || typeof str !== 'string' || !obj || typeof obj !== 'object') {
+const interpolate = (
+  str: string,
+  obj: Record<string, any>,
+  options: { escapeJSONStrings?: boolean } = { escapeJSONStrings: false }
+): string => {
+  if (!str || typeof str !== 'string') {
     return str;
   }
 
-  const flattenedObj = flattenObject(obj);
+  const { escapeJSONStrings } = options;
 
-  return replace(str, flattenedObj);
+  const patternRegex = /\{\{\$(\w+)\}\}/g;
+  str = str.replace(patternRegex, (match, keyword) => {
+    let replacement = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.();
+
+    if (replacement === undefined) return match;
+    replacement = String(replacement);
+
+    if (!escapeJSONStrings) return replacement;
+
+    // All the below chars inside of a JSON String field
+    // will make it invalid JSON. So we will have to escape them with `\`.
+    // This is not exhaustive but selective to what faker-js can output.
+    if (!/[\\\n\r\t\"]/.test(replacement)) return replacement;
+    return replacement
+      .replace(/\\/g, '\\\\')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t')
+      .replace(/\"/g, '\\"');
+  });
+
+  if (!obj || typeof obj !== 'object') {
+    return str;
+  }
+
+  return replace(str, obj);
 };
 
 const replace = (
   str: string,
-  flattenedObj: Record<string, any>,
+  obj: Record<string, any>,
   visited = new Set<string>(),
   results = new Map<string, string>()
 ): string => {
@@ -37,7 +66,10 @@ const replace = (
     const patternRegex = /\{\{([^}]+)\}\}/g;
     matchFound = false;
     resultStr = resultStr.replace(patternRegex, (match, placeholder) => {
-      const replacement = flattenedObj[placeholder];
+      let replacement = get(obj, placeholder);
+      if (typeof replacement === 'object' && replacement !== null) {
+        replacement = JSON.stringify(replacement);
+      }
 
       if (results.has(match)) {
         return results.get(match);
@@ -45,7 +77,7 @@ const replace = (
 
       if (patternRegex.test(replacement) && !visited.has(match)) {
         visited.add(match);
-        const result = replace(replacement, flattenedObj, visited, results);
+        const result = replace(replacement, obj, visited, results);
         results.set(match, result);
 
         matchFound = true;

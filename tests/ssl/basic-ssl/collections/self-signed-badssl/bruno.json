@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "self-signed-badssl",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+} 

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
+
 import { IconBrandGithub, IconPlus, IconDownload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
 
 import Bruno from 'components/Bruno';
@@ -14,21 +15,23 @@ import StyledWrapper from './StyledWrapper';
 const Welcome = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
+  const collections = useSelector((state) => state.collections.collections);
   const [importedCollection, setImportedCollection] = useState(null);
-  const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch((err) => console.log(err) && toast.error(t('WELCOME.COLLECTION_OPEN_ERROR')));
+    dispatch(openCollection())
+      .catch((err) => {
+        console.error(err);
+        toast.error(t('WELCOME.COLLECTION_OPEN_ERROR'));
+      });
   };
 
-  const handleImportCollection = ({ collection, translationLog }) => {
+  const handleImportCollection = ({ collection }) => {
     setImportedCollection(collection);
-    if (translationLog) {
-      setImportedTranslationLog(translationLog);
-    }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
@@ -55,7 +58,6 @@ const Welcome = () => {
       ) : null}
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
-          translationLog={importedTranslationLog}
           collectionName={importedCollection.name}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
@@ -76,7 +78,7 @@ const Welcome = () => {
           aria-label={t('WELCOME.CREATE_COLLECTION')}
         >
           <IconPlus aria-hidden size={18} strokeWidth={2} />
-          <span className="label ml-2" id="create-collection">
+          <span className="label ml-2" id="create-collection" data-testid="create-collection">
             {t('WELCOME.CREATE_COLLECTION')}
           </span>
         </button>
@@ -135,6 +137,12 @@ const Welcome = () => {
             <IconBrandGithub aria-hidden size={18} strokeWidth={2} />
             <span className="label ml-2">{t('COMMON.GITHUB')}</span>
           </a>
+        </div>
+
+        <div className="mt-10 select-none">
+          {t('WELCOME.GLOBAL_SEARCH_TIP_PART1')} <span className="keycap">⌘</span>{' '}<span className="keycap">K</span>{' '}
+          {t('WELCOME.GLOBAL_SEARCH_TIP_PART2')} <span className="keycap">Ctrl</span>{' '}<span className="keycap">K</span>{' '}
+          {t('WELCOME.GLOBAL_SEARCH_TIP_PART3')}
         </div>
       </div>
     </StyledWrapper>

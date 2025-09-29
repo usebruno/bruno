@@ -32,7 +32,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
-  const _interpolate = (str) => {
+  const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -51,7 +51,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolate(str, combinedVars);
+    return interpolate(str, combinedVars, { escapeJSONStrings });
   };
 
   request.url = _interpolate(request.url);
@@ -67,14 +67,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
+        parsed = _interpolate(parsed, { escapeJSONStrings: true });
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
 
     if (typeof request.data === 'string') {
       if (request?.data?.length) {
-        request.data = _interpolate(request.data);
+        request.data = _interpolate(request.data, { escapeJSONStrings: true });
       }
     }
   } else if (contentType === 'application/x-www-form-urlencoded') {
@@ -115,16 +115,21 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
+    const paramRegex = /[:](\w+)/g;
     const interpolatedUrlPath = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        if (path[0] !== ':') {
-          return '/' + path;
+        const matches = path.match(paramRegex);
+        if (matches) {
+          const paramName = matches[0].slice(1); // Remove the : prefix
+          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+          if (!existingPathParam) {
+            return '/' + path;
+          }
+          return '/' + path.replace(':' + paramName, existingPathParam.value);
         } else {
-          const name = path.slice(1);
-          const existingPathParam = request?.pathParams?.find((param) => param.type === 'path' && param.name === name);
-          return existingPathParam ? '/' + existingPathParam.value : '';
+          return '/' + path;
         }
       })
       .join('');
@@ -154,6 +159,37 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     // use auth header based approach and delete the request.auth object
     request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
     delete request.basicAuth;
+  }
+
+  if (request?.oauth2?.grantType) {
+    switch (request.oauth2.grantType) {
+      case 'password':
+        request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
+        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
+        request.oauth2.username = _interpolate(request.oauth2.username) || '';
+        request.oauth2.password = _interpolate(request.oauth2.password) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
+        break;
+      case 'client_credentials':
+        request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
+        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
+        break;
+      default:
+        break;
+    }
   }
 
   if (request.awsv4config) {

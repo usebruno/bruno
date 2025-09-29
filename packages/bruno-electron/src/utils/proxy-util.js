@@ -1,5 +1,5 @@
 const parseUrl = require('url').parse;
-const https = require('https');
+const https = require('node:https');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -87,16 +87,17 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
 function createTimelineAgentClass(BaseAgentClass) {
   return class extends BaseAgentClass {
     constructor(options, timeline) {
-      // For proxy agents, the first argument is the proxy URI and the second is options
-      if (options.proxy || typeof options === 'string') {
-        const proxyUri = typeof options === 'string' ? options : options.proxy;
-        const agentOptions = typeof options === 'string' ? {} : { ...options };
-        delete agentOptions.proxy;
 
+      let caCertificatesCount = options.caCertificatesCount || {};
+      delete options.caCertificatesCount;
+
+      // For proxy agents, the first argument is the proxy URI and the second is options
+      if (options?.proxy) {
+        const { proxy: proxyUri, ...agentOptions } = options;
         // Ensure TLS options are properly set
         const tlsOptions = {
           ...agentOptions,
-          rejectUnauthorized: agentOptions.rejectUnauthorized !== undefined ? agentOptions.rejectUnauthorized : true,
+          rejectUnauthorized: agentOptions.rejectUnauthorized ?? true,
         };
         super(proxyUri, tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
@@ -109,11 +110,18 @@ function createTimelineAgentClass(BaseAgentClass) {
           type: 'info',
           message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`,
         });
+
+        // Log the proxy details
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'info',
+          message: `Using proxy: ${proxyUri}`,
+        });
       } else {
         // This is a regular HTTPS agent case
         const tlsOptions = {
           ...options,
-          rejectUnauthorized: options.rejectUnauthorized !== undefined ? options.rejectUnauthorized : true,
+          rejectUnauthorized: options.rejectUnauthorized ?? true,
         };
         super(tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
@@ -127,7 +135,10 @@ function createTimelineAgentClass(BaseAgentClass) {
           message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`,
         });
       }
+
+      this.caCertificatesCount = caCertificatesCount;
     }
+
 
     createConnection(options, callback) {
       const { host, port } = options;
@@ -141,20 +152,16 @@ function createTimelineAgentClass(BaseAgentClass) {
         });
       }
 
-      // Log CAfile and CApath (if possible)
-      if (this.caProvided) {
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'tls',
-          message: `CA certificates provided`,
-        });
-      } else {
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'tls',
-          message: `Using system default CA certificates`,
-        });
-      }
+      const rootCerts = this.caCertificatesCount.root || 0;
+      const systemCerts = this.caCertificatesCount.system || 0;
+      const extraCerts = this.caCertificatesCount.extra || 0;
+      const customCerts = this.caCertificatesCount.custom || 0;
+
+      this.timeline.push({
+        timestamp: new Date(),
+        type: 'tls',
+        message: `CA Certificates: ${rootCerts} root, ${systemCerts} system, ${extraCerts} extra, ${customCerts} custom`,
+      });
 
       // Log "Trying host:port..."
       this.timeline.push({
@@ -163,10 +170,21 @@ function createTimelineAgentClass(BaseAgentClass) {
         message: `Trying ${host}:${port}...`,
       });
 
-      const socket = super.createConnection(options, callback);
+      let socket;
+      try {
+        socket = super.createConnection(options, callback);
+      } catch (error) {
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'error',
+          message: `Error creating connection: ${error.message}`,
+        });
+        error.timeline = this.timeline;
+        throw error;
+      }
 
       // Attach event listeners to the socket
-      socket.on('lookup', (err, address, family, host) => {
+      socket?.on('lookup', (err, address, family, host) => {
         if (err) {
           this.timeline.push({
             timestamp: new Date(),
@@ -182,7 +200,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         }
       });
 
-      socket.on('connect', () => {
+      socket?.on('connect', () => {
         const address = socket.remoteAddress || host;
         const remotePort = socket.remotePort || port;
 
@@ -193,7 +211,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         });
       });
 
-      socket.on('secureConnect', () => {
+      socket?.on('secureConnect', () => {
         const protocol = socket.getProtocol() || 'SSL/TLS';
         const cipher = socket.getCipher();
         const cipherSuite = cipher ? `${cipher.name} (${cipher.version})` : 'Unknown cipher';
@@ -265,7 +283,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         }
       });
 
-      socket.on('error', (err) => {
+      socket?.on('error', (err) => {
         this.timeline.push({
           timestamp: new Date(),
           type: 'error',
@@ -289,6 +307,10 @@ function setupProxyAgents({
   // Ensure TLS options are properly set
   const tlsOptions = {
     ...httpsAgentRequestFields,
+    // Enable all secure protocols by default
+    secureProtocol: undefined,
+    // Allow Node.js to choose the protocol
+    minVersion: 'TLSv1',
     rejectUnauthorized: httpsAgentRequestFields.rejectUnauthorized !== undefined ? httpsAgentRequestFields.rejectUnauthorized : true,
   };
 
@@ -304,8 +326,8 @@ function setupProxyAgents({
       let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
       let proxyUri;
       if (proxyAuthEnabled) {
-        const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-        const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+        const proxyAuthUsername = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions));
+        const proxyAuthPassword = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions));
         proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
       } else {
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
@@ -343,11 +365,14 @@ function setupProxyAgents({
       try {
         if (https_proxy?.length) {
           new URL(https_proxy);
-          const TimelineHttpsProxyAgent = createTimelineAgentClass(HttpsProxyAgent);
+          const TimelineHttpsProxyAgent = createTimelineAgentClass(PatchedHttpsProxyAgent);
           requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
             { proxy: https_proxy,...tlsOptions },
             timeline
           );
+        } else {
+          const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
+          requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
         }
       } catch (error) {
         throw new Error('Invalid system https_proxy');

@@ -14,7 +14,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -28,6 +28,14 @@ jobs:
           npm run build --workspace=packages/bruno-common
           npm run build --workspace=packages/bruno-query
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+          npm run build --workspace=packages/bruno-converters
+          npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
+
+      - name: Lint Check
+        run: npm run lint
+        env:
+          ESLINT_PLUGIN_DIFF_COMMIT: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}
 
       # tests
       - name: Test Package bruno-js
@@ -45,6 +53,8 @@ jobs:
         run: npm run test --workspace=packages/bruno-app
       - name: Test Package bruno-common
         run: npm run test --workspace=packages/bruno-common
+      - name: Test Package bruno-converters
+        run: npm run test --workspace=packages/bruno-converters
       - name: Test Package bruno-electron
         run: npm run test --workspace=packages/bruno-electron
 
@@ -57,7 +67,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -71,6 +81,14 @@ jobs:
           npm run build --workspace=packages/bruno-query
           npm run build --workspace=packages/bruno-common
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+          npm run build --workspace=packages/bruno-converters
+          npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
+
+      - name: Run Local Testbench
+        run: |
+          npm start --workspace=packages/bruno-tests &
+          sleep 5
 
       - name: Run tests
         run: |
@@ -82,5 +100,48 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
+          check_name: CLI Test Results
           files: packages/bruno-tests/collection/junit.xml
           comment_mode: always
+  e2e-test:
+    name: Playwright E2E Tests
+    timeout-minutes: 60
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v5
+      with:
+        node-version: v22.11.x
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get --no-install-recommends install -y \
+          libglib2.0-0 libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgtk-3-0 libasound2t64 \
+          xvfb
+        npm ci --legacy-peer-deps
+        sudo chown root /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
+        sudo chmod 4755 /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
+
+    - name: Install dependencies for test collection environment
+      run: |
+        npm ci --prefix packages/bruno-tests/collection
+
+    - name: Build libraries
+      run: |
+        npm run build:graphql-docs
+        npm run build:bruno-query
+        npm run build:bruno-common
+        npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+        npm run build:bruno-converters
+        npm run build:bruno-requests
+        npm run build:bruno-filestore
+
+    - name: Run Playwright tests
+      run: |
+        xvfb-run npm run test:e2e
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30

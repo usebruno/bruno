@@ -1,4 +1,5 @@
 import React, { useRef, forwardRef } from 'react';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -9,13 +10,15 @@ import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
+import AdditionalParams from '../AdditionalParams/index';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 
 const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
+  const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
 
   const { 
@@ -30,7 +33,8 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
     tokenQueryKey, 
     refreshTokenUrl,
     autoRefreshToken,
-    autoFetchToken
+    autoFetchToken,
+    additionalParameters
   } = oAuth;
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
@@ -77,6 +81,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
+          additionalParameters,
           [key]: value
         }
       })
@@ -96,12 +101,15 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
+        const value = oAuth[key] || '';
+        const { showWarning, warningMessage } = isSensitive(value);
+        
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
             <label className="block min-w-[140px]">{label}</label>
-            <div className="single-line-editor-wrapper flex-1">
+            <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
-                value={oAuth[key] || ''}
+                value={value}
                 theme={storedTheme}
                 onSave={handleSave}
                 onChange={(val) => handleChange(key, val)}
@@ -110,6 +118,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 item={item}
                 isSecret={isSecret}
               />
+              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
             </div>
           </div>
         );
@@ -239,17 +248,6 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
         </div>
       </div>
 
-      <div className="flex items-center gap-4 w-full mb-4">
-        <label className="block min-w-[140px]">Auto-refresh token</label>
-        <input
-          type="checkbox"
-          className="cursor-pointer w-4 h-4 accent-indigo-600"
-          checked={get(request, 'auth.oauth2.autoRefreshToken', false)}
-          onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
-        />
-        <span className="text-xs text-gray-500">Automatically refresh the token when it expires</span>
-      </div>
-
       <div className="flex items-center gap-2.5 mt-4">
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
@@ -295,7 +293,13 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           </div>
         </div>
       </div>
-
+      <AdditionalParams
+        item={item}
+        request={request}
+        collection={collection}
+        updateAuth={updateAuth}
+        handleSave={handleSave}
+      />
       <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
 
     </StyledWrapper>

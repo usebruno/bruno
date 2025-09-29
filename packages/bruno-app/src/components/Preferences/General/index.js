@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
+import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -35,7 +36,8 @@ const General = ({ close }) => {
       })
       .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
         return value === undefined || Number(value) >= 0;
-      })
+      }),
+    defaultCollectionLocation: Yup.string().max(1024)
   });
 
   const formik = useFormik({
@@ -50,7 +52,8 @@ const General = ({ close }) => {
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
-      sendCookies: get(preferences, 'request.sendCookies', true)
+      sendCookies: get(preferences, 'request.sendCookies', true),
+      defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', '')
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -79,10 +82,13 @@ const General = ({ close }) => {
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies
+        },
+        general: {
+          defaultCollectionLocation: newPreferences.defaultCollectionLocation
         }
-      })
-    )
+      }))
       .then(() => {
+        toast.success('Preferences saved successfully')
         close();
       })
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -97,6 +103,19 @@ const General = ({ close }) => {
 
   const deleteCaCertificate = () => {
     formik.setFieldValue('customCaCertificate.filePath', null);
+  };
+
+  const browseDefaultLocation = () => {
+    dispatch(browseDirectory())
+      .then((dirPath) => {
+        if (typeof dirPath === 'string') {
+          formik.setFieldValue('defaultCollectionLocation', dirPath);
+        }
+      })
+      .catch((error) => {
+        formik.setFieldValue('defaultCollectionLocation', '');
+        console.error(error);
+      });
   };
 
   return (
@@ -125,7 +144,7 @@ const General = ({ close }) => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="customCaCertificateEnabled">
-            Use custom CA Certificate
+            Use Custom CA Certificate
           </label>
         </div>
         {formik.values.customCaCertificate.filePath ? (
@@ -176,14 +195,14 @@ const General = ({ close }) => {
             name="keepDefaultCaCertificates.enabled"
             checked={formik.values.keepDefaultCaCertificates.enabled}
             onChange={formik.handleChange}
-            className={`mousetrap mr-0 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
-            disabled={formik.values.customCaCertificate.enabled ? false : true}
+            className={`mousetrap mr-0 ${formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? '' : 'opacity-25'}`}
+            disabled={formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? false : true}
           />
           <label
-            className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
+            className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? '' : 'opacity-25'}`}
             htmlFor="keepDefaultCaCertificatesEnabled"
           >
-            Keep default CA Certificates
+            Keep Default CA Certificates
           </label>
         </div>
         <div className="flex items-center mt-2">
@@ -230,6 +249,35 @@ const General = ({ close }) => {
         </div>
         {formik.touched.timeout && formik.errors.timeout ? (
           <div className="text-red-500">{formik.errors.timeout}</div>
+        ) : null}
+        <div className="flex flex-col mt-6">
+          <label className="block select-none default-collection-location-label" htmlFor="defaultCollectionLocation">
+            Default Collection Location
+          </label>
+          <input
+            type="text"
+            name="defaultCollectionLocation"
+            className="block textbox mt-2 w-full cursor-pointer default-collection-location-input"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={formik.handleChange}
+            value={formik.values.defaultCollectionLocation || ''}
+            onClick={browseDefaultLocation}
+            placeholder="Click to browse for default location"
+          />
+          <div className="mt-1">
+            <span
+              className="text-link cursor-pointer hover:underline default-collection-location-browse"
+              onClick={browseDefaultLocation}
+            >
+              Browse
+            </span>
+          </div>
+        </div>
+        {formik.touched.defaultCollectionLocation && formik.errors.defaultCollectionLocation ? (
+          <div className="text-red-500">{formik.errors.defaultCollectionLocation}</div>
         ) : null}
         <div className="mt-10">
           <button type="submit" className="submit btn btn-sm btn-secondary">

@@ -7,11 +7,12 @@ const { setupProxyAgents } = require('../../utils/proxy-util');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
+const { createFormData } = require('../../utils/form-data');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
 const LOCALHOST = 'localhost';
-const version = electronApp?.app?.getVersion()?.substring(1) ?? "";
+const version = electronApp?.app?.getVersion() ?? "";
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 
 const saveCookies = (url, headers) => {
@@ -102,9 +103,12 @@ function makeAxiosInstance({
     const url = URL.parse(config.url);
     config.metadata = config.metadata || {};
     config.metadata.startTime = new Date().getTime();
-    const timeline = config.metadata.timeline || []
-  
+    const timeline = config.metadata.timeline || [];
     // Add initial request details to the timeline
+    timeline.push({
+      timestamp: new Date(),
+      type: 'separator'
+    });
     timeline.push({
       timestamp: new Date(),
       type: 'info',
@@ -173,10 +177,13 @@ function makeAxiosInstance({
       });
     }
     catch(err) {
+      if (err.timeline) {
+        timeline = err.timeline;
+      }
       timeline.push({
         timestamp: new Date(),
         type: 'error',
-        message: err?.message,
+        message: `Error setting up proxy agents: ${err?.message}`,
       });
     }
     config.metadata.timeline = timeline;
@@ -264,21 +271,12 @@ function makeAxiosInstance({
 
           if (redirectCount >= requestMaxRedirects) {
             const errorResponseData = error.response.data;
-            const dataBuffer = Buffer.isBuffer(errorResponseData) ? errorResponseData : Buffer.from(errorResponseData);
             timeline?.push({
               timestamp: new Date(),
               type: 'error',
               message: safeStringifyJSON(errorResponseData?.toString?.())
             });
-            return {
-              status: error.response.status,
-              statusText: error.response.statusText,
-              headers: error.response.headers,
-              data: errorResponseData?.toString?.(),
-              size: Buffer.byteLength(dataBuffer),
-              duration: error.response.headers.get('request-duration') ?? 0,
-              timeline: error.response.timeline
-            };
+            return Promise.reject(error);
           }
 
           // Increase redirect count
@@ -300,7 +298,7 @@ function makeAxiosInstance({
           }
 
           if (preferencesUtil.shouldStoreCookies()) {
-            saveCookies(redirectUrl, error.response.headers);
+            saveCookies(error.config.url, error.response.headers);
           }
 
           // Create a new request config for the redirect
@@ -312,6 +310,62 @@ function makeAxiosInstance({
             },
           };
 
+          // Apply proper HTTP redirect behavior based on status code
+          const statusCode = error.response.status;
+          const originalMethod = (error.config.method || 'get').toLowerCase();
+
+          // For 301, 302, 303: change method to GET unless it was HEAD
+          if ([301, 302, 303].includes(statusCode) && originalMethod !== 'head') {
+              requestConfig.method = 'get';
+              requestConfig.data = undefined;
+              delete requestConfig.headers['content-length'];
+              delete requestConfig.headers['Content-Length'];
+              
+              delete requestConfig.headers['content-type']; 
+              delete requestConfig.headers['Content-Type'];
+              
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`,
+              });
+          } else {
+            // For 307, 308 and other status codes: preserve method and body
+            if (requestConfig.data && typeof requestConfig.data === 'object' && 
+                requestConfig.data.constructor && requestConfig.data.constructor.name === 'FormData') {
+              
+              const formData = requestConfig.data;
+              if (formData._released || (formData._streams && formData._streams.length === 0)) {
+                if (error.config._originalMultipartData && error.config.collectionPath) {
+                  timeline.push({
+                    timestamp: new Date(),
+                    type: 'info',
+                    message: `Recreating consumed FormData for ${statusCode} redirect`,
+                  });
+
+                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+                  requestConfig.data = recreatedForm;
+                  
+                  const formHeaders = recreatedForm.getHeaders();
+                  Object.assign(requestConfig.headers, formHeaders);
+                  
+                  // preserve the original data for potential future redirects
+                  requestConfig._originalMultipartData = error.config._originalMultipartData;
+                  requestConfig.collectionPath = error.config.collectionPath;
+                } else {
+                  timeline.push({
+                    timestamp: new Date(),
+                    type: 'info',
+                    message: `FormData consumed but no original data available for ${statusCode} redirect`,
+                  });
+                }
+              } else {
+                requestConfig._originalMultipartData = error.config._originalMultipartData;
+                requestConfig.collectionPath = error.config.collectionPath;
+              }
+            }
+          }
+
           if (preferencesUtil.shouldSendCookies()) {
             const cookieString = getCookieStringForUrl(redirectUrl);
             if (cookieString && typeof cookieString === 'string' && cookieString.length) {
@@ -319,14 +373,26 @@ function makeAxiosInstance({
             }
           }
 
-          setupProxyAgents({
-            requestConfig,
-            proxyMode,
-            proxyConfig,
-            httpsAgentRequestFields,
-            interpolationOptions,
-            timeline
-          });
+          try { 
+            setupProxyAgents({
+              requestConfig,
+              proxyMode,
+              proxyConfig,
+              httpsAgentRequestFields,
+              interpolationOptions,
+              timeline
+            });
+          }
+          catch(err) {
+            if (err.timeline) {
+              timeline = err.timeline;
+            }
+            timeline.push({
+              timestamp: new Date(),
+              type: 'error',
+              message: `Error setting up proxy agents: ${err?.message}`,
+            });
+          }
 
           requestConfig.metadata.timeline = timeline;
           // Make the redirected request
@@ -334,7 +400,11 @@ function makeAxiosInstance({
         }
         else {
           const errorResponseData = error.response.data;
-          const dataBuffer = Buffer.isBuffer(errorResponseData) ? errorResponseData : Buffer.from(errorResponseData);
+          timeline.push({
+            timestamp: new Date(),
+            type: 'response',
+            message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`,
+          });
           Object.entries(error?.response?.headers || {}).forEach(([key, value]) => {
             timeline.push({
               timestamp: new Date(),
@@ -357,15 +427,8 @@ function makeAxiosInstance({
             type: 'error',
             message: safeStringifyJSON(error?.errors)
           });
-          return {
-            status: error.response.status,
-            statusText: error.response.statusText,
-            headers: error.response.headers,
-            data: errorResponseData?.toString?.(),
-            size: Buffer.byteLength(dataBuffer),
-            duration: error.response.headers.get('request-duration') ?? 0,
-            timeline
-          };
+          error.response.timeline = timeline;
+          return Promise.reject(error);
         }
       }
       else if (error?.code) {
@@ -386,13 +449,9 @@ function makeAxiosInstance({
           type: 'error',
           message: safeStringifyJSON(error?.errors)
         });
-        return {
-          status: '-',
-          statusText: error.code,
-          headers: error?.config?.headers,
-          data: 'request failed, check timeline network logs',
-          timeline
-        };
+        error.timeline = timeline;
+        error.statusText = error.code;
+        return Promise.reject(error);
       }
       return Promise.reject(error);
     }
