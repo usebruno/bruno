@@ -118,7 +118,6 @@ const RequestTabs = () => {
                           }));
                         }}
                         className={getTabClassname(tab, index)}
-                        role="tab"
                         onClick={() => handleClick(tab)}
                       >
                         <RequestTab
