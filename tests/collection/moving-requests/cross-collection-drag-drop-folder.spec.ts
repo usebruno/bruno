@@ -1,6 +1,12 @@
 import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop for folder', () => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
   test('Verify cross-collection folder drag and drop', async ({ pageWithUserData: page, createTmpDir }) => {
     // Create first collection - click dropdown menu first
     await page.locator('.dropdown-icon').click();

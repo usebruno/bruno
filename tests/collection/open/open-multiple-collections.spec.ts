@@ -57,8 +57,8 @@ test.describe('Open Multiple Collections', () => {
 
     await expect(page.locator('#sidebar-collection-name').getByText('Test Collection 1')).not.toBeVisible();
 
-    // Click on Open Collection(s) button
-    await page.getByRole('button', { name: 'Open Collection' }).click();
+    // Click on Open Collection button
+    await page.locator('button').filter({ hasText: 'Open Collection' }).click();
 
     // Wait for both collections to appear in the sidebar
     const collection1Element = page.locator('#sidebar-collection-name').getByText('Test Collection 1');
@@ -91,7 +91,7 @@ test.describe('Open Multiple Collections', () => {
 
     await expect(page.locator('#sidebar-collection-name').getByText('Test Collection 1')).not.toBeVisible();
 
-    // Click on Open Collection(s) button
+    // Click on Open Collection button
     await page.getByRole('button', { name: 'Open Collection' }).click();
 
     // Verify no collections were opened

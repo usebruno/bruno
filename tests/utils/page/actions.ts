@@ -12,7 +12,11 @@ const closeAllCollections = async (page) => {
     for (let i = 0; i < numberOfCollections; i++) {
       await page.locator('.collection-name').first().locator('.collection-actions').click();
       await page.locator('.dropdown-item').getByText('Close').click();
-      await page.getByRole('button', { name: 'Close' }).click();
+      // Wait for the close collection modal to be visible
+      await page.locator('.bruno-modal-header-title', { hasText: 'Close Collection' }).waitFor({ state: 'visible' });
+      await page.locator('.bruno-modal-footer .submit').click();
+      // Wait for the close collection modal to be hidden
+      await page.locator('.bruno-modal-header-title', { hasText: 'Close Collection' }).waitFor({ state: 'hidden' });
     }
 
     // Wait until no collections are left open
