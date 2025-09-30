@@ -17,7 +17,7 @@ import { autoDetectLang } from 'utils/codemirror/lang-detect';
 const TYPE_BY_DECODER = {
   base64: 'binary',
   json: 'json',
-  xml: 'xml',
+  xml: 'xml'
 };
 
 const DECODER_BY_TYPE = invert(TYPE_BY_DECODER);
@@ -31,46 +31,46 @@ const SingleWSMessage = ({
   isCollapsed,
   onToggleCollapse,
   handleRun,
-  canClientSendMultipleMessages,
+  canClientSendMultipleMessages
 }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
-  const preferences = useSelector(state => state.app.preferences);
+  const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
 
   const { name, content, type } = message;
   const [messageFormat, setMessageFormat] = useState(autoDetectLang(content));
 
-  const onUpdateMessageType = type => {
+  const onUpdateMessageType = (type) => {
     setMessageFormat(type);
 
     const currentMessages = [...(body.ws || [])];
 
     currentMessages[index] = {
       ...currentMessages[index],
-      type: DECODER_BY_TYPE[type],
+      type: DECODER_BY_TYPE[type]
     };
 
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 
-  const onEdit = value => {
+  const onEdit = (value) => {
     const currentMessages = [...(body.ws || [])];
 
     currentMessages[index] = {
       name: name ? name : `message ${index + 1}`,
       type: DECODER_BY_TYPE[messageFormat],
-      content: value,
+      content: value
     };
 
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 
@@ -84,7 +84,7 @@ const SingleWSMessage = ({
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 
@@ -99,7 +99,7 @@ const SingleWSMessage = ({
   const codemirrorMode = {
     text: 'application/text',
     xml: 'application/xml',
-    json: 'application/ld+json',
+    json: 'application/ld+json'
   };
 
   const onPrettify = () => {
@@ -112,12 +112,12 @@ const SingleWSMessage = ({
         currentMessages[index] = {
           ...currentMessages[index],
           name: name ? name : `message ${index + 1}`,
-          content: prettyBodyJson,
+          content: prettyBodyJson
         };
         dispatch(updateRequestBody({
           content: currentMessages,
           itemUid: item.uid,
-          collectionUid: collection.uid,
+          collectionUid: collection.uid
         }));
       } catch (e) {
         toastError(new Error('Unable to prettify. Invalid JSON format.'));
@@ -132,13 +132,13 @@ const SingleWSMessage = ({
         currentMessages[index] = {
           ...currentMessages[index],
           name: name ? name : `message ${index + 1}`,
-          content: prettyBodyXML,
+          content: prettyBodyXML
         };
 
         dispatch(updateRequestBody({
           content: currentMessages,
           itemUid: item.uid,
-          collectionUid: collection.uid,
+          collectionUid: collection.uid
         }));
       } catch (e) {
         toastError(new Error('Unable to prettify. Invalid XML format.'));
@@ -161,7 +161,7 @@ const SingleWSMessage = ({
             <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
           )}
         </div>
-        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <WSRequestBodyMode mode={messageFormat} onModeChange={onUpdateMessageType} />
           <ToolHint text="Prettify" toolhintId={`prettify-msg-${index}`}>
             <button
@@ -205,7 +205,7 @@ const SingleWSMessage = ({
 };
 
 const WSBody = ({ item, collection, handleRun }) => {
-  const preferences = useSelector(state => state.app.preferences);
+  const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const dispatch = useDispatch();
   const [collapsedMessages, setCollapsedMessages] = useState([]);
@@ -223,10 +223,10 @@ const WSBody = ({ item, collection, handleRun }) => {
     }
   }, [body?.ws?.length]);
 
-  const toggleMessageCollapse = index => {
-    setCollapsedMessages(prev => {
+  const toggleMessageCollapse = (index) => {
+    setCollapsedMessages((prev) => {
       if (prev.includes(index)) {
-        return prev.filter(i => i !== index);
+        return prev.filter((i) => i !== index);
       } else {
         return [...prev, index];
       }
@@ -238,13 +238,13 @@ const WSBody = ({ item, collection, handleRun }) => {
 
     currentMessages.push({
       name: `message ${currentMessages.length + 1}`,
-      content: '{}',
+      content: '{}'
     });
 
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 

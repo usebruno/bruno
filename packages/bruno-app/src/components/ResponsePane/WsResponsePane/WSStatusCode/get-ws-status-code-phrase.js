@@ -14,7 +14,7 @@ const wsStatusCodePhraseMap = {
   1012: 'SERVICE_RESTART',
   1013: 'TRY_AGAIN_LATER',
   1014: 'BAD_GATEWAY',
-  1015: 'TLS_HANDSHAKE',
+  1015: 'TLS_HANDSHAKE'
 };
 
 export default wsStatusCodePhraseMap;

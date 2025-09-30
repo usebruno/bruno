@@ -22,7 +22,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         requestUid: requestId,
-        eventData,
+        eventData
       }));
     });
 
@@ -31,7 +31,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'upgrade',
-        eventData: eventData,
+        eventData: eventData
       }));
     });
 
@@ -40,7 +40,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'redirect',
-        eventData: eventData,
+        eventData: eventData
       }));
     });
 
@@ -50,7 +50,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'message',
-        eventData: eventData,
+        eventData: eventData
       }));
     });
 
@@ -60,7 +60,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'open',
-        eventData: eventData,
+        eventData: eventData
       }));
     });
 
@@ -70,7 +70,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'close',
-        eventData: eventData,
+        eventData: eventData
       }));
     });
 
@@ -80,7 +80,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'error',
-        eventData: eventData,
+        eventData: eventData
       }));
     });
 
@@ -90,11 +90,11 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'connecting',
-        eventData: eventData,
+        eventData: eventData
       }));
     });
 
-    const removeWsConnectionsChangedListener = ipcRenderer.on('ws:connections-changed', data => {
+    const removeWsConnectionsChangedListener = ipcRenderer.on('ws:connections-changed', (data) => {
       dispatch(updateActiveConnectionsInStore(data));
     });
 

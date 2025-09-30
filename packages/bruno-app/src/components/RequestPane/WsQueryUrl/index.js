@@ -38,16 +38,16 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     return () => clearInterval(interval);
   }, [item.uid]);
 
-  const onUrlChange = value => {
+  const onUrlChange = (value) => {
     closeWsConnection(item.uid);
     dispatch(requestUrlChanged({
       url: value,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 
-  const handleCloseConnection = e => {
+  const handleCloseConnection = (e) => {
     e.stopPropagation();
 
     closeWsConnection(item.uid)
@@ -56,13 +56,13 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
         setIsConnectionActive(false);
         setIsConnecting(false);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Failed to close WebSocket connection:', err);
         toast.error('Failed to close WebSocket connection');
       });
   };
 
-  const handleRunClick = async e => {
+  const handleRunClick = async (e) => {
     e.stopPropagation();
     if (!url) {
       toast.error('Please enter a valid WebSocket URL');
@@ -71,12 +71,12 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     handleRun(e);
   };
 
-  const handleConnect = e => {
+  const handleConnect = (e) => {
     setIsConnecting(true);
     dispatch(wsConnectOnly(item, collection.uid));
   };
 
-  const onSave = finalValue => {
+  const onSave = (finalValue) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
@@ -89,7 +89,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
           </div>
           <SingleLineEditor
             value={url}
-            onSave={finalValue => onSave(finalValue)}
+            onSave={(finalValue) => onSave(finalValue)}
             onChange={onUrlChange}
             placeholder="ws://localhost:8080 or wss://example.com"
             className="w-full"
@@ -99,7 +99,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
           <div className="flex items-center h-full mr-2 cursor-pointer">
             <div
               className="infotip mr-3"
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation();
                 if (!item.draft) return;
                 onSave();
@@ -142,7 +142,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                   <IconPlugConnected
                     className={
                       classnames('cursor-pointer', {
-                        'animate-pulse': isConnecting,
+                        'animate-pulse': isConnecting
                       })
                     }
                     color={theme.colors.text.green}

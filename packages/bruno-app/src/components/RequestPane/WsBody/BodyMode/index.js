@@ -6,7 +6,7 @@ import StyledWrapper from './StyledWrapper';
 
 const WSRequestBodyMode = ({ mode, onModeChange }) => {
   const dropdownTippyRef = useRef();
-  const onDropdownCreate = ref => (dropdownTippyRef.current = ref);
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const Icon = forwardRef((props, ref) => {
     return (

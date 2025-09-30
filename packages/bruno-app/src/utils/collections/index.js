@@ -262,7 +262,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
             file: copyFileParams(si.request.body.file),
             grpc: si.request.body.grpc,
-            ws: si.request.body.ws,
+            ws: si.request.body.ws
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -429,7 +429,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         if (di.request.body.mode === 'ws') {
           di.request.body.ws = di.request.body.ws.map(({ name, content }, index) => ({
             name: name ? name : `message ${index + 1}`,
-            content: replaceTabsWithSpaces(content),
+            content: replaceTabsWithSpaces(content)
           }));
         }
       }
@@ -670,8 +670,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
       ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
-        content: replaceTabsWithSpaces(content),
-      })),
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 

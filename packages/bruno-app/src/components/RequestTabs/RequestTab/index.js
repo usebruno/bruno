@@ -69,7 +69,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const getMethodColor = (method = '') => {
     const colorMap = {
       ...theme.request.methods,
-      ...theme.request,
+      ...theme.request
     };
     return colorMap[method.toLocaleLowerCase()];
   };
@@ -94,7 +94,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const item = findItemInCollection(collection, tab.uid);
 
-  const getMethodText = useCallback(item => {
+  const getMethodText = useCallback((item) => {
     if (!item) return;
     const isGrpc = item.type === 'grpc-request';
     const isWS = item.type === 'ws-request';

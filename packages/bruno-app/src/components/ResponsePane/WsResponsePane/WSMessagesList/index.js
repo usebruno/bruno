@@ -10,38 +10,38 @@ import _ from 'lodash';
 import { useRef } from 'react';
 import { useEffect } from 'react';
 
-const getContentMeta = content => {
+const getContentMeta = (content) => {
   if (typeof content === 'object') {
     return {
       isJSON: true,
-      content: JSON.stringify(content, null, 0),
+      content: JSON.stringify(content, null, 0)
     };
   }
   try {
     return {
       isJSON: true,
-      content: JSON.stringify(JSON.parse(content), null, 0),
+      content: JSON.stringify(JSON.parse(content), null, 0)
     };
   } catch {
     return {
       isJSON: false,
-      content: content,
+      content: content
     };
   }
 };
 
-const parseContent = content => {
+const parseContent = (content) => {
   let contentMeta = getContentMeta(content);
   return {
     type: contentMeta.isJSON ? 'application/json' : 'text/plain',
-    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content,
+    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content
   };
 };
 
-const getDataTypeText = type => {
+const getDataTypeText = (type) => {
   const textMap = {
     'text/plain': 'RAW',
-    'application/json': 'JSON',
+    'application/json': 'JSON'
   };
   return textMap[type] ?? 'RAW';
 };
@@ -52,20 +52,20 @@ const getDataTypeText = type => {
  */
 const TypeIcon = ({ type }) => {
   const commonProps = {
-    size: 18,
+    size: 18
   };
   return {
     incoming: <IconArrowDownLeft {...commonProps} />,
     outgoing: <IconArrowUpRight {...commonProps} />,
     info: <IconInfoCircle {...commonProps} />,
-    error: <IconExclamationCircle {...commonProps} />,
+    error: <IconExclamationCircle {...commonProps} />
   }[type];
 };
 
 const WSMessageItem = ({ message, inFocus }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showHex, setShowHex] = useState(false);
-  const preferences = useSelector(state => state.app.preferences);
+  const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
   const [isNew, setIsNew] = useState(false);
   const notified = useRef(false);
@@ -94,7 +94,7 @@ const WSMessageItem = ({ message, inFocus }) => {
 
   return (
     <div
-      ref={node => {
+      ref={(node) => {
         if (!node) return;
         if (inFocus) node.scrollIntoView();
       }}
@@ -102,15 +102,15 @@ const WSMessageItem = ({ message, inFocus }) => {
         'ws-incoming': isIncoming,
         'ws-outgoing': !isIncoming,
         'open': isOpen,
-        'new': isNew,
+        'new': isNew
       })}
     >
       <div
         className={classnames('flex items-center justify-between', {
           'cursor-pointer': !isInfo,
-          'cursor-not-allowed': isInfo,
+          'cursor-not-allowed': isInfo
         })}
-        onClick={e => {
+        onClick={(e) => {
           if (!canOpenMessage) return;
           setIsOpen(!isOpen);
         }}
@@ -123,7 +123,7 @@ const WSMessageItem = ({ message, inFocus }) => {
                 'text-yellow-700': isOutgoing,
                 'text-blue-700': isInfo,
                 'text-red-700': isError,
-                'text-red-700': isError,
+                'text-red-700': isError
               })}
           >
             <TypeIcon type={message.type} />
@@ -153,7 +153,7 @@ const WSMessageItem = ({ message, inFocus }) => {
             <div
               className={classnames('select-none capitalize', {
                 'active': showHex,
-                'cursor-pointer': !showHex,
+                'cursor-pointer': !showHex
               })}
               role="tab"
               onClick={() => setShowHex(true)}
@@ -163,7 +163,7 @@ const WSMessageItem = ({ message, inFocus }) => {
             <div
               className={classnames('select-none capitalize', {
                 'active': !showHex,
-                'cursor-pointer': showHex,
+                'cursor-pointer': showHex
               })}
               role="tab"
               onClick={() => setShowHex(false)}

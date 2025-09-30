@@ -33,7 +33,7 @@ const WSAuth = ({ item, collection }) => {
       dispatch(updateRequestAuthMode({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        mode: 'none',
+        mode: 'none'
       }));
     }
   }, [authMode, collection.uid, dispatch, item.uid]);
@@ -45,7 +45,7 @@ const WSAuth = ({ item, collection }) => {
     let effectiveSource = {
       type: 'collection',
       name: 'Collection',
-      auth: collectionAuth,
+      auth: collectionAuth
     };
 
     // Check folders in reverse to find the closest auth configuration
@@ -56,7 +56,7 @@ const WSAuth = ({ item, collection }) => {
           effectiveSource = {
             type: 'folder',
             name: i.name,
-            auth: folderAuth,
+            auth: folderAuth
           };
           break;
         }

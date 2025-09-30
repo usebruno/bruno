@@ -23,25 +23,25 @@ const getPropertyFromDraftOrRequest = (propertyKey, item) =>
 const WSSettingsPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const requestPreferences = useSelector(state => state.app.preferences.request);
+  const requestPreferences = useSelector((state) => state.app.preferences.request);
 
   const { _connectionTimeout, keepAliveInterval = 0 } = getPropertyFromDraftOrRequest('settings', item);
 
   const connectionTimeout = _connectionTimeout ?? requestPreferences.timeout;
 
-  const onChangeConnectionTimeout = val => {
+  const onChangeConnectionTimeout = (val) => {
     dispatch(updateItemSettings({
       collectionUid: collection.uid,
       itemUid: item.uid,
-      settings: { connectionTimeout: val },
+      settings: { connectionTimeout: val }
     }));
   };
 
-  const onChangeKeepAliveInterval = val => {
+  const onChangeKeepAliveInterval = (val) => {
     dispatch(updateItemSettings({
       collectionUid: collection.uid,
       itemUid: item.uid,
-      settings: { keepAliveInterval: val },
+      settings: { keepAliveInterval: val }
     }));
   };
 
@@ -67,7 +67,7 @@ const WSSettingsPane = ({ item, collection }) => {
             <SingleLineEditor
               value={connectionTimeout}
               theme={storedTheme}
-              onChange={newValue => onChangeConnectionTimeout(newValue)}
+              onChange={(newValue) => onChangeConnectionTimeout(newValue)}
               collection={collection}
             />
           </div>
@@ -95,7 +95,7 @@ const WSSettingsPane = ({ item, collection }) => {
             <SingleLineEditor
               value={keepAliveInterval}
               theme={storedTheme}
-              onChange={newValue => onChangeKeepAliveInterval(newValue)}
+              onChange={(newValue) => onChangeKeepAliveInterval(newValue)}
               collection={collection}
             />
           </div>

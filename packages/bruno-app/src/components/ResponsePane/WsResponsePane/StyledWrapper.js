@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   height: 100%;
   overflow: hidden;
-  background: ${props => props.theme.bg};
+  background: ${(props) => props.theme.bg};
   border-radius: 4px;
 
   div.tabs {
@@ -25,8 +25,8 @@ const StyledWrapper = styled.div`
       }
 
       &.active {
-        color: ${props => props.theme.tabs.active.color} !important;
-        border-bottom: solid 2px ${props => props.theme.tabs.active.border} !important;
+        color: ${(props) => props.theme.tabs.active.color} !important;
+        border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }
     }
   }
@@ -36,15 +36,15 @@ const StyledWrapper = styled.div`
     align-items: center;
 
     &.complete {
-      color: ${props => props.theme.colors.text.green};
+      color: ${(props) => props.theme.colors.text.green};
     }
 
     &.cancelled {
-      color: ${props => props.theme.colors.text.danger};
+      color: ${(props) => props.theme.colors.text.danger};
     }
 
     &.streaming {
-      color: ${props => props.theme.colors.text.blue};
+      color: ${(props) => props.theme.colors.text.blue};
     }
   }
 

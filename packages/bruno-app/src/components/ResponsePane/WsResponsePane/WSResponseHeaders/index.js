@@ -2,7 +2,7 @@ import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const WSResponseHeaders = ({ response }) => {
-  const formatHeaders = headers => {
+  const formatHeaders = (headers) => {
     if (!headers) return [];
     if (Array.isArray(headers)) return headers;
     return Object.entries(headers).map(([key, value]) => ({ name: key, value }));

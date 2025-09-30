@@ -61,7 +61,7 @@ const wsStatusCodes = {
   1012: 'SERVICE_RESTART',
   1013: 'TRY_AGAIN_LATER',
   1014: 'BAD_GATEWAY',
-  1015: 'TLS_HANDSHAKE',
+  1015: 'TLS_HANDSHAKE'
 };
 
 const initialState = {
@@ -99,7 +99,7 @@ const initiatedWsResponse = {
   error: null,
   errorDetails: null,
   metadata: [],
-  trailers: [],
+  trailers: []
 };
 
 export const collectionsSlice = createSlice({
@@ -2780,7 +2780,7 @@ export const collectionsSlice = createSlice({
         item.response = {
           ...initiatedWsResponse,
           initiatedWsResponse,
-          statusText: 'CONNECTING',
+          statusText: 'CONNECTING'
         };
       }
 
@@ -2798,8 +2798,8 @@ export const collectionsSlice = createSlice({
         data: {
           request: eventData || item.requestSent || item.request,
           timestamp: Date.now(),
-          eventData: eventData,
-        },
+          eventData: eventData
+        }
       });
     },
     wsResponseReceived: (state, action) => {
@@ -2819,7 +2819,7 @@ export const collectionsSlice = createSlice({
         ...currentResponse,
         isError: false,
         error: '',
-        duration: Date.now() - (timestamp || Date.now()),
+        duration: Date.now() - (timestamp || Date.now())
       };
 
       // Process based on event type
@@ -2835,7 +2835,7 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             message: eventData.message,
             type: eventData.type,
-            timestamp: eventData.timestamp,
+            timestamp: eventData.timestamp
           });
           break;
 
@@ -2851,7 +2851,7 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             message: `Connected to ${eventData.url}`,
             type: 'info',
-            timestamp: eventData.timestamp,
+            timestamp: eventData.timestamp
           });
           break;
 
@@ -2867,7 +2867,7 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             type: code !== 1000 ? 'info' : 'error',
             message: reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
-            timestamp,
+            timestamp
           });
           break;
 
@@ -2881,7 +2881,7 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             type: 'error',
             message: errorDetails || 'WebSocket error occurred',
-            timestamp,
+            timestamp
           });
 
           break;
@@ -2903,7 +2903,7 @@ export const collectionsSlice = createSlice({
           item.response.sortOrder = item.response.sortOrder ? -item.response.sortOrder : -1;
         }
       }
-    },
+    }
   }
 });
 
@@ -3035,7 +3035,7 @@ export const {
   updateActiveConnections,
   runWsRequestEvent,
   wsResponseReceived,
-  wsUpdateResponseSortOrder,
+  wsUpdateResponseSortOrder
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

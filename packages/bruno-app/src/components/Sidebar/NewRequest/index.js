@@ -183,13 +183,13 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           requestType: values.requestType,
           requestUrl: values.requestUrl,
           collectionUid: collection.uid,
-          itemUid: item ? item.uid : null,
+          itemUid: item ? item.uid : null
         }))
           .then(() => {
             toast.success('New request created!');
             onClose();
           })
-          .catch(err => toast.error(err ? err.message : 'An error occurred while adding the request'));
+          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else if (isEphemeral) {
         const uid = uuid();
         dispatch(

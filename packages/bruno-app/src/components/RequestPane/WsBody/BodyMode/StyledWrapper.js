@@ -17,7 +17,7 @@ const Wrapper = styled.div`
     }
 
     .selected-body-mode {
-      color: ${props => props.theme.colors.text.yellow};
+      color: ${(props) => props.theme.colors.text.yellow};
     }
   }
 

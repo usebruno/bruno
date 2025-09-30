@@ -217,15 +217,15 @@ export const generateGrpcSampleMessage = async (methodPath, existingMessage = nu
 export const connectWS = async (item, collection, environment, runtimeVariables, options) => {
   return new Promise((resolve, reject) => {
     startWsConnection(item, collection, environment, runtimeVariables, options)
-      .then(initialState => {
+      .then((initialState) => {
         // Return an initial state object to update the UI
         // The real response data will be handled by event listeners
         resolve({
           ...initialState,
-          timeline: [],
+          timeline: []
         });
       })
-      .catch(err => reject(err));
+      .catch((err) => reject(err));
   });
 };
 
@@ -239,14 +239,14 @@ export const sendWsRequest = (item, collection, environment, runtimeVariables) =
     };
     const { request } = item.draft ? item.draft : item;
     queueWsMessage(item, collection.uid, request.body.ws[0].content)
-      .then(initialState => {
+      .then((initialState) => {
         // Return an initial state object to update the UI
         // The real response data will be handled by event listeners
         resolve({
-          ...initialState,
+          ...initialState
         });
       })
-      .catch(err => reject(err));
+      .catch((err) => reject(err));
     await ensureConnection();
   });
 };
@@ -264,12 +264,12 @@ export const startWsConnection = async (item, collection, environment, runtimeVa
         environment,
         runtimeVariables,
         settings,
-        options,
+        options
       })
       .then(() => {
         resolve();
       })
-      .catch(err => {
+      .catch((err) => {
         reject(err);
       });
   });
@@ -307,7 +307,7 @@ export const sendWsMessage = async (item, collectionUid, message) => {
  * @param {string} requestId - The request ID to close
  * @returns {Promise<Object>} - The result of the close operation
  */
-export const closeWsConnection = async requestId => {
+export const closeWsConnection = async (requestId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('ws:close-connection', requestId).then(resolve).catch(reject);
@@ -319,7 +319,7 @@ export const closeWsConnection = async requestId => {
  * @param {string} requestId - The request ID to check
  * @returns {Promise<boolean>} - Whether the connection is active
  */
-export const isWsConnectionActive = async requestId => {
+export const isWsConnectionActive = async (requestId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('ws:is-connection-active', requestId).then(resolve).catch(reject);

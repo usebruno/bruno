@@ -10,7 +10,7 @@ const Wrapper = styled.div`
 
   .ws-message-header {
     .font-medium {
-      color: ${props => props.theme.text};
+      color: ${(props) => props.theme.text};
     }
     
     button {
@@ -40,9 +40,9 @@ const Wrapper = styled.div`
     left: 0;
     right: 0;
     padding-top: 8px;
-    background: ${props => props.theme.bg || '#fff'};
+    background: ${(props) => props.theme.bg || '#fff'};
     z-index: 15;
-    border-top: 1px solid ${props => props.theme.border || 'rgba(0, 0, 0, 0.1)'};
+    border-top: 1px solid ${(props) => props.theme.border || 'rgba(0, 0, 0, 0.1)'};
     
     .add-message-btn {
       width: 100%;

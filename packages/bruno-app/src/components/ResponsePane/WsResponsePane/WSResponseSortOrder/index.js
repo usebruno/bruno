@@ -12,7 +12,7 @@ const WSResponseSortOrder = ({ collection, item }) => {
   const toggleSortOrder = () => {
     dispatch(wsUpdateResponseSortOrder({
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 

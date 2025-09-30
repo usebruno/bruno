@@ -10,34 +10,34 @@ import StyledWrapper from '../../../Auth/AuthMode/StyledWrapper';
 const WSAuthMode = ({ item, collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
-  const onDropdownCreate = ref => (dropdownTippyRef.current = ref);
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
 
   const authModes = [
     {
       name: 'Basic Auth',
-      mode: 'basic',
+      mode: 'basic'
     },
     {
       name: 'Bearer Token',
-      mode: 'bearer',
+      mode: 'bearer'
     },
     {
       name: 'API Key',
-      mode: 'apikey',
+      mode: 'apikey'
     },
     {
       name: 'OAuth2',
-      mode: 'oauth2',
+      mode: 'oauth2'
     },
     {
       name: 'Inherit',
-      mode: 'inherit',
+      mode: 'inherit'
     },
     {
       name: 'No Auth',
-      mode: 'none',
-    },
+      mode: 'none'
+    }
   ];
 
   const Icon = forwardRef((props, ref) => {
@@ -50,15 +50,15 @@ const WSAuthMode = ({ item, collection }) => {
     );
   });
 
-  const onModeChange = value => {
+  const onModeChange = (value) => {
     dispatch(updateRequestAuthMode({
       itemUid: item.uid,
       collectionUid: collection.uid,
-      mode: value,
+      mode: value
     }));
   };
 
-  const onClickHandler = mode => {
+  const onClickHandler = (mode) => {
     dropdownTippyRef?.current?.hide();
     onModeChange(mode);
   };
@@ -67,7 +67,7 @@ const WSAuthMode = ({ item, collection }) => {
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer auth-mode-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-          {authModes.map(authMode => (
+          {authModes.map((authMode) => (
             <div
               key={authMode.mode}
               className="dropdown-item"

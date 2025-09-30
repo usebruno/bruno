@@ -32,7 +32,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
     };
     return {
       has: collection?.items?.filter(checkItem).length || false,
-      types: [...types],
+      types: [...types]
     };
   }, [collection]);
 

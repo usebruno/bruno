@@ -281,10 +281,10 @@ const RequestTabPanel = () => {
             style={isVerticalLayout ? {
               height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
               minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
-              width: '100%',
+              width: '100%'
 
             } : {
-              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`,
+              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
             }}
           >
             {item.type === 'graphql-request' ? (

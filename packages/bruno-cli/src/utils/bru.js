@@ -111,7 +111,7 @@ const bruToJson = (bru) => {
       const bodyFromBru = _.get(json, 'body') || {};
       transformedJson.request.body = {
         mode: 'ws',
-        ws: [bodyFromBru],
+        ws: [bodyFromBru]
       };
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));

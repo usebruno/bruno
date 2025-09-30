@@ -2,9 +2,9 @@ import classnames from 'classnames';
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const getMethodFlags = item => ({
+const getMethodFlags = (item) => ({
   isGrpc: item.type === 'grpc-request',
-  isWS: item.type === 'ws-request',
+  isWS: item.type === 'ws-request'
 });
 
 const getMethodText = (item, { isGrpc, isWS }) =>
@@ -27,7 +27,7 @@ const getClassname = (method = '', { isGrpc, isWS }) => {
     'method-head': method === 'head',
     'method-options': method === 'options',
     'method-grpc': isGrpc,
-    'method-ws': isWS,
+    'method-ws': isWS
   });
 };
 

@@ -18,7 +18,7 @@ const BETA_FEATURES = [
   {
     id: 'websocket',
     label: 'Web Socket Support',
-    description: 'Enable Web Socket request support for making realtime calls to services',
+    description: 'Enable Web Socket request support for making realtime calls to services'
   },
   {
     id: 'nodevm',

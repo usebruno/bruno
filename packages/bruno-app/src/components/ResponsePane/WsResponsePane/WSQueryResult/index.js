@@ -10,7 +10,7 @@ import WSError from '../WSError';
 
 const WSQueryResult = ({ item, collection }) => {
   const { displayedTheme } = useTheme();
-  const preferences = useSelector(state => state.app.preferences);
+  const preferences = useSelector((state) => state.app.preferences);
   const [showErrorMessage, setShowErrorMessage] = useState(true);
 
   const response = item.response || {};
@@ -29,7 +29,7 @@ const WSQueryResult = ({ item, collection }) => {
   }, [response, hasError]);
 
   // Format a timestamp to a human-readable format
-  const formatTimestamp = timestamp => {
+  const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'Unknown time';
 
     try {
@@ -41,7 +41,7 @@ const WSQueryResult = ({ item, collection }) => {
   };
 
   // Format JSON for display
-  const formatJSON = data => {
+  const formatJSON = (data) => {
     try {
       if (typeof data === 'string') {
         return JSON.stringify(JSON.parse(data), null, 2);

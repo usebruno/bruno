@@ -12,13 +12,13 @@ const {
   mergeScripts,
   mergeVars,
   mergeAuth,
-  getFormattedCollectionOauth2Credentials,
+  getFormattedCollectionOauth2Credentials
 } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
 const {
   getOAuth2TokenUsingPasswordCredentials,
   getOAuth2TokenUsingClientCredentials,
-  getOAuth2TokenUsingAuthorizationCode,
+  getOAuth2TokenUsingAuthorizationCode
 } = require('../../utils/oauth2');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
@@ -29,13 +29,13 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const headers = {};
 
-  each(get(collectionRoot, 'request.headers', []), h => {
+  each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name?.toLowerCase() === 'content-type') {
       return false;
     }
   });
 
-  each(get(request, 'headers', []), h => {
+  each(get(request, 'headers', []), (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
     }
@@ -58,7 +58,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     folderVariables: request.folderVariables,
     requestVariables: request.requestVariables,
     globalEnvironmentVariables: request.globalEnvironmentVariables,
-    oauth2CredentialVariables: request.oauth2CredentialVariables,
+    oauth2CredentialVariables: request.oauth2CredentialVariables
   };
 
   wsRequest = setAuthHeaders(wsRequest, request, collection);
@@ -75,11 +75,11 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
           credentials,
           url: oauth2Url,
           credentialsId,
-          debugInfo,
+          debugInfo
         } = await getOAuth2TokenUsingAuthorizationCode({
           request: requestCopy,
           collectionUid: collection.uid,
-          certsAndProxyConfig,
+          certsAndProxyConfig
         }));
         wsRequest.oauth2Credentials = {
           credentials,
@@ -87,7 +87,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
           collectionUid: collection.uid,
           credentialsId,
           debugInfo,
-          folderUid: request.oauth2Credentials?.folderUid,
+          folderUid: request.oauth2Credentials?.folderUid
         };
         if (tokenPlacement == 'header') {
           wsRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -105,11 +105,11 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
           credentials,
           url: oauth2Url,
           credentialsId,
-          debugInfo,
+          debugInfo
         } = await getOAuth2TokenUsingClientCredentials({
           request: requestCopy,
           collectionUid: collection.uid,
-          certsAndProxyConfig,
+          certsAndProxyConfig
         }));
         wsRequest.oauth2Credentials = {
           credentials,
@@ -117,7 +117,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
           collectionUid: collection.uid,
           credentialsId,
           debugInfo,
-          folderUid: request.oauth2Credentials?.folderUid,
+          folderUid: request.oauth2Credentials?.folderUid
         };
         if (tokenPlacement == 'header') {
           wsRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -135,11 +135,11 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
           credentials,
           url: oauth2Url,
           credentialsId,
-          debugInfo,
+          debugInfo
         } = await getOAuth2TokenUsingPasswordCredentials({
           request: requestCopy,
           collectionUid: collection.uid,
-          certsAndProxyConfig,
+          certsAndProxyConfig
         }));
         wsRequest.oauth2Credentials = {
           credentials,
@@ -147,7 +147,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
           collectionUid: collection.uid,
           credentialsId,
           debugInfo,
-          folderUid: request.oauth2Credentials?.folderUid,
+          folderUid: request.oauth2Credentials?.folderUid
         };
         if (tokenPlacement == 'header') {
           wsRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -173,7 +173,7 @@ let wsClient;
 /**
  * Register IPC handlers for WebSocket
  */
-const registerWsEventHandlers = window => {
+const registerWsEventHandlers = (window) => {
   const sendEvent = (eventName, ...args) => {
     if (window && window.webContents) {
       window.webContents.send(eventName, ...args);
@@ -184,7 +184,7 @@ const registerWsEventHandlers = window => {
 
   wsClient = new WsClient(sendEvent);
 
-  ipcMain.handle('ws:connections-changed', event => {
+  ipcMain.handle('ws:connections-changed', (event) => {
     sendEvent('ws:connections-changed', event);
   });
 
@@ -200,13 +200,13 @@ const registerWsEventHandlers = window => {
           url: preparedRequest.url,
           headers: preparedRequest.headers,
           body: preparedRequest.body,
-          timestamp: Date.now(),
+          timestamp: Date.now()
         };
 
         if (!connectOnly) {
-          const hasMessages = preparedRequest.body.ws.some(msg => msg.content.length);
+          const hasMessages = preparedRequest.body.ws.some((msg) => msg.content.length);
           if (hasMessages) {
-            preparedRequest.body.ws.forEach(message => {
+            preparedRequest.body.ws.forEach((message) => {
               wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content);
             });
           }
@@ -219,8 +219,8 @@ const registerWsEventHandlers = window => {
           options: {
             timeout: settings.connectionTimeout,
             keepAlive: settings.keepAliveInterval > 0 ? true : false,
-            keepAliveInterval: settings.keepAliveInterval,
-          },
+            keepAliveInterval: settings.keepAliveInterval
+          }
         });
 
         sendEvent('ws:request', preparedRequest.uid, collection.uid, requestSent);
@@ -235,7 +235,7 @@ const registerWsEventHandlers = window => {
             ...(preparedRequest.oauth2Credentials?.folderUid
               ? { folderUid: preparedRequest.oauth2Credentials.folderUid }
               : { itemUid: preparedRequest.uid }),
-            debugInfo: preparedRequest.oauth2Credentials.debugInfo,
+            debugInfo: preparedRequest.oauth2Credentials.debugInfo
           });
         }
 
@@ -251,7 +251,7 @@ const registerWsEventHandlers = window => {
     });
 
   // Get all active connection IDs
-  ipcMain.handle('ws:get-active-connections', event => {
+  ipcMain.handle('ws:get-active-connections', (event) => {
     try {
       const activeConnectionIds = wsClient.getActiveConnectionIds();
       return { success: true, activeConnectionIds };
@@ -307,5 +307,5 @@ const registerWsEventHandlers = window => {
 
 module.exports = {
   registerWsEventHandlers,
-  wsClient,
+  wsClient
 };
