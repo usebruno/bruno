@@ -42,39 +42,36 @@ const getCollectionConfigFile = async (pathname) => {
 };
 
 const openCollectionDialog = async (win, watcher) => {
-  const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openDirectory', 'createDirectory', 'multiSelections'],
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    properties: ['openDirectory', 'createDirectory', 'multiSelections']
   });
 
-  if (filePaths && filePaths.length > 0) {
-    const validPaths = [];
-    const invalidPaths = [];
-
-    // Validate all selected paths
-    for (const filePath of filePaths) {
+  if (!canceled && filePaths?.length > 0) {
+    // Using Set to remove duplicates
+    const { openCollectionPromises, invalidPaths } = [...new Set(filePaths)].reduce((acc, filePath) => {
       const resolvedPath = path.resolve(filePath);
+
       if (isDirectory(resolvedPath)) {
-        validPaths.push(resolvedPath);
+        // Open each valid collection in parallel
+        acc.openCollectionPromises.push(openCollection(win, watcher, resolvedPath).catch((err) => {
+          console.error(`[ERROR] Failed to open collection at "${resolvedPath}":`, err.message);
+          return { error: err, path: resolvedPath };
+        }));
       } else {
-        invalidPaths.push(resolvedPath);
+        acc.invalidPaths.push(resolvedPath);
         console.error(`[ERROR] Cannot open unknown folder: "${resolvedPath}"`);
       }
-    }
 
-    // Open all valid collections
-    for (const collectionPath of validPaths) {
-      try {
-        await openCollection(win, watcher, collectionPath);
-      } catch (err) {
-        console.error(`[ERROR] Failed to open collection at "${collectionPath}":`, err.message);
-      }
-    }
+      return acc;
+    },
+    { openCollectionPromises: [], invalidPaths: [] });
+
+    // Wait for all valid collections to be opened
+    await Promise.all(openCollectionPromises);
 
     // Notify about any invalid paths
     if (invalidPaths.length > 0) {
-      win.webContents.send('main:display-error', {
-        error: `Some selected folders could not be opened: ${invalidPaths.join(', ')}`,
-      });
+      win.webContents.send('main:display-error', `Some selected folders could not be opened: ${invalidPaths.join(', ')}`);
     }
   }
 };
@@ -102,7 +99,7 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {
-          error: err.message || 'An error occurred while opening the local collection'
+          message: err.message || 'An error occurred while opening the local collection'
         });
       }
     }

@@ -19,10 +19,10 @@ const CreateOrOpenCollection = () => {
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
-      err => {
+      (err) => {
         console.log(err);
-        toast.error('An error occurred while opening the collection(s)');
-      },
+        toast.error('An error occurred while opening the collection');
+      }
     );
   };
   const CreateLink = () => (
@@ -47,8 +47,7 @@ const CreateOrOpenCollection = () => {
       <div className="text-xs text-center">
         <div>No collections found.</div>
         <div className="mt-2">
-          {/* eslint-disable-next-line @stylistic/jsx-one-expression-per-line */}
-          <CreateLink /> or <OpenLink /> Collection(s).
+          <CreateLink /> or <OpenLink /> Collection.
         </div>
       </div>
     </StyledWrapper>

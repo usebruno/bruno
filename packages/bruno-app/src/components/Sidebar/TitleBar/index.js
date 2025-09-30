@@ -55,10 +55,10 @@ const TitleBar = () => {
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
-      err => {
+      (err) => {
         console.log(err);
-        toast.error('An error occurred while opening the collection(s)');
-      },
+        toast.error('An error occurred while opening the collection');
+      }
     );
   };
 
@@ -105,7 +105,7 @@ const TitleBar = () => {
                 menuDropdownTippyRef.current.hide();
               }}
             >
-              Open Collection(s)
+              Open Collection
             </div>
             <div
               className="dropdown-item"
