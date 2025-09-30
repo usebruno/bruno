@@ -204,23 +204,34 @@ const runSingleRequest = async function (
     let proxyConfig = {};
 
     const collectionProxyConfig = get(brunoConfig, 'proxy', {});
-    const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
-    
     if (noproxy) {
       // If noproxy flag is set, don't use any proxy
       proxyMode = 'off';
-    } else if (collectionProxyEnabled === true) {
-      // If collection proxy is enabled, use it
-      proxyConfig = collectionProxyConfig;
-      proxyMode = 'on';
-    } else if (collectionProxyEnabled === 'global') {
-      // If collection proxy is set to 'global', use system proxy
+    } else if (collectionProxyConfig === false) {
+      // Proxy explicitly disabled for collection
+      proxyMode = 'off';
+    } else if (collectionProxyConfig === 'inherit') {
+      // Use system proxy (CLI doesn't have app-level preferences, so use system)
       const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
       if (http_proxy?.length || https_proxy?.length) {
         proxyMode = 'system';
       }
+    } else if (typeof collectionProxyConfig === 'object' && collectionProxyConfig !== null && !collectionProxyConfig.hasOwnProperty('enabled')) {
+      // Collection has its own proxy configuration
+      proxyConfig = collectionProxyConfig;
+      proxyMode = 'on';
     } else {
-      proxyMode = 'off';
+      // Handle legacy format for backward compatibility
+      const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
+      if (collectionProxyEnabled === true) {
+        proxyConfig = collectionProxyConfig;
+        proxyMode = 'on';
+      } else if (collectionProxyEnabled === 'global') {
+        const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
+        if (http_proxy?.length || https_proxy?.length) {
+          proxyMode = 'system';
+        }
+      }
     }
 
     if (proxyMode === 'on') {
