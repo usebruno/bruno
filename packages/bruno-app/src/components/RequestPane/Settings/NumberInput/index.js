@@ -18,7 +18,7 @@ const NumberInput = ({
 
   return (
     <div className="flex items-center justify-between">
-      <label className="settings-label" htmlFor={id}>
+      <label className="text-xs font-medium text-gray-900 dark:text-gray-100" htmlFor={id}>
         {label}
       </label>
       <input
