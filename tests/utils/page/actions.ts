@@ -1,21 +1,34 @@
-import { test } from '../../../playwright';
+import { test, expect } from '../../../playwright';
 
+/**
+ * Close all collections
+ * @param page - The page object
+ * @returns void
+ */
 const closeAllCollections = async (page) => {
-  const numberOfCollections = await page.locator('.collection-name').count();
+  await test.step('Close all collections', async () => {
+    const numberOfCollections = await page.locator('.collection-name').count();
 
-  for (let i = 0; i < numberOfCollections; i++) {
-    await page.locator('.collection-name').first().locator('.collection-actions').click();
-    await page.locator('.dropdown-item').getByText('Close').click();
-    await page.getByRole('button', { name: 'Close' }).click();
-  }
+    for (let i = 0; i < numberOfCollections; i++) {
+      await page.locator('.collection-name').first().locator('.collection-actions').click();
+      await page.locator('.dropdown-item').getByText('Close').click();
+      await page.getByRole('button', { name: 'Close' }).click();
+    }
+
+    // Wait until no collections are left open
+    await expect(page.locator('.collection-name')).toHaveCount(0);
+  });
 };
 
-// Open a collection from the sidebar and accept the JavaScript Sandbox modal
-// sandboxMode: 'safe' | 'developer'
-const openCollectionAndAcceptSandbox = async (page,
-  collectionName: string,
-  sandboxMode: 'safe' | 'developer' = 'safe') => {
-  await test.step('Open collection and accept sandbox', async () => {
+/**
+ * Open a collection from the sidebar and accept the JavaScript Sandbox modal
+ * @param page - The page object
+ * @param collectionName - The name of the collection to open
+ * @param sandboxMode - The mode to accept the sandbox modal
+ * @returns void
+ */
+const openCollectionAndAcceptSandbox = async (page, collectionName: string, sandboxMode: 'safe' | 'developer' = 'safe') => {
+  await test.step(`Open collection "${collectionName}" and accept sandbox "${sandboxMode}" mode`, async () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
 
     const sandboxModal = page
