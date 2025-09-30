@@ -12,7 +12,9 @@ const groupingOptions = [
 const ImportSettings = ({ groupingType, setGroupingType, onImport, onCancel }) => {
   const dropdownTippyRef = useRef();
 
-  const onDropdownCreate = ref => (dropdownTippyRef.current = ref);
+  const onDropdownCreate = ref => {
+    dropdownTippyRef.current = ref;
+  };
 
   const GroupingDropdownIcon = forwardRef((props, ref) => {
     const selectedOption = groupingOptions.find(option => option.value === groupingType);
