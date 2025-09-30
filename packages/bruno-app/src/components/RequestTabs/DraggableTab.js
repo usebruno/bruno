@@ -1,27 +1,17 @@
 import React from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 
-const DraggableTab = ({ id, moveTab, index, children, className }) => {
+const DraggableTab = ({ id, onMoveTab, index, children, className }) => {
   const ref = React.useRef(null);
 
-  const [{ handlerId }, drop] = useDrop({
+  const [{ handlerId, isOver }, drop] = useDrop({
     accept: 'tab',
-    hover(item) {
-      if (item.id === id) return;
-      const dragIndex = item.index;
-      const hoverIndex = index;
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-      moveTab(item.id, id);
-      item.index = id;
-    },
-    canDrop: (draggedItem) => {
-      return draggedItem.index !== index;
+    hover(item, monitor) {
+      onMoveTab(item.id, id);
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      handlerId: monitor.getHandlerId()
+      handlerId: monitor.getHandlerId(),
+      isOver: monitor.isOver()
     })
   });
 
@@ -44,7 +34,7 @@ const DraggableTab = ({ id, moveTab, index, children, className }) => {
     <li
       className={className}
       ref={ref}
-      style={{ opacity: isDragging ? 0 : 1 }}
+      style={{ opacity: isDragging || isOver ? 0 : 1 }}
       data-handler-id={handlerId}
     >
       {children}
