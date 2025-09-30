@@ -18,7 +18,7 @@ test.describe.serial('websockets', () => {
     await locators.connectionControls.connect().click();
 
     await expect(locators.connectionControls.disconnect()).toBeAttached({
-      timeout: MAX_CONNECTION_TIME,
+      timeout: MAX_CONNECTION_TIME
     });
   });
 

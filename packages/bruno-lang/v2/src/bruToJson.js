@@ -424,7 +424,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   ws(_1, dictionary) {
     return {
-      ws: mapPairListToKeyValPair(dictionary.ast),
+      ws: mapPairListToKeyValPair(dictionary.ast)
     };
   },
   get(_1, dictionary) {
@@ -827,7 +827,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         body: 'json'
       },
       body: {
-        json: outdentString(textblock.sourceString),
+        json: outdentString(textblock.sourceString)
       }
     };
   },

@@ -613,7 +613,7 @@ ${indentString(body.sparql)}
   if (body && body.ws) {
     // Convert each ws message to a separate body:ws block
     if (Array.isArray(body.ws)) {
-      body.ws.forEach(message => {
+      body.ws.forEach((message) => {
         const { name, content, type = '' } = message;
 
         bru += `body:ws {\n`;

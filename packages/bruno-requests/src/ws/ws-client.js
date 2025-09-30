@@ -15,7 +15,7 @@ const safeJsonParse = (jsonString, context = 'JSON string') => {
     const errorMessage = `Failed to parse ${context}: ${error.message}`;
     console.error(errorMessage, {
       originalString: jsonString,
-      parseError: error,
+      parseError: error
     });
     throw new Error(errorMessage);
   }
@@ -26,8 +26,8 @@ const safeJsonParse = (jsonString, context = 'JSON string') => {
  * @param {string} url - The WebSocket URL
  * @returns {Object} Parsed URL object with protocol, host, path
  */
-const getParsedWsUrlObject = url => {
-  const addProtocolIfMissing = str => {
+const getParsedWsUrlObject = (url) => {
+  const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
 
     // For localhost, default to insecure (grpc://) for local development
@@ -39,7 +39,7 @@ const getParsedWsUrlObject = url => {
     return `wss://${str}`;
   };
 
-  const removeTrailingSlash = str => (str.endsWith('/') ? str.slice(0, -1) : str);
+  const removeTrailingSlash = (str) => (str.endsWith('/') ? str.slice(0, -1) : str);
 
   if (!url) return { host: '', path: '' };
 
@@ -50,13 +50,13 @@ const getParsedWsUrlObject = url => {
       host: urlObj.host,
       path: removeTrailingSlash(urlObj.pathname),
       search: urlObj.search,
-      fullUrl: urlObj.href,
+      fullUrl: urlObj.href
     };
   } catch (err) {
     console.error({ err });
     return {
       host: '',
-      path: '',
+      path: ''
     };
   }
 };
@@ -94,7 +94,7 @@ class WsClient {
       const wsOptions = {
         headers,
         handshakeTimeout: timeout,
-        followRedirects: true,
+        followRedirects: true
       };
 
       if (protocolVersion) {
@@ -116,7 +116,7 @@ class WsClient {
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
       this.eventCallback('ws:error', requestId, collectionUid, {
-        error: error.message,
+        error: error.message
       });
       throw error;
     }
@@ -172,7 +172,7 @@ class WsClient {
       }
 
       // Send the message
-      connection.send(JSON.stringify(messageToSend), error => {
+      connection.send(JSON.stringify(messageToSend), (error) => {
         if (error) {
           this.eventCallback('ws:error', requestId, collectionUid, { error });
         } else {
@@ -181,14 +181,14 @@ class WsClient {
             message: messageToSend,
             messageHexdump: hexdump(JSON.stringify(messageToSend)),
             type: 'outgoing',
-            timestamp: Date.now(),
+            timestamp: Date.now()
           });
         }
       });
     } else {
       const error = new Error('WebSocket connection not available or not open');
       this.eventCallback('ws:error', requestId, collectionUid, {
-        error: error.message,
+        error: error.message
       });
     }
   }
@@ -231,7 +231,7 @@ class WsClient {
   clearAllConnections() {
     const connectionIds = this.getActiveConnectionIds();
 
-    this.activeConnections.forEach(connection => {
+    this.activeConnections.forEach((connection) => {
       if (connection.readyState === WebSocket.OPEN) {
         connection.close(1000, 'Client clearing all connections');
       }
@@ -243,7 +243,7 @@ class WsClient {
     if (connectionIds.length > 0) {
       this.eventCallback('ws:connections-changed', {
         type: 'cleared',
-        activeConnectionIds: [],
+        activeConnectionIds: []
       });
     }
   }
@@ -274,37 +274,37 @@ class WsClient {
 
       this.eventCallback('ws:open', requestId, collectionUid, {
         timestamp: Date.now(),
-        url: ws.url,
+        url: ws.url
       });
     });
 
     ws.on('redirect', (url, req) => {
       const headerNames = req.getHeaderNames();
-      const headers = Object.fromEntries(headerNames.map(d => [d, req.getHeader(d)]));
+      const headers = Object.fromEntries(headerNames.map((d) => [d, req.getHeader(d)]));
       this.eventCallback('ws:redirect', requestId, collectionUid, {
         message: `Redirected to ${url}`,
         type: 'info',
         timestamp: Date.now(),
-        headers: headers,
+        headers: headers
       });
     });
 
-    ws.on('upgrade', response => {
+    ws.on('upgrade', (response) => {
       this.eventCallback('ws:upgrade', requestId, collectionUid, {
         type: 'info',
         timestamp: Date.now(),
-        headers: { ...response.headers },
+        headers: { ...response.headers }
       });
     });
 
-    ws.on('message', data => {
+    ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString());
         this.eventCallback('ws:message', requestId, collectionUid, {
           message,
           messageHexdump: hexdump(Buffer.from(data)),
           type: 'incoming',
-          timestamp: Date.now(),
+          timestamp: Date.now()
         });
       } catch (error) {
         // If parsing fails, send as raw data
@@ -312,7 +312,7 @@ class WsClient {
           message: data.toString(),
           messageHexdump: hexdump(data),
           type: 'incoming',
-          timestamp: Date.now(),
+          timestamp: Date.now()
         });
       }
     });
@@ -321,15 +321,15 @@ class WsClient {
       this.eventCallback('ws:close', requestId, collectionUid, {
         code,
         reason: Buffer.from(reason).toString(),
-        timestamp: Date.now(),
+        timestamp: Date.now()
       });
       this.#removeConnection(requestId);
     });
 
-    ws.on('error', error => {
+    ws.on('error', (error) => {
       this.eventCallback('ws:error', requestId, collectionUid, {
         error: error.message,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       });
     });
   }
@@ -347,7 +347,7 @@ class WsClient {
     this.eventCallback('ws:connections-changed', {
       type: 'added',
       requestId,
-      activeConnectionIds: this.getActiveConnectionIds(),
+      activeConnectionIds: this.getActiveConnectionIds()
     });
   }
 
@@ -374,7 +374,7 @@ class WsClient {
       this.eventCallback('ws:connections-changed', {
         type: 'removed',
         requestId,
-        activeConnectionIds: this.getActiveConnectionIds(),
+        activeConnectionIds: this.getActiveConnectionIds()
       });
     }
   }

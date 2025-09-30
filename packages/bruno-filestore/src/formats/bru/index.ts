@@ -35,7 +35,7 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
     const urlPath: Record<typeof requestType, string> = {
       'grpc-request': 'grpc.url',
       'ws-request': 'ws.url',
-      'default': 'http.url',
+      'default': 'http.url'
     };
     const transformedJson = {
       type: requestType,
@@ -192,9 +192,9 @@ export const jsonRequestToBru = (json: any): string => {
         ws: _.get(json, 'request.body.ws', [
           {
             name: 'message 1',
-            content: '{}',
-          },
-        ]),
+            content: '{}'
+          }
+        ])
       });
     }
 

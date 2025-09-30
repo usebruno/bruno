@@ -8,14 +8,14 @@ const BRU_FILE_NAME = /^base$/;
 // TODO: reaper move to someplace common
 const isRequestSaved = async (saveButton: Locator) => {
   const savedColor = '#9f9f9f';
-  return (await saveButton.evaluate(d => d.querySelector('svg')?.getAttribute('stroke') ?? '#invalid')) === savedColor;
+  return (await saveButton.evaluate((d) => d.querySelector('svg')?.getAttribute('stroke') ?? '#invalid')) === savedColor;
 };
 
 test.describe.serial('persistence', () => {
   let originalUrl = '';
   let originalContext = {
     path: join(__dirname, 'fixtures/collection/base.bru'),
-    data: '',
+    data: ''
   };
 
   test.beforeAll(async () => {
@@ -35,7 +35,7 @@ test.describe.serial('persistence', () => {
     const replacementUrl = 'ws://localhost:8082';
     const locators = buildCommonLocators(page);
     const unsavedColor = '#d97706';
-    const getSaveSvg = () => locators.saveButton().evaluate(d => d.querySelector('svg'));
+    const getSaveSvg = () => locators.saveButton().evaluate((d) => d.querySelector('svg'));
 
     const clearText = async (text: string) => {
       for (let i = text.length; i > 0; i--) {
