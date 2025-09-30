@@ -1,7 +1,7 @@
 require('dotenv').config();
 const { ipcMain, dialog } = require('electron');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-const { chooseFileToSave, browseDirectory } = require('../utils/filesystem');
+const { chooseFileToSave } = require('../utils/filesystem');
 const { envJsonToBruV2 } = require('@usebruno/lang');
 const fs = require('fs').promises;
 const path = require('path');
