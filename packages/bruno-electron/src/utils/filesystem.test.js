@@ -45,7 +45,7 @@ describe('isLargeFile', () => {
     jest.restoreAllMocks();
   });
 
-  it('returns false when file size is below default threshold (10MB)', () => {
+  it('should return false when file size is below default threshold (10MB)', () => {
     existsSyncSpy.mockReturnValue(true);
     lstatSyncSpy.mockReturnValue({ isFile: () => true });
     statSyncSpy.mockReturnValue({ size: 5 * 1024 * 1024 }); // 5MB
@@ -53,7 +53,7 @@ describe('isLargeFile', () => {
     expect(isLargeFile('/path/small.bin')).toBe(false);
   });
 
-  it('returns true when file size is above default threshold (10MB)', () => {
+  it('should return true when file size is above default threshold (10MB)', () => {
     existsSyncSpy.mockReturnValue(true);
     lstatSyncSpy.mockReturnValue({ isFile: () => true });
     statSyncSpy.mockReturnValue({ size: 15 * 1024 * 1024 }); // 15MB
@@ -61,7 +61,7 @@ describe('isLargeFile', () => {
     expect(isLargeFile('/path/large.bin')).toBe(true);
   });
 
-  it('respects custom threshold (args true or false)', () => {
+  it('should respect custom threshold (args true or false)', () => {
     existsSyncSpy.mockReturnValue(true);
     lstatSyncSpy.mockReturnValue({ isFile: () => true });
     statSyncSpy.mockReturnValue({ size: 50 });
@@ -70,11 +70,11 @@ describe('isLargeFile', () => {
     expect(isLargeFile('/path/file.bin', 10)).toBe(true); // 50 > 10
   });
 
-  it('throws on invalid values (not a file)', () => {
+  it('should throw on invalid values (not a file)', () => {
     existsSyncSpy.mockReturnValue(false);
     lstatSyncSpy.mockReturnValue({ isFile: () => false });
 
-    expect(() => isLargeFile('/path/not-a-file.bin')).toThrow('is not a file');
+    expect(() => isLargeFile('/path/not-a-file.bin')).toThrow('File /path/not-a-file.bin is not a file');
   });
 });
 

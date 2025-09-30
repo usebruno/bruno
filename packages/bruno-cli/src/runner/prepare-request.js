@@ -314,7 +314,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
         }
 
         try {
-          // Large files (>20MB) can cause "JavaScript heap out of memory" errors when loaded entirely into memory.
+          // Large files can cause "JavaScript heap out of memory" errors when loaded entirely into memory.
           if (isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)) {
             // For large files: Use streaming to avoid memory issues
             axiosRequest.data = fs.createReadStream(filePath);

@@ -538,7 +538,7 @@ describe('prepare-request: prepareRequest', () => {
       jest.restoreAllMocks();
     });
 
-    it('uses readFileSync for small files', async () => {
+    it('should use readFileSync to read small files', async () => {
       const fileContent = Buffer.from('small file content');
       filesystemUtils.isLargeFile.mockReturnValue(false);
       readFileSyncSpy.mockReturnValue(fileContent);
@@ -569,7 +569,7 @@ describe('prepare-request: prepareRequest', () => {
       expect(createReadStreamSpy).not.toHaveBeenCalled();
     });
 
-    it('uses createReadStream for large files', async () => {
+    it('should use createReadStream to read large files', async () => {
       const mockStream = { pipe: jest.fn() };
       filesystemUtils.isLargeFile.mockReturnValue(true);
       createReadStreamSpy.mockReturnValue(mockStream);
