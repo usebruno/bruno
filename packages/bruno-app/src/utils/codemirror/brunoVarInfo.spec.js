@@ -1,5 +1,5 @@
 import { interpolate } from '@usebruno/common';
-import { extractVariableInfo } from './brunoVarInfo';
+import { COPY_SUCCESS_TIMEOUT, extractVariableInfo, renderVarInfo } from './brunoVarInfo';
 
 // Mock the dependencies
 jest.mock('@usebruno/common', () => ({
@@ -222,6 +222,123 @@ describe('extractVariableInfo', () => {
       const result = extractVariableInfo('{{apiKey}}', mockVariables);
 
       expect(result.variableValue).toBe('test-api-key-123');
+    });
+  });
+});
+
+describe('renderVarInfo', () => {
+  let clipboardText = '';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+
+    // setup mock clipboard
+    clipboardText = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: jest.fn(text => {
+          if (text === 'cause-clipboard-error') {
+            return Promise.reject(new Error('Clipboard error'));
+          }
+
+          clipboardText = text;
+
+          return Promise.resolve();
+        }),
+      },
+      configurable: true,
+    });
+
+    // mock console.error
+    console.error = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  function setupRender(variables) {
+    const result = renderVarInfo({ string: '{{apiKey}}' }, { variables });
+    const contentDiv = result.querySelector('.info-content');
+    const descriptionDiv = contentDiv.querySelector('.info-description');
+    const copyButton = contentDiv.querySelector('.copy-button');
+
+    return { result, contentDiv, descriptionDiv, copyButton };
+  }
+
+  describe('popup functionality', () => {
+    it('should create a popup', () => {
+      const { result } = setupRender({ apiKey: 'test-value' });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should create a popup with the correct variable name and value', () => {
+      const { descriptionDiv } = setupRender({ apiKey: 'test-value' });
+
+      expect(descriptionDiv.textContent).toBe('test-value');
+    });
+
+    it('should correctly mask the variable value in the popup', () => {
+      const { descriptionDiv } = setupRender({
+        apiKey: 'test-value',
+        maskedEnvVariables: ['apiKey'],
+      });
+
+      expect(descriptionDiv.textContent).toBe('*****');
+    });
+  });
+
+  describe('copy button functionality', () => {
+    it('should create a copy button', () => {
+      const { copyButton } = setupRender({ apiKey: 'test-value' });
+
+      expect(copyButton).toBeDefined();
+    });
+
+    it('should copy the variable value to the clipboard', async () => {
+      const { copyButton } = setupRender({ apiKey: 'test-value' });
+
+      await copyButton.click();
+
+      expect(clipboardText).toBe('test-value');
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-value');
+    });
+
+    it('should copy the variable value of masked variables to the clipboard', async () => {
+      const { copyButton } = setupRender({ apiKey: 'test-value', maskedEnvVariables: ['apiKey'] });
+
+      await copyButton.click();
+
+      expect(clipboardText).toBe('test-value');
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-value');
+    });
+
+    it('should show a success checkmark when the variable value is copied', async () => {
+      const { copyButton } = setupRender({ apiKey: 'test-value' });
+
+      expect(copyButton.classList.contains('copy-success')).toBe(false);
+
+      await copyButton.click();
+
+      expect(copyButton.classList.contains('copy-success')).toBe(true);
+
+      jest.advanceTimersByTime(COPY_SUCCESS_TIMEOUT);
+
+      expect(copyButton.classList.contains('copy-success')).toBe(false);
+    });
+
+    it('should log to the console when the variable value is not copied', async () => {
+      const { copyButton } = setupRender({ apiKey: 'cause-clipboard-error' });
+
+      await copyButton.click();
+
+      // wait for .catch() microtask to run
+      await Promise.resolve();
+
+      expect(clipboardText).toBe('');
+      expect(console.error).toHaveBeenCalledWith('Failed to copy to clipboard:', 'Clipboard error');
     });
   });
 });

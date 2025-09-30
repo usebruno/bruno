@@ -25,6 +25,9 @@ const initialState = {
     font: {
       codeFont: 'default'
     },
+    general: {
+      defaultCollectionLocation: ''
+    },
     beta: {
       grpc: false
     }

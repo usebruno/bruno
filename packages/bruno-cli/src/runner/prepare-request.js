@@ -1,12 +1,18 @@
-const { get, each, filter } = require('lodash');
+const get = require('lodash/get');
+const each = require('lodash/each');
+const filter = require('lodash/filter');
+const find = require('lodash/find');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
 const { buildFormUrlEncodedPayload } = require('../utils/form-data');
+const path = require('node:path');
 
-const prepareRequest = (item = {}, collection = {}) => {
+const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
   const brunoConfig = get(collection, 'brunoConfig', {});
+  const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
 
@@ -286,6 +292,32 @@ const prepareRequest = (item = {}, collection = {}) => {
       axiosRequest.headers['content-type'] = 'application/sparql-query';
     }
     axiosRequest.data = request.body.sparql;
+  }
+
+  if (request.body.mode === 'file') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
+    }
+
+    const bodyFile = find(request.body.file, param => param.selected);
+    if (bodyFile) {
+      let { filePath, contentType } = bodyFile;
+
+      axiosRequest.headers['content-type'] = contentType;
+
+      if (filePath) {
+        if (!path.isAbsolute(filePath)) {
+          filePath = path.join(collectionPath, filePath);
+        }
+
+        try {
+          const fileContent = await fs.readFile(filePath);
+          axiosRequest.data = fileContent;
+        } catch (error) {
+          console.error('Error reading file:', error);
+        }
+      }
+    }
   }
 
   if (request.body.mode === 'formUrlEncoded') {
