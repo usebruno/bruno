@@ -16,10 +16,6 @@ const { get } = require('lodash');
 // Dynamically import the store when not server-rendered
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
-  // // Import store asynchronously to avoid circular dependencies
-  // import('providers/ReduxStore').then(({ default: reduxStore }) => {
-  //   store = reduxStore;
-  // });
 
   const renderVarInfo = (token, options, cm, pos) => {
     const { variableName, variableValue } = extractVariableInfo(token.string, options.variables);
@@ -302,21 +298,20 @@ if (!SERVER_RENDERED) {
     validateUpdateParameters(variableName, newValue, options);
     
     const variableType = getVariableType(variableName, options);
-    const reduxStore = getReduxStore(options);
-    
-    if (!reduxStore) {
-      return updateRuntimeVariableWithoutStore(variableName, newValue, options, cm, variableType);
+
+    if (!store) {
+      throw new Error(`Store not available to update variable '${variableName}'`);
     }
     
-    const state = reduxStore.getState();
+    const state = store.getState();
     
     switch (variableType) {
       case 'global':
-        return updateGlobalVariable(variableName, newValue, state, reduxStore);
+        return updateGlobalVariable(variableName, newValue, state, store);
       case 'environment':
-        return updateEnvironmentVariable(variableName, newValue, state, reduxStore);
+        return updateEnvironmentVariable(variableName, newValue, state, store);
       case 'runtime':
-        return updateRuntimeVariable(variableName, newValue, options, cm, reduxStore);
+        return updateRuntimeVariable(variableName, newValue, options, cm, store);
       default:
         throw new Error(`Variable '${variableName}' not found in editable contexts. Global, environment, and runtime variables can be edited from tooltips.`);
     }
@@ -329,19 +324,6 @@ if (!SERVER_RENDERED) {
     if (!options?.variables) {
       throw new Error('No variables context available');
     }
-  };
-
-  const getReduxStore = (options) => {
-    return store || options?.store;
-  };
-
-  const updateRuntimeVariableWithoutStore = (variableName, newValue, options, cm, variableType) => {
-    if (variableType !== 'runtime' && variableType !== 'unknown') {
-      throw new Error('Redux store not available for updating global/environment variables');
-    }
-    
-    options.variables[variableName] = newValue;
-    updateCodeMirrorState(cm, options.variables);
   };
 
   const updateGlobalVariable = async (variableName, newValue, state, reduxStore) => {

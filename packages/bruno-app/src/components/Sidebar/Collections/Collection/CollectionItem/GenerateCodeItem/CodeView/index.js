@@ -1,4 +1,4 @@
-import CodeEditor from 'components/CodeEditor';
+import CodeEditor from 'components/CodeEditor/index';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme/index';
 import StyledWrapper from './StyledWrapper';
