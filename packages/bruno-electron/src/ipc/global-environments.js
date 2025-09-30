@@ -6,11 +6,6 @@ const { envJsonToBruV2 } = require('@usebruno/lang');
 const fs = require('fs').promises;
 const path = require('path');
 
-// Convert environment to .bru format
-const environmentToBruContent = environment => {
-  return envJsonToBruV2(environment);
-};
-
 const registerGlobalEnvironmentsIpc = (mainWindow) => {
 
   // GLOBAL ENVIRONMENTS
@@ -70,7 +65,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
       };
 
       if (format === 'bru') {
-        const bruContent = environmentToBruContent(cleanEnvironment);
+        const bruContent = envJsonToBruV2(cleanEnvironment);
         const fileName = `${cleanEnvironment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.bru`;
         const fullPath = path.join(filePath, fileName);
         await fs.writeFile(fullPath, bruContent, 'utf8');
@@ -133,7 +128,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
 
         // Create individual .bru files for each environment
         for (const env of globalEnvironments) {
-          const bruContent = environmentToBruContent(env);
+          const bruContent = envJsonToBruV2(env);
           const sanitizedName = env.name.replace(/[^a-zA-Z0-9-_]/g, '_');
           const fileName = `${sanitizedName}.bru`;
           const filePath = path.join(exportDir, fileName);
