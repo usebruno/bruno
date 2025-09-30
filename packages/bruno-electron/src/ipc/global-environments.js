@@ -83,7 +83,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
   });
 
   // Export global environments
-  ipcMain.handle('renderer:export-global-environments', async (event, { format = 'json' }) => {
+  ipcMain.handle('renderer:export-global-environments', async (event, { format = 'json', filePath = null }) => {
     try {
       const globalEnvironments = globalEnvironmentsStore.getGlobalEnvironments();
 
@@ -104,27 +104,41 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
           })),
         }));
 
-        const fileName = 'global-environments.json';
-        const filePath = await chooseFileToSave(mainWindow, fileName);
-
-        if (filePath && filePath.trim() !== '') {
-          await fs.writeFile(filePath, JSON.stringify(exportData, null, 2), 'utf8');
-          // Don't return anything - just complete successfully
+        if (filePath) {
+          // use provided file path
+          const fileName = 'global-environments.json';
+          const fullPath = path.join(filePath, fileName);
+          await fs.writeFile(fullPath, JSON.stringify(exportData, null, 2), 'utf8');
         } else {
-          throw new Error('Export cancelled by user');
+          // fallback to dialog for backward compatibility
+          const fileName = 'global-environments.json';
+          const selectedPath = await chooseFileToSave(mainWindow, fileName);
+
+          if (selectedPath && selectedPath.trim() !== '') {
+            await fs.writeFile(selectedPath, JSON.stringify(exportData, null, 2), 'utf8');
+          } else {
+            throw new Error('Export cancelled by user');
+          }
         }
       } else if (format === 'bru') {
-        // For BRU format, let user select a directory to save individual .bru files
-        const { filePaths } = await dialog.showOpenDialog(mainWindow, {
-          properties: ['openDirectory'],
-          title: 'Select folder to save .bru files',
-        });
+        let exportDir;
 
-        if (!filePaths || filePaths.length === 0) {
-          throw new Error('Export cancelled by user');
+        if (filePath) {
+          // use provided file path
+          exportDir = filePath;
+        } else {
+          // fallback to dialog for backward compatibility
+          const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+            properties: ['openDirectory'],
+            title: 'Select folder to save .bru files'
+          });
+
+          if (!filePaths || filePaths.length === 0) {
+            throw new Error('Export cancelled by user');
+          }
+
+          exportDir = filePaths[0];
         }
-
-        const exportDir = filePaths[0];
 
         // Create individual .bru files for each environment
         for (const env of globalEnvironments) {

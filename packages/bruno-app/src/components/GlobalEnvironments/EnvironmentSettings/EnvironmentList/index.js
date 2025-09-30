@@ -139,9 +139,9 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
                 <IconDownload size={12} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Import</span>
               </div>
-              <div className="flex items-center mt-2" onClick={() => handleExportAllClick()}>
+              <div className="flex items-center mt-2 export-all-button" onClick={() => handleExportAllClick()}>
                 <IconUpload size={12} strokeWidth={2} />
-                <span className="label ml-1 text-xs">Export All</span>
+                <span className="label ml-1 text-xs export-all-button">Export All</span>
               </div>
               <div className="flex items-center mt-2" onClick={() => handleSecretsClick()}>
                 <IconShieldLock size={12} strokeWidth={2} />

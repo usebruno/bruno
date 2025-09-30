@@ -27,11 +27,12 @@ export const exportGlobalEnvironmentAsJson = async (environment, filePath) => {
   }
 };
 
-export const exportGlobalEnvironments = async (format = 'json') => {
+export const exportGlobalEnvironments = async (format = 'json', filePath = null) => {
   try {
     const { ipcRenderer } = window;
     const result = await ipcRenderer.invoke('renderer:export-global-environments', {
       format,
+      filePath
     });
 
     return result;
@@ -70,13 +71,14 @@ export const exportCollectionEnvironmentAsJson = async (environment, filePath) =
   }
 };
 
-export const exportCollectionEnvironments = async (collection, format = 'bru') => {
+export const exportCollectionEnvironments = async (collection, format = 'bru', filePath = null) => {
   try {
     const { ipcRenderer } = window;
     const result = await ipcRenderer.invoke('renderer:export-collection-environments', {
       collectionPath: collection.pathname,
       collectionName: collection.name,
       format,
+      filePath
     });
 
     return result;

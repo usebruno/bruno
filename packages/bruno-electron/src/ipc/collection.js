@@ -425,7 +425,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // Export collection environments
-  ipcMain.handle('renderer:export-collection-environments', async (event, { collectionPath, collectionName, format = 'bru' }) => {
+  ipcMain.handle('renderer:export-collection-environments', async (event, { collectionPath, collectionName, format = 'bru', filePath = null }) => {
     try {
       const envDirPath = path.join(collectionPath, 'environments');
 
@@ -440,17 +440,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       if (format === 'bru') {
-        // For BRU format, let user select a directory to save individual .bru files
-        const { filePaths } = await dialog.showOpenDialog(mainWindow, {
-          properties: ['openDirectory'],
-          title: 'Select folder to save .bru files',
-        });
+        let exportDir;
 
-        if (!filePaths || filePaths.length === 0) {
-          throw new Error('Export cancelled by user');
+        if (filePath) {
+          // use provided file path
+          exportDir = filePath;
+        } else {
+          // fallback to dialog for backward compatibility
+          const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+            properties: ['openDirectory'],
+            title: 'Select folder to save .bru files'
+          });
+
+          if (!filePaths || filePaths.length === 0) {
+            throw new Error('Export cancelled by user');
+          }
+
+          exportDir = filePaths[0];
         }
-
-        const exportDir = filePaths[0];
 
         // Copy individual .bru files for each environment
         for (const envFile of envFiles) {
@@ -480,17 +487,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           });
         }
 
-        // For JSON format, let user select a directory to save individual .json files
-        const { filePaths } = await dialog.showOpenDialog(mainWindow, {
-          properties: ['openDirectory'],
-          title: 'Select folder to save .json files',
-        });
+        let exportDir;
 
-        if (!filePaths || filePaths.length === 0) {
-          throw new Error('Export cancelled by user');
+        if (filePath) {
+          // use provided file path
+          exportDir = filePath;
+        } else {
+          // fallback to dialog for backward compatibility
+          const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+            properties: ['openDirectory'],
+            title: 'Select folder to save .json files'
+          });
+
+          if (!filePaths || filePaths.length === 0) {
+            throw new Error('Export cancelled by user');
+          }
+
+          exportDir = filePaths[0];
         }
-
-        const exportDir = filePaths[0];
 
         // Write individual .json files for each environment
         for (const file of files) {

@@ -1,0 +1,65 @@
+{
+  "environments": [
+    {
+      "uid": "global-env-1",
+      "name": "Global Environment 1",
+      "variables": [
+        {
+          "uid": "var-1",
+          "name": "global_api_url",
+          "value": "https://api.global1.com",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "uid": "var-2",
+          "name": "global_api_key",
+          "value": "global-key-123",
+          "type": "text",
+          "enabled": true,
+          "secret": true
+        },
+        {
+          "uid": "var-3",
+          "name": "global_timeout",
+          "value": "10000",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        }
+      ]
+    },
+    {
+      "uid": "global-env-2",
+      "name": "Global Environment 2",
+      "variables": [
+        {
+          "uid": "var-4",
+          "name": "global_base_url",
+          "value": "https://api.global2.com",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "uid": "var-5",
+          "name": "global_debug_mode",
+          "value": "true",
+          "type": "text",
+          "enabled": false,
+          "secret": false
+        },
+        {
+          "uid": "var-6",
+          "name": "global_config",
+          "value": "{\n  \"region\": \"us-east-1\",\n  \"environment\": \"staging\",\n  \"features\": {\n    \"logging\": true,\n    \"metrics\": false\n  }\n}",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "global-env-1"
+}
