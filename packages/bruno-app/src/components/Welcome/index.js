@@ -78,7 +78,7 @@ const Welcome = () => {
           aria-label={t('WELCOME.CREATE_COLLECTION')}
         >
           <IconPlus aria-hidden size={18} strokeWidth={2} />
-          <span className="label ml-2" id="create-collection">
+          <span className="label ml-2" id="create-collection" data-testid="create-collection">
             {t('WELCOME.CREATE_COLLECTION')}
           </span>
         </button>

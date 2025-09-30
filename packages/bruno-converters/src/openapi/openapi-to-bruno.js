@@ -38,13 +38,34 @@ const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
   return _jsonBody;
 };
 
-const transformOpenapiRequestItem = (request) => {
+const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   let _operationObject = request.operationObject;
 
   let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
   }
+
+  // Sanitize operation name to prevent Bruno parsing issues
+  if (operationName) {
+    // Replace line breaks and normalize whitespace
+    operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
+  }
+  if (usedNames.has(operationName)) {
+    // Make name unique to prevent filename collisions
+    // Try adding method info first
+    let uniqueName = `${operationName} (${request.method.toUpperCase()})`;
+
+    // If still not unique, add counter
+    let counter = 1;
+    while (usedNames.has(uniqueName)) {
+      uniqueName = `${operationName} (${counter})`;
+      counter++;
+    }
+
+    operationName = uniqueName;
+  }
+  usedNames.add(operationName);
 
   // replace OpenAPI links in path by Bruno variables
   let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
@@ -419,6 +440,8 @@ const openAPIRuntimeExpressionToScript = (expression) => {
 };
 
 export const parseOpenApiCollection = (data) => {
+  const usedNames = new Set();
+
   const brunoCollection = {
     name: '',
     uid: uuid(),
@@ -512,11 +535,11 @@ export const parseOpenApiCollection = (data) => {
               name: group.name
             }
           },
-          items: group.requests.map(transformOpenapiRequestItem)
+        items: group.requests.map(req => transformOpenapiRequestItem(req, usedNames)),
         };
       });
 
-      let ungroupedItems = ungroupedRequests.map(transformOpenapiRequestItem);
+    let ungroupedItems = ungroupedRequests.map(req => transformOpenapiRequestItem(req, usedNames));
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
 

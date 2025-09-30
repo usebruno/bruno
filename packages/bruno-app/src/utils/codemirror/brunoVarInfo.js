@@ -12,31 +12,130 @@ let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
 
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
+const COPY_ICON_SVG_TEXT = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+`;
 
-  const renderVarInfo = (token, options, cm, pos) => {
-    // Extract variable name and value based on token
-    const { variableName, variableValue } = extractVariableInfo(token.string, options.variables);
+const CHECKMARK_ICON_SVG_TEXT = `
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="20,6 9,17 4,12"></polyline>
+</svg>
+`;
 
-    if (variableValue === undefined) {
+const COPY_SUCCESS_COLOR = '#22c55e';
+
+export const COPY_SUCCESS_TIMEOUT = 1000;
+
+const getCopyButton = variableValue => {
+  const copyButton = document.createElement('button');
+
+  copyButton.className = 'copy-button';
+  copyButton.style.backgroundColor = 'transparent';
+  copyButton.style.border = 'none';
+  copyButton.style.color = 'inherit';
+  copyButton.style.cursor = 'pointer';
+  copyButton.style.padding = '2px';
+  copyButton.style.opacity = '0.7';
+  copyButton.style.transition = 'opacity 0.2s ease';
+  copyButton.style.display = 'flex';
+  copyButton.style.alignItems = 'center';
+  copyButton.style.justifyContent = 'center';
+
+  copyButton.innerHTML = COPY_ICON_SVG_TEXT;
+
+  let isCopied = false;
+
+  copyButton.addEventListener('mouseenter', () => {
+    if (isCopied) {
       return;
     }
 
-    const into = document.createElement('div');
-    const descriptionDiv = document.createElement('div');
-    descriptionDiv.className = 'info-description';
+    copyButton.style.opacity = '1';
+  });
 
-    if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
-      descriptionDiv.appendChild(document.createTextNode('*****'));
-    } else {
-      descriptionDiv.appendChild(document.createTextNode(variableValue));
+  copyButton.addEventListener('mouseleave', () => {
+    if (isCopied) {
+      return;
     }
 
-    into.appendChild(descriptionDiv);
+    copyButton.style.opacity = '0.7';
+  });
 
-    return into;
-  };
+  copyButton.addEventListener('click', e => {
+    e.stopPropagation();
+
+    // Prevent clicking if showing success checkmark
+    if (isCopied) {
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(variableValue)
+      .then(() => {
+        isCopied = true;
+        copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;
+        copyButton.style.opacity = '1';
+        copyButton.style.color = COPY_SUCCESS_COLOR;
+        copyButton.style.cursor = 'default';
+        copyButton.classList.add('copy-success');
+
+        setTimeout(() => {
+          isCopied = false;
+          copyButton.innerHTML = COPY_ICON_SVG_TEXT;
+          copyButton.style.opacity = '0.7';
+          copyButton.style.color = 'inherit';
+          copyButton.style.cursor = 'pointer';
+          copyButton.classList.remove('copy-success');
+        }, COPY_SUCCESS_TIMEOUT);
+      })
+      .catch(err => {
+        console.error('Failed to copy to clipboard:', err.message);
+      });
+  });
+
+  return copyButton;
+};
+
+export const renderVarInfo = (token, options, cm, pos) => {
+  // Extract variable name and value based on token
+  const { variableName, variableValue } = extractVariableInfo(token.string, options.variables);
+
+  if (variableValue === undefined) {
+    return;
+  }
+
+  const into = document.createElement('div');
+
+  const contentDiv = document.createElement('div');
+  contentDiv.style.display = 'flex';
+  contentDiv.style.alignItems = 'center';
+  contentDiv.style.gap = '8px';
+  contentDiv.className = 'info-content';
+
+  const descriptionDiv = document.createElement('div');
+  descriptionDiv.className = 'info-description';
+  descriptionDiv.style.flex = '1';
+
+  if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
+    descriptionDiv.appendChild(document.createTextNode('*****'));
+  } else {
+    descriptionDiv.appendChild(document.createTextNode(variableValue));
+  }
+
+  const copyButton = getCopyButton(variableValue);
+
+  contentDiv.appendChild(descriptionDiv);
+  contentDiv.appendChild(copyButton);
+  into.appendChild(contentDiv);
+
+  return into;
+};
+
+if (!SERVER_RENDERED) {
+  CodeMirror = require('codemirror');
 
   CodeMirror.defineOption('brunoVarInfo', false, function (cm, options, old) {
     if (old && old !== CodeMirror.Init) {
