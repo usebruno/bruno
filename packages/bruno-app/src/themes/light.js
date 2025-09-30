@@ -102,7 +102,8 @@ const lightTheme = {
       options: '#ca7811',
       head: '#ca7811'
     },
-    grpc: '#6366f1'
+    grpc: '#6366f1',
+    graphql: '#e535ab'
   },
 
   requestTabPanel: {

@@ -8,6 +8,7 @@ const RequestMethod = ({ item }) => {
   }
 
   const isGrpc = item.type === 'grpc-request';
+  const isGraphQL = item.type === 'graphql-request';
 
   const getClassname = (method = '') => {
     method = method.toLocaleLowerCase();
@@ -20,6 +21,7 @@ const RequestMethod = ({ item }) => {
       'method-head': method === 'head',
       'method-options': method === 'options',
       'method-grpc': isGrpc,
+      'method-graphql': isGraphQL
     });
   };
 
@@ -27,7 +29,7 @@ const RequestMethod = ({ item }) => {
     <StyledWrapper>
       <div className={getClassname(item.request.method)}>
         <span className="uppercase">
-          {isGrpc ? 'grpc' : item.request.method.length > 5 ? item.request.method.substring(0, 3) : item.request.method}
+          {isGrpc ? 'grpc' : isGraphQL ? 'gql' : item.request.method.length > 5 ? item.request.method.substring(0, 3) : item.request.method}
         </span>
       </div>
     </StyledWrapper>
