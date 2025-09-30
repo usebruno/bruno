@@ -6,7 +6,7 @@ import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { toggleCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
@@ -130,6 +130,10 @@ const Collection = ({ collection, searchText }) => {
       }
       _menuDropdown[menuDropdownBehavior]();
     }
+  };
+
+  const handleCollapseFullCollection = () => {
+    dispatch(collapseFullCollection({ collectionUid: collection.uid }));
   };
 
   const viewCollectionSettings = () => {
@@ -310,6 +314,15 @@ const Collection = ({ collection, searchText }) => {
               }}
             >
               Share
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(_e) => {
+                menuDropdownTippyRef.current.hide();
+                handleCollapseFullCollection();
+              }}
+            >
+              Collapse
             </div>
             <div
               className="dropdown-item"
