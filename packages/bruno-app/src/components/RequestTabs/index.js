@@ -9,6 +9,7 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
+import DraggableTab from './DraggableTab';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -52,8 +53,8 @@ const RequestTabs = () => {
       return;
     }
     dispatch(reorderTabs({
-        sourceUid,
-        targetUid: targetTab.uid
+      sourceUid,
+      targetUid: targetTab.uid
     }));
   };
 
@@ -140,16 +141,19 @@ const RequestTabs = () => {
               {collectionRequestTabs && collectionRequestTabs.length
                 ? collectionRequestTabs.map((tab, index) => {
                     return (
-                      <li
+                      <DraggableTab
                         key={tab.uid}
+                        id={tab.uid}
+                        index={index}
+                        moveTab={(source, target) => {
+                          dispatch(reorderTabs({
+                            sourceUid: source,
+                            targetUid: target
+                          }));
+                        }}
                         className={getTabClassname(tab, index)}
                         role="tab"
                         onClick={() => handleClick(tab)}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, tab)}
-                        onDragOver={(e) => handleDragOver(e, tab)}
-                        onDrop={(e) => handleDrop(e, tab)}
-                        onDragEnd={() => handleDragEnd}
                       >
                         <RequestTab
                           collectionRequestTabs={collectionRequestTabs}
@@ -159,7 +163,7 @@ const RequestTabs = () => {
                           collection={activeCollection}
                           folderUid={tab.folderUid}
                         />
-                      </li>
+                      </DraggableTab>
                     );
                   })
                 : null}
