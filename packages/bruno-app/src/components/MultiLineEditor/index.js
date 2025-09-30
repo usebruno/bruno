@@ -34,9 +34,7 @@ class MultiLineEditor extends Component {
       placeholder: this.props.placeholder,
       mode: 'brunovariables',
       brunoVarInfo: {
-        variables,
-        collectionUid: this.props.collection?.uid,
-        store: this.props.store
+        variables
       },
       readOnly: this.props.readOnly,
       tabindex: 0,
@@ -128,8 +126,6 @@ class MultiLineEditor extends Component {
     let variables = getAllVariables(this.props.collection, this.props.item);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
-      this.editor.options.brunoVarInfo.collectionUid = this.props.collection?.uid;
-      this.editor.options.brunoVarInfo.store = this.props.store
       this.addOverlay(variables);
     }
     if (this.props.theme !== prevProps.theme && this.editor) {

@@ -42,8 +42,7 @@ export default class QueryEditor extends React.Component {
       mode: 'graphql',
       // mode: 'brunovariables',
       brunoVarInfo: {
-        variables: getAllVariables(this.props.collection),
-        collectionUid: this.props.collection?.uid
+        variables: getAllVariables(this.props.collection)
       },
       theme: this.props.editorTheme || 'graphiql',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -164,7 +163,6 @@ export default class QueryEditor extends React.Component {
     let variables = getAllVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
-      this.editor.options.brunoVarInfo.collectionUid = this.props.collection?.uid;
       this.addOverlay();
     }
     this.ignoreChangeEvent = false;
