@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import debounce from 'lodash/debounce';
 import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLetterW } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
@@ -21,7 +21,40 @@ const CustomSearch = ({ visible, editor, onClose }) => {
   const searchLineHighlight = useRef(null);
   const searchMatches = useRef([]);
 
-  const doSearch = useCallback(debounce((newIndex = 0) => {
+const memoizedMatches = useMemo(() => {
+  if (!editor || !searchBarVisible) return [];
+  if (!searchText) return [];
+
+  try {
+    let query, options = {};
+    if (regex) {
+      try {
+        query = new RegExp(searchText, caseSensitive ? 'g' : 'gi');
+      } catch {
+        return [];
+      }
+    } else if (wholeWord) {
+      const escaped = escapeRegExp(searchText);
+      query = new RegExp(`\\b${escaped}\\b`, caseSensitive ? 'g' : 'gi');
+    } else {
+      query = searchText;
+      options = { caseFold: !caseSensitive };
+    }
+
+    const cursor = editor.getSearchCursor(query, { line: 0, ch: 0 }, options);
+    const out = [];
+    while (cursor.findNext()) {
+      out.push({ from: cursor.from(), to: cursor.to() });
+    }
+    return out;
+  } catch (e) {
+    console.error('Search error:', e);
+    return [];
+  }
+}, [editor, searchBarVisible, searchText, regex, caseSensitive, wholeWord]);
+
+
+  const doSearch = useCallback((newIndex = 0) => {
     if (!editor) return;
 
     // Clear previous marks
@@ -41,30 +74,7 @@ const CustomSearch = ({ visible, editor, onClose }) => {
     }
 
     try {
-      let query, options = {};
-      if (regex) {
-        try {
-          query = new RegExp(searchText, caseSensitive ? 'g' : 'gi');
-        } catch (e) {
-          setMatchCount(0);
-          setMatchIndex(0);
-          searchMatches.current = [];
-          return;
-        }
-      } else if (wholeWord) {
-        const escaped = escapeRegExp(searchText);
-        query = new RegExp(`\\b${escaped}\\b`, caseSensitive ? 'g' : 'gi');
-      } else {
-        query = searchText;
-        options = { caseFold: !caseSensitive };
-      }
-
-      const cursor = editor.getSearchCursor(query, { line: 0, ch: 0 }, options);
-      let matches = [];
-      while (cursor.findNext()) {
-        matches.push({ from: cursor.from(), to: cursor.to() });
-      }
-
+      const matches = memoizedMatches;
       let matchIndex = matches.length ? Math.max(0, Math.min(newIndex, matches.length - 1)) : 0;
       matches.forEach((m, i) => {
         const mark = editor.markText(m.from, m.to, {
@@ -73,21 +83,20 @@ const CustomSearch = ({ visible, editor, onClose }) => {
         });
         searchMarks.current.push(mark);
       });
-
+  
       if (matches.length) {
         const currentLine = matches[matchIndex].from.line;
         editor.addLineClass(currentLine, 'wrap', 'cm-search-line-highlight');
         searchLineHighlight.current = currentLine;
+  
+        editor.scrollIntoView(matches[matchIndex].from, 100);
+        editor.setSelection(matches[matchIndex].from, matches[matchIndex].to);
       } else {
         searchLineHighlight.current = null;
       }
-
+  
       setMatchCount(matches.length);
       setMatchIndex(matchIndex);
-      if (matches.length) {
-        editor.scrollIntoView(matches[matchIndex].from, 100);
-        editor.setSelection(matches[matchIndex].from, matches[matchIndex].to);
-      }
       searchMatches.current = matches;
     } catch (e) {
       console.error('Search error:', e);
@@ -95,7 +104,12 @@ const CustomSearch = ({ visible, editor, onClose }) => {
       setMatchIndex(0);
       searchMatches.current = [];
     }
-  }, 150), [searchText, regex, caseSensitive, wholeWord, editor]);
+
+  }, [searchText, regex, caseSensitive, wholeWord, editor, memoizedMatches]);
+
+  const debounceSearch = useMemo(() => debounce((index = 0) => {
+    doSearch(index);
+  }, 150), [doSearch]);
 
   useEffect(() => {
     if (visible) setSearchBarVisible(true);
@@ -117,52 +131,49 @@ const CustomSearch = ({ visible, editor, onClose }) => {
     }
   }, [editor, onClose]);
 
-  const handleSearchTextChange = useCallback((text) => {
+  const handleSearchTextChange = (text) => {
     setSearchText(text);
     setMatchIndex(0);
-    doSearch(0);
-  }, [doSearch]);
+  };
 
-  const handleToggleRegex = useCallback(() => {
+  const handleToggleRegex = () => {
     setRegex(prev => !prev);
     setMatchIndex(0);
     doSearch(0);
-  }, [doSearch]);
+  };
 
-  const handleToggleCase = useCallback(() => {
+  const handleToggleCase = () => {
     setCaseSensitive(prev => !prev);
     setMatchIndex(0);
     doSearch(0);
-  }, [doSearch]);
+  };
 
-  const handleToggleWholeWord = useCallback(() => {
+  const handleToggleWholeWord = () => {
     setWholeWord(prev => !prev);
     setMatchIndex(0);
     doSearch(0);
-  }, [doSearch]);
+  };
 
-  const handleNext = useCallback(() => {
+  const handleNext = () => {
     if (!searchMatches.current || !searchMatches.current.length) return;
     let next = (matchIndex + 1) % searchMatches.current.length;
     setMatchIndex(next);
     doSearch(next);
-  }, [matchIndex, doSearch]);
+  };
 
-  const handlePrev = useCallback(() => {
+  const handlePrev = () => {
     if (!searchMatches.current || !searchMatches.current.length) return;
     let prev = (matchIndex - 1 + searchMatches.current.length) % searchMatches.current.length;
     setMatchIndex(prev);
     doSearch(prev);
-  }, [matchIndex, doSearch]);
+  };
 
-  // Effect to trigger search when search options change
   useEffect(() => {
-    if (searchText) {
-      doSearch(0);
-    }
-  }, [regex, caseSensitive, wholeWord, doSearch, searchText, searchBarVisible]);
+      debounceSearch(0);
+  }, [ searchText, debounceSearch]);
 
   if (!searchBarVisible) return null;
+
   return (
     <StyledWrapper>
       <div className="bruno-search-bar compact">
