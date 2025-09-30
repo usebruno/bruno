@@ -1,0 +1,126 @@
+name: 'Setup MITM Proxy - Windows'
+description: 'Sets up mitmproxy for transparent HTTP/HTTPS proxying with custom header injection'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install mitmproxy
+      shell: powershell
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install mitmproxy
+
+    - name: Setup header injection script
+      shell: powershell
+      run: |
+        # Copy the add_header.py script to current directory
+        Copy-Item "${{ github.action_path }}\..\add_header.py" -Destination "add_header.py"
+
+    - name: Start mitmproxy
+      shell: powershell
+      run: |
+        # Set proxy configuration variables
+        $SSL_CA_CERT_PATH = "tests\_server\certs\ca-cert.der"
+        
+        # Start mitmproxy instances in the background
+        $process1 = Start-Process -FilePath "mitmdump" -ArgumentList @(
+          "--listen-port", "8091",
+          "--set", "confdir=$env:USERPROFILE\.mitmproxy",
+          "--set", "ssl_verify_upstream_trusted_ca=$SSL_CA_CERT_PATH",
+          "--script", "add_header.py",
+          "--quiet"
+        ) -PassThru -RedirectStandardOutput "mitmproxy-system.log" -RedirectStandardError "mitmproxy-system_error.log"
+        
+        $process2 = Start-Process -FilePath "mitmdump" -ArgumentList @(
+          "--listen-port", "8092",
+          "--set", "confdir=$env:USERPROFILE\.mitmproxy",
+          "--set", "ssl_verify_upstream_trusted_ca=$SSL_CA_CERT_PATH",
+          "--script", "add_header.py",
+          "--quiet"
+        ) -PassThru -RedirectStandardOutput "mitmproxy-app.log" -RedirectStandardError "mitmproxy-app_error.log"
+        
+        $process3 = Start-Process -FilePath "mitmdump" -ArgumentList @(
+          "--listen-port", "8093",
+          "--set", "confdir=$env:USERPROFILE\.mitmproxy",
+          "--set", "ssl_verify_upstream_trusted_ca=$SSL_CA_CERT_PATH",
+          "--script", "add_header.py",
+          "--quiet"
+        ) -PassThru -RedirectStandardOutput "mitmproxy-collection.log" -RedirectStandardError "mitmproxy-collection_error.log"
+        
+        # Wait for all proxies to start
+        $ports = @(8091, 8092, 8093)
+        foreach ($port in $ports) {
+          for ($i = 1; $i -le 30; $i++) {
+            try {
+              $connection = Test-NetConnection -ComputerName "127.0.0.1" -Port $port -InformationLevel Quiet
+              if ($connection) {
+                Write-Host "Proxy is ready on port $port"
+                break
+              }
+            } catch {
+              # Continue waiting
+            }
+            Write-Host "Waiting for proxy on port $port to start... ($i/30)"
+            Start-Sleep -Seconds 1
+          }
+        }
+
+    - name: Install CA certificate
+      shell: powershell
+      run: |
+        # Wait for CA cert to be generated
+        $certPath = "$env:USERPROFILE\.mitmproxy\mitmproxy-ca-cert.der"
+        while (!(Test-Path $certPath)) {
+          Write-Host "Waiting for CA certificate to be generated..."
+          Start-Sleep -Seconds 1
+        }
+        
+        # Convert PEM to CRT for Windows
+        $certContent = Get-Content $certPath -Raw
+        $certBytes = [System.Text.Encoding]::UTF8.GetBytes($certContent)
+        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certBytes)
+        
+        # Install CA certificate to Trusted Root store
+        $store = [System.Security.Cryptography.X509Certificates.X509Store]::new("Root", "LocalMachine")
+        $store.Open("ReadWrite")
+        $store.Add($cert)
+        $store.Close()
+        
+    - name: Verify proxy setup
+      shell: powershell
+      run: |
+        # Set test server configuration
+        $TEST_SERVER_URL = "https://127.0.0.1:8090"
+        
+        Write-Host "Testing all proxy instances..."
+        
+        # Test each proxy port with specific headers
+        $portHeaders = @{
+          8091 = "X-Bruno-Proxy-System"
+          8092 = "X-Bruno-Proxy-App"
+          8093 = "X-Bruno-Proxy-Collection"
+        }
+        
+        $ports = @(8091, 8092, 8093)
+        foreach ($port in $ports) {
+          $PROXY_URL = "http://127.0.0.1:$port"
+          $expectedHeader = $portHeaders[$port]
+          Write-Host "Testing proxy on port $port..."
+          
+          # Test HTTP request through proxy and check headers
+          $response = Invoke-WebRequest -Uri $TEST_SERVER_URL -Proxy $PROXY_URL -Method Head
+          
+          # Check if specific proxy header is present
+          $headerFound = $response.Headers[$expectedHeader] -eq "via-mitmproxy"
+          
+          if ($headerFound) {
+            Write-Host "✓ Proxy on port $port is working - $expectedHeader header found"
+          } else {
+            Write-Host "✗ Proxy on port $port failed - $expectedHeader header not found"
+            Write-Host "Headers received:"
+            $response.Headers | ForEach-Object { Write-Host "$($_.Key): $($_.Value)" }
+            exit 1
+          }
+        }
+        
+        Write-Host "✓ All proxy instances verified successfully"

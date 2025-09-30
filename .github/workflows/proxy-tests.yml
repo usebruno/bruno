@@ -1,4 +1,4 @@
-name: SSL Tests
+name: Proxy Tests
 on:
   push:
     branches: [main]
@@ -7,7 +7,7 @@ on:
 
 jobs:
   tests-for-linux:
-    name: SSL Tests - Linux
+    name: Proxy Tests - Linux
     timeout-minutes: 60
     runs-on: ubuntu-latest
     permissions:
@@ -21,22 +21,22 @@ jobs:
         uses: ./.github/actions/common/setup-node-deps
 
       - name: Setup Feature Dependencies
-        uses: ./.github/actions/ssl/linux/setup-feature-specific-deps
+        uses: ./.github/actions/proxy/linux/setup-feature-specific-deps
 
       - name: Setup Test Server
         uses: ./.github/actions/common/setup-server/linux
 
-      - name: Run Basic SSL CLI Tests
-        uses: ./.github/actions/ssl/linux/run-basic-ssl-cli-tests
+      - name: Setup Proxy
+        uses: ./.github/actions/common/setup-proxy/linux
 
-      - name: Run Custom CA Certs CLI Tests
-        uses: ./.github/actions/ssl/linux/run-custom-ca-certs-cli-tests
+      - name: Run Proxy CLI Tests
+        uses: ./.github/actions/proxy/linux/run-proxy-cli-tests
 
-      - name: Run Custom CA Certs E2E Tests
-        uses: ./.github/actions/ssl/linux/run-ssl-e2e-tests
+      - name: Run Proxy E2E Tests
+        uses: ./.github/actions/proxy/linux/run-proxy-e2e-tests
 
   tests-for-macos:
-    name: SSL Tests - macOS
+    name: Proxy Tests - macOS
     timeout-minutes: 60
     runs-on: macos-latest
     permissions:
@@ -52,17 +52,17 @@ jobs:
       - name: Setup Test Server
         uses: ./.github/actions/common/setup-server/macos
 
-      - name: Run Basic SSL CLI Tests
-        uses: ./.github/actions/ssl/macos/run-basic-ssl-cli-tests
+      - name: Setup Proxy
+        uses: ./.github/actions/common/setup-proxy/macos
 
-      - name: Run Custom CA Certs CLI Tests
-        uses: ./.github/actions/ssl/macos/run-custom-ca-certs-cli-tests
+      - name: Run Proxy CLI Tests
+        uses: ./.github/actions/proxy/macos/run-proxy-cli-tests
 
-      - name: Run Custom CA Certs E2E Tests
-        uses: ./.github/actions/ssl/macos/run-ssl-e2e-tests
+      - name: Run Proxy E2E Tests
+        uses: ./.github/actions/proxy/macos/run-proxy-e2e-tests
 
   tests-for-windows:
-    name: SSL Tests - Windows
+    name: Proxy Tests - Windows
     timeout-minutes: 60
     runs-on: windows-latest
     permissions:
@@ -78,11 +78,11 @@ jobs:
       - name: Setup Test Server
         uses: ./.github/actions/common/setup-server/windows
 
-      - name: Run Basic SSL CLI Tests
-        uses: ./.github/actions/ssl/windows/run-basic-ssl-cli-tests
+      - name: Setup Proxy
+        uses: ./.github/actions/common/setup-proxy/windows
 
-      - name: Run Custom CA Certs CLI Tests
-        uses: ./.github/actions/ssl/windows/run-custom-ca-certs-cli-tests
+      - name: Run Proxy CLI Tests
+        uses: ./.github/actions/proxy/windows/run-proxy-cli-tests
 
-      - name: Run Custom CA Certs E2E Tests
-        uses: ./.github/actions/ssl/windows/run-ssl-e2e-tests
+      - name: Run Proxy E2E Tests
+        uses: ./.github/actions/proxy/windows/run-proxy-e2e-tests

@@ -1,0 +1,7 @@
+{
+  "maximized": true,
+  "lastOpenedCollections": ["{{projectRoot}}/tests/proxy-settings/collections/proxy-false"],
+  "preferences": {
+    "proxy": "system"
+  }
+}

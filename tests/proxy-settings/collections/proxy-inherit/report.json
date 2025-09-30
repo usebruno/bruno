@@ -1,0 +1,64 @@
+{
+  "summary": {
+    "totalRequests": 1,
+    "passedRequests": 1,
+    "failedRequests": 0,
+    "skippedRequests": 0,
+    "errorRequests": 0,
+    "totalAssertions": 1,
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "totalTests": 0,
+    "passedTests": 0,
+    "failedTests": 0,
+    "totalPreRequestTests": 0,
+    "passedPreRequestTests": 0,
+    "failedPreRequestTests": 0,
+    "totalPostResponseTests": 0,
+    "passedPostResponseTests": 0,
+    "failedPostResponseTests": 0
+  },
+  "results": [
+    {
+      "test": {
+        "filename": "request.bru"
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://127.0.0.1:8090",
+        "headers": {}
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": {
+          "content-type": "text/html; charset=UTF-8",
+          "date": "Thu, 25 Sep 2025 16:31:28 GMT",
+          "connection": "close",
+          "content-length": "10"
+        },
+        "data": "helloworld",
+        "url": "https://127.0.0.1/",
+        "responseTime": 20
+      },
+      "error": null,
+      "status": "pass",
+      "assertionResults": [
+        {
+          "uid": "wCeY1Bznn5nZEl-09FhfI",
+          "lhsExpr": "res.status",
+          "rhsExpr": "eq 200",
+          "rhsOperand": "200",
+          "operator": "eq",
+          "status": "pass"
+        }
+      ],
+      "testResults": [],
+      "preRequestTestResults": [],
+      "postResponseTestResults": [],
+      "shouldStopRunnerExecution": false,
+      "runtime": 0.035548459,
+      "suitename": "/Users/lohit/Documents/code/bruno/tests/proxy-settings/fixtures/collections_newer/proxy-inherit/request"
+    }
+  ]
+}

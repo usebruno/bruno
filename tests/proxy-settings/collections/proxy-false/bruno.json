@@ -1,0 +1,7 @@
+{
+  "version": "1",
+  "name": "proxy-false",
+  "type": "collection",
+  "proxy": false,
+  "ignore": ["node_modules", ".git"]
+}

@@ -9,7 +9,7 @@ const {
 } = require('../helpers/certs');
 
 /**
- * Setup CA certificates for testing server
+ * Setup Test Server for testing server
  */
 async function setup() {
   console.log('🔧 Setting up CA certificates for test server');

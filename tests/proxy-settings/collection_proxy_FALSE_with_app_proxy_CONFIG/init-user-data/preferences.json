@@ -1,0 +1,17 @@
+{
+  "maximized": true,
+  "lastOpenedCollections": ["{{projectRoot}}/tests/proxy-settings/collections/proxy-false"],
+  "preferences": {
+    "proxy": {
+      "protocol": "http",
+      "hostname": "127.0.0.1",
+      "port": 8092,
+      "auth": {
+        "enabled": false,
+        "username": "",
+        "password": ""
+      },
+      "bypassProxy": ""
+    }
+  }
+}
