@@ -346,13 +346,26 @@ const runSingleRequest = async function (
       }
     }
 
-    let requestMaxRedirects = request.maxRedirects
-    request.maxRedirects = 0
-    
-    // Set default value for requestMaxRedirects if not explicitly set
-    if (requestMaxRedirects === undefined) {
+    // Get followRedirects setting, default to true for backward compatibility
+    const followRedirects = request.settings?.followRedirects ?? true;
+
+    // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
+    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+
+    // Ensure it's a valid number and handle string/null cases
+    if (typeof requestMaxRedirects === 'string') {
+      requestMaxRedirects = parseInt(requestMaxRedirects, 10);
+    }
+    if (typeof requestMaxRedirects !== 'number' || isNaN(requestMaxRedirects) || requestMaxRedirects < 0) {
       requestMaxRedirects = 5; // Default to 5 redirects
     }
+
+    // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
+    if (!followRedirects) {
+      requestMaxRedirects = 0;
+    }
+
+    request.maxRedirects = 0;
 
     // Handle OAuth2 authentication
     if (request.oauth2) {
@@ -385,11 +398,12 @@ const runSingleRequest = async function (
     try {
       
       let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
+
       if (request.ntlmConfig) {
         axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
         delete request.ntlmConfig;
       }
-    
+
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js
