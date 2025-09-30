@@ -1466,6 +1466,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.grpc = action.payload.content;
               break;
             }
+            case 'ws': {
+              item.draft.request.body.ws = action.payload.content;
+              break;
+            }
           }
         }
       }

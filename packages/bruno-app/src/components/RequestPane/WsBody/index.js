@@ -38,7 +38,7 @@ const SingleWSMessage = ({
   const preferences = useSelector(state => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
 
-  const { name, content, decoder } = message;
+  const { name, content, type } = message;
   const [messageFormat, setMessageFormat] = useState(autoDetectLang(content));
 
   const onUpdateMessageType = type => {
@@ -92,8 +92,8 @@ const SingleWSMessage = ({
     = canClientSendMultipleMessages && body.ws.length > 1 ? `${isCollapsed ? '' : 'h-80'}` : 'h-full';
 
   let codeType = messageFormat;
-  if (TYPE_BY_DECODER[decoder]) {
-    codeType = TYPE_BY_DECODER[decoder];
+  if (TYPE_BY_DECODER[type]) {
+    codeType = TYPE_BY_DECODER[type];
   }
 
   const codemirrorMode = {
@@ -110,6 +110,7 @@ const SingleWSMessage = ({
 
         const currentMessages = [...(body.ws || [])];
         currentMessages[index] = {
+          ...currentMessages[index],
           name: name ? name : `message ${index + 1}`,
           content: prettyBodyJson,
         };
@@ -129,6 +130,7 @@ const SingleWSMessage = ({
 
         const currentMessages = [...(body.ws || [])];
         currentMessages[index] = {
+          ...currentMessages[index],
           name: name ? name : `message ${index + 1}`,
           content: prettyBodyXML,
         };
@@ -270,9 +272,8 @@ const WSBody = ({ item, collection, handleRun }) => {
       <div
         ref={messagesContainerRef}
         id="ws-messages-container"
-        className={`flex-1 ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'overflow-y-auto'} ${
-          canClientSendMultipleMessages && 'pb-16'
-        }`}
+        className={`flex-1 ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'overflow-y-auto'} ${canClientSendMultipleMessages && 'pb-16'
+          }`}
       >
         {body.ws
           .filter((_, index) => canClientSendMultipleMessages || index === 0)

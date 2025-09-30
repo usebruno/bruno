@@ -31,7 +31,7 @@ const { safeParseJson, outdentString } = require('./utils');
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
   
@@ -131,7 +131,7 @@ const grammar = ohm.grammar(`Bru {
   oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
   oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
 
-  body = "body" st* "{" nl* (pairlist|textblock) tagend
+  body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
   bodyxml = "body:xml" st* "{" nl* textblock tagend
@@ -139,6 +139,7 @@ const grammar = ohm.grammar(`Bru {
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
   bodygrpc = "body:grpc" dictionary
+  bodyws = "body:ws" dictionary
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
@@ -820,18 +821,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  body(_1, _2, _3, _4, content, _5) {
-    if (Array.isArray(content.ast)) {
-      return {
-        body: mapPairListToKeyValPair([content.ast]),
-      };
-    }
+  body(_1, _2, _3, _4, textblock, _5) {
     return {
       http: {
         body: 'json'
       },
       body: {
-        json: outdentString(content.sourceString),
+        json: outdentString(textblock.sourceString),
       }
     };
   },
@@ -977,6 +973,29 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           name: messageName,
           content: messageContent
         }]
+      }
+    };
+  },
+  bodyws(_1, dictionary) {
+    const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
+    const namePair = _.find(pairs, { name: 'name' });
+    const contentPair = _.find(pairs, { name: 'content' });
+    const typePair = _.find(pairs, { name: 'type' });
+
+    const messageName = namePair ? namePair.value : '';
+    const messageContent = contentPair ? contentPair.value : '';
+    const messageTypeContent = typePair ? typePair.value : '';
+
+    return {
+      body: {
+        mode: 'ws',
+        ws: [
+          {
+            name: messageName,
+            type: messageTypeContent,
+            content: messageContent
+          }
+        ]
       }
     };
   }
