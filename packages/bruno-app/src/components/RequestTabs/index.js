@@ -9,13 +9,12 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
+import DraggableTab from './DraggableTab';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
-  const [draggedTabUid, setDraggedTabUid] = useState(null);
-  const [dragOverTabUid, setDragOverTabUid] = useState(null);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
@@ -26,40 +25,8 @@ const RequestTabs = () => {
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
       active: tab.uid === activeTabUid,
-      'last-tab': tabs && tabs.length && index === tabs.length - 1,
-      'dragged': tab.uid === draggedTabUid,
-      'drag-over': tab.uid === dragOverTabUid && draggedTabUid !== null
+      'last-tab': tabs && tabs.length && index === tabs.length - 1
     });
-  };
-
-  const handleDragStart = (e, tab) => {
-    setDraggedTabUid(tab.uid);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', tab.uid);
-  };
-
-  const handleDragOver = (e, tab) => {
-    e.preventDefault();
-    setDragOverTabUid(tab.uid);
-  };
-
-  const handleDrop = (e, targetTab) => {
-    e.preventDefault();
-    setDragOverTabUid(null);
-    const sourceUid = draggedTabUid;
-    setDraggedTabUid(null);
-    if (!sourceUid || sourceUid === targetTab.uid) {
-      return;
-    }
-    dispatch(reorderTabs({
-        sourceUid,
-        targetUid: targetTab.uid
-    }));
-  };
-
-  const handleDragEnd = () => {
-    setDraggedTabUid(null);
-    setDragOverTabUid(null);
   };
 
   const handleClick = (tab) => {
@@ -140,16 +107,18 @@ const RequestTabs = () => {
               {collectionRequestTabs && collectionRequestTabs.length
                 ? collectionRequestTabs.map((tab, index) => {
                     return (
-                      <li
+                      <DraggableTab
                         key={tab.uid}
+                        id={tab.uid}
+                        index={index}
+                        onMoveTab={(source, target) => {
+                          dispatch(reorderTabs({
+                            sourceUid: source,
+                            targetUid: target
+                          }));
+                        }}
                         className={getTabClassname(tab, index)}
-                        role="tab"
                         onClick={() => handleClick(tab)}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, tab)}
-                        onDragOver={(e) => handleDragOver(e, tab)}
-                        onDrop={(e) => handleDrop(e, tab)}
-                        onDragEnd={() => handleDragEnd}
                       >
                         <RequestTab
                           collectionRequestTabs={collectionRequestTabs}
@@ -159,7 +128,7 @@ const RequestTabs = () => {
                           collection={activeCollection}
                           folderUid={tab.folderUid}
                         />
-                      </li>
+                      </DraggableTab>
                     );
                   })
                 : null}
