@@ -35,7 +35,7 @@ const General = ({ close }) => {
       })
       .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
         return value === undefined || Number(value) >= 0;
-      })
+      }),
   });
 
   const formik = useFormik({
@@ -50,7 +50,7 @@ const General = ({ close }) => {
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
-      sendCookies: get(preferences, 'request.sendCookies', true)
+      sendCookies: get(preferences, 'request.sendCookies', true),
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {

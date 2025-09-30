@@ -25,7 +25,7 @@ const CreateCollection = ({ onClose }) => {
     initialValues: {
       collectionName: '',
       collectionFolderName: '',
-      collectionLocation: ''
+      collectionLocation: '',
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
