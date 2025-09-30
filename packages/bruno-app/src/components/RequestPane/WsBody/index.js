@@ -273,7 +273,7 @@ const WSBody = ({ item, collection, handleRun }) => {
         ref={messagesContainerRef}
         id="ws-messages-container"
         className={`flex-1 ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'overflow-y-auto'} ${canClientSendMultipleMessages && 'pb-16'
-          }`}
+        }`}
       >
         {body.ws
           .filter((_, index) => canClientSendMultipleMessages || index === 0)

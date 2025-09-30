@@ -102,7 +102,6 @@ const jsonToBru = (json) => {
     bru += `ws {
   url: ${ws.url}`;
 
-
     if (ws.body && ws.body.length) {
       bru += `
   body: ${ws.body}`;
