@@ -45,8 +45,10 @@ const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
+const SystemMonitor = require('./app/system-monitor');
 
 const lastOpenedCollections = new LastOpenedCollections();
+const systemMonitor = new SystemMonitor();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -202,6 +204,9 @@ app.on('ready', async () => {
     }
 
     mainWindow.webContents.send('main:app-loaded');
+
+    // Start system monitoring for FileSync
+    systemMonitor.start(mainWindow);
   });
 
   // register all ipc handlers
@@ -220,6 +225,9 @@ app.on('before-quit', () => {
   } catch (err) {
     console.warn('Failed to flush cookies on quit', err);
   }
+
+  // Stop system monitoring
+  systemMonitor.stop();
 });
 
 app.on('window-all-closed', app.quit);

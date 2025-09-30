@@ -1,6 +1,12 @@
 import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Tag persistence', () => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
   test('Verify tag persistence while moving requests within a collection', async ({ pageWithUserData: page, createTmpDir }) => {
     // Create first collection - click dropdown menu first
     await page.getByLabel('Create Collection').click();

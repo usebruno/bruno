@@ -20,8 +20,8 @@ module.exports = runESMImports().then(() => defineConfig([
       parser: require('@typescript-eslint/parser'),
       parserOptions: {
         ecmaVersion: 'latest',
-        sourceType: 'module',
-      },
+        sourceType: 'module'
+      }
     },
     files: [
       './eslint.config.js',
@@ -44,11 +44,11 @@ module.exports = runESMImports().then(() => defineConfig([
         indent: 2,
         quotes: 'single',
         semi: true,
-        arrowParens: false,
         jsx: true,
       }).rules,
+      '@stylistic/comma-dangle': ['error', 'never'],
       '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
-      '@stylistic/arrow-parens': ['error', 'as-needed'],
+      '@stylistic/arrow-parens': ['error', 'always'],
       '@stylistic/curly-newline': ['error', {
         multiline: true,
         minElements: 2,
@@ -60,6 +60,7 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/function-call-spacing': ['error', 'never'],
       '@stylistic/multiline-ternary': ['off'],
       '@stylistic/padding-line-between-statements': ['off'],
+      '@stylistic/jsx-one-expression-per-line': ['off'],
       '@stylistic/semi-style': ['error', 'last'],
       '@stylistic/max-len': ['off'],
       '@stylistic/jsx-one-expression-per-line': ['off'],

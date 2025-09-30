@@ -133,6 +133,13 @@ export const collectionsSlice = createSlice({
         state.collections.push(collection);
       }
     },
+    collapseFullCollection: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collapseAllItemsInCollection(collection);
+      }
+    },
     updateCollectionMountStatus: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
@@ -2931,6 +2938,7 @@ export const {
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,
+  collapseFullCollection,
   toggleCollection,
   toggleCollectionItem,
   requestUrlChanged,

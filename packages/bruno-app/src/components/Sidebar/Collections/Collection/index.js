@@ -6,7 +6,7 @@ import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { toggleCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
@@ -132,6 +132,10 @@ const Collection = ({ collection, searchText }) => {
     }
   };
 
+  const handleCollapseFullCollection = () => {
+    dispatch(collapseFullCollection({ collectionUid: collection.uid }));
+  };
+
   const viewCollectionSettings = () => {
     dispatch(
       addTab({
@@ -252,7 +256,7 @@ const Collection = ({ collection, searchText }) => {
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div className="collection-actions">
+        <div className="collection-actions" data-testid="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div
               className="dropdown-item"
@@ -274,6 +278,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
+              data-testid="clone-collection"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowCloneCollectionModalOpen(true);
@@ -309,6 +314,15 @@ const Collection = ({ collection, searchText }) => {
               }}
             >
               Share
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(_e) => {
+                menuDropdownTippyRef.current.hide();
+                handleCollapseFullCollection();
+              }}
+            >
+              Collapse
             </div>
             <div
               className="dropdown-item"
