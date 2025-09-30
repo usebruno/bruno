@@ -398,10 +398,10 @@ const groupRequestsByPath = (requests, usedNames) => {
   const pathGroups = {};
 
   // Group requests by their path segments
-  requests.forEach(request => {
+  requests.forEach((request) => {
     // Use original path for grouping to preserve {id} format
     const pathToUse = request.originalPath || request.path;
-    const pathSegments = pathToUse.split('/').filter(segment => segment !== '');
+    const pathSegments = pathToUse.split('/').filter((segment) => segment !== '');
 
     if (pathSegments.length === 0) {
       // Handle root path or paths with only parameters
@@ -410,7 +410,7 @@ const groupRequestsByPath = (requests, usedNames) => {
         pathGroups[groupName] = {
           name: groupName,
           requests: [],
-          subGroups: {},
+          subGroups: {}
         };
       }
       pathGroups[groupName].requests.push(request);
@@ -424,7 +424,7 @@ const groupRequestsByPath = (requests, usedNames) => {
       pathGroups[groupName] = {
         name: groupName,
         requests: [],
-        subGroups: {},
+        subGroups: {}
       };
     }
 
@@ -441,7 +441,7 @@ const groupRequestsByPath = (requests, usedNames) => {
           currentGroup.subGroups[subGroupName] = {
             name: subGroupName,
             requests: [],
-            subGroups: {},
+            subGroups: {}
           };
         }
         currentGroup = currentGroup.subGroups[subGroupName];
@@ -452,18 +452,18 @@ const groupRequestsByPath = (requests, usedNames) => {
 
   // Convert the nested structure to Bruno folder format
   const buildFolderStructure = (group, usedNames) => {
-    const items = group.requests.map(req => transformOpenapiRequestItem(req, usedNames));
+    const items = group.requests.map((req) => transformOpenapiRequestItem(req, usedNames));
 
     // Add sub-folders
     const subFolders = [];
-    Object.values(group.subGroups).forEach(subGroup => {
+    Object.values(group.subGroups).forEach((subGroup) => {
       const subFolderItems = buildFolderStructure(subGroup, usedNames);
       if (subFolderItems.length > 0) {
         subFolders.push({
           uid: uuid(),
           name: subGroup.name,
           type: 'folder',
-          items: subFolderItems,
+          items: subFolderItems
         });
       }
     });
@@ -471,11 +471,11 @@ const groupRequestsByPath = (requests, usedNames) => {
     return [...items, ...subFolders];
   };
 
-  const folders = Object.values(pathGroups).map(group => ({
+  const folders = Object.values(pathGroups).map((group) => ({
     uid: uuid(),
     name: group.name,
     type: 'folder',
-    items: buildFolderStructure(group, usedNames),
+    items: buildFolderStructure(group, usedNames)
   }));
 
   return folders;
@@ -609,7 +609,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
-      let brunoFolders = groups.map(group => {
+      let brunoFolders = groups.map((group) => {
         return {
           uid: uuid(),
           name: group.name,
@@ -622,18 +622,18 @@ export const parseOpenApiCollection = (data, options = {}) => {
                 bearer: null,
                 digest: null,
                 apikey: null,
-                oauth2: null,
-              },
+                oauth2: null
+              }
             },
             meta: {
-              name: group.name,
-            },
+              name: group.name
+            }
           },
-          items: group.requests.map(req => transformOpenapiRequestItem(req, usedNames)),
+          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames))
         };
       });
 
-      let ungroupedItems = ungroupedRequests.map(req => transformOpenapiRequestItem(req, usedNames));
+      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames));
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
     }
