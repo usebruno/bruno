@@ -15,7 +15,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
-const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables, getProxyConfig } = require('../utils/proxy-util');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
@@ -200,28 +200,7 @@ const runSingleRequest = async function (
       }
     }
 
-    let proxyMode = 'off';
-    let proxyConfig = {};
-
-    const collectionProxyConfig = get(brunoConfig, 'proxy', {});
-    const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
-    
-    if (noproxy) {
-      // If noproxy flag is set, don't use any proxy
-      proxyMode = 'off';
-    } else if (collectionProxyEnabled === true) {
-      // If collection proxy is enabled, use it
-      proxyConfig = collectionProxyConfig;
-      proxyMode = 'on';
-    } else if (collectionProxyEnabled === 'global') {
-      // If collection proxy is set to 'global', use system proxy
-      const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
-      if (http_proxy?.length || https_proxy?.length) {
-        proxyMode = 'system';
-      }
-    } else {
-      proxyMode = 'off';
-    }
+    const { proxyMode, proxyConfig } = getProxyConfig({ brunoConfig, noproxy });
 
     if (proxyMode === 'on') {
       const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));

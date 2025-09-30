@@ -1,0 +1,77 @@
+name: 'Run Proxy CLI Tests - macOS'
+description: 'Run proxy CLI tests on macOS'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Proxy CLI tests
+      shell: bash
+      run: |
+        set -euo pipefail
+         
+        # navigate to newer proxy test collection directory
+        cd tests/proxy-settings/collections/proxy-false
+
+        echo "Running proxy-false collection tests..."
+
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json
+        if grep 'x-bruno-proxy' report.json; then
+          echo "Test failed: Should not have any x-bruno-proxy header when proxy is disabled"
+          exit 1
+        else
+          echo "✓ No proxy header found as expected"
+        fi
+
+        # Test with --noproxy flag (should still work)
+        echo "Running with --noproxy flag..."
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json --noproxy
+        if grep 'x-bruno-proxy' report.json; then
+          echo "Test failed: Should not have any x-bruno-proxy header when proxy is disabled"
+          exit 1
+        else
+          echo "✓ No proxy header found as expected"
+        fi
+
+
+        echo "Running proxy-object collection tests..."
+        cd ../proxy-object
+
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json
+        grep 'x-bruno-proxy-collection' report.json || { 
+          echo "Test failed: Expected x-bruno-proxy-collection header in response"
+          exit 1
+        }
+        echo "✓ Collection proxy header found as expected"
+
+        # Test with --noproxy flag (should disable collection proxy)
+        echo "Running with --noproxy flag..."
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json --noproxy
+        if grep 'x-bruno-proxy' report.json; then
+          echo "Test failed: Should not have any x-bruno-proxy header when --noproxy is used"
+          exit 1
+        else
+          echo "✓ No proxy header found as expected"
+        fi
+
+
+        echo "Running proxy-inherit collection tests..."
+        cd ../proxy-inherit
+
+        # Test with --noproxy flag (should disable system proxy)
+        echo "Running with --noproxy flag..."
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json --noproxy
+        if grep 'x-bruno-proxy' report.json; then
+          echo "Test failed: Should not have any x-bruno-proxy header with --noproxy"
+          exit 1
+        else
+          echo "✓ No collection proxy header found as expected"
+        fi
+        
+        # Test with system proxy environment variables set
+        echo "Running with HTTP_PROXY environment variable..."
+        HTTPS_PROXY=http://127.0.0.1:8091
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json
+        grep 'x-bruno-proxy-system' report.json || { 
+          echo "Test failed: Expected x-bruno-proxy-system header in response"
+          exit 1
+        }
+        echo "✓ System proxy header found as expected"

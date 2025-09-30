@@ -1,0 +1,15 @@
+meta {
+  name: test-request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://127.0.0.1:8090
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

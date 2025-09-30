@@ -85,32 +85,79 @@ const getCertsAndProxyConfig = async ({
     }
   }
 
+  const { proxyMode, proxyConfig } = getProxyConfig({ brunoConfig });
+
+  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
+};
+
+const getProxyConfig = ({ brunoConfig }) => {
+  const collectionProxy = get(brunoConfig, 'proxy', 'inherit');
+
   /**
-   * Proxy configuration
+   * Collection proxy has three possible values: false, "inherit", or proxy object
    * 
-   * Preferences proxyMode has three possible values: on, off, system
-   * Collection proxyMode has three possible values: true, false, global
-   * 
-   * When collection proxyMode is true, it overrides the app-level proxy settings
-   * When collection proxyMode is false, it ignores the app-level proxy settings
-   * When collection proxyMode is global, it uses the app-level proxy settings
+   * When collection proxy is false, it ignores the app-level proxy settings
+   * When collection proxy is an object, it overrides the app-level proxy settings
+   * When collection proxy is "inherit", it uses the app-level proxy settings
    * 
    * Below logic calculates the proxyMode and proxyConfig to be used for the request
    */
-  let proxyMode = 'off';
-  let proxyConfig = {};
+  if (collectionProxy === false) {
+    return { proxyMode: 'off', proxyConfig: {} };
+  }
 
-  const collectionProxyConfig = get(brunoConfig, 'proxy', {});
-  const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', 'global');
-  if (collectionProxyEnabled === true) {
-    proxyConfig = collectionProxyConfig;
-    proxyMode = 'on';
-  } else if (collectionProxyEnabled === 'global') {
-    proxyConfig = preferencesUtil.getGlobalProxyConfig();
-    proxyMode = get(proxyConfig, 'mode', 'off');
+  if (typeof collectionProxy === 'object' && collectionProxy !== null && !collectionProxy.hasOwnProperty('enabled')) {
+    return { proxyMode: 'on', proxyConfig: collectionProxy };
   }
   
-  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
+  if (collectionProxy === 'inherit') {
+    const { proxyMode, proxyConfig } = getGlobalProxyConfig();
+    return { proxyMode, proxyConfig };
+  }
+
+  /**
+   * Legacy Collection proxyMode has three possible values: true, false, "global"
+   *
+   * When collection proxyMode is true, it overrides the app-level proxy settings
+   * When collection proxyMode is false, it ignores the app-level proxy settings
+   * When collection proxyMode is "global", it uses the app-level proxy settings
+   */
+
+  const collectionProxyEnabled = get(collectionProxy, 'enabled', 'global');
+
+  if (collectionProxyEnabled === true) {
+    return { proxyMode: 'on', proxyConfig: collectionProxy };
+  }
+
+  if (collectionProxyEnabled === 'global') {
+    const { proxyMode, proxyConfig } = getGlobalProxyConfig();
+    return { proxyMode, proxyConfig };
+  }
+
+  return { proxyMode: 'off', proxyConfig: {} };
 }
 
-module.exports = { getCertsAndProxyConfig }; 
+const getGlobalProxyConfig = () => {
+  // App-level proxy has three possible values: false, "system", or proxy object
+  const globalProxy = preferencesUtil.getGlobalProxyConfig();
+
+  if (globalProxy === false) {
+    return { proxyMode: 'off', proxyConfig: {} };
+  }
+
+  if (typeof globalProxy === 'object' && globalProxy !== null) {
+    return { proxyMode: 'on', proxyConfig: globalProxy };
+  }
+
+  if (globalProxy === 'system') {
+    // the system `proxyConfig` will be obtained at the time of setting up the proxy agents, the value set here will not be considered
+    return { proxyMode: 'system', proxyConfig: {} };
+  }
+
+  // note: Legacy App-level proxy has three possible values: "on", "off", "system"
+  // this is be handled in the `preferencesUtil.getPreferences`
+
+  return { proxyMode: 'off', proxyConfig: {} };
+};
+
+module.exports = { getCertsAndProxyConfig, getProxyConfig, getGlobalProxyConfig };
