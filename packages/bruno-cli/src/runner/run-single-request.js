@@ -352,11 +352,8 @@ const runSingleRequest = async function (
     // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
     let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
 
-    // Ensure it's a valid number and handle string/null cases
-    if (typeof requestMaxRedirects === 'string') {
-      requestMaxRedirects = parseInt(requestMaxRedirects, 10);
-    }
-    if (typeof requestMaxRedirects !== 'number' || isNaN(requestMaxRedirects) || requestMaxRedirects < 0) {
+    // Ensure it's a valid number
+    if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
       requestMaxRedirects = 5; // Default to 5 redirects
     }
 
