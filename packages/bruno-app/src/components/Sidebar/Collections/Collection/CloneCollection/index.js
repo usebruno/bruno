@@ -28,7 +28,6 @@ const CloneCollection = ({ onClose, collectionUid }) => {
     initialValues: {
       collectionName: `${name} copy`,
       collectionFolderName: `${sanitizeName(name)} copy`,
-      collectionLocation: '',
       collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
