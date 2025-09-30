@@ -88,13 +88,26 @@ const configureRequest = async (
     collectionPath
   });
 
-  let requestMaxRedirects = request.maxRedirects
-  request.maxRedirects = 0
+  // Get followRedirects setting, default to true for backward compatibility
+  const followRedirects = request.settings?.followRedirects ?? true;
   
-  // Set default value for requestMaxRedirects if not explicitly set
-  if (requestMaxRedirects === undefined) {
+  // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
+  let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+
+  // Ensure it's a valid number and handle string/null cases
+  if (typeof requestMaxRedirects === 'string') {
+    requestMaxRedirects = parseInt(requestMaxRedirects, 10);
+  }
+  if (typeof requestMaxRedirects !== 'number' || isNaN(requestMaxRedirects) || requestMaxRedirects < 0) {
     requestMaxRedirects = 5; // Default to 5 redirects
   }
+
+  // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
+  if (!followRedirects) {
+    requestMaxRedirects = 0;
+  }
+
+  request.maxRedirects = 0;
 
   let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
@@ -192,7 +205,8 @@ const configureRequest = async (
     addDigestInterceptor(axiosInstance, request);
   }
 
-  request.timeout = preferencesUtil.getRequestTimeout();
+  // Get timeout from request settings, fallback to global preference
+  request.timeout = request.settings?.timeout || preferencesUtil.getRequestTimeout();
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
@@ -275,7 +289,8 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const collectionRoot = get(collection, 'root', {});
     const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, _request, collectionRoot);
 
-    request.timeout = preferencesUtil.getRequestTimeout();
+    // Get timeout from request settings, fallback to global preference
+    request.timeout = request.settings?.timeout || preferencesUtil.getRequestTimeout();
 
     if (!preferencesUtil.shouldVerifyTls()) {
       request.httpsAgent = new https.Agent({

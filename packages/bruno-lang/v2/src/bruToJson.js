@@ -409,10 +409,36 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   settings(_1, dictionary) {
     let settings = mapPairListToKeyValPair(dictionary.ast);
 
-    return {
-      settings: {
-        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+    const parsedSettings = {};
+
+    // Parse encodeUrl as boolean
+    if (settings.encodeUrl !== undefined) {
+      parsedSettings.encodeUrl = typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true';
+    }
+
+    // Parse followRedirects as boolean
+    if (settings.followRedirects !== undefined) {
+      parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
+    }
+
+    // Parse maxRedirects as number
+    if (settings.maxRedirects !== undefined) {
+      const maxRedirects = parseInt(settings.maxRedirects, 10);
+      if (!isNaN(maxRedirects)) {
+        parsedSettings.maxRedirects = maxRedirects;
       }
+    }
+
+    // Parse timeout as number
+    if (settings.timeout !== undefined) {
+      const timeout = parseInt(settings.timeout, 10);
+      if (!isNaN(timeout)) {
+        parsedSettings.timeout = timeout;
+      }
+    }
+
+    return {
+      settings: parsedSettings
     };
   },
   grpc(_1, dictionary) {

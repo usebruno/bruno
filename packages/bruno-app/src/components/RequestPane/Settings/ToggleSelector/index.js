@@ -29,7 +29,17 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between">
+      <div className="flex flex-col">
+        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
+          {label}
+        </label>
+        {description && (
+          <p className="text-xs text-gray-700 dark:text-gray-400">
+            {description}
+          </p>
+        )}
+      </div>
       <button
         type="button"
         onClick={onChange}
@@ -57,16 +67,6 @@ const ToggleSelector = ({
           `}
         />
       </button>
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
-      </div>
     </div>
   );
 };
