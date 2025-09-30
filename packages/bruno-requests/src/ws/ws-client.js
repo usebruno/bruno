@@ -88,11 +88,20 @@ class WsClient {
 
     try {
       // Create WebSocket connection
-      const wsConnection = new ws.WebSocket(parsedUrl.fullUrl, {
+      const protocols = [].concat([headers['Sec-WebSocket-Protocol'], headers['sec-websocket-protocol']]).filter(Boolean);
+      const protocolVersion = headers['Sec-WebSocket-Version'] || headers['sec-websocket-version'];
+
+      const wsOptions = {
         headers,
         handshakeTimeout: timeout,
         followRedirects: true,
-      });
+      };
+
+      if (protocolVersion) {
+        wsOptions.protocolVersion = protocolVersion;
+      }
+
+      const wsConnection = new ws.WebSocket(parsedUrl.fullUrl, protocols, wsOptions);
 
       // Set up event handlers
       this.#setupWsEventHandlers(wsConnection, requestId, collectionUid, { keepAlive, keepAliveInterval });
