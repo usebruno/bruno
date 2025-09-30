@@ -10,17 +10,17 @@ const openApiSpec = {
       get: {
         summary: 'Get by ID',
         operationId: 'getById',
-        responses: { 200: { description: 'OK' } },
-      },
+        responses: { 200: { description: 'OK' } }
+      }
     },
     '/{id}/{subId}': {
       get: {
         summary: 'Get by ID and sub ID',
         operationId: 'getByIdAndSubId',
-        responses: { 200: { description: 'OK' } },
-      },
-    },
-  },
+        responses: { 200: { description: 'OK' } }
+      }
+    }
+  }
 };
 
 describe('openapi-import-grouping', () => {
@@ -37,8 +37,8 @@ describe('openapi-import-grouping', () => {
     // Folder should contain one request and one subfolder
     expect(folder.items).toHaveLength(2);
 
-    const requests = folder.items.filter(item => item.type === 'http-request');
-    const subfolders = folder.items.filter(item => item.type === 'folder');
+    const requests = folder.items.filter((item) => item.type === 'http-request');
+    const subfolders = folder.items.filter((item) => item.type === 'folder');
 
     expect(requests).toHaveLength(1);
     expect(subfolders).toHaveLength(1);
@@ -62,17 +62,17 @@ describe('openapi-import-grouping', () => {
     expect(result.items).toHaveLength(2);
 
     // Both should be individual requests (not in folders)
-    result.items.forEach(item => {
+    result.items.forEach((item) => {
       expect(item.type).toBe('http-request');
     });
 
     // Check request names
-    const requestNames = result.items.map(req => req.name);
+    const requestNames = result.items.map((req) => req.name);
     expect(requestNames).toContain('Get by ID');
     expect(requestNames).toContain('Get by ID and sub ID');
 
     // Check request URLs
-    const urls = result.items.map(req => req.request.url);
+    const urls = result.items.map((req) => req.request.url);
     expect(urls).toContain('{{baseUrl}}/:id');
     expect(urls).toContain('{{baseUrl}}/:id/:subId');
   });

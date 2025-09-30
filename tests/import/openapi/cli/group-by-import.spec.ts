@@ -27,16 +27,16 @@ test.describe('OpenAPI Import GroupBy Tests', () => {
     expect(jsonCollection.name).toBe('Simple API (Tags)');
 
     // Verify tags grouping creates folders by OpenAPI tags
-    const folders = jsonCollection.items.filter(item => item.type === 'folder');
+    const folders = jsonCollection.items.filter((item) => item.type === 'folder');
     expect(folders.length).toBe(3);
 
-    const folderNames = folders.map(folder => folder.name);
+    const folderNames = folders.map((folder) => folder.name);
     expect(folderNames).toContain('users');
     expect(folderNames).toContain('products');
     expect(folderNames).toContain('orders');
 
     // Verify tags grouping doesn't create {id} folders
-    const hasIdFolders = folders.some(folder => folder.items?.some(item => item.name === '{id}'));
+    const hasIdFolders = folders.some((folder) => folder.items?.some((item) => item.name === '{id}'));
     expect(hasIdFolders).toBe(false);
   });
 
@@ -63,16 +63,16 @@ test.describe('OpenAPI Import GroupBy Tests', () => {
     expect(jsonCollection.name).toBe('Simple API (Path)');
 
     // Verify path grouping creates folders by URL path structure
-    const folders = jsonCollection.items.filter(item => item.type === 'folder');
+    const folders = jsonCollection.items.filter((item) => item.type === 'folder');
     expect(folders.length).toBe(3); // users, products, orders
 
-    const folderNames = folders.map(folder => folder.name);
+    const folderNames = folders.map((folder) => folder.name);
     expect(folderNames).toContain('users');
     expect(folderNames).toContain('products');
     expect(folderNames).toContain('orders');
 
     // Verify path grouping creates {id} folders for parameterized paths
-    const hasIdFolders = folders.some(folder => folder.items?.some(item => item.name === '{id}'));
+    const hasIdFolders = folders.some((folder) => folder.items?.some((item) => item.name === '{id}'));
     expect(hasIdFolders).toBe(true);
   });
 });

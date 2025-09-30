@@ -50,7 +50,7 @@ const builder = (yargs) => {
       describe: 'How to group the imported requests: "tags" groups by OpenAPI tags, "path" groups by URL path structure',
       type: 'string',
       choices: ['tags', 'path'],
-      default: 'tags',
+      default: 'tags'
     })
     .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --collection-name "My API"')
     .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -n "My API"')

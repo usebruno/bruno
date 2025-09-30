@@ -6,18 +6,18 @@ import StyledWrapper from './StyledWrapper';
 
 const groupingOptions = [
   { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI tags' },
-  { value: 'path', label: 'Paths', description: 'Group requests by URL path structure' },
+  { value: 'path', label: 'Paths', description: 'Group requests by URL path structure' }
 ];
 
 const ImportSettings = ({ groupingType, setGroupingType, onImport, onCancel }) => {
   const dropdownTippyRef = useRef();
 
-  const onDropdownCreate = ref => {
+  const onDropdownCreate = (ref) => {
     dropdownTippyRef.current = ref;
   };
 
   const GroupingDropdownIcon = forwardRef((props, ref) => {
-    const selectedOption = groupingOptions.find(option => option.value === groupingType);
+    const selectedOption = groupingOptions.find((option) => option.value === groupingType);
     return (
       <div
         ref={ref}
@@ -53,7 +53,7 @@ const ImportSettings = ({ groupingType, setGroupingType, onImport, onCancel }) =
 
           <div className="relative">
             <Dropdown onCreate={onDropdownCreate} icon={<GroupingDropdownIcon />} placement="bottom-start">
-              {groupingOptions.map(option => (
+              {groupingOptions.map((option) => (
                 <div
                   key={option.value}
                   className="dropdown-item"

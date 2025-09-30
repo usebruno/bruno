@@ -7,7 +7,7 @@ const loadingMessages = [
   'Analyzing requests...',
   'Translating scripts...',
   'Preparing collection...',
-  'Almost done...',
+  'Almost done...'
 ];
 
 const FullscreenLoader = ({ isLoading }) => {
