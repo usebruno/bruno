@@ -41,39 +41,39 @@ export const exportGlobalEnvironments = async (format = 'json') => {
   }
 };
 
-// Local Environment Exports
-export const exportLocalEnvironmentAsBru = async (environment, filePath) => {
+// Collection Environment Exports
+export const exportCollectionEnvironmentAsBru = async (environment, filePath) => {
   try {
     const { ipcRenderer } = window;
-    await ipcRenderer.invoke('renderer:export-local-environment', {
+    await ipcRenderer.invoke('renderer:export-collection-environment', {
       environment,
       format: 'bru',
       filePath,
     });
   } catch (error) {
-    console.error('Error exporting local environment as .bru:', error);
-    throw new Error('Failed to export local environment as .bru file');
+    console.error('Error exporting collection environment as .bru:', error);
+    throw new Error('Failed to export collection environment as .bru file');
   }
 };
 
-export const exportLocalEnvironmentAsJson = async (environment, filePath) => {
+export const exportCollectionEnvironmentAsJson = async (environment, filePath) => {
   try {
     const { ipcRenderer } = window;
-    await ipcRenderer.invoke('renderer:export-local-environment', {
+    await ipcRenderer.invoke('renderer:export-collection-environment', {
       environment,
       format: 'json',
       filePath,
     });
   } catch (error) {
-    console.error('Error exporting local environment as .json:', error);
-    throw new Error('Failed to export local environment as .json file');
+    console.error('Error exporting collection environment as .json:', error);
+    throw new Error('Failed to export collection environment as .json file');
   }
 };
 
-export const exportLocalEnvironments = async (collection, format = 'bru') => {
+export const exportCollectionEnvironments = async (collection, format = 'bru') => {
   try {
     const { ipcRenderer } = window;
-    const result = await ipcRenderer.invoke('renderer:export-local-environments', {
+    const result = await ipcRenderer.invoke('renderer:export-collection-environments', {
       collectionPath: collection.pathname,
       collectionName: collection.name,
       format,
@@ -81,7 +81,7 @@ export const exportLocalEnvironments = async (collection, format = 'bru') => {
 
     return result;
   } catch (error) {
-    console.error('Error exporting local environments:', error);
-    throw new Error('Failed to export local environments');
+    console.error('Error exporting collection environments:', error);
+    throw new Error('Failed to export collection environments');
   }
 };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Portal from 'components/Portal/index';
 import Modal from 'components/Modal';
-import { exportLocalEnvironmentAsBru, exportLocalEnvironmentAsJson } from 'utils/exporters/environments/environment-export';
+import { exportCollectionEnvironmentAsBru, exportCollectionEnvironmentAsJson } from 'utils/exporters/environments/environment-export';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
@@ -38,9 +38,9 @@ const ExportModal = ({ onClose, environment, collection }) => {
 
       let result;
       if (selectedFormat === 'bru') {
-        result = await exportLocalEnvironmentAsBru(environment, filePath);
+        result = await exportCollectionEnvironmentAsBru(environment, filePath);
       } else if (selectedFormat === 'json') {
-        result = await exportLocalEnvironmentAsJson(environment, filePath);
+        result = await exportCollectionEnvironmentAsJson(environment, filePath);
       }
 
       onClose();

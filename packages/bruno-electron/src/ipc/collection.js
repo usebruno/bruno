@@ -391,8 +391,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  // Export single local environment
-  ipcMain.handle('renderer:export-local-environment', async (event, { environment, format = 'json', filePath }) => {
+  // Export single collection environment
+  ipcMain.handle('renderer:export-collection-environment', async (event, { environment, format = 'json', filePath }) => {
     try {
       const cleanEnvironment = {
         name: environment.name,
@@ -424,8 +424,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  // Export local environments
-  ipcMain.handle('renderer:export-local-environments', async (event, { collectionPath, collectionName, format = 'bru' }) => {
+  // Export collection environments
+  ipcMain.handle('renderer:export-collection-environments', async (event, { collectionPath, collectionName, format = 'bru' }) => {
     try {
       const envDirPath = path.join(collectionPath, 'environments');
 
@@ -436,7 +436,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const envFiles = fs.readdirSync(envDirPath).filter(file => file.endsWith('.bru'));
 
       if (envFiles.length === 0) {
-        throw new Error('No local environments to export');
+        throw new Error('No collection environments to export');
       }
 
       if (format === 'bru') {

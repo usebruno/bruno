@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Portal from 'components/Portal/index';
 import Modal from 'components/Modal';
-import { exportLocalEnvironments } from 'utils/exporters/environments/environment-export';
+import { exportCollectionEnvironments } from 'utils/exporters/environments/environment-export';
 import toast from 'react-hot-toast';
 import StyledWrapper from '../ExportModal/StyledWrapper';
 
@@ -13,7 +13,7 @@ const ExportAllModal = ({ onClose, collection }) => {
     try {
       setIsExporting(true);
 
-      const result = await exportLocalEnvironments(collection, selectedFormat);
+      const result = await exportCollectionEnvironments(collection, selectedFormat);
 
       onClose();
     } catch (error) {
@@ -33,7 +33,7 @@ const ExportAllModal = ({ onClose, collection }) => {
       <StyledWrapper>
         <Modal
           size="sm"
-          title="Export All Local Environments"
+          title="Export All Collection Environments"
           hideFooter={true}
           handleCancel={onClose}
         >
