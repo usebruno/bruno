@@ -3,8 +3,10 @@ import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
 import { IconTag } from '@tabler/icons';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
+import NumberInput from 'components/RequestPane/Settings/NumberInput';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import Tags from './Tags/index';
+import StyledWrapper from './StyledWrapper';
 
 const Settings = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -13,7 +15,7 @@ const Settings = ({ item, collection }) => {
   const getPropertyFromDraftOrRequest = (propertyKey) =>
     item.draft ? get(item, `draft.${propertyKey}`, {}) : get(item, propertyKey, {});
 
-  const { encodeUrl } = getPropertyFromDraftOrRequest('settings');
+  const { encodeUrl, followRedirects = true, maxRedirects = 5, timeout = 0 } = getPropertyFromDraftOrRequest('settings');
 
   const onToggleUrlEncoding = useCallback(() => {
     dispatch(updateItemSettings({
@@ -23,27 +25,86 @@ const Settings = ({ item, collection }) => {
     }));
   }, [encodeUrl, dispatch, collection.uid, item.uid]);
 
+  const onToggleFollowRedirects = useCallback(() => {
+    dispatch(updateItemSettings({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      settings: { followRedirects: !followRedirects }
+    }));
+  }, [followRedirects, dispatch, collection.uid, item.uid]);
+
+  const onMaxRedirectsChange = useCallback((value) => {
+    dispatch(updateItemSettings({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      settings: { maxRedirects: value }
+    }));
+  }, [dispatch, collection.uid, item.uid]);
+
+  const onTimeoutChange = useCallback((value) => {
+    dispatch(updateItemSettings({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      settings: { timeout: value }
+    }));
+  }, [dispatch, collection.uid, item.uid]);
+
   return (
-    <div className="w-full h-full flex flex-col gap-10">
-      <div className='flex flex-col gap-2 max-w-[400px]'>
-        <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1">
-          <IconTag size={16} />
-          Tags
-        </h3>
-        <div label="Tags">
+    <StyledWrapper className="h-full w-full">
+      <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
+      <div className="bruno-form">
+        <div className="mb-6">
+          <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1 mb-4">
+            <IconTag size={16} />
+            Tags
+          </h3>
           <Tags item={item} collection={collection} />
         </div>
+
+        <div className="flex flex-col gap-4">
+
+          <div className="flex flex-col gap-4">
+            <ToggleSelector
+              checked={encodeUrl}
+              onChange={onToggleUrlEncoding}
+              label="URL Encoding"
+              description="Automatically encode query parameters in the URL"
+              size="medium"
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <ToggleSelector
+              checked={followRedirects}
+              onChange={onToggleFollowRedirects}
+              label="Automatically Follow Redirects"
+              description="Follow HTTP redirects automatically"
+              size="medium"
+            />
+          </div>
+
+          <NumberInput
+            id="maxRedirects"
+            label="Max Redirects"
+            value={maxRedirects}
+            onChange={onMaxRedirectsChange}
+            placeholder="5"
+            min={0}
+            max={50}
+          />
+
+          <NumberInput
+            id="timeout"
+            label="Timeout (ms)"
+            value={timeout}
+            onChange={onTimeoutChange}
+            placeholder="0"
+            min={0}
+            max={300000}
+          />
+        </div>
       </div>
-      <div className='flex flex-col gap-4'>
-        <ToggleSelector
-          checked={encodeUrl}
-          onChange={onToggleUrlEncoding}
-          label="URL Encoding"
-          description="Automatically encode query parameters in the URL"
-          size="medium"
-        />
-      </div>
-    </div>
+    </StyledWrapper>
   );
 };
 

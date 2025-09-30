@@ -580,6 +580,9 @@ export const collectionsSlice = createSlice({
 
         if (item && item.draft) {
           item.request = item.draft.request;
+          if (item.draft.settings) {
+            item.settings = item.draft.settings;
+          }
           item.draft = null;
         }
       }
