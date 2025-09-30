@@ -42,15 +42,36 @@ const getCollectionConfigFile = async (pathname) => {
 };
 
 const openCollectionDialog = async (win, watcher) => {
-  const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openDirectory', 'createDirectory']
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    properties: ['openDirectory', 'createDirectory', 'multiSelections']
   });
-  if (filePaths && filePaths[0]) {
-    const resolvedPath = path.resolve(filePaths[0]);
-    if (isDirectory(resolvedPath)) {
-      openCollection(win, watcher, resolvedPath);
-    } else {
-      console.error(`[ERROR] Cannot open unknown folder: "${resolvedPath}"`);
+
+  if (!canceled && filePaths?.length > 0) {
+    // Using Set to remove duplicates
+    const { openCollectionPromises, invalidPaths } = [...new Set(filePaths)].reduce((acc, filePath) => {
+      const resolvedPath = path.resolve(filePath);
+
+      if (isDirectory(resolvedPath)) {
+        // Open each valid collection in parallel
+        acc.openCollectionPromises.push(openCollection(win, watcher, resolvedPath).catch((err) => {
+          console.error(`[ERROR] Failed to open collection at "${resolvedPath}":`, err.message);
+          return { error: err, path: resolvedPath };
+        }));
+      } else {
+        acc.invalidPaths.push(resolvedPath);
+        console.error(`[ERROR] Cannot open unknown folder: "${resolvedPath}"`);
+      }
+
+      return acc;
+    },
+    { openCollectionPromises: [], invalidPaths: [] });
+
+    // Wait for all valid collections to be opened
+    await Promise.all(openCollectionPromises);
+
+    // Notify about any invalid paths
+    if (invalidPaths.length > 0) {
+      win.webContents.send('main:display-error', `Some selected folders could not be opened: ${invalidPaths.join(', ')}`);
     }
   }
 };
@@ -78,7 +99,7 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {
-          error: err.message || 'An error occurred while opening the local collection'
+          message: err.message || 'An error occurred while opening the local collection'
         });
       }
     }
