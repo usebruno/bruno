@@ -397,7 +397,16 @@ const runSingleRequest = async function (
     let response, responseTime;
     try {
       
-      let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
+      // Set timeout from request settings, default to 0 (no timeout)
+      const requestTimeout = request.settings?.timeout || 0;
+      if (requestTimeout > 0) {
+        request.timeout = requestTimeout;
+      }
+
+      let axiosInstance = makeAxiosInstance({
+        requestMaxRedirects: requestMaxRedirects,
+        disableCookies: options.disableCookies
+      });
 
       if (request.ntlmConfig) {
         axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
