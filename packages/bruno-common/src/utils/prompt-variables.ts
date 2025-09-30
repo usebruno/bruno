@@ -1,10 +1,10 @@
 /**
- * Extract prompt variables matching {{?:<Prompt Text>}} from a string.
+ * Extract prompt variables matching {{?<Prompt Text>}} from a string.
  * @param {string} str - The input string.
  * @returns {string[]} - An array of extracted prompt variables.
  */
 export const extractPromptVariablesFromString = (str: string): string[] => {
-	const regex = /{{\?:([^}]+)}}/g;
+	const regex = /{{\?([^}]+)}}/g;
 	const prompts = new Set<string>();
 	let match;
 	while ((match = regex.exec(str)) !== null) {
