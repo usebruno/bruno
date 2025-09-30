@@ -17,37 +17,30 @@ const Settings = ({ item, collection }) => {
 
   const { encodeUrl, followRedirects = true, maxRedirects = 5, timeout = 0 } = getPropertyFromDraftOrRequest('settings');
 
-  const onToggleUrlEncoding = useCallback(() => {
+  // Reusable function to update settings
+  const updateSetting = useCallback((settingUpdate) => {
     dispatch(updateItemSettings({
       collectionUid: collection.uid,
       itemUid: item.uid,
-      settings: { encodeUrl: !encodeUrl }
+      settings: settingUpdate
     }));
-  }, [encodeUrl, dispatch, collection.uid, item.uid]);
+  }, [dispatch, collection.uid, item.uid]);
+
+  const onToggleUrlEncoding = useCallback(() => {
+    updateSetting({ encodeUrl: !encodeUrl });
+  }, [encodeUrl, updateSetting]);
 
   const onToggleFollowRedirects = useCallback(() => {
-    dispatch(updateItemSettings({
-      collectionUid: collection.uid,
-      itemUid: item.uid,
-      settings: { followRedirects: !followRedirects }
-    }));
-  }, [followRedirects, dispatch, collection.uid, item.uid]);
+    updateSetting({ followRedirects: !followRedirects });
+  }, [followRedirects, updateSetting]);
 
   const onMaxRedirectsChange = useCallback((value) => {
-    dispatch(updateItemSettings({
-      collectionUid: collection.uid,
-      itemUid: item.uid,
-      settings: { maxRedirects: value }
-    }));
-  }, [dispatch, collection.uid, item.uid]);
+    updateSetting({ maxRedirects: value });
+  }, [updateSetting]);
 
   const onTimeoutChange = useCallback((value) => {
-    dispatch(updateItemSettings({
-      collectionUid: collection.uid,
-      itemUid: item.uid,
-      settings: { timeout: value }
-    }));
-  }, [dispatch, collection.uid, item.uid]);
+    updateSetting({ timeout: value });
+  }, [updateSetting]);
 
   return (
     <StyledWrapper className="h-full w-full">
