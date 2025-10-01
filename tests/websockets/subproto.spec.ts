@@ -25,7 +25,8 @@ test.describe.serial('subprotocol tests', () => {
     await locators.runner().click();
 
     // Check the messages to confirm we ended up connecting
-    const messages = await locators.messages();
+    expect(await locators.messages().count()).toBeGreaterThan(0);
+    const messages = await locators.messages().all();
     expect(await messages[0].locator('.text-ellipsis').innerText()).toMatch(/^(Connected to)/);
 
     // Disconnect the request
@@ -39,7 +40,9 @@ test.describe.serial('subprotocol tests', () => {
     // Make another request and check the new set of messages to confirm that we did
     // get an error on connection
     await locators.runner().click();
-    const newMessages = await locators.messages();
+    expect(await locators.messages().count()).toBeGreaterThan(0);
+
+    const newMessages = await locators.messages().all();
     expect(await newMessages[0].locator('.text-ellipsis').innerText()).toMatch(/^(Unexpected server response)/);
 
     // Reset state back to the original

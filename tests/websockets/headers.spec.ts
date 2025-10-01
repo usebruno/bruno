@@ -14,7 +14,9 @@ test.describe.serial('headers', () => {
     await page.getByTitle(BRU_REQ_NAME).click();
     await locators.runner().click();
 
-    const messages = await locators.messages();
+    expect(await locators.messages().count()).toBeGreaterThan(0);
+    const messages = await locators.messages().all();
+
     // Check if the message has the authorisation header
     expect(await messages[2].locator('.text-ellipsis').innerText()).toMatch(/\"(authorization)\"\:\s+\"Dummy\"/);
   });

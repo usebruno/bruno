@@ -3,6 +3,7 @@ import { expect, Locator, test } from '../../playwright';
 import { buildWebsocketCommonLocators } from '../utils/page/locators';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
+import { waitForPredicate } from '../utils/wait';
 
 const BRU_REQ_NAME = /^base$/;
 
@@ -10,17 +11,6 @@ const BRU_REQ_NAME = /^base$/;
 const isRequestSaved = async (saveButton: Locator) => {
   const savedColor = '#9f9f9f';
   return (await saveButton.evaluate((d) => d.querySelector('svg')?.getAttribute('stroke') ?? '#invalid')) === savedColor;
-};
-
-const waitForPredicate = async (predicate: () => Promise<boolean>, { tries = 10, interval = 100 } = {}) => {
-  let saved;
-  let retries = 10;
-  do {
-    saved = await predicate();
-    retries -= 1;
-    await setTimeout(100);
-  } while (!saved && retries > 0);
-  return saved;
 };
 
 test.describe.serial('persistence', () => {

@@ -17,7 +17,7 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
         .locator('.infotip')
         .filter({ hasText: /^Close Connection$/ })
   },
-  messages: () => page.locator('.ws-message').all(),
+  messages: () => page.locator('.ws-message'),
   toolbar: {
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
     latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
