@@ -21,6 +21,7 @@ const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
+const { wsClient } = require('../ipc/network/ws-event-handlers');
 
 const {
   writeFile,
@@ -582,6 +583,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       console.log(`watcher stopWatching: ${collectionPath}`);
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
       lastOpenedCollections.remove(collectionPath);
+      wsClient.closeForCollection(collectionUid);
     }
   });
 

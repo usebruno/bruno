@@ -96,7 +96,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          } catch (error) {}
+          } catch (error) { }
         }
         break;
       case 'client_credentials':
@@ -126,7 +126,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          } catch (error) {}
+          } catch (error) { }
         }
         break;
       case 'password':
@@ -156,7 +156,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          } catch (error) {}
+          } catch (error) { }
         }
         break;
     }

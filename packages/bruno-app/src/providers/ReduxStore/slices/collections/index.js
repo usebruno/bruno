@@ -2876,6 +2876,7 @@ export const collectionsSlice = createSlice({
           updatedResponse.isError = true;
           updatedResponse.error = errorDetails || 'WebSocket error occurred';
           updatedResponse.status = 'ERROR';
+          updatedResponse.statusCode = wsStatusCodes[1011];
           updatedResponse.statusText = 'ERROR';
 
           updatedResponse.responses.push({

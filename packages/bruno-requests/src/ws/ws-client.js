@@ -107,7 +107,7 @@ class WsClient {
       this.#setupWsEventHandlers(wsConnection, requestId, collectionUid, { keepAlive, keepAliveInterval });
 
       // Store the connection
-      this.#addConnection(requestId, wsConnection);
+      this.#addConnection(requestId, collectionUid, wsConnection);
 
       // Emit connecting event
       this.eventCallback('ws:connecting', requestId, collectionUid);
@@ -127,13 +127,13 @@ class WsClient {
   }
 
   queueMessage(requestId, collectionUid, message) {
-    const connection = this.activeConnections.get(requestId);
+    const connectionMeta = this.activeConnections.get(requestId);
 
     const mqKey = this.#getMessageQueueId(requestId);
     this.messageQueues[mqKey] ||= [];
     this.messageQueues[mqKey].push(message);
 
-    if (connection && connection.readyState === WebSocket.OPEN) {
+    if (connectionMeta && connectionMeta.connection && connectionMeta.connection.readyState === WebSocket.OPEN) {
       this.#flushQueue(requestId, collectionUid);
       return;
     }
@@ -154,9 +154,9 @@ class WsClient {
    * @param {Object|string} message - The message to send
    */
   sendMessage(requestId, collectionUid, message) {
-    const connection = this.activeConnections.get(requestId);
+    const connectionMeta = this.activeConnections.get(requestId);
 
-    if (connection && connection.readyState === WebSocket.OPEN) {
+    if (connectionMeta.connection && connectionMeta.connection.readyState === WebSocket.OPEN) {
       let messageToSend;
 
       // Parse the message if it's a string
@@ -172,7 +172,7 @@ class WsClient {
       }
 
       // Send the message
-      connection.send(JSON.stringify(messageToSend), (error) => {
+      connectionMeta.connection.send(JSON.stringify(messageToSend), (error) => {
         if (error) {
           this.eventCallback('ws:error', requestId, collectionUid, { error });
         } else {
@@ -200,9 +200,9 @@ class WsClient {
    * @param {string} reason - Close reason (optional)
    */
   close(requestId, code = 1000, reason = 'Client initiated close') {
-    const connection = this.activeConnections.get(requestId);
-    if (connection) {
-      connection.close(code, reason);
+    const connectionMeta = this.activeConnections.get(requestId);
+    if (connectionMeta?.connection) {
+      connectionMeta.connection.close(code, reason);
       this.#removeConnection(requestId);
     }
   }
@@ -213,8 +213,8 @@ class WsClient {
    * @returns {boolean} - Whether the connection is active
    */
   isConnectionActive(requestId) {
-    const connection = this.activeConnections.get(requestId);
-    return connection && connection.readyState === WebSocket.OPEN;
+    const connectionMeta = this.activeConnections.get(requestId);
+    return connectionMeta && connectionMeta.connection.readyState === ws.WebSocket.OPEN;
   }
 
   /**
@@ -223,6 +223,16 @@ class WsClient {
    */
   getActiveConnectionIds() {
     return Array.from(this.activeConnections.keys());
+  }
+
+  closeForCollection(collectionUid) {
+    [...this.activeConnections.keys()].forEach((k) => {
+      const meta = this.activeConnections.get(k);
+      if (meta.collectionUid === collectionUid) {
+        meta.connection.close();
+        this.activeConnections.delete(k);
+      }
+    });
   }
 
   /**
@@ -297,13 +307,6 @@ class WsClient {
       });
     });
 
-    ws.on('unexpected-response', (req, res) => {
-      this.eventCallback('ws:error', requestId, collectionUid, {
-        message: res.statusMessage,
-        timestamp: Date.now()
-      });
-    });
-
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString());
@@ -347,8 +350,8 @@ class WsClient {
    * @param {WebSocket} connection - The WebSocket connection
    * @private
    */
-  #addConnection(requestId, connection) {
-    this.activeConnections.set(requestId, connection);
+  #addConnection(requestId, collectionUid, connection) {
+    this.activeConnections.set(requestId, { collectionUid, connection });
 
     // Emit an event with all active connection IDs
     this.eventCallback('ws:connections-changed', {

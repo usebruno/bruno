@@ -12,6 +12,7 @@ import { getPropertyFromDraftOrRequest } from 'utils/collections';
 import { isMacOS } from 'utils/common/platform';
 import { closeWsConnection, isWsConnectionActive } from 'utils/network/index';
 import StyledWrapper from './StyledWrapper';
+import { get } from 'lodash';
 
 const WsQueryUrl = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -20,16 +21,22 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   // TODO: reaper, better state for connecting
   const [isConnecting, setIsConnecting] = useState(false);
   const url = getPropertyFromDraftOrRequest(item, 'request.url');
+  const response = item.draft ? get(item, 'draft.response', {}) : get(item, 'response', {});
   const saveShortcut = isMacOS() ? '⌘S' : 'Ctrl+S';
+
+  const showConnectingPulse = isConnecting && response.status !== 'CLOSED';
 
   // Check connection status
   useEffect(() => {
     const checkConnectionStatus = async () => {
       try {
         const result = await isWsConnectionActive(item.uid);
-        setIsConnectionActive(Boolean(result.isActive));
+        const active = Boolean(result.isActive);
+        setIsConnectionActive(active);
+        setIsConnecting(false);
       } catch (error) {
         setIsConnectionActive(false);
+        setIsConnecting(false);
       }
     };
 
@@ -142,7 +149,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                   <IconPlugConnected
                     className={
                       classnames('cursor-pointer', {
-                        'animate-pulse': isConnecting
+                        'animate-pulse': showConnectingPulse
                       })
                     }
                     color={theme.colors.text.green}
