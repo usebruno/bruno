@@ -47,7 +47,7 @@ const ToggleSelector = ({
         disabled={disabled}
         data-testid={dataTestId}
         className={`
-          relative inline-flex ${currentSize.container} mx-1 items-center rounded-full transition-colors
+          relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors
           focus:outline-none focus:ring-1 focus:ring-offset-1
           ${disabled
             ? 'opacity-50 cursor-not-allowed'

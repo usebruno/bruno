@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
 import { IconTag } from '@tabler/icons';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
-import NumberInput from 'components/RequestPane/Settings/NumberInput';
+import SettingsInput from 'components/RequestPane/Settings/SettingsInput';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
@@ -94,11 +94,12 @@ const Settings = ({ item, collection }) => {
             />
           </div>
 
-          <NumberInput
+          <SettingsInput
             id="maxRedirects"
             label="Max Redirects"
             value={maxRedirects}
             onChange={onMaxRedirectsChange}
+            type="number"
             min={0}
             max={50}
             description="Set a limit for the number of redirects to follow"
@@ -106,11 +107,12 @@ const Settings = ({ item, collection }) => {
             onRun={onRun}
           />
 
-          <NumberInput
+          <SettingsInput
             id="timeout"
             label="Timeout (ms)"
             value={timeout}
             onChange={onTimeoutChange}
+            type="number"
             min={0}
             max={300000}
             description="Set maximum time to wait before aborting the request"

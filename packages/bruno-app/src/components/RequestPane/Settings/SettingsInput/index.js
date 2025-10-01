@@ -1,11 +1,12 @@
 import React from 'react';
 import { useTheme } from 'providers/Theme';
 
-const NumberInput = ({
+const SettingsInput = ({
   id,
   label,
   value,
   onChange,
+  type = 'number',
   min = 0,
   max = 999999,
   className = '',
@@ -16,8 +17,14 @@ const NumberInput = ({
   const { theme } = useTheme();
   const handleChange = (e) => {
     const inputValue = e.target.value;
-    const numericValue = inputValue ? parseInt(inputValue, 10) : null;
-    onChange(numericValue);
+
+    // Handle different input types
+    if (type === 'number') {
+      const numericValue = inputValue ? parseInt(inputValue, 10) : null;
+      onChange(numericValue);
+    } else {
+      onChange(inputValue);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -48,7 +55,7 @@ const NumberInput = ({
       </div>
       <input
         id={id}
-        type="number"
+        type={type}
         className={`block px-2 py-1 rounded-sm outline-none transition-colors duration-100 min-w-20 ${className}`}
         style={{
           backgroundColor: theme.modal.input.bg,
@@ -58,8 +65,7 @@ const NumberInput = ({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        min={min}
-        max={max}
+        {...(type === 'number' && { min, max })}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -68,4 +74,4 @@ const NumberInput = ({
   );
 };
 
-export default NumberInput;
+export default SettingsInput;
