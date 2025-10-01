@@ -1,3 +1,4 @@
+import { setTimeout } from 'timers/promises';
 import { expect, Locator, test } from '../../playwright';
 import { buildWebsocketCommonLocators } from '../utils/page/locators';
 import { readFile, writeFile } from 'fs/promises';
@@ -9,6 +10,17 @@ const BRU_REQ_NAME = /^base$/;
 const isRequestSaved = async (saveButton: Locator) => {
   const savedColor = '#9f9f9f';
   return (await saveButton.evaluate((d) => d.querySelector('svg')?.getAttribute('stroke') ?? '#invalid')) === savedColor;
+};
+
+const waitForPredicate = async (predicate: () => Promise<boolean>, { tries = 10, interval = 100 } = {}) => {
+  let saved;
+  let retries = 10;
+  do {
+    saved = await predicate();
+    retries -= 1;
+    await setTimeout(100);
+  } while (!saved && retries > 0);
+  return saved;
 };
 
 test.describe.serial('persistence', () => {
@@ -54,12 +66,12 @@ test.describe.serial('persistence', () => {
     await page.keyboard.insertText(replacementUrl);
 
     // check if the request is now unsaved
-    await expect(await isRequestSaved(locators.saveButton())).toBe(false);
+    expect(await isRequestSaved(locators.saveButton())).toBe(false);
 
     await locators.saveButton().click();
 
-    // check if the request is now saved
-    await expect(await isRequestSaved(locators.saveButton())).toBe(true);
+    const result = await waitForPredicate(() => isRequestSaved(locators.saveButton()));
+    expect(result).toBe(true);
 
     // check if the replacementUrl is now visually available
     expect(page.locator('.input-container').filter({ hasText: replacementUrl }).first()).toBeAttached();
