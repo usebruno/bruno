@@ -4,6 +4,21 @@ import Dropdown from 'components/Dropdown';
 import { humanizeRequestBodyMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
+const RAW_MODES = [
+  {
+    label: 'JSON',
+    key: 'json'
+  },
+  {
+    label: 'XML',
+    key: 'xml'
+  },
+  {
+    label: 'TEXT',
+    key: 'text'
+  }
+];
+
 const WSRequestBodyMode = ({ mode, onModeChange }) => {
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -23,43 +38,18 @@ const WSRequestBodyMode = ({ mode, onModeChange }) => {
       <div className="inline-flex items-center cursor-pointer body-mode-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div className="label-item font-medium">Raw</div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('json');
-            }}
-          >
-            JSON
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('xml');
-            }}
-          >
-            XML
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('text');
-            }}
-          >
-            TEXT
-          </div>
-          {/* <div className="label-item font-medium">Other</div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('file');
-            }}
-          >
-            File / Binary
-          </div> */}
+          {RAW_MODES.map((d) => (
+            <div
+              className="dropdown-item"
+              key={d.key}
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                onModeChange(d.key);
+              }}
+            >
+              {d.label}
+            </div>
+          ))}
         </Dropdown>
       </div>
     </StyledWrapper>
