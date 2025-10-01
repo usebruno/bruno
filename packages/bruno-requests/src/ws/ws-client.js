@@ -297,6 +297,13 @@ class WsClient {
       });
     });
 
+    ws.on('unexpected-response', (req, res) => {
+      this.eventCallback('ws:error', requestId, collectionUid, {
+        message: res.statusMessage,
+        timestamp: Date.now()
+      });
+    });
+
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString());

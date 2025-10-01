@@ -31,7 +31,7 @@ test.describe.serial('headers', () => {
     await page.keyboard.insertText(wrongProtocol);
 
     await locators.runner().click();
-    expect(await messages[0].locator('.text-ellipsis').innerText()).toMatch(/^(Unexpected server response: 400)/);
+    expect(await messages[0].locator('.text-ellipsis').innerText()).toMatch(/^(Bad Request)/);
 
     await page.locator('pre').filter({ hasText: wrongProtocol }).click();
     await clearText(wrongProtocol);

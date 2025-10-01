@@ -17,13 +17,7 @@ import WSResponseSortOrder from './WSResponseSortOrder';
 import WSResponseHeaders from './WSResponseHeaders';
 
 const WSResult = ({ response }) => {
-  return response.isError ? (
-    <div className="text-red-500" style={{ whiteSpace: 'pre-line' }}>
-      {response.error}
-    </div>
-  ) : (
-    <WSMessagesList order={response?.sortOrder} messages={response.responses || []} />
-  );
+  return <WSMessagesList order={response?.sortOrder} messages={response.responses || []} />;
 };
 
 const WSResponsePane = ({ item, collection }) => {
