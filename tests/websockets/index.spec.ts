@@ -5,7 +5,11 @@ const MAX_CONNECTION_TIME = 3000;
 const BRU_FILE_NAME = /^ws-test-request$/;
 
 test.describe.serial('websockets', () => {
-  test('websocket requests are visible', async ({ pageWithUserData: page, restartApp }) => {
+  test.afterAll(async ({ electronApp }) => {
+    electronApp.close();
+  });
+
+  test('websocket requests are visible', async ({ pageWithUserData: page }) => {
     await page.locator('#sidebar-collection-name').click();
 
     expect(page.locator('span.item-name').filter({ hasText: BRU_FILE_NAME })).toBeVisible();

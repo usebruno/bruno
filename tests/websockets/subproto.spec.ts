@@ -4,6 +4,11 @@ import { buildWebsocketCommonLocators } from '../utils/page/locators';
 const BRU_FILE_NAME = /^ws-test-request-with-subproto$/;
 
 test.describe.serial('headers', () => {
+
+  test.afterAll(async ({ electronApp }) => {
+    electronApp.close();
+  });
+
   test('headers are returned if passed', async ({ pageWithUserData: page, restartApp }) => {
     const locators = buildWebsocketCommonLocators(page);
     const clearText = async (text: string) => {
