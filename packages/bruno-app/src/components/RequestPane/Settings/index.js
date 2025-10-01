@@ -8,39 +8,47 @@ import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import Tags from './Tags/index';
 import StyledWrapper from './StyledWrapper';
 
+// Default settings configuration
+const DEFAULT_SETTINGS = {
+  encodeUrl: false,
+  followRedirects: true,
+  maxRedirects: 5,
+  timeout: 0
+};
+
 const Settings = ({ item, collection }) => {
   const dispatch = useDispatch();
 
-  // get the length of active params, headers, asserts and vars as well as the contents of the body, tests and script
+  // Get current settings with defaults applied
   const getPropertyFromDraftOrRequest = (propertyKey) =>
     item.draft ? get(item, `draft.${propertyKey}`, {}) : get(item, propertyKey, {});
 
-  const { encodeUrl, followRedirects = true, maxRedirects = 5, timeout = 0 } = getPropertyFromDraftOrRequest('settings');
+  const rawSettings = getPropertyFromDraftOrRequest('settings');
+  const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
+  const { encodeUrl, followRedirects, maxRedirects, timeout } = settings;
 
   // Reusable function to update settings
   const updateSetting = useCallback((settingUpdate) => {
+    const updatedSettings = { ...settings, ...settingUpdate };
     dispatch(updateItemSettings({
       collectionUid: collection.uid,
       itemUid: item.uid,
-      settings: settingUpdate
+      settings: updatedSettings
     }));
-  }, [dispatch, collection.uid, item.uid]);
+  }, [dispatch, collection.uid, item.uid, settings]);
 
-  const onToggleUrlEncoding = useCallback(() => {
-    updateSetting({ encodeUrl: !encodeUrl });
-  }, [encodeUrl, updateSetting]);
+  // Setting change handlers
+  const onToggleUrlEncoding = useCallback(() =>
+    updateSetting({ encodeUrl: !encodeUrl }), [encodeUrl, updateSetting]);
 
-  const onToggleFollowRedirects = useCallback(() => {
-    updateSetting({ followRedirects: !followRedirects });
-  }, [followRedirects, updateSetting]);
+  const onToggleFollowRedirects = useCallback(() =>
+    updateSetting({ followRedirects: !followRedirects }), [followRedirects, updateSetting]);
 
-  const onMaxRedirectsChange = useCallback((value) => {
-    updateSetting({ maxRedirects: value });
-  }, [updateSetting]);
+  const onMaxRedirectsChange = useCallback((value) =>
+    updateSetting({ maxRedirects: value }), [updateSetting]);
 
-  const onTimeoutChange = useCallback((value) => {
-    updateSetting({ timeout: value });
-  }, [updateSetting]);
+  const onTimeoutChange = useCallback((value) =>
+    updateSetting({ timeout: value }), [updateSetting]);
 
   return (
     <StyledWrapper className="h-full w-full">
@@ -73,6 +81,7 @@ const Settings = ({ item, collection }) => {
               label="Automatically Follow Redirects"
               description="Follow HTTP redirects automatically"
               size="medium"
+              data-testid="follow-redirects-toggle"
             />
           </div>
 
@@ -81,9 +90,9 @@ const Settings = ({ item, collection }) => {
             label="Max Redirects"
             value={maxRedirects}
             onChange={onMaxRedirectsChange}
-            placeholder="5"
             min={0}
             max={50}
+            description="Set a limit for the number of redirects to follow"
           />
 
           <NumberInput
@@ -91,9 +100,9 @@ const Settings = ({ item, collection }) => {
             label="Timeout (ms)"
             value={timeout}
             onChange={onTimeoutChange}
-            placeholder="0"
             min={0}
             max={300000}
+            description="Set maximum time to wait before aborting the request"
           />
         </div>
       </div>

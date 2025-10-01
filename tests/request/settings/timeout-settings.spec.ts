@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 
-test.describe('Request Settings Tests', () => {
-  test('should configure and test timeout, max redirects, and follow redirects settings', async ({
+test.describe('Timeout Settings Tests', () => {
+  test('should configure and test timeout settings', async ({
     pageWithUserData: page
   }) => {
     // Navigate to the test collection and request
@@ -25,5 +25,8 @@ test.describe('Request Settings Tests', () => {
 
     const responsePane = page.locator('.response-pane');
     await expect(responsePane).toContainText('timeout of 5ms exceeded');
+
+    // go to welcome page
+    await page.locator('.bruno-logo').click();
   });
 });
