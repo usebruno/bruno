@@ -5,6 +5,7 @@ import { IconTag } from '@tabler/icons';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import NumberInput from 'components/RequestPane/Settings/NumberInput';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
 
 // Default settings configuration
@@ -49,6 +50,15 @@ const Settings = ({ item, collection }) => {
   const onTimeoutChange = useCallback((value) =>
     updateSetting({ timeout: value }), [updateSetting]);
 
+  // Keyboard shortcut handlers
+  const onSave = useCallback(() => {
+    dispatch(saveRequest(item.uid, collection.uid));
+  }, [dispatch, item.uid, collection.uid]);
+
+  const onRun = useCallback(() => {
+    dispatch(sendRequest(item, collection.uid));
+  }, [dispatch, item, collection.uid]);
+
   return (
     <div className="h-full w-full">
       <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
@@ -92,6 +102,8 @@ const Settings = ({ item, collection }) => {
             min={0}
             max={50}
             description="Set a limit for the number of redirects to follow"
+            onSave={onSave}
+            onRun={onRun}
           />
 
           <NumberInput
@@ -102,6 +114,8 @@ const Settings = ({ item, collection }) => {
             min={0}
             max={300000}
             description="Set maximum time to wait before aborting the request"
+            onSave={onSave}
+            onRun={onRun}
           />
         </div>
       </div>
