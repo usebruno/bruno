@@ -49,21 +49,18 @@ export const tabsSlice = createSlice({
         defaultRequestPaneTab = 'query';
       }
 
-      let defaultResponsePaneTab = 'response';
-      if (type === 'ws-request') {
-        defaultResponsePaneTab = 'messages';
-      }
-
       const lastTab = state.tabs[state.tabs.length - 1];
       if (state.tabs.length > 0 && lastTab.preview) {
         state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
           requestPaneWidth: null,
-          requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: defaultResponsePaneTab,
+          responsePaneTab: 'response',
           type: type || 'request',
-          preview: preview !== undefined ? preview : !nonReplaceableTabTypes.includes(type),
+          preview: preview !== undefined
+            ? preview
+            : !nonReplaceableTabTypes.includes(type),
           ...(uid ? { folderUid: uid } : {})
         };
 

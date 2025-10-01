@@ -7,14 +7,13 @@ const getMethodFlags = (item) => ({
   isWS: item.type === 'ws-request'
 });
 
-const getMethodText = (item, { isGrpc, isWS }) =>
-  isGrpc
-    ? 'grpc'
-    : isWS
-      ? 'ws'
-      : item.request.method.length > 5
-        ? item.request.method.substring(0, 3)
-        : item.request.method;
+const getMethodText = (item, { isGrpc, isWS }) => {
+  if (isGrpc) return 'grpc';
+  if (isWS) return 'ws';
+  return item.request.method.length > 5
+    ? item.request.method.substring(0, 3)
+    : item.request.method;
+};
 
 const getClassname = (method = '', { isGrpc, isWS }) => {
   method = method.toLocaleLowerCase();

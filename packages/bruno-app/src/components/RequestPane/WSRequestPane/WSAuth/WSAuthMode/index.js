@@ -7,38 +7,38 @@ import { updateRequestAuthMode } from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import StyledWrapper from '../../../Auth/AuthMode/StyledWrapper';
 
+const AUTH_MODES = [
+  {
+    name: 'Basic Auth',
+    mode: 'basic'
+  },
+  {
+    name: 'Bearer Token',
+    mode: 'bearer'
+  },
+  {
+    name: 'API Key',
+    mode: 'apikey'
+  },
+  {
+    name: 'OAuth2',
+    mode: 'oauth2'
+  },
+  {
+    name: 'Inherit',
+    mode: 'inherit'
+  },
+  {
+    name: 'No Auth',
+    mode: 'none'
+  }
+];
+
 const WSAuthMode = ({ item, collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
-
-  const authModes = [
-    {
-      name: 'Basic Auth',
-      mode: 'basic'
-    },
-    {
-      name: 'Bearer Token',
-      mode: 'bearer'
-    },
-    {
-      name: 'API Key',
-      mode: 'apikey'
-    },
-    {
-      name: 'OAuth2',
-      mode: 'oauth2'
-    },
-    {
-      name: 'Inherit',
-      mode: 'inherit'
-    },
-    {
-      name: 'No Auth',
-      mode: 'none'
-    }
-  ];
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -67,7 +67,7 @@ const WSAuthMode = ({ item, collection }) => {
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer auth-mode-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-          {authModes.map((authMode) => (
+          {AUTH_MODES.map((authMode) => (
             <div
               key={authMode.mode}
               className="dropdown-item"
