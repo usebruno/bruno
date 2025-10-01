@@ -1,4 +1,3 @@
-import { setTimeout } from 'timers/promises';
 import { expect, Locator, test } from '../../playwright';
 import { buildWebsocketCommonLocators } from '../utils/page/locators';
 import { readFile, writeFile } from 'fs/promises';
