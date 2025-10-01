@@ -352,11 +352,12 @@ const handler = async function (argv) {
         let envJsonContent;
         try {
           envJsonContent = fs.readFileSync(envFilePath, 'utf8');
-          // Allow comments-free JSON only; if needed in future, introduce decomment here
           const parsed = JSON.parse(envJsonContent);
           const normalizedEnv = parseEnvironmentJson(parsed);
           envVars = getEnvVars(normalizedEnv);
-          envVars.__name__ = path.basename(envFilePath, '.json');
+          const rawName = normalizedEnv?.name;
+          const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
+          envVars.__name__ = trimmedName || path.basename(envFilePath, '.json');
         } catch (err) {
           console.error(chalk.red(`Failed to parse Environment JSON: ${err.message}`));
           process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);

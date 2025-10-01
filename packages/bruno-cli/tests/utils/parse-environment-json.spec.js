@@ -15,16 +15,45 @@ describe('parseEnvironmentJson', () => {
     expect(env.variables[0]).toEqual({
       name: 'host',
       value: 'https://www.httpfaker.org',
-      type: undefined,
-      enabled: undefined,
-      secret: undefined
+      type: 'text',
+      enabled: true,
+      secret: false
     });
 
     const vars = getEnvVars(env);
-    expect(Object.keys(vars)).toHaveLength(0);
+    expect(vars).toEqual({ host: 'https://www.httpfaker.org' });
   });
 
   it('throws on invalid shape', () => {
     expect(() => parseEnvironmentJson({ name: 'x' })).toThrow(/Invalid environment JSON/i);
+  });
+
+  it('respects explicit fields and forces secret to false', () => {
+    const input = {
+      name: 'My Env',
+      variables: [
+        { name: 'one', value: '1', type: 'text', enabled: true, secret: true },
+        { name: 'two', value: '2', type: 'file', enabled: false, secret: true }
+      ]
+    };
+    const env = parseEnvironmentJson(input);
+
+    expect(env.variables[0]).toEqual({
+      name: 'one',
+      value: '1',
+      type: 'text',
+      enabled: true,
+      secret: false
+    });
+    expect(env.variables[1]).toEqual({
+      name: 'two',
+      value: '2',
+      type: 'file',
+      enabled: false,
+      secret: false
+    });
+
+    const vars = getEnvVars(env);
+    expect(vars).toEqual({ one: '1' });
   });
 });

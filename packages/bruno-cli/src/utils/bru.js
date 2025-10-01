@@ -155,9 +155,9 @@ const parseEnvironmentJson = (parsed = {}) => {
       .map((variable) => ({
         name: variable.name,
         value: variable.value,
-        type: variable.type,
-        enabled: variable.enabled,
-        secret: variable.secret
+        type: variable.type || 'text',
+        enabled: variable.enabled !== false,
+        secret: false
       }))
   };
 
