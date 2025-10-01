@@ -1,5 +1,6 @@
 import { expect, test } from '../../playwright';
 import { buildWebsocketCommonLocators } from '../utils/page/locators';
+import { waitForPredicate } from '../utils/wait';
 
 const MAX_CONNECTION_TIME = 3000;
 const BRU_REQ_NAME = /^ws-test-request$/;
@@ -35,7 +36,7 @@ test.describe.serial('websockets', () => {
   test('websocket messages were recorded', async ({ pageWithUserData: page, restartApp }) => {
     const locators = buildWebsocketCommonLocators(page);
 
-    expect(await locators.messages().count()).toBeGreaterThan(0);
+    await waitForPredicate(() => locators.messages().count().then((count) => count > 0));
     const messages = await locators.messages().all();
 
     // Hard validate the recieved messages to confirm the connection state
@@ -49,7 +50,7 @@ test.describe.serial('websockets', () => {
     await locators.toolbar.latestLast().click();
 
     // check the current order of the messages where the latest message is last
-    expect(await locators.messages().count()).toBeGreaterThan(0);
+    await waitForPredicate(() => locators.messages().count().then((count) => count > 0));
     const messages = await locators.messages().all();
 
     await expect(messages[0].getByText('Closed')).toBeAttached();
@@ -57,7 +58,7 @@ test.describe.serial('websockets', () => {
 
     await locators.toolbar.latestFirst().click();
 
-    expect(await locators.messages().count()).toBeGreaterThan(0);
+    await waitForPredicate(() => locators.messages().count().then((count) => count > 0));
     const messagesReset = await locators.messages().all();
 
     // check the current order of the messages where the latest message is first
@@ -71,7 +72,7 @@ test.describe.serial('websockets', () => {
     await locators.toolbar.clearResponse().click();
     await locators.runner().click();
 
-    expect(await locators.messages().count()).toBeGreaterThan(0);
+    await waitForPredicate(() => locators.messages().count().then((count) => count > 0));
     const messages = await locators.messages().all();
 
     // Check if the messages from the request are actually displayed on the messages container

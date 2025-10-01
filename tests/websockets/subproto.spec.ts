@@ -1,5 +1,6 @@
 import { test, expect } from '../../playwright';
 import { buildWebsocketCommonLocators } from '../utils/page/locators';
+import { waitForPredicate } from '../utils/wait';
 
 const BRU_REQ_NAME = /^ws-test-request-with-subproto$/;
 
@@ -25,7 +26,7 @@ test.describe.serial('subprotocol tests', () => {
     await locators.runner().click();
 
     // Check the messages to confirm we ended up connecting
-    expect(await locators.messages().count()).toBeGreaterThan(0);
+    await waitForPredicate(() => locators.messages().count().then((count) => count > 0));
     const messages = await locators.messages().all();
     expect(await messages[0].locator('.text-ellipsis').innerText()).toMatch(/^(Connected to)/);
 
@@ -40,8 +41,8 @@ test.describe.serial('subprotocol tests', () => {
     // Make another request and check the new set of messages to confirm that we did
     // get an error on connection
     await locators.runner().click();
-    expect(await locators.messages().count()).toBeGreaterThan(0);
 
+    await waitForPredicate(() => locators.messages().count().then((count) => count > 0));
     const newMessages = await locators.messages().all();
     expect(await newMessages[0].locator('.text-ellipsis').innerText()).toMatch(/^(Unexpected server response)/);
 
