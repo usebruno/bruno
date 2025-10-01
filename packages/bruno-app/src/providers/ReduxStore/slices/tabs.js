@@ -26,7 +26,7 @@ export const tabsSlice = createSlice({
         "collection-runner",
         "security-settings",
       ];
-
+    
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
         state.activeTabUid = existingTab.uid;
@@ -55,19 +55,19 @@ export const tabsSlice = createSlice({
           uid,
           collectionUid,
           requestPaneWidth: null,
-          responsePaneTab: defaultResponsePaneTab,
+          requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
           type: type || 'request',
           preview: preview !== undefined
             ? preview
-            : !nonReplaceableTabTypes.includes(type),
+          : !nonReplaceableTabTypes.includes(type),
           ...(uid ? { folderUid: uid } : {})
         };
 
         state.activeTabUid = uid;
         return;
       }
-
+    
       state.tabs.push({
         uid,
         collectionUid,
@@ -78,7 +78,7 @@ export const tabsSlice = createSlice({
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
-          ? preview
+            ? preview
           : !nonReplaceableTabTypes.includes(type)
       });
       state.activeTabUid = uid;
