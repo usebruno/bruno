@@ -5,10 +5,10 @@ const NumberInput = ({
   label,
   value,
   onChange,
-  placeholder = '0',
   min = 0,
   max = 999999,
-  className = ''
+  className = '',
+  description = ''
 }) => {
   const handleChange = (e) => {
     const inputValue = e.target.value;
@@ -18,9 +18,16 @@ const NumberInput = ({
 
   return (
     <div className="flex items-center justify-between">
-      <label className="text-xs font-medium text-gray-900 dark:text-gray-100" htmlFor={id}>
-        {label}
-      </label>
+      <div className="flex flex-col">
+        <label className="text-xs font-medium text-gray-900 dark:text-gray-100" htmlFor={id}>
+          {label}
+        </label>
+        {description && (
+          <p className="text-xs text-gray-700 dark:text-gray-400">
+            {description}
+          </p>
+        )}
+      </div>
       <input
         id={id}
         type="number"
@@ -29,7 +36,6 @@ const NumberInput = ({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        placeholder={placeholder}
         min={min}
         max={max}
         value={value}

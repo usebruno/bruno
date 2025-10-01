@@ -1,7 +1,7 @@
 meta {
-  name: timeout-test
+  name: max-redirects-test
   type: http
-  seq: 3
+  seq: 1
 }
 
 get {
@@ -11,7 +11,7 @@ get {
 }
 
 settings {
-  followRedirects: false
-  maxRedirects: 0
-  timeout: 5
+  followRedirects: true
+  maxRedirects: 1
+  timeout: 0
 }
