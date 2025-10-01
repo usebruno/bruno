@@ -12,7 +12,7 @@ import { getPropertyFromDraftOrRequest } from 'utils/collections';
 import { isMacOS } from 'utils/common/platform';
 import { closeWsConnection, isWsConnectionActive } from 'utils/network/index';
 import StyledWrapper from './StyledWrapper';
-import { get } from 'lodash';
+import get from 'lodash/get';
 
 const WsQueryUrl = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
