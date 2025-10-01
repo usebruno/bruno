@@ -6,7 +6,6 @@ import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import NumberInput from 'components/RequestPane/Settings/NumberInput';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import Tags from './Tags/index';
-import StyledWrapper from './StyledWrapper';
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -51,7 +50,7 @@ const Settings = ({ item, collection }) => {
     updateSetting({ timeout: value }), [updateSetting]);
 
   return (
-    <StyledWrapper className="h-full w-full">
+    <div className="h-full w-full">
       <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
       <div className="bruno-form">
         <div className="mb-6">
@@ -106,7 +105,7 @@ const Settings = ({ item, collection }) => {
           />
         </div>
       </div>
-    </StyledWrapper>
+    </div>
   );
 };
 

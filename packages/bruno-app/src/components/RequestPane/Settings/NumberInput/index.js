@@ -31,7 +31,7 @@ const NumberInput = ({
       <input
         id={id}
         type="number"
-        className={`block textbox ${className}`}
+        className={`block px-2 py-1 rounded-sm outline-none transition-colors duration-100 min-w-20 bg-[#3D3D3D] ${className}`}
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
