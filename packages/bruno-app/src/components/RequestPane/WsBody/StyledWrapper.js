@@ -5,7 +5,6 @@ const Wrapper = styled.div`
   flex-direction: column;
   width: 100%;
   flex: 1;
-  /* height: 100%; */
   position: relative;
 
   .ws-message-header {
@@ -29,11 +28,6 @@ const Wrapper = styled.div`
     }
   }
 
-  #grpc-messages-container {
-    /* height: 100%; */
-    position: relative;
-  }
-  
   .add-message-btn-container {
     position: absolute;
     bottom: 0;

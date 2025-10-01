@@ -119,13 +119,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                 className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
               />
               <span className="infotip-text text-xs">
-                Save
-                {' '}
-                <span className="shortcut">
-                  (
-                  {saveShortcut}
-                  )
-                </span>
+                Save <span className="shortcut">({saveShortcut})</span>
               </span>
             </div>
 

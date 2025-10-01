@@ -8,7 +8,7 @@ import { hexy as hexdump } from 'hexy';
  * @returns {Object} Parsed object or throws error with context
  * @throws {Error} If JSON parsing fails
  */
-const safeJsonParse = (jsonString, context = 'JSON string') => {
+const safeParseJSON = (jsonString, context = 'JSON string') => {
   try {
     return JSON.parse(jsonString);
   } catch (error) {
@@ -162,7 +162,7 @@ class WsClient {
       // Parse the message if it's a string
       if (typeof message === 'string') {
         try {
-          messageToSend = safeJsonParse(message, 'message content');
+          messageToSend = safeParseJSON(message, 'message content');
         } catch (parseError) {
           // If parsing fails, send as string
           messageToSend = message;

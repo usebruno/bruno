@@ -51,12 +51,11 @@ test.describe.serial('persistence', () => {
 
     await page.keyboard.insertText(replacementUrl);
 
-    expect(await isRequestSaved(locators.saveButton())).toBe(false);
+    await expect(await isRequestSaved(locators.saveButton())).toBe(false);
 
     await locators.saveButton().click();
-    await page.waitForTimeout(2000);
 
-    expect(await isRequestSaved(locators.saveButton())).toBe(true);
+    await expect(await isRequestSaved(locators.saveButton())).toBe(true);
 
     expect(page.locator('.input-container').filter({ hasText: 'ws://localhost:8082' }).first()).toBeAttached();
   });

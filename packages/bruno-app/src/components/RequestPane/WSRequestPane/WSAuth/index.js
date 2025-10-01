@@ -5,7 +5,6 @@ import WSAuthMode from './WSAuthMode';
 import BearerAuth from '../../Auth/BearerAuth';
 import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
-import OAuth2 from '../../Auth/OAuth2/index';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import { getTreePathFromCollectionToItem } from 'utils/collections/index';
@@ -87,7 +86,6 @@ const WSAuth = ({ item, collection }) => {
             </div>
           </>
         );
-        // return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
         const source = getEffectiveAuthSource();
