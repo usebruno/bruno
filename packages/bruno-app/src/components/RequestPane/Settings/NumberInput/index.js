@@ -9,13 +9,29 @@ const NumberInput = ({
   min = 0,
   max = 999999,
   className = '',
-  description = ''
+  description = '',
+  onSave,
+  onRun
 }) => {
   const { theme } = useTheme();
   const handleChange = (e) => {
     const inputValue = e.target.value;
     const numericValue = inputValue ? parseInt(inputValue, 10) : null;
     onChange(numericValue);
+  };
+
+  const handleKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      if (onSave) {
+        onSave();
+      }
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (onRun) {
+        onRun();
+      }
+    }
   };
 
   return (
@@ -46,6 +62,7 @@ const NumberInput = ({
         max={max}
         value={value}
         onChange={handleChange}
+        onKeyDown={handleKeyDown}
       />
     </div>
   );
