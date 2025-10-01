@@ -1,0 +1,366 @@
+name: 'Setup MITM Proxy - Windows'
+description: 'Sets up mitmproxy for transparent HTTP/HTTPS proxying with custom header injection'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install mitmproxy
+      shell: powershell
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install mitmproxy
+
+    - name: Setup header injection script (Windows PowerShell)
+      shell: powershell
+      run: |
+        $lines = @(
+          '#!/usr/bin/env python3'
+          'from mitmproxy import http, ctx'
+          ''
+          '# Map listening port -> header name'
+          'PORT_HEADER_MAP = {'
+          '    8091: "X-Bruno-Proxy-System",'
+          '    8092: "X-Bruno-Proxy-App",'
+          '    8093: "X-Bruno-Proxy-Collection"'
+          '}'
+          ''
+          '# value to set for the header'
+          'HEADER_VALUE = "via-mitmproxy"'
+          ''
+          'def response(flow: http.HTTPFlow) -> None:'
+          '    if not flow.response:'
+          '        return'
+          ''
+          '    listen_port = getattr(ctx.options, "listen_port", None)'
+          '    header_name = PORT_HEADER_MAP.get(listen_port, "X-Bruno-Proxy")  # fallback'
+          ''
+          '    # add or replace header'
+          '    flow.response.headers[header_name] = HEADER_VALUE'
+          ''
+          '    # optional logging'
+          '    ctx.log.info(f"Added header {header_name}: {HEADER_VALUE} to {flow.request.pretty_url}")'
+        )
+
+        # Join with LF (use "`n"); write as UTF-8
+        $lines -join "`n" | Set-Content -Path "add_header.py" -Encoding UTF8
+
+    - name: Start mitmproxy
+      shell: powershell
+      run: |
+        # Set proxy configuration variables
+        $SSL_CA_CERT_PATH = "tests\_server\certs\ca-cert.der"
+        
+        # Start mitmproxy instances in the background
+        $process1 = Start-Process -FilePath "mitmdump" -ArgumentList @(
+          "--listen-port", "8091",
+          "--set", "confdir=$env:USERPROFILE\.mitmproxy_port_8091",
+          "--set", "ssl_verify_upstream_trusted_ca=$SSL_CA_CERT_PATH",
+          "--script", "add_header.py",
+          "--quiet"
+        ) -PassThru -RedirectStandardOutput "mitmproxy-system.log" -RedirectStandardError "mitmproxy-system_error.log"
+
+        # Wait for CA cert to be generated for port 8091
+        $certPath8091 = Join-Path $env:USERPROFILE ".mitmproxy_port_8091\mitmproxy-ca-cert.pem"
+
+        $timeoutSeconds = 60
+        $elapsed = 0
+        while (-not (Test-Path $certPath8091)) {
+            if ($elapsed -ge $timeoutSeconds) {
+                Write-Host "ERROR: Timeout waiting for $certPath8091"
+                exit 1
+            }
+            Write-Host "Waiting for CA certificate to be generated..."
+            Start-Sleep -Seconds 1
+            $elapsed += 1
+        }
+
+        # Install CA certificate for port 8091
+        & {
+            $certPath = $certPath8091
+            # Read PEM certificate and convert PEM -> DER
+            $certContent = Get-Content -Path $certPath -Raw
+
+            # Remove header/footer lines and join base64 lines
+            $base64Lines = $certContent -split "`r?`n" | Where-Object {
+                ($_ -ne '') -and ($_ -notmatch '^\s*-+BEGIN CERTIFICATE-+') -and ($_ -notmatch '^\s*-+END CERTIFICATE-+')
+            }
+            $base64 = ($base64Lines -join '')
+
+            try {
+                $derBytes = [System.Convert]::FromBase64String($base64)
+            } catch {
+                Write-Host "ERROR: Failed to decode PEM base64 content: $($_.Exception.Message)"
+                exit 1
+            }
+
+            # Create X509Certificate2 from DER bytes
+            try {
+              $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(,$derBytes)
+            } catch {
+                Write-Host "ERROR: Failed to create X509Certificate2: $($_.Exception.Message)"
+                exit 1
+            }
+
+            # Install CA certificate to Trusted Root store (LocalMachine)
+            try {
+                $store = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root","LocalMachine")
+                $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+                $store.Add($cert)
+                $store.Close()
+            } catch {
+                Write-Host "ERROR: Failed to install certificate to store: $($_.Exception.Message)"
+                exit 1
+            }
+
+            Write-Host "CA certificate for port 8091 successfully installed"
+        }
+
+        for ($i = 1; $i -le 30; $i++) {
+          try {
+            $connection = Test-NetConnection -ComputerName "127.0.0.1" -Port 8091 -InformationLevel Quiet
+            if ($connection) {
+              Write-Host "Proxy is ready on port 8091"
+              break
+            }
+          } catch {
+            # Continue waiting
+          }
+          Write-Host "Waiting for proxy on port 8091 to start... ($i/30)"
+          Start-Sleep -Seconds 1
+          
+          if ($i -eq 30) {
+            Write-Host "ERROR: Timeout waiting for proxy on port 8091 to start"
+            exit 1
+          }
+        }
+        
+        # Add a small delay before starting additional proxies to avoid port conflicts
+        Start-Sleep -Seconds 2
+        
+        $process2 = Start-Process -FilePath "mitmdump" -ArgumentList @(
+          "--listen-port", "8092",
+          "--set", "confdir=$env:USERPROFILE\.mitmproxy_port_8092",
+          "--set", "ssl_verify_upstream_trusted_ca=$SSL_CA_CERT_PATH",
+          "--script", "add_header.py",
+          "--quiet"
+        ) -PassThru -RedirectStandardOutput "mitmproxy-app.log" -RedirectStandardError "mitmproxy-app_error.log"
+        
+        # Wait for CA cert to be generated for port 8092
+        $certPath8092 = Join-Path $env:USERPROFILE ".mitmproxy_port_8092\mitmproxy-ca-cert.pem"
+
+        $elapsed = 0
+        while (-not (Test-Path $certPath8092)) {
+            if ($elapsed -ge $timeoutSeconds) {
+                Write-Host "ERROR: Timeout waiting for $certPath8092"
+                exit 1
+            }
+            Write-Host "Waiting for CA certificate to be generated..."
+            Start-Sleep -Seconds 1
+            $elapsed += 1
+        }
+
+        # Install CA certificate for port 8092
+        & {
+            $certPath = $certPath8092
+            # Read PEM certificate and convert PEM -> DER
+            $certContent = Get-Content -Path $certPath -Raw
+
+            # Remove header/footer lines and join base64 lines
+            $base64Lines = $certContent -split "`r?`n" | Where-Object {
+                ($_ -ne '') -and ($_ -notmatch '^\s*-+BEGIN CERTIFICATE-+') -and ($_ -notmatch '^\s*-+END CERTIFICATE-+')
+            }
+            $base64 = ($base64Lines -join '')
+
+            try {
+                $derBytes = [System.Convert]::FromBase64String($base64)
+            } catch {
+                Write-Host "ERROR: Failed to decode PEM base64 content: $($_.Exception.Message)"
+                exit 1
+            }
+
+            # Create X509Certificate2 from DER bytes
+            try {
+              $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(,$derBytes)
+            } catch {
+                Write-Host "ERROR: Failed to create X509Certificate2: $($_.Exception.Message)"
+                exit 1
+            }
+
+            # Install CA certificate to Trusted Root store (LocalMachine)
+            try {
+                $store = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root","LocalMachine")
+                $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+                $store.Add($cert)
+                $store.Close()
+            } catch {
+                Write-Host "ERROR: Failed to install certificate to store: $($_.Exception.Message)"
+                exit 1
+            }
+
+            Write-Host "CA certificate for port 8092 successfully installed"
+        }
+        
+        # Wait for port 8092 to be ready before starting 8093
+        for ($i = 1; $i -le 30; $i++) {
+          try {
+            $connection = Test-NetConnection -ComputerName "127.0.0.1" -Port 8092 -InformationLevel Quiet
+            if ($connection) {
+              Write-Host "Proxy is ready on port 8092"
+              break
+            }
+          } catch {
+            # Continue waiting
+          }
+          Write-Host "Waiting for proxy on port 8092 to start... ($i/30)"
+          Start-Sleep -Seconds 1
+          
+          if ($i -eq 30) {
+            Write-Host "ERROR: Timeout waiting for proxy on port 8092 to start"
+            exit 1
+          }
+        }
+        
+        # Add a small delay before starting the final proxy
+        Start-Sleep -Seconds 2
+        
+        $process3 = Start-Process -FilePath "mitmdump" -ArgumentList @(
+          "--listen-port", "8093",
+          "--set", "confdir=$env:USERPROFILE\.mitmproxy_port_8093",
+          "--set", "ssl_verify_upstream_trusted_ca=$SSL_CA_CERT_PATH",
+          "--script", "add_header.py",
+          "--quiet"
+        ) -PassThru -RedirectStandardOutput "mitmproxy-collection.log" -RedirectStandardError "mitmproxy-collection_error.log"
+        
+        # Wait for CA cert to be generated for port 8093
+        $certPath8093 = Join-Path $env:USERPROFILE ".mitmproxy_port_8093\mitmproxy-ca-cert.pem"
+
+        $elapsed = 0
+        while (-not (Test-Path $certPath8093)) {
+            if ($elapsed -ge $timeoutSeconds) {
+                Write-Host "ERROR: Timeout waiting for $certPath8093"
+                exit 1
+            }
+            Write-Host "Waiting for CA certificate to be generated..."
+            Start-Sleep -Seconds 1
+            $elapsed += 1
+        }
+
+        # Install CA certificate for port 8093
+        & {
+            $certPath = $certPath8093
+            # Read PEM certificate and convert PEM -> DER
+            $certContent = Get-Content -Path $certPath -Raw
+
+            # Remove header/footer lines and join base64 lines
+            $base64Lines = $certContent -split "`r?`n" | Where-Object {
+                ($_ -ne '') -and ($_ -notmatch '^\s*-+BEGIN CERTIFICATE-+') -and ($_ -notmatch '^\s*-+END CERTIFICATE-+')
+            }
+            $base64 = ($base64Lines -join '')
+
+            try {
+                $derBytes = [System.Convert]::FromBase64String($base64)
+            } catch {
+                Write-Host "ERROR: Failed to decode PEM base64 content: $($_.Exception.Message)"
+                exit 1
+            }
+
+            # Create X509Certificate2 from DER bytes
+            try {
+              $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(,$derBytes)
+            } catch {
+                Write-Host "ERROR: Failed to create X509Certificate2: $($_.Exception.Message)"
+                exit 1
+            }
+
+            # Install CA certificate to Trusted Root store (LocalMachine)
+            try {
+                $store = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root","LocalMachine")
+                $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+                $store.Add($cert)
+                $store.Close()
+            } catch {
+                Write-Host "ERROR: Failed to install certificate to store: $($_.Exception.Message)"
+                exit 1
+            }
+
+            Write-Host "CA certificate for port 8093 successfully installed"
+        }
+        
+        # Wait for the final proxy to start
+        for ($i = 1; $i -le 30; $i++) {
+          try {
+            $connection = Test-NetConnection -ComputerName "127.0.0.1" -Port 8093 -InformationLevel Quiet
+            if ($connection) {
+              Write-Host "Proxy is ready on port 8093"
+              break
+            }
+          } catch {
+            # Continue waiting
+          }
+          Write-Host "Waiting for proxy on port 8093 to start... ($i/30)"
+          Start-Sleep -Seconds 1
+          
+          if ($i -eq 30) {
+            Write-Host "ERROR: Timeout waiting for proxy on port 8093 to start"
+            exit 1
+          }
+        }
+        
+        Write-Host "All proxy instances started successfully"
+
+        
+    - name: Verify proxy setup
+      shell: powershell
+      run: |
+        # Set test server configuration
+        $TEST_SERVER_URL = "https://127.0.0.1:8090"
+        
+        Write-Host "Testing all proxy instances..."
+        
+        # Test each proxy port with specific headers
+        $portHeaders = @{
+          8091 = "X-Bruno-Proxy-System";
+          8092 = "X-Bruno-Proxy-App";
+          8093 = "X-Bruno-Proxy-Collection"
+        }
+        
+        $ports = @(8091, 8092, 8093)
+        foreach ($port in $ports) {
+          $PROXY_URL = "http://127.0.0.1:$port"
+          $expectedHeader = $portHeaders[$port]
+          Write-Host "Testing proxy on port $port..."
+          
+          try {
+            # Test HTTP request through proxy and check headers
+            $response = Invoke-WebRequest -Uri $TEST_SERVER_URL -Proxy $PROXY_URL -Method Head -ErrorAction Stop
+            
+            # Check if specific proxy header is present
+            $headerFound = $response.Headers[$expectedHeader] -eq "via-mitmproxy"
+            
+            if ($headerFound) {
+              Write-Host "Proxy on port $port is working - $expectedHeader header found"
+            } else {
+              Write-Host "Proxy on port $port failed - $expectedHeader header not found"
+              Write-Host "Headers received:"
+              $response.Headers | ForEach-Object { Write-Host "$($_.Key): $($_.Value)" }
+              exit 1
+            }
+          } catch {
+            Write-Host "HTTP request failed for proxy on port $port"
+            Write-Host "Error: $($_.Exception.Message)"
+            Write-Host "This usually indicates an SSL certificate problem"
+            
+            # Check if certificates were properly installed
+            Write-Host "Checking certificate installation:"
+            $installedCerts = Get-ChildItem -Path "Cert:\LocalMachine\Root" | Where-Object { $_.Subject -like "*mitmproxy*" }
+            if ($installedCerts) {
+              Write-Host "Certificates found in trust store:"
+              $installedCerts | ForEach-Object { Write-Host "  - $($_.Subject)" }
+            } else {
+              Write-Host "No mitmproxy certificates found in trust store"
+            }
+            exit 1
+          }
+        }
+        
+        Write-Host "All proxy instances verified successfully"

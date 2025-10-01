@@ -1,5 +1,5 @@
 const parseUrl = require('url').parse;
-const { isEmpty } = require('lodash');
+const { isEmpty, get } = require('lodash');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
 const DEFAULT_PORTS = {
@@ -89,8 +89,62 @@ const getSystemProxyEnvVariables = () => {
   }; 
 }
 
+const getProxyConfig = ({ brunoConfig, noproxy }) => {
+  if (noproxy) {
+    return { proxyMode: 'off', proxyConfig: {} };
+  }
+
+  /**
+   * Collection proxy has three possible values: false, "inherit", or proxy object
+   *
+   * When collection proxy is false, it ignores the app-level proxy settings
+   * When collection proxy is an object, it overrides the app-level proxy settings
+   * When collection proxy is "inherit", it uses the system environment variables
+   *
+   * Below logic calculates the proxyMode and proxyConfig to be used for the request
+   */
+  const collectionProxyConfig = get(brunoConfig, 'proxy', false);
+
+  if (collectionProxyConfig === false) {
+    return { proxyMode: 'off', proxyConfig: {} };
+  }
+
+  if (collectionProxyConfig === 'inherit') {
+    // Use system proxy (CLI doesn't have app-level preferences, so use system environment variables)
+    const proxyConfig = getSystemProxyEnvVariables();
+    return { proxyMode: 'system', proxyConfig };
+  }
+
+  if (typeof collectionProxyConfig === 'object' && collectionProxyConfig !== null && !collectionProxyConfig.hasOwnProperty('enabled')) {
+    return { proxyMode: 'on', proxyConfig: collectionProxyConfig };
+  }
+
+  /**
+   * Legacy Collection proxyMode has three possible values: true, false, "global"
+   *
+   * When collection proxyMode is true, it overrides the app-level proxy settings
+   * When collection proxyMode is false, it ignores the app-level proxy settings
+   * When collection proxyMode is "global", it uses the system environment variables
+   */
+
+  const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
+
+  if (collectionProxyEnabled === true) {
+    return { proxyMode: 'on', proxyConfig: collectionProxyConfig };
+  }
+
+  if (collectionProxyEnabled === 'global') {
+    // Use system proxy (CLI doesn't have app-level preferences, so use system environment variables)
+    const proxyConfig = getSystemProxyEnvVariables();
+    return { proxyMode: 'system', proxyConfig };
+  }
+
+  return { proxyMode: 'off', proxyConfig: {} };
+};
+
 module.exports = {
   shouldUseProxy,
   PatchedHttpsProxyAgent,
-  getSystemProxyEnvVariables
+  getSystemProxyEnvVariables,
+  getProxyConfig
 };

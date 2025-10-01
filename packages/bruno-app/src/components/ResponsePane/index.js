@@ -137,8 +137,8 @@ const ResponsePane = ({ item, collection }) => {
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
-          Headers
+        <div data-test-id="response-headers-tab" className={`flex items-center ${getTabClassname('headers')}`} role="tab" onClick={() => selectTab('headers')}>
+          <div>Headers</div>
           {responseHeadersCount > 0 && <sup className="ml-1 font-medium">{responseHeadersCount}</sup>}
         </div>
         <div className={getTabClassname('timeline')} role="tab" onClick={() => selectTab('timeline')}>

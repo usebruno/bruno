@@ -6,7 +6,7 @@
 			"sslVerification": true,
 			"customCaCertificate": {
 				"enabled": true,
-				"filePath": "{{projectRoot}}/tests/ssl/custom-ca-certs/server/certs/ca-cert.pem"
+				"filePath": "{{projectRoot}}/tests/_server/certs/ca-cert.pem"
 			},
 			"keepDefaultCaCertificates": {
 				"enabled": false
