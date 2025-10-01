@@ -1,6 +1,6 @@
 import { Page } from '../../../playwright';
 
-export const buildCommonLocators = (page: Page) => ({
+export const buildWebsocketCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
   saveButton: () => page
     .locator('.infotip')

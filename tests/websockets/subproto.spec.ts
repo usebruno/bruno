@@ -1,11 +1,11 @@
 import { test, expect } from '../../playwright';
-import { buildCommonLocators } from './lib/locators';
+import { buildWebsocketCommonLocators } from '../utils/page/locators';
 
 const BRU_FILE_NAME = /^ws-test-request-with-subproto$/;
 
 test.describe.serial('headers', () => {
   test('headers are returned if passed', async ({ pageWithUserData: page, restartApp }) => {
-    const locators = buildCommonLocators(page);
+    const locators = buildWebsocketCommonLocators(page);
     const clearText = async (text: string) => {
       for (let i = text.length; i > 0; i--) {
         await page.keyboard.press('Backspace');

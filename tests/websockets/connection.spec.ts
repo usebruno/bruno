@@ -1,5 +1,5 @@
 import { expect, test } from '../../playwright';
-import { buildCommonLocators } from './lib/locators';
+import { buildWebsocketCommonLocators } from '../utils/page/locators';
 
 const MAX_CONNECTION_TIME = 3000;
 const BRU_FILE_NAME = /^ws-test-request$/;
@@ -12,7 +12,7 @@ test.describe.serial('websockets', () => {
   });
 
   test('websocket connects', async ({ pageWithUserData: page, restartApp }) => {
-    const locators = buildCommonLocators(page);
+    const locators = buildWebsocketCommonLocators(page);
 
     await page.getByTitle(BRU_FILE_NAME).click();
     await locators.connectionControls.connect().click();
@@ -23,14 +23,14 @@ test.describe.serial('websockets', () => {
   });
 
   test('websocket closes', async ({ pageWithUserData: page, restartApp }) => {
-    const locators = buildCommonLocators(page);
+    const locators = buildWebsocketCommonLocators(page);
     await locators.connectionControls.disconnect().click();
 
     await expect(locators.connectionControls.connect()).toBeVisible();
   });
 
   test('websocket messages were recorded', async ({ pageWithUserData: page, restartApp }) => {
-    const locators = buildCommonLocators(page);
+    const locators = buildWebsocketCommonLocators(page);
 
     const messages = await locators.messages();
 
@@ -39,7 +39,7 @@ test.describe.serial('websockets', () => {
   });
 
   test('websocket messages sorting can be changed', async ({ pageWithUserData: page, restartApp }) => {
-    const locators = buildCommonLocators(page);
+    const locators = buildWebsocketCommonLocators(page);
 
     await locators.toolbar.latestLast().click();
 
@@ -54,7 +54,7 @@ test.describe.serial('websockets', () => {
   });
 
   test('websocket request can send messages', async ({ pageWithUserData: page, restartApp }) => {
-    const locators = buildCommonLocators(page);
+    const locators = buildWebsocketCommonLocators(page);
 
     await locators.toolbar.clearResponse().click();
     await locators.runner().click();

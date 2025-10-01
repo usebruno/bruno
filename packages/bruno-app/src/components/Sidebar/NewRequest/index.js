@@ -334,79 +334,84 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 Type
               </label>
 
-              <div className="mt-2 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="http-request"
-                    name="requestType"
-                    value="http-request"
-                    checked={formik.values.requestType === 'http-request'}
-                    onChange={formik.handleChange}
-                  />
-                  <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
-                    HTTP
-                  </label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="graphql-request"
-                    name="requestType"
-                    value="graphql-request"
-                    checked={formik.values.requestType === 'graphql-request'}
-                    onChange={formik.handleChange}
-                  />
-                  <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
-                    GraphQL
-                  </label>
-                </div>
-
-                {isGrpcEnabled && (
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
-                      id="grpc-request"
+                      id="http-request"
                       name="requestType"
-                      value="grpc-request"
-                      checked={formik.values.requestType === 'grpc-request'}
+                      value="http-request"
+                      checked={formik.values.requestType === 'http-request'}
                       onChange={formik.handleChange}
                     />
-                    <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
-                      gRPC
+                    <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
+                      HTTP
                     </label>
                   </div>
-                )}
-
-                {isWsEnabled && (
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
-                      id="ws-request"
+                      id="graphql-request"
                       name="requestType"
-                      value="ws-request"
-                      checked={formik.values.requestType === 'ws-request'}
+                      value="graphql-request"
+                      checked={formik.values.requestType === 'graphql-request'}
                       onChange={formik.handleChange}
                     />
-                    <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
-                      WebSocket
+                    <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
+                      GraphQL
                     </label>
                   </div>
-                )}
+                </div>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="from-curl"
-                    name="requestType"
-                    value="from-curl"
-                    checked={formik.values.requestType === 'from-curl'}
-                    onChange={formik.handleChange}
-                  />
-                  <label htmlFor="from-curl" className="ml-1 cursor-pointer select-none">
-                    From cURL
-                  </label>
+                <div className="flex flex-col gap-2">
+                  {isGrpcEnabled && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        id="grpc-request"
+                        name="requestType"
+                        value="grpc-request"
+                        checked={formik.values.requestType === 'grpc-request'}
+                        onChange={formik.handleChange}
+                      />
+                      <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
+                        gRPC
+                      </label>
+                    </div>
+                  )}
+
+                  {isWsEnabled && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        id="ws-request"
+                        name="requestType"
+                        value="ws-request"
+                        checked={formik.values.requestType === 'ws-request'}
+                        onChange={formik.handleChange}
+                      />
+                      <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
+                        WebSocket
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="from-curl"
+                      name="requestType"
+                      value="from-curl"
+                      checked={formik.values.requestType === 'from-curl'}
+                      onChange={formik.handleChange}
+                    />
+                    <label htmlFor="from-curl" className="ml-1 cursor-pointer select-none">
+                      From cURL
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

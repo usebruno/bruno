@@ -1,5 +1,5 @@
 import { expect, Locator, test } from '../../playwright';
-import { buildCommonLocators } from './lib/locators';
+import { buildWebsocketCommonLocators } from '../utils/page/locators';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
@@ -33,7 +33,7 @@ test.describe.serial('persistence', () => {
 
   test('save new websocket url', async ({ pageWithUserData: page }) => {
     const replacementUrl = 'ws://localhost:8082';
-    const locators = buildCommonLocators(page);
+    const locators = buildWebsocketCommonLocators(page);
     const unsavedColor = '#d97706';
     const getSaveSvg = () => locators.saveButton().evaluate((d) => d.querySelector('svg'));
 
