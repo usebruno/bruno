@@ -411,16 +411,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const parsedSettings = {};
 
-    // Parse encodeUrl as boolean
-    if (settings.encodeUrl !== undefined) {
-      parsedSettings.encodeUrl = typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true';
-    }
-
-    // Parse followRedirects as boolean
-    if (settings.followRedirects !== undefined) {
-      parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
-    }
-
     // Parse maxRedirects as number
     if (settings.maxRedirects !== undefined) {
       const maxRedirects = parseInt(settings.maxRedirects, 10);
@@ -438,7 +428,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     return {
-      settings: parsedSettings
+      settings: {
+        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+        followRedirects: typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true',
+        maxRedirects: parsedSettings.maxRedirects,
+        timeout: parsedSettings.timeout
+      }
     };
   },
   grpc(_1, dictionary) {
