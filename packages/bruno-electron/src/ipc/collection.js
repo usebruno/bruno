@@ -583,7 +583,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       console.log(`watcher stopWatching: ${collectionPath}`);
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
       lastOpenedCollections.remove(collectionPath);
-      wsClient.closeForCollection(collectionUid);
+
+      // If wsclient was initialised for any collections that are opened
+      // then close for the current collection
+      if (wsClient) {
+        wsClient.closeForCollection(collectionUid);
+      }
     }
   });
 
