@@ -1,38 +1,48 @@
 import { test, expect } from '../../playwright';
 import { buildWebsocketCommonLocators } from '../utils/page/locators';
 
-const BRU_FILE_NAME = /^ws-test-request-with-subproto$/;
+const BRU_REQ_NAME = /^ws-test-request-with-subproto$/;
 
-test.describe.serial('headers', () => {
-  test('headers are returned if passed', async ({ pageWithUserData: page, restartApp }) => {
+test.describe.serial('subprotocol tests', () => {
+  test('Only connect if a valid subprotocol is sent with the request', async ({ pageWithUserData: page, restartApp }) => {
     const locators = buildWebsocketCommonLocators(page);
     const clearText = async (text: string) => {
       for (let i = text.length; i > 0; i--) {
         await page.keyboard.press('Backspace');
       }
     };
+
     const originalProtocol = 'soap';
     const wrongProtocol = 'wap';
 
+    // Open the needed request and keep the headers tab in focus for modifications
     await page.locator('#sidebar-collection-name').click();
-    await page.getByTitle(BRU_FILE_NAME).click();
+    await page.getByTitle(BRU_REQ_NAME).click();
     await page.getByRole('tab', { name: 'Headers1' }).click();
 
+    // Check if the original / correct protocol is in place and then send a request
     await expect(page.locator('pre').filter({ hasText: originalProtocol })).toBeAttached();
     await locators.runner().click();
 
+    // Check the messages to confirm we ended up connecting
     const messages = await locators.messages();
     expect(await messages[0].locator('.text-ellipsis').innerText()).toMatch(/^(Connected to)/);
 
+    // Disconnect the request
     await locators.connectionControls.disconnect().click();
 
+    // Make changes to the header and add in an invalid sub protocol
     await page.locator('pre').filter({ hasText: originalProtocol }).click();
     await clearText(originalProtocol);
     await page.keyboard.insertText(wrongProtocol);
 
+    // Make another request and check the new set of messages to confirm that we did
+    // get an error on connection
     await locators.runner().click();
-    expect(await messages[0].locator('.text-ellipsis').innerText()).toMatch(/^(Unexpected server response)/);
+    const newMessages = await locators.messages();
+    expect(await newMessages[0].locator('.text-ellipsis').innerText()).toMatch(/^(Unexpected server response)/);
 
+    // Reset state back to the original
     await page.locator('pre').filter({ hasText: wrongProtocol }).click();
     await clearText(wrongProtocol);
     await page.keyboard.insertText(originalProtocol);
