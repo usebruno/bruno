@@ -27,9 +27,8 @@ test.describe.serial('persistence', () => {
     originalUrl = originalUrlMatch[0].replace(/url\:/, '');
   });
 
-  test.afterAll(async ({ electronApp }) => {
+  test.afterAll(async () => {
     await writeFile(originalContext.path, originalContext.data, 'utf8');
-    electronApp.close();
   });
 
   test('save new websocket url', async ({ pageWithUserData: page }) => {
