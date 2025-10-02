@@ -1,6 +1,11 @@
 import { test, expect } from '../../playwright';
+import { closeAllCollections } from '../utils/page';
 
 test.describe('manage protofile', () => {
+  test.afterAll(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
   test('protofiles, import paths from bruno.json are visible in the protobuf settings', async ({ pageWithUserData: page }) => {
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Grpcbin' }).click();
 
