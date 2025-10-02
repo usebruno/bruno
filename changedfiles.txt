@@ -1,0 +1,17 @@
+packages/bruno-app/src/components/CodeEditor/StyledWrapper.js
+packages/bruno-app/src/components/Modal/PromptVariableModal.js
+packages/bruno-app/src/components/Modal/index.js
+packages/bruno-app/src/components/RequestPane/QueryEditor/StyledWrapper.js
+packages/bruno-app/src/globalStyles.js
+packages/bruno-app/src/pages/Main.js
+packages/bruno-app/src/providers/PromptVariables/PromptVariableProvider.js
+packages/bruno-app/src/providers/ReduxStore/slices/collections/actions.js
+packages/bruno-app/src/themes/dark.js
+packages/bruno-app/src/themes/light.js
+packages/bruno-app/src/utils/common/codemirror.js
+packages/bruno-cli/src/runner/run-single-request.js
+packages/bruno-common/src/utils/index.ts
+packages/bruno-common/src/utils/prompt-variables.spec.ts
+packages/bruno-common/src/utils/prompt-variables.ts
+packages/bruno-electron/src/ipc/network/index.js
+packages/bruno-tests/collection/package-lock.json
