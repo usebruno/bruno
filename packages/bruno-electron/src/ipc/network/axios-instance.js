@@ -8,6 +8,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
+const JSONBigNative = require('json-bigint')({ useNativeBigInt: true });
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';

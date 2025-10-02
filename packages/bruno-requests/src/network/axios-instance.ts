@@ -1,6 +1,7 @@
 import { default as axios, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import http from 'node:http';
 import https from 'node:https';
+const JSONBigNative = require('json-bigint')({ useNativeBigInt: true });
 
 /**
  * 

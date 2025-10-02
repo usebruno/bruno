@@ -1,4 +1,5 @@
 const axios = require('axios');
+const JSONBigNative = require('json-bigint')({ useNativeBigInt: true });
 const { CLI_VERSION } = require('../constants');
 const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
