@@ -18,7 +18,7 @@ test.describe('CLI JSON Environment File Support', () => {
   };
 
   test('CLI: Run with non-existent JSON environment file should fail', async () => {
-    const status = runFrom(collectionPath, 'run --env-file=non-existent.json');
+    const status = runFrom(collectionPath, 'run --format json --env-file non-existent.json');
     expect(status).toBe(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
   });
 
