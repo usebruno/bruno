@@ -21,7 +21,7 @@ test.describe('Timeout Settings Tests', () => {
     // Verify default value from .bru file (5)
     await expect(timeoutInput).toHaveValue('5');
 
-    await page.locator('[data-testid="send-arrow-icon"]').click();
+    await page.getByTestId('send-arrow-icon').click();
 
     const responsePane = page.locator('.response-pane');
     await expect(responsePane).toContainText('timeout of 5ms exceeded');

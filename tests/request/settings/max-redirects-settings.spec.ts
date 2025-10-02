@@ -23,19 +23,19 @@ test.describe('Max Redirects Settings Tests', () => {
     await expect(maxRedirectsInput).toHaveValue('1');
 
     // Test Follow Redirects toggle
-    const followRedirectsToggle = page.locator('[data-testid="follow-redirects-toggle"]');
+    const followRedirectsToggle = page.getByTestId('follow-redirects-toggle');
     await expect(followRedirectsToggle).toBeVisible();
     await expect(followRedirectsToggle).toBeChecked();
 
     // Send the request
-    await page.locator('[data-testid="send-arrow-icon"]').click();
+    await page.getByTestId('send-arrow-icon').click();
 
-    await expect(page.locator('[data-testid="response-status-code"]')).toContainText('302', { timeout: 15000 });
+    await expect(page.getByTestId('response-status-code')).toContainText('302', { timeout: 15000 });
 
     // change the max redirects to 2
     await maxRedirectsInput.fill('2');
-    await page.locator('[data-testid="send-arrow-icon"]').click();
-    await expect(page.locator('[data-testid="response-status-code"]')).toContainText('200', { timeout: 15000 });
+    await page.getByTestId('send-arrow-icon').click();
+    await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
   });
 
   test.afterEach(async ({ pageWithUserData: page }) => {
