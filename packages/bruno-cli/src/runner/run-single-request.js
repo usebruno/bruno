@@ -30,8 +30,7 @@ const onConsoleLog = (type, args) => {
   console[type](...args);
 };
 
-const runSingleRequest = async function (
-  item,
+const runSingleRequest = async function (item,
   collectionPath,
   runtimeVariables,
   envVariables,
@@ -40,8 +39,7 @@ const runSingleRequest = async function (
   collectionRoot,
   runtime,
   collection,
-  runSingleRequestByPathname
-) {
+  runSingleRequestByPathname) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
 
@@ -78,31 +76,31 @@ const runSingleRequest = async function (
     if (promptVars.length > 0) {
       const errorMsg = 'Prompt variables detected in request. CLI execution is not supported for requests with prompt variables.';
       console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${errorMsg})`));
-			return {
-				test: {
-					filename: relativeItemPathname
-				},
-				request: {
-					method: request.method,
-					url: request.url,
-					headers: request.headers,
-					data: request.data
-				},
-				response: {
-					status: 'skipped',
-					statusText: errorMsg,
-					data: null,
-					responseTime: 0
-				},
-				error: null,
-				status: 'skipped',
-				skipped: true,
-				assertionResults: [],
-				testResults: [],
-				preRequestTestResults: [],
-				postResponseTestResults: [],
-				shouldStopRunnerExecution
-			};
+      return {
+        test: {
+          filename: relativeItemPathname
+        },
+        request: {
+          method: request.method,
+          url: request.url,
+          headers: request.headers,
+          data: request.data
+        },
+        response: {
+          status: 'skipped',
+          statusText: errorMsg,
+          data: null,
+          responseTime: 0
+        },
+        error: null,
+        status: 'skipped',
+        skipped: true,
+        assertionResults: [],
+        testResults: [],
+        preRequestTestResults: [],
+        postResponseTestResults: [],
+        shouldStopRunnerExecution
+      };
     }
 
     request.__bruno__executionMode = 'cli';
@@ -112,11 +110,10 @@ const runSingleRequest = async function (
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
-    const collectionName = collection?.brunoConfig?.name
+    const collectionName = collection?.brunoConfig?.name;
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await scriptRuntime.runRequestScript(
-        decomment(requestScriptFile),
+      const result = await scriptRuntime.runRequestScript(decomment(requestScriptFile),
         request,
         envVariables,
         runtimeVariables,
@@ -125,8 +122,7 @@ const runSingleRequest = async function (
         processEnvVars,
         scriptingConfig,
         runSingleRequestByPathname,
-        collectionName
-      );
+        collectionName);
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
       }
@@ -181,7 +177,7 @@ const runSingleRequest = async function (
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const httpsAgentRequestFields = {};
-    
+
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
@@ -236,7 +232,7 @@ const runSingleRequest = async function (
 
     const collectionProxyConfig = get(brunoConfig, 'proxy', {});
     const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
-    
+
     if (noproxy) {
       // If noproxy flag is set, don't use any proxy
       proxyMode = 'off';
@@ -273,16 +269,12 @@ const runSingleRequest = async function (
           proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
         }
         if (socksEnabled) {
-          request.httpsAgent = new SocksProxyAgent(
-            proxyUri,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
+          request.httpsAgent = new SocksProxyAgent(proxyUri,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined);
           request.httpAgent = new SocksProxyAgent(proxyUri);
         } else {
-          request.httpsAgent = new PatchedHttpsProxyAgent(
-            proxyUri,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
+          request.httpsAgent = new PatchedHttpsProxyAgent(proxyUri,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined);
           request.httpAgent = new HttpProxyAgent(proxyUri);
         }
       } else {
@@ -305,10 +297,8 @@ const runSingleRequest = async function (
         try {
           if (https_proxy?.length) {
             new URL(https_proxy);
-            request.httpsAgent = new PatchedHttpsProxyAgent(
-              https_proxy,
-              Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-            );
+            request.httpsAgent = new PatchedHttpsProxyAgent(https_proxy,
+              Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined);
           } else {
             request.httpsAgent = new https.Agent({
               ...httpsAgentRequestFields
@@ -328,41 +318,37 @@ const runSingleRequest = async function (
       });
     }
 
-    //set cookies if enabled
+    // set cookies if enabled
     if (!options.disableCookies) {
       const cookieString = getCookieStringForUrl(request.url);
       if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-        const existingCookieHeaderName = Object.keys(request.headers).find(
-            name => name.toLowerCase() === 'cookie'
-        );
+        const existingCookieHeaderName = Object.keys(request.headers).find((name) => name.toLowerCase() === 'cookie');
         const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
-    
+
         // Helper function to parse cookies into an object
         const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
-            const [name, ...rest] = cookie.split('=');
-            if (name && name.trim()) {
-                cookies[name.trim()] = rest.join('=').trim();
-            }
-            return cookies;
+          const [name, ...rest] = cookie.split('=');
+          if (name && name.trim()) {
+            cookies[name.trim()] = rest.join('=').trim();
+          }
+          return cookies;
         }, {});
-    
+
         const mergedCookies = {
-            ...parseCookies(existingCookieString),
-            ...parseCookies(cookieString),
+          ...parseCookies(existingCookieString),
+          ...parseCookies(cookieString)
         };
-    
+
         const combinedCookieString = Object.entries(mergedCookies)
-            .map(([name, value]) => `${name}=${value}`)
-            .join('; ');
-    
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ');
+
         request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
       }
     }
 
     // stringify the request url encoded params
-    const contentTypeHeader = Object.keys(request.headers).find(
-      name => name.toLowerCase() === 'content-type'
-    );
+    const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
     }
@@ -377,9 +363,9 @@ const runSingleRequest = async function (
       }
     }
 
-    let requestMaxRedirects = request.maxRedirects
-    request.maxRedirects = 0
-    
+    let requestMaxRedirects = request.maxRedirects;
+    request.maxRedirects = 0;
+
     // Set default value for requestMaxRedirects if not explicitly set
     if (requestMaxRedirects === undefined) {
       requestMaxRedirects = 5; // Default to 5 redirects
@@ -391,7 +377,7 @@ const runSingleRequest = async function (
         const token = await getOAuth2Token(request.oauth2);
         if (token) {
           const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
-          
+
           if (tokenPlacement === 'header' && token) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
           } else if (tokenPlacement === 'url') {
@@ -407,29 +393,25 @@ const runSingleRequest = async function (
       } catch (error) {
         console.error('OAuth2 token fetch error:', error.message);
       }
-      
+
       // Remove oauth2 config from request to prevent it from being sent
       delete request.oauth2;
     }
 
     let response, responseTime;
     try {
-      
       let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
       if (request.ntlmConfig) {
-        axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
         delete request.ntlmConfig;
       }
-    
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js
         // interpolate the aws v4 config
         request.awsv4config.accessKeyId = interpolateString(request.awsv4config.accessKeyId, interpolationOptions);
-        request.awsv4config.secretAccessKey = interpolateString(
-          request.awsv4config.secretAccessKey,
-          interpolationOptions
-        );
+        request.awsv4config.secretAccessKey = interpolateString(request.awsv4config.secretAccessKey,
+          interpolationOptions);
         request.awsv4config.sessionToken = interpolateString(request.awsv4config.sessionToken, interpolationOptions);
         request.awsv4config.service = interpolateString(request.awsv4config.service, interpolationOptions);
         request.awsv4config.region = interpolateString(request.awsv4config.region, interpolationOptions);
@@ -456,7 +438,7 @@ const runSingleRequest = async function (
       responseTime = response.headers.get('request-duration');
       response.headers.delete('request-duration');
 
-      //save cookies if enabled
+      // save cookies if enabled
       if (!options.disableCookies) {
         saveCookies(request.url, response.headers);
       }
@@ -490,7 +472,7 @@ const runSingleRequest = async function (
             url: null,
             responseTime: 0
           },
-          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          error: err?.message || err?.errors?.map((e) => e?.message)?.at(0) || err?.code || 'Request Failed!',
           status: 'error',
           assertionResults: [],
           testResults: [],
@@ -504,10 +486,8 @@ const runSingleRequest = async function (
 
     response.responseTime = responseTime;
 
-    console.log(
-      chalk.green(stripExtension(relativeItemPathname)) +
-      chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
-    );
+    console.log(chalk.green(stripExtension(relativeItemPathname))
+      + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`));
 
     // Log pre-request test results
     logResults(preRequestTestResults, 'Pre-Request Tests');
@@ -516,15 +496,13 @@ const runSingleRequest = async function (
     const postResponseVars = get(item, 'request.vars.res');
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPostResponseVars(
-        postResponseVars,
+      varsRuntime.runPostResponseVars(postResponseVars,
         request,
         response,
         envVariables,
         runtimeVariables,
         collectionPath,
-        processEnvVars
-      );
+        processEnvVars);
     }
 
     // run post response script
@@ -532,8 +510,7 @@ const runSingleRequest = async function (
     if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       try {
-        const result = await scriptRuntime.runResponseScript(
-          decomment(responseScriptFile),
+        const result = await scriptRuntime.runResponseScript(decomment(responseScriptFile),
           request,
           response,
           envVariables,
@@ -543,8 +520,7 @@ const runSingleRequest = async function (
           processEnvVars,
           scriptingConfig,
           runSingleRequestByPathname,
-          collectionName
-        );
+          collectionName);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -564,14 +540,12 @@ const runSingleRequest = async function (
     const assertions = get(item, 'request.assertions');
     if (assertions) {
       const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
-      assertionResults = assertRuntime.runAssertions(
-        assertions,
+      assertionResults = assertRuntime.runAssertions(assertions,
         request,
         response,
         envVariables,
         runtimeVariables,
-        processEnvVars
-      );
+        processEnvVars);
     }
 
     // run tests
@@ -580,8 +554,7 @@ const runSingleRequest = async function (
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       try {
-        const result = await testRuntime.runTests(
-          decomment(testFile),
+        const result = await testRuntime.runTests(decomment(testFile),
           request,
           response,
           envVariables,
@@ -591,8 +564,7 @@ const runSingleRequest = async function (
           processEnvVars,
           scriptingConfig,
           runSingleRequestByPathname,
-          collectionName
-        );
+          collectionName);
         testResults = get(result, 'results', []);
 
         if (result?.nextRequestName !== undefined) {
@@ -608,7 +580,6 @@ const runSingleRequest = async function (
         console.error('Test script execution error:', error);
       }
     }
-
 
     logResults(assertionResults, 'Assertions');
 

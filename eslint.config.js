@@ -1,20 +1,20 @@
 // eslint.config.js
-const { defineConfig } = require("eslint/config");
-const globals = require("globals");
+const { defineConfig } = require('eslint/config');
+const globals = require('globals');
 const { fixupPluginRules } = require('@eslint/compat');
 const eslintPluginDiff = require('eslint-plugin-diff');
 
 let stylistic;
 
 const runESMImports = async () => {
-  stylistic = await import('@stylistic/eslint-plugin').then(d => d.default);
+  stylistic = await import('@stylistic/eslint-plugin').then((d) => d.default);
 };
 
 module.exports = runESMImports().then(() => defineConfig([
   {
     plugins: {
       'diff': fixupPluginRules(eslintPluginDiff),
-      '@stylistic': stylistic,
+      '@stylistic': stylistic
     },
     languageOptions: {
       parser: require('@typescript-eslint/parser'),
@@ -36,15 +36,15 @@ module.exports = runESMImports().then(() => defineConfig([
       'packages/bruno-js/**/*.js',
       'packages/bruno-lang/**/*.js',
       'packages/bruno-requests/**/*.ts',
-      'packages/bruno-requests/**/*.js',
+      'packages/bruno-requests/**/*.js'
     ],
-    processor: 'diff/diff',
+    // processor: 'diff/diff',
     rules: {
       ...stylistic.configs.customize({
         indent: 2,
         quotes: 'single',
         semi: true,
-        jsx: true,
+        jsx: true
       }).rules,
       '@stylistic/comma-dangle': ['error', 'never'],
       '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
@@ -52,7 +52,7 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/curly-newline': ['error', {
         multiline: true,
         minElements: 2,
-        consistent: true,
+        consistent: true
       }],
       '@stylistic/function-paren-newline': ['error', 'never'],
       '@stylistic/array-bracket-spacing': ['error', 'never'],
@@ -62,12 +62,12 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/padding-line-between-statements': ['off'],
       '@stylistic/jsx-one-expression-per-line': ['off'],
       '@stylistic/semi-style': ['error', 'last'],
-      '@stylistic/max-len': ['off'],
-    },
+      '@stylistic/max-len': ['off']
+    }
   },
   {
-    files: ["packages/bruno-app/**/*.{js,jsx,ts}"],
-    ignores: ["**/*.config.js", "**/public/**/*"],
+    files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
+    ignores: ['**/*.config.js', '**/public/**/*'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -80,114 +80,114 @@ module.exports = runESMImports().then(() => defineConfig([
       },
       parserOptions: {
         ecmaFeatures: {
-          jsx: true,
-        },
-      },
+          jsx: true
+        }
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
     // It prevents lint errors when using CommonJS exports (module.exports) in Jest mocks.
-    files: ["packages/bruno-app/src/test-utils/mocks/codemirror.js"],
+    files: ['packages/bruno-app/src/test-utils/mocks/codemirror.js'],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
-      },
+        ...globals.jest
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
-    files: ["packages/bruno-cli/**/*.js"],
-    ignores: ["**/*.config.js"],
+    files: ['packages/bruno-cli/**/*.js'],
+    ignores: ['**/*.config.js'],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.jest
       },
       parserOptions: {
-        ecmaVersion: "latest"
-      },
+        ecmaVersion: 'latest'
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
-    files: ["packages/bruno-common/**/*.ts"],
-    ignores: ["**/*.config.js", "**/dist/**/*"],
+    files: ['packages/bruno-common/**/*.ts'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.jest
       },
-      parser: require("@typescript-eslint/parser"),
+      parser: require('@typescript-eslint/parser'),
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-        project: "./packages/bruno-common/tsconfig.json",
-      },
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: './packages/bruno-common/tsconfig.json'
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
-    files: ["packages/bruno-converters/**/*.js"],
-    ignores: ["**/*.config.js", "**/dist/**/*"],
+    files: ['packages/bruno-converters/**/*.js'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.jest
       },
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-      },
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
-    files: ["packages/bruno-electron/**/*.js"],
-    ignores: ["**/*.config.js", "**/web/**/*"],
+    files: ['packages/bruno-electron/**/*.js'],
+    ignores: ['**/*.config.js', '**/web/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
-      },
+        ...globals.jest
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
-    files: ["packages/bruno-filestore/**/*.ts"],
-    ignores: ["**/*.config.js", "**/dist/**/*"],
+    files: ['packages/bruno-filestore/**/*.ts'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.jest
       },
-      parser: require("@typescript-eslint/parser"),
+      parser: require('@typescript-eslint/parser'),
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-        project: "./packages/bruno-filestore/tsconfig.json",
-      },
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: './packages/bruno-filestore/tsconfig.json'
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
-    files: ["packages/bruno-js/**/*.js"],
-    ignores: ["**/*.config.js", "**/dist/**/*"],
+    files: ['packages/bruno-js/**/*.js'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -198,65 +198,65 @@ module.exports = runESMImports().then(() => defineConfig([
         typeDetectGlobalObject: false
       },
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-      },
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
-    files: ["packages/bruno-lang/**/*.js"],
-    ignores: ["**/*.config.js", "**/dist/**/*"],
+    files: ['packages/bruno-lang/**/*.js'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.jest
       },
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-      },
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
-    files: ["packages/bruno-requests/**/*.ts"],
-    ignores: ["**/*.config.js", "**/dist/**/*"],
+    files: ['packages/bruno-requests/**/*.ts'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.jest
       },
-      parser: require("@typescript-eslint/parser"),
+      parser: require('@typescript-eslint/parser'),
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-        project: "./packages/bruno-requests/tsconfig.json",
-      },
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: './packages/bruno-requests/tsconfig.json'
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
+      'no-undef': 'error'
+    }
   },
   {
-    files: ["packages/bruno-requests/**/*.js"],
-    ignores: ["**/*.config.js", "**/dist/**/*"],
+    files: ['packages/bruno-requests/**/*.js'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.jest
       },
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-      },
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      }
     },
     rules: {
-      "no-undef": "error",
-    },
-  },
+      'no-undef': 'error'
+    }
+  }
 ]));

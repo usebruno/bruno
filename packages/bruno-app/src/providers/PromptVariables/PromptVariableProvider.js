@@ -13,9 +13,7 @@ export function PromptVariableProvider({ children }) {
         setModalState({ open: true, prompts, resolve, reject });
       } catch (err) {
         console.error('PromptVariableProvider: Error opening prompt modal:', err);
-        toast.error(
-          'Prompt variable(s) detected, but prompt modal is not available. Please ensure PromptVariableProvider is mounted.'
-        );
+        toast.error('Prompt variable(s) detected, but prompt modal is not available. Please ensure PromptVariableProvider is mounted.');
         reject(err);
       }
     });

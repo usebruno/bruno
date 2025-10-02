@@ -57,7 +57,7 @@ const ModalFooter = ({
 
 const Modal = ({
   size,
-  title = "Modal",
+  title = 'Modal',
   customHeader,
   confirmText,
   cancelText,
