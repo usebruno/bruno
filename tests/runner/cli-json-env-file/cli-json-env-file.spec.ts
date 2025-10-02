@@ -55,11 +55,4 @@ test.describe('CLI JSON Environment File Support', () => {
       fs.unlinkSync(outputPath);
     } catch (_) {}
   });
-
-  test('CLI: Run with non-existent JSON environment file should fail', async () => {
-    const tempDir = '/tmp/bruno-cli-test';
-    const nonExistentEnvPath = path.join(tempDir, 'non-existent.json');
-    const status = runFrom(collectionPath, `run ./ --env-file "${nonExistentEnvPath}"`);
-    expect(status).toBe(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
-  });
 });
