@@ -16,9 +16,16 @@ module.exports = runESMImports().then(() => defineConfig([
       'diff': fixupPluginRules(eslintPluginDiff),
       '@stylistic': stylistic,
     },
+    languageOptions: {
+      parser: require('@typescript-eslint/parser'),
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      }
+    },
     files: [
       './eslint.config.js',
-      'tests/**/*.spec.{ts,js}',
+      'tests/**/*.{ts,js}',
       'packages/bruno-app/**/*.{js,jsx,ts}',
       'packages/bruno-app/src/test-utils/mocks/codemirror.js',
       'packages/bruno-cli/**/*.js',
@@ -53,6 +60,7 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/function-call-spacing': ['error', 'never'],
       '@stylistic/multiline-ternary': ['off'],
       '@stylistic/padding-line-between-statements': ['off'],
+      '@stylistic/jsx-one-expression-per-line': ['off'],
       '@stylistic/semi-style': ['error', 'last'],
       '@stylistic/max-len': ['off'],
     },
