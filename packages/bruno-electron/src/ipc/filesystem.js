@@ -6,7 +6,7 @@ const {
   browseFiles,
   normalizeAndResolvePath,
   isFile,
-  isDirectory,
+  isDirectory
 } = require('../utils/filesystem');
 
 const registerFilesystemIpc = (mainWindow) => {

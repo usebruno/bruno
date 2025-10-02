@@ -575,14 +575,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   }
 
   if (collectionToSave?.brunoConfig?.protobuf?.importPaths) {
-    collectionToSave.brunoConfig.protobuf.importPaths = collectionToSave.brunoConfig.protobuf.importPaths.map(importPath => {
+    collectionToSave.brunoConfig.protobuf.importPaths = collectionToSave.brunoConfig.protobuf.importPaths.map((importPath) => {
       delete importPath.exists;
       return importPath;
     });
   }
 
   if (collectionToSave?.brunoConfig?.protobuf?.protoFiles) {
-    collectionToSave.brunoConfig.protobuf.protoFiles = collectionToSave.brunoConfig.protobuf.protoFiles.map(protoFile => {
+    collectionToSave.brunoConfig.protobuf.protoFiles = collectionToSave.brunoConfig.protobuf.protoFiles.map((protoFile) => {
       delete protoFile.exists;
       return protoFile;
     });

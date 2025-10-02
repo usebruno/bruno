@@ -7,7 +7,7 @@ const TabNavigation = ({ activeTab, onTabChange, collectionProtoFiles, collectio
       <div className="tab-container flex space-x-1 rounded-lg p-1">
         <button
           className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors tab-button ${activeTab === 'protofiles' ? 'active' : ''}`}
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation();
             onTabChange('protofiles');
           }}
@@ -18,7 +18,7 @@ const TabNavigation = ({ activeTab, onTabChange, collectionProtoFiles, collectio
         </button>
         <button
           className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors tab-button ${activeTab === 'importpaths' ? 'active' : ''}`}
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation();
             onTabChange('importpaths');
           }}

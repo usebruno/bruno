@@ -344,37 +344,37 @@ const lightTheme = {
   grpc: {
     tabNav: {
       container: {
-        bg: '#f5f5f5',
+        bg: '#f5f5f5'
       },
       button: {
         active: {
           bg: '#ffffff',
-          color: '#000000',
+          color: '#000000'
         },
         inactive: {
           bg: 'transparent',
-          color: '#525252',
-        },
-      },
+          color: '#525252'
+        }
+      }
     },
     importPaths: {
       container: {
-        bg: '#ffffff',
+        bg: '#ffffff'
       },
       header: {
         text: '#838383',
         button: {
           color: '#838383',
-          hoverColor: '#343434',
-        },
+          hoverColor: '#343434'
+        }
       },
       error: {
         bg: 'transparent',
         text: '#B91C1C',
         link: {
           color: '#B91C1C',
-          hoverColor: '#dc2626',
-        },
+          hoverColor: '#dc2626'
+        }
       },
       item: {
         bg: 'transparent',
@@ -382,68 +382,68 @@ const lightTheme = {
         text: '#343434',
         icon: '#838383',
         checkbox: {
-          color: '#343434',
+          color: '#343434'
         },
         invalid: {
           opacity: 0.6,
-          text: '#B91C1C',
-        },
+          text: '#B91C1C'
+        }
       },
       empty: {
-        text: '#838383',
+        text: '#838383'
       },
       button: {
         bg: '#e2e6ea',
         color: '#212529',
         border: '#dae0e5',
-        hoverBorder: '#696969',
-      },
+        hoverBorder: '#696969'
+      }
     },
     protoFiles: {
       container: {
-        bg: '#ffffff',
+        bg: '#ffffff'
       },
       header: {
         text: '#838383',
         button: {
           color: '#838383',
-          hoverColor: '#343434',
-        },
+          hoverColor: '#343434'
+        }
       },
       error: {
         bg: 'transparent',
         text: '#B91C1C',
         link: {
           color: '#B91C1C',
-          hoverColor: '#dc2626',
-        },
+          hoverColor: '#dc2626'
+        }
       },
       item: {
         bg: 'transparent',
         hoverBg: 'rgba(0, 0, 0, 0.05)',
         selected: {
           bg: 'rgba(217, 119, 6, 0.2)',
-          border: '#d97706',
+          border: '#d97706'
         },
         text: '#343434',
         secondaryText: '#838383',
         icon: '#838383',
         invalid: {
           opacity: 0.6,
-          text: '#B91C1C',
-        },
+          text: '#B91C1C'
+        }
       },
       empty: {
-        text: '#838383',
+        text: '#838383'
       },
       button: {
         bg: '#e2e6ea',
         color: '#212529',
         border: '#dae0e5',
-        hoverBorder: '#696969',
-      },
-    },
-  },
+        hoverBorder: '#696969'
+      }
+    }
+  }
 };
 
 export default lightTheme;

@@ -7,7 +7,7 @@ const ImportPathsTab = ({
   invalidImportPaths,
   onOpenCollectionProtobufSettings,
   onBrowseImportPath,
-  onToggleImportPath,
+  onToggleImportPath
 }) => {
   return (
     <StyledWrapper>

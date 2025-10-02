@@ -14,11 +14,11 @@ const Wrapper = styled.div`
 
   .header-text {
     font-size: 0.75rem;
-    color: ${props => props.theme.grpc.importPaths.header.text};
+    color: ${(props) => props.theme.grpc.importPaths.header.text};
   }
 
   .settings-button {
-    color: ${props => props.theme.grpc.importPaths.header.button.color};
+    color: ${(props) => props.theme.grpc.importPaths.header.button.color};
     background: transparent;
     border: none;
     cursor: pointer;
@@ -27,17 +27,17 @@ const Wrapper = styled.div`
     transition: color 0.2s ease;
 
     &:hover {
-      color: ${props => props.theme.grpc.importPaths.header.button.hoverColor};
+      color: ${(props) => props.theme.grpc.importPaths.header.button.hoverColor};
     }
   }
 
   .error-wrapper {
     margin-bottom: 0.5rem;
     padding: 0.5rem;
-    background-color: ${props => props.theme.grpc.importPaths.error.bg};
+    background-color: ${(props) => props.theme.grpc.importPaths.error.bg};
     border-radius: 0.25rem;
     font-size: 0.75rem;
-    color: ${props => props.theme.grpc.importPaths.error.text};
+    color: ${(props) => props.theme.grpc.importPaths.error.text};
   }
 
   .error-text {
@@ -47,7 +47,7 @@ const Wrapper = styled.div`
   }
 
   .error-link {
-    color: ${props => props.theme.grpc.importPaths.error.link.color};
+    color: ${(props) => props.theme.grpc.importPaths.error.link.color};
     background: transparent;
     border: none;
     cursor: pointer;
@@ -56,7 +56,7 @@ const Wrapper = styled.div`
     font-size: inherit;
 
     &:hover {
-      color: ${props => props.theme.grpc.importPaths.error.link.hoverColor};
+      color: ${(props) => props.theme.grpc.importPaths.error.link.hoverColor};
     }
   }
 
@@ -71,7 +71,7 @@ const Wrapper = styled.div`
 
   .item-wrapper {
     padding: 0.5rem 0.75rem;
-    opacity: ${props => props.theme.grpc.importPaths.item.invalid.opacity};
+    opacity: ${(props) => props.theme.grpc.importPaths.item.invalid.opacity};
 
     &.valid {
       opacity: 1;
@@ -98,7 +98,7 @@ const Wrapper = styled.div`
   .checkbox {
     margin-right: 0.5rem;
     cursor: pointer;
-    color: ${props => props.theme.grpc.importPaths.item.checkbox.color};
+    color: ${(props) => props.theme.grpc.importPaths.item.checkbox.color};
   }
 
   .item-text {
@@ -109,7 +109,7 @@ const Wrapper = styled.div`
   }
 
   .invalid-icon {
-    color: ${props => props.theme.grpc.importPaths.item.invalid.text};
+    color: ${(props) => props.theme.grpc.importPaths.item.invalid.text};
     font-size: 0.75rem;
     display: flex;
     align-items: center;
@@ -120,7 +120,7 @@ const Wrapper = styled.div`
   }
 
   .empty-text {
-    color: ${props => props.theme.grpc.importPaths.empty.text};
+    color: ${(props) => props.theme.grpc.importPaths.empty.text};
     font-size: 0.875rem;
     font-style: italic;
     text-align: center;
@@ -136,9 +136,9 @@ const Wrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: ${props => props.theme.grpc.importPaths.button.bg};
-    color: ${props => props.theme.grpc.importPaths.button.color};
-    border: 1px solid ${props => props.theme.grpc.importPaths.button.border};
+    background-color: ${(props) => props.theme.grpc.importPaths.button.bg};
+    color: ${(props) => props.theme.grpc.importPaths.button.color};
+    border: 1px solid ${(props) => props.theme.grpc.importPaths.button.border};
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
     font-size: 0.875rem;
@@ -146,7 +146,7 @@ const Wrapper = styled.div`
     transition: border-color 0.2s ease;
 
     &:hover {
-      border-color: ${props => props.theme.grpc.importPaths.button.hoverBorder};
+      border-color: ${(props) => props.theme.grpc.importPaths.button.hoverBorder};
     }
   }
 `;

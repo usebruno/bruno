@@ -5,7 +5,7 @@ import {
   IconFile,
   IconFileImport,
   IconAlertCircle,
-  IconFolder,
+  IconFolder
 } from '@tabler/icons';
 import { getBasename } from 'utils/common/path';
 import { Tooltip } from 'react-tooltip';
@@ -23,12 +23,12 @@ const ProtobufSettings = ({ collection }) => {
     removeProtoFileFromCollection,
     removeImportPathFromCollection,
     replaceImportPathInCollection,
-    replaceProtoFileInCollection,
+    replaceProtoFileInCollection
   } = useProtoFileManagement(collection);
   const fileInputRef = useRef(null);
 
   // Get file path using the ipcRenderer
-  const getProtoFile = async event => {
+  const getProtoFile = async (event) => {
     const files = event?.files;
     if (files && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
@@ -44,7 +44,7 @@ const ProtobufSettings = ({ collection }) => {
     }
   };
 
-  const handleRemoveProtoFile = async index => {
+  const handleRemoveProtoFile = async (index) => {
     await removeProtoFileFromCollection(index);
   };
 
@@ -54,21 +54,21 @@ const ProtobufSettings = ({ collection }) => {
     }
   };
 
-  const handleReplaceProtoFile = async index => {
+  const handleReplaceProtoFile = async (index) => {
     const result = await browseForProtoFile();
     if (result.success) {
       await replaceProtoFileInCollection(index, result.filePath);
     }
   };
 
-  const handleReplaceImportPath = async index => {
+  const handleReplaceImportPath = async (index) => {
     const result = await browseForImportDirectory();
     if (result.success) {
       await replaceImportPathInCollection(index, result.directoryPath);
     }
   };
 
-  const handleFileInputChange = e => {
+  const handleFileInputChange = (e) => {
     getProtoFile(e.target);
   };
 
@@ -79,11 +79,11 @@ const ProtobufSettings = ({ collection }) => {
     }
   };
 
-  const handleRemoveImportPath = async index => {
+  const handleRemoveImportPath = async (index) => {
     await removeImportPathFromCollection(index);
   };
 
-  const handleToggleImportPath = async index => {
+  const handleToggleImportPath = async (index) => {
     await toggleImportPath(index);
   };
 
@@ -124,7 +124,7 @@ const ProtobufSettings = ({ collection }) => {
         </div>
 
         <div>
-          {protoFiles.some(file => !file.exists) && (
+          {protoFiles.some((file) => !file.exists) && (
             <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-testid="protobuf-invalid-files-message">
               <IconAlertCircle size={14} className="mr-1" />
               Some proto files cannot be found. Use the replace option to update their locations.
@@ -231,7 +231,7 @@ const ProtobufSettings = ({ collection }) => {
         </div>
 
         <div>
-          {importPaths.some(path => !path.exists) && (
+          {importPaths.some((path) => !path.exists) && (
             <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-testid="protobuf-invalid-import-paths-message">
               <IconAlertCircle size={14} className="mr-1" />
               Some import paths cannot be found at their specified locations.

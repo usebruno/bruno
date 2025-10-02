@@ -19,9 +19,9 @@ import { getAbsoluteFilePath } from 'utils/common/path';
 const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCollapsed, onToggleCollapse, handleRun, canClientSendMultipleMessages }) => {
   const dispatch = useDispatch();
   const { displayedTheme, theme } = useTheme();
-  const preferences = useSelector(state => state.app.preferences);
+  const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
-  const isConnectionActive = useSelector(state => state.collections.activeConnections.includes(item.uid));
+  const isConnectionActive = useSelector((state) => state.collections.activeConnections.includes(item.uid));
 
   // Access gRPC method metadata from local storage
   const [reflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
@@ -31,12 +31,12 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 
   const { name, content } = message;
 
-  const onEdit = value => {
+  const onEdit = (value) => {
     const currentMessages = [...(body.grpc || [])];
     
     currentMessages[index] = {
       name: name ? name : `message ${index + 1}`,
-      content: value,
+      content: value
     };
 
     dispatch(updateRequestBody({
@@ -75,13 +75,13 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
         const absolutePath = getAbsoluteFilePath(collection.pathname, protoPath);
         const cachedMethods = protofileCache[absolutePath];
         if (cachedMethods) {
-          methodMetadata = cachedMethods.find(method => method.path === methodPath);
+          methodMetadata = cachedMethods.find((method) => method.path === methodPath);
         }
       } else if (url) {
         // Use reflection cache if no protoPath (reflection mode)
         const cachedMethods = reflectionCache[url];
         if (cachedMethods) {
-          methodMetadata = cachedMethods.find(method => method.path === methodPath);
+          methodMetadata = cachedMethods.find((method) => method.path === methodPath);
         }
       }
 
@@ -89,7 +89,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
         content,
         {
           arraySize: 2,
-          methodMetadata, // Pass the method metadata to the function
+          methodMetadata // Pass the method metadata to the function
         });
 
       if (result.success) {
@@ -97,13 +97,13 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 
         currentMessages[index] = {
           name: name ? name : `message ${index + 1}`,
-          content: result.message,
+          content: result.message
         };
 
         dispatch(updateRequestBody({
           content: currentMessages,
           itemUid: item.uid,
-          collectionUid: collection.uid,
+          collectionUid: collection.uid
         }));
 
         toast.success('Sample message generated successfully!');
@@ -124,7 +124,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 
@@ -136,12 +136,12 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
       const currentMessages = [...(body.grpc || [])];
       currentMessages[index] = {
         name: name ? name : `message ${index + 1}`,
-        content: prettyBodyJson,
+        content: prettyBodyJson
       };
       dispatch(updateRequestBody({
         content: currentMessages,
         itemUid: item.uid,
-        collectionUid: collection.uid,
+        collectionUid: collection.uid
       }));
     } catch (e) {
       toastError(new Error('Unable to prettify. Invalid JSON format.'));
@@ -162,7 +162,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
             : <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />}
           <span className="font-medium text-sm">{`Message ${canClientStream ? index + 1 : ''}`}</span>
         </div>
-        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <ToolHint text="Format JSON with proper indentation and spacing" toolhintId={`prettify-msg-${index}`}>
             <button
               onClick={onPrettify}
@@ -231,7 +231,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 };
 
 const GrpcBody = ({ item, collection, handleRun }) => {
-  const preferences = useSelector(state => state.app.preferences);
+  const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const dispatch = useDispatch();
   const [collapsedMessages, setCollapsedMessages] = useState([]);
@@ -249,7 +249,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
     }
   }, [body?.grpc?.length]);
 
-  const toggleMessageCollapse = index => {
+  const toggleMessageCollapse = (index) => {
     setCollapsedMessages(prev => {
       if (prev.includes(index)) {
         return prev.filter(i => i !== index);
@@ -266,13 +266,13 @@ const GrpcBody = ({ item, collection, handleRun }) => {
 
     currentMessages.push({
       name: `message ${currentMessages.length + 1}`,
-      content: '{}',
+      content: '{}'
     });
 
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 

@@ -343,34 +343,34 @@ const darkTheme = {
   grpc: {
     tabNav: {
       container: {
-        bg: '#262626',
+        bg: '#262626'
       },
       button: {
         active: {
           bg: '#404040',
-          color: '#ffffff',
+          color: '#ffffff'
         },
         inactive: {
           bg: 'transparent',
-          color: '#a3a3a3',
-        },
-      },
+          color: '#a3a3a3'
+        }
+      }
     },
     importPaths: {
       header: {
         text: '#9d9d9d',
         button: {
           color: '#9d9d9d',
-          hoverColor: '#d4d4d4',
-        },
+          hoverColor: '#d4d4d4'
+        }
       },
       error: {
         bg: 'transparent',
         text: '#f06f57',
         link: {
           color: '#f06f57',
-          hoverColor: '#ff8a7a',
-        },
+          hoverColor: '#ff8a7a'
+        }
       },
       item: {
         bg: 'transparent',
@@ -378,65 +378,65 @@ const darkTheme = {
         text: '#d4d4d4',
         icon: '#9d9d9d',
         checkbox: {
-          color: '#d4d4d4',
+          color: '#d4d4d4'
         },
         invalid: {
           opacity: 0.6,
-          text: '#f06f57',
-        },
+          text: '#f06f57'
+        }
       },
       empty: {
-        text: '#9d9d9d',
+        text: '#9d9d9d'
       },
       button: {
         bg: '#185387',
         color: '#d4d4d4',
         border: '#185387',
-        hoverBorder: '#696969',
-      },
+        hoverBorder: '#696969'
+      }
     },
     protoFiles: {
       header: {
         text: '#9d9d9d',
         button: {
           color: '#9d9d9d',
-          hoverColor: '#d4d4d4',
-        },
+          hoverColor: '#d4d4d4'
+        }
       },
       error: {
         bg: 'transparent',
         text: '#f06f57',
         link: {
           color: '#f06f57',
-          hoverColor: '#ff8a7a',
-        },
+          hoverColor: '#ff8a7a'
+        }
       },
       item: {
         bg: 'transparent',
         hoverBg: 'rgba(255, 255, 255, 0.05)',
         selected: {
           bg: 'rgba(245, 158, 11, 0.2)',
-          border: '#f59e0b',
+          border: '#f59e0b'
         },
         text: '#d4d4d4',
         secondaryText: '#9d9d9d',
         icon: '#9d9d9d',
         invalid: {
           opacity: 0.6,
-          text: '#f06f57',
-        },
+          text: '#f06f57'
+        }
       },
       empty: {
-        text: '#9d9d9d',
+        text: '#9d9d9d'
       },
       button: {
         bg: '#185387',
         color: '#d4d4d4',
         border: '#185387',
-        hoverBorder: '#696969',
-      },
-    },
-  },
+        hoverBorder: '#696969'
+      }
+    }
+  }
 };
 
 export default darkTheme;

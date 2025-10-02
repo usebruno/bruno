@@ -37,7 +37,7 @@ const isWindowsOS = () => {
  * - Reduced git conflicts and merge issues related to path differences
  */
 /** @param {string} str */
-const posixify = str => {
+const posixify = (str) => {
   return str.replace(/\\/g, '/');
 };
 

@@ -20,16 +20,16 @@ const ProtoFileDropdown = ({
   setShowProtoDropdown,
   onProtoDropdownCreate,
   onReflectionModeToggle,
-  onProtoFileLoad,
+  onProtoFileLoad
 }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('protofiles'); // 'protofiles' or 'importpaths'
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
-  const invalidProtoFiles = protoFileManagement.protoFiles.filter(file => !file.exists);
-  const invalidImportPaths = protoFileManagement.importPaths.filter(path => !path.exists);
+  const invalidProtoFiles = protoFileManagement.protoFiles.filter((file) => !file.exists);
+  const invalidImportPaths = protoFileManagement.importPaths.filter((path) => !path.exists);
 
-  const handleSelectProtoFile = async e => {
+  const handleSelectProtoFile = async (e) => {
     e.stopPropagation();
     const { success, filePath, error } = await protoFileManagement.browseForProtoFile();
     if (!success) {
@@ -56,7 +56,7 @@ const ProtoFileDropdown = ({
     dispatch(updateRequestProtoPath({
       protoPath: relativePath,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
 
     setShowProtoDropdown(false);
@@ -64,7 +64,7 @@ const ProtoFileDropdown = ({
     onProtoFileLoad(relativePath);
   };
 
-  const handleSelectCollectionProtoFile = protoFile => {
+  const handleSelectCollectionProtoFile = (protoFile) => {
     if (!protoFile || !protoFile.exists) {
       toast.error('Proto file not found');
       return;
@@ -75,13 +75,13 @@ const ProtoFileDropdown = ({
     dispatch(updateRequestProtoPath({
       protoPath: protoFile.path,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
 
     onProtoFileLoad(protoFile.path);
   };
 
-  const handleBrowseImportPath = async e => {
+  const handleBrowseImportPath = async (e) => {
     e.stopPropagation();
     const { success, directoryPath, error } = await protoFileManagement.browseForImportDirectory();
     if (!success) {
@@ -102,7 +102,7 @@ const ProtoFileDropdown = ({
     toast.success('Added import path to collection');
   };
 
-  const handleToggleImportPath = async index => {
+  const handleToggleImportPath = async (index) => {
     const { success, enabled, error } = await protoFileManagement.toggleImportPath(index);
     if (!success) {
       if (error) {
@@ -114,14 +114,14 @@ const ProtoFileDropdown = ({
     toast.success(`Import path ${enabled ? 'enabled' : 'disabled'}`);
   };
 
-  const handleOpenCollectionProtobufSettings = e => {
+  const handleOpenCollectionProtobufSettings = (e) => {
     e.stopPropagation();
     dispatch(openCollectionSettings(collection.uid, 'protobuf'));
   };
 
   const ProtoFileDropdownIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-center cursor-pointer select-none" onClick={() => setShowProtoDropdown(prev => !prev)} data-testid="grpc-proto-file-dropdown-icon">
+      <div ref={ref} className="flex items-center justify-center cursor-pointer select-none" onClick={() => setShowProtoDropdown((prev) => !prev)} data-testid="grpc-proto-file-dropdown-icon">
         {isReflectionMode ? (<></>
         ) : (
           <IconFile size={20} strokeWidth={1.5} className="mr-1 text-neutral-400" />

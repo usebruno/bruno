@@ -5,21 +5,21 @@ import {
   IconGrpcUnary,
   IconGrpcClientStreaming,
   IconGrpcServerStreaming,
-  IconGrpcBidiStreaming,
+  IconGrpcBidiStreaming
 } from 'components/Icons/Grpc';
 
 const MethodDropdown = ({
   grpcMethods,
   selectedGrpcMethod,
   onMethodSelect,
-  onMethodDropdownCreate,
+  onMethodDropdownCreate
 }) => {
-  const groupMethodsByService = methods => {
+  const groupMethodsByService = (methods) => {
     if (!methods || !methods.length) return {};
 
     const groupedMethods = {};
 
-    methods.forEach(method => {
+    methods.forEach((method) => {
       const pathWithoutLeadingSlash = method.path.startsWith('/') ? method.path.slice(1) : method.path;
       const parts = pathWithoutLeadingSlash.split('/');
       const serviceName = parts[0] || 'Default';
@@ -28,7 +28,7 @@ const MethodDropdown = ({
       const enhancedMethod = {
         ...method,
         serviceName,
-        methodName,
+        methodName
       };
 
       if (!groupedMethods[serviceName]) {
@@ -41,7 +41,7 @@ const MethodDropdown = ({
     return groupedMethods;
   };
 
-  const getIconForMethodType = type => {
+  const getIconForMethodType = (type) => {
     switch (type) {
       case 'unary':
         return <IconGrpcUnary size={20} strokeWidth={2} />;
@@ -74,7 +74,7 @@ const MethodDropdown = ({
     );
   });
 
-  const handleGrpcMethodSelect = method => {
+  const handleGrpcMethodSelect = (method) => {
     const methodType = method.type;
     onMethodSelect({ path: method.path, type: methodType });
   };

@@ -10,7 +10,7 @@ import CodeEditor from 'components/CodeEditor';
 const GrpcurlModal = ({ isOpen, onClose, command }) => {
   const { displayedTheme } = useTheme();
   const [copied, setCopied] = useState(false);
-  const preferences = useSelector(state => state.app.preferences);
+  const preferences = useSelector((state) => state.app.preferences);
 
   const handleCopy = async () => {
     try {

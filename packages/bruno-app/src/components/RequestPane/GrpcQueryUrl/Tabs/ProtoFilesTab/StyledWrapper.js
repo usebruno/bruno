@@ -14,11 +14,11 @@ const Wrapper = styled.div`
 
   .header-text {
     font-size: 0.75rem;
-    color: ${props => props.theme.grpc.protoFiles.header.text};
+    color: ${(props) => props.theme.grpc.protoFiles.header.text};
   }
 
   .settings-button {
-    color: ${props => props.theme.grpc.protoFiles.header.button.color};
+    color: ${(props) => props.theme.grpc.protoFiles.header.button.color};
     background: transparent;
     border: none;
     cursor: pointer;
@@ -27,17 +27,17 @@ const Wrapper = styled.div`
     transition: color 0.2s ease;
 
     &:hover {
-      color: ${props => props.theme.grpc.protoFiles.header.button.hoverColor};
+      color: ${(props) => props.theme.grpc.protoFiles.header.button.hoverColor};
     }
   }
 
   .error-wrapper {
     margin-bottom: 0.5rem;
     padding: 0.5rem;
-    background-color: ${props => props.theme.grpc.protoFiles.error.bg};
+    background-color: ${(props) => props.theme.grpc.protoFiles.error.bg};
     border-radius: 0.25rem;
     font-size: 0.75rem;
-    color: ${props => props.theme.grpc.protoFiles.error.text};
+    color: ${(props) => props.theme.grpc.protoFiles.error.text};
   }
 
   .error-text {
@@ -47,7 +47,7 @@ const Wrapper = styled.div`
   }
 
   .error-link {
-    color: ${props => props.theme.grpc.protoFiles.error.link.color};
+    color: ${(props) => props.theme.grpc.protoFiles.error.link.color};
     background: transparent;
     border: none;
     cursor: pointer;
@@ -56,7 +56,7 @@ const Wrapper = styled.div`
     font-size: inherit;
 
     &:hover {
-      color: ${props => props.theme.grpc.protoFiles.error.link.hoverColor};
+      color: ${(props) => props.theme.grpc.protoFiles.error.link.hoverColor};
     }
   }
 
@@ -72,24 +72,24 @@ const Wrapper = styled.div`
     padding: 0.5rem 0.75rem;
     cursor: pointer;
     border-left: 2px solid transparent;
-    background-color: ${props => props.theme.grpc.protoFiles.item.bg};
+    background-color: ${(props) => props.theme.grpc.protoFiles.item.bg};
     transition: all 0.2s ease;
-    opacity: ${props => props.theme.grpc.protoFiles.item.invalid.opacity};
+    opacity: ${(props) => props.theme.grpc.protoFiles.item.invalid.opacity};
 
     &.valid {
       opacity: 1;
     }
 
     &.selected {
-      border-left-color: ${props => props.theme.grpc.protoFiles.item.selected.border};
-      background-color: ${props => props.theme.grpc.protoFiles.item.selected.bg};
+      border-left-color: ${(props) => props.theme.grpc.protoFiles.item.selected.border};
+      background-color: ${(props) => props.theme.grpc.protoFiles.item.selected.bg};
     }
 
     &:hover {
-      background-color: ${props => props.theme.grpc.protoFiles.item.hoverBg};
+      background-color: ${(props) => props.theme.grpc.protoFiles.item.hoverBg};
 
       &.selected {
-        background-color: ${props => props.theme.grpc.protoFiles.item.selected.bg};
+        background-color: ${(props) => props.theme.grpc.protoFiles.item.selected.bg};
       }
     }
   }
@@ -101,7 +101,7 @@ const Wrapper = styled.div`
 
   .item-icon {
     margin-right: 0.75rem;
-    color: ${props => props.theme.grpc.protoFiles.item.icon};
+    color: ${(props) => props.theme.grpc.protoFiles.item.icon};
   }
 
   .item-details {
@@ -113,12 +113,12 @@ const Wrapper = styled.div`
     font-size: 0.875rem;
     display: flex;
     align-items: center;
-    color: ${props => props.theme.grpc.protoFiles.item.text};
+    color: ${(props) => props.theme.grpc.protoFiles.item.text};
   }
 
   .item-path {
     font-size: 0.75rem;
-    color: ${props => props.theme.grpc.protoFiles.item.secondaryText};
+    color: ${(props) => props.theme.grpc.protoFiles.item.secondaryText};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -126,7 +126,7 @@ const Wrapper = styled.div`
   }
 
   .invalid-icon {
-    color: ${props => props.theme.grpc.protoFiles.item.invalid.text};
+    color: ${(props) => props.theme.grpc.protoFiles.item.invalid.text};
     font-size: 0.75rem;
     display: flex;
     align-items: center;
@@ -138,7 +138,7 @@ const Wrapper = styled.div`
   }
 
   .empty-text {
-    color: ${props => props.theme.grpc.protoFiles.empty.text};
+    color: ${(props) => props.theme.grpc.protoFiles.empty.text};
     font-size: 0.875rem;
     font-style: italic;
     text-align: center;
@@ -154,9 +154,9 @@ const Wrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: ${props => props.theme.grpc.protoFiles.button.bg};
-    color: ${props => props.theme.grpc.protoFiles.button.color};
-    border: 1px solid ${props => props.theme.grpc.protoFiles.button.border};
+    background-color: ${(props) => props.theme.grpc.protoFiles.button.bg};
+    color: ${(props) => props.theme.grpc.protoFiles.button.color};
+    border: 1px solid ${(props) => props.theme.grpc.protoFiles.button.border};
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
     font-size: 0.875rem;
@@ -164,7 +164,7 @@ const Wrapper = styled.div`
     transition: border-color 0.2s ease;
 
     &:hover {
-      border-color: ${props => props.theme.grpc.protoFiles.button.hoverBorder};
+      border-color: ${(props) => props.theme.grpc.protoFiles.button.hoverBorder};
     }
   }
 `;

@@ -22,7 +22,7 @@ export const resolvePath = async (relativePath, basePath) => {
   return await window.ipcRenderer.invoke('renderer:resolve-path', relativePath, basePath);
 };
 
-export const browseDirectory = async pathname => {
+export const browseDirectory = async (pathname) => {
   return await window.ipcRenderer.invoke('renderer:browse-directory', pathname);
 };
 
@@ -31,6 +31,6 @@ export const browseDirectory = async pathname => {
  * @param {string} dirPath - The directory path to check
  * @returns {Promise<boolean>} - True if path is a directory, false otherwise
  */
-export const isDirectory = async dirPath => {
+export const isDirectory = async (dirPath) => {
   return await window.ipcRenderer.invoke('renderer:is-directory', dirPath);
 };

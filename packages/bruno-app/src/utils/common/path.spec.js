@@ -1,8 +1,8 @@
 // Mock platform module for Unix before importing path utilities
 jest.mock('platform', () => ({
   os: {
-    family: 'Unix',
-  },
+    family: 'Unix'
+  }
 }));
 
 import { getRelativePath, getBasename, getAbsoluteFilePath } from './path';

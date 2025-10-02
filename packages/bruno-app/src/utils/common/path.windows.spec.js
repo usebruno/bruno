@@ -1,8 +1,8 @@
 // Mock platform module for Windows before importing path utilities
 jest.mock('platform', () => ({
   os: {
-    family: 'Windows',
-  },
+    family: 'Windows'
+  }
 }));
 
 import { getRelativePath, getBasename, getAbsoluteFilePath } from './path';

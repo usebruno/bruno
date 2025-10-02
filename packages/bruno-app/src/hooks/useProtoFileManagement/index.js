@@ -22,16 +22,16 @@ export default function useProtoFileManagement(collection) {
   const collectionImportPaths = useMemo(() => collection?.brunoConfig?.protobuf?.importPaths || [], [collection?.brunoConfig?.protobuf?.importPaths]);
 
   const protoFilesWithExistence = useMemo(() =>
-    collectionProtoFiles.map(protoFile => ({
+    collectionProtoFiles.map((protoFile) => ({
       path: protoFile.path,
-      exists: protoFile.exists || false,
+      exists: protoFile.exists || false
     })), [collectionProtoFiles]);
 
   const importPathsWithExistence = useMemo(() =>
-    collectionImportPaths.map(importPath => ({
+    collectionImportPaths.map((importPath) => ({
       path: importPath.path,
       exists: importPath.exists || false,
-      enabled: importPath.enabled || false,
+      enabled: importPath.enabled || false
     })), [collectionImportPaths]);
 
   const loadMethodsFromProtoFile = async (filePath, isManualRefresh = false) => {
@@ -55,9 +55,9 @@ export default function useProtoFileManagement(collection) {
         return { methods: [], error };
       }
 
-      setProtofileCache(prevCache => ({
+      setProtofileCache((prevCache) => ({
         ...prevCache,
-        [absolutePath]: methods,
+        [absolutePath]: methods
       }));
 
       return { methods, error: null };
@@ -69,10 +69,10 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  const addProtoFileToCollection = async filePath => {
+  const addProtoFileToCollection = async (filePath) => {
     const relativePath = getRelativePath(collection.pathname, filePath, true);
 
-    const exists = collectionProtoFiles.some(pf => pf.path === relativePath);
+    const exists = collectionProtoFiles.some((pf) => pf.path === relativePath);
 
     if (exists) {
       return { success: true, relativePath, alreadyExists: true };
@@ -81,7 +81,7 @@ export default function useProtoFileManagement(collection) {
     try {
       const protoFileObj = {
         path: relativePath,
-        type: 'file',
+        type: 'file'
       };
 
       const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -103,14 +103,14 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  const addImportPathToCollection = async directoryPath => {
+  const addImportPathToCollection = async (directoryPath) => {
     const relativePath = getRelativePath(collection.pathname, directoryPath, true);
     const importPathObj = {
       path: relativePath,
-      enabled: true,
+      enabled: true
     };
 
-    const exists = collectionImportPaths.some(ip => ip.path === importPathObj.path);
+    const exists = collectionImportPaths.some((ip) => ip.path === importPathObj.path);
 
     if (exists) {
       return { success: false, error: new Error('Import path already exists') };
@@ -136,12 +136,12 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  const toggleImportPath = async index => {
+  const toggleImportPath = async (index) => {
     try {
       const updatedImportPaths = [...collectionImportPaths];
       updatedImportPaths[index] = {
         ...updatedImportPaths[index],
-        enabled: !updatedImportPaths[index].enabled,
+        enabled: !updatedImportPaths[index].enabled
       };
 
       const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -154,7 +154,7 @@ export default function useProtoFileManagement(collection) {
 
       return {
         success: true,
-        enabled: updatedImportPaths[index].enabled,
+        enabled: updatedImportPaths[index].enabled
       };
     } catch (error) {
       console.error('Error toggling import path:', error);
@@ -190,7 +190,7 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  const removeProtoFileFromCollection = async index => {
+  const removeProtoFileFromCollection = async (index) => {
     try {
       const updatedProtoFiles = [...collectionProtoFiles];
       updatedProtoFiles.splice(index, 1);
@@ -210,7 +210,7 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  const removeImportPathFromCollection = async index => {
+  const removeImportPathFromCollection = async (index) => {
     try {
       const updatedImportPaths = [...collectionImportPaths];
       updatedImportPaths.splice(index, 1);
@@ -236,7 +236,7 @@ export default function useProtoFileManagement(collection) {
       const updatedImportPaths = [...collectionImportPaths];
       updatedImportPaths[index] = {
         ...updatedImportPaths[index],
-        path: relativePath,
+        path: relativePath
       };
 
       const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -261,7 +261,7 @@ export default function useProtoFileManagement(collection) {
       updatedProtoFiles[index] = {
         ...updatedProtoFiles[index],
         path: relativePath,
-        type: 'file',
+        type: 'file'
       };
 
       const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -292,6 +292,6 @@ export default function useProtoFileManagement(collection) {
     removeProtoFileFromCollection,
     removeImportPathFromCollection,
     replaceImportPathInCollection,
-    replaceProtoFileInCollection,
+    replaceProtoFileInCollection
   };
 }

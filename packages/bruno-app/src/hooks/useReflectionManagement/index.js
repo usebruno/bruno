@@ -39,9 +39,9 @@ export default function useReflectionManagement(item, collectionUid) {
         return { methods: [], error };
       }
 
-      setReflectionCache(prevCache => ({
+      setReflectionCache((prevCache) => ({
         ...prevCache,
-        [url]: methods,
+        [url]: methods
       }));
 
       return { methods, error: null };
@@ -58,7 +58,7 @@ export default function useReflectionManagement(item, collectionUid) {
    * @param {string} url - The gRPC server URL
    * @returns {boolean}
    */
-  const hasCachedMethods = url => {
+  const hasCachedMethods = (url) => {
     return !!(reflectionCache[url] && reflectionCache[url].length > 0);
   };
 
@@ -67,7 +67,7 @@ export default function useReflectionManagement(item, collectionUid) {
    * @param {string} url - The gRPC server URL
    * @returns {Array}
    */
-  const getCachedMethods = url => {
+  const getCachedMethods = (url) => {
     return reflectionCache[url] || [];
   };
 
@@ -75,8 +75,8 @@ export default function useReflectionManagement(item, collectionUid) {
    * Clear cache for a specific URL
    * @param {string} url - The gRPC server URL
    */
-  const clearCacheForUrl = url => {
-    setReflectionCache(prevCache => {
+  const clearCacheForUrl = (url) => {
+    setReflectionCache((prevCache) => {
       const newCache = { ...prevCache };
       delete newCache[url];
       return newCache;
@@ -97,6 +97,6 @@ export default function useReflectionManagement(item, collectionUid) {
     hasCachedMethods,
     getCachedMethods,
     clearCacheForUrl,
-    clearAllCache,
+    clearAllCache
   };
 }

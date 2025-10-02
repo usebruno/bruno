@@ -10,7 +10,7 @@ const ProtoFilesTab = ({
   collection,
   onSelectCollectionProtoFile,
   onOpenCollectionProtobufSettings,
-  onSelectProtoFile,
+  onSelectProtoFile
 }) => {
   return (
     <StyledWrapper>

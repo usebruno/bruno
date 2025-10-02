@@ -65,7 +65,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         .then(() => {
           toast.success('gRPC connection cancelled');
         })
-        .catch(err => {
+        .catch((err) => {
           console.error('Failed to cancel gRPC connection:', err);
         });
     }
@@ -74,12 +74,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       method: path,
       methodType: type,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 
-  const onMethodDropdownCreate = ref => (methodDropdownRef.current = ref);
-  const onProtoDropdownCreate = ref => (protoDropdownRef.current = ref);
+  const onMethodDropdownCreate = (ref) => (methodDropdownRef.current = ref);
+  const onProtoDropdownCreate = (ref) => (protoDropdownRef.current = ref);
 
   const isStreamingMethod = selectedGrpcMethod && selectedGrpcMethod.type && STREAMING_METHOD_TYPES.includes(selectedGrpcMethod.type);
   const isClientStreamingMethod = selectedGrpcMethod && selectedGrpcMethod.type && CLIENT_STREAMING_METHOD_TYPES.includes(selectedGrpcMethod.type);
@@ -88,7 +88,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  const onUrlChange = value => {
+  const onUrlChange = (value) => {
     if (!editorRef.current?.editor) return;
     const editor = editorRef.current.editor;
     const cursor = editor.getCursor();
@@ -132,7 +132,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(updateRequestProtoPath({
       protoPath: '',
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
 
     if (methods && methods.length > 0) {
@@ -140,16 +140,16 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
 
     if (methods && methods.length > 0) {
-      const haveSelectedMethod = selectedGrpcMethod && methods.some(method => method.path === selectedGrpcMethod.path);
+      const haveSelectedMethod = selectedGrpcMethod && methods.some((method) => method.path === selectedGrpcMethod.path);
       if (!haveSelectedMethod) {
         setSelectedGrpcMethod(null);
         onMethodSelect({ path: '', type: '' });
       } else if (selectedGrpcMethod) {
-        const currentMethod = methods.find(method => method.path === selectedGrpcMethod.path);
+        const currentMethod = methods.find((method) => method.path === selectedGrpcMethod.path);
         if (currentMethod) {
           setSelectedGrpcMethod({
             path: selectedGrpcMethod.path,
-            type: currentMethod.type,
+            type: currentMethod.type
           });
         }
       }
@@ -173,23 +173,23 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     toast.success(`Loaded ${methods.length} gRPC methods from proto file`);
 
     if (methods && methods.length > 0) {
-      const haveSelectedMethod = selectedGrpcMethod && methods.some(method => method.path === selectedGrpcMethod.path);
+      const haveSelectedMethod = selectedGrpcMethod && methods.some((method) => method.path === selectedGrpcMethod.path);
       if (!haveSelectedMethod) {
         setSelectedGrpcMethod(null);
         onMethodSelect({ path: '', type: '' });
       } else if (selectedGrpcMethod) {
-        const currentMethod = methods.find(method => method.path === selectedGrpcMethod.path);
+        const currentMethod = methods.find((method) => method.path === selectedGrpcMethod.path);
         if (currentMethod) {
           setSelectedGrpcMethod({
             path: selectedGrpcMethod.path,
-            type: currentMethod.type,
+            type: currentMethod.type
           });
         }
       }
     }
   };
 
-  const handleGrpcurl = async url => {
+  const handleGrpcurl = async (url) => {
     if (!url) {
       toast.error('Please enter a valid gRPC server URL');
       return;
@@ -250,7 +250,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       });
   };
 
-  const handleReflectionModeToggle = e => {
+  const handleReflectionModeToggle = (e) => {
     e.stopPropagation();
     e.preventDefault();
     setIsReflectionMode(!isReflectionMode);
@@ -259,7 +259,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       dispatch(updateRequestProtoPath({
         protoPath: '',
         itemUid: item.uid,
-        collectionUid: collection.uid,
+        collectionUid: collection.uid
       }));
       if (url) {
         handleReflection(url);
@@ -302,7 +302,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           value={url}
           onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
-          onChange={newValue => debouncedOnUrlChange(newValue)}
+          onChange={(newValue) => debouncedOnUrlChange(newValue)}
           onRun={handleRun}
           collection={collection}
           highlightPathParams={true}

@@ -190,7 +190,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
 
         const payload = {
           collectionUid,
-          brunoConfig: brunoConfig,
+          brunoConfig: brunoConfig
         };
 
         win.webContents.send('main:bruno-config-update', payload);

@@ -154,8 +154,8 @@ export const loadGrpcMethodsFromProtoFile = async (filePath, collection = null) 
 
       if (config.protobuf && config.protobuf.importPaths) {
         // Use Promise.all to wait for all resolvePath calls to complete
-        const enabledImportPaths = config.protobuf.importPaths.filter(importPath => importPath.enabled);
-        importPaths = await Promise.all(enabledImportPaths.map(importPath => {
+        const enabledImportPaths = config.protobuf.importPaths.filter((importPath) => importPath.enabled);
+        importPaths = await Promise.all(enabledImportPaths.map((importPath) => {
           return resolvePath(importPath.path, collection.pathname);
         }));
       }
