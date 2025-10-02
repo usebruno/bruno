@@ -27,7 +27,8 @@
     "axios": "^1.9.0",
     "grpc-reflection-js": "^0.3.0",
     "is-ip": "^5.0.1",
-    "tough-cookie": "^6.0.0"
+    "tough-cookie": "^6.0.0",
+    "json-bigint": "^1.0.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.22.0",

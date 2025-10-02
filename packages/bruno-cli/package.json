@@ -70,6 +70,7 @@
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
     "xmlbuilder": "^15.1.1",
-    "yargs": "^17.6.2"
+    "yargs": "^17.6.2",
+    "json-bigint": "^1.0.0"
   }
 }

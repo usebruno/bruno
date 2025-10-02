@@ -92,6 +92,19 @@ function makeAxiosInstance({
       }, this);
       return data;
     },
+    transformResponse: [function transformResponse(data, headers) {
+      try {
+        const contentType = headers?.['content-type'] || headers?.['Content-Type'] || '';
+        const isJSON = typeof contentType === 'string' && /json/i.test(contentType);
+        // If axios already parsed it to an object, just return it
+        if (isJSON && typeof data === 'string') {
+          return JSONBigNative.parse(data);
+        }
+        return data;
+      } catch (e) {
+        return data;
+      }
+    }],
     proxy: false,
     maxRedirects: 0,
     headers: {
