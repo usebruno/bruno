@@ -23,23 +23,23 @@ test.describe('No Redirects Settings Tests', () => {
     await expect(maxRedirectsInput).toHaveValue('5');
 
     // Test Follow Redirects toggle - should be unchecked
-    const followRedirectsToggle = page.locator('[data-testid="follow-redirects-toggle"]');
+    const followRedirectsToggle = page.getByTestId('follow-redirects-toggle');
     await expect(followRedirectsToggle).toBeVisible();
     await expect(followRedirectsToggle).not.toBeChecked();
 
     // Send the request - should stop at first redirect (302) without following
-    await page.locator('[data-testid="send-arrow-icon"]').click();
+    await page.getByTestId('send-arrow-icon').click();
 
     // Should get 302 because redirects are disabled, regardless of maxRedirects value
-    await expect(page.locator('[data-testid="response-status-code"]')).toContainText('302', { timeout: 15000 });
+    await expect(page.getByTestId('response-status-code')).toContainText('302', { timeout: 15000 });
 
     // Toggle follow redirects to true
     await followRedirectsToggle.click();
     await expect(followRedirectsToggle).toBeChecked();
 
     // Send request again - now should follow redirects and get 200
-    await page.locator('[data-testid="send-arrow-icon"]').click();
-    await expect(page.locator('[data-testid="response-status-code"]')).toContainText('200', { timeout: 15000 });
+    await page.getByTestId('send-arrow-icon').click();
+    await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
   });
 
   test.afterEach(async ({ pageWithUserData: page }) => {
