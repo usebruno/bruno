@@ -13,8 +13,7 @@ const StyledWrapper = styled.div`
     position: relative;
   }
 
-  // Todo: dark mode temporary fix
-  // Clean this
+  /* === Dark mode (Monokai) legacy fix === */
   .CodeMirror.cm-s-monokai {
     .CodeMirror-overlayscroll-horizontal div,
     .CodeMirror-overlayscroll-vertical div {
@@ -22,11 +21,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .cm-s-monokai span.cm-property,
-  .cm-s-monokai span.cm-attribute {
-    color: #9cdcfe !important;
-  }
-
+  /* === Monokai syntax colors (kept as-is for legacy) === */
   .cm-s-monokai span.cm-property,
   .cm-s-monokai span.cm-attribute {
     color: #9cdcfe !important;
@@ -44,23 +39,33 @@ const StyledWrapper = styled.div`
     color: #569cd6 !important;
   }
 
-  .cm-variable-valid {
-    color: green;
+  /* === Default theme syntax colors now driven by theme === */
+  .cm-s-default span.cm-property {
+    color: ${(props) => props.theme.codemirror.syntax?.property || '#1f61a0'} !important;
   }
+
+  .cm-s-default span.cm-string {
+    color: ${(props) => props.theme.codemirror.syntax?.string || '#ce9178'} !important;
+  }
+
+  .cm-s-default span.cm-number {
+    color: ${(props) => props.theme.codemirror.syntax?.number || '#b5cea8'} !important;
+  }
+
+  .cm-s-default span.cm-atom {
+    color: ${(props) => props.theme.codemirror.syntax?.boolean || '#569cd6'} !important;
+  }
+
+  .cm-variable-valid {
+    color: ${(props) => props.theme.codemirror.variable?.valid || 'green'};
+  }
+
   .cm-variable-invalid {
-    color: red;
+    color: ${(props) => props.theme.codemirror.variable?.invalid || 'red'};
   }
 
   .CodeMirror-search-hint {
     display: inline;
-  }
-
-  .cm-s-default span.cm-property {
-    color: #1f61a0 !important;
-  }
-
-  .cm-s-default span.cm-variable {
-    color: #397d13 !important;
   }
 `;
 
