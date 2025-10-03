@@ -6,6 +6,7 @@ import { useTheme } from 'providers/Theme';
 const ToolHint = ({
   text,
   toolhintId,
+  anchorSelect,
   children,
   tooltipStyle = {},
   place = 'top',
@@ -29,13 +30,19 @@ const ToolHint = ({
     color: toolhintTextColor
   };
 
+  const tooltipProps_final = anchorSelect
+    ? { anchorSelect }
+    : { anchorId: toolhintId };
+
   return (
     <>
-      <span id={toolhintId} className={className}>{children}</span>
+      {!anchorSelect && <span id={toolhintId} className={className}>{children}</span>}
+      {anchorSelect && children}
+
       <StyledWrapper theme={appliedTheme}>
         <ReactToolHint
-          anchorId={toolhintId}
-          content={text}
+          {...tooltipProps_final}
+          content={anchorSelect ? undefined : text}
           className="toolhint"
           offset={offset}
           place={place}
