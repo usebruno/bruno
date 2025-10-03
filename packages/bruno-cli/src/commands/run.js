@@ -306,7 +306,7 @@ const handler = async function (argv) {
           clientCertConfigJson = JSON.parse(clientCertConfigFileContent);
         } catch (err) {
           console.error(chalk.red(`Failed to parse Client Certificate Config JSON: ${err.message}`));
-          process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
         }
 
         if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
@@ -360,7 +360,7 @@ const handler = async function (argv) {
           envVars.__name__ = trimmedName || path.basename(envFilePath, '.json');
         } catch (err) {
           console.error(chalk.red(`Failed to parse Environment JSON: ${err.message}`));
-          process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
         }
       } else {
         // Default to .bru parsing

@@ -4,6 +4,14 @@ meta {
 }
 
 http {
-  method: GET
-  url: {{baseUrl}}/status/200
+  method: POST
+  url: {{baseUrl}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "ping": "pong"
+  }
 }
