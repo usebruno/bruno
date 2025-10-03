@@ -11,7 +11,8 @@ const ToolHint = ({
   place = 'top',
   offset,
   theme = null,
-  className = ''
+  className = '',
+  ...tooltipProps
 }) => {
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
@@ -40,6 +41,7 @@ const ToolHint = ({
           place={place}
           noArrow={true}
           style={combinedToolhintStyle}
+          {...tooltipProps}
         />
       </StyledWrapper>
     </>
