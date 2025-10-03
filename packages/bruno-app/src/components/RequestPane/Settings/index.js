@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
 import { IconTag } from '@tabler/icons';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
-import SettingsInput from 'components/RequestPane/Settings/SettingsInput';
+import SettingsInput from 'components/SettingsInput';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
@@ -44,11 +44,15 @@ const Settings = ({ item, collection }) => {
   const onToggleFollowRedirects = useCallback(() =>
     updateSetting({ followRedirects: !followRedirects }), [followRedirects, updateSetting]);
 
-  const onMaxRedirectsChange = useCallback((value) =>
-    updateSetting({ maxRedirects: value }), [updateSetting]);
+  const onMaxRedirectsChange = useCallback((e) => {
+    const value = e.target.value ? parseInt(e.target.value, 10) : 0;
+    updateSetting({ maxRedirects: value });
+  }, [updateSetting]);
 
-  const onTimeoutChange = useCallback((value) =>
-    updateSetting({ timeout: value }), [updateSetting]);
+  const onTimeoutChange = useCallback((e) => {
+    const value = e.target.value ? parseInt(e.target.value, 10) : 0;
+    updateSetting({ timeout: value });
+  }, [updateSetting]);
 
   // Keyboard shortcut handlers
   const onSave = useCallback(() => {
@@ -58,6 +62,17 @@ const Settings = ({ item, collection }) => {
   const onRun = useCallback(() => {
     dispatch(sendRequest(item, collection.uid));
   }, [dispatch, item, collection.uid]);
+
+  // Keyboard shortcut handler for input fields
+  const handleKeyDown = useCallback((e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      onSave();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      onRun();
+    }
+  }, [onSave, onRun]);
 
   return (
     <div className="h-full w-full">
@@ -103,8 +118,7 @@ const Settings = ({ item, collection }) => {
             min={0}
             max={50}
             description="Set a limit for the number of redirects to follow"
-            onSave={onSave}
-            onRun={onRun}
+            onKeyDown={handleKeyDown}
           />
 
           <SettingsInput
@@ -116,8 +130,7 @@ const Settings = ({ item, collection }) => {
             min={0}
             max={300000}
             description="Set maximum time to wait before aborting the request"
-            onSave={onSave}
-            onRun={onRun}
+            onKeyDown={handleKeyDown}
           />
         </div>
       </div>
