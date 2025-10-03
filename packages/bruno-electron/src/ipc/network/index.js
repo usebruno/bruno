@@ -1469,7 +1469,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       const dirPath = path.dirname(pathname);
       const fileName = determineFileName();
-      const filePath = await chooseFileToSave(mainWindow, `${dirPath}/${fileName}`);
+      const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
       if (filePath) {
         const encoding = getEncodingFormat();
         const data = Buffer.from(response.dataBuffer, 'base64')
