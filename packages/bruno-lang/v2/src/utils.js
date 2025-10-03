@@ -7,21 +7,13 @@ const safeParseJson = (json) => {
   }
 };
 
-const normalizeNewlines = (str) => {
-  if (!str || typeof str !== 'string') {
-    return str || '';
-  }
-
-  // "\r\n" is windows, "\r" is old mac, "\n" is linux
-  return str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-};
 
 const indentString = (str) => {
   if (!str || !str.length) {
     return str || '';
   }
 
-  return normalizeNewlines(str)
+  return str
     .split('\n')
     .map((line) => '  ' + line)
     .join('\n');
@@ -32,7 +24,7 @@ const outdentString = (str) => {
     return str || '';
   }
 
-  return normalizeNewlines(str)
+  return str
     .split('\n')
     .map((line) => line.replace(/^  /, ''))
     .join('\n');
@@ -56,7 +48,6 @@ const getValueString = (value) => {
 
 module.exports = {
   safeParseJson,
-  normalizeNewlines,
   indentString,
   outdentString,
   getValueString
