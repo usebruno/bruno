@@ -11,35 +11,9 @@ const SettingsInput = ({
   max = 999999,
   className = '',
   description = '',
-  onSave,
-  onRun
+  onKeyDown
 }) => {
   const { theme } = useTheme();
-  const handleChange = (e) => {
-    const inputValue = e.target.value;
-
-    // Handle different input types
-    if (type === 'number') {
-      const numericValue = inputValue ? parseInt(inputValue, 10) : null;
-      onChange(numericValue);
-    } else {
-      onChange(inputValue);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault();
-      if (onSave) {
-        onSave();
-      }
-    } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      if (onRun) {
-        onRun();
-      }
-    }
-  };
 
   return (
     <div className="flex items-center justify-between">
@@ -67,8 +41,8 @@ const SettingsInput = ({
         spellCheck="false"
         {...(type === 'number' && { min, max })}
         value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
       />
     </div>
   );
