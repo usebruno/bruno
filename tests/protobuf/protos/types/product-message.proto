@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package product;
+
+message VoidParam {}
+
+message ProductId {
+  int32 id = 1;
+}
+
+enum  Category {
+  SMARTPHONE = 0;
+  CAMERA = 1;
+  LAPTOPS = 2;
+  HEADPHONES = 3;
+  CHARGERS = 4;
+  SPEAKERS = 5;
+  TELEVISIONS = 6;
+  MODEMS = 7;
+  KEYBOARD = 8;
+  MICROPHONES = 9;
+}
+
+message ProductItem {
+  int32 id = 1;
+  string name = 2;
+  string description = 3;
+  float price = 4;
+  Category category = 5;
+}
+
+message ProductItems {
+  repeated ProductItem products = 1;
+}
+
+message DeleteProductResponse {
+  bool deleted = 1;
+}
+
+message ProductUpdate {
+  ProductItem product = 1;
+  enum UpdateType {
+    CREATED = 0;
+    MODIFIED = 1;
+    DELETED = 2;
+  }
+  UpdateType type = 2;
+  string timestamp = 3;
+}
+
+message ProductBatchResponse {
+  int32 success_count = 1;
+  repeated ProductItem failed_items = 2;
+  string message = 3;
+}
+
+message PriceAlert {
+  int32 product_id = 1;
+  float target_price = 2;
+  enum AlertType {
+    PRICE_ABOVE = 0;
+    PRICE_BELOW = 1;
+  }
+  AlertType type = 3;
+}
+
+message PriceUpdate {
+  int32 product_id = 1;
+  float current_price = 2;
+  bool alert_triggered = 3;
+  string timestamp = 4;
+}

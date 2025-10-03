@@ -4,6 +4,7 @@ const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
 const { isDirectory, normalizeAndResolvePath, getCollectionStats } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
+const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
 
 // todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
@@ -89,6 +90,9 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
         // this is to maintain backwards compatibility with older collections
         brunoConfig.ignore = ['node_modules', '.git'];
       }
+
+      // Transform the config to add existence checks for protobuf files and import paths
+      brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
