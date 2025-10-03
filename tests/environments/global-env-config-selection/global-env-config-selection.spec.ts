@@ -1,6 +1,12 @@
 import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Global Environment Configuration Selection Tests', () => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
   test('should open global environment config with currently active environment selected', async ({
     pageWithUserData: page
   }) => {
@@ -25,6 +31,5 @@ test.describe('Global Environment Configuration Selection Tests', () => {
 
     // Close the global environment config modal and go to welcome page
     await page.getByText('×').click();
-    await page.locator('.bruno-logo').click();
   });
 });
