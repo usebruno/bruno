@@ -33,6 +33,52 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth) => {
           value: `Bearer ${get(auth, 'bearer.token', '')}`
         }
       ];
+    case 'apikey':
+      const key = get(auth, 'apikey.key', '');
+      const value = get(auth, 'apikey.value', '');
+      const addTo = get(auth, 'apikey.addTo', 'header');
+      
+      if (addTo === 'header') {
+        return [
+          {
+            enabled: true,
+            name: key,
+            value: value
+          }
+        ];
+      }
+      return [];
+    case 'oauth2':
+      return [
+        {
+          enabled: true,
+          name: 'Authorization',
+          value: `OAuth ${get(auth, 'oauth2.accessToken', '')}`
+        }
+      ];
+    case 'digest':
+      const digestAuth = get(auth, 'digest', {});
+      return [
+        {
+          enabled: true,
+          name: 'Authorization',
+          value: `Digest username="${digestAuth.username || ''}", realm="${digestAuth.realm || ''}", nonce="${digestAuth.nonce || ''}", uri="${digestAuth.uri || ''}", response="${digestAuth.response || ''}", qop="${digestAuth.qop || ''}", nc="${digestAuth.nc || ''}", cnonce="${digestAuth.cnonce || ''}"`
+        }
+      ];
+    case 'awsv4':
+      const awsAuth = get(auth, 'awsv4', {});
+      return [
+        {
+          enabled: true,
+          name: 'Authorization',
+          value: `AWS4-HMAC-SHA256 Credential=${awsAuth.accessKey || ''}/${awsAuth.date || ''}/region/service/aws4_request, SignedHeaders=host;x-amz-date, Signature=${awsAuth.signature || ''}`
+        },
+        {
+          enabled: true,
+          name: 'X-Amz-Date',
+          value: awsAuth.date || ''
+        }
+      ];
     default:
       return [];
   }
