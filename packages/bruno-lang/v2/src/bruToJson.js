@@ -29,9 +29,9 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
   
@@ -88,6 +88,7 @@ const grammar = ohm.grammar(`Bru {
 
   http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
   grpc = "grpc" dictionary
+  ws = "ws" dictionary
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -138,6 +139,7 @@ const grammar = ohm.grammar(`Bru {
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
   bodygrpc = "body:grpc" dictionary
+  bodyws = "body:ws" dictionary
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
@@ -418,6 +420,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   grpc(_1, dictionary) {
     return {
       grpc: mapPairListToKeyValPair(dictionary.ast)
+    };
+  },
+  ws(_1, dictionary) {
+    return {
+      ws: mapPairListToKeyValPair(dictionary.ast)
     };
   },
   get(_1, dictionary) {
@@ -966,6 +973,29 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           name: messageName,
           content: messageContent
         }]
+      }
+    };
+  },
+  bodyws(_1, dictionary) {
+    const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
+    const namePair = _.find(pairs, { name: 'name' });
+    const contentPair = _.find(pairs, { name: 'content' });
+    const typePair = _.find(pairs, { name: 'type' });
+
+    const messageName = namePair ? namePair.value : '';
+    const messageContent = contentPair ? contentPair.value : '';
+    const messageTypeContent = typePair ? typePair.value : '';
+
+    return {
+      body: {
+        mode: 'ws',
+        ws: [
+          {
+            name: messageName,
+            type: messageTypeContent,
+            content: messageContent
+          }
+        ]
       }
     };
   }

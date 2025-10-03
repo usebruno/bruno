@@ -1,0 +1,23 @@
+meta {
+  name: ws-test-request-with-headers
+  type: ws
+  seq: 2
+}
+
+ws {
+  url: ws://localhost:8081/ws
+  auth: inherit
+}
+
+headers {
+  Authorization: Dummy
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {
+      "func":"headers"
+    }
+  '''
+}

@@ -32,6 +32,7 @@ const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
+const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -1508,6 +1509,7 @@ const executeRequestOnFailHandler = async (request, error) => {
 const registerAllNetworkIpc = (mainWindow) => {
   registerNetworkIpc(mainWindow);
   registerGrpcEventHandlers(mainWindow);
+  registerWsEventHandlers(mainWindow);
 }
 
 module.exports = registerAllNetworkIpc
