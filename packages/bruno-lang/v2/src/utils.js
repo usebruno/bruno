@@ -7,6 +7,7 @@ const safeParseJson = (json) => {
   }
 };
 
+// TODO: implement proper handling of newlines with \r\n, \r, \n
 
 const indentString = (str) => {
   if (!str || !str.length) {
