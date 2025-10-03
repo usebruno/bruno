@@ -1,0 +1,17 @@
+meta {
+  name: no-redirects-test
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://httpbun.com/redirect/2
+  body: none
+  auth: inherit
+}
+
+settings {
+  followRedirects: false
+  maxRedirects: 5
+  timeout: 0
+}
