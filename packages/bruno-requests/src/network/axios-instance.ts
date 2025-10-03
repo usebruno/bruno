@@ -1,6 +1,7 @@
 import { default as axios, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import http from 'node:http';
 import https from 'node:https';
+const JSONBigNative = require('json-bigint')({ useNativeBigInt: true });
 
 /**
  * 
@@ -44,7 +45,19 @@ const baseRequestConfig: Partial<AxiosRequestConfig> = {
     }
 
     return data;
-  }
+  },
+  transformResponse: [function transformResponse(data: any, headers?: AxiosRequestHeaders) {
+    try {
+      const contentType = headers?.get ? (headers.get('content-type') || headers.get('Content-Type')) : undefined;
+      const isJSON = typeof contentType === 'string' && /json/i.test(contentType as string);
+      if (isJSON && typeof data === 'string') {
+        return JSONBigNative.parse(data as string);
+      }
+      return data;
+    } catch (e) {
+      return data;
+    }
+  }]
 }
 
 const makeAxiosInstance = (customRequestConfig?: AxiosRequestConfig) => {
