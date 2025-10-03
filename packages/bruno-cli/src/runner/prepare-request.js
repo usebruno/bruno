@@ -39,6 +39,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     url: request.url,
     headers: headers,
     name: item.name,
+    tags: item.tags || [],
     pathParams: request.params?.filter((param) => param.type === 'path'),
     settings: item.settings,
     responseType: 'arraybuffer'
