@@ -110,15 +110,36 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
             {environments &&
               environments.length &&
               environments.map((env) => (
-                <ToolHint key={env.uid} text={env.name} toolhintId={env.uid} place="right">
+                env.name.length > 20 ? (
+                  <ToolHint
+                    key={env.uid}
+                    text={env.name}
+                    toolhintId={env.uid}
+                    place="left"
+                    tooltipStyle={{
+                      maxWidth: '300px',
+                      wordWrap: 'break-word',
+                      whiteSpace: 'normal',
+                      zIndex: 10002,
+                    }}
+                  >
+                    <div
+                      id={env.uid}
+                      className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
+                      onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
+                    >
+                      <span className="break-all">{env.name}</span>
+                    </div>
+                  </ToolHint>
+                ) : (
                   <div
-                    id={env.uid}
+                    key={env.uid}
                     className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
                     onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
                   >
                       <span className="break-all">{env.name}</span>
                   </div>
-                </ToolHint>
+                )
               ))}
             <div className="btn-create-environment" onClick={() => handleCreateEnvClick()}>
               + <span>Create</span>
