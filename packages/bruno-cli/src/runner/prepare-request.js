@@ -153,8 +153,6 @@ const prepareRequest = async (item = {}, collection = {}) => {
         'X-WSSE'
       ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
     }
-
-    console.log('axiosRequest', axiosRequest);
   }
 
   if (request.auth && request.auth.mode !== 'inherit') {
