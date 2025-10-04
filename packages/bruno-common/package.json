@@ -37,7 +37,7 @@
     "prepack": "npm run test && npm run build"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-env": "^7.28.3",
     "@babel/preset-typescript": "^7.27.0",
     "@faker-js/faker": "^9.7.0",
     "@jest/globals": "^29.7.0",
@@ -45,7 +45,7 @@
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/jest": "^29.5.14",
-    "babel-jest": "^29.7.0",
+    "babel-jest": "^30.2.0",
     "is-ip": "^5.0.1",
     "moment": "^2.29.4",
     "rollup": "3.29.5",
