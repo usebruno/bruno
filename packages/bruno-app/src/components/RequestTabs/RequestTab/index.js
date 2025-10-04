@@ -109,6 +109,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }
 
   const isGrpc = item.type === 'grpc-request';
+  const isGraphQL = item.type === 'graphql-request';
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
 
   return (
@@ -161,8 +162,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: isGrpc ? theme.request.grpc : getMethodColor(method), fontSize: 12 }}>
-          {isGrpc ? 'gRPC' : method}
+        <span className="tab-method uppercase" style={{ color: isGrpc ? theme.request.grpc : isGraphQL ? theme.request.graphql : getMethodColor(method), fontSize: 12 }}>
+          {isGrpc ? 'gRPC' : isGraphQL ? 'GQL' : method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
           {item.name}
