@@ -41,6 +41,7 @@ const collectionWatcher = require('./app/collection-watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+const TerminalManager = require('./ipc/terminal');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
@@ -49,6 +50,7 @@ const SystemMonitor = require('./app/system-monitor');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
+const terminalManager = new TerminalManager();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -159,6 +161,10 @@ app.on('ready', async () => {
   mainWindow.on('unmaximize', () => saveMaximized(false));
   mainWindow.on('close', (e) => {
     e.preventDefault();
+    // Clean up terminal sessions for this window
+    if (terminalManager) {
+      terminalManager.cleanup(mainWindow.webContents);
+    }
     ipcMain.emit('main:start-quit-flow');
   });
 
@@ -228,6 +234,11 @@ app.on('before-quit', () => {
 
   // Stop system monitoring
   systemMonitor.stop();
+
+  // Clean up terminal sessions
+  if (terminalManager) {
+    terminalManager.killAll();
+  }
 });
 
 app.on('window-all-closed', app.quit);
