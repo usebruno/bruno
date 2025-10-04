@@ -6,10 +6,17 @@ import jsyaml from 'js-yaml';
 import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
+import { wsdlToBruno } from '@usebruno/converters';
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
+
+  // Handle WSDL files - return as plain text
+  if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
+    return text;
+  }
 
   try {
     if (file.type === 'application/json' || file.name.endsWith('.json')) {
@@ -98,7 +105,10 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       
       let collection;
       
-      if (isPostmanCollection(data)) {
+      if (isWSDLCollection(data)) {
+        collection = await wsdlToBruno(data);
+      }
+      else if (isPostmanCollection(data)) {
         collection = await postmanToBruno(data);
       } 
       else if (isInsomniaCollection(data)) {
@@ -147,15 +157,18 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     '.json',
     '.yaml',
     '.yml',
+    '.wsdl',
     'application/json',
     'application/yaml',
-    'application/x-yaml'
+    'application/x-yaml',
+    'text/xml',
+    'application/xml'
   ]
 
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
       <div className="flex flex-col">
-          <div className="mb-4">
+        <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
           <div
             onDragEnter={handleDrag}
@@ -192,7 +205,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                 </button>
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, Postman, Insomnia, and OpenAPI v3 formats
+                Supports Bruno, Postman, Insomnia, OpenAPI v3, and WSDL formats
               </p>
             </div>
           </div>
