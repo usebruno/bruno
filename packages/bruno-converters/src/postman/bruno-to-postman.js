@@ -69,7 +69,7 @@ export const transformUrl = (url, params) => {
   postmanUrl.query = params
     .filter((param) => param.type === 'query')
     .map(({ name, value, description }) => ({ key: name, value, description }));
-  
+
   // Construct path params.
   postmanUrl.variable = params
     .filter((param) => param.type === 'path')
@@ -80,10 +80,10 @@ export const transformUrl = (url, params) => {
 
 /**
  * Collapses multiple consecutive slashes (`//`) into a single slash, while skipping the protocol (e.g., `http://` or `https://`).
- * 
+ *
  * @param {String} url - A URL string
  * @returns {String} The sanitized URL
- * 
+ *
  */
 const collapseDuplicateSlashes = (url) => {
   return url.replace(/(?<!:)\/{2,}/g, '/');
@@ -91,7 +91,7 @@ const collapseDuplicateSlashes = (url) => {
 
 /**
  * Replaces all `\\` (backslashes) with `//` (forward slashes) and collapses multiple slashes into one.
- * 
+ *
  * @param {string} url - The URL to sanitize.
  * @returns {string} The sanitized URL.
  *
@@ -146,15 +146,29 @@ export const brunoToPostman = (collection) => {
       type: 'default'
     }));
   };
-
   const generateEventSection = (item) => {
     const eventArray = [];
-    if (item?.request?.tests?.length) {
+    const scriptBlock = item?.script || item?.root?.request?.script;
+
+    if (scriptBlock?.req) {
+      eventArray.push({
+        listen: 'prerequest',
+        script: {
+          type: 'text/javascript',
+          packages: {},
+          requests: {},
+          exec: scriptBlock.req.split('\n')
+        }
+      });
+    }
+    if (scriptBlock?.res) {
       eventArray.push({
         listen: 'test',
         script: {
-          exec: item.request.tests.split('\n')
-          // type: 'text/javascript'
+          type: 'text/javascript',
+          packages: {},
+          requests: {},
+          exec: scriptBlock.res.split('\n')
         }
       });
     }
@@ -162,8 +176,21 @@ export const brunoToPostman = (collection) => {
       eventArray.push({
         listen: 'prerequest',
         script: {
+          type: 'text/javascript',
+          packages: {},
+          requests: {},
           exec: item.request.script.req.split('\n')
-          // type: 'text/javascript'
+        }
+      });
+    }
+    if (item?.request?.script?.res) {
+      eventArray.push({
+        listen: 'test',
+        script: {
+          type: 'text/javascript',
+          packages: {},
+          requests: {},
+          exec: item.request.script.res.split('\n')
         }
       });
     }
@@ -317,7 +344,7 @@ export const brunoToPostman = (collection) => {
     if (!itemRequest) {
       return {};
     }
-    
+
     const requestObject = {
       method: itemRequest.method || 'GET',
       header: generateHeaders(itemRequest.headers),
@@ -337,7 +364,7 @@ export const brunoToPostman = (collection) => {
     if (!itemsArray || !Array.isArray(itemsArray)) {
       return [];
     }
-    
+
     return map(itemsArray, (item) => {
       if (!item) {
         return null;
@@ -346,17 +373,20 @@ export const brunoToPostman = (collection) => {
       if (item.type === 'grpc-request') {
         return null;
       }
-      
+
       if (item.type === 'folder') {
+        const folderEvents = generateEventSection(item);
         return {
           name: item.name || 'Untitled Folder',
-          item: item.items && item.items.length ? generateItemSection(item.items) : []
+          item: generateItemSection(item.items),
+          ...(folderEvents.length ? { event: folderEvents } : {})
         };
       } else {
+        const requestEvents = generateEventSection(item.request);
         return {
           name: item.name || 'Untitled Request',
-          event: generateEventSection(item),
-          request: generateRequestSection(item.request)
+          request: generateRequestSection(item.request),
+          ...(requestEvents.length ? { event: requestEvents } : {})
         };
       }
     });
@@ -365,6 +395,10 @@ export const brunoToPostman = (collection) => {
   collectionToExport.info = generateInfoSection();
   collectionToExport.item = generateItemSection(collection.items);
   collectionToExport.variable = generateCollectionVars(collection);
+  const collectionEvents = generateEventSection(collection.root);
+  if (collectionEvents.length) {
+    collectionToExport.event = collectionEvents;
+  }
   return collectionToExport;
 };
 
