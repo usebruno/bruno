@@ -193,7 +193,12 @@ const EnvironmentSelector = ({ collection }) => {
 
       {/* Modals - Rendered outside dropdown to avoid conflicts */}
       {showGlobalSettings && (
-        <GlobalEnvironmentSettings globalEnvironments={globalEnvironments} collection={collection} onClose={handleCloseSettings} />
+        <GlobalEnvironmentSettings
+          globalEnvironments={globalEnvironments}
+          collection={collection}
+          activeGlobalEnvironmentUid={activeGlobalEnvironmentUid}
+          onClose={handleCloseSettings}
+        />
       )}
 
       {showCollectionSettings && <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />}
