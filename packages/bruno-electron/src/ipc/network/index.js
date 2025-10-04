@@ -262,6 +262,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const runtimeVars = collection.runtimeVariables;
 
     // Precedence: runtimeVars > requestVariables > folderVars > envVars > collectionVariables > globalEnvironmentVars
+    const processEnvVars = getProcessEnvVars(collection.uid);
     const resolvedVars = merge(
       {},
       globalEnvironmentVars,
@@ -269,7 +270,14 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       envVars,
       folderVars,
       requestVariables,
-      runtimeVars
+      runtimeVars,
+      {
+        process: {
+          env: {
+            ...processEnvVars
+          }
+        }
+      }
     );
 
     const collectionRoot = get(collection, 'root', {});
@@ -284,7 +292,6 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     }
 
     const collectionPath = collection.pathname;
-    const processEnvVars = getProcessEnvVars(collection.uid);
 
     const axiosInstance = await configureRequest(
       collection.uid,
