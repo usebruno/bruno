@@ -29,6 +29,7 @@ import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
 import FolderNotFound from './FolderNotFound';
+import Documentation from 'components/Documentation';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -47,6 +48,8 @@ const RequestTabPanel = () => {
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const [showDocsPanel, setShowDocsPanel] = useState(false);
+  const toggleDocsPanel = () => setShowDocsPanel(v => !v);
 
   // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
   let collections = produce(_collections, (draft) => {
@@ -254,7 +257,13 @@ const RequestTabPanel = () => {
         {isGrpcRequest ? (
           <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />
         ) : (
-          <QueryUrl item={item} collection={collection} handleRun={handleRun} />
+          <QueryUrl
+            item={item}
+            collection={collection}
+            handleRun={handleRun}
+            showDocsPanel={showDocsPanel}
+            toggleDocsPanel={toggleDocsPanel}
+          />
         )}
       </div>
       <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
@@ -298,7 +307,6 @@ const RequestTabPanel = () => {
             <GrpcResponsePane
               item={item}
               collection={collection}
-             
               response={item.response}
             />
           ) : (
@@ -309,6 +317,11 @@ const RequestTabPanel = () => {
             />
           )}
         </section>
+        {showDocsPanel && (
+          <section className="docs-pane">
+            <Documentation item={item} collection={collection} />
+          </section>
+        )}
       </section>
 
       {item.type === 'graphql-request' ? (
