@@ -26,7 +26,7 @@ const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
-const { getProcessEnvVars } = require('../../store/process-env');
+const { getProcessEnvVarsForActiveEnv } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
@@ -284,7 +284,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     }
 
     const collectionPath = collection.pathname;
-    const processEnvVars = getProcessEnvVars(collection.uid);
+    const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collection.uid);
 
     const axiosInstance = await configureRequest(
       collection.uid,
@@ -865,7 +865,7 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
-    const processEnvVars = getProcessEnvVars(collectionUid);
+    const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
     return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
   });
 
@@ -907,7 +907,7 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const envVars = getEnvVars(environment);
-      const processEnvVars = getProcessEnvVars(collectionUid);
+      const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
       let stopRunnerExecution = false;
 
       const abortController = new AbortController();
