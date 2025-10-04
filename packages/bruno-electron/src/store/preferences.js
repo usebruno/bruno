@@ -26,18 +26,7 @@ const defaultPreferences = {
     codeFont: 'default',
     codeFontSize: 14
   },
-  proxy: {
-    mode: 'off',
-    protocol: 'http',
-    hostname: '',
-    port: null,
-    auth: {
-      enabled: false,
-      username: '',
-      password: ''
-    },
-    bypassProxy: ''
-  },
+  proxy: false,
   layout: {
     responsePaneOrientation: 'horizontal'
   },
@@ -71,17 +60,21 @@ const preferencesSchema = Yup.object().shape({
     codeFont: Yup.string().nullable(),
     codeFontSize: Yup.number().min(1).max(32).nullable()
   }),
-  proxy: Yup.object({
-    mode: Yup.string().oneOf(['off', 'on', 'system']),
-    protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
-    hostname: Yup.string().max(1024),
-    port: Yup.number().min(1).max(65535).nullable(),
-    auth: Yup.object({
-      enabled: Yup.boolean(),
-      username: Yup.string().max(1024),
-      password: Yup.string().max(1024)
-    }).optional(),
-    bypassProxy: Yup.string().optional().max(1024)
+  proxy: Yup.lazy((value) => {
+    if (value === false || value === 'system') {
+      return Yup.mixed().oneOf([false, 'system']);
+    }
+    return Yup.object({
+      protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
+      hostname: Yup.string().max(1024),
+      port: Yup.number().min(1).max(65535).nullable(),
+      auth: Yup.object({
+        enabled: Yup.boolean(),
+        username: Yup.string().max(1024),
+        password: Yup.string().max(1024)
+      }).optional(),
+      bypassProxy: Yup.string().optional().max(1024)
+    });
   }),
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
@@ -109,17 +102,26 @@ class PreferencesStore {
   getPreferences() {
     let preferences = this.store.get('preferences', {});
 
-    // This to support the old preferences format
-    // In the old format, we had a proxy.enabled flag
-    // In the new format, this maps to proxy.mode = 'on'
-    if (preferences?.proxy?.enabled) {
-      preferences.proxy.mode = 'on';
-    }
-
-    // Delete the proxy.enabled property if it exists, regardless of its value
-    // This is a part of migration to the new preferences format
-    if (preferences?.proxy && 'enabled' in preferences.proxy) {
-      delete preferences.proxy.enabled;
+    if (preferences?.proxy && typeof preferences.proxy === 'object' && preferences?.proxy !== null) {
+      if ('mode' in preferences.proxy) {
+        // Handle old format with `proxy.mode` prop
+        const { mode, enabled, ...proxyConfig } = preferences.proxy;
+        if (mode === 'on') {
+          preferences.proxy = proxyConfig;
+        } else if (mode === 'system') {
+          preferences.proxy = 'system';
+        } else {
+          preferences.proxy = false;
+        }
+      } else if ('enabled' in preferences.proxy) {
+        // Handle old format with `proxy.enabled` prop
+        const { enabled, ...proxyConfig } = preferences.proxy;
+        if (enabled === true) {
+          preferences.proxy = proxyConfig;
+        } else {
+          preferences.proxy = false;
+        }
+      }
     }
 
     return merge({}, defaultPreferences, preferences);
@@ -167,7 +169,7 @@ const preferencesUtil = {
     return get(getPreferences(), 'request.timeout', 0);
   },
   getGlobalProxyConfig: () => {
-    return get(getPreferences(), 'proxy', {});
+    return get(getPreferences(), 'proxy', false);
   },
   shouldStoreCookies: () => {
     return get(getPreferences(), 'request.storeCookies', true);

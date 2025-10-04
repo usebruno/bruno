@@ -8,19 +8,20 @@ import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { useState } from 'react';
+import { getProxyMode, transformProxyForStorage } from './helpers';
 
 const ProxySettings = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
+  const proxyConfigPreferences = preferences.proxy;
   const systemProxyEnvVariables = useSelector((state) => state.app.systemProxyEnvVariables);
   const { http_proxy, https_proxy, no_proxy } = systemProxyEnvVariables || {};
   const dispatch = useDispatch();
-  console.log(preferences);
 
   const proxySchema = Yup.object({
     mode: Yup.string().oneOf(['off', 'on', 'system']),
     protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string()
-      .when('enabled', {
+      .when('mode', {
         is: 'on',
         then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
         otherwise: (hostname) => hostname.nullable()
@@ -33,7 +34,7 @@ const ProxySettings = ({ close }) => {
       .nullable()
       .transform((_, val) => (val ? Number(val) : null)),
     auth: Yup.object()
-      .when('enabled', {
+      .when('mode', {
         is: 'on',
         then: Yup.object({
           enabled: Yup.boolean(),
@@ -57,16 +58,16 @@ const ProxySettings = ({ close }) => {
 
   const formik = useFormik({
     initialValues: {
-      mode: preferences.proxy.mode,
-      protocol: preferences.proxy.protocol || 'http',
-      hostname: preferences.proxy.hostname || '',
-      port: preferences.proxy.port || 0,
+      mode: getProxyMode(proxyConfigPreferences),
+      protocol: proxyConfigPreferences?.protocol || 'http',
+      hostname: proxyConfigPreferences?.hostname || '',
+      port: proxyConfigPreferences?.port || 0,
       auth: {
-        enabled: preferences.proxy.auth ? preferences.proxy.auth.enabled || false : false,
-        username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
-        password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
+        enabled: proxyConfigPreferences?.auth?.enabled ?? false,
+        username: proxyConfigPreferences?.auth?.username || '',
+        password: proxyConfigPreferences?.auth?.password || ''
       },
-      bypassProxy: preferences.proxy.bypassProxy || ''
+      bypassProxy: proxyConfigPreferences?.bypassProxy || ''
     },
     validationSchema: proxySchema,
     onSubmit: (values) => {
@@ -78,10 +79,11 @@ const ProxySettings = ({ close }) => {
     proxySchema
       .validate(values, { abortEarly: true })
       .then((validatedProxy) => {
+        const transformedProxy = transformProxyForStorage(validatedProxy);
         dispatch(
           savePreferences({
             ...preferences,
-            proxy: validatedProxy
+            proxy: transformedProxy
           })
         ).then(() => {
           toast.success('Preferences saved successfully')
@@ -100,16 +102,16 @@ const ProxySettings = ({ close }) => {
 
   useEffect(() => {
     formik.setValues({
-      mode: preferences.proxy.mode,
-      protocol: preferences.proxy.protocol || 'http',
-      hostname: preferences.proxy.hostname || '',
-      port: preferences.proxy.port || '',
+      mode: getProxyMode(proxyConfigPreferences),
+      protocol: proxyConfigPreferences?.protocol || 'http',
+      hostname: proxyConfigPreferences?.hostname || '',
+      port: proxyConfigPreferences?.port || 0,
       auth: {
-        enabled: preferences.proxy.auth ? preferences.proxy.auth.enabled || false : false,
-        username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
-        password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
+        enabled: proxyConfigPreferences?.auth?.enabled ?? false,
+        username: proxyConfigPreferences?.auth?.username || '',
+        password: proxyConfigPreferences?.auth?.password || ''
       },
-      bypassProxy: preferences.proxy.bypassProxy || ''
+      bypassProxy: proxyConfigPreferences?.bypassProxy || ''
     });
   }, [preferences]);
 

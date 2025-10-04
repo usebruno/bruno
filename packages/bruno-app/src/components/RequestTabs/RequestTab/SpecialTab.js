@@ -59,7 +59,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick }) => {
   return (
     <>
       <div className="flex items-center tab-label pl-2">{getTabInfo(type, tabName)}</div>
-      <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
+      <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)} data-testid={`${type}-tab-close-button`}>
         <CloseTabIcon />
       </div>
     </>

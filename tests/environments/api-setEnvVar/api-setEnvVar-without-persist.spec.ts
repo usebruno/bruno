@@ -16,7 +16,7 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'Stage' }).click();
     await expect(page.locator('.current-environment').filter({ hasText: /Stage/ })).toBeVisible();
 
-    // Send the request
+    // send the request
     await page.locator('#send-request').getByRole('img').nth(2).click();
     await page.waitForTimeout(1000);
 
