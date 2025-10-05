@@ -1,0 +1,66 @@
+meta {
+  name: Same-Domain Redirect Preserves Auth
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/redirect-same-domain-with-auth
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer secret-token-12345
+}
+
+assert {
+  res.status: 200
+}
+
+tests {
+  test("should preserve Authorization header on same-domain redirect", function() {
+    // When redirecting within the same domain, Authorization should be preserved
+    const data = res.getBody();
+    expect(data).to.not.be.undefined;
+    expect(data.status).to.equal('success');
+
+    // The target endpoint should have received the Authorization header
+    expect(data.hasAuthHeader).to.be.true;
+    expect(data.authHeader).to.equal('Bearer secret-token-12345');
+  });
+
+  test("should NOT show cross-domain security warning", function() {
+    const timeline = res.timeline;
+    expect(timeline).to.not.be.undefined;
+
+    // There should be NO cross-domain security warning in the timeline
+    const hasSecurityWarning = timeline.some(entry =>
+      entry.message && entry.message.includes('Cross-domain redirect detected')
+    );
+
+    expect(hasSecurityWarning).to.be.false;
+  });
+}
+
+docs {
+  # Same-Domain Redirect Security Test
+
+  This test validates that Bruno preserves Authorization headers
+  when redirecting within the same origin (protocol + hostname + port).
+
+  ## Test Details
+  - Sends request to localhost with Authorization header
+  - Server redirects (307) to same domain (/api/redirect/same-domain-target)
+  - Bruno should PRESERVE Authorization header
+  - Target endpoint confirms it received the Authorization header
+
+  ## Expected Behavior
+  - Request completes successfully (200 OK)
+  - Authorization header is sent to redirect target
+  - No security warning in timeline (same domain = safe)
+
+  ## Security Rationale
+  Same-origin requests can safely share credentials, so all headers
+  should be preserved when redirecting within the same domain.
+}
