@@ -3,7 +3,7 @@ import Modal from 'components/Modal';
 import { isItemAFolder } from 'utils/tabs';
 import { useDispatch } from 'react-redux';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
-import { deleteItem } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteItem, reorderDirectoryItems } from 'providers/ReduxStore/slices/collections/actions';
 import { recursivelyGetAllItemUids } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
@@ -11,7 +11,8 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const onConfirm = () => {
-    dispatch(deleteItem(item.uid, collectionUid)).then(() => {
+    dispatch(deleteItem(item.uid, collectionUid)).then(({ parentDirectory }) => {
+      dispatch(reorderDirectoryItems(parentDirectory, item.uid));
 
       if (isFolder) {
         // close all tabs that belong to the folder
