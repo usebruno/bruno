@@ -46,6 +46,5 @@ test.describe('No Redirects Settings Tests', () => {
     // Close the single open tab
     await page.locator('.close-icon-container').click();
     await page.locator('button:has-text("Don\'t Save")').first().click();
-    await page.locator('.bruno-logo').click();
   });
 });

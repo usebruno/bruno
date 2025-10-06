@@ -1,4 +1,5 @@
 import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Timeout Settings Tests', () => {
   test('should configure and test timeout settings', async ({
@@ -28,5 +29,10 @@ test.describe('Timeout Settings Tests', () => {
 
     // go to welcome page
     await page.locator('.bruno-logo').click();
+  });
+
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
   });
 });
