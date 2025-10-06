@@ -92,6 +92,15 @@ const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
   }
 }
 
+const parseBrunoEnvToJson = (bruContent, fileName) => {
+  const environment = parseEnvironment(bruContent);
+  // Set the name from the filename if not provided
+  if (!environment.name) {
+    environment.name = fileName.replace('.bru', '');
+  }
+  return environment;
+};
+
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // create collection
   ipcMain.handle(
@@ -378,6 +387,39 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       fs.unlinkSync(envFilePath);
 
       environmentSecretsStore.deleteEnvironment(collectionPathname, environmentName);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Export single collection environment
+  ipcMain.handle('renderer:export-collection-environment', async (event, { environment, format = 'json', filePath }) => {
+    try {
+      // Ensure the directory exists
+      if (!fs.existsSync(filePath)) {
+        fs.mkdirSync(filePath, { recursive: true });
+      }
+
+      const cleanEnvironment = {
+        name: environment.name,
+        variables: environment.variables.map((variable) => {
+          const varCopy = { ...variable };
+          delete varCopy.uid; // Remove UID for clean export
+          if (varCopy.secret) {
+            varCopy.value = ''; // Remove secret values for security
+          }
+          return varCopy;
+        })
+      };
+
+      if (format === 'json') {
+        const jsonContent = JSON.stringify(cleanEnvironment, null, 2);
+        const fileName = `${cleanEnvironment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.json`;
+        const fullPath = path.join(filePath, fileName);
+        await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+      } else {
+        throw new Error(`Unsupported format: ${format}`);
+      }
     } catch (error) {
       return Promise.reject(error);
     }

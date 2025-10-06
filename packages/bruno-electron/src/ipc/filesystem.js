@@ -1,12 +1,14 @@
 const { ipcMain } = require('electron');
 const path = require('node:path');
+const fsPromises = require('node:fs/promises');
 
 const {
   browseDirectory,
   browseFiles,
   normalizeAndResolvePath,
   isFile,
-  isDirectory
+  isDirectory,
+  chooseFileToSave
 } = require('../utils/filesystem');
 
 const registerFilesystemIpc = (mainWindow) => {
@@ -27,6 +29,26 @@ const registerFilesystemIpc = (mainWindow) => {
     }
   });
 
+  // Choose file to save
+  ipcMain.handle('renderer:choose-file-to-save', async (_, preferredFileName = '') => {
+    try {
+      return await chooseFileToSave(mainWindow, preferredFileName);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Write file
+  ipcMain.handle('renderer:write-file', async (_, filePath, content) => {
+    try {
+      await fsPromises.writeFile(filePath, content, 'utf8');
+      return true;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Check if file exists
   ipcMain.handle('renderer:exists-sync', async (_, filePath) => {
     try {
       const normalizedPath = normalizeAndResolvePath(filePath);
@@ -50,4 +72,4 @@ const registerFilesystemIpc = (mainWindow) => {
   });
 };
 
-module.exports = registerFilesystemIpc; 
+module.exports = registerFilesystemIpc;
