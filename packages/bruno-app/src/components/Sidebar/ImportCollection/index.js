@@ -58,7 +58,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       
       // Check if it's an OpenAPI spec and show settings
       if (isOpenApiSpec(data)) {
-        handleSubmit({ openApiData: data });
+        handleSubmit({ collection: data, type: 'openapi' });
         setIsLoading(false);
         return;
       }

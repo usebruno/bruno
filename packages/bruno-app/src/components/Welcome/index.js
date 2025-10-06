@@ -23,7 +23,6 @@ const Welcome = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
-  const [openApiData, setOpenApiData] = useState(null);
   const [groupingType, setGroupingType] = useState('tags');
   const [importSettingsModalOpen, setImportSettingsModalOpen] = useState(false);
 
@@ -35,23 +34,20 @@ const Welcome = () => {
       });
   };
 
-  const handleImportCollection = ({ collection, openApiData: apiData }) => {
-    if (apiData) {
-      // OpenAPI import - show settings first
-      setOpenApiData(apiData);
-      setImportCollectionModalOpen(false);
+  const handleImportCollection = ({ collection, type }) => {
+    setImportedCollection(collection);
+    setImportCollectionModalOpen(false);
+
+    if (type === 'openapi') {
       setImportSettingsModalOpen(true);
     } else {
-      // Regular import - go directly to location
-      setImportedCollection(collection);
-      setImportCollectionModalOpen(false);
       setImportCollectionLocationModalOpen(true);
     }
   };
 
   const handleImportSettings = () => {
     try {
-      const collection = convertOpenapiToBruno(openApiData, { groupBy: groupingType });
+      const collection = convertOpenapiToBruno(importedCollection, { groupBy: groupingType });
       setImportedCollection(collection);
       setImportSettingsModalOpen(false);
       setImportCollectionLocationModalOpen(true);
@@ -66,7 +62,6 @@ const Welcome = () => {
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportedCollection(null);
-        setOpenApiData(null);
         toast.success(t('WELCOME.COLLECTION_IMPORT_SUCCESS'));
       })
       .catch((err) => {
