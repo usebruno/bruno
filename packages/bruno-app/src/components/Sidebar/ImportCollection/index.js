@@ -31,7 +31,7 @@ const convertFileToObject = async (file) => {
 const ImportCollection = ({ onClose, handleSubmit }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [importSettingsModalOpen, setImportSettingsModalOpen] = useState(false);
+  const [showImportSettings, setShowImportSettings] = useState(false);
   const [openApiData, setOpenApiData] = useState(null);
   const [groupingType, setGroupingType] = useState('tags');
   const fileInputRef = useRef(null);
@@ -74,7 +74,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       if (isOpenApiSpec(data)) {
         setOpenApiData(data);
         setIsLoading(false);
-        setImportSettingsModalOpen(true);
+        setShowImportSettings(true);
         return;
       }
 
@@ -134,14 +134,14 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   return (
     <Modal
       size="sm"
-      title={importSettingsModalOpen ? 'OpenAPI Import Settings' : 'Import Collection'}
-      hideFooter={!importSettingsModalOpen}
+      title={showImportSettings ? 'OpenAPI Import Settings' : 'Import Collection'}
+      hideFooter={!showImportSettings}
       handleCancel={onClose}
-      confirmText={importSettingsModalOpen ? 'Import' : undefined}
-      handleConfirm={importSettingsModalOpen ? handleImportSettings : undefined}
+      confirmText={showImportSettings ? 'Import' : undefined}
+      handleConfirm={showImportSettings ? handleImportSettings : undefined}
       dataTestId="import-collection-modal"
     >
-      {importSettingsModalOpen ? (
+      {showImportSettings ? (
         <div className="flex flex-col">
           <ImportSettings
             groupingType={groupingType}
