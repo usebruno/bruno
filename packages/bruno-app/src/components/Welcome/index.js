@@ -3,7 +3,6 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 
 import { IconBrandGithub, IconPlus, IconDownload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
 
@@ -11,7 +10,6 @@ import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
-import ImportSettings from 'components/Sidebar/ImportSettings';
 import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
@@ -23,8 +21,6 @@ const Welcome = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
-  const [groupingType, setGroupingType] = useState('tags');
-  const [importSettingsModalOpen, setImportSettingsModalOpen] = useState(false);
 
   const handleOpenCollection = () => {
     dispatch(openCollection())
@@ -34,27 +30,10 @@ const Welcome = () => {
       });
   };
 
-  const handleImportCollection = ({ collection, type }) => {
+  const handleImportCollection = ({ collection }) => {
     setImportedCollection(collection);
     setImportCollectionModalOpen(false);
-
-    if (type === 'openapi') {
-      setImportSettingsModalOpen(true);
-    } else {
-      setImportCollectionLocationModalOpen(true);
-    }
-  };
-
-  const handleImportSettings = () => {
-    try {
-      const collection = convertOpenapiToBruno(importedCollection, { groupBy: groupingType });
-      setImportedCollection(collection);
-      setImportSettingsModalOpen(false);
-      setImportCollectionLocationModalOpen(true);
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to process OpenAPI specification');
-    }
+    setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (collectionLocation) => {
@@ -76,14 +55,6 @@ const Welcome = () => {
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
       {importCollectionModalOpen ? (
         <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} />
-      ) : null}
-      {importSettingsModalOpen ? (
-        <ImportSettings
-          groupingType={groupingType}
-          setGroupingType={setGroupingType}
-          onImport={handleImportSettings}
-          onCancel={() => setImportSettingsModalOpen(false)}
-        />
       ) : null}
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation

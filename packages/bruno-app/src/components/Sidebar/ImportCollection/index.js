@@ -5,8 +5,9 @@ import Modal from 'components/Modal';
 import jsyaml from 'js-yaml';
 import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
-import { isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isOpenApiSpec, convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
+import ImportSettings from 'components/Sidebar/ImportSettings';
 import FullscreenLoader from './FullscreenLoader/index';
 
 const convertFileToObject = async (file) => {
@@ -30,6 +31,9 @@ const convertFileToObject = async (file) => {
 const ImportCollection = ({ onClose, handleSubmit }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [importSettingsModalOpen, setImportSettingsModalOpen] = useState(false);
+  const [openApiData, setOpenApiData] = useState(null);
+  const [groupingType, setGroupingType] = useState('tags');
   const fileInputRef = useRef(null);
 
   const handleDrag = (e) => {
@@ -47,19 +51,30 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     }
   };
 
+  const handleImportSettings = () => {
+    try {
+      const collection = convertOpenapiToBruno(openApiData, { groupBy: groupingType });
+      handleSubmit({ collection });
+    } catch (err) {
+      console.error(err);
+      toastError(err, 'Failed to process OpenAPI specification');
+    }
+  };
+
   const processFile = async (file) => {
     setIsLoading(true);
     try {
       const data = await convertFileToObject(file);
-      
+
       if (!data) {
         throw new Error('Failed to parse file content');
       }
       
       // Check if it's an OpenAPI spec and show settings
       if (isOpenApiSpec(data)) {
-        handleSubmit({ collection: data, type: 'openapi' });
+        setOpenApiData(data);
         setIsLoading(false);
+        setImportSettingsModalOpen(true);
         return;
       }
 
@@ -119,55 +134,64 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   return (
     <Modal
       size="sm"
-      title="Import Collection"
-      hideFooter={true}
+      title={importSettingsModalOpen ? 'OpenAPI Import Settings' : 'Import Collection'}
+      hideFooter={!importSettingsModalOpen}
       handleCancel={onClose}
+      confirmText={importSettingsModalOpen ? 'Import' : undefined}
+      handleConfirm={importSettingsModalOpen ? handleImportSettings : undefined}
       dataTestId="import-collection-modal"
     >
-      <div className="flex flex-col">
-        <div className="mb-4">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
-          <div
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={handleDrop}
-            className={`
-              border-2 border-dashed rounded-lg p-6 transition-colors duration-200
-              ${dragActive 
-                ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' 
-                : 'border-gray-200 dark:border-gray-700'
-              }
-            `}
-          >
-            <div className="flex flex-col items-center justify-center">
-              <IconFileImport 
-                size={28} 
-                className="text-gray-400 dark:text-gray-500 mb-3" 
-              />
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileInputChange}
-                accept={acceptedFileTypes.join(',')}
-              />
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                Drop file to import or{' '}
-                <button
-                  className="text-blue-500 underline cursor-pointer"
-                  onClick={handleBrowseFiles}
-                >
-                  choose a file
-                </button>
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, Postman, Insomnia, and OpenAPI v3 formats
-              </p>
+      {importSettingsModalOpen ? (
+        <div className="flex flex-col">
+          <ImportSettings
+            groupingType={groupingType}
+            setGroupingType={setGroupingType}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col">
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
+            <div
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-lg p-6 transition-colors duration-200 ${
+                dragActive
+                  ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
+                  : 'border-gray-200 dark:border-gray-700'
+              }`}
+            >
+              <div className="flex flex-col items-center justify-center">
+                <IconFileImport
+                  size={28}
+                  className="text-gray-400 dark:text-gray-500 mb-3"
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileInputChange}
+                  accept={acceptedFileTypes.join(',')}
+                />
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  Drop file to import or{' '}
+                  <button
+                    className="text-blue-500 underline cursor-pointer"
+                    onClick={handleBrowseFiles}
+                  >
+                    choose a file
+                  </button>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Supports Bruno, Postman, Insomnia, and OpenAPI v3 formats
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </Modal>
   );
 };

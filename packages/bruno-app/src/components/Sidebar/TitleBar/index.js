@@ -3,7 +3,6 @@ import Bruno from 'components/Bruno';
 import Dropdown from 'components/Dropdown';
 import CreateCollection from '../CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
-import ImportSettings from 'components/Sidebar/ImportSettings';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 
 import { IconDots } from '@tabler/icons';
@@ -11,7 +10,6 @@ import { useState, forwardRef, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import StyledWrapper from './StyledWrapper';
 import { multiLineMsg } from "utils/common";
 import { formatIpcError } from "utils/common/error";
@@ -20,33 +18,14 @@ const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
-  const [importSettingsModalOpen, setImportSettingsModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
-  const [groupingType, setGroupingType] = useState('tags');
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
-  const handleImportCollection = ({ collection, type }) => {
+  const handleImportCollection = ({ collection }) => {
     setImportedCollection(collection);
     setImportCollectionModalOpen(false);
-
-    if (type === 'openapi') {
-      setImportSettingsModalOpen(true);
-    } else {
-      setImportCollectionLocationModalOpen(true);
-    }
-  };
-
-  const handleImportSettings = () => {
-    try {
-      const collection = convertOpenapiToBruno(importedCollection, { groupBy: groupingType });
-      setImportedCollection(collection);
-      setImportSettingsModalOpen(false);
-      setImportCollectionLocationModalOpen(true);
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to process OpenAPI specification');
-    }
+    setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (collectionLocation) => {
@@ -92,14 +71,6 @@ const TitleBar = () => {
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
       {importCollectionModalOpen ? (
         <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} />
-      ) : null}
-      {importSettingsModalOpen ? (
-        <ImportSettings
-          groupingType={groupingType}
-          setGroupingType={setGroupingType}
-          onImport={handleImportSettings}
-          onCancel={() => setImportSettingsModalOpen(false)}
-        />
       ) : null}
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation

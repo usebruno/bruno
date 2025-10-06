@@ -1,8 +1,6 @@
 import React, { useRef, forwardRef } from 'react';
 import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import Portal from 'components/Portal';
-import Modal from 'components/Modal';
 import StyledWrapper from './StyledWrapper';
 
 const groupingOptions = [
@@ -10,7 +8,7 @@ const groupingOptions = [
   { value: 'path', label: 'Paths', description: 'Group requests by URL path structure', testId: 'grouping-option-path' }
 ];
 
-const ImportSettings = ({ groupingType, setGroupingType, onImport, onCancel }) => {
+const ImportSettings = ({ groupingType, setGroupingType }) => {
   const dropdownTippyRef = useRef();
 
   const onDropdownCreate = (ref) => {
@@ -34,46 +32,34 @@ const ImportSettings = ({ groupingType, setGroupingType, onImport, onCancel }) =
   });
 
   return (
-    <Portal>
-      <Modal
-        size="sm"
-        title="OpenAPI Import Settings"
-        hideFooter={false}
-        handleCancel={onCancel}
-        confirmText="Import"
-        handleConfirm={onImport}
-        dataTestId="import-settings-modal"
-      >
-        <StyledWrapper>
-          <div className="flex items-center">
-            <div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Folder arrangement</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                Select whether to create folders according to the spec's paths or tags.
-              </p>
-            </div>
+    <StyledWrapper>
+      <div className="flex items-center">
+        <div>
+          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Folder arrangement</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Select whether to create folders according to the spec's paths or tags.
+          </p>
+        </div>
 
-            <div className="relative">
-              <Dropdown onCreate={onDropdownCreate} icon={<GroupingDropdownIcon />} placement="bottom-start">
-                {groupingOptions.map((option) => (
-                  <div
-                    key={option.value}
-                    className="dropdown-item"
-                    data-testid={option.testId}
-                    onClick={() => {
-                      dropdownTippyRef?.current?.hide();
-                      setGroupingType(option.value);
-                    }}
-                  >
-                    {option.label}
-                  </div>
-                ))}
-              </Dropdown>
-            </div>
-          </div>
-        </StyledWrapper>
-      </Modal>
-    </Portal>
+        <div className="relative">
+          <Dropdown onCreate={onDropdownCreate} icon={<GroupingDropdownIcon />} placement="bottom-start">
+            {groupingOptions.map((option) => (
+              <div
+                key={option.value}
+                className="dropdown-item"
+                data-testid={option.testId}
+                onClick={() => {
+                  dropdownTippyRef?.current?.hide();
+                  setGroupingType(option.value);
+                }}
+              >
+                {option.label}
+              </div>
+            ))}
+          </Dropdown>
+        </div>
+      </div>
+    </StyledWrapper>
   );
 };
 
