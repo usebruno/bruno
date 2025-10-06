@@ -21,14 +21,12 @@ import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
   const storedTheme = useTheme();
-  const isGrpcEnabled = useBetaFeature(BETA_FEATURES.GRPC);
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const {
@@ -92,10 +90,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     }
 
     if (collectionPresets.requestType === 'grpc') {
-      // If gRPC is disabled in beta features, fall back to http-request
-      if (!isGrpcEnabled) {
-        return 'http-request';
-      }
       return 'grpc-request';
     }
 
@@ -339,25 +333,21 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   GraphQL
                 </label>
 
-                {isGrpcEnabled && (
-                  <>
-                    <input
-                      id="grpc-request"
-                      className="ml-4 cursor-pointer"
-                      type="radio"
-                      name="requestType"
-                      onChange={(event) => {
-                        formik.setFieldValue('requestMethod', 'POST');
-                        formik.handleChange(event);
-                      }}
-                      value="grpc-request"
-                      checked={formik.values.requestType === 'grpc-request'}
-                    />
-                    <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
-                      gRPC
-                    </label>
-                  </>
-                )}
+                <input
+                  id="grpc-request"
+                  className="ml-4 cursor-pointer"
+                  type="radio"
+                  name="requestType"
+                  onChange={(event) => {
+                    formik.setFieldValue('requestMethod', 'POST');
+                    formik.handleChange(event);
+                  }}
+                  value="grpc-request"
+                  checked={formik.values.requestType === 'grpc-request'}
+                />
+                <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
+                  gRPC
+                </label>
 
                 <input
                   id="from-curl"
