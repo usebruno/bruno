@@ -18,11 +18,14 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     // wait for the file processing to complete
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    // verify that the import settings modal appears
-    const settingsModal = page.getByTestId('import-settings-modal');
-    await settingsModal.waitFor({ state: 'visible' });
-    await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
-    await settingsModal.getByRole('button', { name: 'Import' }).click();
+    // verify that the import modal switches to settings view
+    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
+
+    // verify the settings content is visible
+    await expect(importModal.getByText('Folder arrangement')).toBeVisible();
+
+    // click the Import button in the modal footer
+    await importModal.getByRole('button', { name: 'Import' }).click();
 
     // verify that the collection location modal appears (OpenAPI files go directly to location modal)
     const locationModal = page.getByTestId('import-collection-location-modal');

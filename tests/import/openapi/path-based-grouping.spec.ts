@@ -24,20 +24,21 @@ test.describe('OpenAPI Path-Based Grouping', () => {
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    // Verify that the import settings modal appears after file selection
-    const settingsModal = page.getByTestId('import-settings-modal');
-    await settingsModal.waitFor({ state: 'visible' });
-    await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
+    // Verify that the import modal switches to settings view
+    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
+
+    // Verify the settings content is visible
+    await expect(importModal.getByText('Folder arrangement')).toBeVisible();
 
     // Select path-based grouping from the dropdown
-    await settingsModal.getByTestId('grouping-dropdown').click();
+    await importModal.getByTestId('grouping-dropdown').click();
 
     // Wait for dropdown options to be visible (they might be rendered outside the modal)
     await page.getByTestId('grouping-option-path').waitFor({ state: 'visible' });
     await page.getByTestId('grouping-option-path').click();
 
     // Now import the collection with path-based grouping
-    await settingsModal.getByRole('button', { name: 'Import' }).click();
+    await importModal.getByRole('button', { name: 'Import' }).click();
 
     // Verify that the collection location modal appears
     const locationModal = page.getByTestId('import-collection-location-modal');
