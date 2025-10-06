@@ -20,6 +20,7 @@
     "@tippyjs/react": "^4.2.6",
     "@usebruno/common": "0.1.0",
     "@usebruno/graphql-docs": "0.1.0",
+    "@usebruno/lang": "0.12.0",
     "@usebruno/schema": "0.7.0",
     "classnames": "^2.3.1",
     "codemirror": "5.65.2",
