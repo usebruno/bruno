@@ -394,7 +394,7 @@ const groupRequestsByTags = (requests) => {
   return [groups, ungrouped];
 };
 
-const groupRequestsByPath = (requests, usedNames) => {
+const groupRequestsByPath = (requests) => {
   const pathGroups = {};
 
   // Group requests by their path segments
@@ -451,13 +451,15 @@ const groupRequestsByPath = (requests, usedNames) => {
   });
 
   // Convert the nested structure to Bruno folder format
-  const buildFolderStructure = (group, usedNames) => {
-    const items = group.requests.map((req) => transformOpenapiRequestItem(req, usedNames));
+  const buildFolderStructure = (group) => {
+    // Create a new usedNames set for each folder/subfolder scope
+    const localUsedNames = new Set();
+    const items = group.requests.map((req) => transformOpenapiRequestItem(req, localUsedNames));
 
     // Add sub-folders
     const subFolders = [];
     Object.values(group.subGroups).forEach((subGroup) => {
-      const subFolderItems = buildFolderStructure(subGroup, usedNames);
+      const subFolderItems = buildFolderStructure(subGroup);
       if (subFolderItems.length > 0) {
         subFolders.push({
           uid: uuid(),
@@ -475,7 +477,7 @@ const groupRequestsByPath = (requests, usedNames) => {
     uid: uuid(),
     name: group.name,
     type: 'folder',
-    items: buildFolderStructure(group, usedNames)
+    items: buildFolderStructure(group)
   }));
 
   return folders;
@@ -605,7 +607,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
     const groupingType = options.groupBy || 'tags';
 
     if (groupingType === 'path') {
-      brunoCollection.items = groupRequestsByPath(allRequests, usedNames);
+      brunoCollection.items = groupRequestsByPath(allRequests);
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
