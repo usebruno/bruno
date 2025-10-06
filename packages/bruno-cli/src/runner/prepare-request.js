@@ -6,7 +6,6 @@ const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
-const { buildFormUrlEncodedPayload } = require('../utils/form-data');
 const path = require('node:path');
 const { isLargeFile } = require('../utils/filesystem');
 
@@ -335,7 +334,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
       axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     }
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
+    axiosRequest.data = enabledParams;
   }
 
   if (request.body.mode === 'multipartForm') {

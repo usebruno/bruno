@@ -19,7 +19,7 @@ const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = r
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
-const { createFormData } = require('../utils/form-data');
+const { createFormData, buildFormUrlEncodedPayload } = require('../utils/form-data');
 const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
@@ -333,9 +333,7 @@ const runSingleRequest = async function (
       name => name.toLowerCase() === 'content-type'
     );
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
-      if (typeof request.data === 'object') {
-        request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
-      }
+      request.data = buildFormUrlEncodedPayload(request.data);
     }
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {

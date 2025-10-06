@@ -22,7 +22,7 @@ const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../util
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
-const { createFormData } = require('../../utils/form-data');
+const { createFormData, buildFormUrlEncodedPayload } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
@@ -408,9 +408,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      if (typeof request.data === 'object') {
-        request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
-      }
+      request.data = buildFormUrlEncodedPayload(request.data);
     }
 
     if (request.headers['content-type'] === 'multipart/form-data') {
