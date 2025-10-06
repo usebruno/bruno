@@ -1,7 +1,13 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('OpenAPI Path-Based Grouping', () => {
+  test.afterEach(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
   test('should import with path-based folder grouping', async ({ page, createTmpDir }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-path-grouping.json');
 
@@ -59,14 +65,5 @@ test.describe('OpenAPI Path-Based Grouping', () => {
 
     // Verify that the products folder contains the {id} subfolder
     await expect(page.locator('.collection-item-name').getByText('{id}')).toBeVisible();
-
-    // Cleanup: close the collection
-    await page
-      .locator('.collection-name')
-      .filter({ has: page.locator('#sidebar-collection-name:has-text("Path Grouping Test API")') })
-      .locator('.collection-actions')
-      .click();
-    await page.locator('.dropdown-item').getByText('Close').click();
-    await page.getByRole('button', { name: 'Close' }).click();
   });
 });
