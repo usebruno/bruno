@@ -5,7 +5,6 @@ import { useSelector } from 'react-redux';
  * Contains all available beta feature keys
  */
 export const BETA_FEATURES = Object.freeze({
-  GRPC: 'grpc',
   NODE_VM: 'nodevm'
 });
 

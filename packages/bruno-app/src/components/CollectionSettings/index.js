@@ -18,11 +18,9 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
 import Overview from './Overview/index';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
-  const isGrpcEnabled = useBetaFeature(BETA_FEATURES.GRPC);
   const tab = collection.settingsSelectedTab;
   const setTab = (tab) => {
     dispatch(
@@ -174,12 +172,10 @@ const CollectionSettings = ({ collection }) => {
           Client Certificates
           {clientCertConfig.length > 0 && <StatusDot />}
         </div>
-        {isGrpcEnabled && (
-          <div className={getTabClassname('protobuf')} role="tab" onClick={() => setTab('protobuf')}>
-            Protobuf
-            {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
-          </div>
-        )}
+        <div className={getTabClassname('protobuf')} role="tab" onClick={() => setTab('protobuf')}>
+          Protobuf
+          {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
+        </div>
       </div>
       <section className="mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
     </StyledWrapper>
