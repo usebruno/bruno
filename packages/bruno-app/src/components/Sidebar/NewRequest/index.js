@@ -338,7 +338,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   className="ml-4 cursor-pointer"
                   type="radio"
                   name="requestType"
-                  onChange={event => {
+                  onChange={(event) => {
                     formik.setFieldValue('requestMethod', 'POST');
                     formik.handleChange(event);
                   }}
