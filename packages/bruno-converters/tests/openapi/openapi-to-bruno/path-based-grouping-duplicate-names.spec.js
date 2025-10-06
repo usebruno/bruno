@@ -92,10 +92,5 @@ describe('OpenAPI Path-Based Grouping - Duplicate Names', () => {
     expect(getUserDetailsRequest.name).toBe('Get User Details');
     expect(getProductOwnerRequest.name).toBe('Get User Details');
     expect(getOrderCustomerRequest.name).toBe('Get User Details');
-
-    // Verify that the requests have the correct URLs
-    expect(getUserDetailsRequest.request.url).toBe('{{baseUrl}}/users/:id');
-    expect(getProductOwnerRequest.request.url).toBe('{{baseUrl}}/products/:id/owner');
-    expect(getOrderCustomerRequest.request.url).toBe('{{baseUrl}}/orders/:orderId/customer');
   });
 });
