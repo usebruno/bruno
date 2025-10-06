@@ -9,8 +9,8 @@ test.describe('Max Redirects Settings Tests', () => {
 
     await page.locator('#sidebar-collection-name').getByText('settings-test').click();
 
-    // Navigate to the max-redirects-test request
-    await page.getByRole('complementary').getByText('max-redirects-test').click();
+    // Navigate to the max-redirects request
+    await page.getByRole('complementary').getByText('max-redirects').click();
 
     // Go to Settings tab
     await page.getByRole('tab', { name: 'Settings' }).click();

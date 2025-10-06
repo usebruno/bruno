@@ -128,7 +128,6 @@ const Settings = ({ item, collection }) => {
             onChange={onTimeoutChange}
             type="number"
             min={0}
-            max={300000}
             description="Set maximum time to wait before aborting the request"
             onKeyDown={handleKeyDown}
           />

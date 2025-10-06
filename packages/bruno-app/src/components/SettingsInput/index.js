@@ -39,7 +39,10 @@ const SettingsInput = ({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        {...(type === 'number' && { min, max })}
+        {...(type === 'number' && {
+          min,
+          ...(max !== undefined && { max })
+        })}
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}

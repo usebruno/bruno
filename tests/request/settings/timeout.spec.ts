@@ -8,7 +8,7 @@ test.describe('Timeout Settings Tests', () => {
     await expect(page.locator('#sidebar-collection-name').getByText('settings-test')).toBeVisible();
 
     await page.locator('#sidebar-collection-name').getByText('settings-test').click();
-    // Navigate to the timeout-test request
+    // Navigate to thetimeout request
     await page.getByRole('complementary').getByText('timeout-test').click();
 
     // Go to Settings tab
