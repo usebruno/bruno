@@ -104,10 +104,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         } catch (err) {}
       }
     } else if (contentType === 'application/x-www-form-urlencoded') {
-      if (Array.isArray(request?.data)) {
+      if (request.data && Array.isArray(request.data)) {
         request.data = request.data.map((d) => ({
           ...d,
-          value: _interpolate(d.value)
+          value: _interpolate(d?.value)
         }));
       }
     } else if (contentType === 'multipart/form-data') {
