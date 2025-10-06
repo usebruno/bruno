@@ -387,6 +387,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
       }
 
+      // Handle followRedirects setting
+      if (i.protocolProfileBehavior?.followRedirects !== undefined) {
+        settings.followRedirects = i.protocolProfileBehavior.followRedirects;
+      }
+
+      // Handle maxRedirects setting
+      if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
+        settings.maxRedirects = i.protocolProfileBehavior.maxRedirects;
+      }
+
       brunoRequestItem.settings = settings;
 
       brunoParent.items.push(brunoRequestItem);
