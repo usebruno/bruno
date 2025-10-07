@@ -21,14 +21,12 @@ import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
-import { BETA_FEATURES, useBetaFeature } from 'utils/beta-features';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
   const storedTheme = useTheme();
-  const isWsEnabled = useBetaFeature(BETA_FEATURES.WEBSOCKET);
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const {
@@ -96,10 +94,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     }
 
     if (collectionPresets.requestType === 'ws') {
-      // If WebSocket is disabled in beta features, fall back to http-request
-      if (!isWsEnabled) {
-        return 'http-request';
-      }
       return 'ws-request';
     }
 
@@ -374,21 +368,19 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     </label>
                   </div>
 
-                  {isWsEnabled && (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        id="ws-request"
-                        name="requestType"
-                        value="ws-request"
-                        checked={formik.values.requestType === 'ws-request'}
-                        onChange={formik.handleChange}
-                      />
-                      <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
-                        WebSocket
-                      </label>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="ws-request"
+                      name="requestType"
+                      value="ws-request"
+                      checked={formik.values.requestType === 'ws-request'}
+                      onChange={formik.handleChange}
+                    />
+                    <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
+                      WebSocket
+                    </label>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">

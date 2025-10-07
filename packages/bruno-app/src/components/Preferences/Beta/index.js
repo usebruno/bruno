@@ -11,11 +11,6 @@ import get from 'lodash/get';
 // Beta features configuration
 const BETA_FEATURES = [
   {
-    id: 'websocket',
-    label: 'Web Socket Support',
-    description: 'Enable Web Socket request support for making realtime calls to services'
-  },
-  {
     id: 'nodevm',
     label: 'Node VM Runtime',
     description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'

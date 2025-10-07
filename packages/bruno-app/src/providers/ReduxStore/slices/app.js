@@ -27,9 +27,6 @@ const initialState = {
     },
     general: {
       defaultCollectionLocation: ''
-    },
-    beta: {
-      websocket: false
     }
   },
   generateCode: {

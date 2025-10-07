@@ -42,8 +42,7 @@ const defaultPreferences = {
     responsePaneOrientation: 'horizontal'
   },
   beta: {
-    nodevm: false,
-    ws: false
+    nodevm: false
   },
   onboarding: {
     hasLaunchedBefore: false
@@ -87,8 +86,7 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   beta: Yup.object({
-    nodevm: Yup.boolean(),
-    ws: Yup.boolean()
+    nodevm: Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean()
