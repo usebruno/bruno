@@ -361,14 +361,14 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        id="grpc-request"
-                        name="requestType"
-                        value="grpc-request"
-                        checked={formik.values.requestType === 'grpc-request'}
-                        onChange={formik.handleChange}
-                      />
+                    <input
+                      type="radio"
+                      id="grpc-request"
+                      name="requestType"
+                      value="grpc-request"
+                      checked={formik.values.requestType === 'grpc-request'}
+                      onChange={formik.handleChange}
+                    />
                     <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
                       gRPC
                     </label>
