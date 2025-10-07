@@ -254,6 +254,15 @@ const StyledWrapper = styled.div`
       background: rgba(142, 68, 173, 0.12);
       font-weight: 600;
     }
+    &.tags{
+      color: ${(props) => props.theme.colors.text.muted};
+      background: ${(props) => props.theme.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
+      margin-right: 4px;
+    }
+    &.highlighted {
+      background: ${(props) => `${props.theme.colors.text.yellow}30`};
+      color: ${(props) => props.theme.colors.text.yellow};
+    }
   }
   .result-type {
     font-size: 11px;
