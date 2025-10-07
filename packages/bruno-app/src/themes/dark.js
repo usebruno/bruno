@@ -102,7 +102,8 @@ const darkTheme = {
       options: '#d69956',
       head: '#d69956'
     },
-    grpc: '#6366f1'
+    grpc: '#6366f1',
+    graphql: '#e535ab'
   },
 
   requestTabPanel: {
