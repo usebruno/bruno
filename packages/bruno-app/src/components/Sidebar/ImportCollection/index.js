@@ -127,7 +127,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       <ImportSettings
         groupingType={groupingType}
         setGroupingType={setGroupingType}
-        isOpen={showImportSettings}
         onClose={onClose}
         onConfirm={handleImportSettings}
       />
@@ -135,13 +134,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   }
 
   return (
-    <Modal
-      size="sm"
-      title="Import Collection"
-      hideFooter={true}
-      handleCancel={onClose}
-      dataTestId="import-collection-modal"
-    >
+    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
       <div className="flex flex-col">
         <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
@@ -156,7 +149,10 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
             `}
           >
             <div className="flex flex-col items-center justify-center">
-              <IconFileImport size={28} className="text-gray-400 dark:text-gray-500 mb-3" />
+              <IconFileImport
+                size={28}
+                className="text-gray-400 dark:text-gray-500 mb-3"
+              />
               <input
                 ref={fileInputRef}
                 type="file"
@@ -166,7 +162,10 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
               />
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                 Drop file to import or{' '}
-                <button className="text-blue-500 underline cursor-pointer" onClick={handleBrowseFiles}>
+                <button
+                  className="text-blue-500 underline cursor-pointer"
+                  onClick={handleBrowseFiles}
+                >
                   choose a file
                 </button>
               </p>

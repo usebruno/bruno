@@ -13,7 +13,6 @@ const groupingOptions = [
 const ImportSettings = ({
   groupingType,
   setGroupingType,
-  isOpen,
   onClose,
   onConfirm
 }) => {
@@ -39,9 +38,6 @@ const ImportSettings = ({
     );
   });
 
-  if (!isOpen) {
-    return null;
-  }
 
   return (
     <Portal>
