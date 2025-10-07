@@ -27,6 +27,7 @@ const EnvironmentListContent = ({
                 maxWidth: '200px',
                 wordWrap: 'break-word'
               }}
+              delayShow={1000}
             >
               <div>
                 {environments.map((env) => (

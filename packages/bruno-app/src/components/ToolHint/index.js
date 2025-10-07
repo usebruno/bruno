@@ -14,6 +14,7 @@ const ToolHint = ({
   positionStrategy,
   theme = null,
   className = '',
+  delayShow = 200
 }) => {
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
@@ -48,7 +49,7 @@ const ToolHint = ({
           place={place}
           positionStrategy={positionStrategy}
           noArrow={true}
-          delayShow={200}
+          delayShow={delayShow}
           style={combinedToolhintStyle}
         />
       </StyledWrapper>

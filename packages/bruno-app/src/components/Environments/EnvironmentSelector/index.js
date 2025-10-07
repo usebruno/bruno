@@ -128,6 +128,7 @@ const EnvironmentSelector = ({ collection }) => {
                 text={activeCollectionEnvironment.name}
                 toolhintId={`collection-env-${activeCollectionEnvironment.uid}`}
                 place="bottom-start"
+                delayShow={1000}
               >
                 <span className="env-text max-w-24 truncate overflow-hidden inline-block">{activeCollectionEnvironment.name}</span>
               </ToolHint>
@@ -142,6 +143,7 @@ const EnvironmentSelector = ({ collection }) => {
               text={activeGlobalEnvironment.name}
               toolhintId={`global-env-${activeGlobalEnvironment.uid}`}
               place="bottom-start"
+              delayShow={1000}
             >
               <span className="env-text max-w-24 truncate overflow-hidden inline-block">{activeGlobalEnvironment.name}</span>
             </ToolHint>
