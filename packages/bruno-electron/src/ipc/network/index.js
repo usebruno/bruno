@@ -24,7 +24,7 @@ const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/fi
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
@@ -1125,6 +1125,13 @@ const registerNetworkIpc = (mainWindow) => {
                 credentialsId: request?.oauth2Credentials?.credentialsId,
                 ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
                 debugInfo: request?.oauth2Credentials?.debugInfo,
+              });
+
+              collection.oauth2Credentials = updateCollectionOauth2Credentials({
+                itemUid: item.uid,
+                collectionUid,
+                collectionOauth2Credentials: collection.oauth2Credentials,
+                requestOauth2Credentials: request.oauth2Credentials
               });
             }
 
