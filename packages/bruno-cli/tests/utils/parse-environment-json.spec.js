@@ -1,5 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
-const { parseEnvironmentJson, getEnvVars } = require('../../src/utils/bru');
+const { getEnvVars } = require('../../src/utils/bru');
+const { parseEnvironmentJson } = require('../../src/utils/environment');
 
 describe('parseEnvironmentJson', () => {
   it('normalizes single environment object', () => {
@@ -7,7 +8,7 @@ describe('parseEnvironmentJson', () => {
       name: 'My Env',
       variables: [
         { name: 'host', value: 'https://www.httpfaker.org' },
-        { name: 'token', value: 'abc', enabled: false }
+        { name: 'token', value: 'abc', enabled: false, secret: true }
       ]
     };
     const env = parseEnvironmentJson(input);
@@ -20,6 +21,7 @@ describe('parseEnvironmentJson', () => {
       secret: false
     });
     expect(env.variables[1].enabled).toBe(false);
+    expect(env.variables[1].secret).toBe(true);
 
     const vars = getEnvVars(env);
     expect(vars).toEqual({ host: 'https://www.httpfaker.org' });
