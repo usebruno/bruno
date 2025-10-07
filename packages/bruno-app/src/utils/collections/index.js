@@ -427,8 +427,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
 
         if (di.request.body.mode === 'ws') {
-          di.request.body.ws = di.request.body.ws.map(({ name, content }, index) => ({
+          di.request.body.ws = di.request.body.ws.map(({ name, content, type }, index) => ({
             name: name ? name : `message ${index + 1}`,
+            type: type ?? 'json',
             content: replaceTabsWithSpaces(content)
           }));
         }

@@ -1109,6 +1109,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
           ws: [
             {
               name: 'message 1',
+              type: 'json',
               content: '{}'
             }
           ]
