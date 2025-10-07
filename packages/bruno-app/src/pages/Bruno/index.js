@@ -83,13 +83,12 @@ export default function Main() {
     <div id="main-container" className="flex flex-col h-screen max-h-screen overflow-hidden">
       {showRosettaBanner ? (
         <Portal>
-          <div class="fixed bottom-0 left-0 right-0 z-10 bg-amber-100 border border-amber-400 text-amber-700 px-4 py-3" role="alert">
-            <strong class="font-bold">WARNING:</strong>
-            <span className="block inline ml-1"></span>
+          <div className="fixed bottom-0 left-0 right-0 z-10 bg-amber-100 border border-amber-400 text-amber-700 px-4 py-3" role="alert">
+            <strong className="font-bold">WARNING:</strong>
             <div>
-              It looks like Bruno was launched as the Intel (x64) build under Rosetta on your Apple Silicon Mac. This can cause reduced performance and unexpected behavior
+              It looks like Bruno was launched as the Intel (x64) build under Rosetta on your Apple Silicon Mac. This can cause reduced performance and unexpected behavior.
             </div>
-            <button class="absolute right-2 top-0 text-xl" onClick={() => setShowRosettaBanner(!showRosettaBanner)}>
+            <button className="absolute right-2 top-0 text-xl" onClick={() => setShowRosettaBanner(!showRosettaBanner)}>
               &times;
             </button>
           </div>
