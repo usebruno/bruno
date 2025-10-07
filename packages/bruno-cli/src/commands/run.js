@@ -209,6 +209,11 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Tags to exclude from the run'
     })
+    .option('collection', {
+      type: 'string',
+      description: 'Path to the collection directory',
+      default: process.cwd()
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
@@ -255,7 +260,9 @@ const builder = async (yargs) => {
     .example(
       '$0 run folder --tags=hello,world --exclude-tags=skip',
       'Run only requests with tags "hello" or "world" and exclude any request with tag "skip".'
-    );
+    )
+    .example('$0 run --noproxy', 'Run requests with system proxy disabled')
+    .example('$0 run --collection /path/to/collection', 'Run requests from a specific collection directory');
 };
 
 const handler = async function (argv) {
@@ -284,9 +291,10 @@ const handler = async function (argv) {
       noproxy,
       delay,
       tags: includeTags,
-      excludeTags
+      excludeTags,
+      collection: collectionDir
     } = argv;
-    const collectionPath = process.cwd();
+    const collectionPath = collectionDir || process.cwd();
 
     let collection = createCollectionJsonFromPathname(collectionPath);
     const { root: collectionRoot, brunoConfig } = collection;
@@ -455,7 +463,7 @@ const handler = async function (argv) {
       recursive = true;
     }
 
-    const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
+    const resolvedPaths = paths.map(p => path.resolve(collectionPath, p));
 
     for (const resolvedPath of resolvedPaths) {
       const pathExists = await exists(resolvedPath);
