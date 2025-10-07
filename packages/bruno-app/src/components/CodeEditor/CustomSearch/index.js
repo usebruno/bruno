@@ -3,13 +3,13 @@ import debounce from 'lodash/debounce';
 import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLetterW } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
+import useDebounce from 'hooks/useDebounce';
 
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
 }
 
 const CustomSearch = ({ visible, editor, onClose }) => {
-  const [searchBarVisible, setSearchBarVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [regex, setRegex] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
@@ -21,37 +21,39 @@ const CustomSearch = ({ visible, editor, onClose }) => {
   const searchLineHighlight = useRef(null);
   const searchMatches = useRef([]);
 
-const memoizedMatches = useMemo(() => {
-  if (!editor || !searchBarVisible) return [];
-  if (!searchText) return [];
+  const debouncedSearchText = useDebounce(searchText, 150);
 
-  try {
-    let query, options = {};
-    if (regex) {
-      try {
-        query = new RegExp(searchText, caseSensitive ? 'g' : 'gi');
-      } catch {
-        return [];
+  const memoizedMatches = useMemo(() => {
+    if (!editor || !visible) return [];
+    if (!debouncedSearchText) return [];
+
+    try {
+      let query, options = {};
+      if (regex) {
+        try {
+          query = new RegExp(debouncedSearchText, caseSensitive ? 'g' : 'gi');
+        } catch {
+          return [];
+        }
+      } else if (wholeWord) {
+        const escaped = escapeRegExp(debouncedSearchText);
+        query = new RegExp(`\\b${escaped}\\b`, caseSensitive ? 'g' : 'gi');
+      } else {
+        query = debouncedSearchText;
+        options = { caseFold: !caseSensitive };
       }
-    } else if (wholeWord) {
-      const escaped = escapeRegExp(searchText);
-      query = new RegExp(`\\b${escaped}\\b`, caseSensitive ? 'g' : 'gi');
-    } else {
-      query = searchText;
-      options = { caseFold: !caseSensitive };
-    }
 
-    const cursor = editor.getSearchCursor(query, { line: 0, ch: 0 }, options);
-    const out = [];
-    while (cursor.findNext()) {
-      out.push({ from: cursor.from(), to: cursor.to() });
+      const cursor = editor.getSearchCursor(query, { line: 0, ch: 0 }, options);
+      const out = [];
+      while (cursor.findNext()) {
+        out.push({ from: cursor.from(), to: cursor.to() });
+      }
+      return out;
+    } catch (e) {
+      console.error('Search error:', e);
+      return [];
     }
-    return out;
-  } catch (e) {
-    console.error('Search error:', e);
-    return [];
-  }
-}, [editor, searchBarVisible, searchText, regex, caseSensitive, wholeWord]);
+  }, [editor, visible, debouncedSearchText, regex, caseSensitive, wholeWord]);
 
 
   const doSearch = useCallback((newIndex = 0) => {
@@ -66,7 +68,7 @@ const memoizedMatches = useMemo(() => {
       searchLineHighlight.current = null;
     }
 
-    if (!searchText) {
+    if (!debouncedSearchText) {
       setMatchCount(0);
       setMatchIndex(0);
       searchMatches.current = [];
@@ -105,19 +107,16 @@ const memoizedMatches = useMemo(() => {
       searchMatches.current = [];
     }
 
-  }, [searchText, regex, caseSensitive, wholeWord, editor, memoizedMatches]);
+  }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor, memoizedMatches]);
 
-  const debounceSearch = useMemo(() => debounce((index = 0) => {
-    doSearch(index);
-  }, 150), [doSearch]);
+
 
   useEffect(() => {
-    if (visible) setSearchBarVisible(true);
-  }, [visible]);
+    doSearch(0, debouncedSearchText);
+  }, [debouncedSearchText, doSearch]);
 
   const handleSearchBarClose = useCallback(() => {
-    setSearchBarVisible(false);
-    searchMarks.current.forEach(mark => mark.clear());
+    searchMarks.current.forEach((mark) => mark.clear());
     searchMarks.current = [];
     if (searchLineHighlight.current !== null && editor) {
       editor.removeLineClass(searchLineHighlight.current, 'wrap', 'cm-search-line-highlight');
@@ -168,11 +167,7 @@ const memoizedMatches = useMemo(() => {
     doSearch(prev);
   };
 
-  useEffect(() => {
-      debounceSearch(0);
-  }, [ searchText, debounceSearch]);
-
-  if (!searchBarVisible) return null;
+  if (!visible) return null;
 
   return (
     <StyledWrapper>
