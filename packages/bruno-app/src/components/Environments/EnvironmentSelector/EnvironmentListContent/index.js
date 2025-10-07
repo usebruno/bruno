@@ -24,6 +24,7 @@ const EnvironmentListContent = ({
                   key={env.uid}
                   className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'active' : ''}`}
                   onClick={() => onEnvironmentSelect(env)}
+                  title={env.name.length > 20 ? env.name : undefined}
                 >
                   <span className="max-w-32 truncate no-wrap">{env.name}</span>
                 </div>
