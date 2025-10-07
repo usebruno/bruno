@@ -144,15 +144,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   }
 
   return (
-    <Modal
-      size="sm"
-      title={showImportSettings ? 'OpenAPI Import Settings' : 'Import Collection'}
-      hideFooter={!showImportSettings}
-      handleCancel={onClose}
-      confirmText={showImportSettings ? 'Import' : undefined}
-      handleConfirm={showImportSettings ? handleImportSettings : undefined}
-      dataTestId="import-collection-modal"
-    >
+    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
       {!showImportSettings && (
         <div className="flex flex-col">
           <div className="mb-4">
