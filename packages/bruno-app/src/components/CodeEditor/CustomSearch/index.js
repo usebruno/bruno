@@ -203,4 +203,4 @@ const CustomSearch = ({ visible, editor, onClose }) => {
   );
 };
 
-export default CustomSearch; 
+export default CustomSearch;

@@ -4,12 +4,6 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
   test('should open search box when Cmd+F or Ctrl+F is pressed in scripts tab', async ({ pageWithUserData: page }) => {
     await page.getByTitle('custom-search').click();
     
-    try {
-      await page.getByLabel('Safe Mode').check({ timeout: 5000 });
-      await page.getByRole('button', { name: 'Save' }).click();
-    } catch (e) {
-    }
-    
     await page.getByText('search-test-request').click();
 
     await page.getByRole('tab', { name: 'Script' }).click();

@@ -120,14 +120,6 @@ const StyledWrapper = styled.div`
   .cm-search-current {
     background: rgba(255, 193, 7, 0.4);
   }
-
-  .editor-container .CodeMirror-scroll {
-    padding-top: 0;
-    transition: padding-top 0.2s;
-  }
-  .editor-container.search-bar-visible .CodeMirror-scroll {
-    padding-top: 36px;
-  }
 `;
 
 export default StyledWrapper;
