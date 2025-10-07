@@ -101,15 +101,11 @@ export function addDigestInterceptor(axiosInstance, request) {
         const HA2 = md5(`${method}:${uri}`);
         let response;
         if (authDetails.qop && authDetails.qop.split(',').map((q) => q.trim().toLowerCase()).includes('auth')) {
-          console.debug("Using QOP 'auth' for Digest Authentication");
-          response = md5(
-            `${HA1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${HA2}`
-          );
+          console.debug('Using QOP \'auth\' for Digest Authentication');
+          response = md5(`${HA1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${HA2}`);
         } else {
-          console.debug("No QOP specified, using simple digest");
-          response = md5(
-            `${HA1}:${authDetails.nonce}:${HA2}`
-          );
+          console.debug('No QOP specified, using simple digest');
+          response = md5(`${HA1}:${authDetails.nonce}:${HA2}`);
         }
 
         const headerFields = [
@@ -121,12 +117,7 @@ export function addDigestInterceptor(axiosInstance, request) {
         ];
 
         if (authDetails.qop && authDetails.qop.split(',').map((q) => q.trim().toLowerCase()).includes('auth')) {
-          headerFields.push(
-            `qop="auth"`,
-            `algorithm="${authDetails.algorithm}"`,
-            `nc="${nonceCount}"`,
-            `cnonce="${cnonce}"`,
-          );
+          headerFields.push(`qop="auth"`, `algorithm="${authDetails.algorithm}"`, `nc="${nonceCount}"`, `cnonce="${cnonce}"`);
         }
 
         if (authDetails.opaque) {
