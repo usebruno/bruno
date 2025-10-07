@@ -82,6 +82,8 @@ class WsClient {
     const { timeout = 30000, keepAlive = false, keepAliveInterval = 10_000 } = options;
 
     const parsedUrl = getParsedWsUrlObject(url);
+    const timeoutAsNumber = Number(timeout);
+    const validTimeout = isNaN(timeoutAsNumber) ? 30000 : timeoutAsNumber;
 
     const requestId = request.uid;
     const collectionUid = collection.uid;
@@ -93,7 +95,7 @@ class WsClient {
 
       const wsOptions = {
         headers,
-        handshakeTimeout: timeout,
+        handshakeTimeout: validTimeout,
         followRedirects: true
       };
 
@@ -274,7 +276,6 @@ class WsClient {
 
       if (options.keepAlive) {
         const handle = setInterval(() => {
-          console.log('pinging to keep alive');
           ws.isAlive = false;
           ws.ping();
         }, options.keepAliveInterval);

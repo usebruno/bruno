@@ -429,9 +429,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       fallback: 0
     });
 
-    const timeout = getNumFromRecord('timeout', {
-      fallback: 250
-    });
+    const timeout = getNumFromRecord('timeout');
 
     return {
       settings: {
