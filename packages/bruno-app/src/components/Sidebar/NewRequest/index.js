@@ -21,14 +21,13 @@ import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import { BETA_FEATURES, useBetaFeature } from 'utils/beta-features';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
   const storedTheme = useTheme();
-  const isGrpcEnabled = useBetaFeature(BETA_FEATURES.GRPC);
   const isWsEnabled = useBetaFeature(BETA_FEATURES.WEBSOCKET);
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
@@ -93,10 +92,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     }
 
     if (collectionPresets.requestType === 'grpc') {
-      // If gRPC is disabled in beta features, fall back to http-request
-      if (!isGrpcEnabled) {
-        return 'http-request';
-      }
       return 'grpc-request';
     }
 
@@ -365,8 +360,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  {isGrpcEnabled && (
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                       <input
                         type="radio"
                         id="grpc-request"
@@ -375,11 +369,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                         checked={formik.values.requestType === 'grpc-request'}
                         onChange={formik.handleChange}
                       />
-                      <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
-                        gRPC
-                      </label>
-                    </div>
-                  )}
+                    <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
+                      gRPC
+                    </label>
+                  </div>
 
                   {isWsEnabled && (
                     <div className="flex items-center gap-2">

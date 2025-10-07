@@ -11,11 +11,6 @@ import get from 'lodash/get';
 // Beta features configuration
 const BETA_FEATURES = [
   {
-    id: 'grpc',
-    label: 'gRPC Support',
-    description: 'Enable gRPC request support for making gRPC calls to services'
-  },
-  {
     id: 'websocket',
     label: 'Web Socket Support',
     description: 'Enable Web Socket request support for making realtime calls to services'
@@ -108,16 +103,6 @@ const Beta = ({ close }) => {
                 <label className="block ml-2 select-none font-medium" htmlFor={feature.id}>
                   {feature.label}
                 </label>
-                {feature.id === 'grpc' && (
-                  <a 
-                    href="https://github.com/usebruno/bruno/discussions/5447" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="ml-2 text-xs text-blue-500 hover:text-blue-600 underline"
-                  >
-                    Share feedback
-                  </a>
-                )}
               </div>
               <div className="beta-feature-description ml-6 text-xs text-gray-500 dark:text-gray-400">
                 {feature.description}
