@@ -9,8 +9,8 @@ describe('getValueString', () => {
     expect(getValueString('line1\nline2\nline3')).toBe("'''\n  line1\n  line2\n  line3\n'''");
   });
 
-  it('preserves different newline types', () => {
-    expect(getValueString('line1\r\nline2\rline3\nline4')).toBe('\'\'\'\n  line1\r\n  line2\rline3\n  line4\n\'\'\'');
+  it('normalizes different newline types', () => {
+    expect(getValueString('line1\r\nline2\rline3\nline4')).toBe('\'\'\'\n  line1\n  line2\n  line3\n  line4\n\'\'\'');
   });
 
   it('returns empty string for empty/null/undefined', () => {

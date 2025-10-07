@@ -7,7 +7,6 @@ const safeParseJson = (json) => {
   }
 };
 
-// TODO: implement proper handling of newlines with \r\n, \r, \n
 
 const indentString = (str) => {
   if (!str || !str.length) {
@@ -15,7 +14,7 @@ const indentString = (str) => {
   }
 
   return str
-    .split('\n')
+    .split(/\r\n|\r|\n/)
     .map((line) => '  ' + line)
     .join('\n');
 };
@@ -26,7 +25,7 @@ const outdentString = (str) => {
   }
 
   return str
-    .split('\n')
+    .split(/\r\n|\r|\n/)
     .map((line) => line.replace(/^  /, ''))
     .join('\n');
 };
