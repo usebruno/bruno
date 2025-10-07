@@ -11,7 +11,7 @@ import { getTreePathFromCollectionToItem } from 'utils/collections/index';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
-const supportedAuthModes = ['basic', 'bearer', 'apikey', 'none', 'inherit'];
+const supportedAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'none', 'inherit'];
 
 const WSAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
