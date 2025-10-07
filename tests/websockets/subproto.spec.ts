@@ -35,6 +35,9 @@ test.describe.serial('subprotocol tests', () => {
     await clearText(originalProtocol);
     await page.keyboard.insertText(wrongProtocol);
 
+    // clear before making another request
+    await locators.toolbar.clearResponse().click();
+
     // Make another request and check the new set of messages to confirm that we did
     // get an error on connection
     await locators.runner().click();

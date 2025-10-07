@@ -184,12 +184,8 @@ const registerWsEventHandlers = (window) => {
 
   wsClient = new WsClient(sendEvent);
 
-  ipcMain.handle('ws:connections-changed', (event) => {
-    sendEvent('ws:connections-changed', event);
-  });
-
   // Start a new WebSocket connection
-  ipcMain.handle('ws:start-connection',
+  ipcMain.handle('renderer:ws:start-connection',
     async (event, { request, collection, environment, runtimeVariables, settings, options = {} }) => {
       try {
         const requestCopy = cloneDeep(request);
@@ -223,7 +219,7 @@ const registerWsEventHandlers = (window) => {
           }
         });
 
-        sendEvent('ws:request', preparedRequest.uid, collection.uid, requestSent);
+        sendEvent('main:ws:request', preparedRequest.uid, collection.uid, requestSent);
 
         // Send OAuth credentials update if available
         if (preparedRequest?.oauth2Credentials) {
@@ -245,13 +241,13 @@ const registerWsEventHandlers = (window) => {
         if (error instanceof Error) {
           throw error;
         }
-        sendEvent('ws:error', request.uid, collection.uid, { error: error.message });
+        sendEvent('main:ws:error', request.uid, collection.uid, { error: error.message });
         return { success: false, error: error.message };
       }
     });
 
   // Get all active connection IDs
-  ipcMain.handle('ws:get-active-connections', (event) => {
+  ipcMain.handle('renderer:ws:get-active-connections', (event) => {
     try {
       const activeConnectionIds = wsClient.getActiveConnectionIds();
       return { success: true, activeConnectionIds };
@@ -261,7 +257,7 @@ const registerWsEventHandlers = (window) => {
     }
   });
 
-  ipcMain.handle('ws:queue-message', (event, requestId, collectionUid, message) => {
+  ipcMain.handle('renderer:ws:queue-message', (event, requestId, collectionUid, message) => {
     try {
       wsClient.queueMessage(requestId, collectionUid, message);
       return { success: true };
@@ -272,7 +268,7 @@ const registerWsEventHandlers = (window) => {
   });
 
   // Send a message to an existing WebSocket connection
-  ipcMain.handle('ws:send-message', (event, requestId, collectionUid, message) => {
+  ipcMain.handle('renderer:ws:send-message', (event, requestId, collectionUid, message) => {
     try {
       wsClient.sendMessage(requestId, collectionUid, message);
       return { success: true };
@@ -283,7 +279,7 @@ const registerWsEventHandlers = (window) => {
   });
 
   // Close a WebSocket connection
-  ipcMain.handle('ws:close-connection', (event, requestId, code, reason) => {
+  ipcMain.handle('renderer:ws:close-connection', (event, requestId, code, reason) => {
     try {
       wsClient.close(requestId, code, reason);
       return { success: true };
@@ -294,7 +290,7 @@ const registerWsEventHandlers = (window) => {
   });
 
   // Check if a WebSocket connection is active
-  ipcMain.handle('ws:is-connection-active', (event, requestId) => {
+  ipcMain.handle('renderer:ws:is-connection-active', (event, requestId) => {
     try {
       const isActive = wsClient.isConnectionActive(requestId);
       return { success: true, isActive };

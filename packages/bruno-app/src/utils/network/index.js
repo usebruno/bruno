@@ -258,7 +258,7 @@ export const startWsConnection = async (item, collection, environment, runtimeVa
     const settings = item.draft ? item.draft.settings : item.settings;
 
     ipcRenderer
-      .invoke('ws:start-connection', {
+      .invoke('renderer:ws:start-connection', {
         request,
         collection,
         environment,
@@ -285,7 +285,7 @@ export const startWsConnection = async (item, collection, environment, runtimeVa
 export const queueWsMessage = async (item, collectionUid, message) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('ws:queue-message', item.uid, collectionUid, message).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:ws:queue-message', item.uid, collectionUid, message).then(resolve).catch(reject);
   });
 };
 
@@ -298,7 +298,7 @@ export const queueWsMessage = async (item, collectionUid, message) => {
 export const sendWsMessage = async (item, collectionUid, message) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('ws:send-message', item.uid, collectionUid, message).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:ws:send-message', item.uid, collectionUid, message).then(resolve).catch(reject);
   });
 };
 
@@ -310,7 +310,7 @@ export const sendWsMessage = async (item, collectionUid, message) => {
 export const closeWsConnection = async (requestId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('ws:close-connection', requestId).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:ws:close-connection', requestId).then(resolve).catch(reject);
   });
 };
 
@@ -322,6 +322,6 @@ export const closeWsConnection = async (requestId) => {
 export const isWsConnectionActive = async (requestId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('ws:is-connection-active', requestId).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:ws:is-connection-active', requestId).then(resolve).catch(reject);
   });
 };

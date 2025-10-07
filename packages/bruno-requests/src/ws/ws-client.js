@@ -110,12 +110,12 @@ class WsClient {
       this.#addConnection(requestId, collectionUid, wsConnection);
 
       // Emit connecting event
-      this.eventCallback('ws:connecting', requestId, collectionUid);
+      this.eventCallback('main:ws:connecting', requestId, collectionUid);
 
       return wsConnection;
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
-      this.eventCallback('ws:error', requestId, collectionUid, {
+      this.eventCallback('main:ws:error', requestId, collectionUid, {
         error: error.message
       });
       throw error;
@@ -174,10 +174,10 @@ class WsClient {
       // Send the message
       connectionMeta.connection.send(JSON.stringify(messageToSend), (error) => {
         if (error) {
-          this.eventCallback('ws:error', requestId, collectionUid, { error });
+          this.eventCallback('main:ws:error', requestId, collectionUid, { error });
         } else {
           // Emit message sent event
-          this.eventCallback('ws:message', requestId, collectionUid, {
+          this.eventCallback('main:ws:message', requestId, collectionUid, {
             message: messageToSend,
             messageHexdump: hexdump(JSON.stringify(messageToSend)),
             type: 'outgoing',
@@ -187,7 +187,7 @@ class WsClient {
       });
     } else {
       const error = new Error('WebSocket connection not available or not open');
-      this.eventCallback('ws:error', requestId, collectionUid, {
+      this.eventCallback('main:ws:error', requestId, collectionUid, {
         error: error.message
       });
     }
@@ -251,7 +251,7 @@ class WsClient {
 
     // Emit an event with empty active connection IDs
     if (connectionIds.length > 0) {
-      this.eventCallback('ws:connections-changed', {
+      this.eventCallback('main:ws:connections-changed', {
         type: 'cleared',
         activeConnectionIds: []
       });
@@ -282,7 +282,7 @@ class WsClient {
         this.connectionKeepAlive.set(requestId, handle);
       }
 
-      this.eventCallback('ws:open', requestId, collectionUid, {
+      this.eventCallback('main:ws:open', requestId, collectionUid, {
         timestamp: Date.now(),
         url: ws.url
       });
@@ -291,7 +291,7 @@ class WsClient {
     ws.on('redirect', (url, req) => {
       const headerNames = req.getHeaderNames();
       const headers = Object.fromEntries(headerNames.map((d) => [d, req.getHeader(d)]));
-      this.eventCallback('ws:redirect', requestId, collectionUid, {
+      this.eventCallback('main:ws:redirect', requestId, collectionUid, {
         message: `Redirected to ${url}`,
         type: 'info',
         timestamp: Date.now(),
@@ -300,7 +300,7 @@ class WsClient {
     });
 
     ws.on('upgrade', (response) => {
-      this.eventCallback('ws:upgrade', requestId, collectionUid, {
+      this.eventCallback('main:ws:upgrade', requestId, collectionUid, {
         type: 'info',
         timestamp: Date.now(),
         headers: { ...response.headers }
@@ -310,7 +310,7 @@ class WsClient {
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString());
-        this.eventCallback('ws:message', requestId, collectionUid, {
+        this.eventCallback('main:ws:message', requestId, collectionUid, {
           message,
           messageHexdump: hexdump(Buffer.from(data)),
           type: 'incoming',
@@ -318,7 +318,7 @@ class WsClient {
         });
       } catch (error) {
         // If parsing fails, send as raw data
-        this.eventCallback('ws:message', requestId, collectionUid, {
+        this.eventCallback('main:ws:message', requestId, collectionUid, {
           message: data.toString(),
           messageHexdump: hexdump(data),
           type: 'incoming',
@@ -328,7 +328,7 @@ class WsClient {
     });
 
     ws.on('close', (code, reason) => {
-      this.eventCallback('ws:close', requestId, collectionUid, {
+      this.eventCallback('main:ws:close', requestId, collectionUid, {
         code,
         reason: Buffer.from(reason).toString(),
         timestamp: Date.now()
@@ -337,7 +337,7 @@ class WsClient {
     });
 
     ws.on('error', (error) => {
-      this.eventCallback('ws:error', requestId, collectionUid, {
+      this.eventCallback('main:ws:error', requestId, collectionUid, {
         error: error.message,
         timestamp: Date.now()
       });
@@ -354,7 +354,7 @@ class WsClient {
     this.activeConnections.set(requestId, { collectionUid, connection });
 
     // Emit an event with all active connection IDs
-    this.eventCallback('ws:connections-changed', {
+    this.eventCallback('main:ws:connections-changed', {
       type: 'added',
       requestId,
       activeConnectionIds: this.getActiveConnectionIds()
@@ -381,7 +381,7 @@ class WsClient {
       this.activeConnections.delete(requestId);
 
       // Emit an event with all active connection IDs
-      this.eventCallback('ws:connections-changed', {
+      this.eventCallback('main:ws:connections-changed', {
         type: 'removed',
         requestId,
         activeConnectionIds: this.getActiveConnectionIds()

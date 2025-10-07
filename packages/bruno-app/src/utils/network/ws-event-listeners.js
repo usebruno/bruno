@@ -16,7 +16,7 @@ const useWsEventListeners = () => {
     ipcRenderer.invoke('renderer:ready');
 
     // Handle WebSocket requestSent event
-    const removeWsRequestSentListener = ipcRenderer.on('ws:request', (requestId, collectionUid, eventData) => {
+    const removeWsRequestSentListener = ipcRenderer.on('main:ws:request', (requestId, collectionUid, eventData) => {
       dispatch(runWsRequestEvent({
         eventType: 'request',
         itemUid: requestId,
@@ -26,7 +26,7 @@ const useWsEventListeners = () => {
       }));
     });
 
-    const removeWsUpgradeListener = ipcRenderer.on('ws:upgrade', (requestId, collectionUid, eventData) => {
+    const removeWsUpgradeListener = ipcRenderer.on('main:ws:upgrade', (requestId, collectionUid, eventData) => {
       dispatch(wsResponseReceived({
         itemUid: requestId,
         collectionUid: collectionUid,
@@ -35,7 +35,7 @@ const useWsEventListeners = () => {
       }));
     });
 
-    const removeWsRedirectListener = ipcRenderer.on('ws:redirect', (requestId, collectionUid, eventData) => {
+    const removeWsRedirectListener = ipcRenderer.on('main:ws:redirect', (requestId, collectionUid, eventData) => {
       dispatch(wsResponseReceived({
         itemUid: requestId,
         collectionUid: collectionUid,
@@ -45,7 +45,7 @@ const useWsEventListeners = () => {
     });
 
     // Handle WebSocket message event
-    const removeWsMessageListener = ipcRenderer.on('ws:message', (requestId, collectionUid, eventData) => {
+    const removeWsMessageListener = ipcRenderer.on('main:ws:message', (requestId, collectionUid, eventData) => {
       dispatch(wsResponseReceived({
         itemUid: requestId,
         collectionUid: collectionUid,
@@ -55,7 +55,7 @@ const useWsEventListeners = () => {
     });
 
     // Handle WebSocket open event
-    const removeWsOpenListener = ipcRenderer.on('ws:open', (requestId, collectionUid, eventData) => {
+    const removeWsOpenListener = ipcRenderer.on('main:ws:open', (requestId, collectionUid, eventData) => {
       dispatch(wsResponseReceived({
         itemUid: requestId,
         collectionUid: collectionUid,
@@ -65,7 +65,7 @@ const useWsEventListeners = () => {
     });
 
     // Handle WebSocket close event
-    const removeWsCloseListener = ipcRenderer.on('ws:close', (requestId, collectionUid, eventData) => {
+    const removeWsCloseListener = ipcRenderer.on('main:ws:close', (requestId, collectionUid, eventData) => {
       dispatch(wsResponseReceived({
         itemUid: requestId,
         collectionUid: collectionUid,
@@ -75,7 +75,7 @@ const useWsEventListeners = () => {
     });
 
     // Handle WebSocket error event
-    const removeWsErrorListener = ipcRenderer.on('ws:error', (requestId, collectionUid, eventData) => {
+    const removeWsErrorListener = ipcRenderer.on('main:ws:error', (requestId, collectionUid, eventData) => {
       dispatch(wsResponseReceived({
         itemUid: requestId,
         collectionUid: collectionUid,
@@ -85,7 +85,7 @@ const useWsEventListeners = () => {
     });
 
     // Handle WebSocket connecting event
-    const removeWsConnectingListener = ipcRenderer.on('ws:connecting', (requestId, collectionUid, eventData) => {
+    const removeWsConnectingListener = ipcRenderer.on('main:ws:connecting', (requestId, collectionUid, eventData) => {
       dispatch(wsResponseReceived({
         itemUid: requestId,
         collectionUid: collectionUid,
@@ -94,7 +94,7 @@ const useWsEventListeners = () => {
       }));
     });
 
-    const removeWsConnectionsChangedListener = ipcRenderer.on('ws:connections-changed', (data) => {
+    const removeWsConnectionsChangedListener = ipcRenderer.on('main:ws:connections-changed', (data) => {
       dispatch(updateActiveConnectionsInStore(data));
     });
 
