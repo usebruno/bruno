@@ -55,12 +55,11 @@ const CustomSearch = ({ visible, editor, onClose }) => {
     }
   }, [editor, visible, debouncedSearchText, regex, caseSensitive, wholeWord]);
 
-
   const doSearch = useCallback((newIndex = 0) => {
     if (!editor) return;
 
     // Clear previous marks
-    searchMarks.current.forEach(mark => mark.clear());
+    searchMarks.current.forEach((mark) => mark.clear());
     searchMarks.current = [];
     // Clear previous line highlight
     if (searchLineHighlight.current !== null) {
@@ -85,18 +84,18 @@ const CustomSearch = ({ visible, editor, onClose }) => {
         });
         searchMarks.current.push(mark);
       });
-  
+
       if (matches.length) {
         const currentLine = matches[matchIndex].from.line;
         editor.addLineClass(currentLine, 'wrap', 'cm-search-line-highlight');
         searchLineHighlight.current = currentLine;
-  
+
         editor.scrollIntoView(matches[matchIndex].from, 100);
         editor.setSelection(matches[matchIndex].from, matches[matchIndex].to);
       } else {
         searchLineHighlight.current = null;
       }
-  
+
       setMatchCount(matches.length);
       setMatchIndex(matchIndex);
       searchMatches.current = matches;
@@ -106,10 +105,7 @@ const CustomSearch = ({ visible, editor, onClose }) => {
       setMatchIndex(0);
       searchMatches.current = [];
     }
-
   }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor, memoizedMatches]);
-
-
 
   useEffect(() => {
     doSearch(0, debouncedSearchText);
@@ -136,19 +132,19 @@ const CustomSearch = ({ visible, editor, onClose }) => {
   };
 
   const handleToggleRegex = () => {
-    setRegex(prev => !prev);
+    setRegex((prev) => !prev);
     setMatchIndex(0);
     doSearch(0);
   };
 
   const handleToggleCase = () => {
-    setCaseSensitive(prev => !prev);
+    setCaseSensitive((prev) => !prev);
     setMatchIndex(0);
     doSearch(0);
   };
 
   const handleToggleWholeWord = () => {
-    setWholeWord(prev => !prev);
+    setWholeWord((prev) => !prev);
     setMatchIndex(0);
     doSearch(0);
   };
@@ -176,10 +172,10 @@ const CustomSearch = ({ visible, editor, onClose }) => {
           autoFocus
           type="text"
           value={searchText}
-          onChange={e => handleSearchTextChange(e.target.value)}
+          onChange={(e) => handleSearchTextChange(e.target.value)}
           placeholder="Search..."
           spellCheck={false}
-          onKeyDown={e => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) handleNext();
             if (e.key === 'Enter' && e.shiftKey) handlePrev();
             if (e.key === 'Escape') handleSearchBarClose();

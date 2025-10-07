@@ -261,7 +261,7 @@ export default class CodeEditor extends React.Component {
         />
         <div
           className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
-          ref={node => { this._node = node; }}
+          ref={(node) => { this._node = node; }}
           style={{ height: '100%', width: '100%' }}
         />
       </StyledWrapper>
