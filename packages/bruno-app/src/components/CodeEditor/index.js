@@ -124,6 +124,11 @@ export default class CodeEditor extends React.Component {
           } else {
             this.editor.toggleComment();
           }
+        },
+        'Esc': () => {
+          if (this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: false });
+          }
         }
       },
       foldOptions: {

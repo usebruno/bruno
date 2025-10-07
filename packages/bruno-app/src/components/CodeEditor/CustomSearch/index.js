@@ -126,22 +126,6 @@ const CustomSearch = ({ visible, editor, onClose }) => {
     }
   }, [editor, onClose]);
 
-  useEffect(() => {
-    if (!visible || !editor) return;
-
-    const handleKeyDown = (cm, event) => {
-      if (event.key === 'Escape') {
-        handleSearchBarClose();
-      }
-    };
-
-    editor.on('keydown', handleKeyDown);
-
-    return () => {
-      editor.off('keydown', handleKeyDown);
-    };
-  }, [visible, editor, handleSearchBarClose]);
-
   const handleSearchTextChange = (text) => {
     setSearchText(text);
     setMatchIndex(0);
