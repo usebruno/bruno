@@ -100,7 +100,7 @@ export function addDigestInterceptor(axiosInstance, request) {
         const HA1 = md5(`${username}:${authDetails.realm}:${password}`);
         const HA2 = md5(`${method}:${uri}`);
         let response;
-        if (authDetails.qop && authDetails.qop.toLowerCase().includes('auth')) {
+        if (authDetails.qop && authDetails.qop.split(',').map((q) => q.trim().toLowerCase()).includes('auth')) {
           console.debug("Using QOP 'auth' for Digest Authentication");
           response = md5(
             `${HA1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${HA2}`
@@ -120,7 +120,7 @@ export function addDigestInterceptor(axiosInstance, request) {
           `response="${response}"`,
         ];
 
-        if (authDetails.qop && authDetails.qop.toLowerCase().includes('auth')) {
+        if (authDetails.qop && authDetails.qop.split(',').map((q) => q.trim().toLowerCase()).includes('auth')) {
           headerFields.push(
             `qop="auth"`,
             `algorithm="${authDetails.algorithm}"`,
