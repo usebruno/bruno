@@ -1,7 +1,13 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('OpenAPI Newline Handling', () => {
+  test.afterEach(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
   test('should handle operation names with newlines', async ({ page, createTmpDir }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-newline-in-operation-name.yaml');
 
@@ -15,14 +21,12 @@ test.describe('OpenAPI Newline Handling', () => {
     // upload the OpenAPI file with problematic operation names
     await page.setInputFiles('input[type="file"]', openApiFile);
 
-    // verify that the import modal switches to settings view
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
+    // verify that the import settings modal appears
+    const settingsModal = page.getByTestId('import-settings-modal');
+    await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
 
-    // verify the settings content is visible
-    await expect(importModal.getByText('Folder arrangement')).toBeVisible();
-
-    // click the Import button in the modal footer
-    await importModal.getByRole('button', { name: 'Import' }).click();
+    // click the Import button in the settings modal footer
+    await settingsModal.getByRole('button', { name: 'Import' }).click();
 
     // wait for the file processing to complete
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
@@ -46,14 +50,5 @@ test.describe('OpenAPI Newline Handling', () => {
     // verify that all requests were imported correctly despite newlines in operation names
     // the parser should clean up the operation names and create valid request names
     await expect(page.locator('#collection-newline-test-collection .collection-item-name')).toHaveCount(2);
-
-    // cleanup: close the collection
-    await page
-      .locator('.collection-name')
-      .filter({ has: page.locator('#sidebar-collection-name:has-text("Newline Test Collection")') })
-      .locator('.collection-actions')
-      .click();
-    await page.locator('.dropdown-item').getByText('Close').click();
-    await page.getByRole('button', { name: 'Close' }).click();
   });
 });

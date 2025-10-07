@@ -131,6 +131,18 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     'application/x-yaml'
   ]
 
+  if (showImportSettings) {
+    return (
+      <ImportSettings
+        groupingType={groupingType}
+        setGroupingType={setGroupingType}
+        isOpen={showImportSettings}
+        onClose={onClose}
+        onConfirm={handleImportSettings}
+      />
+    );
+  }
+
   return (
     <Modal
       size="sm"
@@ -141,14 +153,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       handleConfirm={showImportSettings ? handleImportSettings : undefined}
       dataTestId="import-collection-modal"
     >
-      {showImportSettings ? (
-        <div className="flex flex-col">
-          <ImportSettings
-            groupingType={groupingType}
-            setGroupingType={setGroupingType}
-          />
-        </div>
-      ) : (
+      {!showImportSettings && (
         <div className="flex flex-col">
           <div className="mb-4">
             <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
