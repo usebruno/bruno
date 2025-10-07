@@ -45,7 +45,7 @@ export default class CodeEditor extends React.Component {
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
-      lineWrapping: true,
+      lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
       brunoVarInfo: {
@@ -235,6 +235,14 @@ export default class CodeEditor extends React.Component {
 
     if (this.props.initialScroll !== prevProps.initialScroll) {
       this.editor.scrollTo(null, this.props.initialScroll);
+    }
+
+    if (this.props.enableLineWrapping !== prevProps.enableLineWrapping) {
+      this.editor.setOption('lineWrapping', this.props.enableLineWrapping);
+    }
+
+    if (this.props.mode !== prevProps.mode) {
+      this.editor.setOption('mode', this.props.mode);
     }
 
     this.ignoreChangeEvent = false;
