@@ -38,7 +38,6 @@ const ImportSettings = ({
     );
   });
 
-
   return (
     <Portal>
       <Modal
