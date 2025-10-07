@@ -1,16 +1,15 @@
-import React from 'react';
-import { Tooltip } from 'react-tooltip';
-import { useDispatch, useSelector } from 'react-redux';
-import get from 'lodash/get';
-
+import cn from 'classnames';
+import InfoTip from 'components/InfoTip/index';
 import SingleLineEditor from 'components/SingleLineEditor';
+import ToolHint from 'components/ToolHint/index';
+import { useFormik } from 'formik';
+import get from 'lodash/get';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
-
-import ToggleSelector from '../Settings/ToggleSelector/index';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import * as Yup from 'yup';
 import StyledWrapper from './StyledWrapper';
-import Accordion from 'components/Accordion';
-import InfoTip from 'components/InfoTip/index';
 
 /**
  * @param {string} propertyKey
@@ -20,36 +19,48 @@ import InfoTip from 'components/InfoTip/index';
 const getPropertyFromDraftOrRequest = (propertyKey, item) =>
   item.draft ? get(item, `draft.${propertyKey}`, {}) : get(item, propertyKey, {});
 
+const schema = Yup.object().shape({
+  timeout: Yup.number('Timeout needs to be a valid number')
+    .typeError('Timeout needs to be a valid number'),
+  keepAliveInterval: Yup.number('Keep Alive Interval needs to be a valid number')
+    .typeError('Keep Alive Interval needs to be a valid number')
+});
+
 const WSSettingsPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const requestPreferences = useSelector((state) => state.app.preferences.request);
 
-  const { _connectionTimeout, keepAliveInterval = 0 } = getPropertyFromDraftOrRequest('settings', item);
+  const { timeout: _connectionTimeout, keepAliveInterval = 0 } = getPropertyFromDraftOrRequest('settings', item);
 
   const connectionTimeout = _connectionTimeout ?? requestPreferences.timeout;
 
-  const onChangeConnectionTimeout = (val) => {
-    dispatch(updateItemSettings({
-      collectionUid: collection.uid,
-      itemUid: item.uid,
-      settings: { connectionTimeout: val }
-    }));
-  };
+  const formik = useFormik({
+    validationSchema: schema,
+    validateOnChange: true,
+    validateOnMount: true,
+    enableReinitialize: true,
+    initialValues: {
+      timeout: connectionTimeout,
+      keepAliveInterval
+    }
+  });
 
-  const onChangeKeepAliveInterval = (val) => {
-    dispatch(updateItemSettings({
-      collectionUid: collection.uid,
-      itemUid: item.uid,
-      settings: { keepAliveInterval: val }
-    }));
-  };
+  useEffect(() => {
+    if (formik.isValid) {
+      dispatch(updateItemSettings({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        settings: { ...formik.values }
+      }));
+    }
+  }, [formik.values.timeout, formik.values.keepAliveInterval, formik.isValid]);
 
   return (
     <StyledWrapper className="flex flex-col mt-4 gap-4 w-full">
       <section className="grid gap-4 items-center grid-cols-2">
         <div>
-          <label className="font-medium mb-2">Connection Timeout</label>
+          <label className="font-medium mb-2">Timeout</label>
           <InfoTip
             infotipId="setting-connection-timeout"
             className="tooltip-mod max-w-lg"
@@ -63,13 +74,23 @@ const WSSettingsPane = ({ item, collection }) => {
           />
         </div>
         <div>
-          <div className="single-line-editor-wrapper">
-            <SingleLineEditor
-              value={connectionTimeout}
-              theme={storedTheme}
-              onChange={(newValue) => onChangeConnectionTimeout(newValue)}
-              collection={collection}
-            />
+          <div className={cn('single-line-editor-wrapper', {
+            error: formik.errors.timeout
+          })}
+          >
+            <ToolHint
+              key="timeout"
+              toolhintId="ws-settings-timeout"
+              place="top"
+              text={formik.errors.timeout ? formik.errors.timeout : ''}
+            >
+              <SingleLineEditor
+                value={formik.values.timeout}
+                theme={storedTheme}
+                onChange={(newValue) => formik.handleChange('timeout')(newValue)}
+                collection={collection}
+              />
+            </ToolHint>
           </div>
         </div>
 
@@ -91,13 +112,23 @@ const WSSettingsPane = ({ item, collection }) => {
           />
         </div>
         <div>
-          <div className="single-line-editor-wrapper">
-            <SingleLineEditor
-              value={keepAliveInterval}
-              theme={storedTheme}
-              onChange={(newValue) => onChangeKeepAliveInterval(newValue)}
-              collection={collection}
-            />
+          <div className={cn('single-line-editor-wrapper', {
+            error: formik.errors.keepAliveInterval
+          })}
+          >
+            <ToolHint
+              key="timeout"
+              toolhintId="ws-settings-keepAliveInterval"
+              place="top"
+              text={formik.errors.keepAliveInterval ? formik.errors.keepAliveInterval : ''}
+            >
+              <SingleLineEditor
+                value={formik.values.keepAliveInterval}
+                theme={storedTheme}
+                onChange={(newValue) => formik.handleChange('keepAliveInterval')(newValue)}
+                collection={collection}
+              />
+            </ToolHint>
           </div>
         </div>
       </section>

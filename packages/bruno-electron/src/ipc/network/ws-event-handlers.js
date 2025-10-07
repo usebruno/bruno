@@ -217,7 +217,7 @@ const registerWsEventHandlers = (window) => {
           request: preparedRequest,
           collection,
           options: {
-            timeout: settings.connectionTimeout,
+            timeout: settings.timeout,
             keepAlive: settings.keepAliveInterval > 0 ? true : false,
             keepAliveInterval: settings.keepAliveInterval
           }
