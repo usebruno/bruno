@@ -209,6 +209,10 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Tags to exclude from the run'
     })
+    .option('verbose', {
+      type: 'boolean',
+      description: 'Allow verbose output for debugging purposes'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
@@ -284,7 +288,8 @@ const handler = async function (argv) {
       noproxy,
       delay,
       tags: includeTags,
-      excludeTags
+      excludeTags,
+      verbose
     } = argv;
     const collectionPath = process.cwd();
 
@@ -390,6 +395,9 @@ const handler = async function (argv) {
     }
     if (noproxy) {
       options['noproxy'] = true;
+    }
+    if (verbose) {
+      options['verbose'] = true;
     }
     if (cacert && cacert.length) {
       if (insecure) {
