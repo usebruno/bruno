@@ -2364,6 +2364,14 @@ export const collectionsSlice = createSlice({
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
+              // Persist the selection to the UI state snapshot
+              const { ipcRenderer } = window;
+              if (ipcRenderer) {
+                ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+                  type: 'COLLECTION_ENVIRONMENT',
+                  data: { collectionPath: collection?.pathname, environmentName: environment.name }
+                });
+              }
             }
           }
         }

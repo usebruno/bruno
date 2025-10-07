@@ -57,6 +57,7 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
+const { transformBrunoConfigBeforeSave } = require('../utils/transfomBrunoConfig');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -852,8 +853,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {
     try {
+      const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
       const brunoConfigPath = path.join(collectionPath, 'bruno.json');
-      const content = await stringifyJson(brunoConfig);
+      const content = await stringifyJson(transformedBrunoConfig);
       await writeFile(brunoConfigPath, content);
     } catch (error) {
       return Promise.reject(error);
