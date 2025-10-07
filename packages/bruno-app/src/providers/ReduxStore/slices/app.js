@@ -29,7 +29,6 @@ const initialState = {
       defaultCollectionLocation: ''
     },
     beta: {
-      grpc: false,
       websocket: false
     }
   },
