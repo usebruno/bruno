@@ -436,7 +436,12 @@ const itemSchema = Yup.object({
     encodeUrl: Yup.boolean().nullable(),
     followRedirects: Yup.boolean().nullable(),
     maxRedirects: Yup.number().min(0).max(50).nullable(),
-    timeout: Yup.number().min(0).nullable()
+    timeout: Yup.mixed().test('timeout-validation', 'timeout must be a number >= 0 or "inherit"', function(value) {
+      if (value === null || value === undefined) return true;
+      if (value === 'inherit') return true;
+      if (typeof value === 'number' && value >= 0) return true;
+      return false;
+    }).nullable()
   })
     .noUnknown(true)
     .strict()

@@ -423,11 +423,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     }
 
-    // Parse timeout as number
+    // Parse timeout as number or inherit
     if (settings.timeout !== undefined) {
-      const timeout = parseInt(settings.timeout, 10);
-      if (!isNaN(timeout)) {
-        parsedSettings.timeout = timeout;
+      if (settings.timeout === 'inherit') {
+        parsedSettings.timeout = 'inherit';
+      } else {
+        const timeout = parseInt(settings.timeout, 10);
+        if (!isNaN(timeout)) {
+          parsedSettings.timeout = timeout;
+        }
       }
     }
 

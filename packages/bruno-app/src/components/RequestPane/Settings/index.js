@@ -1,9 +1,10 @@
 import React, { useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { IconTag } from '@tabler/icons';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
+import InheritableSettingsInput from 'components/InheritableSettingsInput';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
@@ -13,7 +14,7 @@ const DEFAULT_SETTINGS = {
   encodeUrl: false,
   followRedirects: true,
   maxRedirects: 5,
-  timeout: 0
+  timeout: 'inherit'
 };
 
 const Settings = ({ item, collection }) => {
@@ -50,9 +51,23 @@ const Settings = ({ item, collection }) => {
   }, [updateSetting]);
 
   const onTimeoutChange = useCallback((e) => {
-    const value = e.target.value ? parseInt(e.target.value, 10) : 0;
-    updateSetting({ timeout: value });
+    const value = e.target.value;
+    // If the value is 'inherit', keep it as a string, otherwise convert to number
+    const finalValue = value === 'inherit' ? 'inherit' : (value ? parseInt(value, 10) : 0);
+    updateSetting({ timeout: finalValue });
   }, [updateSetting]);
+
+  // Check if timeout is inherited
+  const isTimeoutInherited = timeout === 'inherit' || timeout === undefined || timeout === null;
+
+  const handleTimeoutDropdownSelect = useCallback((option) => {
+    if (option === 'inherit') {
+      onTimeoutChange({ target: { value: 'inherit' } });
+    } else if (option === 'custom') {
+      // Switch to custom value - start with 0
+      onTimeoutChange({ target: { value: 0 } });
+    }
+  }, [onTimeoutChange]);
 
   // Keyboard shortcut handlers
   const onSave = useCallback(() => {
@@ -121,15 +136,18 @@ const Settings = ({ item, collection }) => {
             onKeyDown={handleKeyDown}
           />
 
-          <SettingsInput
+          <InheritableSettingsInput
             id="timeout"
             label="Timeout (ms)"
             value={timeout}
-            onChange={onTimeoutChange}
             type="number"
             min={0}
             description="Set maximum time to wait before aborting the request"
             onKeyDown={handleKeyDown}
+            isInherited={isTimeoutInherited}
+            onDropdownSelect={handleTimeoutDropdownSelect}
+            onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
+            onCustomValueReset={() => onTimeoutChange({ target: { value: 'inherit' } })}
           />
         </div>
       </div>

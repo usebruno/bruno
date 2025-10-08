@@ -18,6 +18,7 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
+const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
@@ -203,7 +204,8 @@ const configureRequest = async (
   }
 
   // Get timeout from request settings, fallback to global preference
-  request.timeout = request.settings?.timeout || preferencesUtil.getRequestTimeout();
+  const resolvedSettings = resolveInheritedSettings(request.settings || {});
+  request.timeout = resolvedSettings.timeout;
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
@@ -286,8 +288,9 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const collectionRoot = get(collection, 'root', {});
     const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, _request, collectionRoot);
 
-    // Get timeout from request settings, fallback to global preference
-    request.timeout = request.settings?.timeout || preferencesUtil.getRequestTimeout();
+    // Get timeout from request settings, resolve inheritance if needed
+    const resolvedSettings = resolveInheritedSettings(request.settings || {});
+    request.timeout = resolvedSettings.timeout;
 
     if (!preferencesUtil.shouldVerifyTls()) {
       request.httpsAgent = new https.Agent({
