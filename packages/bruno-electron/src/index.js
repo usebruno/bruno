@@ -46,6 +46,7 @@ const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
+const { getIsRunningInRosetta } = require('./utils/arch');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
@@ -203,7 +204,9 @@ app.on('ready', async () => {
       console.error('Failed to load cookies for renderer', err);
     }
 
-    mainWindow.webContents.send('main:app-loaded');
+    mainWindow.webContents.send('main:app-loaded', {
+      isRunningInRosetta: getIsRunningInRosetta()
+    });
 
     // Start system monitoring for FileSync
     systemMonitor.start(mainWindow);

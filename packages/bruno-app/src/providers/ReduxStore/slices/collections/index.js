@@ -44,6 +44,26 @@ const grpcStatusCodes = {
   16: 'UNAUTHENTICATED'
 };
 
+// WebSocket status code meanings
+const wsStatusCodes = {
+  1000: 'NORMAL_CLOSURE',
+  1001: 'GOING_AWAY',
+  1002: 'PROTOCOL_ERROR',
+  1003: 'UNSUPPORTED_DATA',
+  1004: 'RESERVED',
+  1005: 'NO_STATUS_RECEIVED',
+  1006: 'ABNORMAL_CLOSURE',
+  1007: 'INVALID_FRAME_PAYLOAD_DATA',
+  1008: 'POLICY_VIOLATION',
+  1009: 'MESSAGE_TOO_BIG',
+  1010: 'MANDATORY_EXTENSION',
+  1011: 'INTERNAL_ERROR',
+  1012: 'SERVICE_RESTART',
+  1013: 'TRY_AGAIN_LATER',
+  1014: 'BAD_GATEWAY',
+  1015: 'TLS_HANDSHAKE'
+};
+
 const initialState = {
   collections: [],
   collectionSortOrder: 'default',
@@ -64,6 +84,23 @@ const initiatedGrpcResponse = {
   responses: [],
   timestamp: Date.now(),
 }
+
+const initiatedWsResponse = {
+  status: 'PENDING',
+  statusText: 'PENDING',
+  statusCode: 0,
+  headers: [],
+  body: '',
+  size: 0,
+  duration: 0,
+  sortOrder: -1,
+  responses: [],
+  isError: false,
+  error: null,
+  errorDetails: null,
+  metadata: [],
+  trailers: []
+};
 
 export const collectionsSlice = createSlice({
   name: 'collections',
@@ -1439,6 +1476,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.grpc = action.payload.content;
               break;
             }
+            case 'ws': {
+              item.draft.request.body.ws = action.payload.content;
+              break;
+            }
           }
         }
       }
@@ -1984,6 +2025,9 @@ export const collectionsSlice = createSlice({
           case 'wsse':
             set(folder, 'root.request.auth.wsse', action.payload.content);
             break;
+          case 'ws':
+            set(folder, 'root.request.auth.ws', action.payload.content);
+            break;
         }
       }
     },
@@ -2323,6 +2367,14 @@ export const collectionsSlice = createSlice({
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
+              // Persist the selection to the UI state snapshot
+              const { ipcRenderer } = window;
+              if (ipcRenderer) {
+                ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+                  type: 'COLLECTION_ENVIRONMENT',
+                  data: { collectionPath: collection?.pathname, environmentName: environment.name }
+                });
+              }
             }
           }
         }
@@ -2724,6 +2776,146 @@ export const collectionsSlice = createSlice({
     updateActiveConnections: (state, action) => {
       state.activeConnections = [...action.payload.activeConnectionIds];
     },
+    runWsRequestEvent: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+      const request = item.draft ? item.draft.request : item.request;
+
+      if (eventType === 'request') {
+        item.requestSent = eventData;
+        item.requestSent.timestamp = Date.now();
+        item.response = {
+          ...initiatedWsResponse,
+          initiatedWsResponse,
+          statusText: 'CONNECTING'
+        };
+      }
+
+      if (!collection.timeline) {
+        collection.timeline = [];
+      }
+
+      collection.timeline.push({
+        type: 'request',
+        eventType: eventType,
+        collectionUid: collection.uid,
+        folderUid: null,
+        itemUid: item.uid,
+        timestamp: Date.now(),
+        data: {
+          request: eventData || item.requestSent || item.request,
+          timestamp: Date.now(),
+          eventData: eventData
+        }
+      });
+    },
+    wsResponseReceived: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+
+      if (!item) return;
+
+      // Get current response state or create initial state
+      const currentResponse = item.response || initiatedWsResponse;
+      const timestamp = item?.requestSent?.timestamp;
+      let updatedResponse = {
+        ...currentResponse,
+        isError: false,
+        error: '',
+        duration: Date.now() - (timestamp || Date.now())
+      };
+
+      // Process based on event type
+      switch (eventType) {
+        case 'message':
+          // Add message to responses list
+          updatedResponse.responses = (currentResponse?.responses || []).concat(eventData);
+          break;
+
+        case 'redirect':
+          updatedResponse.requestHeaders = eventData.headers;
+          updatedResponse.responses ||= [];
+          updatedResponse.responses.push({
+            message: eventData.message,
+            type: eventData.type,
+            timestamp: eventData.timestamp
+          });
+          break;
+
+        case 'upgrade':
+          updatedResponse.headers = eventData.headers;
+          break;
+
+        case 'open':
+          updatedResponse.status = 'CONNECTED';
+          updatedResponse.statusText = 'CONNECTED';
+          updatedResponse.statusCode = 0;
+          updatedResponse.responses ||= [];
+          updatedResponse.responses.push({
+            message: `Connected to ${eventData.url}`,
+            type: 'info',
+            timestamp: eventData.timestamp
+          });
+          break;
+
+        case 'close':
+          const { code, reason } = eventData;
+          updatedResponse.isError = false;
+          updatedResponse.error = '';
+          updatedResponse.status = 'CLOSED';
+          updatedResponse.statusCode = code;
+          updatedResponse.statusText = wsStatusCodes[code] || 'CLOSED';
+          updatedResponse.statusDescription = reason;
+
+          updatedResponse.responses.push({
+            type: code !== 1000 ? 'info' : 'error',
+            message: reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
+            timestamp
+          });
+          break;
+
+        case 'error':
+          const errorDetails = eventData.error || eventData.message;
+          updatedResponse.isError = true;
+          updatedResponse.error = errorDetails || 'WebSocket error occurred';
+          updatedResponse.status = 'ERROR';
+          updatedResponse.statusCode = wsStatusCodes[1011];
+          updatedResponse.statusText = 'ERROR';
+
+          updatedResponse.responses.push({
+            type: 'error',
+            message: errorDetails || 'WebSocket error occurred',
+            timestamp
+          });
+
+          break;
+
+        case 'connecting':
+          updatedResponse.status = 'CONNECTING';
+          updatedResponse.statusText = 'CONNECTING';
+          break;
+      }
+
+      item.response = updatedResponse;
+    },
+    wsUpdateResponseSortOrder: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item) {
+          item.response.sortOrder = item.response.sortOrder ? -item.response.sortOrder : -1;
+        }
+      }
+    }
   }
 });
 
@@ -2852,7 +3044,10 @@ export const {
   addRequestTag,
   deleteRequestTag,
   updateCollectionTagsList,
-  updateActiveConnections
+  updateActiveConnections,
+  runWsRequestEvent,
+  wsResponseReceived,
+  wsUpdateResponseSortOrder
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

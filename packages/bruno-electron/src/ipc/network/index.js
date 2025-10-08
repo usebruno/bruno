@@ -25,7 +25,7 @@ const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/fi
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
@@ -33,6 +33,7 @@ const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
+const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -1140,6 +1141,13 @@ const registerNetworkIpc = (mainWindow) => {
                 ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
                 debugInfo: request?.oauth2Credentials?.debugInfo,
               });
+
+              collection.oauth2Credentials = updateCollectionOauth2Credentials({
+                itemUid: item.uid,
+                collectionUid,
+                collectionOauth2Credentials: collection.oauth2Credentials,
+                requestOauth2Credentials: request.oauth2Credentials
+              });
             }
 
             timeStart = Date.now();
@@ -1436,7 +1444,7 @@ const registerNetworkIpc = (mainWindow) => {
   );
 
   // save response to file
-  ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {
+  ipcMain.handle('renderer:save-response-to-file', async (event, response, url, pathname) => {
     try {
       const getHeaderValue = (headerName) => {
         const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
@@ -1482,8 +1490,9 @@ const registerNetworkIpc = (mainWindow) => {
         );
       };
 
+      const dirPath = path.dirname(pathname);
       const fileName = determineFileName();
-      const filePath = await chooseFileToSave(mainWindow, fileName);
+      const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
       if (filePath) {
         const encoding = getEncodingFormat();
         const data = Buffer.from(response.dataBuffer, 'base64')
@@ -1522,6 +1531,7 @@ const executeRequestOnFailHandler = async (request, error) => {
 const registerAllNetworkIpc = (mainWindow) => {
   registerNetworkIpc(mainWindow);
   registerGrpcEventHandlers(mainWindow);
+  registerWsEventHandlers(mainWindow);
 }
 
 module.exports = registerAllNetworkIpc

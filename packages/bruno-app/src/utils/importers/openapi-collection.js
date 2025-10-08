@@ -1,9 +1,9 @@
 import { BrunoError } from 'utils/common/error';
 import { openApiToBruno } from '@usebruno/converters';
 
-export const convertOpenapiToBruno = (data) => {
+export const convertOpenapiToBruno = (data, options = {}) => {
   try {
-    return openApiToBruno(data);
+    return openApiToBruno(data, options);
   } catch (err) {
     console.error('Error converting OpenAPI to Bruno:', err);
     throw new BrunoError('Import collection failed: ' + err.message);

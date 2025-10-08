@@ -21,6 +21,7 @@ const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
+const { wsClient } = require('../ipc/network/ws-event-handlers');
 
 const {
   writeFile,
@@ -56,6 +57,7 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
+const { transformBrunoConfigBeforeSave } = require('../utils/transfomBrunoConfig');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -555,7 +557,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         fs.rmSync(pathname, { recursive: true, force: true });
-      } else if (['http-request', 'graphql-request', 'grpc-request'].includes(type)) {
+      } else if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(type)) {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The file does not exist'));
         }
@@ -582,6 +584,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       console.log(`watcher stopWatching: ${collectionPath}`);
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
       lastOpenedCollections.remove(collectionPath);
+
+      // If wsclient was initialised for any collections that are opened
+      // then close for the current collection
+      if (wsClient) {
+        wsClient.closeForCollection(collectionUid);
+      }
     }
   });
 
@@ -601,7 +609,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
-          if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
+          if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
             let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
             const content = await stringifyRequestViaWorker(item);
             const filePath = path.join(currentPath, sanitizedFilename);
@@ -845,8 +853,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {
     try {
+      const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
       const brunoConfigPath = path.join(collectionPath, 'bruno.json');
-      const content = await stringifyJson(brunoConfig);
+      const content = await stringifyJson(transformedBrunoConfig);
       await writeFile(brunoConfigPath, content);
     } catch (error) {
       return Promise.reject(error);

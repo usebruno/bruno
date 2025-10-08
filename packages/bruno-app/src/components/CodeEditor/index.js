@@ -14,6 +14,7 @@ import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
+import CustomSearch from './CustomSearch';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -37,6 +38,10 @@ export default class CodeEditor extends React.Component {
       expr: true,
       asi: true
     };
+
+    this.state = {
+      searchBarVisible: false
+    };
   }
 
   componentDidMount() {
@@ -45,7 +50,7 @@ export default class CodeEditor extends React.Component {
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
-      lineWrapping: true,
+      lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
       brunoVarInfo: {
@@ -83,24 +88,14 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
-          if (this._isSearchOpen()) {
-            // replace the older search component with the new one
-            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
-            search && search.remove();
+          if (!this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: true });
           }
-          cm.execCommand('findPersistent');
-          this._bindSearchHandler();
-          this._appendSearchResultsCount();
         },
         'Ctrl-F': (cm) => {
-          if (this._isSearchOpen()) {
-            // replace the older search component with the new one
-            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
-            search && search.remove();
+          if (!this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: true });
           }
-          cm.execCommand('findPersistent');
-          this._bindSearchHandler();
-          this._appendSearchResultsCount();
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
@@ -128,6 +123,11 @@ export default class CodeEditor extends React.Component {
             this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
           } else {
             this.editor.toggleComment();
+          }
+        },
+        'Esc': () => {
+          if (this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: false });
           }
         }
       },
@@ -237,6 +237,14 @@ export default class CodeEditor extends React.Component {
       this.editor.scrollTo(null, this.props.initialScroll);
     }
 
+    if (this.props.enableLineWrapping !== prevProps.enableLineWrapping) {
+      this.editor.setOption('lineWrapping', this.props.enableLineWrapping);
+    }
+
+    if (this.props.mode !== prevProps.mode) {
+      this.editor.setOption('mode', this.props.mode);
+    }
+
     this.ignoreChangeEvent = false;
   }
 
@@ -245,11 +253,6 @@ export default class CodeEditor extends React.Component {
       this.editor.off('change', this._onEdit);
       this.editor.off('scroll', this.onScroll);
       this.editor = null;
-    }
-
-    this._unbindSearchHandler();
-    if (this.brunoAutoCompleteCleanup) {
-      this.brunoAutoCompleteCleanup();
     }
   }
 
@@ -263,10 +266,18 @@ export default class CodeEditor extends React.Component {
         aria-label="Code Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
-        ref={(node) => {
-          this._node = node;
-        }}
-      />
+      >
+        <CustomSearch
+          visible={this.state.searchBarVisible}
+          editor={this.editor}
+          onClose={() => this.setState({ searchBarVisible: false })}
+        />
+        <div
+          className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
+          ref={(node) => { this._node = node; }}
+          style={{ height: '100%', width: '100%' }}
+        />
+      </StyledWrapper>
     );
   }
 
@@ -288,69 +299,6 @@ export default class CodeEditor extends React.Component {
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);
       }
-    }
-  };
-
-  _isSearchOpen = () => {
-    return document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
-  };
-
-  /**
-   * Bind handler to search input to count number of search results
-   */
-  _bindSearchHandler = () => {
-    const searchInput = document.querySelector('.CodeMirror-search-field');
-
-    if (searchInput) {
-      searchInput.addEventListener('input', this._countSearchResults);
-    }
-  };
-
-  /**
-   * Unbind handler to search input to count number of search results
-   */
-  _unbindSearchHandler = () => {
-    const searchInput = document.querySelector('.CodeMirror-search-field');
-
-    if (searchInput) {
-      searchInput.removeEventListener('input', this._countSearchResults);
-    }
-  };
-
-  /**
-   * Append search results count to search dialog
-   */
-  _appendSearchResultsCount = () => {
-    const dialog = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
-
-    if (dialog) {
-      const searchResultsCount = document.createElement('span');
-      searchResultsCount.id = this.searchResultsCountElementId;
-      dialog.appendChild(searchResultsCount);
-
-      this._countSearchResults();
-    }
-  };
-
-  /**
-   * Count search results and update state
-   */
-  _countSearchResults = () => {
-    let count = 0;
-
-    const searchInput = document.querySelector('.CodeMirror-search-field');
-
-    if (searchInput && searchInput.value.length > 0) {
-      // Escape special characters in search input to prevent RegExp crashes. Fixes #3051
-      const text = new RegExp(escapeRegExp(searchInput.value), 'gi');
-      const matches = this.editor.getValue().match(text);
-      count = matches ? matches.length : 0;
-    }
-
-    const searchResultsCountElement = document.querySelector(`#${this.searchResultsCountElementId}`);
-
-    if (searchResultsCountElement) {
-      searchResultsCountElement.innerText = `${count} results`;
     }
   };
 }
