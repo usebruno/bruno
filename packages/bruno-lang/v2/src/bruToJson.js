@@ -425,46 +425,24 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     let settings = mapPairListToKeyValPair(dictionary.ast);
     const getNumFromRecord = createGetNumFromRecord(settings);
 
-    const keepAliveInterval = getNumFromRecord('keepAliveInterval', {
-      fallback: 0
-    });
+    const keepAliveInterval = getNumFromRecord('keepAliveInterval');
 
     const timeout = getNumFromRecord('timeout');
 
-    const parsedSettings = {};
+    const _settings = {
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+    };
 
-    if (settings.followRedirects !== undefined) {
-      parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
+    if (keepAliveInterval) {
+      _settings.keepAliveInterval = keepAliveInterval;
     }
 
-    // Parse maxRedirects as number
-    if (settings.maxRedirects !== undefined) {
-      const maxRedirects = parseInt(settings.maxRedirects, 10);
-      if (!isNaN(maxRedirects)) {
-        parsedSettings.maxRedirects = maxRedirects;
-      }
-    }
-
-    // Parse timeout as number or inherit
-    if (settings.timeout !== undefined) {
-      if (settings.timeout === 'inherit') {
-        parsedSettings.timeout = 'inherit';
-      } else {
-        const timeout = parseInt(settings.timeout, 10);
-        if (!isNaN(timeout)) {
-          parsedSettings.timeout = timeout;
-        }
-      }
+    if (timeout) {
+      _settings.timeout = timeout;
     }
 
     return {
-      settings: {
-        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
-        followRedirects: parsedSettings.followRedirects !== undefined ? parsedSettings.followRedirects : true,
-        maxRedirects: parsedSettings.maxRedirects !== undefined ? parsedSettings.maxRedirects : 5,
-        timeout: parsedSettings.timeout,
-        keepAliveInterval
-      }
+      settings: _settings
     };
   },
   grpc(_1, dictionary) {
