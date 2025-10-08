@@ -7,9 +7,6 @@ const InheritableSettingsInput = ({
   id,
   label,
   value,
-  type = 'number',
-  min,
-  max,
   description,
   onKeyDown,
   isInherited,
@@ -37,7 +34,7 @@ const InheritableSettingsInput = ({
             icon={(
               <button
                 type="button"
-                className="px-2 py-1 text-xs rounded-sm outline-none transition-colors duration-100 w-20 flex items-center justify-between"
+                className="px-2 py-1 text-xs rounded-sm outline-none transition-colors duration-100 w-24 h-8 flex items-center justify-between"
                 style={{
                   backgroundColor: theme.modal.input.bg,
                   border: `1px solid ${theme.modal.input.border}`,
@@ -60,8 +57,8 @@ const InheritableSettingsInput = ({
           <div className="relative">
             <input
               id={id}
-              type={type}
-              className="block px-2 py-1 pr-6 rounded-sm outline-none transition-colors duration-100 w-20"
+              type="text"
+              className="block px-2 py-1 pr-6 rounded-sm outline-none transition-colors duration-100 w-24 h-8"
               style={{
                 backgroundColor: theme.modal.input.bg,
                 border: `1px solid ${theme.modal.input.border}`,
@@ -71,11 +68,7 @@ const InheritableSettingsInput = ({
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
-              {...(type === 'number' && {
-                min,
-                ...(max !== undefined && { max })
-              })}
-              value={value}
+              defaultValue={value}
               onChange={onValueChange}
               onKeyDown={onKeyDown}
             />

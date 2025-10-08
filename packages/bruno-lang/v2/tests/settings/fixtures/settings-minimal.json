@@ -10,8 +10,6 @@
   },
   "settings": {
     "encodeUrl": false,
-    "followRedirects": true,
-    "maxRedirects": 5,
     "timeout": 5000
   }
 }

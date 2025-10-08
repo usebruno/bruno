@@ -129,9 +129,6 @@ const Settings = ({ item, collection }) => {
             label="Max Redirects"
             value={maxRedirects}
             onChange={onMaxRedirectsChange}
-            type="number"
-            min={0}
-            max={50}
             description="Set a limit for the number of redirects to follow"
             onKeyDown={handleKeyDown}
           />
@@ -140,8 +137,6 @@ const Settings = ({ item, collection }) => {
             id="timeout"
             label="Timeout (ms)"
             value={timeout}
-            type="number"
-            min={0}
             description="Set maximum time to wait before aborting the request"
             onKeyDown={handleKeyDown}
             isInherited={isTimeoutInherited}

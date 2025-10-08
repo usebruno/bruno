@@ -455,11 +455,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     const _settings = {
-      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
-      followRedirects: parsedSettings.followRedirects !== undefined ? parsedSettings.followRedirects : true,
-      maxRedirects: parsedSettings.maxRedirects !== undefined ? parsedSettings.maxRedirects : 5,
-      timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 5000
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
     };
+
+    if (parsedSettings.followRedirects !== undefined) {
+      _settings.followRedirects = parsedSettings.followRedirects;
+    }
+
+    if (parsedSettings.maxRedirects !== undefined) {
+      _settings.maxRedirects = parsedSettings.maxRedirects;
+    }
+
+    if (parsedSettings.timeout !== undefined) {
+      _settings.timeout = parsedSettings.timeout;
+    }
 
     if (keepAliveInterval) {
       _settings.keepAliveInterval = keepAliveInterval;

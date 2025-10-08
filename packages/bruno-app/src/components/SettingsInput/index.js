@@ -6,9 +6,6 @@ const SettingsInput = ({
   label,
   value,
   onChange,
-  type = 'number',
-  min = 0,
-  max = 999999,
   className = '',
   description = '',
   onKeyDown
@@ -29,8 +26,8 @@ const SettingsInput = ({
       </div>
       <input
         id={id}
-        type={type}
-        className={`block px-2 py-1 rounded-sm outline-none transition-colors duration-100 min-w-20 ${className}`}
+        type="text"
+        className={`block px-2 py-1 rounded-sm outline-none transition-colors duration-100 w-24 h-8 ${className}`}
         style={{
           backgroundColor: theme.modal.input.bg,
           border: `1px solid ${theme.modal.input.border}`
@@ -39,11 +36,7 @@ const SettingsInput = ({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        {...(type === 'number' && {
-          min,
-          ...(max !== undefined && { max })
-        })}
-        value={value}
+        defaultValue={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
       />
