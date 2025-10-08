@@ -427,8 +427,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const keepAliveInterval = getNumFromRecord('keepAliveInterval');
 
-    const timeout = getNumFromRecord('timeout');
-
     const parsedSettings = {};
     if (settings.followRedirects !== undefined) {
       parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
@@ -455,7 +453,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     const _settings = {
-      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+      timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0
     };
 
     if (parsedSettings.followRedirects !== undefined) {
@@ -466,16 +465,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       _settings.maxRedirects = parsedSettings.maxRedirects;
     }
 
-    if (parsedSettings.timeout !== undefined) {
-      _settings.timeout = parsedSettings.timeout;
-    }
-
     if (keepAliveInterval) {
       _settings.keepAliveInterval = keepAliveInterval;
-    }
-
-    if (timeout) {
-      _settings.timeout = timeout;
     }
 
     return {

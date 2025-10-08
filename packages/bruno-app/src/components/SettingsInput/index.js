@@ -36,7 +36,7 @@ const SettingsInput = ({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        defaultValue={value}
+        value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
       />

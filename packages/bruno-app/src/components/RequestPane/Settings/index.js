@@ -46,15 +46,21 @@ const Settings = ({ item, collection }) => {
     updateSetting({ followRedirects: !followRedirects }), [followRedirects, updateSetting]);
 
   const onMaxRedirectsChange = useCallback((e) => {
-    const value = e.target.value ? parseInt(e.target.value, 10) : 0;
-    updateSetting({ maxRedirects: value });
+    const value = e.target.value;
+    // Only allow empty string or digits
+    if (value === '' || /^\d+$/.test(value)) {
+      const numericValue = value === '' ? 0 : parseInt(value, 10);
+      updateSetting({ maxRedirects: numericValue });
+    }
   }, [updateSetting]);
 
   const onTimeoutChange = useCallback((e) => {
     const value = e.target.value;
-    // If the value is 'inherit', keep it as a string, otherwise convert to number
-    const finalValue = value === 'inherit' ? 'inherit' : (value ? parseInt(value, 10) : 0);
-    updateSetting({ timeout: finalValue });
+    // Only allow empty string or digits
+    if (value === '' || /^\d+$/.test(value)) {
+      const numericValue = value === '' ? 0 : parseInt(value, 10);
+      updateSetting({ timeout: numericValue });
+    }
   }, [updateSetting]);
 
   // Check if timeout is inherited

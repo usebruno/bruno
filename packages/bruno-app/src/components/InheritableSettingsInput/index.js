@@ -68,7 +68,7 @@ const InheritableSettingsInput = ({
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
-              defaultValue={value}
+              value={value}
               onChange={onValueChange}
               onKeyDown={onKeyDown}
             />
