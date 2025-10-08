@@ -43,6 +43,31 @@ const parseGraphQLRequest = (graphqlSource) => {
   }
 };
 
+/**
+ * Transforms Postman descriptions to handle both legacy and new formats.
+ *
+ * Postman changed their description format:
+ * - Legacy format: description was a simple string
+ * - New format: description is an object with 'content' and 'type' properties
+ *
+ * This function handles both formats to ensure backward compatibility.
+ */
+const transformDescription = (description) => {
+  if (!description) {
+    return '';
+  }
+
+  if (typeof description === 'string') {
+    return description;
+  }
+
+  if (typeof description === 'object' && description.hasOwnProperty('content')) {
+    return description.content;
+  }
+
+  return '';
+};
+
 const isItemAFolder = (item) => {
   return !item.request;
 };
@@ -290,7 +315,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         items: [],
         seq: index + 1,
         root: {
-          docs: i.description || '',
+          docs: transformDescription(i.description),
           meta: {
             name: folderName
           },
@@ -379,7 +404,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
             formUrlEncoded: [],
             multipartForm: []
           },
-          docs: i.request.description || ''
+          docs: transformDescription(i.request.description)
         }
       };
 
@@ -461,7 +486,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               type: type,
               name: param.key,
               value: value,
-              description: param.description,
+              description: transformDescription(param.description),
               enabled: !param.disabled
             });
           });
@@ -474,7 +499,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               uid: uuid(),
               name: param.key,
               value: param.value,
-              description: param.description,
+              description: transformDescription(param.description),
               enabled: !param.disabled
             });
           });
@@ -509,7 +534,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           uid: uuid(),
           name: header.key,
           value: header.value,
-          description: header.description,
+          description: transformDescription(header.description),
           enabled: !header.disabled
         });
       });
@@ -522,7 +547,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           uid: uuid(),
           name: param.key,
           value: param.value,
-          description: param.description,
+          description: transformDescription(param.description),
           type: 'query',
           enabled: !param.disabled
         });
@@ -538,7 +563,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           uid: uuid(),
           name: param.key,
           value: param.value ?? '',
-          description: param.description ?? '',
+          description: transformDescription(param.description),
           type: 'path',
           enabled: true
         });
@@ -573,7 +598,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
     items: [],
     environments: [],
     root: {
-      docs: collection.info.description || '',
+      docs: transformDescription(collection.info.description),
       meta: {
         name: collection.info.name || 'Untitled Collection'
       },
