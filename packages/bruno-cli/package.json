@@ -59,7 +59,6 @@
     "axios-ntlm": "^1.4.2",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
-    "debug": "^4.4.3",
     "decomment": "^0.9.5",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
