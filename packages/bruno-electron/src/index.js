@@ -241,15 +241,17 @@ app.on('open-file', (event, path) => {
 });
 
 
-// Register the global shortcuts
-app.on('browser-window-focus', () => {
-  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
-  globalShortcut.register('Ctrl+=', () => {
-    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
+// Register the global shortcuts (Windows only)
+if (os.platform() === 'win32') {
+  app.on('browser-window-focus', () => {
+    // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
+    globalShortcut.register('Ctrl+=', () => {
+      mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
+    });
   });
-})
 
-// Disable global shortcuts when not focused
-app.on('browser-window-blur', () => {
-  globalShortcut.unregisterAll()
-})
+  // Disable global shortcuts when not focused
+  app.on('browser-window-blur', () => {
+    globalShortcut.unregisterAll();
+  });
+}
