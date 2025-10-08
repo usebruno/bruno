@@ -12,8 +12,6 @@ describe('Settings Conversion Tests', () => {
       const expected = require(path.join(fixturesDir, 'settings-minimal.json'));
       const output = bruToJson(input);
 
-      console.log('output 1', output);
-
       expect(output).toEqual(expected);
     });
 
