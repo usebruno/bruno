@@ -442,11 +442,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     return {
-      settings: {
-        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
-        keepAliveInterval,
-        timeout
-      }
+      settings: _settings
     };
   },
   grpc(_1, dictionary) {
