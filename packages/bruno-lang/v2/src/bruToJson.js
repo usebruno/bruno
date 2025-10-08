@@ -425,18 +425,24 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     let settings = mapPairListToKeyValPair(dictionary.ast);
     const getNumFromRecord = createGetNumFromRecord(settings);
 
-    const keepAliveInterval = getNumFromRecord('keepAliveInterval', {
-      fallback: 0
-    });
+    const keepAliveInterval = getNumFromRecord('keepAliveInterval');
 
     const timeout = getNumFromRecord('timeout');
 
+    const _settings = {
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+    };
+
+    if (keepAliveInterval) {
+      _settings.keepAliveInterval = keepAliveInterval;
+    }
+
+    if (timeout) {
+      _settings.timeout = timeout;
+    }
+
     return {
-      settings: {
-        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
-        keepAliveInterval,
-        timeout
-      }
+      settings: _settings
     };
   },
   grpc(_1, dictionary) {

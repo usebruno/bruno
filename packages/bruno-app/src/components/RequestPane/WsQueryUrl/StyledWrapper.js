@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   height: 2.3rem;
+  position: relative;
 
   .input-container {
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
