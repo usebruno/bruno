@@ -460,11 +460,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       settings: {
         encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
-        followRedirects: parsedSettings.followRedirects,
-        maxRedirects: parsedSettings.maxRedirects,
+        followRedirects: parsedSettings.followRedirects !== undefined ? parsedSettings.followRedirects : true,
+        maxRedirects: parsedSettings.maxRedirects !== undefined ? parsedSettings.maxRedirects : 5,
         timeout: parsedSettings.timeout,
-        keepAliveInterval,
-        timeout
+        keepAliveInterval
       }
     };
   },

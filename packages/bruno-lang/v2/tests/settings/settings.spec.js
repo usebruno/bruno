@@ -25,9 +25,9 @@ describe('Settings Conversion Tests', () => {
   });
 
   describe('stringify (JSON to BRU)', () => {
-    it('should stringify minimal settings from JSON to BRU', () => {
+    it('should stringify minimal settings from JSON to BRU (with defaults)', () => {
       const input = require(path.join(fixturesDir, 'settings-minimal.json'));
-      const expected = fs.readFileSync(path.join(fixturesDir, 'settings-minimal.bru'), 'utf8');
+      const expected = fs.readFileSync(path.join(fixturesDir, 'settings-minimal-with-defaults.bru'), 'utf8');
       const output = jsonToBru(input);
 
       expect(output).toEqual(expected);
@@ -43,6 +43,19 @@ describe('Settings Conversion Tests', () => {
   });
 
   describe('round-trip conversion', () => {
+    it('should add defaults when converting minimal BRU -> JSON -> BRU', () => {
+      const originalBru = fs.readFileSync(path.join(fixturesDir, 'settings-minimal.bru'), 'utf8');
+      const expectedBru = fs.readFileSync(path.join(fixturesDir, 'settings-minimal-with-defaults.bru'), 'utf8');
+
+      // Convert BRU to JSON (defaults added)
+      const json = bruToJson(originalBru);
+
+      // Convert JSON back to BRU (defaults written out)
+      const convertedBru = jsonToBru(json);
+
+      expect(convertedBru).toEqual(expectedBru);
+    });
+
     it('should maintain data integrity through BRU -> JSON -> BRU conversion', () => {
       const originalBru = fs.readFileSync(path.join(fixturesDir, 'settings-all-options.bru'), 'utf8');
 

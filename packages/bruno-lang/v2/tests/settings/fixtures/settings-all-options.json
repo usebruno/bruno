@@ -22,6 +22,7 @@
     "encodeUrl": true,
     "followRedirects": false,
     "maxRedirects": 0,
-    "timeout": 60000
+    "timeout": 60000,
+    "keepAliveInterval": 0
   }
 }
