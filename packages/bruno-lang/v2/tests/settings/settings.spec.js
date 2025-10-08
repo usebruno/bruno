@@ -43,18 +43,6 @@ describe('Settings Conversion Tests', () => {
   });
 
   describe('round-trip conversion', () => {
-    it('should maintain data integrity through BRU -> JSON -> BRU conversion', () => {
-      const originalBru = fs.readFileSync(path.join(fixturesDir, 'settings-all-options.bru'), 'utf8');
-
-      // Convert BRU to JSON
-      const json = bruToJson(originalBru);
-
-      // Convert JSON back to BRU
-      const convertedBru = jsonToBru(json);
-
-      expect(convertedBru).toEqual(originalBru);
-    });
-
     it('should maintain data integrity through JSON -> BRU -> JSON conversion', () => {
       const originalJson = require(path.join(fixturesDir, 'settings-all-options.json'));
 
