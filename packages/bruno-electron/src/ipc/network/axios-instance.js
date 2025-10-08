@@ -126,13 +126,13 @@ function makeAxiosInstance({
       type: 'request',
       message: `${config.method.toUpperCase()} ${config.url}`,
     });
-    
+
     Object.entries(config.headers).forEach(([key, value]) => {
       // Skip Bruno's internal content-type: false for no body requests
       if (key.toLowerCase() === 'content-type' && value === false) {
         return;
       }
-      
+
       timeline.push({
         timestamp: new Date(),
         type: 'requestHeader',

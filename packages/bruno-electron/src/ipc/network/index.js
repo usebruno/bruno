@@ -613,14 +613,14 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
-      
+
       // Remove false Content-Type header (used to stop axios from auto-setting it); no Content-Type was actually set or sent.
       const headersSent = { ...request.headers };
-      const contentTypeKey = Object.keys(headersSent).find(key => key.toLowerCase() === 'content-type');
+      const contentTypeKey = Object.keys(headersSent).find((key) => key.toLowerCase() === 'content-type');
       if (contentTypeKey && headersSent[contentTypeKey] === false) {
         delete headersSent[contentTypeKey];
       }
-      
+
       let requestSent = {
         url: request.url,
         method: request.method,
@@ -1098,14 +1098,14 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
-            
+
             // Remove false Content-Type header (used to stop axios from auto-setting it); no Content-Type was actually set or sent.
             const headersSent = { ...request.headers };
-            const contentTypeKey = Object.keys(headersSent).find(key => key.toLowerCase() === 'content-type');
+            const contentTypeKey = Object.keys(headersSent).find((key) => key.toLowerCase() === 'content-type');
             if (contentTypeKey && headersSent[contentTypeKey] === false) {
               delete headersSent[contentTypeKey];
             }
-            
+
             let requestSent = {
               url: request.url,
               method: request.method,
