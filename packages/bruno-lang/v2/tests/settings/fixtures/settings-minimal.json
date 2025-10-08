@@ -12,7 +12,6 @@
     "encodeUrl": false,
     "followRedirects": true,
     "maxRedirects": 5,
-    "timeout": 5000,
-    "keepAliveInterval": 0
+    "timeout": 5000
   }
 }
