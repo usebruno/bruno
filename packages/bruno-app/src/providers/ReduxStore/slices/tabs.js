@@ -42,7 +42,7 @@ export const tabsSlice = createSlice({
 
       // Determine the default requestPaneTab based on request type
       let defaultRequestPaneTab = 'params';
-      if (type === 'grpc-request') {
+      if (type === 'grpc-request' || type === 'ws-request') {
         defaultRequestPaneTab = 'body';
       } else if (type === 'graphql-request') {
         defaultRequestPaneTab = 'query';

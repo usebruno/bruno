@@ -102,13 +102,15 @@ const darkTheme = {
       options: '#d69956',
       head: '#d69956'
     },
-    grpc: '#6366f1'
+    grpc: '#6366f1',
+    ws: '#f59e0b'
   },
 
   requestTabPanel: {
     url: {
       bg: '#3D3D3D',
-      icon: 'rgb(204, 204, 204)'
+      icon: 'rgb(204, 204, 204)',
+      errorHoverBg: '#4a2a2a'
     },
     dragbar: {
       border: '#444',
@@ -262,7 +264,7 @@ const darkTheme = {
     border: '#373737',
     placeholder: {
       color: '#a2a2a2',
-      opacity: 0.50
+      opacity: 0.5
     },
     gutter: {
       bg: '#262626'
@@ -306,6 +308,12 @@ const darkTheme = {
     hoverBg: 'rgba(102, 102, 102, 0.08)',
     transition: 'all 0.1s ease'
   },
+  tooltip: {
+    bg: '#1f1f1f',
+    color: '#ffffff',
+    shortcutColor: '#f59e0b'
+  },
+
   infoTip: {
     bg: '#1f1f1f',
     border: '#333333',
@@ -316,6 +324,7 @@ const darkTheme = {
     border: '#323233',
     color: 'rgb(169, 169, 169)'
   },
+
   console: {
     bg: '#1e1e1e',
     headerBg: '#2d2d30',

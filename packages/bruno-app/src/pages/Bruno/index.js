@@ -13,6 +13,8 @@ import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
 import Devtools from 'components/Devtools';
+import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
+import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
 
 require('codemirror/mode/javascript/javascript');
@@ -54,6 +56,10 @@ export default function Main() {
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
+
+  // Initialize event listeners
+  useGrpcEventListeners();
+  useWsEventListeners();
 
   const className = classnames({
     'is-dragging': isDragging
@@ -97,9 +103,9 @@ export default function Main() {
       <div
         ref={mainSectionRef}
         className="flex-1 min-h-0 flex"
-          data-app-state="loading"
-          style={{
-            height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
+        data-app-state="loading"
+        style={{
+          height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
           }}
         >
           <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>

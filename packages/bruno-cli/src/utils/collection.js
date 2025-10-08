@@ -44,13 +44,23 @@ const createCollectionJsonFromPathname = (collectionPath) => {
         if (path.extname(filePath) !== '.bru') continue;
 
         // get the request item
-        const bruContent = fs.readFileSync(filePath, 'utf8');
-        const requestItem = parseRequest(bruContent);
-        currentDirItems.push({
-          name: file,
-          pathname: filePath,
-          ...requestItem
-        });
+        try {
+          const bruContent = fs.readFileSync(filePath, 'utf8');
+          const requestItem = parseRequest(bruContent);
+          currentDirItems.push({
+            name: file,
+            pathname: filePath,
+            ...requestItem
+          });
+        } catch (err) {
+          // Log warning for invalid .bru file but continue processing
+          console.warn(chalk.yellow(`Warning: Skipping invalid file ${filePath}\nError: ${err.message}`));
+          // Track skipped files for later reporting
+          if (!global.brunoSkippedFiles) {
+            global.brunoSkippedFiles = [];
+          }
+          global.brunoSkippedFiles.push({ path: filePath, error: err.message });
+        }
       }
     }
     let currentDirFolderItems = currentDirItems?.filter((iter) => iter.type === 'folder');
