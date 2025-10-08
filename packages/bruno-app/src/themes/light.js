@@ -278,7 +278,10 @@ const lightTheme = {
         bg: 'white',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)'
       }
-    }
+    },
+    searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
+    searchMatch: '#B8860B',
+    searchMatchActive: '#DAA520'
   },
 
   table: {
