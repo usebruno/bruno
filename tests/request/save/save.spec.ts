@@ -56,7 +56,7 @@ test.describe.serial('save requests', () => {
     await page.locator('.input-container').filter({ hasText: originalUrl }).first().click();
     await clearText(originalUrl);
 
-    // replace it with an arbritrary url
+    // replace it with an arbitrary url
     await page.keyboard.insertText(replacementUrl);
 
     // check if the request is now unsaved
