@@ -427,18 +427,46 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const keepAliveInterval = getNumFromRecord('keepAliveInterval');
 
-    const timeout = getNumFromRecord('timeout');
+    const parsedSettings = {};
+    if (settings.followRedirects !== undefined) {
+      parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
+    }
+
+    // Parse maxRedirects as number
+    if (settings.maxRedirects !== undefined) {
+      const maxRedirects = parseInt(settings.maxRedirects, 10);
+      if (!isNaN(maxRedirects)) {
+        parsedSettings.maxRedirects = maxRedirects;
+      }
+    }
+
+    // Parse timeout as number or inherit
+    if (settings.timeout !== undefined) {
+      if (settings.timeout === 'inherit') {
+        parsedSettings.timeout = 'inherit';
+      } else {
+        const timeout = parseInt(settings.timeout, 10);
+        if (!isNaN(timeout)) {
+          parsedSettings.timeout = timeout;
+        }
+      }
+    }
 
     const _settings = {
-      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+      timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0
     };
+
+    if (parsedSettings.followRedirects !== undefined) {
+      _settings.followRedirects = parsedSettings.followRedirects;
+    }
+
+    if (parsedSettings.maxRedirects !== undefined) {
+      _settings.maxRedirects = parsedSettings.maxRedirects;
+    }
 
     if (keepAliveInterval) {
       _settings.keepAliveInterval = keepAliveInterval;
-    }
-
-    if (timeout) {
-      _settings.timeout = timeout;
     }
 
     return {

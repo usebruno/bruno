@@ -18,6 +18,7 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
+const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
@@ -89,13 +90,23 @@ const configureRequest = async (
     collectionPath
   });
 
-  let requestMaxRedirects = request.maxRedirects
-  request.maxRedirects = 0
+  // Get followRedirects setting, default to true for backward compatibility
+  const followRedirects = request.settings?.followRedirects ?? true;
   
-  // Set default value for requestMaxRedirects if not explicitly set
-  if (requestMaxRedirects === undefined) {
+  // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
+  let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+
+  // Ensure it's a valid number
+  if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
     requestMaxRedirects = 5; // Default to 5 redirects
   }
+
+  // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
+  if (!followRedirects) {
+    requestMaxRedirects = 0;
+  }
+
+  request.maxRedirects = 0;
 
   let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
@@ -193,7 +204,9 @@ const configureRequest = async (
     addDigestInterceptor(axiosInstance, request);
   }
 
-  request.timeout = preferencesUtil.getRequestTimeout();
+  // Get timeout from request settings, fallback to global preference
+  const resolvedSettings = resolveInheritedSettings(request.settings || {});
+  request.timeout = resolvedSettings.timeout;
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
@@ -276,7 +289,9 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const collectionRoot = get(collection, 'root', {});
     const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, _request, collectionRoot);
 
-    request.timeout = preferencesUtil.getRequestTimeout();
+    // Get timeout from request settings, resolve inheritance if needed
+    const resolvedSettings = resolveInheritedSettings(request.settings || {});
+    request.timeout = resolvedSettings.timeout;
 
     if (!preferencesUtil.shouldVerifyTls()) {
       request.httpsAgent = new https.Agent({
