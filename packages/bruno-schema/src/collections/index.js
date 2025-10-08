@@ -490,7 +490,11 @@ const itemSchema = Yup.object({
       is: (type) => type === 'ws-request',
       then: wsSettingsSchema,
       otherwise: Yup.object({
-        encodeUrl: Yup.boolean().nullable()
+        encodeUrl: Yup.boolean().nullable(),
+        followRedirects: Yup.boolean().nullable(),
+        maxRedirects: Yup.number().min(0).max(50).nullable(),
+        timeout: Yup.mixed().nullable(),
+        keepAliveInterval: Yup.number().min(0).nullable()
       }).noUnknown(true)
     .strict()
     .nullable()

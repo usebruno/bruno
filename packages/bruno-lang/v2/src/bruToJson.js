@@ -462,7 +462,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
         followRedirects: parsedSettings.followRedirects,
         maxRedirects: parsedSettings.maxRedirects,
-        timeout: parsedSettings.timeout
+        timeout: parsedSettings.timeout,
         keepAliveInterval,
         timeout
       }

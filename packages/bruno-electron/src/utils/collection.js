@@ -530,7 +530,6 @@ const resolveInheritedSettings = (settings) => {
   // Resolve each setting individually
   Object.keys(settings).forEach((settingKey) => {
     const currentValue = settings[settingKey];
-    console.log('currentValue', currentValue);
 
     // If setting is inherited, fallback to preferences only for timeout setting
     if (currentValue === 'inherit' || currentValue === undefined || currentValue === null) {
