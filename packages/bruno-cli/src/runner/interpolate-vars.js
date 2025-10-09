@@ -80,12 +80,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     }
   } else if (contentType === 'application/x-www-form-urlencoded') {
-    if (typeof request.data === 'object') {
-      try {
-        forOwn(request?.data, (value, key) => {
-          request.data[key] = _interpolate(value);
-        });
-      } catch (err) {}
+    if (request.data && Array.isArray(request.data)) {
+      request.data = request.data.map((d) => ({
+        ...d,
+        value: _interpolate(d?.value)
+      }));
     }
   } else if (contentType === 'multipart/form-data') {
     if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {

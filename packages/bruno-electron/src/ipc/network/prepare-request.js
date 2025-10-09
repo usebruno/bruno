@@ -422,7 +422,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
       axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     }
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
+    axiosRequest.data = enabledParams;
   }
 
   if (request.body.mode === 'multipartForm') {
