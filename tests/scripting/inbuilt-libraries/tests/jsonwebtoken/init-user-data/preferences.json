@@ -1,0 +1,16 @@
+{
+  "maximized": true,
+  "lastOpenedCollections": ["{{projectRoot}}/tests/scripting/inbuilt-libraries/collections/jsonwebtoken"],
+  "preferences": {
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": false,
+        "filePath": ""
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      }
+    }
+  }
+}
