@@ -36,10 +36,8 @@ test.describe('Max Redirects Settings Tests', () => {
     await maxRedirectsInput.fill('2');
     await page.getByTestId('send-arrow-icon').click();
     await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
-  });
 
-  test.afterEach(async ({ pageWithUserData: page }) => {
-    // Close the single open tab
+    // Close without saving to avoid modifying the .bru file
     await page.locator('.close-icon-container').click();
     await page.locator('button:has-text("Don\'t Save")').first().click();
   });
