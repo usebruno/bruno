@@ -14,7 +14,7 @@ import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
-import CustomSearch from './CustomSearch';
+import CustomSearch from 'components/CustomSearch';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
