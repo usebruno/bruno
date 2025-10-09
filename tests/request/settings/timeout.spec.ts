@@ -50,7 +50,7 @@ test.describe('Timeout Settings Tests', () => {
   });
 
   test.afterEach(async ({ pageWithUserData: page }) => {
-    // Close the single open tab
+    // cleanup: close all collections
     await closeAllCollections(page);
   });
 });
