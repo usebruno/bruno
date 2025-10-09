@@ -1,0 +1,76 @@
+name: 'Run Proxy CLI Tests - Windows'
+description: 'Run proxy CLI tests on Windows'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Proxy CLI tests
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+        
+        # Navigate to newer proxy test collection directory
+        Set-Location "tests/proxy-settings/collections/proxy-false"
+
+        Write-Host "Running proxy-false collection tests..."
+
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json
+        if (Select-String -Path "report.json" -Pattern "x-bruno-proxy" -Quiet) {
+          Write-Host "Test failed: Should not have any x-bruno-proxy header when proxy is disabled"
+          exit 1
+        } else {
+          Write-Host "✓ No proxy header found as expected"
+        }
+
+        # Test with --noproxy flag (should still work)
+        Write-Host "Running with --noproxy flag..."
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json --noproxy
+        if (Select-String -Path "report.json" -Pattern "x-bruno-proxy" -Quiet) {
+          Write-Host "Test failed: Should not have any x-bruno-proxy header when proxy is disabled"
+          exit 1
+        } else {
+          Write-Host "✓ No proxy header found as expected"
+        }
+
+        Write-Host "Running proxy-object collection tests..."
+        Set-Location "../proxy-object"
+
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json
+        if (-not (Select-String -Path "report.json" -Pattern "x-bruno-proxy-collection" -Quiet)) {
+          Write-Host "Test failed: Expected x-bruno-proxy-collection header in response"
+          exit 1
+        }
+        Write-Host "✓ Collection proxy header found as expected"
+
+        # Test with --noproxy flag (should disable collection proxy)
+        Write-Host "Running with --noproxy flag..."
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json --noproxy
+        if (Select-String -Path "report.json" -Pattern "x-bruno-proxy" -Quiet) {
+          Write-Host "Test failed: Should not have any x-bruno-proxy header when --noproxy is used"
+          exit 1
+        } else {
+          Write-Host "✓ No proxy header found as expected"
+        }
+
+        Write-Host "Running proxy-inherit collection tests..."
+        Set-Location "../proxy-inherit"
+
+        # Test with --noproxy flag (should disable system proxy)
+        Write-Host "Running with --noproxy flag..."
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json --noproxy
+        if (Select-String -Path "report.json" -Pattern "x-bruno-proxy" -Quiet) {
+          Write-Host "Test failed: Should not have any x-bruno-proxy header with --noproxy"
+          exit 1
+        } else {
+          Write-Host "✓ No collection proxy header found as expected"
+        }
+        
+        # Test with system proxy environment variables set
+        Write-Host "Running with HTTPS_PROXY environment variable..."
+        $env:HTTPS_PROXY = "http://127.0.0.1:8091"
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json
+        if (-not (Select-String -Path "report.json" -Pattern "x-bruno-proxy-system" -Quiet)) {
+          Write-Host "Test failed: Expected x-bruno-proxy-system header in response"
+          exit 1
+        }
+        Write-Host "✓ System proxy header found as expected"

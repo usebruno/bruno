@@ -23,8 +23,8 @@ jobs:
       - name: Setup Feature Dependencies
         uses: ./.github/actions/ssl/linux/setup-feature-specific-deps
 
-      - name: Setup CA Certificates
-        uses: ./.github/actions/ssl/linux/setup-ca-certs
+      - name: Setup Test Server
+        uses: ./.github/actions/common/setup-server/linux
 
       - name: Run Basic SSL CLI Tests
         uses: ./.github/actions/ssl/linux/run-basic-ssl-cli-tests
@@ -49,11 +49,8 @@ jobs:
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
 
-      - name: Setup Feature Dependencies
-        uses: ./.github/actions/ssl/macos/setup-feature-specific-deps
-
-      - name: Setup CA Certificates
-        uses: ./.github/actions/ssl/macos/setup-ca-certs
+      - name: Setup Test Server
+        uses: ./.github/actions/common/setup-server/macos
 
       - name: Run Basic SSL CLI Tests
         uses: ./.github/actions/ssl/macos/run-basic-ssl-cli-tests
@@ -78,8 +75,8 @@ jobs:
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
 
-      - name: Setup CA Certificates
-        uses: ./.github/actions/ssl/windows/setup-ca-certs
+      - name: Setup Test Server
+        uses: ./.github/actions/common/setup-server/windows
 
       - name: Run Basic SSL CLI Tests
         uses: ./.github/actions/ssl/windows/run-basic-ssl-cli-tests

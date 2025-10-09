@@ -1,0 +1,190 @@
+name: 'Setup MITM Proxy - Linux'
+description: 'Sets up mitmproxy for transparent HTTP/HTTPS proxying with custom header injection'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install additional OS dependencies for custom CA certs
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get --no-install-recommends install -y lsof
+        sudo apt-get --no-install-recommends install --reinstall ca-certificates
+
+    - name: Install mitmproxy
+      shell: bash
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install mitmproxy
+
+    - name: Setup header injection script
+      shell: bash
+      run: |
+        # Create the add_header.py script using printf to avoid heredoc issues
+        printf '%s\n' \
+          '#!/usr/bin/env python3' \
+          'from mitmproxy import http, ctx' \
+          '' \
+          '# Map listening port -> header name' \
+          'PORT_HEADER_MAP = {' \
+          '    8091: "X-Bruno-Proxy-System",' \
+          '    8092: "X-Bruno-Proxy-App",' \
+          '    8093: "X-Bruno-Proxy-Collection"' \
+          '}' \
+          '' \
+          '# value to set for the header' \
+          'HEADER_VALUE = "via-mitmproxy"' \
+          '' \
+          'def response(flow: http.HTTPFlow) -> None:' \
+          '    if not flow.response:' \
+          '        return' \
+          '' \
+          '    listen_port = getattr(ctx.options, "listen_port", None)' \
+          '    header_name = PORT_HEADER_MAP.get(listen_port, "X-Bruno-Proxy")  # fallback' \
+          '' \
+          '    # add or replace header' \
+          '    flow.response.headers[header_name] = HEADER_VALUE' \
+          '' \
+          '    # optional logging' \
+          '    ctx.log.info(f"Added header {header_name}: {HEADER_VALUE} to {flow.request.pretty_url}")' \
+          > add_header.py
+
+    - name: Start mitmproxy
+      shell: bash
+      run: |
+        # Set proxy configuration variables
+        SSL_CA_CERT_PATH="tests/_server/certs/ca-cert.pem"
+        
+        # Start mitmproxy instances in the background
+        mitmdump \
+          --listen-port 8091 \
+          --set confdir=~/.mitmproxy_port_8091 \
+          --set ssl_verify_upstream_trusted_ca=${SSL_CA_CERT_PATH} \
+          --script add_header.py \
+          > mitmproxy-system.log 2>&1 &
+
+        while [ ! -f ~/.mitmproxy_port_8091/mitmproxy-ca-cert.pem ]; do
+          echo "Waiting for CA certificate to be generated..."
+          sleep 1
+        done
+
+        # Install CA certificate for system trust
+        sudo cp ~/.mitmproxy_port_8091/mitmproxy-ca-cert.pem /usr/local/share/ca-certificates/mitmproxy-ca-cert-8091.crt
+        sudo update-ca-certificates
+
+        for i in {1..30}; do
+          if lsof -i :8091 -sTCP:LISTEN >/dev/null 2>&1; then
+            echo "Proxy is ready on port 8091"
+            break
+          fi
+          echo "Waiting for proxy on port 8091 to start... ($i/30)"
+          sleep 1
+          
+          if [ $i -eq 30 ]; then
+            echo "ERROR: Timeout waiting for proxy on port 8091 to start"
+            exit 1
+          fi
+        done
+        
+        # Add a small delay before starting additional proxies to avoid port conflicts
+        sleep 2
+        
+        mitmdump \
+          --listen-port 8092 \
+          --set confdir=~/.mitmproxy_port_8092 \
+          --set ssl_verify_upstream_trusted_ca=${SSL_CA_CERT_PATH} \
+          --script add_header.py \
+          > mitmproxy-app.log 2>&1 &
+        
+        while [ ! -f ~/.mitmproxy_port_8092/mitmproxy-ca-cert.pem ]; do
+          echo "Waiting for CA certificate to be generated..."
+          sleep 1
+        done
+
+        # Install CA certificate for system trust
+        sudo cp ~/.mitmproxy_port_8092/mitmproxy-ca-cert.pem /usr/local/share/ca-certificates/mitmproxy-ca-cert-8092.crt
+        sudo update-ca-certificates
+
+        for i in {1..30}; do
+          if lsof -i :8092 -sTCP:LISTEN >/dev/null 2>&1; then
+            echo "Proxy is ready on port 8092"
+            break
+          fi
+          echo "Waiting for proxy on port 8092 to start... ($i/30)"
+          sleep 1
+          
+          if [ $i -eq 30 ]; then
+            echo "ERROR: Timeout waiting for proxy on port 8092 to start"
+            exit 1
+          fi
+        done
+        
+        # Add a small delay before starting the final proxy
+        sleep 2
+        
+        mitmdump \
+          --listen-port 8093 \
+          --set confdir=~/.mitmproxy_port_8093 \
+          --set ssl_verify_upstream_trusted_ca=${SSL_CA_CERT_PATH} \
+          --script add_header.py \
+          > mitmproxy-collection.log 2>&1 &
+
+        while [ ! -f ~/.mitmproxy_port_8093/mitmproxy-ca-cert.pem ]; do
+          echo "Waiting for CA certificate to be generated..."
+          sleep 1
+        done
+
+        # Install CA certificate for system trust
+        sudo cp ~/.mitmproxy_port_8093/mitmproxy-ca-cert.pem /usr/local/share/ca-certificates/mitmproxy-ca-cert-8093.crt
+        sudo update-ca-certificates
+
+        for i in {1..30}; do
+          if lsof -i :8093 -sTCP:LISTEN >/dev/null 2>&1; then
+            echo "Proxy is ready on port 8093"
+            break
+          fi
+          echo "Waiting for proxy on port 8093 to start... ($i/30)"
+          sleep 1
+          
+          if [ $i -eq 30 ]; then
+            echo "ERROR: Timeout waiting for proxy on port 8093 to start"
+            exit 1
+          fi
+        done
+        
+        echo "✓ All proxy instances started successfully"
+
+    - name: Verify proxy setup
+      shell: bash
+      run: |
+        # Set test server configuration
+        TEST_SERVER_URL="https://127.0.0.1:8090"
+        
+        echo "Testing all proxy instances..."
+        
+        # Test each proxy port with specific headers
+        declare port_headers=(
+          [8091]="X-Bruno-Proxy-System"
+          [8092]="X-Bruno-Proxy-App"
+          [8093]="X-Bruno-Proxy-Collection"
+        )
+        
+        for port in 8091 8092 8093; do
+          PROXY_URL="http://127.0.0.1:${port}"
+          expected_header="${port_headers[$port]}"
+          echo "Testing proxy on port ${port}..."
+          
+          # Use system truststore - curl should automatically updated CA certificates
+          http_headers=$(curl -s -I --proxy ${PROXY_URL} ${TEST_SERVER_URL})
+          
+          if echo "$http_headers" | grep -q "${expected_header}: via-mitmproxy"; then
+            echo "✓ Proxy on port ${port} is working - ${expected_header} header found"
+          else
+            echo "✗ Proxy on port ${port} failed - ${expected_header} header not found"
+            echo "Headers received:"
+            echo "$http_headers"
+            exit 1
+          fi
+        done
+        
+        echo "✓ All proxy instances verified successfully"
