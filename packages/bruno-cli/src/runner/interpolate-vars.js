@@ -17,6 +17,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
+  const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
   // we clone envVars because we don't want to modify the original object
   envVariables = cloneDeep(envVariables);
 
@@ -43,6 +44,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       ...envVariables,
       ...folderVariables,
       ...requestVariables,
+      ...oauth2CredentialVariables,
       ...runtimeVariables,
       process: {
         env: {
@@ -171,6 +173,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
@@ -182,12 +185,46 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         break;
       default:
         break;
+    }
+
+    // Interpolate additional parameters for all OAuth2 grant types
+    if (request.oauth2.additionalParameters) {
+      // Interpolate authorization parameters
+      if (Array.isArray(request.oauth2.additionalParameters.authorization)) {
+        request.oauth2.additionalParameters.authorization.forEach((param) => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate token parameters
+      if (Array.isArray(request.oauth2.additionalParameters.token)) {
+        request.oauth2.additionalParameters.token.forEach((param) => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate refresh parameters
+      if (Array.isArray(request.oauth2.additionalParameters.refresh)) {
+        request.oauth2.additionalParameters.refresh.forEach((param) => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
     }
   }
 

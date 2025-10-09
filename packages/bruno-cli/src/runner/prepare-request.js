@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
 const path = require('node:path');
 const { isLargeFile } = require('../utils/filesystem');
+const { getFormattedOauth2Credentials } = require('../utils/oauth2');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
@@ -92,27 +93,37 @@ const prepareRequest = async (item = {}, collection = {}) => {
         axiosRequest.oauth2 = {
           grantType,
           accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
           clientId: get(collectionAuth, 'oauth2.clientId'),
           clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
           scope: get(collectionAuth, 'oauth2.scope'),
           credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+          credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
           tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
           tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
+          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+          autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+          autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+          additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
         };
       } else if (grantType === 'password') {
         axiosRequest.oauth2 = {
           grantType,
           accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
           username: get(collectionAuth, 'oauth2.username'),
           password: get(collectionAuth, 'oauth2.password'),
           clientId: get(collectionAuth, 'oauth2.clientId'),
           clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
           scope: get(collectionAuth, 'oauth2.scope'),
           credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+          credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
           tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
           tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
+          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+          autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+          autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+          additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
         };
       }
     }
@@ -217,29 +228,39 @@ const prepareRequest = async (item = {}, collection = {}) => {
       
       if (grantType === 'client_credentials') {
         axiosRequest.oauth2 = {
-          grantType,
+          grantType: grantType,
+          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
           clientId: get(request, 'auth.oauth2.clientId'),
           clientSecret: get(request, 'auth.oauth2.clientSecret'),
           scope: get(request, 'auth.oauth2.scope'),
-          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
           credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+          credentialsId: get(request, 'auth.oauth2.credentialsId'),
+          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
           tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
+          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+          autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+          autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
+          additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
         };
       } else if (grantType === 'password') {
         axiosRequest.oauth2 = {
-          grantType,
+          grantType: grantType,
+          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
           username: get(request, 'auth.oauth2.username'),
           password: get(request, 'auth.oauth2.password'),
           clientId: get(request, 'auth.oauth2.clientId'),
           clientSecret: get(request, 'auth.oauth2.clientSecret'),
           scope: get(request, 'auth.oauth2.scope'),
-          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
           credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+          credentialsId: get(request, 'auth.oauth2.credentialsId'),
+          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
           tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
+          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+          autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+          autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
+          additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
         };
       }
     }
@@ -366,6 +387,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
+  axiosRequest.oauth2CredentialVariables = getFormattedOauth2Credentials();
 
   return axiosRequest;
 };

@@ -60,9 +60,9 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/function-call-spacing': ['error', 'never'],
       '@stylistic/multiline-ternary': ['off'],
       '@stylistic/padding-line-between-statements': ['off'],
-      '@stylistic/jsx-one-expression-per-line': ['off'],
       '@stylistic/semi-style': ['error', 'last'],
       '@stylistic/max-len': ['off'],
+      '@stylistic/jsx-one-expression-per-line': ['off']
     },
   },
   {

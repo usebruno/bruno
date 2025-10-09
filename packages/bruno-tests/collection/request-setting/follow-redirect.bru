@@ -1,0 +1,23 @@
+meta {
+  name: follow-redirect
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://httpbun.com/redirect/3
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("body should include redirecting", function() {
+    const data = res.getBody();
+    expect(data).to.include("Redirecting...");
+  });
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: false
+}

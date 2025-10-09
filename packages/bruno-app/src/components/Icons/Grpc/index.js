@@ -90,4 +90,4 @@ export const IconGrpcBidiStreaming = ({ size = 18, strokeWidth = 1.5, className 
     <path d="M6 13l-3 3l3 3" stroke="#F97316" strokeWidth={strokeWidth} />
     <path d="M10 13l-3 3l3 3" stroke="#F97316" strokeWidth={strokeWidth} />
   </svg>
-); 
+);

@@ -57,6 +57,7 @@
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "graphql": "^16.6.0",
+    "hexy": "^0.3.5",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
     "iconv-lite": "^0.6.3",
