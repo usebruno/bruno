@@ -14,7 +14,7 @@ import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
-import CustomSearch from 'components/CustomSearch';
+import CodeMirrorSearch from 'components/CodeMirrorSearch';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -267,7 +267,7 @@ export default class CodeEditor extends React.Component {
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
-        <CustomSearch
+        <CodeMirrorSearch
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
