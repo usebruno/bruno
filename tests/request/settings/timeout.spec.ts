@@ -43,12 +43,14 @@ test.describe('Timeout Settings Tests', () => {
 
     // Verify the request runs successfully with inherited timeout (should not timeout)
     await expect(responsePane).toContainText('302');
+
+    // Close without saving to avoid modifying the .bru file
+    await page.locator('.close-icon-container').click();
+    await page.locator('button:has-text("Don\'t Save")').first().click();
   });
 
   test.afterEach(async ({ pageWithUserData: page }) => {
     // Close the single open tab
-    await page.locator('.close-icon-container').click();
-    await page.locator('button:has-text("Don\'t Save")').first().click();
     await closeAllCollections(page);
   });
 });
