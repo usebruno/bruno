@@ -9,6 +9,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   const body = marshallToVm(req.getBody(), vm);
   const timeout = marshallToVm(req.getTimeout(), vm);
   const name = marshallToVm(req.getName(), vm);
+  const tags = marshallToVm(req.getTags(), vm);
 
   vm.setProp(reqObject, 'url', url);
   vm.setProp(reqObject, 'method', method);
@@ -16,6 +17,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'body', body);
   vm.setProp(reqObject, 'timeout', timeout);
   vm.setProp(reqObject, 'name', name);
+  vm.setProp(reqObject, 'tags', tags);
 
   url.dispose();
   method.dispose();
@@ -23,6 +25,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   body.dispose();
   timeout.dispose();
   name.dispose();
+  tags.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
     return marshallToVm(req.getUrl(), vm);
@@ -125,6 +128,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   });
   vm.setProp(reqObject, 'getExecutionMode', getExecutionMode);
   getExecutionMode.dispose();
+
+  let getTags = vm.newFunction('getTags', function () {
+    return marshallToVm(req.getTags(), vm);
+  });
+  vm.setProp(reqObject, 'getTags', getTags);
+  getTags.dispose();
 
   vm.setProp(vm.global, 'req', reqObject);
   reqObject.dispose();

@@ -42,7 +42,6 @@ const defaultPreferences = {
     responsePaneOrientation: 'horizontal'
   },
   beta: {
-    grpc: false,
     nodevm: false
   },
   onboarding: {
@@ -87,7 +86,6 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   beta: Yup.object({
-    grpc: Yup.boolean(),
     nodevm: Yup.boolean()
   }),
   onboarding: Yup.object({

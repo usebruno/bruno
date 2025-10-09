@@ -39,6 +39,6 @@ module.exports = [
       typescript({ tsconfig: './tsconfig.json' }),
       terser(),
     ],
-    external: ['axios', 'qs']
+    external: ['axios', 'qs', 'ws', 'debug']
   }
 ];

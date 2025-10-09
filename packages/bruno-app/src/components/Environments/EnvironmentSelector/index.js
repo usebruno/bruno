@@ -14,6 +14,7 @@ import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
 import ImportEnvironment from '../EnvironmentSettings/ImportEnvironment';
 import CreateGlobalEnvironment from 'components/GlobalEnvironments/EnvironmentSettings/CreateEnvironment';
 import ImportGlobalEnvironment from 'components/GlobalEnvironments/EnvironmentSettings/ImportEnvironment';
+import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentSelector = ({ collection }) => {
@@ -123,7 +124,14 @@ const EnvironmentSelector = ({ collection }) => {
           <>
             <div className="flex items-center">
               <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
-              <span className="env-text max-w-24 truncate no-wrap">{activeCollectionEnvironment.name}</span>
+              <ToolHint
+                text={activeCollectionEnvironment.name}
+                toolhintId={`collection-env-${activeCollectionEnvironment.uid}`}
+                place="bottom-start"
+                delayShow={1000}
+              >
+                <span className="env-text max-w-24 truncate overflow-hidden inline-block">{activeCollectionEnvironment.name}</span>
+              </ToolHint>
             </div>
             {activeGlobalEnvironment && <span className="env-separator">|</span>}
           </>
@@ -131,7 +139,14 @@ const EnvironmentSelector = ({ collection }) => {
         {activeGlobalEnvironment && (
           <div className="flex items-center">
             <IconWorld size={14} strokeWidth={1.5} className="env-icon" />
-            <span className="env-text max-w-24 truncate no-wrap">{activeGlobalEnvironment.name}</span>
+            <ToolHint
+              text={activeGlobalEnvironment.name}
+              toolhintId={`global-env-${activeGlobalEnvironment.uid}`}
+              place="bottom-start"
+              delayShow={1000}
+            >
+              <span className="env-text max-w-24 truncate overflow-hidden inline-block">{activeGlobalEnvironment.name}</span>
+            </ToolHint>
           </div>
         )}
       </>
@@ -193,7 +208,12 @@ const EnvironmentSelector = ({ collection }) => {
 
       {/* Modals - Rendered outside dropdown to avoid conflicts */}
       {showGlobalSettings && (
-        <GlobalEnvironmentSettings globalEnvironments={globalEnvironments} collection={collection} onClose={handleCloseSettings} />
+        <GlobalEnvironmentSettings
+          globalEnvironments={globalEnvironments}
+          collection={collection}
+          activeGlobalEnvironmentUid={activeGlobalEnvironmentUid}
+          onClose={handleCloseSettings}
+        />
       )}
 
       {showCollectionSettings && <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />}

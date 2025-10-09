@@ -5,11 +5,9 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import cloneDeep from 'lodash/cloneDeep';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
-  const isGrpcEnabled = useBetaFeature(BETA_FEATURES.GRPC);
   const {
     brunoConfig: { presets: presets = {} }
   } = collection;
@@ -17,15 +15,10 @@ const PresetsSettings = ({ collection }) => {
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      requestType: presets.requestType === 'grpc' && !isGrpcEnabled ? 'http' : presets.requestType || 'http',
+      requestType: presets.requestType || 'http',
       requestUrl: presets.requestUrl || ''
     },
     onSubmit: (newPresets) => {
-      // If gRPC is disabled but the preset is set to grpc, change it to http
-      if (!isGrpcEnabled && newPresets.requestType === 'grpc') {
-        newPresets.requestType = 'http';
-      }
-
       const brunoConfig = cloneDeep(collection.brunoConfig);
       brunoConfig.presets = newPresets;
       dispatch(updateBrunoConfig(brunoConfig, collection.uid));
@@ -70,22 +63,18 @@ const PresetsSettings = ({ collection }) => {
               GraphQL
             </label>
 
-            {isGrpcEnabled && (
-              <>
-                <input
-                  id="grpc"
-                  className="ml-4 cursor-pointer"
-                  type="radio"
-                  name="requestType"
-                  onChange={formik.handleChange}
-                  value="grpc"
-                  checked={formik.values.requestType === 'grpc'}
-                />
-                <label htmlFor="grpc" className="ml-1 cursor-pointer select-none">
-                  gRPC
-                </label>
-              </>
-            )}
+            <input
+              id="grpc"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={formik.handleChange}
+              value="grpc"
+              checked={formik.values.requestType === 'grpc'}
+            />
+            <label htmlFor="grpc" className="ml-1 cursor-pointer select-none">
+              gRPC
+            </label>
           </div>
         </div>
         <div className="mb-3 flex items-center">
