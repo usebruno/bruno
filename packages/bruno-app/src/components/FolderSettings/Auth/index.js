@@ -17,7 +17,7 @@ import NTLMAuth from 'components/RequestPane/Auth/NTLMAuth';
 import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
-import { findItemInCollection, findParentItemInCollection, humanizeRequestAuthMode } from 'utils/collections/index';
+  import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
 
 const GrantTypeComponentMap = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -48,15 +48,7 @@ const Auth = ({ collection, folder }) => {
   let request = get(folder, 'root.request', {});
   const authMode = get(folder, 'root.request.auth.mode');
 
-  const getTreePathFromCollectionToFolder = (collection, _folder) => {
-    let path = [];
-    let item = findItemInCollection(collection, _folder?.uid);
-    while (item) {
-      path.unshift(item);
-      item = findParentItemInCollection(collection, item?.uid);
-    }
-    return path;
-  };
+
 
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
@@ -69,7 +61,7 @@ const Auth = ({ collection, folder }) => {
     };
 
     // Get path from collection to current folder
-    const folderTreePath = getTreePathFromCollectionToFolder(collection, folder);
+    const folderTreePath = getTreePathFromCollectionToItem(collection, folder);
     
     // Check parent folders to find closest auth configuration
     // Skip the last item which is the current folder
