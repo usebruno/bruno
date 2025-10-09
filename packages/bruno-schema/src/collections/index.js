@@ -4,7 +4,8 @@ const { uidSchema } = require('../common');
 const environmentVariablesSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
-  value: Yup.string().nullable(),
+  // Allow mixed types (string, number, boolean, object) to support setting non-string values via scripts.
+  value: Yup.mixed().nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined(),
   secret: Yup.boolean()
@@ -382,6 +383,55 @@ const grpcRequestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const wsRequestSchema = Yup.object({
+  url: requestUrlSchema,
+  headers: Yup.array().of(keyValueSchema).required('headers are required'),
+  auth: authSchema,
+  body: Yup.object({
+    mode: Yup.string().oneOf(['ws']).required('mode is required'),
+    ws: Yup.array()
+      .of(
+        Yup.object({
+          name: Yup.string().nullable(),
+          type: Yup.string().nullable(),
+          content: Yup.string().nullable()
+        })
+      )
+      .nullable()
+  })
+    .strict()
+    .required('body is required'),
+  script: Yup.object({
+    req: Yup.string().nullable(),
+    res: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .strict(),
+  vars: Yup.object({
+    req: Yup.array().of(varsSchema).nullable(),
+    res: Yup.array().of(varsSchema).nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable(),
+  assertions: Yup.array().of(keyValueSchema).nullable(),
+  tests: Yup.string().nullable(),
+  docs: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+const wsSettingsSchema = Yup.object({
+  settings: Yup.object({
+    timeout: Yup.number()
+      .default(500),
+    keepAliveInterval: Yup.number()
+      .default(0)
+  }).noUnknown(true)
+    .strict()
+    .nullable()
+});
+
 const folderRootSchema = Yup.object({
   request: Yup.object({
     headers: Yup.array().of(keyValueSchema).nullable(),
@@ -419,24 +469,35 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request']).required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   tags: Yup.array().of(Yup.string().matches(/^[\w-]+$/, 'tag must be alphanumeric')),
   request: Yup.mixed().when('type', {
     is: (type) => type === 'grpc-request',
     then: grpcRequestSchema.required('request is required when item-type is grpc-request'),
-    otherwise: requestSchema.when('type', {
-      is: (type) => ['http-request', 'graphql-request'].includes(type),
-      then: (schema) => schema.required('request is required when item-type is request')
+    otherwise: Yup.mixed().when('type', {
+      is: (type) => type === 'ws-request',
+      then: wsRequestSchema.required('request is required when item-type is ws-request'),
+      otherwise: requestSchema.when('type', {
+        is: (type) => ['http-request', 'graphql-request'].includes(type),
+        then: (schema) => schema.required('request is required when item-type is request')
+      })
     })
   }),
-  settings: Yup.object({
-    encodeUrl: Yup.boolean().nullable()
-  })
-    .noUnknown(true)
+    settings: Yup.mixed()
+    .when('type', {
+      is: (type) => type === 'ws-request',
+      then: wsSettingsSchema,
+      otherwise: Yup.object({
+        encodeUrl: Yup.boolean().nullable(),
+        followRedirects: Yup.boolean().nullable(),
+        maxRedirects: Yup.number().min(0).max(50).nullable(),
+        timeout: Yup.mixed().nullable(),
+      }).noUnknown(true)
     .strict()
-    .nullable(),
+    .nullable()
+    }),
   fileContent: Yup.string().when('type', {
     // If the type is 'js', the fileContent field is expected to be a string.
     // This can include an empty string, indicating that the JS file may not have any content.

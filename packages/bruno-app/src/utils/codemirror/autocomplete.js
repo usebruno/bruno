@@ -27,6 +27,7 @@ const STATIC_API_HINTS = {
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
     'req.getName()',
+    'req.getTags()',
     'req.disableParsingResponseJson()',
     'req.onFail(function(err) {})',
   ],

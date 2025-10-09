@@ -1,10 +1,13 @@
 const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
-const fs = require('node:fs/promises');
+const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
 const { buildFormUrlEncodedPayload } = require('../../utils/form-data');
 const path = require('node:path');
+const { isLargeFile } = require('../../utils/filesystem');
+
+const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -343,6 +346,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     url,
     headers,
     name: item.name,
+    tags: item.tags || [],
     pathParams: request.params?.filter((param) => param.type === 'path'),
     settings,
     responseType: 'arraybuffer'
@@ -398,8 +402,14 @@ const prepareRequest = async (item, collection = {}, abortController) => {
         }
   
         try {
-          const fileContent = await fs.readFile(filePath);
-          axiosRequest.data = fileContent;
+          // Large files can cause "JavaScript heap out of memory" errors when loaded entirely into memory.
+          if (isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)) {
+            // For large files: Use streaming to avoid memory issues
+            axiosRequest.data = fs.createReadStream(filePath);
+          } else {
+            // For smaller files: Use synchronous read for better performance
+            axiosRequest.data = fs.readFileSync(filePath);
+          }
         } catch (error) {
           console.error('Error reading file:', error);
         }
@@ -412,7 +422,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
       axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     }
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
+    axiosRequest.data = enabledParams;
   }
 
   if (request.body.mode === 'multipartForm') {

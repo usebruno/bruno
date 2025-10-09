@@ -5,20 +5,14 @@ const path = require('path');
 
 /**
  * @param {Array.<object>} params The request body Array
- * @returns {object} Returns an obj with repeating key as an array of values
- * {item: 2, item: 3, item1: 4} becomes {item: [2,3], item1: 4}
+ * @returns {string} Returns a order respecting standard compliant string of form encoded values
  */
 const buildFormUrlEncodedPayload = (params) => {
-  return params.reduce((acc, p) => {
-    if (!acc[p.name]) {
-      acc[p.name] = p.value;
-    } else if (Array.isArray(acc[p.name])) {
-      acc[p.name].push(p.value);
-    } else {
-      acc[p.name] = [acc[p.name], p.value];
-    }
-    return acc;
-  }, {});
+  const resultParams = new URLSearchParams();
+  for (const param of params) {
+    resultParams.append(param.name, param.value);
+  }
+  return resultParams.toString();
 };
 
 
