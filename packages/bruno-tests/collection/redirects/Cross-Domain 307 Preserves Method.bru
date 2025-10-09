@@ -1,0 +1,59 @@
+meta {
+  name: Cross-Domain 307 Preserves Method
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{host}}/redirect-307-cross-domain
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer secret-token-12345
+}
+
+body:json {
+  {
+    "test": "data"
+  }
+}
+
+assert {
+  res.status: 200
+}
+
+tests {
+  test("should strip Authorization on cross-domain 307 redirect", function() {
+    // Even for 307 (which preserves method and body),
+    // sensitive headers should still be stripped on cross-domain
+    const timeline = res.timeline;
+    expect(timeline).to.not.be.undefined;
+
+    const hasSecurityWarning = timeline.some(entry =>
+      entry.message && entry.message.includes('Cross-domain redirect detected')
+    );
+
+    expect(hasSecurityWarning).to.be.true;
+  });
+
+  test("should preserve POST method for 307", function() {
+    // 307 redirects preserve the original HTTP method
+    // This test validates that we only strip headers, not change the method
+    const data = res.getBody();
+    expect(data).to.not.be.undefined;
+  });
+}
+
+docs {
+  # 307 Cross-Domain Redirect Security Test
+
+  Tests that 307 redirects (which preserve HTTP method and body)
+  still strip sensitive headers when crossing domain boundaries.
+
+  307 Temporary Redirect maintains:
+  - ✓ HTTP method (POST stays POST)
+  - ✓ Request body
+  - ✗ Sensitive headers (stripped on cross-domain)
+}

@@ -1,0 +1,80 @@
+meta {
+  name: Cross-Domain Redirect Strips Auth
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/redirect-cross-domain-with-auth
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer secret-token-12345
+  X-Custom-Header: keep-this
+}
+
+assert {
+  res.status: 200
+}
+
+tests {
+  test("should successfully follow cross-domain redirect", function() {
+    // The request should complete successfully
+    expect(res.status).to.equal(200);
+    const data = res.getBody();
+    expect(data).to.not.be.undefined;
+  });
+
+  test("should strip Authorization header on cross-domain redirect", function() {
+    // The timeline should show the cross-domain security warning
+    const timeline = res.timeline;
+    expect(timeline).to.not.be.undefined;
+
+    // Look for the security message in timeline
+    const hasSecurityWarning = timeline.some(entry =>
+      entry.message && entry.message.includes('Cross-domain redirect detected') &&
+      entry.message.includes('Sensitive headers') &&
+      entry.message.includes('removed for security')
+    );
+
+    expect(hasSecurityWarning).to.be.true;
+  });
+
+  test("should not send Authorization to redirected domain", function() {
+    // When redirecting to httpbin.org, it should NOT receive our Authorization header
+    // httpbin.org returns the headers it received in the response
+    const data = res.getBody();
+
+    // httpbin.org returns JSON with a 'headers' field showing what it received
+    if (data.headers) {
+      // Authorization should NOT be in the headers httpbin received
+      expect(data.headers.Authorization).to.be.undefined;
+      expect(data.headers.authorization).to.be.undefined;
+    }
+  });
+}
+
+docs {
+  # Cross-Domain Redirect Security Test
+
+  This test validates that Bruno follows browser security standards
+  by stripping sensitive headers (Authorization, Cookie, etc.) when
+  redirecting to a different origin (cross-domain redirect).
+
+  ## Test Details
+  - Sends request to localhost with Authorization header
+  - Server redirects (307) to httpbin.org (different domain)
+  - Bruno should strip Authorization before following redirect
+  - httpbin.org returns what headers it received
+
+  ## Expected Behavior
+  - Request completes successfully (200 OK)
+  - Timeline shows security warning about cross-domain redirect
+  - httpbin.org does NOT receive the Authorization header
+
+  ## Security Rationale
+  Prevents credential leakage to untrusted third-party domains,
+  following RFC 7231 recommendations and browser implementations.
+}
