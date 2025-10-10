@@ -1,0 +1,87 @@
+type: collection.insomnia.rest/5.0
+name: Test API Collection v5 with Environments
+meta:
+  id: wrk_7faf891d273e4b7ea82bdbaa641ee17a
+  created: 1743683067888
+  modified: 1743683067888
+collection:
+  - name: API Tests
+    meta:
+      id: fld_ab2a1533f2be48c194883bf07d693292
+      created: 1743683080329
+      modified: 1743683080329
+      sortKey: -1743683080329
+    children:
+      - url: "{{ _.base_url }}/api/users"
+        name: Get Users
+        meta:
+          id: req_0393b8ff4ee1454daddacdda33fd33ea
+          created: 1743683426423
+          modified: 1743683632735
+          isPrivate: false
+          sortKey: -1743683429031
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.auth_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_25f97142fa796ae37f7f4937c0ebf3a07869d0a8
+    created: 1743683067908
+    modified: 1743683833282
+  cookies: []
+environments:
+  name: Base Environment
+  meta:
+    id: env_25f97142fa796ae37f7f4937c0ebf3a07869d0a8
+    created: 1743683067895
+    modified: 1743683476058
+    isPrivate: false
+  data:
+    base_url: https://api.example.com
+    auth_token: your_auth_token_here
+    user:
+      name: admin
+      id: 123
+      roles:
+        - admin
+        - user
+    config:
+      timeout: 30000
+      retries: 3
+      debug: true
+  subEnvironments:
+    - name: Staging
+      meta:
+        id: env_staging_123
+        created: 1743683067895
+        modified: 1743683476058
+        isPrivate: false
+      data:
+        base_url: https://staging-api.example.com
+        user:
+          name: staging_admin
+        config:
+          timeout: 60000
+          debug: false
+    - name: Development
+      meta:
+        id: env_dev_456
+        created: 1743683067895
+        modified: 1743683476058
+        isPrivate: false
+      data:
+        base_url: https://dev-api.example.com
+        auth_token: dev_token_123
+        new_feature:
+          enabled: true
+          version: 2.099123123
