@@ -33,7 +33,12 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
     // Ensure the browser window complies with "SSL/TLS Certificate Verification" preference
     window.webContents.on('certificate-error', (event, url, error, certificate, callback) => {
       event.preventDefault();
-      callback(!preferencesUtil.shouldVerifyTls());
+      const shouldAllow = !preferencesUtil.shouldVerifyTls();
+      if (!shouldAllow) {
+        console.error(`Bruno OAuth: SSL Certificate verification failed for ${url}. Error: ${error}`);
+        console.error('Bruno OAuth: Disable "SSL/TLS Certificate Verification" in settings to proceed with OAuth flows that use invalid certificates.');
+      }
+      callback(shouldAllow);
     });
 
     const { session: webSession } = window.webContents;
