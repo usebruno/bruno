@@ -256,6 +256,7 @@ class AssertRuntime {
     }
 
     const bru = new Bru(
+      this.runtime,
       envVariables,
       runtimeVariables,
       processEnvVars,

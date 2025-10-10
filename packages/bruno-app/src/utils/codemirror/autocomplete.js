@@ -76,6 +76,7 @@ const STATIC_API_HINTS = {
     'bru.getTestResults()',
     'bru.sleep(ms)',
     'bru.getCollectionName()',
+    'bru.isSafeMode()',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
     'bru.runner',

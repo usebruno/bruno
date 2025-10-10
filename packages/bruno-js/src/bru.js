@@ -6,7 +6,8 @@ const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName) {
+  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName) {
+    this.runtime = runtime;
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -231,6 +232,10 @@ class Bru {
 
   getCollectionName() {
     return this.collectionName;
+  }
+
+  isSafeMode() {
+    return this.runtime === 'quickjs';
   }
 }
 
