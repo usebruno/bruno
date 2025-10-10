@@ -20,8 +20,8 @@
  *
  * MULTILINE SUPPORT:
  * The MaskedEditor automatically handles multiline content efficiently:
- * - Small content (< 100 chars): Character-by-character masking
- * - Large content (>= 100 chars): Line-by-line masking for performance
+ * - Small content (< 500 chars): Character-by-character masking
+ * - Large content (>= 500 chars): Line-by-line masking for performance
  * - Preserves line breaks and cursor position across line boundaries
  * - Handles empty lines gracefully
  *
@@ -92,7 +92,7 @@ export class MaskedEditor {
       this.editor.on('cursorActivity', this.handleCursorActivity);
       this.editor.on('selectionChange', this.handleSelectionChange);
 
-      // Apply masking
+      // Apply masking with editor operation for better performance
       this.applyMasking();
     } finally {
       this.isProcessing = false;
@@ -224,16 +224,39 @@ export class MaskedEditor {
     const content = this.editor.getValue();
     const lineCount = this.editor.lineCount();
 
-    if (lineCount === 0) return;
+    if (lineCount === 0) {
+      return;
+    }
 
     this.clearAllMarks();
 
     // Apply new masking based on content size
-    // Content's length is reduced to 100 chars form 1000 size to prevent the performance issues
-    if (content.length <= 100) {
+    if (content.length <= 500) {
       this.applyCharacterMasking(content);
     } else {
       // For large content, we apply line-by-line masking for high performance
+      this.applyLineMasking(lineCount);
+    }
+  }
+
+  /**
+   * Apply masking with editor operation for enable operations
+   */
+  applyMasking() {
+    const content = this.editor.getValue();
+    const lineCount = this.editor.lineCount();
+
+    if (lineCount === 0) {
+      return;
+    }
+
+    this.clearAllMarks();
+
+    // Apply new masking based on content size with editor operation
+    if (content.length <= 500) {
+      this.applyCharacterMasking(content);
+    } else {
+      // For large content, we apply line-by-line masking (fast synchronous)
       this.applyLineMasking(lineCount);
     }
   }
@@ -281,6 +304,51 @@ export class MaskedEditor {
   }
 
   /**
+   * Apply character-by-character masking with editor operation for enable operations
+   */
+  applyCharacterMasking(content) {
+    let currentLine = 0;
+    let currentCh = 0;
+
+    // Use editor operation to batch all DOM operations
+    this.editor.operation(() => {
+      for (let i = 0; i < content.length; i++) {
+        const char = content[i];
+
+        if (char === '\n') {
+          currentLine++;
+          currentCh = 0;
+        } else {
+          // Create masked node
+          const maskedNode = document.createTextNode(this.maskChar);
+
+          // Create mark with proper bounds checking
+          const fromPos = { line: currentLine, ch: currentCh };
+          const toPos = { line: currentLine, ch: currentCh + 1 };
+
+          // Ensure positions are within editor bounds
+          const lineCount = this.editor.lineCount();
+          if (currentLine < lineCount) {
+            const lineLength = this.editor.getLine(currentLine).length;
+            if (currentCh < lineLength) {
+              const mark = this.editor.markText(fromPos, toPos, {
+                replacedWith: maskedNode,
+                handleMouseEvents: true,
+                className: 'masked-character'
+              });
+
+              // Store mark for cleanup
+              this.marks.add(mark);
+            }
+          }
+
+          currentCh++;
+        }
+      }
+    });
+  }
+
+  /**
    * Apply line-by-line masking for large content
    */
   applyLineMasking(lineCount) {
@@ -317,13 +385,25 @@ export class MaskedEditor {
    * Clear all marks with proper cleanup
    */
   clearAllMarks() {
-    // this.editor.operation is used to group the marks clearing into a single operation
-    // this is to prevent the marks from being cleared prematurely
+
+    if (this.marks.size === 0) {
+      return;
+    }
+
+    // Use editor operation for better performance
     this.editor.operation(() => {
-      // this.editor.getAllMarks() is used to get all the marks in the editor which was created by this.editor.markText
-      this.editor.getAllMarks().forEach((mark) => mark.clear());
+      // Clear all marks created by this instance
+      this.marks.forEach((mark) => {
+        try {
+          mark.clear();
+        } catch (error) {
+          // Skip problematic marks
+          console.warn('Failed to clear mark:', error);
+        }
+      });
     });
-    // this is being used to clear the existing marks which was created by the initial component mount
+
+    // Clear our mark tracking
     this.marks.clear();
   }
 
