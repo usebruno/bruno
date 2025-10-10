@@ -20,8 +20,8 @@
  *
  * MULTILINE SUPPORT:
  * The MaskedEditor automatically handles multiline content efficiently:
- * - Small content (< 1000 chars): Character-by-character masking
- * - Large content (>= 1000 chars): Line-by-line masking for performance
+ * - Small content (< 100 chars): Character-by-character masking
+ * - Large content (>= 100 chars): Line-by-line masking for performance
  * - Preserves line breaks and cursor position across line boundaries
  * - Handles empty lines gracefully
  *
@@ -68,8 +68,6 @@ export class MaskedEditor {
     this.enabled = false;
     this.isProcessing = false;
     this.marks = new Set();
-    this.originalCursor = null;
-    this.originalSelection = null;
 
     // Bind methods to preserve context
     this.handleInputRead = this.handleInputRead.bind(this);
@@ -88,9 +86,6 @@ export class MaskedEditor {
     this.isProcessing = true;
 
     try {
-      // Store current cursor and selection
-      this.storeCursorState();
-
       // Add event listeners with proper cleanup
       this.editor.on('inputRead', this.handleInputRead);
       this.editor.on('beforeChange', this.handleBeforeChange);
@@ -99,10 +94,6 @@ export class MaskedEditor {
 
       // Apply masking
       this.applyMasking();
-
-      // Restore cursor state
-      this.restoreCursorState();
-
     } finally {
       this.isProcessing = false;
     }
@@ -118,9 +109,6 @@ export class MaskedEditor {
     this.isProcessing = true;
 
     try {
-      // Store current state
-      this.storeCursorState();
-
       // Remove event listeners
       this.editor.off('inputRead', this.handleInputRead);
       this.editor.off('beforeChange', this.handleBeforeChange);
@@ -133,9 +121,9 @@ export class MaskedEditor {
       // Refresh editor to show real content
       this.editor.refresh();
 
-      // Restore cursor state
-      this.restoreCursorState();
-
+      // Move cursor to end of content
+      this.moveCursorToEnd();
+      console.timeEnd('disable start');
     } finally {
       this.isProcessing = false;
     }
@@ -150,9 +138,7 @@ export class MaskedEditor {
     this.isProcessing = true;
 
     try {
-      this.storeCursorState();
       this.applyMasking();
-      this.restoreCursorState();
     } finally {
       this.isProcessing = false;
     }
@@ -172,10 +158,8 @@ export class MaskedEditor {
 
       // For multiline content, use more efficient line-based masking
       if (lineCount > 1) {
-        this.editor.operation(() => {
-          this.clearAllMarks();
-          this.applyLineMasking(lineCount);
-        });
+        this.clearAllMarks();
+        this.applyLineMasking(lineCount);
       } else {
         this.update();
       }
@@ -185,29 +169,14 @@ export class MaskedEditor {
   }
 
   /**
-   * Store current cursor and selection state
+   * Move cursor to the end of the content
    */
-  storeCursorState() {
-    this.originalCursor = this.editor.getCursor();
-    this.originalSelection = this.editor.getSelection();
-  }
-
-  /**
-   * Restore cursor and selection state
-   */
-  restoreCursorState() {
-    if (this.originalCursor) {
-      // Ensure cursor position is within editor bounds
-      const lineCount = this.editor.lineCount();
-      const clampedLine = Math.min(this.originalCursor.line, Math.max(0, lineCount - 1));
-      const lineLength = this.editor.getLine(clampedLine).length;
-      const clampedCh = Math.min(this.originalCursor.ch, Math.max(0, lineLength));
-
-      this.editor.setCursor({ line: clampedLine, ch: clampedCh });
-    }
-    if (this.originalSelection) {
-      // For selection, just set cursor position to avoid selection issues with masked content
-      this.editor.setSelection(this.editor.getCursor(), this.editor.getCursor());
+  moveCursorToEnd() {
+    const lineCount = this.editor.lineCount();
+    if (lineCount > 0) {
+      const lastLine = lineCount - 1;
+      const lastLineLength = this.editor.getLine(lastLine).length;
+      this.editor.setCursor({ line: lastLine, ch: lastLineLength });
     }
   }
 
@@ -225,13 +194,11 @@ export class MaskedEditor {
   }
 
   /**
-   * Handle before change events to preserve cursor
+   * Handle before change events
    */
   handleBeforeChange(cm, changeObj) {
     if (!this.enabled || this.isProcessing) return;
-
-    // Store cursor position before change
-    this.storeCursorState();
+    // No cursor state management needed
   }
 
   /**
@@ -239,9 +206,7 @@ export class MaskedEditor {
    */
   handleCursorActivity() {
     if (!this.enabled || this.isProcessing) return;
-
-    // Update cursor state
-    this.storeCursorState();
+    // No cursor state management needed
   }
 
   /**
@@ -249,9 +214,7 @@ export class MaskedEditor {
    */
   handleSelectionChange() {
     if (!this.enabled || this.isProcessing) return;
-
-    // Update selection state
-    this.storeCursorState();
+    // No cursor state management needed
   }
 
   /**
@@ -263,17 +226,16 @@ export class MaskedEditor {
 
     if (lineCount === 0) return;
 
-    this.editor.operation(() => {
-      // Clear existing marks
-      this.clearAllMarks();
+    this.clearAllMarks();
 
-      // Apply new masking based on content size
-      if (content.length <= 1000) {
-        this.applyCharacterMasking(content);
-      } else {
-        this.applyLineMasking(lineCount);
-      }
-    });
+    // Apply new masking based on content size
+    // Content's length is reduced to 100 chars form 1000 size to prevent the performance issues
+    if (content.length <= 100) {
+      this.applyCharacterMasking(content);
+    } else {
+      // For large content, we apply line-by-line masking for high performance
+      this.applyLineMasking(lineCount);
+    }
   }
 
   /**
@@ -355,23 +317,14 @@ export class MaskedEditor {
    * Clear all marks with proper cleanup
    */
   clearAllMarks() {
-    this.marks.forEach(mark => {
-      try {
-        mark.clear();
-      } catch (e) {
-        // Ignore errors when clearing marks
-      }
+    // this.editor.operation is used to group the marks clearing into a single operation
+    // this is to prevent the marks from being cleared prematurely
+    this.editor.operation(() => {
+      // this.editor.getAllMarks() is used to get all the marks in the editor which was created by this.editor.markText
+      this.editor.getAllMarks().forEach((mark) => mark.clear());
     });
+    // this is being used to clear the existing marks which was created by the initial component mount
     this.marks.clear();
-
-    // Also clear any marks that might have been created outside our control
-    this.editor.getAllMarks().forEach(mark => {
-      try {
-        mark.clear();
-      } catch (e) {
-        // Ignore errors
-      }
-    });
   }
 
   /**
@@ -416,8 +369,6 @@ export class MaskedEditor {
   destroy() {
     this.disable();
     this.marks.clear();
-    this.originalCursor = null;
-    this.originalSelection = null;
 
     if (this.maskTimeout) {
       clearTimeout(this.maskTimeout);
