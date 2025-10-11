@@ -33,6 +33,7 @@ const {
   searchForBruFiles,
   sanitizeName,
   isWSLPath,
+  normalizeAndResolvePath,
   safeToRename,
   isWindowsOS,
   validateName,
@@ -242,6 +243,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // new request
   ipcMain.handle('renderer:new-request', async (event, pathname, request) => {
     try {
+      // Normalize path to handle file:// URLs and platform-specific issues
+      pathname = normalizeAndResolvePath(pathname);
+
       if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
@@ -260,6 +264,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // save request
   ipcMain.handle('renderer:save-request', async (event, pathname, request) => {
     try {
+      // Normalize path to handle file:// URLs and platform-specific issues
+      pathname = normalizeAndResolvePath(pathname);
+
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
@@ -386,6 +393,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item-name', async (event, { itemPath, newName }) => {
     try {
+      // Normalize path to handle file:// URLs and platform-specific issues
+      itemPath = normalizeAndResolvePath(itemPath);
 
       if (!fs.existsSync(itemPath)) {
         throw new Error(`path: ${itemPath} does not exist`);
@@ -545,6 +554,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // delete file/folder
   ipcMain.handle('renderer:delete-item', async (event, pathname, type) => {
     try {
+      // Normalize path to handle file:// URLs and platform-specific issues
+      pathname = normalizeAndResolvePath(pathname);
+
       if (type === 'folder') {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The directory does not exist'));
@@ -795,6 +807,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:move-file-item', async (event, itemPath, destinationPath) => {
     try {
+      // Normalize paths to handle file:// URLs and platform-specific issues
+      itemPath = normalizeAndResolvePath(itemPath);
+      destinationPath = normalizeAndResolvePath(destinationPath);
+
       const itemContent = fs.readFileSync(itemPath, 'utf8');
       const newItemPath = path.join(destinationPath, path.basename(itemPath));
 
@@ -1055,6 +1071,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   // todo: could be removed
   ipcMain.handle('renderer:load-request-via-worker', async (event, { collectionUid, pathname }) => {
+    // Normalize path to handle file:// URLs and platform-specific issues
+    pathname = normalizeAndResolvePath(pathname);
+
     let fileStats;
     try {
       fileStats = fs.statSync(pathname);
@@ -1135,6 +1154,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   
   // todo: could be removed
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
+    // Normalize path to handle file:// URLs and platform-specific issues
+    pathname = normalizeAndResolvePath(pathname);
+
     let fileStats;
     try {
       fileStats = fs.statSync(pathname);
@@ -1184,6 +1206,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   ipcMain.handle('renderer:load-large-request', async (event, { collectionUid, pathname }) => {
+    // Normalize path to handle file:// URLs and platform-specific issues
+    pathname = normalizeAndResolvePath(pathname);
+
     let fileStats;
     if (!hasBruExtension(pathname)) {
       return;
@@ -1253,7 +1278,16 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!filePath) {
         throw new Error('File path is required');
       }
-      shell.showItemInFolder(filePath);
+
+      // Normalize the path to handle file:// URLs and platform-specific issues
+      // This prevents Windows path bugs like "\file\C:\..." from malformed URLs
+      const normalizedPath = normalizeAndResolvePath(filePath);
+
+      if (!normalizedPath || normalizedPath.length === 0) {
+        throw new Error(`Invalid file path after normalization: ${filePath}`);
+      }
+
+      shell.showItemInFolder(normalizedPath);
     } catch (error) {
       console.error('Error in show-in-folder: ', error);
       throw error;

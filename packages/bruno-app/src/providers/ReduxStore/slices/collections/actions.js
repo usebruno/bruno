@@ -1819,7 +1819,20 @@ export const mountCollection =
 export const showInFolder = (collectionPath) => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
+
+    // Defensive check: ensure we're sending a filesystem path, not a file:// URL
+    // This prevents Windows path bugs where malformed URLs can create invalid paths
+    let sanitizedPath = collectionPath;
+    if (collectionPath.startsWith('file://') || collectionPath.startsWith('file:')) {
+      console.warn('Received file URL instead of filesystem path, converting:', collectionPath);
+      // Remove file URL prefixes - the backend will handle full normalization
+      sanitizedPath = collectionPath
+        .replace(/^file:\/\/\//, '') // file:///C:/path → C:/path
+        .replace(/^file:\/\//, '') // file://C:/path → C:/path
+        .replace(/^file:/, ''); // file:C:/path → C:/path
+    }
+
+    ipcRenderer.invoke('renderer:show-in-folder', sanitizedPath).then(resolve).catch(reject);
   });
 };
 
