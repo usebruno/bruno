@@ -67,14 +67,55 @@ const LogTimestamp = ({ timestamp }) => {
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
+  // Helper function to transform Bruno special types back to readable format
+  const transformBrunoTypes = obj => {
+    if (typeof obj !== 'object' || obj === null) {
+      return obj;
+    }
+
+    // Handle Bruno special types
+    if (obj.__brunoType) {
+      switch (obj.__brunoType) {
+        case 'Set':
+          return {
+            '[[Set]]': obj.__brunoValue,
+            'size': obj.__brunoValue.length,
+          };
+        case 'Map':
+          return {
+            '[[Map]]': obj.__brunoValue,
+            'size': obj.__brunoValue.length,
+          };
+        case 'Function':
+          return `[Function: ${obj.__brunoValue.split('\n')[0].substring(0, 50)}...]`;
+        case 'undefined':
+          return 'undefined';
+        default:
+          return obj;
+      }
+    }
+
+    // Recursively transform nested objects
+    if (Array.isArray(obj)) {
+      return obj.map(transformBrunoTypes);
+    }
+
+    const transformed = {};
+    for (const [key, value] of Object.entries(obj)) {
+      transformed[key] = transformBrunoTypes(value);
+    }
+    return transformed;
+  };
+
   const formatMessage = (msg, originalArgs) => {
     if (originalArgs && originalArgs.length > 0) {
       return originalArgs.map((arg, index) => {
         if (typeof arg === 'object' && arg !== null) {
+          const transformedArg = transformBrunoTypes(arg);
           return (
             <div key={index} className="log-object">
               <ReactJson
-                src={arg}
+                src={transformedArg}
                 theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
                 iconStyle="triangle"
                 indentWidth={2}
