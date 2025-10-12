@@ -364,7 +364,7 @@ function setupProxyAgents({
         requestConfig.httpsAgent = getCachedProxyAgent(agentCacheKey, new TimelineSocksProxyAgent({ proxy: proxyUri, ...tlsOptions }, timeline));
       } else {
         const TimelineHttpsProxyAgent = createTimelineAgentClass(PatchedHttpsProxyAgent);
-        requestConfig.httpAgent = new HttpProxyAgent(proxyUri); // For http, no need for timeline
+        requestConfig.httpAgent = getCachedProxyAgent(agentCacheKey, new HttpProxyAgent(proxyUri));
         requestConfig.httpsAgent = getCachedProxyAgent(agentCacheKey, new TimelineHttpsProxyAgent({ proxy: proxyUri, ...tlsOptions }, timeline));
       }
     } else {
