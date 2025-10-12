@@ -6,6 +6,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { preferencesUtil } = require('../store/preferences');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
+const MapCache = require('./map-cache');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -15,6 +16,10 @@ const DEFAULT_PORTS = {
   ws: 80,
   wss: 443
 };
+
+// Agent cache for SSL session reuse
+const proxyAgentCache = new MapCache(5 * 60 * 1000); // 5 minutes TTL
+
 /**
  * check for proxy bypass, copied form 'proxy-from-env'
  */
@@ -296,6 +301,23 @@ function createTimelineAgentClass(BaseAgentClass) {
   };
 }
 
+function getProxyAgentCacheKey(url) {
+  // Use host and port as cache key
+  const parsedUrl = URL.parse(url);
+  const host = parsedUrl.hostname || parsedUrl.host || '';
+  const port = parsedUrl.port || (parsedUrl.protocol === 'https:' ? '443' : '80');
+  return `${host}|${port}`;
+}
+
+function getCachedProxyAgent(cacheKey, newAgent) {
+  let cachedAgent = proxyAgentCache.get(cacheKey);
+  if (!cachedAgent) {
+    proxyAgentCache.set(cacheKey, newAgent);
+    return newAgent;
+  }
+  return cachedAgent;
+}
+
 function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
@@ -313,6 +335,9 @@ function setupProxyAgents({
     minVersion: 'TLSv1',
     rejectUnauthorized: httpsAgentRequestFields.rejectUnauthorized !== undefined ? httpsAgentRequestFields.rejectUnauthorized : true,
   };
+
+  // Use agent cache for SSL session reuse
+  const agentCacheKey = getProxyAgentCacheKey(requestConfig.url);
 
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
@@ -335,20 +360,17 @@ function setupProxyAgents({
 
       if (socksEnabled) {
         const TimelineSocksProxyAgent = createTimelineAgentClass(SocksProxyAgent);
-        requestConfig.httpAgent = new TimelineSocksProxyAgent({ proxy: proxyUri }, timeline);
-        requestConfig.httpsAgent = new TimelineSocksProxyAgent({ proxy: proxyUri, ...tlsOptions }, timeline);
+        requestConfig.httpAgent = getCachedProxyAgent(agentCacheKey, new TimelineSocksProxyAgent({ proxy: proxyUri }, timeline));
+        requestConfig.httpsAgent = getCachedProxyAgent(agentCacheKey, new TimelineSocksProxyAgent({ proxy: proxyUri, ...tlsOptions }, timeline));
       } else {
         const TimelineHttpsProxyAgent = createTimelineAgentClass(PatchedHttpsProxyAgent);
         requestConfig.httpAgent = new HttpProxyAgent(proxyUri); // For http, no need for timeline
-        requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
-          { proxy: proxyUri, ...tlsOptions },
-          timeline
-        );
+        requestConfig.httpsAgent = getCachedProxyAgent(agentCacheKey, new TimelineHttpsProxyAgent({ proxy: proxyUri, ...tlsOptions }, timeline));
       }
     } else {
       // If proxy should not be used, set default HTTPS agent
       const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-      requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+      requestConfig.httpsAgent = getCachedProxyAgent(agentCacheKey, new TimelineHttpsAgent(tlsOptions, timeline));
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
@@ -366,27 +388,23 @@ function setupProxyAgents({
         if (https_proxy?.length) {
           new URL(https_proxy);
           const TimelineHttpsProxyAgent = createTimelineAgentClass(PatchedHttpsProxyAgent);
-          requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
-            { proxy: https_proxy,...tlsOptions },
-            timeline
-          );
+          requestConfig.httpsAgent = getCachedProxyAgent(agentCacheKey, new TimelineHttpsProxyAgent({ proxy: https_proxy, ...tlsOptions }, timeline));
         } else {
           const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-          requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+          requestConfig.httpsAgent = getCachedProxyAgent(agentCacheKey, new TimelineHttpsAgent(tlsOptions, timeline));
         }
       } catch (error) {
         throw new Error('Invalid system https_proxy');
       }
     } else {
       const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-      requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+      requestConfig.httpsAgent = getCachedProxyAgent(agentCacheKey, new TimelineHttpsAgent(tlsOptions, timeline));
     }
   } else {
     const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-    requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+    requestConfig.httpsAgent = getCachedProxyAgent(agentCacheKey, new TimelineHttpsAgent(tlsOptions, timeline));
   }
 }
-
 
 module.exports = {
   shouldUseProxy,
