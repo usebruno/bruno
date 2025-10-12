@@ -9,12 +9,12 @@ class MapCache {
   }
 
   get(key) {
-    if (new Date() - this.cache.get(key)?.timestamp > this.ttl) {
-      this.cache.delete(key);
-      return undefined;
-    }
     const entry = this.cache.get(key);
     if (!entry) {
+      return undefined;
+    }
+    if (new Date() - entry.timestamp > this.ttl) {
+      this.cache.delete(key);
       return undefined;
     }
     return entry.value;
