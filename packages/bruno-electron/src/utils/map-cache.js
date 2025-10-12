@@ -24,10 +24,6 @@ class MapCache {
     this.cache.set(key, { value, timestamp: new Date() });
   }
 
-  has(key) {
-    return this.cache.has(key);
-  }
-
   delete(key) {
     return this.cache.delete(key);
   }
