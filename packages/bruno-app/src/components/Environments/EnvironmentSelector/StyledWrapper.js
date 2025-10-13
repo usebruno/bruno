@@ -45,8 +45,10 @@ const Wrapper = styled.div`
   }
 
   .tippy-box {
-    min-width: 11.875rem;
-    min-height: 15.0625rem;
+    width: ${(props) => props.width}px;
+    min-width: 12rem;
+    max-width: 35vw !important;
+    min-height: 15.5rem;
     max-height: 75vh;
     font-size: 0.8125rem;
     position: relative;
