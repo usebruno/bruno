@@ -37,7 +37,7 @@ const lightTheme = {
     name: {
       color: '#546de5'
     },
-    
+
     runtime: {
       color: 'rgb(0, 0, 0)'
     }
