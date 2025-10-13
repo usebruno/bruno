@@ -6,14 +6,10 @@ import { useTheme } from 'providers/Theme';
 import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
+import themes from 'themes/index';
 
 const KeyValueExplorer = ({ data = [], theme }) => {
   const [showSecret, setShowSecret] = useState(false);
-  const customTheme =
-    theme.theme === 'chromeDark'
-      ? { ...theme, ...{ OBJECT_VALUE_STRING_COLOR: 'rgb(255, 255, 255)' } }
-      : { ...theme, ...{ OBJECT_VALUE_STRING_COLOR: 'rgb(0, 0, 0)' } };
-  delete customTheme.theme;
 
   return (
     <div>
@@ -26,7 +22,7 @@ const KeyValueExplorer = ({ data = [], theme }) => {
               <td className="px-2 py-1">
                 <Inspector
                   data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
-                  theme={customTheme}
+                  theme={theme}
                 />
               </td>
             </tr>
@@ -91,8 +87,11 @@ const RuntimeVariables = ({ collection, theme }) => {
 const VariablesEditor = ({ collection }) => {
   const { storedTheme } = useTheme();
 
+  const currentTheme = themes[storedTheme];
   const reactInspectorTheme =
-    storedTheme === 'light' ? { ...chromeLight, theme: 'chromeLight' } : { ...chromeDark, theme: 'chromeDark' };
+    storedTheme === 'light'
+      ? { ...chromeLight, theme: 'chromeLight', OBJECT_VALUE_STRING_COLOR: currentTheme.variables.runtime.color }
+      : { ...chromeDark, theme: 'chromeDark', OBJECT_VALUE_STRING_COLOR: currentTheme.variables.runtime.color };
 
   return (
     <StyledWrapper className="px-4 py-4">
