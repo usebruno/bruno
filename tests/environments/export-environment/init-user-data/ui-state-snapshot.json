@@ -1,8 +1,0 @@
-{
-  "collections": [
-    {
-      "pathname": "{{projectRoot}}/tests/environments/export-environment/collection",
-      "selectedEnvironment": "Test Environment"
-    }
-  ]
-}
