@@ -5,7 +5,7 @@ import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCh
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import MultiLineEditor from 'components/MultiLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
@@ -254,6 +254,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
             className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
             onClick={addVariable}
             id="add-variable"
+            data-testid="add-variable"
           >
             + Add Variable
           </button>
@@ -261,15 +262,15 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       </div>
 
       <div className="flex items-center">
-        <button type="submit" className="submit btn btn-sm btn-secondary mt-2 flex items-center" onClick={formik.handleSubmit}>
+        <button type="submit" className="submit btn btn-sm btn-secondary mt-2 flex items-center" onClick={formik.handleSubmit} data-testid="save-env">
           <IconDeviceFloppy size={16} strokeWidth={1.5} className="mr-1" />
           Save
         </button>
-        <button type="submit" className="ml-2 px-1 submit btn btn-sm btn-close mt-2 flex items-center" onClick={handleReset}>
+        <button type="submit" className="ml-2 px-1 submit btn btn-sm btn-close mt-2 flex items-center" onClick={handleReset} data-testid="reset-env">
           <IconRefresh size={16} strokeWidth={1.5} className="mr-1" />
           Reset
         </button>
-        <button type="submit" className="submit btn btn-sm btn-close mt-2 flex items-center" onClick={onActivate}>
+        <button type="submit" className="submit btn btn-sm btn-close mt-2 flex items-center" onClick={onActivate} data-testid="activate-env">
           <IconCircleCheck size={16} strokeWidth={1.5} className="mr-1" />
           Activate
         </button>

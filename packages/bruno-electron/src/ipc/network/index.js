@@ -18,13 +18,14 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
+const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
-const { createFormData } = require('../../utils/form-data');
+const { createFormData, buildFormUrlEncodedPayload } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
@@ -32,7 +33,10 @@ const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
+const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
+
+const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -86,13 +90,23 @@ const configureRequest = async (
     collectionPath
   });
 
-  let requestMaxRedirects = request.maxRedirects
-  request.maxRedirects = 0
+  // Get followRedirects setting, default to true for backward compatibility
+  const followRedirects = request.settings?.followRedirects ?? true;
   
-  // Set default value for requestMaxRedirects if not explicitly set
-  if (requestMaxRedirects === undefined) {
+  // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
+  let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+
+  // Ensure it's a valid number
+  if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
     requestMaxRedirects = 5; // Default to 5 redirects
   }
+
+  // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
+  if (!followRedirects) {
+    requestMaxRedirects = 0;
+  }
+
+  request.maxRedirects = 0;
 
   let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
@@ -190,7 +204,9 @@ const configureRequest = async (
     addDigestInterceptor(axiosInstance, request);
   }
 
-  request.timeout = preferencesUtil.getRequestTimeout();
+  // Get timeout from request settings, fallback to global preference
+  const resolvedSettings = resolveInheritedSettings(request.settings || {});
+  request.timeout = resolvedSettings.timeout;
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
@@ -273,7 +289,9 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const collectionRoot = get(collection, 'root', {});
     const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, _request, collectionRoot);
 
-    request.timeout = preferencesUtil.getRequestTimeout();
+    // Get timeout from request settings, resolve inheritance if needed
+    const resolvedSettings = resolveInheritedSettings(request.settings || {});
+    request.timeout = resolvedSettings.timeout;
 
     if (!preferencesUtil.shouldVerifyTls()) {
       request.httpsAgent = new https.Agent({
@@ -406,7 +424,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      request.data = buildFormUrlEncodedPayload(request.data);
     }
 
     if (request.headers['content-type'] === 'multipart/form-data') {
@@ -610,10 +628,19 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
+
+      // Remove false Content-Type header (used to stop axios from auto-setting it); no Content-Type was actually set or sent.
+      const headersSent = { ...request.headers };
+      Object.keys(headersSent).forEach((key) => {
+        if (key.toLowerCase() === 'content-type' && headersSent[key] === false) {
+          delete headersSent[key];
+        }
+      });
+
       let requestSent = {
         url: request.url,
         method: request.method,
-        headers: request.headers,
+        headers: headersSent,
         data: requestData,
         dataBuffer: requestDataBuffer
       }
@@ -674,7 +701,7 @@ const registerNetworkIpc = (mainWindow) => {
           // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
           return {
             statusText: error.statusText,
-            error: error.message || 'Error occured while executing the request!',
+            error: error.message || ERROR_OCCURRED_WHILE_EXECUTING_REQUEST,
             timeline: error.timeline
           }
         }
@@ -853,7 +880,7 @@ const registerNetworkIpc = (mainWindow) => {
       // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
       return {
         status: error?.status,
-        error: error?.message || 'Error occured while executing the request!',
+        error: error?.message || ERROR_OCCURRED_WHILE_EXECUTING_REQUEST,
         timeline: error?.timeline
       };
     }
@@ -1087,10 +1114,19 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
+
+            // Remove false Content-Type header (used to stop axios from auto-setting it); no Content-Type was actually set or sent.
+            const headersSent = { ...request.headers };
+            Object.keys(headersSent).forEach((key) => {
+              if (key.toLowerCase() === 'content-type' && headersSent[key] === false) {
+                delete headersSent[key];
+              }
+            });
+
             let requestSent = {
               url: request.url,
               method: request.method,
-              headers: request.headers,
+              headers: headersSent,
               data: requestData,
               dataBuffer: requestDataBuffer
             }
@@ -1122,6 +1158,13 @@ const registerNetworkIpc = (mainWindow) => {
                 credentialsId: request?.oauth2Credentials?.credentialsId,
                 ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
                 debugInfo: request?.oauth2Credentials?.debugInfo,
+              });
+
+              collection.oauth2Credentials = updateCollectionOauth2Credentials({
+                itemUid: item.uid,
+                collectionUid,
+                collectionOauth2Credentials: collection.oauth2Credentials,
+                requestOauth2Credentials: request.oauth2Credentials
               });
             }
 
@@ -1419,7 +1462,7 @@ const registerNetworkIpc = (mainWindow) => {
   );
 
   // save response to file
-  ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {
+  ipcMain.handle('renderer:save-response-to-file', async (event, response, url, pathname) => {
     try {
       const getHeaderValue = (headerName) => {
         const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
@@ -1465,8 +1508,9 @@ const registerNetworkIpc = (mainWindow) => {
         );
       };
 
+      const dirPath = path.dirname(pathname);
       const fileName = determineFileName();
-      const filePath = await chooseFileToSave(mainWindow, fileName);
+      const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
       if (filePath) {
         const encoding = getEncodingFormat();
         const data = Buffer.from(response.dataBuffer, 'base64')
@@ -1497,7 +1541,7 @@ const executeRequestOnFailHandler = async (request, error) => {
   } catch (handlerError) {
     console.error('Error executing onFail handler', handlerError);
     // @TODO: This is a temporary solution to display the error message in the response pane. Revisit and handle properly.
-    error.message = `1. Request failed: ${error.message || 'Error occured while executing the request!'}\n2. Error executing onFail handler: ${handlerError.message || 'Unknown error'}`;
+    error.message = `1. Request failed: ${error.message || ERROR_OCCURRED_WHILE_EXECUTING_REQUEST}\n2. Error executing onFail handler: ${handlerError.message || 'Unknown error'}`;
   }
 };
 
@@ -1505,6 +1549,7 @@ const executeRequestOnFailHandler = async (request, error) => {
 const registerAllNetworkIpc = (mainWindow) => {
   registerNetworkIpc(mainWindow);
   registerGrpcEventHandlers(mainWindow);
+  registerWsEventHandlers(mainWindow);
 }
 
 module.exports = registerAllNetworkIpc

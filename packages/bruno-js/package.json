@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@usebruno/common": "0.1.0",
-    "@usebruno/crypto-js": "^3.1.9",
     "@usebruno/query": "0.1.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
@@ -26,7 +25,7 @@
     "chai": "^4.3.7",
     "chai-string": "^1.5.0",
     "cheerio": "^1.0.0",
-    "crypto-js": "^4.1.1",
+    "crypto-js": "^4.2.0",
     "json-query": "^2.2.2",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const isDev = require('electron-is-dev');
+const os = require('os');
 
 if (isDev) {
   if(!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -21,6 +22,14 @@ if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
   app.setPath('userData', process.env.ELECTRON_USER_DATA_PATH);
 }
 
+// Command line switches
+if (os.platform() === 'linux') {
+  // Use portal version 4 that supports current_folder option
+  // to address https://github.com/usebruno/bruno/issues/5471
+  // Runtime sets the default version to 3, refs https://github.com/electron/electron/pull/44426
+  app.commandLine.appendSwitch('xdg-portal-required-version', '4');
+}
+
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
@@ -35,8 +44,12 @@ const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
+const onboardUser = require('./app/onboarding');
+const SystemMonitor = require('./app/system-monitor');
+const { getIsRunningInRosetta } = require('./utils/arch');
 
 const lastOpenedCollections = new LastOpenedCollections();
+const systemMonitor = new SystemMonitor();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -178,6 +191,10 @@ app.on('ready', async () => {
         return safeParseJSON(safeStringifyJSON(_));
       })]);
     }
+    
+    // Handle onboarding
+    await onboardUser(mainWindow, lastOpenedCollections);
+    
     // Send cookies list after renderer is ready
     try {
       cookiesStore.initializeCookies();
@@ -186,6 +203,13 @@ app.on('ready', async () => {
     } catch (err) {
       console.error('Failed to load cookies for renderer', err);
     }
+
+    mainWindow.webContents.send('main:app-loaded', {
+      isRunningInRosetta: getIsRunningInRosetta()
+    });
+
+    // Start system monitoring for FileSync
+    systemMonitor.start(mainWindow);
   });
 
   // register all ipc handlers
@@ -204,6 +228,9 @@ app.on('before-quit', () => {
   } catch (err) {
     console.warn('Failed to flush cookies on quit', err);
   }
+
+  // Stop system monitoring
+  systemMonitor.stop();
 });
 
 app.on('window-all-closed', app.quit);

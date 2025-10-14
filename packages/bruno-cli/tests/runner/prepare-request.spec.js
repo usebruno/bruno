@@ -1,4 +1,8 @@
 const { describe, it, expect, beforeEach } = require('@jest/globals');
+jest.mock('../../src/utils/filesystem', () => ({
+  isLargeFile: jest.fn()
+}));
+const filesystemUtils = require('../../src/utils/filesystem');
 const prepareRequest = require('../../src/runner/prepare-request');
 
 describe('prepare-request: prepareRequest', () => {
@@ -8,7 +12,7 @@ describe('prepare-request: prepareRequest', () => {
       const expected = `{
 \"test\": \"{{someVar}}\" 
 }`;
-      const result = prepareRequest({ request: { body } });
+      const result = await prepareRequest({ request: { body } });
       expect(result.data).toEqual(expected);
     });
 
@@ -17,7 +21,7 @@ describe('prepare-request: prepareRequest', () => {
       const expected = `{
 \"test\": {{someVar}} 
 }`;
-      const result = prepareRequest({ request: { body } });
+      const result = await prepareRequest({ request: { body } });
       expect(result.data).toEqual(expected);
     });
   });
@@ -56,7 +60,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('API Key Authentication', () => {
-      it('If collection auth is apikey in header', () => {
+      it('If collection auth is apikey in header', async () => {
         collection.root.request.auth = {
           mode: "apikey",
           apikey: {
@@ -66,11 +70,11 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
       });
 
-      it('If collection auth is apikey in header and request has existing headers', () => {
+      it('If collection auth is apikey in header and request has existing headers', async () => {
         collection.root.request.auth = {
           mode: "apikey",
           apikey: {
@@ -81,12 +85,12 @@ describe('prepare-request: prepareRequest', () => {
         };
 
         item.request.headers.push({ name: 'Content-Type', value: 'application/json', enabled: true });
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
       });
 
-      it('If collection auth is apikey in query parameters', () => {
+      it('If collection auth is apikey in query parameters', async () => {
         collection.root.request.auth = {
           mode: "apikey",
           apikey: {
@@ -100,13 +104,13 @@ describe('prepare-request: prepareRequest', () => {
         urlObj.searchParams.set(collection.root.request.auth.apikey.key, collection.root.request.auth.apikey.value);
 
         const expected = urlObj.toString();
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         expect(result.url).toEqual(expected);
       });
     });
 
     describe('Basic Authentication', () => {
-      it('If collection auth is basic auth', () => {
+      it('If collection auth is basic auth', async () => {
         collection.root.request.auth = {
           mode: 'basic',
           basic: {
@@ -115,14 +119,14 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         const expected = { username: 'testUser', password: 'testPass123' };
         expect(result.basicAuth).toEqual(expected);
       });
     });
 
     describe('Bearer Token Authentication', () => {
-      it('If collection auth is bearer token', () => {
+      it('If collection auth is bearer token', async () => {
         collection.root.request.auth = {
           mode: 'bearer',
           bearer: {
@@ -130,11 +134,11 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('Authorization', 'Bearer token');
       });
 
-      it('If collection auth is bearer token and request has existing headers', () => {
+      it('If collection auth is bearer token and request has existing headers', async () => {
         collection.root.request.auth = {
           mode: 'bearer',
           bearer: {
@@ -144,14 +148,14 @@ describe('prepare-request: prepareRequest', () => {
 
         item.request.headers.push({ name: 'Content-Type', value: 'application/json', enabled: true });
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('Authorization', 'Bearer token');
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
       });
     });
 
     describe('OAuth2 Authentication', () => {
-      it('If collection auth is OAuth2 with client credentials grant type', () => {
+      it('If collection auth is OAuth2 with client credentials grant type', async () => {
         collection.root.request.auth = {
           mode: 'oauth2',
           oauth2: {
@@ -167,7 +171,7 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         
         expect(result.oauth2).toBeDefined();
         expect(result.oauth2.grantType).toBe('client_credentials');
@@ -181,7 +185,7 @@ describe('prepare-request: prepareRequest', () => {
         expect(result.oauth2.tokenQueryKey).toBe('access_token');
       });
 
-      it('If collection auth is OAuth2 with password grant type', () => {
+      it('If collection auth is OAuth2 with password grant type', async () => {
         collection.root.request.auth = {
           mode: 'oauth2',
           oauth2: {
@@ -199,7 +203,7 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         
         expect(result.oauth2).toBeDefined();
         expect(result.oauth2.grantType).toBe('password');
@@ -217,7 +221,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('AWS v4 Authentication', () => {
-      it('If collection auth is AWS v4', () => {
+      it('If collection auth is AWS v4', async () => {
         collection.root.request.auth = {
           mode: 'awsv4',
           awsv4: {
@@ -230,7 +234,7 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         const expected = {
           accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
           secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
@@ -244,7 +248,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('NTLM Authentication', () => {
-      it('If collection auth is NTLM', () => {
+      it('If collection auth is NTLM', async () => {
         collection.root.request.auth = {
           mode: 'ntlm',
           ntlm: {
@@ -254,7 +258,7 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         const expected = {
           username: 'testUser',
           password: 'testPass123',
@@ -265,7 +269,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('WSSE Authentication', () => {
-      it('If collection auth is WSSE', () => {
+      it('If collection auth is WSSE', async () => {
         collection.root.request.auth = {
           mode: 'wsse',
           wsse: {
@@ -274,7 +278,7 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('X-WSSE');
         expect(result.headers['X-WSSE']).toContain('UsernameToken Username="testUser"');
         expect(result.headers['X-WSSE']).toContain('PasswordDigest="');
@@ -284,7 +288,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('Digest Authentication', () => {
-      it('If collection auth is digest auth', () => {
+      it('If collection auth is digest auth', async () => {
         collection.root.request.auth = {
           mode: 'digest',
           digest: {
@@ -293,7 +297,7 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item, collection);
+        const result = await prepareRequest(item, collection);
         
         const expected = {
           username: 'testUser',
@@ -304,7 +308,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('No Authentication', () => {
-      it('If request does not have auth configured', () => {
+      it('If request does not have auth configured', async () => {
         delete item.request.auth;
         let result;
         expect(() => {
@@ -339,7 +343,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('API Key Authentication', () => {
-      it('If request auth is apikey in header', () => {
+      it('If request auth is apikey in header', async () => {
         item.request.auth = {
           mode: "apikey",
           apikey: {
@@ -349,11 +353,11 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
       });
 
-      it('If request auth is apikey in header and request has existing headers', () => {
+      it('If request auth is apikey in header and request has existing headers', async () => {
         item.request.auth = {
           mode: "apikey",
           apikey: {
@@ -364,12 +368,12 @@ describe('prepare-request: prepareRequest', () => {
         };
 
         item.request.headers.push({ name: 'Content-Type', value: 'application/json', enabled: true });
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
       });
 
-      it('If request auth is apikey in query parameters', () => {
+      it('If request auth is apikey in query parameters', async () => {
         item.request.auth = {
           mode: "apikey",
           apikey: {
@@ -383,13 +387,13 @@ describe('prepare-request: prepareRequest', () => {
         urlObj.searchParams.set(item.request.auth.apikey.key, item.request.auth.apikey.value);
 
         const expected = urlObj.toString();
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         expect(result.url).toEqual(expected);
       });
     });
 
     describe('Basic Authentication', () => {
-      it('If request auth is basic auth', () => {
+      it('If request auth is basic auth', async () => {
         item.request.auth = {
           mode: 'basic',
           basic: {
@@ -398,14 +402,14 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         const expected = { username: 'testUser', password: 'testPass123' };
         expect(result.basicAuth).toEqual(expected);
       });
     });
 
     describe('Bearer Token Authentication', () => {
-      it('If request auth is bearer token', () => {
+      it('If request auth is bearer token', async () => {
         item.request.auth = {
           mode: 'bearer',
           bearer: {
@@ -413,11 +417,11 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('Authorization', 'Bearer token123');
       });
 
-      it('If request auth is bearer token and request has existing headers', () => {
+      it('If request auth is bearer token and request has existing headers', async () => {
         item.request.auth = {
           mode: 'bearer',
           bearer: {
@@ -427,14 +431,14 @@ describe('prepare-request: prepareRequest', () => {
 
         item.request.headers.push({ name: 'Content-Type', value: 'application/json', enabled: true });
 
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('Authorization', 'Bearer token123');
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
       });
     });
 
     describe('AWS v4 Authentication', () => {
-      it('If request auth is AWS v4', () => {
+      it('If request auth is AWS v4', async () => {
         item.request.auth = {
           mode: 'awsv4',
           awsv4: {
@@ -447,7 +451,7 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         const expected = {
           accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
           secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
@@ -461,7 +465,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('NTLM Authentication', () => {
-      it('If request auth is NTLM', () => {
+      it('If request auth is NTLM', async () => {
         item.request.auth = {
           mode: 'ntlm',
           ntlm: {
@@ -471,7 +475,7 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         const expected = {
           username: 'testUser',
           password: 'testPass123',
@@ -482,7 +486,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('WSSE Authentication', () => {
-      it('If request auth is WSSE', () => {
+      it('If request auth is WSSE', async () => {
         item.request.auth = {
           mode: 'wsse',
           wsse: {
@@ -491,7 +495,7 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('X-WSSE');
         expect(result.headers['X-WSSE']).toContain('UsernameToken Username="requestUser"');
         expect(result.headers['X-WSSE']).toContain('PasswordDigest="');
@@ -501,7 +505,7 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     describe('Digest Authentication', () => {
-      it('If request auth is digest auth', () => {
+      it('If request auth is digest auth', async () => {
         item.request.auth = {
           mode: 'digest',
           digest: {
@@ -510,13 +514,90 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const result = prepareRequest(item);
+        const result = await prepareRequest(item);
         const expected = {
           username: 'requestUser',
           password: 'requestPass123'
         };
         expect(result.digestConfig).toEqual(expected);
       });
+    });
+  });
+
+  describe('Request file body mode', () => {
+    const fs = require('node:fs');
+    let readFileSyncSpy;
+    let createReadStreamSpy;
+
+    beforeEach(() => {
+      readFileSyncSpy = jest.spyOn(fs, 'readFileSync');
+      createReadStreamSpy = jest.spyOn(fs, 'createReadStream');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should use readFileSync to read small files', async () => {
+      const fileContent = Buffer.from('small file content');
+      filesystemUtils.isLargeFile.mockReturnValue(false);
+      readFileSyncSpy.mockReturnValue(fileContent);
+
+      const item = {
+        name: 'File Request',
+        type: 'http-request',
+        request: {
+          method: 'POST',
+          headers: [],
+          params: [],
+          url: 'https://example.com/upload',
+          body: {
+            mode: 'file',
+            file: [{
+              contentType: 'text/plain',
+              filePath: '/path/to/file.txt',
+              selected: true
+            }]
+          }
+        },
+      };
+
+      const result = await prepareRequest(item);
+
+      expect(result.data).toBe(fileContent);
+      expect(readFileSyncSpy).toHaveBeenCalled();
+      expect(createReadStreamSpy).not.toHaveBeenCalled();
+    });
+
+    it('should use createReadStream to read large files', async () => {
+      const mockStream = { pipe: jest.fn() };
+      filesystemUtils.isLargeFile.mockReturnValue(true);
+      createReadStreamSpy.mockReturnValue(mockStream);
+
+      const item = {
+        name: 'File Request',
+        type: 'http-request',
+        request: {
+          method: 'POST',
+          headers: [],
+          params: [],
+          url: 'https://example.com/upload',
+          body: {
+            mode: 'file',
+            file: [{
+              contentType: 'application/octet-stream',
+              filePath: '/path/to/large-file.bin',
+              selected: true
+            }]
+          }
+        }
+      };
+
+      const result = await prepareRequest(item);
+
+      expect(result.data).toBe(mockStream);
+      expect(createReadStreamSpy).toHaveBeenCalled();
+      expect(readFileSyncSpy).not.toHaveBeenCalled();
     });
   });
 });

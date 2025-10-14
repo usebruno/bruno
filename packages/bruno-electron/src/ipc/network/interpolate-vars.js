@@ -13,6 +13,11 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
+const getRawQueryString = (url) => {
+  const queryIndex = url.indexOf('?');
+  return queryIndex !== -1 ? url.slice(queryIndex) : '';
+};
+
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
@@ -86,25 +91,24 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
-          escapeJSONStrings: true
-        });
+            escapeJSONStrings: true,
+          });
         }
       } else if (typeof request.data === 'object') {
         try {
           const jsonDoc = JSON.stringify(request.data);
           const parsed = _interpolate(jsonDoc, {
-          escapeJSONStrings: true
-        });
+            escapeJSONStrings: true,
+          });
           request.data = JSON.parse(parsed);
         } catch (err) {}
       }
     } else if (contentType === 'application/x-www-form-urlencoded') {
-      if (typeof request.data === 'object') {
-        try {
-          forOwn(request?.data, (value, key) => {
-            request.data[key] = _interpolate(value);
-          });
-        } catch (err) {}
+      if (request.data && Array.isArray(request.data)) {
+        request.data = request.data.map((d) => ({
+          ...d,
+          value: _interpolate(d?.value)
+        }));
       }
     } else if (contentType === 'multipart/form-data') {
       if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
@@ -126,7 +130,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   if (request?.pathParams?.length) {
     let url = request.url;
-
+    const urlSearchRaw = getRawQueryString(request.url)
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
@@ -137,22 +141,27 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
+    const paramRegex = /[:](\w+)/g;
     const urlPathnameInterpolatedWithPathParams = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        if (path[0] !== ':') {
-          return '/' + path;
+        const matches = path.match(paramRegex);
+        if (matches) {
+          const paramName = matches[0].slice(1); // Remove the : prefix
+          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+          if (!existingPathParam) {
+            return '/' + path;
+          }
+          return '/' + path.replace(':' + paramName, existingPathParam.value);
         } else {
-          const name = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.type === 'path' && param.name === name);
-          return existingPathParam ? '/' + existingPathParam.value : '';
+          return '/' + path;
         }
       })
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + url.search;
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
   }
 
   if (request.proxy) {

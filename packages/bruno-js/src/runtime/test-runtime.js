@@ -133,7 +133,8 @@ class TestRuntime {
       if (this.runtime === 'quickjs') {
         await executeQuickJsVmAsync({
           script: testsFile,
-          context: context
+          context: context,
+          collectionPath
         });
       } else if (this.runtime === 'nodevm') {
         await runScriptInNodeVm({
@@ -149,6 +150,7 @@ class TestRuntime {
           require: {
             context: 'sandbox',
             external: true,
+            builtin: ['*'],
             root: [collectionPath, ...additionalContextRootsAbsolute],
             mock: {
               // node libs

@@ -27,28 +27,17 @@ const getCertsAndProxyConfig = async ({
   }
 
   let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
-  let caCertificatesWithCertType = getCACertificates({ 
+  let caCertificatesData = getCACertificates({
     caCertFilePath, 
     shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates() 
   });
 
-  let caCertificates = caCertificatesWithCertType.map(certData => certData.certificate);
-  let caCertificateDetails = caCertificatesWithCertType.reduce((details, certificateData) => {
-    // get the count for each certificate type
-    details[certificateData.type] += 1;
-    return details;
-  }, {
-    custom: 0,
-    bundled: 0,
-    system: 0,
-    extra: 0
-  });
+  let caCertificates = caCertificatesData.caCertificates;
+  let caCertificatesCount = caCertificatesData.caCertificatesCount;
 
   // configure HTTPS agent with aggregated CA certificates
-  if (caCertificates?.length > 0) {
-    httpsAgentRequestFields['caCertificateDetails'] = caCertificateDetails;
-    httpsAgentRequestFields['ca'] = caCertificates;
-  }
+  httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;
+  httpsAgentRequestFields['ca'] = caCertificates || [];
 
   const brunoConfig = getBrunoConfig(collectionUid);
   const interpolationOptions = {

@@ -3,6 +3,7 @@ const fs = require('fs');
 const { getRequestUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
+const { preferencesUtil } = require('../store/preferences');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -331,6 +332,7 @@ const transformRequestToSaveToFilesystem = (item) => {
     name: _item.name,
     seq: _item.seq,
     settings: _item.settings,
+    tags: _item.tags,
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -522,6 +524,32 @@ const mergeAuth = (collection, request, requestTreePath) => {
   }
 };
 
+const resolveInheritedSettings = (settings) => {
+  const resolvedSettings = {};
+
+  // Resolve each setting individually
+  Object.keys(settings).forEach((settingKey) => {
+    const currentValue = settings[settingKey];
+
+    // If setting is inherited, fallback to preferences only for timeout setting
+    if (currentValue === 'inherit' || currentValue === undefined || currentValue === null) {
+      if (settingKey === 'timeout') {
+        resolvedSettings[settingKey] = preferencesUtil.getRequestTimeout();
+      }
+    } else {
+      // Use the current value as-is
+      resolvedSettings[settingKey] = currentValue;
+    }
+  });
+
+  // Handle missing timeout setting - if timeout is not in settings, treat it as inherited
+  if (!settings.hasOwnProperty('timeout')) {
+    resolvedSettings.timeout = preferencesUtil.getRequestTimeout();
+  }
+
+  return resolvedSettings;
+};
+
 const sortByNameThenSequence = items => {
   const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
 
@@ -584,5 +612,6 @@ module.exports = {
   getAllRequestsInFolderRecursively,
   getEnvVars,
   getFormattedCollectionOauth2Credentials,
-  sortByNameThenSequence
+  sortByNameThenSequence,
+  resolveInheritedSettings
 };

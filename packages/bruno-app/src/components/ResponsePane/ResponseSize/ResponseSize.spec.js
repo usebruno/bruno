@@ -76,35 +76,39 @@ describe('ResponseSize', () => {
     });
 
     it('should handle exactly 1024 bytes as size', () => {
-      renderWithTheme(<ResponseSize size={1024} />);
+      const size = 1024;
+      renderWithTheme(<ResponseSize size={size} />);
       const element = screen.getByText(/1024B/);
       expect(element).toBeInTheDocument();
       expect(element.textContent).toMatch(/^1024B$/);
-      expect(element).toHaveAttribute('title', '1,024B');
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
 
     it('should render kilobytes when size is greater than 1024', () => {
-      renderWithTheme(<ResponseSize size={1500} />);
+      const size = 1500;
+      renderWithTheme(<ResponseSize size={size} />);
       const element = screen.getByText(/1\.46KB/);
       expect(element).toBeInTheDocument();
       expect(element.textContent).toMatch(/^\d+\.\d+KB$/);
-      expect(element).toHaveAttribute('title', '1,500B');
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
 
     it('should handle large size numbers', () => {
-      renderWithTheme(<ResponseSize size={10240} />);
+      const size = 10240;
+      renderWithTheme(<ResponseSize size={size} />);
       const element = screen.getByText(/10\.0KB/);
       expect(element).toBeInTheDocument();
       expect(element.textContent).toMatch(/^\d+\.\d+KB$/);
-      expect(element).toHaveAttribute('title', '10,240B');
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
 
     it('should handle decimal size numbers', () => {
-      renderWithTheme(<ResponseSize size={1126.5} />);
+      const size = 1126.5;
+      renderWithTheme(<ResponseSize size={size} />);
       const element = screen.getByText(/1\.10KB/);
       expect(element).toBeInTheDocument();
       expect(element.textContent).toMatch(/^\d+\.\d+KB$/);
-      expect(element).toHaveAttribute('title', '1,126.5B');
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
   });
 });

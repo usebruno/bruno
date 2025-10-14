@@ -18,6 +18,7 @@ class BrunoRequest {
     this.headers = req.headers;
     this.timeout = req.timeout;
     this.name = req.name;
+    this.tags = req.tags || [];
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
@@ -188,6 +189,14 @@ class BrunoRequest {
 
   getName() {
     return this.req.name;
+  }
+
+  /**
+   * Get the tags associated with this request
+   * @returns {Array<string>} Array of tag strings
+   */
+  getTags() {
+    return this.req.tags || [];
   }
 }
 

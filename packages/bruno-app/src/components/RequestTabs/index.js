@@ -4,11 +4,12 @@ import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
+import DraggableTab from './DraggableTab';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -106,10 +107,17 @@ const RequestTabs = () => {
               {collectionRequestTabs && collectionRequestTabs.length
                 ? collectionRequestTabs.map((tab, index) => {
                     return (
-                      <li
+                      <DraggableTab
                         key={tab.uid}
+                        id={tab.uid}
+                        index={index}
+                        onMoveTab={(source, target) => {
+                          dispatch(reorderTabs({
+                            sourceUid: source,
+                            targetUid: target
+                          }));
+                        }}
                         className={getTabClassname(tab, index)}
-                        role="tab"
                         onClick={() => handleClick(tab)}
                       >
                         <RequestTab
@@ -120,7 +128,7 @@ const RequestTabs = () => {
                           collection={activeCollection}
                           folderUid={tab.folderUid}
                         />
-                      </li>
+                      </DraggableTab>
                     );
                   })
                 : null}
