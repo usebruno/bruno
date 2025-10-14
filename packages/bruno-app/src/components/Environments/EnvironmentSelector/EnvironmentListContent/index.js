@@ -36,8 +36,9 @@ const EnvironmentListContent = ({
                     className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'active' : ''}`}
                     onClick={() => onEnvironmentSelect(env)}
                     data-tooltip-content={env.name}
+                    data-tooltip-hidden={env.name?.length < 90}
                   >
-                    <span className="max-w-32 truncate no-wrap">{env.name}</span>
+                    <span className="max-w-100% truncate no-wrap">{env.name}</span>
                   </div>
                 ))}
               </div>
