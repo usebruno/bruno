@@ -1,5 +1,5 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -396,6 +396,29 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
+
+    // Ensure window contains promptForVariables function
+    if (typeof window.promptForVariables === 'function') {
+      // Attempt to extract unique prompt variables from anywhere in the requestExpand commentComment on line R260ResolvedCode has comments. Press enter to view.
+      const uniquePrompts = extractPromptVariables(itemCopy.draft?.request ?? itemCopy.request);
+
+      if (uniquePrompts?.length > 0) {
+        try {
+          // Prompt user for values if any prompt variables are found
+          let userValues = await window.promptForVariables(uniquePrompts);
+
+          // Populate runtimeVariables with user input for prompt variables
+          for (const prompt of uniquePrompts) {
+            collectionCopy.runtimeVariables[`?${prompt}`] = userValues[prompt] ?? '';
+          }
+        } catch (error) {
+          if (error === 'cancelled') {
+            return resolve(); // Resolve without error if user cancels prompt
+          }
+          reject(error);
+        }
+      }
+    }
 
     await dispatch(
       updateResponsePaneScrollPosition({

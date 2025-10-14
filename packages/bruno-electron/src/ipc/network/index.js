@@ -11,6 +11,7 @@ const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { encodeUrl } = require('@usebruno/common').utils;
+const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('@usebruno/requests');
@@ -1063,6 +1064,27 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
             currentRequestIndex++;
+            continue;
+          }
+
+          const promptVars = extractPromptVariables(request);
+
+          if (promptVars.length > 0) {
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'runner-request-skipped',
+              error: 'Request has been skipped due to containing prompt variables',
+              responseReceived: {
+                status: 'skipped',
+                statusText: 'Prompt variables detected in request. Runner execution is not supported for requests with prompt variables.',
+                data: null,
+                responseTime: 0,
+                headers: null
+              },
+              ...eventData
+            });
+
+            currentRequestIndex++;
+
             continue;
           }
 

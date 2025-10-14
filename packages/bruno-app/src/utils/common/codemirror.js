@@ -30,6 +30,12 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
           while ((ch = stream.next()) != null) {
             if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
+
+              // Prompt variable: starts with '?'
+              if (word.startsWith('?')) {
+                return `variable-prompt`;
+              }
+
               // Check if it's a mock variable (starts with $) and exists in mockDataFunctions
               const isMockVariable = word.startsWith('$') && mockDataFunctions.hasOwnProperty(word.substring(1));
               const found = isMockVariable || pathFoundInVariables(word, variables);
