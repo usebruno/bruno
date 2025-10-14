@@ -316,7 +316,7 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, runtimeVariables } = action.payload;
+      const { collectionUid, envVariables, runtimeVariables, persistentEnvVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -326,9 +326,10 @@ export const collectionsSlice = createSlice({
         if (activeEnvironment) {
           forOwn(envVariables, (value, key) => {
             const variable = find(activeEnvironment.variables, (v) => v.name === key);
+            const isPersistent = persistentEnvVariables && persistentEnvVariables[key] !== undefined;
 
             if (variable) {
-              // For updates coming from scripts, treat them as ephemeral overlays.
+              // For updates coming from scripts, treat them as ephemeral overlays unless they are persistent.
               if (variable.value !== value) {
                 /*
                  Overlay (persist: false): keep new value in Redux for UI and mark ephemeral
@@ -337,7 +338,7 @@ export const collectionsSlice = createSlice({
                 */
                 const previousValue = variable.value;
                 variable.value = value;
-                variable.ephemeral = true;
+                variable.ephemeral = !isPersistent;
                 if (variable.persistedValue === undefined) {
                   variable.persistedValue = previousValue;
                 }
@@ -353,7 +354,7 @@ export const collectionsSlice = createSlice({
                   enabled: true,
                   type: 'text',
                   uid: uuid(),
-                  ephemeral: true,
+                  ephemeral: !isPersistent
                 });
               }
             }
