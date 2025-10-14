@@ -389,6 +389,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleFolderCollapse}
                   onDoubleClick={handleFolderDoubleClick}
+                  data-testid="folder-chevron"
                 />
               ) : null}
             </div>
