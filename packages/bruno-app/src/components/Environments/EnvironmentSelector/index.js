@@ -143,7 +143,7 @@ const EnvironmentSelector = ({ collection }) => {
                 delayShow={1000}
                 hidden={activeCollectionEnvironment.name?.length < 7}
               >
-                <span className="env-text max-w-24 truncate overflow-hidden inline-block">{activeCollectionEnvironment.name}</span>
+                <span className="env-text max-w-24 truncate overflow-hidden">{activeCollectionEnvironment.name}</span>
               </ToolHint>
             </div>
             {activeGlobalEnvironment && <span className="env-separator">|</span>}
@@ -159,7 +159,7 @@ const EnvironmentSelector = ({ collection }) => {
               delayShow={1000}
               hidden={activeGlobalEnvironment.name?.length < 7}
             >
-              <span className="env-text max-w-24 truncate overflow-hidden inline-block">{activeGlobalEnvironment.name}</span>
+              <span className="env-text max-w-24 truncate overflow-hidden">{activeGlobalEnvironment.name}</span>
             </ToolHint>
           </div>
         )}
