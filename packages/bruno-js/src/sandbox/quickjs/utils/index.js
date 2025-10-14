@@ -73,11 +73,9 @@ async function invokeFunction(vm, quickFn, args = []) {
   result.value.dispose();
 
   return (value && typeof value.then === 'function')
-    ? value                
-    : Promise.resolve(value); 
+    ? value
+    : Promise.resolve(value);
 }
-
-
 
 module.exports = {
   marshallToVm,

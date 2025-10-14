@@ -19,7 +19,6 @@ const addJwtShimToContext = async (vm) => {
 
     // If a callback is provided
     if (callbackHandle && vm.typeof(callbackHandle) === 'function') {
-
       let tokenResult;
       let hostError;
       try {
@@ -90,7 +89,6 @@ const addJwtShimToContext = async (vm) => {
     }
 
     if (actualCallback && vm.typeof(actualCallback) === 'function') {
-
       let decodedResult;
       let hostError;
       try {

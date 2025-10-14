@@ -2,7 +2,6 @@ import { test, expect } from '../../../../playwright';
 
 test.describe.serial('jwt collection success', () => {
   test('developer mode', async ({ pageWithUserData: page }) => {
-
     // init dev mode
     await page.getByTitle('jsonwebtoken').click();
     await page.getByLabel('Developer Mode(use only if').check();
@@ -33,7 +32,6 @@ test.describe.serial('jwt collection success', () => {
   });
 
   test('safe mode', async ({ pageWithUserData: page }) => {
-    
     // init safe mode
     await page.getByTitle('jsonwebtoken').click();
     await page.getByText('Developer Mode').click();
