@@ -1060,8 +1060,8 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
     };
 
     // itemUid is null when we are creating a new request at the root level
-    const resolvedFilename = resolveRequestFilename(filename);
     const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
+    const resolvedFilename = resolveRequestFilename(filename);
 
     if (!parentItem) {
       return reject(new Error('Parent item not found'));
@@ -1130,8 +1130,8 @@ export const newWsRequest = (params) => (dispatch, getState) => {
     };
 
     // itemUid is null when we are creating a new request at the root level
-    const resolvedFilename = resolveRequestFilename(filename);
     const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
+    const resolvedFilename = resolveRequestFilename(filename);
 
     if (!parentItem) {
       return reject(new Error('Parent item not found'));
