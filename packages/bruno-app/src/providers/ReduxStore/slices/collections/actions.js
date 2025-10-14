@@ -1155,7 +1155,6 @@ export const newWsRequest = (params) => (dispatch, getState) => {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
     }
-
   });
 };
 
