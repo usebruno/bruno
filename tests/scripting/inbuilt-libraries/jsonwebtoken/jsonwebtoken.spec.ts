@@ -1,4 +1,4 @@
-import { test, expect } from '../../../../../playwright';
+import { test, expect } from '../../../../playwright';
 
 test.describe.serial('jwt collection success', () => {
   test('developer mode', async ({ pageWithUserData: page }) => {

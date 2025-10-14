@@ -1,6 +1,6 @@
 {
   "maximized": true,
-  "lastOpenedCollections": ["{{projectRoot}}/tests/scripting/inbuilt-libraries/collections/jsonwebtoken"],
+  "lastOpenedCollections": ["{{projectRoot}}/tests/scripting/inbuilt-libraries/jsonwebtoken/fixtures/collection"],
   "preferences": {
     "request": {
       "sslVerification": true,

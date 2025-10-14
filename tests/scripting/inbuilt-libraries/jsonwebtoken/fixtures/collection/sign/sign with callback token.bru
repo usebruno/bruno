@@ -11,14 +11,11 @@ post {
 }
 
 tests {
-  // jwt-sign-callbacks.spec.js
   const jwt = require('jsonwebtoken');
   const HS_SECRET = 'supersecret';
   
-  // Sample payload to sign
   const payload = { sub: 'user123' };
   
-  // Utility: "once" wrapper to prevent multiple calls
   function once(fn) {
     let called = false;
     return (...args) => {
@@ -29,7 +26,6 @@ tests {
     };
   }
   
-  // Utility: Promise wrapper for jwt.sign
   function signAsync(payload, secret, options = {}) {
     return new Promise((resolve, reject) => {
       jwt.sign(payload, secret, options, (err, token) => {
