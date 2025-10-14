@@ -1,0 +1,17 @@
+{
+  "version": "1",
+  "name": "proxy-object",
+  "type": "collection",
+  "proxy": {
+    "protocol": "http",
+    "hostname": "127.0.0.1",
+    "port": 8093,
+    "auth": {
+      "enabled": false,
+      "username": "",
+      "password": ""
+    },
+    "bypassProxy": ""
+  },
+  "ignore": ["node_modules", ".git"]
+}

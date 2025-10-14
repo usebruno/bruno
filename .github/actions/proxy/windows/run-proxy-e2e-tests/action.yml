@@ -1,0 +1,17 @@
+name: 'Run Proxy E2E Tests - Windows'
+description: 'Run proxy E2E tests on Windows'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Proxy E2E tests
+      shell: pwsh
+      run: |
+        npm run test:e2e:proxy
+
+    - name: Upload Playwright Report
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-proxy-windows
+        path: playwright-report/
+        retention-days: 30

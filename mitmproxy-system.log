@@ -1,0 +1,7 @@
+[12:02:55.478] Loading script add_header.py
+[12:02:55.479] HTTP(S) proxy listening at *:8091.
+[12:04:32.409][[::1]:53232] client connect
+[12:04:32.418][[::1]:53232] server connect localhost:8090 (127.0.0.1:8090)
+[12:04:32.475] Added header X-Bruno-Proxy-System: via-mitmproxy to https://localhost:8090/
+[::1]:53232: GET https://localhost:8090/
+          << 200 OK 10b

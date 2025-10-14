@@ -1,0 +1,17 @@
+name: 'Run Proxy E2E Tests - macOS'
+description: 'Run proxy E2E tests on macOS'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run E2E tests
+      shell: bash
+      run: |
+        npm run test:e2e:proxy
+
+    - name: Upload Playwright Report
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-proxy-macos
+        path: playwright-report/
+        retention-days: 30
