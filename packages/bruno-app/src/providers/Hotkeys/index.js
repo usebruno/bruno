@@ -13,6 +13,7 @@ import {
   saveCollectionRoot,
   saveFolderRoot
 } from 'providers/ReduxStore/slices/collections/actions';
+import { triggerEnvironmentSettingsSave } from 'providers/ReduxStore/slices/app';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
@@ -43,7 +44,7 @@ export const HotkeysProvider = (props) => {
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('save')], (e) => {
       if (isEnvironmentSettingsModalOpen) {
-        console.log('todo: save environment settings');
+        dispatch(triggerEnvironmentSettingsSave());
       } else {
         const activeTab = find(tabs, (t) => t.uid === activeTabUid);
         if (activeTab) {

@@ -36,7 +36,8 @@ const initialState = {
   },
   cookies: [],
   taskQueue: [],
-  systemProxyEnvVariables: {}
+  systemProxyEnvVariables: {},
+  environmentSettingsSaveTrigger: null,
 };
 
 export const appSlice = createSlice({
@@ -93,6 +94,10 @@ export const appSlice = createSlice({
     },
     toggleSidebarCollapse: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
+    },
+    triggerEnvironmentSettingsSave: state => {
+      // This action will be listened to by environment components to trigger save
+      state.environmentSettingsSaveTrigger = Date.now();
     }
   }
 });
@@ -113,7 +118,8 @@ export const {
   removeAllTasksFromQueue,
   updateSystemProxyEnvVariables,
   updateGenerateCode,
-  toggleSidebarCollapse
+  toggleSidebarCollapse,
+  triggerEnvironmentSettingsSave,
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
