@@ -892,7 +892,8 @@ export const collectionsSlice = createSlice({
       // Update the request URL to reflect the new query params
       const parts = splitOnFirst(item.draft.request.url, '?');
       const query = stringifyQueryParams(
-        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'),
+        { encode: true }
       );
 
       // If there are enabled query params, append them to the URL
@@ -930,7 +931,7 @@ export const collectionsSlice = createSlice({
     
           // Update request URL
           const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
+          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'), { encode: true });
           if (query && query.length) {
             item.draft.request.url = parts[0] + '?' + query;
           } else {
@@ -962,7 +963,8 @@ export const collectionsSlice = createSlice({
             // update request url
             const parts = splitOnFirst(item.draft.request.url, '?');
             const query = stringifyQueryParams(
-              filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+              filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'),
+              { encode: true }
             );
 
             // if no query is found, then strip the query params in url
@@ -999,7 +1001,7 @@ export const collectionsSlice = createSlice({
 
           // update request url
           const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
+          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'), { encode: true });
           if (query && query.length) {
             item.draft.request.url = parts[0] + '?' + query;
           } else {

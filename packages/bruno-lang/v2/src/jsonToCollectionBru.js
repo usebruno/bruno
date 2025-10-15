@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString } = require('./utils');
+const { indentString, getValueString, getKeyString } = require('./utils');
 
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
@@ -30,7 +30,7 @@ const jsonToCollectionBru = (json) => {
     if (enabled(query).length) {
       bru += `\n${indentString(
         enabled(query)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -38,7 +38,7 @@ const jsonToCollectionBru = (json) => {
     if (disabled(query).length) {
       bru += `\n${indentString(
         disabled(query)
-          .map((item) => `~${item.name}: ${item.value}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -51,7 +51,7 @@ const jsonToCollectionBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -59,7 +59,7 @@ const jsonToCollectionBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `~${item.name}: ${item.value}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -243,7 +243,7 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
 ${indentString(
   authorizationHeaders
     .filter(item => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
   )}
 }
@@ -256,7 +256,7 @@ ${indentString(
 ${indentString(
   authorizationQueryParams
     .filter(item => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
   )}
 }
@@ -269,7 +269,7 @@ ${indentString(
 ${indentString(
   tokenHeaders
     .filter(item => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
   )}
 }
@@ -282,9 +282,8 @@ ${indentString(
 ${indentString(
   tokenQueryParams
     .filter(item => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
-    .join('\n')
-  )}
+    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n'))}
 }
 
 `;
@@ -295,7 +294,7 @@ ${indentString(
 ${indentString(
   tokenBodyValues
     .filter(item => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
   )}
 }
@@ -308,7 +307,7 @@ ${indentString(
 ${indentString(
   refreshHeaders
     .filter(item => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
   )}
 }
@@ -321,7 +320,7 @@ ${indentString(
 ${indentString(
   refreshQueryParams
     .filter(item => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
   )}
 }
@@ -334,7 +333,7 @@ ${indentString(
 ${indentString(
   refreshBodyValues
     .filter(item => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
   )}
 }
@@ -355,19 +354,19 @@ ${indentString(
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -381,19 +380,19 @@ ${indentString(
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
