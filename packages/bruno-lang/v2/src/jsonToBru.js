@@ -421,7 +421,7 @@ ${indentString(
 ${indentString(
   refreshHeaders
     .filter(item => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${getValueString(item.value)}`)
+    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
   )}
 }
@@ -690,7 +690,7 @@ ${indentString(body.sparql)}
     if (enabled(assertions).length) {
       bru += `\n${indentString(
         enabled(assertions)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${item.name}: ${getKeyString(item.value)}`)
           .join('\n')
       )}`;
     }
