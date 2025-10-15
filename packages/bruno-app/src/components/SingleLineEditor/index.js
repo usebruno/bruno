@@ -5,7 +5,8 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
-import { IconEye, IconEyeOff } from '@tabler/icons';
+import { IconEye, IconEyeOff, IconAlertCircle } from '@tabler/icons';
+import ToolHint from 'components/ToolHint';
 
 const CodeMirror = require('codemirror');
 
@@ -203,6 +204,8 @@ class SingleLineEditor extends Component {
   };
 
   render() {
+    const errorIconId = `validation-error-${Math.random().toString(36).substr(2, 9)}`;
+
     return (
       <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -22,6 +22,32 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+
+  // Validate all headers whenever headers change
+  useEffect(() => {
+    if (!headers || !headers.length) {
+      setValidationErrors({});
+      return;
+    }
+
+    const newErrors = {};
+    headers.forEach((header) => {
+      // Validate name
+      if (/[\r\n]/.test(header.name)) {
+        newErrors[`${header.uid}-name`] = 'Key contains invalid newline characters.';
+      } else if (/[\s]/.test(header.name)) {
+        newErrors[`${header.uid}-name`] = 'Key contains invalid whitespace characters.';
+      }
+
+      // Validate value
+      if (/[\r\n]/.test(header.value)) {
+        newErrors[`${header.uid}-value`] = 'Value contains invalid newline characters.';
+      }
+    });
+
+    setValidationErrors(newErrors);
+  }, [headers]);
 
   const addHeader = () => {
     dispatch(
@@ -36,13 +62,35 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
+    const newErrors = { ...validationErrors };
+
     switch (type) {
       case 'name': {
-        header.name = e.target.value;
+        const value = e.target.value;
+
+        // Check for newline characters first, then other whitespace
+        if (/[\r\n]/.test(value)) {
+          newErrors[`${header.uid}-name`] = 'Key contains invalid newline characters.';
+        } else if (/[\s]/.test(value)) {
+          newErrors[`${header.uid}-name`] = 'Key contains invalid whitespace characters.';
+        } else {
+          delete newErrors[`${header.uid}-name`];
+        }
+
+        header.name = value;
         break;
       }
       case 'value': {
-        header.value = e.target.value;
+        const value = e.target.value;
+
+        // Check for newline characters
+        if (/[\r\n]/.test(value)) {
+          newErrors[`${header.uid}-value`] = 'Value contains invalid newline characters.';
+        } else {
+          delete newErrors[`${header.uid}-value`];
+        }
+
+        header.value = value;
         break;
       }
       case 'enabled': {
@@ -50,6 +98,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         break;
       }
     }
+
+    setValidationErrors(newErrors);
     dispatch(
       updateRequestHeader({
         header: header,
@@ -134,6 +184,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                         autocomplete={headerAutoCompleteList}
                         onRun={handleRun}
                         collection={collection}
+                        validationError={validationErrors[`${header.uid}-name`]}
                       />
                     </td>
                     <td>
@@ -154,9 +205,9 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                         }
                         onRun={handleRun}
                         autocomplete={MimeTypes}
-                        allowNewlines={true}
                         collection={collection}
                         item={item}
+                        validationError={validationErrors[`${header.uid}-value`]}
                       />
                     </td>
                     <td>

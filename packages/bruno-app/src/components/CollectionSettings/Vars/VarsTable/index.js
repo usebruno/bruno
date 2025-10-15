@@ -114,7 +114,7 @@ const VarsTable = ({ collection, vars, varType }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MultiLineEditor
                         value={_var.value}
                         theme={storedTheme}
                         onSave={onSave}
