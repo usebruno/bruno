@@ -690,7 +690,7 @@ ${indentString(body.sparql)}
     if (enabled(assertions).length) {
       bru += `\n${indentString(
         enabled(assertions)
-          .map((item) => `${item.name}: ${getKeyString(item.value)}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -698,7 +698,7 @@ ${indentString(body.sparql)}
     if (disabled(assertions).length) {
       bru += `\n${indentString(
         disabled(assertions)
-          .map((item) => `~${item.name}: ${getValueString(item.value)}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
