@@ -88,8 +88,8 @@ const RuntimeVariables = ({ collection, theme }) => {
 const VariablesEditor = ({ collection }) => {
   const { displayedTheme, theme } = useTheme();
 
-  const reactInspectorTheme =
-    displayedTheme === 'light'
+  const reactInspectorTheme
+    = displayedTheme === 'light'
       ? { ...chromeLight, OBJECT_VALUE_STRING_COLOR: theme.variables.runtime.color }
       : { ...chromeDark, OBJECT_VALUE_STRING_COLOR: theme.variables.runtime.color };
 
