@@ -1,0 +1,33 @@
+{
+  "version": "1",
+  "name": "Grpcbin",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "size": 0.001827239990234375,
+  "filesCount": 10,
+  "protobuf": {
+    "protoFiles": [
+      {
+        "path": "../protos/services/product.proto",
+        "type": "file"
+      },
+      {
+        "path": "../protos/services/order.proto",
+        "type": "file"
+      }
+    ],
+    "importPaths": [
+      {
+        "path": "../protos/types",
+        "enabled": false
+      },
+      {
+        "path": ".",
+        "enabled": true
+      }
+    ]
+  }
+}

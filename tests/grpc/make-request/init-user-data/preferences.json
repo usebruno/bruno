@@ -1,0 +1,12 @@
+{
+    "maximized": true,
+    "lastOpenedCollections": [
+        "{{projectRoot}}/tests/grpc/make-request/collection"
+    ],
+    "preferences": {
+        "beta": {
+            "grpc": true,
+            "nodevm": false
+        }
+    }
+}

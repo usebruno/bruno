@@ -108,7 +108,7 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
+      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist" data-testid="grpc-response-tabs">
         {tabConfig.map((tab) => (
           <Tab
             key={tab.name}
