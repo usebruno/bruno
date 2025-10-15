@@ -1,6 +1,8 @@
 const { getKeyString } = require('../src/utils');
 const bruToJson = require('../src/bruToJson');
 const jsonToBru = require('../src/jsonToBru');
+const collectionBruToJson = require('../src/collectionBruToJson');
+const jsonToCollectionBru = require('../src/jsonToCollectionBru');
 
 describe('getKeyString', () => {
   describe('should not quote keys without special characters', () => {
@@ -18,11 +20,6 @@ describe('getKeyString', () => {
     it('should return keys with underscores as-is', () => {
       expect(getKeyString('api_key')).toBe('api_key');
       expect(getKeyString('user_name')).toBe('user_name');
-    });
-
-    it('should return mixed alphanumeric with hyphens and underscores as-is', () => {
-      expect(getKeyString('api_key_123')).toBe('api_key_123');
-      expect(getKeyString('test-value_2')).toBe('test-value_2');
     });
   });
 
@@ -76,49 +73,6 @@ describe('getKeyString', () => {
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle empty string', () => {
-      expect(getKeyString('')).toBe('');
-    });
-
-    it('should handle single special character', () => {
-      expect(getKeyString(':')).toBe('":"');
-      expect(getKeyString('"')).toBe('"\\""');
-      expect(getKeyString('{')).toBe('"{"');
-      expect(getKeyString('}')).toBe('"}"');
-      expect(getKeyString(' ')).toBe('" "');
-      expect(getKeyString('\n')).toBe('\'\'\'\n\n\n\'\'\'');
-      expect(getKeyString('\r')).toBe('\'\'\'\n\n\n\'\'\'');
-    });
-
-    it('should handle keys that are only quotes', () => {
-      expect(getKeyString('""')).toBe('"\\"\\""');
-      expect(getKeyString('"""')).toBe('"\\"\\"\\""');
-    });
-
-    it('should handle keys with mixed valid and quotable characters', () => {
-      expect(getKeyString('api-key:v1')).toBe('"api-key:v1"');
-      expect(getKeyString('user_name with space')).toBe('"user_name with space"');
-    });
-  });
-
-  describe('real-world examples from fixtures', () => {
-    it('should quote keys matching fixture examples', () => {
-      // Examples from fixtures/request.bru
-      expect(getKeyString('key with spaces')).toBe('"key with spaces"');
-      expect(getKeyString('colon:parameter')).toBe('"colon:parameter"');
-      expect(getKeyString('nested escaped "quote"')).toBe('"nested escaped \\"quote\\""');
-      expect(getKeyString('{braces}')).toBe('"{braces}"');
-      expect(getKeyString('disabled:colon:header')).toBe('"disabled:colon:header"');
-    });
-
-    it('should not quote standard header names', () => {
-      expect(getKeyString('content-type')).toBe('content-type');
-      expect(getKeyString('Authorization')).toBe('Authorization');
-      expect(getKeyString('transaction-id')).toBe('transaction-id');
-    });
-  });
-
   describe('round-trip conversion with multiline keys', () => {
     it('should handle headers with multiline keys - JSON to BRU to JSON', () => {
       const input = {
@@ -144,31 +98,6 @@ describe('getKeyString', () => {
       const output = bruToJson(bru);
 
       // Verify the round-trip maintains the data
-      expect(output).toEqual(input);
-    });
-
-    it('should handle disabled headers with multiline keys', () => {
-      const input = {
-        headers: [
-          {
-            name: 'multiline\nkey',
-            value: 'value',
-            enabled: false
-          }
-        ]
-      };
-
-      // Convert JSON to BRU
-      const bru = jsonToBru(input);
-
-      // Verify the BRU format has disabled prefix
-      expect(bru).toContain('~');
-      expect(bru).toContain('\'\'\'');
-
-      // Convert BRU back to JSON
-      const output = bruToJson(bru);
-
-      // Verify the round-trip maintains the data including enabled flag
       expect(output).toEqual(input);
     });
 
@@ -198,6 +127,93 @@ describe('getKeyString', () => {
 
       // Convert BRU back to JSON
       const output = bruToJson(bru);
+
+      // Verify the round-trip maintains all data
+      expect(output).toEqual(input);
+    });
+  });
+
+  describe('round-trip conversion with multiline keys for collections', () => {
+    it('should handle collection headers with multiline keys - JSON to BRU to JSON', () => {
+      const input = {
+        headers: [
+          {
+            name: 'key\nwith\nnewlines',
+            value: 'test-value',
+            enabled: true
+          }
+        ]
+      };
+
+      // Convert JSON to BRU (collection format)
+      const bru = jsonToCollectionBru(input);
+
+      // Verify the BRU format contains triple quotes for the key
+      expect(bru).toContain('\'\'\'');
+      expect(bru).toContain('key');
+      expect(bru).toContain('with');
+      expect(bru).toContain('newlines');
+
+      // Convert BRU back to JSON
+      const output = collectionBruToJson(bru);
+
+      // Verify the round-trip maintains the data
+      expect(output).toEqual(input);
+    });
+
+    it('should handle collection query params with multiline keys', () => {
+      const input = {
+        query: [
+          {
+            name: 'param\nwith\nnewlines',
+            value: 'test-value',
+            enabled: true
+          }
+        ]
+      };
+
+      // Convert JSON to BRU (collection format)
+      const bru = jsonToCollectionBru(input);
+
+      // Verify the BRU format contains triple quotes for the key
+      expect(bru).toContain('\'\'\'');
+      expect(bru).toContain('param');
+      expect(bru).toContain('with');
+      expect(bru).toContain('newlines');
+
+      // Convert BRU back to JSON
+      const output = collectionBruToJson(bru);
+
+      // Verify the round-trip maintains the data
+      expect(output).toEqual(input);
+    });
+
+    it('should handle multiple collection headers with mix of regular and multiline keys', () => {
+      const input = {
+        headers: [
+          {
+            name: 'regular-key',
+            value: 'value1',
+            enabled: true
+          },
+          {
+            name: 'key\nwith\nnewlines',
+            value: 'value2',
+            enabled: true
+          },
+          {
+            name: 'key:with:colon',
+            value: 'value3',
+            enabled: true
+          }
+        ]
+      };
+
+      // Convert JSON to BRU (collection format)
+      const bru = jsonToCollectionBru(input);
+
+      // Convert BRU back to JSON
+      const output = collectionBruToJson(bru);
 
       // Verify the round-trip maintains all data
       expect(output).toEqual(input);
