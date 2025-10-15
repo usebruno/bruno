@@ -51,8 +51,6 @@ const getKeyString = (key) => {
   // Check if key contains newlines - if so, use triple-quote format
   const hasNewLines = key?.includes('\n') || key?.includes('\r');
   if (hasNewLines) {
-    // Don't indent the content here - let the outer context handle indentation
-    // Split by newlines, normalize line endings, and wrap in triple quotes
     const normalizedKey = key.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     return `'''\n${normalizedKey}\n'''`;
   }
