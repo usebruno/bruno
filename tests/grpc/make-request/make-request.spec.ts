@@ -6,8 +6,8 @@ test.describe('make grpc requests', () => {
     const locators = buildGrpcCommonLocators(page);
 
     await test.step('navigate to gRPC collection', async () => {
-      await locators.navigation.collectionName('Grpcbin').click();
-      await locators.navigation.serviceName('HelloService').click();
+      await locators.sidebar.collection('Grpcbin').click();
+      await locators.sidebar.folder('HelloService').click();
     });
 
     await test.step('select environment', async () => {
@@ -22,7 +22,7 @@ test.describe('make grpc requests', () => {
     const locators = buildGrpcCommonLocators(page);
 
     await test.step('select unary method', async () => {
-      await locators.navigation.methodName('SayHello').click();
+      await locators.sidebar.request('SayHello').click();
       await expect(locators.method.dropdownTrigger()).toContainText('HelloService/SayHello');
     });
 
@@ -62,7 +62,7 @@ test.describe('make grpc requests', () => {
     const locators = buildGrpcCommonLocators(page);
 
     await test.step('select server streaming method', async () => {
-      await locators.navigation.methodName('LotOfReplies').click();
+      await locators.sidebar.request('LotOfReplies').click();
       await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfReplies');
     });
 
@@ -103,7 +103,7 @@ test.describe('make grpc requests', () => {
     const locators = buildGrpcCommonLocators(page);
 
     await test.step('select client streaming method', async () => {
-      await locators.navigation.methodName('LotOfGreetings').click();
+      await locators.sidebar.request('LotOfGreetings').click();
       await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfGreetings');
     });
 
@@ -153,7 +153,7 @@ test.describe('make grpc requests', () => {
     const locators = buildGrpcCommonLocators(page);
 
     await test.step('select bidirectional streaming method', async () => {
-      await locators.navigation.methodName('BidiHello').click();
+      await locators.sidebar.request('BidiHello').click();
       await expect(locators.method.dropdownTrigger()).toContainText('HelloService/BidiHello');
     });
 

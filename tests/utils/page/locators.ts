@@ -4,7 +4,27 @@ export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
   saveButton: () => page
     .locator('.infotip')
-    .filter({ hasText: /^Save/ })
+    .filter({ hasText: /^Save/ }),
+  environment: {
+    selector: () => page.getByTestId('environment-selector-trigger'),
+    collectionTab: () => page.getByTestId('env-tab-collection'),
+    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
+  },
+  sidebar: {
+    collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
+    folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
+    request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name })
+  },
+  tabs: {
+    requestTab: () => page.locator('.request-tab .tab-label')
+  },
+  folder: {
+    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
+  },
+  modal: {
+    title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
+    button: (name: string) => page.getByRole('button', { name: name, exact: true })
+  }
 });
 
 export const buildWebsocketCommonLocators = (page: Page) => ({
@@ -31,16 +51,6 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
 
 export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
-  navigation: {
-    collectionName: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
-    serviceName: (name: string) => page.locator('.collection-item-name').getByText(name),
-    methodName: (name: string) => page.locator('.collection-item-name').getByText(name)
-  },
-  environment: {
-    selector: () => page.getByTestId('environment-selector-trigger'),
-    collectionTab: () => page.getByTestId('env-tab-collection'),
-    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
-  },
   method: {
     dropdownTrigger: () => page.getByTestId('grpc-method-dropdown-trigger'),
     indicator: () => page.getByTestId('grpc-method-indicator')
