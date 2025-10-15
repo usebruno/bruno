@@ -37,7 +37,6 @@ const RequestBodyMode = ({ item, collection }) => {
   };
 
   const onPrettify = () => {
-    console.log("Prettifying")
     if (body?.json && bodyMode === 'json') {
       try {
         const prettifyEdits = format(body.json, undefined, { tabSize: 2, insertSpaces: true });
@@ -69,7 +68,6 @@ const RequestBodyMode = ({ item, collection }) => {
   };
 
   const onMinify = () => {
-    console.log("Minifying")
     if (body?.json && bodyMode === 'json') {
       try {
         // jsonc-parser doesn't support minification
