@@ -126,7 +126,16 @@ function makeAxiosInstance({
       type: 'request',
       message: `${config.method.toUpperCase()} ${config.url}`,
     });
+
     Object.entries(config.headers).forEach(([key, value]) => {
+      // See https://github.com/usebruno/bruno/issues/1693
+      // Axios adds 'Content-Type': 'application/x-www-form-urlencoded for requests with no body
+      // Bruno sets content-type: false for no body requests so that axios doesn't add the default content-type header
+      // Hence we skip content-type if it's false
+      if (key.toLowerCase() === 'content-type' && value === false) {
+        return;
+      }
+
       timeline.push({
         timestamp: new Date(),
         type: 'requestHeader',

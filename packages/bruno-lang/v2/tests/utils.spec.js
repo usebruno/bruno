@@ -10,7 +10,7 @@ describe('getValueString', () => {
   });
 
   it('normalizes different newline types', () => {
-    expect(getValueString('line1\r\nline2\rline3\nline4')).toBe("'''\n  line1\n  line2\n  line3\n  line4\n'''");
+    expect(getValueString('line1\r\nline2\rline3\nline4')).toBe('\'\'\'\n  line1\n  line2\n  line3\n  line4\n\'\'\'');
   });
 
   it('returns empty string for empty/null/undefined', () => {

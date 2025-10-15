@@ -1,10 +1,18 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosRequestConfig, ResponseType } from 'axios';
 import qs from 'qs';
+import debug from 'debug';
 
 export interface TokenStore {
-  saveToken(serviceId: string, account: string, token: any): Promise<boolean>;
-  getToken(serviceId: string, account: string): Promise<any>;
-  deleteToken(serviceId: string, account: string): Promise<boolean>;
+  saveCredential({ url, credentialsId, credentials }: { url: string; credentialsId: string; credentials: any }): Promise<boolean>;
+  getCredential({ url, credentialsId }: { url: string; credentialsId: string }): Promise<any>;
+  deleteCredential({ url, credentialsId }: { url: string; credentialsId: string }): Promise<boolean>;
+}
+
+export interface AdditionalParameter {
+  name: string;
+  value: string;
+  enabled: boolean;
+  sendIn: 'headers' | 'queryparams' | 'body';
 }
 
 export interface OAuth2Config {
@@ -15,14 +23,25 @@ export interface OAuth2Config {
   username?: string;
   password?: string;
   scope?: string;
-  credentialsPlacement?: 'header' | 'body';
+  credentialsPlacement?: 'basic_auth_header' | 'body';
+  credentialsId?: string;
+  autoRefreshToken?: boolean;
+  autoFetchToken?: boolean;
+  additionalParameters?: {
+    token?: AdditionalParameter[];
+  };
 }
 
-interface RequestConfig {
+interface RequestConfig extends AxiosRequestConfig {
+  method: string;
+  url: string;
   headers: {
     'Content-Type': string;
     'Authorization'?: string;
+    [key: string]: any;
   };
+  data: string;
+  responseType: ResponseType;
 }
 
 interface ClientCredentialsData {
@@ -30,6 +49,7 @@ interface ClientCredentialsData {
   scope?: string;
   client_id?: string;
   client_secret?: string;
+  [key: string]: any; // For additional parameters
 }
 
 interface PasswordGrantData {
@@ -39,7 +59,50 @@ interface PasswordGrantData {
   scope?: string;
   client_id?: string;
   client_secret?: string;
+  [key: string]: any; // For additional parameters
 }
+
+/**
+ * Apply additional parameters to a request
+ */
+const applyAdditionalParameters = (requestConfig: RequestConfig, data: any, params: AdditionalParameter[] = []) => {
+  params.forEach((param) => {
+    if (!param.enabled || !param.name) {
+      return;
+    }
+
+    switch (param.sendIn) {
+      case 'headers':
+        requestConfig.headers[param.name] = param.value || '';
+        break;
+      case 'queryparams':
+        // For query params, add to URL
+        try {
+          const url = new URL(requestConfig.url);
+          url.searchParams.append(param.name, param.value || '');
+          requestConfig.url = url.href;
+        } catch (error) {
+          throw new Error(`Invalid token URL: ${requestConfig.url}`);
+        }
+        break;
+      case 'body':
+        // For body, add to data object
+        data[param.name] = param.value || '';
+        break;
+    }
+  });
+};
+
+/**
+ * Safely parse JSON response data
+ */
+const safeParseJSONBuffer = (data: any) => {
+  try {
+    return JSON.parse(Buffer.isBuffer(data) ? data.toString() : data);
+  } catch {
+    return data;
+  }
+};
 
 /**
  * Fetches an OAuth2 token using client credentials grant
@@ -50,12 +113,28 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
     clientId,
     clientSecret,
     scope,
-    credentialsPlacement = 'header'
+    credentialsPlacement = 'basic_auth_header',
+    additionalParameters
   } = oauth2Config;
 
-  if (!accessTokenUrl || !clientId) {
-    throw new Error('Missing required OAuth2 parameters');
+  if (!accessTokenUrl) {
+    throw new Error('Access Token URL is required for OAuth2 client credentials flow');
   }
+
+  if (!clientId) {
+    throw new Error('Client ID is required for OAuth2 client credentials flow');
+  }
+
+  const requestConfig: RequestConfig = {
+    method: 'POST',
+    url: accessTokenUrl,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json'
+    },
+    data: '',
+    responseType: 'arraybuffer'
+  };
 
   const data: ClientCredentialsData = {
     grant_type: 'client_credentials'
@@ -65,31 +144,52 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
     data.scope = scope;
   }
 
-  const config: RequestConfig = {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    }
-  };
-
-  // Handle credentials placement
-  if (credentialsPlacement === 'header') {
-    config.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret || '')}`).toString('base64')}`;
-  } else {
-    // Credentials in body
-    data.client_id = clientId;
-    if (clientSecret) {
-      data.client_secret = clientSecret;
-    }
+  if (credentialsPlacement === 'basic_auth_header') {
+    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret!)}`).toString('base64')}`;
   }
 
+  if (credentialsPlacement !== 'basic_auth_header') {
+    data.client_id = clientId;
+  }
+
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
+    data.client_secret = clientSecret;
+  }
+
+  if (additionalParameters?.token?.length) {
+    applyAdditionalParameters(requestConfig, data, additionalParameters.token);
+  }
+
+  requestConfig.data = qs.stringify(data);
+
+  debug('oauth2')('> request');
+  debug('oauth2')(JSON.stringify(requestConfig, null, 2));
+
   try {
-    const response = await axios.post(accessTokenUrl, qs.stringify(data), config);
-    return response.data;
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error('CLIENT_CREDENTIALS: Error fetching OAuth2 token:', error.message);
+    const response = await axios(requestConfig);
+    const parsedData = safeParseJSONBuffer(response.data);
+
+    if (parsedData && typeof parsedData === 'object') {
+      parsedData.created_at = Date.now();
     }
-    throw error;
+
+    debug('oauth2')('> response');
+    debug('oauth2')(JSON.stringify(parsedData, null, 2));
+    return parsedData;
+  } catch (err: any) {
+    if (err?.response) {
+      debug('oauth2')('< error');
+      debug('oauth2')(JSON.stringify({
+        status: err.response.status,
+        statusText: err.response.statusText,
+        data: err.response.data ? safeParseJSONBuffer(err.response.data) : null,
+        headers: err.response.headers
+      }, null, 2));
+    } else {
+      debug('oauth2')('< error');
+      debug('oauth2')(err.message || err);
+    }
+    throw err;
   }
 };
 
@@ -104,12 +204,36 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
     username,
     password,
     scope,
-    credentialsPlacement = 'header'
+    credentialsPlacement = 'basic_auth_header',
+    additionalParameters
   } = oauth2Config;
 
-  if (!accessTokenUrl || !username || !password) {
-    throw new Error('Missing required OAuth2 parameters for password grant');
+  if (!accessTokenUrl) {
+    throw new Error('Access Token URL is required for OAuth2 password credentials flow');
   }
+
+  if (!username) {
+    throw new Error('Username is required for OAuth2 password credentials flow');
+  }
+
+  if (!password) {
+    throw new Error('Password is required for OAuth2 password credentials flow');
+  }
+
+  if (!clientId) {
+    throw new Error('Client ID is required for OAuth2 password credentials flow');
+  }
+
+  const requestConfig: RequestConfig = {
+    method: 'POST',
+    url: accessTokenUrl,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json'
+    },
+    data: '',
+    responseType: 'arraybuffer'
+  };
 
   const data: PasswordGrantData = {
     grant_type: 'password',
@@ -121,85 +245,149 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
     data.scope = scope;
   }
 
-  const config: RequestConfig = {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    }
-  };
-
-  // Handle credentials placement
-  if (credentialsPlacement === 'header' && clientId) {
-    config.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret || '')}`).toString('base64')}`;
-  } else if (clientId) {
-    // Credentials in body
-    data.client_id = clientId;
-    if (clientSecret) {
-      data.client_secret = clientSecret;
-    }
+  if (credentialsPlacement === 'basic_auth_header') {
+    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret!)}`).toString('base64')}`;
   }
+
+  if (credentialsPlacement !== 'basic_auth_header') {
+    data.client_id = clientId;
+  }
+
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
+    data.client_secret = clientSecret;
+  }
+
+  if (additionalParameters?.token?.length) {
+    applyAdditionalParameters(requestConfig, data, additionalParameters.token);
+  }
+
+  requestConfig.data = qs.stringify(data);
+
+  debug('oauth2')('> request');
+  debug('oauth2')(JSON.stringify(requestConfig, null, 2));
 
   try {
-    const response = await axios.post(accessTokenUrl, qs.stringify(data), config);
-    return response.data;
-  } catch (error) {
-    if (error instanceof AxiosError && error.response) {
-      console.error('PASSWORD_GRANT: Error fetching OAuth2 token:', error.message);
-      console.error('Status:', error.response.status, 'Response:', error.response.data);
-    } else if (error instanceof Error) {
-      console.error('PASSWORD_GRANT: Error fetching OAuth2 token:', error.message);
+    const response = await axios(requestConfig);
+    const parsedData = safeParseJSONBuffer(response.data);
+
+    if (parsedData && typeof parsedData === 'object') {
+      parsedData.created_at = Date.now();
     }
-    throw error;
+
+    debug('oauth2')('< response');
+    debug('oauth2')(JSON.stringify(parsedData, null, 2));
+    return parsedData;
+  } catch (err: any) {
+    if (err?.response) {
+      debug('oauth2')('< error');
+      debug('oauth2')(JSON.stringify({
+        status: err.response.status,
+        statusText: err.response.statusText,
+        data: err.response.data ? safeParseJSONBuffer(err.response.data) : null,
+        headers: err.response.headers
+      }, null, 2));
+    } else {
+      debug('oauth2')('< error');
+      debug('oauth2')(err.message || err);
+    }
+    throw err;
   }
+};
+
+/**
+ * Check if a token is expired
+ */
+const isTokenExpired = (credentials: any): boolean => {
+  if (!credentials?.access_token) {
+    return true;
+  }
+  if (!credentials?.expires_in || !credentials.created_at) {
+    return false; // No expiration info, assume valid
+  }
+  const expiryTime = credentials.created_at + credentials.expires_in * 1000;
+  return Date.now() > expiryTime;
 };
 
 /**
  * Manages OAuth2 token retrieval and storage
  */
-export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: TokenStore): Promise<string | null> => {
-  const { grantType, clientId, accessTokenUrl } = oauth2Config;
-  
-  if (!grantType || !accessTokenUrl) {
-    throw new Error('Missing required OAuth2 parameters: grantType or accessTokenUrl');
+export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: TokenStore, verbose: string): Promise<string | null> => {
+  const {
+    grantType,
+    accessTokenUrl,
+    credentialsId = 'default',
+    autoFetchToken = true
+  } = oauth2Config;
+
+  if (verbose) {
+    debug.enable('oauth2');
   }
 
-  const serviceId = accessTokenUrl;
-  const account = clientId || oauth2Config.username || 'default';
+  if (!grantType) {
+    throw new Error('Grant type is required for OAuth2');
+  }
 
-  // Check if we already have a token stored
-  const existingToken = await tokenStore.getToken(serviceId, account);
+  if (!accessTokenUrl) {
+    throw new Error('Access token URL is required for OAuth2');
+  }
+
+  if (!['client_credentials', 'password'].includes(grantType)) {
+    throw new Error(`Unsupported grant type: ${grantType}. Supported types: client_credentials, password`);
+  }
+
+  // Check if we already have credentials stored
+  const existingToken = await tokenStore.getCredential({ url: accessTokenUrl, credentialsId });
   
   if (existingToken) {
     // Check if token is expired
-    if (existingToken.expires_at && existingToken.expires_at > Date.now()) {
+    if (!isTokenExpired(existingToken)) {
+      // Token is valid, use it
       return existingToken.access_token;
-    }
-  }
-
-  // No valid token found, fetch a new one
-  try {
-    let tokenResponse;
-    
-    if (grantType === 'client_credentials') {
-      tokenResponse = await fetchTokenClientCredentials(oauth2Config);
-    } else if (grantType === 'password') {
-      tokenResponse = await fetchTokenPassword(oauth2Config);
     } else {
-      throw new Error(`Unsupported grant type: ${grantType}`);
+      // Token is expired
+      if (autoFetchToken) {
+        // Clear expired token and proceed to fetch new token
+        await tokenStore.deleteCredential({ url: accessTokenUrl, credentialsId });
+      } else {
+        // Return expired token if autoFetchToken is disabled
+        return existingToken.access_token;
+      }
     }
-    
-    // Calculate expiry time if expires_in is provided
-    if (tokenResponse.expires_in) {
-      tokenResponse.expires_at = Date.now() + tokenResponse.expires_in * 1000;
+  } else {
+    // No stored credentials
+    if (!autoFetchToken) {
+      // Don't fetch token if autoFetchToken is disabled
+      return null;
     }
-
-    // Store the token
-    await tokenStore.saveToken(serviceId, account, tokenResponse);
-    
-    return tokenResponse.access_token;
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error('Failed to get OAuth2 token:', error.message);
-    }
-    return null;
+    // Otherwise, proceed to fetch new token
   }
-}; 
+
+  let tokenResponse;
+
+  if (grantType === 'client_credentials') {
+    tokenResponse = await fetchTokenClientCredentials(oauth2Config);
+  } else if (grantType === 'password') {
+    tokenResponse = await fetchTokenPassword(oauth2Config);
+  } else {
+    throw new Error(`Unsupported grant type: ${grantType}`);
+  }
+
+  if (tokenResponse.error) {
+    throw new Error(JSON.stringify(tokenResponse));
+  }
+
+  if (!tokenResponse || !tokenResponse.access_token) {
+    throw new Error('No access token received from server');
+  }
+
+  if (tokenResponse.expires_in && tokenResponse.created_at) {
+    tokenResponse.expires_at = tokenResponse.created_at + tokenResponse.expires_in * 1000;
+  }
+
+  const saved = await tokenStore.saveCredential({ url: accessTokenUrl, credentialsId, credentials: tokenResponse });
+  if (!saved) {
+    console.warn('OAuth2: Failed to save token to store, but proceeding with token');
+  }
+
+  return tokenResponse.access_token;
+};

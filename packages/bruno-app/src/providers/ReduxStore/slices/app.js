@@ -27,9 +27,6 @@ const initialState = {
     },
     general: {
       defaultCollectionLocation: ''
-    },
-    beta: {
-      grpc: false
     }
   },
   generateCode: {

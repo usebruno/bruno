@@ -88,7 +88,8 @@ const lightTheme = {
       options: '#ca7811',
       head: '#ca7811'
     },
-    grpc: '#6366f1'
+    grpc: '#6366f1',
+    ws: '#f59e0b'
   },
 
   requestTabPanel: {
@@ -205,7 +206,10 @@ const lightTheme = {
         bg: 'white',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)'
       }
-    }
+    },
+    searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
+    searchMatch: '#B8860B',
+    searchMatchActive: '#DAA520'
   },
 
   table: {
@@ -259,6 +263,110 @@ const lightTheme = {
     scrollbarTrack: '#f8f9fa',
     scrollbarThumb: '#ced4da',
     scrollbarThumbHover: '#adb5bd'
+  },
+
+  grpc: {
+    tabNav: {
+      container: {
+        bg: '#f5f5f5'
+      },
+      button: {
+        active: {
+          bg: '#ffffff',
+          color: '#000000'
+        },
+        inactive: {
+          bg: 'transparent',
+          color: '#525252'
+        }
+      }
+    },
+    importPaths: {
+      container: {
+        bg: '#ffffff'
+      },
+      header: {
+        text: '#838383',
+        button: {
+          color: '#838383',
+          hoverColor: '#343434'
+        }
+      },
+      error: {
+        bg: 'transparent',
+        text: '#B91C1C',
+        link: {
+          color: '#B91C1C',
+          hoverColor: '#dc2626'
+        }
+      },
+      item: {
+        bg: 'transparent',
+        hoverBg: 'rgba(0, 0, 0, 0.05)',
+        text: '#343434',
+        icon: '#838383',
+        checkbox: {
+          color: '#343434'
+        },
+        invalid: {
+          opacity: 0.6,
+          text: '#B91C1C'
+        }
+      },
+      empty: {
+        text: '#838383'
+      },
+      button: {
+        bg: '#e2e6ea',
+        color: '#212529',
+        border: '#dae0e5',
+        hoverBorder: '#696969'
+      }
+    },
+    protoFiles: {
+      container: {
+        bg: '#ffffff'
+      },
+      header: {
+        text: '#838383',
+        button: {
+          color: '#838383',
+          hoverColor: '#343434'
+        }
+      },
+      error: {
+        bg: 'transparent',
+        text: '#B91C1C',
+        link: {
+          color: '#B91C1C',
+          hoverColor: '#dc2626'
+        }
+      },
+      item: {
+        bg: 'transparent',
+        hoverBg: 'rgba(0, 0, 0, 0.05)',
+        selected: {
+          bg: 'rgba(217, 119, 6, 0.2)',
+          border: '#d97706'
+        },
+        text: '#343434',
+        secondaryText: '#838383',
+        icon: '#838383',
+        invalid: {
+          opacity: 0.6,
+          text: '#B91C1C'
+        }
+      },
+      empty: {
+        text: '#838383'
+      },
+      button: {
+        bg: '#e2e6ea',
+        color: '#212529',
+        border: '#dae0e5',
+        hoverBorder: '#696969'
+      }
+    }
   }
 };
 

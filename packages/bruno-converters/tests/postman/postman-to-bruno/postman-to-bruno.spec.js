@@ -74,6 +74,88 @@ describe('postman-collection', () => {
     expect(brunoCollection.root.request.vars.req).toEqual([]);
   });
 
+  it('should correctly import protocolProfileBehavior settings from Postman requests', async () => {
+    const collectionWithSettings = {
+      info: {
+        _postman_id: 'test-settings-id',
+        name: 'Collection with Settings',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'Request with all settings',
+          protocolProfileBehavior: {
+            maxRedirects: 10,
+            followRedirects: false,
+            disableUrlEncoding: true
+          },
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              raw: 'https://httpbin.org/get',
+              protocol: 'https',
+              host: ['httpbin', 'org'],
+              path: ['get']
+            }
+          }
+        },
+        {
+          name: 'Request with partial settings',
+          protocolProfileBehavior: {
+            followRedirects: true
+          },
+          request: {
+            method: 'POST',
+            header: [],
+            url: {
+              raw: 'https://httpbin.org/post',
+              protocol: 'https',
+              host: ['httpbin', 'org'],
+              path: ['post']
+            }
+          }
+        },
+        {
+          name: 'Request without settings',
+          request: {
+            method: 'PUT',
+            header: [],
+            url: {
+              raw: 'https://httpbin.org/put',
+              protocol: 'https',
+              host: ['httpbin', 'org'],
+              path: ['put']
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithSettings);
+
+    // Test request with all settings
+    const requestWithAllSettings = brunoCollection.items[0];
+    expect(requestWithAllSettings.settings).toEqual({
+      encodeUrl: false,
+      followRedirects: false,
+      maxRedirects: 10
+    });
+
+    // Test request with partial settings
+    const requestWithPartialSettings = brunoCollection.items[1];
+    expect(requestWithPartialSettings.settings).toEqual({
+      encodeUrl: true,
+      followRedirects: true
+    });
+
+    // Test request without settings
+    const requestWithoutSettings = brunoCollection.items[2];
+    expect(requestWithoutSettings.settings).toEqual({
+      encodeUrl: true
+    });
+  });
+
   it('should handle collection with auth object having undefined type', async () => {
     const collectionWithUndefinedAuthType = {
       'info': {

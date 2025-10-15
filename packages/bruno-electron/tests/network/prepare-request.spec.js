@@ -23,7 +23,7 @@ describe('prepare-request: prepareRequest', () => {
 
     it('should handle single key-value pair', () => {
       const requestObj = [{ name: 'item', value: 2 }];
-      const expected = { item: 2 };
+      const expected = 'item=2';
       const result = buildFormUrlEncodedPayload(requestObj);
       expect(result).toEqual(expected);
     });
@@ -33,7 +33,7 @@ describe('prepare-request: prepareRequest', () => {
         { name: 'item1', value: 2 },
         { name: 'item2', value: 3 }
       ];
-      const expected = { item1: 2, item2: 3 };
+      const expected = 'item1=2&item2=3';
       const result = buildFormUrlEncodedPayload(requestObj);
       expect(result).toEqual(expected);
     });
@@ -43,7 +43,7 @@ describe('prepare-request: prepareRequest', () => {
         { name: 'item', value: 2 },
         { name: 'item', value: 3 }
       ];
-      const expected = { item: [2, 3] };
+      const expected = 'item=2&item=3';
       const result = buildFormUrlEncodedPayload(requestObj);
       expect(result).toEqual(expected);
     });
@@ -54,7 +54,7 @@ describe('prepare-request: prepareRequest', () => {
         { name: 'item2', value: 3 },
         { name: 'item1', value: 4 }
       ];
-      const expected = { item1: [2, 4], item2: 3 };
+      const expected = 'item1=2&item2=3&item1=4';
       const result = buildFormUrlEncodedPayload(requestObj);
       expect(result).toEqual(expected);
     });
