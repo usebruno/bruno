@@ -80,7 +80,7 @@ const GrpcQueryResult = ({ item, collection }) => {
             </div>
           ) : (
             // Multiple messages - use accordion
-            <Accordion defaultIndex={0} data-testid="grpc-responses-accordion">
+            <Accordion defaultIndex={0} dataTestId="grpc-responses-accordion">
               {reversedResponsesList.map((response, index) => {
                 // Calculate the original response number (for display purposes)
                 const originalIndex = responsesList.length - index - 1;

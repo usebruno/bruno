@@ -4,7 +4,7 @@ import { AccordionItem, AccordionHeader, AccordionContent } from './styledWrappe
 
 const AccordionContext = createContext();
 
-const Accordion = ({ children, defaultIndex, ...props }) => {
+const Accordion = ({ children, defaultIndex, dataTestId }) => {
   const [openIndex, setOpenIndex] = useState(defaultIndex);
 
   const toggleItem = (index) => {
@@ -13,7 +13,7 @@ const Accordion = ({ children, defaultIndex, ...props }) => {
 
   return (
     <AccordionContext.Provider value={{ openIndex, toggleItem }}>
-      <div {...props}>{children}</div>
+      <div data-testid={dataTestId}>{children}</div>
     </AccordionContext.Provider>
   );
 };
