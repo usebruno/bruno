@@ -37,10 +37,11 @@ const RequestBodyMode = ({ item, collection }) => {
   };
 
   const onPrettify = () => {
+    console.log("Prettifying")
     if (body?.json && bodyMode === 'json') {
       try {
-        const edits = format(body.json, undefined, { tabSize: 2, insertSpaces: true });
-        const prettyBodyJson = applyEdits(body.json, edits);
+        const prettifyEdits = format(body.json, undefined, { tabSize: 2, insertSpaces: true });
+        const prettyBodyJson = applyEdits(body.json, prettifyEdits);
         dispatch(
           updateRequestBody({
             content: prettyBodyJson,
@@ -66,6 +67,38 @@ const RequestBodyMode = ({ item, collection }) => {
       }
     }
   };
+
+  const onMinify = () => {
+    console.log("Minifying")
+    if (body?.json && bodyMode === 'json') {
+      try {
+        // jsonc-parser doesn't support minification
+        const minifiedBodyJson = JSON.stringify(JSON.parse(body.json))
+        dispatch(
+          updateRequestBody({
+            content: minifiedBodyJson,
+            itemUid: item.uid,
+            collectionUid: collection.uid
+          })
+        );
+      } catch (e) {
+        toastError(new Error('Unable to minify. Invalid JSON format.'));
+      }
+    } else if (body?.xml && bodyMode === 'xml') {
+      try {
+        const prettyBodyXML = xmlFormat(body.xml, { collapseContent: false, indentation: '', lineSeparator: '' });
+        dispatch(
+          updateRequestBody({
+            content: prettyBodyXML,
+            itemUid: item.uid,
+            collectionUid: collection.uid
+          })
+        );
+      } catch (e) {
+        toastError(new Error('Unable to minify. Invalid XML format.'));
+      }
+    }
+  }
 
   return (
     <StyledWrapper>
@@ -149,9 +182,14 @@ const RequestBodyMode = ({ item, collection }) => {
         </Dropdown>
       </div>
       {(bodyMode === 'json' || bodyMode === 'xml') && (
-        <button className="ml-2" onClick={onPrettify}>
-          Prettify
-        </button>
+        <div>
+          <button className="ml-2" onClick={onPrettify}>
+            Prettify
+          </button>
+          <button className="ml-2" onClick={onMinify}>
+            Minify
+          </button>
+        </div>
       )}
     </StyledWrapper>
   );
