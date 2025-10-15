@@ -1,72 +1,75 @@
 import { test, expect } from '../../../playwright';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Create WebSocket Requests', () => {
   test('Create WebSocket request at collection root level', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+
     await test.step('Navigate to collection and verify it exists', async () => {
-      await expect(page.locator('#sidebar-collection-name')).toContainText('create-requests');
+      await expect(locators.sidebar.collection('create-requests')).toContainText('create-requests');
     });
 
     await test.step('Create WebSocket request via collection three dots menu', async () => {
-      await page.locator('#sidebar-collection-name').filter({ hasText: 'create-requests' }).hover();
-      await page.locator('.collection-actions .icon').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
-      const modalHeaderTitle = page.locator('.bruno-modal-header-title').filter({ hasText: 'New Request' });
-      await expect(modalHeaderTitle).toBeVisible();
+      await locators.sidebar.collection('create-requests').hover();
+      await locators.actions.collectionActions().click();
+      await locators.dropdown.item('New Request').click();
+      await expect(locators.modal.title('New Request')).toBeVisible();
       await page.getByTestId('ws-request').click();
       await page.getByTestId('request-name').fill('Root WebSocket Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
       await page.keyboard.type('ws://localhost:8080');
-      await page.getByRole('button', { name: 'Create', exact: true }).click();
+      await locators.modal.button('Create').click();
     });
 
     await test.step('Verify WebSocket request was created at collection root', async () => {
-      const collectionItem = page.locator('#sidebar-collection-name').filter({ hasText: 'create-requests' });
+      const collectionItem = locators.sidebar.collection('create-requests');
       await expect(collectionItem).toBeVisible();
       await collectionItem.click();
-      const folderItem = page.locator('.collection-item-name').filter({ hasText: 'folder1' });
+      const folderItem = locators.sidebar.folder('folder1');
       await expect(folderItem).toBeVisible();
-      const requestItem = page.locator('.collection-item-name').filter({ hasText: 'Root WebSocket Request' });
+      const requestItem = locators.sidebar.request('Root WebSocket Request');
       await expect(requestItem).toBeVisible();
       await requestItem.click();
-      await expect(page.locator('.request-tab .tab-label')).toContainText('Root WebSocket Request');
+      await expect(locators.tabs.requestTab()).toContainText('Root WebSocket Request');
     });
 
     await test.step('Clean up', async () => {
-      await page.locator('.collection-item-name').filter({ hasText: 'Root WebSocket Request' }).click({ button: 'right' });
-      await page.locator('.dropdown-item').filter({ hasText: 'Delete' }).click();
-      await page.getByRole('button', { name: 'Delete', exact: true }).click();
+      await locators.sidebar.request('Root WebSocket Request').click({ button: 'right' });
+      await locators.dropdown.item('Delete').click();
+      await locators.modal.button('Delete').click();
     });
   });
 
   test('Create WebSocket request within folder1', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+
     await test.step('Navigate to collection and verify folder1 exists', async () => {
-      const collectionItem = page.locator('#sidebar-collection-name').filter({ hasText: 'create-requests' });
+      const collectionItem = locators.sidebar.collection('create-requests');
       await expect(collectionItem).toBeVisible();
       await collectionItem.click();
-      await expect(page.locator('.collection-item-name').filter({ hasText: 'folder1' })).toBeVisible();
+      await expect(locators.sidebar.folder('folder1')).toBeVisible();
     });
 
     await test.step('Create WebSocket request via folder1 three dots menu', async () => {
-      const folderItem = page.locator('.collection-item-name').filter({ hasText: 'folder1' });
+      const folderItem = locators.sidebar.folder('folder1');
       await folderItem.click({ button: 'right' });
-      await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
-      const modalHeaderTitle = page.locator('.bruno-modal-header-title').filter({ hasText: 'New Request' });
-      await expect(modalHeaderTitle).toBeVisible();
+      await locators.dropdown.item('New Request').click();
+      await expect(locators.modal.title('New Request')).toBeVisible();
       await page.getByTestId('ws-request').click();
       await page.getByTestId('request-name').fill('Folder WebSocket Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
       await page.keyboard.type('ws://localhost:8081');
-      await page.getByRole('button', { name: 'Create', exact: true }).click();
+      await locators.modal.button('Create').click();
     });
 
     await test.step('Verify WebSocket request was created within folder1', async () => {
-      const folderItem = page.locator('.collection-item-name').filter({ hasText: 'folder1' });
+      const folderItem = locators.sidebar.folder('folder1');
       await folderItem.click();
-      const requestItem = page.locator('.collection-item-name').filter({ hasText: 'Folder WebSocket Request' });
+      const requestItem = locators.sidebar.request('Folder WebSocket Request');
       await expect(requestItem).toBeVisible({ timeout: 1000 });
       await requestItem.click();
-      await expect(page.locator('.request-tab .tab-label')).toContainText('Folder WebSocket Request');
-      const chevron = folderItem.getByTestId('folder-chevron');
+      await expect(locators.tabs.requestTab()).toContainText('Folder WebSocket Request');
+      const chevron = locators.folder.chevron('folder1');
       await expect(chevron).toBeVisible();
       await chevron.click();
       await expect(requestItem).not.toBeVisible({ timeout: 1000 });
@@ -74,9 +77,9 @@ test.describe('Create WebSocket Requests', () => {
     });
 
     await test.step('Clean up', async () => {
-      await page.locator('.collection-item-name').filter({ hasText: 'Folder WebSocket Request' }).click({ button: 'right' });
-      await page.locator('.dropdown-item').filter({ hasText: 'Delete' }).click();
-      await page.getByRole('button', { name: 'Delete', exact: true }).click();
+      await locators.sidebar.request('Folder WebSocket Request').click({ button: 'right' });
+      await locators.dropdown.item('Delete').click();
+      await locators.modal.button('Delete').click();
     });
   });
 });
