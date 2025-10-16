@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, has } from 'lodash';
 
 const initialState = {
   globalEnvironments: [],
@@ -196,10 +196,13 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
 
     let variables = cloneDeep(environment?.variables);
 
-    // update existing values
+    // update existing global environment variable value to the new value if it exists,
+    // otherwise keep the existing value
     variables = variables?.map?.(variable => ({
       ...variable,
-      value: globalEnvironmentVariables?.[variable?.name]
+      value: has(globalEnvironmentVariables, variable?.name)
+        ? globalEnvironmentVariables[variable?.name]
+        : variable?.value
     }));
 
     // add new env values
