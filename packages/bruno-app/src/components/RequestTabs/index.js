@@ -22,6 +22,25 @@ const RequestTabs = () => {
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
 
+
+  const otherCollection = () => {
+
+    let currentCollectionUid = activeTab.collectionUid
+    let index = collections.findIndex((collection) => collection.uid === currentCollectionUid);
+    let otherTab = null
+
+    while (otherTab == null) {
+      index = (index + 1) % collections.length
+      currentCollectionUid = collections[index].uid
+      otherTab = find(tabs, (t) => t.collectionUid === collections[index].uid);
+    }
+    dispatch(
+      focusTab({
+        uid: otherTab.uid
+      })
+    )
+  };
+
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
       active: tab.uid === activeTabUid,
@@ -86,7 +105,7 @@ const RequestTabs = () => {
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
-          <CollectionToolBar collection={activeCollection} />
+          <CollectionToolBar collection={activeCollection} onClick={otherCollection} />
           <div className="flex items-center pl-4">
             <ul role="tablist">
               {showChevrons ? (
