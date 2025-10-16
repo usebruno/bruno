@@ -72,9 +72,10 @@ describe('prepare-request: prepareRequest', () => {
         'not-an-object',
         { value: 'missingName' },
         42,
-        { name: 'item2', value: 'b' }
+        { name: 'item2', value: 'b' },
+        { name: 'item3' }
       ];
-      const expected = 'item1=a&item2=b';
+      const expected = 'item1=a&item2=b&item3=';
       const result = buildFormUrlEncodedPayload(requestObj);
       expect(result).toEqual(expected);
     });

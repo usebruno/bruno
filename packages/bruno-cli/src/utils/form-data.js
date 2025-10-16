@@ -15,8 +15,7 @@ const buildFormUrlEncodedPayload = (params) => {
     // Invalid items are ignored
     if (typeof param != 'object') continue;
     if (!('name' in param)) continue;
-
-    resultParams.append(param.name, param.value);
+    resultParams.append(param.name, param.value ?? '');
   }
   return resultParams.toString();
 };
