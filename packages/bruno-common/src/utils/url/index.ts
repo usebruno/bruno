@@ -11,12 +11,39 @@ interface ExtractQueryParamsOptions {
   decode?: boolean;
 }
 
+/**
+ * Check if a string is already URL-encoded by attempting to decode it.
+ * If decoding changes the string, it was encoded. If not, it wasn't.
+ */
+function isEncoded(str: string): boolean {
+  if (!str || typeof str !== 'string') {
+    return false;
+  }
+
+  try {
+    // Try to decode and see if it differs from the original
+    const decoded = decodeURIComponent(str);
+    // If re-encoding the decoded string gives us back the original, it was encoded
+    const reencoded = encodeURIComponent(decoded);
+    return reencoded === str;
+  } catch (e) {
+    // If decoding fails, it's not properly encoded
+    return false;
+  }
+}
+
 function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
     .map(({ name, value }) => {
-      const finalName = encode ? encodeURIComponent(name) : name;
-      const finalValue = encode ? encodeURIComponent(value ?? '') : (value ?? '');
+      let finalName = name;
+      let finalValue = value ?? '';
+
+      if (encode) {
+        // Only encode if not already encoded to prevent double-encoding
+        finalName = isEncoded(name) ? name : encodeURIComponent(name);
+        finalValue = isEncoded(finalValue) ? finalValue : encodeURIComponent(finalValue);
+      }
 
       return finalValue ? `${finalName}=${finalValue}` : finalName;
     })
