@@ -74,6 +74,38 @@ class Bru {
         this.nextRequest = nextRequest;
       }
     };
+
+    this.utils = {
+      minifyJson: (json) => {
+        if (json === null || json === undefined) {
+          throw new Error('Failed to minify');
+        }
+
+        if (typeof json === 'object') {
+          try {
+            return JSON.stringify(json);
+          } catch (err) {
+            throw new Error(`Failed to minify: ${err?.message || err}`);
+          }
+        }
+
+        if (typeof json === 'string') {
+          const trimmed = json.trim();
+          if (trimmed === '') return trimmed;
+          try {
+            return JSON.stringify(JSON.parse(trimmed));
+          } catch (err) {
+            throw new Error(`Failed to minify: ${err?.message || err}`);
+          }
+        }
+
+        throw new TypeError('minifyJson expects a string or object');
+      },
+
+      minifyXml: (xml) => {
+
+      }
+    };
   }
 
   interpolate = (strOrObj) => {
