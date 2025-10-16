@@ -100,6 +100,11 @@ class SingleLineEditor extends Component {
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
+
+    // Add newline arrow markers if enabled
+    if (this.props.showNewlineArrow) {
+      this._updateNewlineMarkers();
+    }
   }
 
   /** Enable or disable masking the rendered content of the editor */
@@ -124,6 +129,11 @@ class SingleLineEditor extends Component {
       if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
       }
+
+      // Update newline markers after edit
+      if (this.props.showNewlineArrow) {
+        this._updateNewlineMarkers();
+      }
     }
   };
 
@@ -146,6 +156,11 @@ class SingleLineEditor extends Component {
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value ?? ''));
+
+      // Update newline markers after value change
+      if (this.props.showNewlineArrow) {
+        this._updateNewlineMarkers();
+      }
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change
@@ -163,6 +178,7 @@ class SingleLineEditor extends Component {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
+      this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();
       this.editor = null;
     }
@@ -179,6 +195,63 @@ class SingleLineEditor extends Component {
     this.variables = variables;
     defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams, true);
     this.editor.setOption('mode', 'brunovariables');
+  };
+
+  /**
+   * Update markers to show arrows for newlines
+   */
+  _updateNewlineMarkers = () => {
+    if (!this.editor) return;
+
+    // Clear existing markers
+    this._clearNewlineMarkers();
+
+    this.newlineMarkers = [];
+    const content = this.editor.getValue();
+
+    // Find all newlines and replace them with arrow widgets
+    for (let i = 0; i < content.length; i++) {
+      if (content[i] === '\n') {
+        const pos = this.editor.posFromIndex(i);
+        const nextPos = this.editor.posFromIndex(i + 1);
+
+        // Create a widget to display the arrow
+        const arrow = document.createElement('span');
+        arrow.className = 'newline-arrow';
+        arrow.textContent = '↲';
+        arrow.style.cssText = `
+          color: #888;
+          font-size: 10px;
+          margin: 0 2px;
+          vertical-align: middle;
+          display: inline-block;
+        `;
+
+        // Mark the newline character and replace it with the arrow widget
+        const marker = this.editor.markText(pos, nextPos, {
+          replacedWith: arrow,
+          handleMouseEvents: true
+        });
+
+        this.newlineMarkers.push(marker);
+      }
+    }
+  };
+
+  /**
+   * Clear all newline markers
+   */
+  _clearNewlineMarkers = () => {
+    if (this.newlineMarkers) {
+      this.newlineMarkers.forEach((marker) => {
+        try {
+          marker.clear();
+        } catch (e) {
+          // Marker might already be cleared
+        }
+      });
+      this.newlineMarkers = [];
+    }
   };
 
   toggleVisibleSecret = () => {

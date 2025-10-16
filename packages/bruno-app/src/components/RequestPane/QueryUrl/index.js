@@ -111,6 +111,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           collection={collection}
           highlightPathParams={true}
           item={item}
+          showNewlineArrow={true}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div

@@ -8,14 +8,15 @@ const safeParseJson = (json) => {
 };
 
 
-const indentString = (str) => {
+const indentString = (str, levels = 1) => {
   if (!str || !str.length) {
     return str || '';
   }
 
+  const indent = '  '.repeat(levels);
   return str
     .split(/\r\n|\r|\n/)
-    .map((line) => '  ' + line)
+    .map((line) => indent + line)
     .join('\n');
 };
 
@@ -60,10 +61,27 @@ const getKeyString = (key) => {
   return quotableChars.some((char) => key.includes(char)) ? ('"' + key.replaceAll('"', '\\"') + '"') : key;
 };
 
+const getValueUrl = (url) => {
+  // Handle null, undefined, and empty strings
+  if (!url) {
+    return '';
+  }
+
+  const hasNewLines = url?.includes('\n') || url?.includes('\r');
+
+  if (!hasNewLines) {
+    return url;
+  }
+
+  // Wrap multiline values in triple quotes with 4-space indentation (2 levels)
+  return `'''\n${indentString(url, 2)}\n'''`;
+};
+
 module.exports = {
   safeParseJson,
   indentString,
   outdentString,
   getValueString,
-  getKeyString
+  getKeyString,
+  getValueUrl
 };

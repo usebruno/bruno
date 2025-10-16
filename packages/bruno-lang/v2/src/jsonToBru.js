@@ -46,7 +46,7 @@ const jsonToBru = (json) => {
     const isStandard = standardMethods.has(method);
 
     bru += isStandard ? `${method} {` : `http {\n  method: ${method}`;
-    bru += `\n  url: ${url}`;
+    bru += `\n  url: ${getValueUrl(url)}`;
 
     if (body?.length) {
       bru += `\n  body: ${body}`;

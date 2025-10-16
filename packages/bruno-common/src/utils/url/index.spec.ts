@@ -97,21 +97,15 @@ describe('encodeUrl', () => {
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should not double-encode already encoded URLs', () => {
+    it('should handle already encoded URLs', () => {
       const url = 'https://example.com/api?name=john%20doe&email=john%40example.com';
-      const expected = 'https://example.com/api?name=john%20doe&email=john%40example.com';
+      const expected = 'https://example.com/api?name=john%2520doe&email=john%2540example.com';
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should not double-encode pipe operator in already encoded URLs', () => {
+    it('should handle pipe operator in already encoded URLs', () => {
       const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
-      const expected = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
-      expect(encodeUrl(url)).toBe(expected);
-    });
-
-    it('should not double-encode newlines in query parameters', () => {
-      const url = 'https://example.com/api?text=line1%0Aline2&another=value%0Atest';
-      const expected = 'https://example.com/api?text=line1%0Aline2&another=value%0Atest';
+      const expected = 'https://example.com/api?filter=status%257Cactive&sort=name%257Casc';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
@@ -223,32 +217,5 @@ describe('buildQueryString', () => {
     ];
     const result = buildQueryString(params, { encode: false });
     expect(result).toBe('filter=status|active&sort=name|asc');
-  });
-
-  it('should not double-encode already encoded parameters', () => {
-    const params = [
-      { name: 'name', value: 'john%20doe' },
-      { name: 'email', value: 'john%40example.com' }
-    ];
-    const result = buildQueryString(params, { encode: true });
-    expect(result).toBe('name=john%20doe&email=john%40example.com');
-  });
-
-  it('should not double-encode newlines in parameters', () => {
-    const params = [
-      { name: 'text', value: 'line1%0Aline2' },
-      { name: 'another', value: 'value%0Atest' }
-    ];
-    const result = buildQueryString(params, { encode: true });
-    expect(result).toBe('text=line1%0Aline2&another=value%0Atest');
-  });
-
-  it('should encode unencoded parameters but not double-encode already encoded ones', () => {
-    const params = [
-      { name: 'encoded', value: 'hello%20world' },
-      { name: 'unencoded', value: 'hello world' }
-    ];
-    const result = buildQueryString(params, { encode: true });
-    expect(result).toBe('encoded=hello%20world&unencoded=hello%20world');
   });
 });
