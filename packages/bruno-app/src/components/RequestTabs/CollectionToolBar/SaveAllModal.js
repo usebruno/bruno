@@ -78,13 +78,13 @@ const SaveAllModal = ({ collection, onClose }) => {
       hideFooter={true}
     >
       <div className="flex items-center mb-4">
-        <IconDeviceFloppy size={32} strokeWidth={1.5} className="text-blue-600" />
-        <h1 className="ml-2 text-lg font-semibold">
+        <IconDeviceFloppy size={32} strokeWidth={1.5} className="text-blue-500" />
+        <h1 className="ml-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
           Select requests to save ({selectedCount} of {currentDrafts.length} selected)
         </h1>
       </div>
 
-      <p className="mb-4 text-sm text-gray-600">
+      <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
         The following {currentDrafts.length} {pluralizeWord('request', currentDrafts.length)} have unsaved changes:
       </p>
 
@@ -97,30 +97,30 @@ const SaveAllModal = ({ collection, onClose }) => {
           {allSelected ? 'Deselect All' : 'Select All'}
         </button>
         {someSelected && (
-          <span className="text-sm text-gray-500 self-center">
+          <span className="text-sm text-gray-500 dark:text-gray-400 self-center">
             {selectedCount} selected
           </span>
         )}
       </div>
 
       {/* Request list with checkboxes */}
-      <div className="max-h-64 overflow-y-auto border rounded-lg">
+      <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
         {currentDrafts.map((item) => {
           const isSelected = selectedRequests.has(item.uid);
           return (
             <div
               key={item.uid}
-              className={`flex items-center p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer ${
-                isSelected ? 'bg-blue-50' : ''
+              className={`flex items-center p-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
+                isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
               onClick={() => handleToggleRequest(item.uid)}
             >
-              <div className="flex items-center justify-center w-5 h-5 mr-3 border rounded">
-                {isSelected && <IconCheck size={16} className="text-blue-600" />}
+              <div className="flex items-center justify-center w-5 h-5 mr-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800">
+                {isSelected && <IconCheck size={16} className="text-blue-600 dark:text-blue-400" />}
               </div>
               <div className="flex-1">
-                <div className="font-medium text-sm">{item.filename}</div>
-                <div className="text-xs text-gray-500">{item.name}</div>
+                <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{item.filename}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{item.name}</div>
               </div>
             </div>
           );
