@@ -8,7 +8,7 @@ const path = require('path');
  * @returns {string} Returns a order respecting standard compliant string of form encoded values
  */
 const buildFormUrlEncodedPayload = (params) => {
-  if (typeof params != 'object') return '';
+  if (typeof params !== 'object') return '';
   if (!Array.isArray(params)) return '';
   const resultParams = new URLSearchParams();
   for (const param of params) {
