@@ -24,7 +24,6 @@ const Headers = ({ collection }) => {
   const headers = get(collection, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
-  // Compute validation errors as derived state
   const validationErrors = headers.reduce((errors, header) => {
     // Validate name
     if (/[\r\n]/.test(header.name)) {
