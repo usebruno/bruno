@@ -59,7 +59,6 @@ const Headers = ({ collection }) => {
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
-
     switch (type) {
       case 'name': {
         header.name = e.target.value;
@@ -74,7 +73,6 @@ const Headers = ({ collection }) => {
         break;
       }
     }
-
     dispatch(
       updateCollectionHeader({
         header: header,
