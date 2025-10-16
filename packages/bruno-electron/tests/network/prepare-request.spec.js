@@ -58,6 +58,26 @@ describe('prepare-request: prepareRequest', () => {
       const result = buildFormUrlEncodedPayload(requestObj);
       expect(result).toEqual(expected);
     });
+
+    it('returns empty string when params is not an object', () => {
+      expect(buildFormUrlEncodedPayload(null)).toEqual('');
+      expect(buildFormUrlEncodedPayload('string')).toEqual('');
+      expect(buildFormUrlEncodedPayload(123)).toEqual('');
+      expect(buildFormUrlEncodedPayload(undefined)).toEqual('');
+    });
+
+    it('ignores invalid items inside params array', () => {
+      const requestObj = [
+        { name: 'item1', value: 'a' },
+        'not-an-object',
+        { value: 'missingName' },
+        42,
+        { name: 'item2', value: 'b' }
+      ];
+      const expected = 'item1=a&item2=b';
+      const result = buildFormUrlEncodedPayload(requestObj);
+      expect(result).toEqual(expected);
+    });
   });
 
   describe.each(['POST', 'PUT', 'PATCH'])('POST request with no body', (method) => {
