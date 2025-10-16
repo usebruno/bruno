@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString } = require('./utils');
+const { indentString, getValueString, getKeyString, getValueUrl } = require('./utils');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
@@ -46,7 +46,7 @@ const jsonToBru = (json) => {
     const isStandard = standardMethods.has(method);
 
     bru += isStandard ? `${method} {` : `http {\n  method: ${method}`;
-    bru += `\n  url: ${url}`;
+    bru += `\n  url: ${getValueUrl(url)}`;
 
     if (body?.length) {
       bru += `\n  body: ${body}`;
