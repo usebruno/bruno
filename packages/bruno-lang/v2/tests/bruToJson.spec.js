@@ -77,44 +77,49 @@ vars:pre-request {
     t2
   '''
 }
-
-settings {
-  encodeUrl: false
-}
 `;
 
+      const expected = {
+        meta: {
+          name: 'new-line',
+          type: 'http',
+          seq: '1'
+        },
+        http: {
+          method: 'get',
+          url: 'https://httpbin.io/anything?foo=hello\nworld',
+          body: 'none',
+          auth: 'oauth2'
+        },
+        params: [
+          {
+            name: 'foo',
+            value: 'hello\nworld',
+            enabled: true,
+            type: 'query'
+          }
+        ],
+        headers: [
+          {
+            name: 'test header',
+            value: 't1\nt2',
+            enabled: true
+          }
+        ],
+        vars: {
+          req: [
+            {
+              name: 'test-var',
+              value: 't1\nt2',
+              enabled: true,
+              local: false
+            }
+          ]
+        }
+      };
+
       const output = parser(input);
-
-      expect(output.meta).toEqual({
-        name: 'new-line',
-        type: 'http',
-        seq: '1'
-      });
-
-      expect(output.http.url).toBe('https://httpbin.io/anything?foo=hello\nworld');
-
-      expect(output.params).toHaveLength(1);
-      expect(output.params[0]).toEqual({
-        name: 'foo',
-        value: 'hello\nworld',
-        enabled: true,
-        type: 'query'
-      });
-
-      expect(output.headers).toHaveLength(1);
-      expect(output.headers[0]).toEqual({
-        name: 'test header',
-        value: 't1\nt2',
-        enabled: true
-      });
-
-      expect(output.vars.req).toHaveLength(1);
-      expect(output.vars.req[0]).toEqual({
-        name: 'test-var',
-        value: 't1\nt2',
-        enabled: true,
-        local: false
-      });
+      expect(output).toEqual(expected);
     });
   });
 });
