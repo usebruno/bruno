@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -18,32 +18,22 @@ const Headers = ({ collection, folder }) => {
   const { storedTheme } = useTheme();
   const headers = folder.draft ? get(folder, 'draft.request.headers', []) : get(folder, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
-  const [validationErrors, setValidationErrors] = useState({});
 
-  // Validate all headers whenever headers change
-  useEffect(() => {
-    if (!headers || !headers.length) {
-      setValidationErrors({});
-      return;
+  const validationErrors = headers.reduce((errors, header) => {
+    // Validate name
+    if (/[\r\n]/.test(header.name)) {
+      errors[`${header.uid}-name`] = 'Key contains invalid newline characters.';
+    } else if (/[\s]/.test(header.name)) {
+      errors[`${header.uid}-name`] = 'Key contains invalid whitespace characters.';
     }
 
-    const newErrors = {};
-    headers.forEach((header) => {
-      // Validate name
-      if (/[\r\n]/.test(header.name)) {
-        newErrors[`${header.uid}-name`] = 'Key contains invalid newline characters.';
-      } else if (/[\s]/.test(header.name)) {
-        newErrors[`${header.uid}-name`] = 'Key contains invalid whitespace characters.';
-      }
+    // Validate value
+    if (/[\r\n]/.test(header.value)) {
+      errors[`${header.uid}-value`] = 'Value contains invalid newline characters.';
+    }
 
-      // Validate value
-      if (/[\r\n]/.test(header.value)) {
-        newErrors[`${header.uid}-value`] = 'Value contains invalid newline characters.';
-      }
-    });
-
-    setValidationErrors(newErrors);
-  }, [headers]);
+    return errors;
+  }, {});
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
@@ -65,35 +55,14 @@ const Headers = ({ collection, folder }) => {
   const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
-    const newErrors = { ...validationErrors };
 
     switch (type) {
       case 'name': {
-        const value = e.target.value;
-
-        // Check for newline characters first, then other whitespace
-        if (/[\r\n]/.test(value)) {
-          newErrors[`${header.uid}-name`] = 'Key contains invalid newline characters.';
-        } else if (/[\s]/.test(value)) {
-          newErrors[`${header.uid}-name`] = 'Key contains invalid whitespace characters.';
-        } else {
-          delete newErrors[`${header.uid}-name`];
-        }
-
-        header.name = value;
+        header.name = e.target.value;
         break;
       }
       case 'value': {
-        const value = e.target.value;
-
-        // Check for newline characters
-        if (/[\r\n]/.test(value)) {
-          newErrors[`${header.uid}-value`] = 'Value contains invalid newline characters.';
-        } else {
-          delete newErrors[`${header.uid}-value`];
-        }
-
-        header.value = value;
+        header.value = e.target.value;
         break;
       }
       case 'enabled': {
@@ -102,7 +71,6 @@ const Headers = ({ collection, folder }) => {
       }
     }
 
-    setValidationErrors(newErrors);
     dispatch(
       updateFolderHeader({
         header: header,
