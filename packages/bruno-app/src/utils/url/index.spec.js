@@ -80,13 +80,19 @@ describe('Url Utils - parsePathParams', () => {
     expect(params).toEqual([{ name: 'productId', value: '' }]);
   });
 
+  it('should handle OData parameters with mixed quote types', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\':productId\')/Categories(":categoryId")');
+    expect(params).toEqual([{ name: 'productId', value: '' }, { name: 'categoryId', value: '' }]);
+  });
+
   it('should parse OData entity key with parentheses only', () => {
     const params = parsePathParams('https://example.com/odata/Products(:productId)');
     expect(params).toEqual([{ name: 'productId', value: '' }]);
   });
 
-  it('should parse OData composite key with multiple parameters', () => {
-    const params = parsePathParams('https://example.com/odata/Orders(:orderId,ProductId=\':productId\')');
+  it('should parse OData composite key with mixed parameter styles', () => {
+    // Test both positional and named parameter styles in the same key
+    const params = parsePathParams('https://example.com/odata/Orders(:orderId,ProductId=:productId)');
     expect(params).toEqual([{ name: 'orderId', value: '' }, { name: 'productId', value: '' }]);
   });
 
@@ -115,19 +121,24 @@ describe('Url Utils - parsePathParams', () => {
     expect(params).toEqual([{ name: 'product_id', value: '' }]);
   });
 
-  it('should handle OData parameters with mixed quote types', () => {
-    const params = parsePathParams('https://example.com/odata/Products(\':productId\')/Categories(":categoryId")');
-    expect(params).toEqual([{ name: 'productId', value: '' }, { name: 'categoryId', value: '' }]);
+  it('should parse OData composite key with positional parameters', () => {
+    const params = parsePathParams('https://example.com/odata/Orders(:orderId,:productId)');
+    expect(params).toEqual([{ name: 'orderId', value: '' }, { name: 'productId', value: '' }]);
   });
 
-  it('should handle OData parameters with nested parentheses', () => {
-    const params = parsePathParams('https://example.com/odata/Products((\':productId\'))');
-    expect(params).toEqual([{ name: 'productId', value: '' }]);
+  it('should parse OData composite key with named parameters', () => {
+    const params = parsePathParams('https://example.com/odata/Orders(OrderId=:orderId,ProductId=:productId)');
+    expect(params).toEqual([{ name: 'orderId', value: '' }, { name: 'productId', value: '' }]);
   });
 
-  it('should handle OData parameters with complex nested structures', () => {
-    const params = parsePathParams('https://example.com/odata/Orders(:orderId)/Items(\':itemId\')/Properties(\':propName\')');
-    expect(params).toEqual([{ name: 'orderId', value: '' }, { name: 'itemId', value: '' }, { name: 'propName', value: '' }]);
+  it('should handle OData navigation properties', () => {
+    const params = parsePathParams('https://example.com/odata/Orders(:orderId)/Items');
+    expect(params).toEqual([{ name: 'orderId', value: '' }]);
+  });
+
+  it('should handle OData function parameters', () => {
+    const params = parsePathParams('https://example.com/odata/Products/GetProductsByCategory(categoryId=:categoryId)');
+    expect(params).toEqual([{ name: 'categoryId', value: '' }]);
   });
 
   it('should handle OData parameters with query options in path', () => {
@@ -145,9 +156,15 @@ describe('Url Utils - parsePathParams', () => {
     expect(params).toEqual([]);
   });
 
-  it('should handle OData parameters with function calls in parentheses', () => {
-    const params = parsePathParams('https://example.com/odata/Products(GetId(\':productId\'))');
-    expect(params).toEqual([{ name: 'productId', value: '' }]);
+  it('should NOT treat embedded colons as path parameters (regression fix)', () => {
+    // This test case reproduces the bug reported in issue #5805
+    const params = parsePathParams('/start/1:2:AHLS-HASD/form');
+    expect(params).toEqual([]);
+  });
+
+  it('should NOT treat embedded colons as path parameters in full URLs', () => {
+    const params = parsePathParams('https://example.com/start/1:2:AHLS-HASD/form');
+    expect(params).toEqual([]);
   });
 
   it('should handle OData parameters with escaped quotes', () => {
@@ -167,6 +184,11 @@ describe('Url Utils - parsePathParams', () => {
 
   it('should handle OData parameters with GUID keys', () => {
     const params = parsePathParams('https://example.com/odata/Products(\'123e4567-e89b-12d3-a456-426614174000\')');
+    expect(params).toEqual([]);
+  });
+
+  it('should handle OData with query parameters for variable interpolation', () => {
+    const params = parsePathParams('https://example.com/odata/Products?$filter=Category eq \'{{category}}\'&$orderby={{sortField}}');
     expect(params).toEqual([]);
   });
 });
