@@ -227,6 +227,54 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   }
 
+  const copyExamples = (examples = []) => {
+    return map(examples, (example) => {
+      const copiedExample = {
+        uid: example.uid,
+        itemUid: example.itemUid,
+        name: example.name,
+        description: example.description,
+        type: example.type,
+        request: {
+          url: example.request.url,
+          method: example.request.method,
+          headers: copyHeaders(example.request.headers),
+          params: copyParams(example.request.params),
+          body: {
+            mode: example.request.body.mode,
+            json: example.request.body.json,
+            text: example.request.body.text,
+            xml: example.request.body.xml,
+            graphql: example.request.body.graphql,
+            sparql: example.request.body.sparql,
+            formUrlEncoded: copyFormUrlEncodedParams(example.request.body.formUrlEncoded),
+            multipartForm: copyMultipartFormParams(example.request.body.multipartForm),
+            file: copyFileParams(example.request.body.file),
+            grpc: example.request.body.grpc,
+            ws: example.request.body.ws
+          },
+          auth: example.request.auth
+        },
+        response: {
+          status: example.response.status,
+          statusText: example.response.statusText,
+          headers: copyHeaders(example.response.headers),
+          body: example.response.body
+        }
+      };
+
+      // Handle gRPC-specific fields if present
+      if (example.request.methodType) {
+        copiedExample.request.methodType = example.request.methodType;
+      }
+      if (example.request.protoPath) {
+        copiedExample.request.protoPath = example.request.protoPath;
+      }
+
+      return copiedExample;
+    });
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
@@ -242,7 +290,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         filename: si.filename,
         seq: si.seq,
         settings: si.settings,
-        tags: si.tags
+        tags: si.tags,
+        examples: copyExamples(si.examples || [])
       };
 
       if (si.request) {
