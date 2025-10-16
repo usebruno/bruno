@@ -41,24 +41,27 @@ export const parsePathParams = (url) => {
       if (name && !foundParams.has(name)) {
         foundParams.add(name);
       }
-    } else {
-      // for OData-style parameters (parameters inside parentheses)
-      // Check if segment matches valid OData syntax:
-      // 1. EntitySet('key') or EntitySet(key)
-      // 2. EntitySet(Key1=value1,Key2=value2)
-      // 3. Function(param=value)
-      if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
-        const paramRegex = /[:](\w+)/g;
-        let match;
-        while ((match = paramRegex.exec(segment))) {
-          if (match[1]) {
-            let name = match[1].replace(/[')"`]+$/, '');
-            name = name.replace(/^[('"`]+/, '');
-            if (name && !foundParams.has(name)) {
-              foundParams.add(name);
-            }
-          }
-        }
+      return;
+    }
+
+    // for OData-style parameters (parameters inside parentheses)
+    // Check if segment matches valid OData syntax:
+    // 1. EntitySet('key') or EntitySet(key)
+    // 2. EntitySet(Key1=value1,Key2=value2)
+    // 3. Function(param=value)
+    if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+      return;
+    }
+
+    const paramRegex = /[:](\w+)/g;
+    let match;
+    while ((match = paramRegex.exec(segment))) {
+      if (!match[1]) continue;
+
+      let name = match[1].replace(/[')"`]+$/, '');
+      name = name.replace(/^[('"`]+/, '');
+      if (name && !foundParams.has(name)) {
+        foundParams.add(name);
       }
     }
   });
@@ -112,25 +115,26 @@ export const interpolateUrlPathParams = (url, params) => {
         // 1. EntitySet('key') or EntitySet(key)
         // 2. EntitySet(Key1=value1,Key2=value2)
         // 3. Function(param=value)
-        if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
-          const regex = /[:](\w+)/g;
-          let match;
-          let result = segment;
-          while ((match = regex.exec(segment))) {
-            if (match[1]) {
-              let name = match[1].replace(/[')"`]+$/, '');
-              name = name.replace(/^[('"`]+/, '');
-              if (name) {
-                const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-                if (pathParam) {
-                  result = result.replace(':' + match[1], pathParam.value);
-                }
-              }
-            }
-          }
-          return result;
+        if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+          return segment;
         }
-        return segment;
+
+        const regex = /[:](\w+)/g;
+        let match;
+        let result = segment;
+        while ((match = regex.exec(segment))) {
+          if (!match[1]) continue;
+
+          let name = match[1].replace(/[')"`]+$/, '');
+          name = name.replace(/^[('"`]+/, '');
+          if (!name) continue;
+
+          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+          if (pathParam) {
+            result = result.replace(':' + match[1], pathParam.value);
+          }
+        }
+        return result;
       })
       .join('/');
   };

@@ -80,6 +80,11 @@ describe('Url Utils - parsePathParams', () => {
     expect(params).toEqual([{ name: 'productId', value: '' }]);
   });
 
+  it('should handle OData parameters with mixed quote types', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\':productId\')/Categories(":categoryId")');
+    expect(params).toEqual([{ name: 'productId', value: '' }, { name: 'categoryId', value: '' }]);
+  });
+
   it('should parse OData entity key with parentheses only', () => {
     const params = parsePathParams('https://example.com/odata/Products(:productId)');
     expect(params).toEqual([{ name: 'productId', value: '' }]);
