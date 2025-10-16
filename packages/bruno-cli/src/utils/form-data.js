@@ -13,7 +13,7 @@ const buildFormUrlEncodedPayload = (params) => {
   const resultParams = new URLSearchParams();
   for (const param of params) {
     // Invalid items are ignored
-    if (typeof param != 'object') continue;
+    if (typeof param !== 'object') continue;
     if (!('name' in param)) continue;
     resultParams.append(param.name, param.value ?? '');
   }
