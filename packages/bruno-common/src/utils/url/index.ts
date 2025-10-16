@@ -11,7 +11,6 @@ interface ExtractQueryParamsOptions {
   decode?: boolean;
 }
 
-
 function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
