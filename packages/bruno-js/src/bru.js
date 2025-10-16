@@ -1,4 +1,5 @@
 const { cloneDeep } = require('lodash');
+const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar } = require('@usebruno/requests').cookies;
@@ -103,7 +104,19 @@ class Bru {
       },
 
       minifyXml: (xml) => {
+        if (xml === null || xml === undefined) {
+          throw new Error('Failed to minify');
+        }
 
+        if (typeof xml === 'string') {
+          try {
+            return xmlFormat(xml, { collapseContent: false, indentation: '', lineSeparator: '' });
+          } catch (err) {
+            throw new Error(`Failed to minify: ${err?.message || err}`);
+          }
+        }
+
+        throw new TypeError('minifyXml expects a string');
       }
     };
   }
