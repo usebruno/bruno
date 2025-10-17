@@ -3,12 +3,16 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   .current-environment {
     border-radius: 0.9375rem;
-    //FIXME border-radius: 15px; use rem
     padding: 0.25rem 0.5rem 0.25rem 0.75rem;
     user-select: none;
     background-color: ${(props) => props.color ? undefined : 'transparent'};
     border: 2px solid ${(props) => props.color ?? props.theme.dropdown.selectedColor};
     line-height: 1rem;
+
+    .active-env-toolhint {
+      display: flex;
+      flex-direction: row;
+    }
 
     .caret {
       margin-left: 0.25rem;
@@ -18,11 +22,11 @@ const Wrapper = styled.div`
 
     .env-icon {
       margin-right: 0.25rem;
-      color: ${(props) => props.theme.dropdown.selectedColor};
+      color: ${(props) => props.color ?? props.theme.dropdown.selectedColor};
     }
 
     .env-text {
-      color: ${(props) => props.theme.dropdown.selectedColor};
+      color: ${(props) => props.color ?? props.theme.dropdown.selectedColor};
       font-size: 0.875rem;
       display: block;
     }
@@ -65,7 +69,9 @@ const Wrapper = styled.div`
 
     .dropdown-item {
       display: flex;
+      flex-direction: row;
       align-items: center;
+      column-gap: 0.35em;
       padding: 0.35rem 0.6rem;
       cursor: pointer;
       font-size: 0.8125rem;
@@ -77,7 +83,7 @@ const Wrapper = styled.div`
 
       &.active {
         background-color: ${(props) => props.theme.dropdown.selectedBg};
-        color: ${(props) => props.theme.dropdown.selectedColor};
+        color: ${(props) => props.color ?? props.theme.dropdown.selectedColor} !important;
       }
 
       &.no-environment {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { findItem } from 'utils/collections';
+import { findEnvironmentInCollection, findItem } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
@@ -45,7 +45,6 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose }) => 
   }, [activeEnvironmentUid, selectedEnvironment]);
 
   useEffect(() => {
-    //FIXME check if still useful
     if (selectedEnvironment) {
       setSelectedEnvironment(findEnvironmentInCollection(collection, selectedEnvironment.uid));
     }
