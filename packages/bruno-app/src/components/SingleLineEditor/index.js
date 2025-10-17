@@ -221,7 +221,7 @@ class SingleLineEditor extends Component {
         arrow.textContent = '↲';
         arrow.style.cssText = `
           color: #888;
-          font-size: 10px;
+          font-size: 8px;
           margin: 0 2px;
           vertical-align: middle;
           display: inline-block;
