@@ -45,4 +45,23 @@ const openCollectionAndAcceptSandbox = async (page, collectionName: string, sand
   });
 };
 
-export { closeAllCollections, openCollectionAndAcceptSandbox };
+/**
+ * Fill a CodeMirror editor with a value
+ * @param locator - The locator containing the CodeMirror editor
+ * @param value - The value to fill
+ * @returns void
+ */
+const fillCodeMirrorEditor = async (locator, value) => {
+  await locator.locator('.CodeMirror').click();
+  await locator.locator('textarea').fill(value);
+};
+
+/**
+ * Get a cell from a table row by index
+ * @param row - The row locator
+ * @param index - The index of the cell
+ * @returns The cell locator
+ */
+const getTableCell = (row, index) => row.locator('td').nth(index);
+
+export { closeAllCollections, openCollectionAndAcceptSandbox, fillCodeMirrorEditor, getTableCell };

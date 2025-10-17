@@ -1,17 +1,9 @@
 import { test, expect } from '../../../playwright';
-import { openCollectionAndAcceptSandbox } from '../../utils/page/actions';
+import { openCollectionAndAcceptSandbox, fillCodeMirrorEditor, getTableCell } from '../../utils/page/actions';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
   const userDataPath = await createTmpDir('newlines-persistence-userdata');
   const collectionPath = await createTmpDir('newlines-persistence-collection');
-
-  // Helpers
-  const fillCodeMirror = async (locator, value) => {
-    await locator.locator('.CodeMirror').click();
-    await locator.locator('textarea').fill(value);
-  };
-
-  const getCell = (row, index) => row.locator('td').nth(index);
 
   // Create collection and request
   const app1 = await launchElectronApp({ userDataPath });
@@ -28,7 +20,7 @@ test('should persist request with newlines across app restarts', async ({ create
   await collection.locator('.collection-actions .icon').click();
   await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
   await page.getByPlaceholder('Request Name').fill('persistence-test');
-  await fillCodeMirror(page.locator('#new-request-url'), 'https://httpbin.org/get');
+  await fillCodeMirrorEditor(page.locator('#new-request-url'), 'https://httpbin.org/get');
   await page.getByRole('button', { name: 'Create', exact: true }).click();
 
   await openCollectionAndAcceptSandbox(page, 'newlines-persistence', 'safe');
@@ -39,28 +31,28 @@ test('should persist request with newlines across app restarts', async ({ create
   await page.getByRole('button', { name: /Add.*Param/i }).click();
 
   const paramRow = page.locator('table tbody tr').last();
-  await getCell(paramRow, 0).locator('input[type="text"]').fill('queryParamKey');
+  await getTableCell(paramRow, 0).locator('input[type="text"]').fill('queryParamKey');
 
   // Add header with newlines
   await page.getByRole('tab', { name: 'Headers' }).click();
   await page.getByRole('button', { name: /Add.*Header/i }).click();
 
   const headerRow = page.locator('table tbody tr').last();
-  await fillCodeMirror(getCell(headerRow, 0), 'headerKey');
-  await fillCodeMirror(getCell(headerRow, 1), 'header\nValue');
+  await fillCodeMirrorEditor(getTableCell(headerRow, 0), 'headerKey');
+  await fillCodeMirrorEditor(getTableCell(headerRow, 1), 'header\nValue');
 
   // Add Pre Request var with newlines
   await page.getByRole('tab', { name: 'Vars' }).click();
   await page.locator('.btn-add-var').first().click();
   const preReqRow = page.locator('table').first().locator('tbody tr').first();
-  await getCell(preReqRow, 0).locator('input[type="text"]').fill('preRequestVar');
-  await fillCodeMirror(getCell(preReqRow, 1), 'pre\nRequest\nValue');
+  await getTableCell(preReqRow, 0).locator('input[type="text"]').fill('preRequestVar');
+  await fillCodeMirrorEditor(getTableCell(preReqRow, 1), 'pre\nRequest\nValue');
 
   // Add Post Response var with newlines
   await page.locator('.btn-add-var').last().click();
   const postResRow = page.locator('table').nth(1).locator('tbody tr').first();
-  await getCell(postResRow, 0).locator('input[type="text"]').fill('postResponseVar');
-  await fillCodeMirror(getCell(postResRow, 1), 'post\nResponse\nValue');
+  await getTableCell(postResRow, 0).locator('input[type="text"]').fill('postResponseVar');
+  await fillCodeMirrorEditor(getTableCell(postResRow, 1), 'post\nResponse\nValue');
 
   await page.keyboard.press('Meta+s');
   await app1.close();
