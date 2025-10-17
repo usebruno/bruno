@@ -4,7 +4,7 @@ import { get } from 'lodash';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { Document, Page } from 'react-pdf';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -85,6 +85,8 @@ const QueryResultPreview = ({
     );
   };
 
+  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
   switch (previewTab?.mode) {
     case 'preview-web': {
       const webViewSrc = data.replace('<head>', `<head><base href="${item.requestSent?.url || ''}">`);
@@ -128,6 +130,7 @@ const QueryResultPreview = ({
           theme={displayedTheme}
           onRun={onRun}
           onScroll={onScroll}
+          onSave={onSave}
           value={formattedData}
           mode={mode}
           initialScroll={focusedTab.responsePaneScrollPosition || 0}
