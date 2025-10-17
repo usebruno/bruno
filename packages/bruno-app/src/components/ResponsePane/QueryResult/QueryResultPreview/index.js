@@ -76,13 +76,7 @@ const QueryResultPreview = ({
     dispatch(sendRequest(item, collection.uid));
   };
 
-  const onSave = () => {
-    if (disableRunEventListener) {
-      return;
-    }
-
-    dispatch(saveRequest(item.uid, collection.uid));
-  };
+  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   const onScroll = (event) => {
     dispatch(
