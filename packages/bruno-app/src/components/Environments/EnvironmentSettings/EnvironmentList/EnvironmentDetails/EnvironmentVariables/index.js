@@ -23,6 +23,8 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const environmentSettingsSaveTrigger = useSelector(state => state.app.environmentSettingsSaveTrigger);
+  const prevSaveTriggerRef = useRef(environmentSettingsSaveTrigger);
 
   let _collection = cloneDeep(collection);
   
@@ -114,6 +116,15 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   React.useEffect(() => {
     setIsModified(formik.dirty);
   }, [formik.dirty]);
+
+  // Effect to listen for save trigger from hotkeys
+  React.useEffect(() => {
+    // Only trigger save if the value actually changed (not on initial mount)
+    if (environmentSettingsSaveTrigger && environmentSettingsSaveTrigger !== prevSaveTriggerRef.current) {
+      formik.handleSubmit();
+    }
+    prevSaveTriggerRef.current = environmentSettingsSaveTrigger;
+  }, [environmentSettingsSaveTrigger]);
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
