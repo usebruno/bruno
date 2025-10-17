@@ -1,7 +1,7 @@
-const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
+const qs = require('qs');
 const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
@@ -23,7 +23,7 @@ const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../util
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
-const { createFormData, buildFormUrlEncodedPayload } = require('../../utils/form-data');
+const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
@@ -35,6 +35,7 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
+const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -423,11 +424,18 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // stringify the request url encoded params
-    if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = buildFormUrlEncodedPayload(request.data);
+    const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
+
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+      if (Array.isArray(request.data)) {
+        request.data = buildFormUrlEncodedPayload(request.data);
+      } else if (typeof request.data !== 'string') {
+        request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      }
+      // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    if (request.headers['content-type'] === 'multipart/form-data') {
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
       if (!(request.data instanceof FormData)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
