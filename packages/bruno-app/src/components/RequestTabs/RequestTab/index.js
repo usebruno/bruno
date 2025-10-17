@@ -96,15 +96,17 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const getMethodText = useCallback((item) => {
     if (!item) return;
-    const isGrpc = item.type === 'grpc-request';
-    const isWS = item.type === 'ws-request';
-    if (!isWS && !isGrpc) {
-      return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+
+    switch (item.type) {
+      case 'grpc-request':
+        return 'gRPC';
+      case 'ws-request':
+        return 'WS';
+      case 'graphql-request':
+        return 'GQL';
+      default:
+        return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
     }
-    if (isGrpc) {
-      return 'gRPC';
-    }
-    return 'WS';
   }, [item]);
 
   if (!item) {
