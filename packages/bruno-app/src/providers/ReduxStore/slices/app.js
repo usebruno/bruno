@@ -98,7 +98,7 @@ export const appSlice = createSlice({
     triggerEnvironmentSettingsSave: state => {
       // This action will be listened to by environment components to trigger save
       state.environmentSettingsSaveTrigger = Date.now();
-    }
+    },
   }
 });
 
