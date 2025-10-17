@@ -333,6 +333,87 @@ export const brunoToPostman = (collection) => {
     return requestObject;
   };
 
+  const generateResponseExamples = (examples) => {
+    if (!examples || !Array.isArray(examples)) {
+      return [];
+    }
+
+    return map(examples, (example) => {
+      if (!example) {
+        return null;
+      }
+
+      const postmanResponse = {
+        name: example.name || 'Example Response',
+        originalRequest: generateOriginalRequest(example.request),
+        status: example.response?.statusText || 'OK',
+        code: parseInt(example.response?.status) || 200,
+        header: generateResponseHeaders(example.response?.headers),
+        cookie: [],
+        body: example.response?.body || ''
+      };
+
+      // Add preview language based on content type
+      const contentType = getContentTypeFromHeaders(example.response?.headers);
+      if (contentType) {
+        if (contentType.includes('application/json')) {
+          postmanResponse._postman_previewlanguage = 'json';
+        } else if (contentType.includes('application/xml') || contentType.includes('text/xml')) {
+          postmanResponse._postman_previewlanguage = 'xml';
+        } else if (contentType.includes('text/html')) {
+          postmanResponse._postman_previewlanguage = 'html';
+        } else if (contentType.includes('text/plain')) {
+          postmanResponse._postman_previewlanguage = 'text';
+        }
+      }
+
+      return postmanResponse;
+    }).filter(Boolean); // Remove null entries
+  };
+
+  const generateOriginalRequest = (request) => {
+    if (!request) {
+      return {
+        method: 'GET',
+        header: [],
+        url: { raw: '', protocol: 'https', host: [], path: [] }
+      };
+    }
+
+    return {
+      method: request.method || 'GET',
+      header: generateHeaders(request.headers),
+      url: transformUrl(request.url || '', request.params || [])
+    };
+  };
+
+  const generateResponseHeaders = (headers) => {
+    if (!headers || !Array.isArray(headers)) {
+      return [];
+    }
+
+    return map(headers, (header) => {
+      return {
+        key: header.name || '',
+        value: header.value || '',
+        name: header.name || '',
+        description: header.description || '',
+        type: 'text'
+      };
+    });
+  };
+
+  const getContentTypeFromHeaders = (headers) => {
+    if (!headers || !Array.isArray(headers)) {
+      return null;
+    }
+
+    const contentTypeHeader = headers.find((header) =>
+      header.name && header.name.toLowerCase() === 'content-type');
+
+    return contentTypeHeader ? contentTypeHeader.value : null;
+  };
+
   const generateItemSection = (itemsArray) => {
     if (!itemsArray || !Array.isArray(itemsArray)) {
       return [];
@@ -353,11 +434,18 @@ export const brunoToPostman = (collection) => {
           item: item.items && item.items.length ? generateItemSection(item.items) : []
         };
       } else {
-        return {
+        const postmanItem = {
           name: item.name || 'Untitled Request',
           event: generateEventSection(item),
           request: generateRequestSection(item.request)
         };
+
+        // Add examples (responses) if they exist
+        if (item.examples && Array.isArray(item.examples) && item.examples.length > 0) {
+          postmanItem.response = generateResponseExamples(item.examples);
+        }
+
+        return postmanItem;
       }
     });
   };
