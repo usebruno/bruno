@@ -55,8 +55,8 @@ test.describe('Global Environment Variable Update via Script', () => {
       await expect(currentBaseUrlValue).toContain('https://echo.usebruno.com');
     });
 
-    await test.step('Close the global environment config modal and go to welcome page', async () => {
-      await page.locator('[data-test-id="modal-close-button"]').click();
+    await test.step('Close the global environment config modal.', async () => {
+      await page.getByTestId('modal-close-button').click();
     });
   });
 });
