@@ -4,7 +4,7 @@ import { get } from 'lodash';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { Document, Page } from 'react-pdf';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -76,6 +76,14 @@ const QueryResultPreview = ({
     dispatch(sendRequest(item, collection.uid));
   };
 
+  const onSave = () => {
+    if (disableRunEventListener) {
+      return;
+    }
+
+    dispatch(saveRequest(item.uid, collection.uid));
+  };
+
   const onScroll = (event) => {
     dispatch(
       updateResponsePaneScrollPosition({
@@ -127,6 +135,7 @@ const QueryResultPreview = ({
           fontSize={get(preferences, 'font.codeFontSize')}
           theme={displayedTheme}
           onRun={onRun}
+          onSave={onSave}
           onScroll={onScroll}
           value={formattedData}
           mode={mode}
