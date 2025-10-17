@@ -8,6 +8,19 @@ const ensureUrl = (url) => {
   return url.replace(/([^:])\/{2,}/g, '$1/');
 };
 
+const getStatusText = (statusCode) => {
+  const statusTexts = {
+    200: 'OK',
+    201: 'Created',
+    400: 'Bad Request',
+    401: 'Unauthorized',
+    403: 'Forbidden',
+    404: 'Not Found',
+    500: 'Internal Server Error'
+  };
+  return statusTexts[statusCode] || 'Unknown';
+};
+
 const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
   // Check for circular references
   if (visited.has(bodySchema)) {
@@ -308,6 +321,118 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   });
   if (script.length > 0) {
     brunoRequestItem.request.script.res = script.join('\n');
+  }
+
+  // Handle OpenAPI examples from responses and request body
+  if (_operationObject.responses || _operationObject.requestBody) {
+    const examples = [];
+
+    // Handle response examples
+    if (_operationObject.responses) {
+      Object.entries(_operationObject.responses).forEach(([statusCode, response]) => {
+        if (response.content) {
+          Object.entries(response.content).forEach(([contentType, content]) => {
+            if (content.examples) {
+              Object.entries(content.examples).forEach(([exampleKey, example]) => {
+                const exampleName = example.summary || (exampleKey.startsWith('example') ? `${statusCode} Response` : exampleKey);
+                const exampleDescription = example.description || '';
+
+                // Create Bruno example
+                const brunoExample = {
+                  uid: uuid(),
+                  itemUid: brunoRequestItem.uid,
+                  name: exampleName,
+                  description: exampleDescription,
+                  type: 'http-request',
+                  request: {
+                    url: brunoRequestItem.request.url,
+                    method: brunoRequestItem.request.method,
+                    headers: [...brunoRequestItem.request.headers],
+                    params: [...brunoRequestItem.request.params],
+                    body: { ...brunoRequestItem.request.body },
+                    auth: { ...brunoRequestItem.request.auth }
+                  },
+                  response: {
+                    status: statusCode,
+                    statusText: getStatusText(statusCode),
+                    headers: [
+                      {
+                        uid: uuid(),
+                        name: 'Content-Type',
+                        value: contentType,
+                        description: '',
+                        enabled: true
+                      }
+                    ],
+                    body: typeof example.value === 'object' ? JSON.stringify(example.value, null, 2) : example.value
+                  }
+                };
+
+                examples.push(brunoExample);
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // Handle request body examples
+    if (_operationObject.requestBody && _operationObject.requestBody.content) {
+      Object.entries(_operationObject.requestBody.content).forEach(([contentType, content]) => {
+        if (content.examples) {
+          Object.entries(content.examples).forEach(([exampleKey, example]) => {
+            const exampleName = example.summary || (exampleKey.startsWith('example') ? 'Request Example' : exampleKey);
+            const exampleDescription = example.description || '';
+
+            // Create Bruno example with request body example
+            const brunoExample = {
+              uid: uuid(),
+              itemUid: brunoRequestItem.uid,
+              name: exampleName,
+              description: exampleDescription,
+              type: 'http-request',
+              request: {
+                url: brunoRequestItem.request.url,
+                method: brunoRequestItem.request.method,
+                headers: [
+                  ...brunoRequestItem.request.headers,
+                  {
+                    uid: uuid(),
+                    name: 'Content-Type',
+                    value: contentType,
+                    description: '',
+                    enabled: true
+                  }
+                ],
+                params: [...brunoRequestItem.request.params],
+                body: {
+                  mode: 'json',
+                  json: typeof example.value === 'object' ? JSON.stringify(example.value, null, 2) : example.value,
+                  text: null,
+                  xml: null,
+                  formUrlEncoded: [],
+                  multipartForm: []
+                },
+                auth: { ...brunoRequestItem.request.auth }
+              },
+              response: {
+                status: '',
+                statusText: '',
+                headers: [],
+                body: ''
+              }
+            };
+
+            examples.push(brunoExample);
+          });
+        }
+      });
+    }
+
+    // Only add examples array if there are examples
+    if (examples.length > 0) {
+      brunoRequestItem.examples = examples;
+    }
   }
 
   return brunoRequestItem;
