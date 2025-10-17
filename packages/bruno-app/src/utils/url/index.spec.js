@@ -167,6 +167,75 @@ describe('Url Utils - parsePathParams', () => {
     expect(params).toEqual([]);
   });
 
+});
+
+describe('Url Utils - URN parsing', () => {
+  it('should handle basic URN segments correctly', () => {
+    // Test case from issue #5817 - Don't treat URN segments as path parameters
+    const params = parsePathParams('https://example.com/urn:ard:show:3479462da794e97');
+    expect(params).toEqual([]);
+
+    // Test case for path parameter that starts with urn:
+    const params2 = parsePathParams('https://example.com/:urn_type');
+    expect(params2).toEqual([{ name: 'urn_type', value: '' }]);
+  });
+
+  it('should handle URNs with special characters', () => {
+    const params = parsePathParams('https://example.com/urn:isbn:0-330.12345-X');
+    expect(params).toEqual([]);
+
+    // URN with percent-encoded characters
+    const params2 = parsePathParams('https://example.com/urn:uuid:6e8bc430%2D9c3a-11d9-9669-0800200c9a66');
+    expect(params).toEqual([]);
+  });
+
+  it('should handle mixed URN and path parameter scenarios', () => {
+    // URN followed by path parameter
+    const params = parsePathParams('https://example.com/urn:nbn:de:bvb/123/:section');
+    expect(params).toEqual([{ name: 'section', value: '' }]);
+
+    // Path parameter followed by URN
+    const params2 = parsePathParams('https://example.com/:type/urn:isbn:123');
+    expect(params2).toEqual([{ name: 'type', value: '' }]);
+
+    // URN-like path parameter (not a real URN)
+    const params3 = parsePathParams('https://example.com/:urn:type');
+    expect(params3).toEqual([{ name: 'urn:type', value: '' }]);
+  });
+
+  it('should handle edge cases with URN-like patterns', () => {
+    // URN with uppercase (should be case-insensitive)
+    const params = parsePathParams('https://example.com/URN:isbn:123');
+    expect(params).toEqual([]);
+
+    // Path that looks like URN but isn't
+    const params2 = parsePathParams('https://example.com/noturn:something:here');
+    expect(params2).toEqual([]);
+
+    // Multiple colons in path parameter
+    const params3 = parsePathParams('https://example.com/:urn:isbn:type');
+    expect(params3).toEqual([{ name: 'urn:isbn:type', value: '' }]);
+  });
+
+  it('should handle URNs in complex URLs', () => {
+    // URN with query parameters
+    const params = parsePathParams('https://example.com/urn:isbn:123?format=:format');
+    expect(params).toEqual([]);
+
+    // Multiple URNs and path parameters
+    const params2 = parsePathParams('https://example.com/:category/urn:isbn:123/:subcategory/urn:issn:456');
+    expect(params2).toEqual([
+      { name: 'category', value: '' },
+      { name: 'subcategory', value: '' }
+    ]);
+
+    // URN with fragment
+    const params3 = parsePathParams('https://example.com/urn:nbn:de:bvb:123#:section');
+    expect(params3).toEqual([]);
+  });
+});
+
+describe('Url Utils - OData parameters', () => {
   it('should handle OData parameters with escaped quotes', () => {
     const params = parsePathParams('https://example.com/odata/Products(\'ABC\'\'123\')');
     expect(params).toEqual([]);
