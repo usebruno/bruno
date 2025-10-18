@@ -102,6 +102,24 @@ const StyledWrapper = styled.div`
   .cm-s-default span.cm-variable {
     color: #397d13 !important;
   }
+  
+  //matching bracket fix
+  .CodeMirror-matchingbracket {
+    background: #5cc0b48c !important;
+    text-decoration:unset;
+  }
+
+  .cm-search-line-highlight {
+    background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
+  }
+
+  .cm-search-match {
+    background: rgba(255, 193, 7, 0.25);
+  }
+
+  .cm-search-current {
+    background: rgba(255, 193, 7, 0.4);
+  }
 `;
 
 export default StyledWrapper;

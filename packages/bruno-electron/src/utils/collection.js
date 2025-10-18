@@ -1,9 +1,9 @@
+const { get, each, find, compact, isString, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
-
-const { get, each, find, compact } = require('lodash');
 const os = require('os');
+const { preferencesUtil } = require('../store/preferences');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -11,9 +11,10 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   let collectionHeaders = get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
-      headers.set(header.name?.toLowerCase?.(), header.value);
-      if (header?.name?.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
+      if (header?.name?.toLowerCase?.() === 'content-type') {
+        headers.set('content-type', header.value);
+      } else {
+        headers.set(header.name, header.value);
       }
     }
   });
@@ -23,14 +24,22 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       let _headers = get(i, 'root.request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name?.toLowerCase?.(), header.value);
+          if (header.name.toLowerCase() === 'content-type') {
+            headers.set('content-type', header.value);
+          } else {
+            headers.set(header.name, header.value);
+          }
         }
       });
     } else {
       const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name?.toLowerCase?.(), header.value);
+          if (header.name.toLowerCase() === 'content-type') {
+            headers.set('content-type', header.value);
+          } else {
+            headers.set(header.name, header.value);
+          }
         }
       });
     }
@@ -39,7 +48,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
 };
 
-const mergeVars = (collection, request, requestTreePath) => {
+const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
   let collectionRequestVars = get(collection, 'root.request.vars.req', []);
   let collectionVariables = {};
@@ -197,6 +206,14 @@ const findParentItemInCollection = (collection, itemUid) => {
   });
 };
 
+const findParentItemInCollectionByPathname = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return find(flattenedItems, (item) => {
+    return item.items && find(item.items, (i) => i.pathname === pathname);
+  });
+};
+
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
   let item = findItemInCollection(collection, _item.uid);
@@ -221,12 +238,47 @@ const parseBruFileMeta = (data) => {
           metaJson[key] = isNaN(value) ? value : Number(value);
         }
       });
-      return { meta: metaJson };
+
+      // Transform to the format expected by bruno-app
+      let requestType = metaJson.type;
+      if (requestType === 'http') {
+        requestType = 'http-request';
+      } else if (requestType === 'graphql') {
+        requestType = 'graphql-request';
+      } else {
+        requestType = 'http-request';
+      }
+
+      const sequence = metaJson.seq;
+      const transformedJson = {
+        type: requestType,
+        name: metaJson.name,
+        seq: !isNaN(sequence) ? Number(sequence) : 1,
+        settings: {},
+        tags: metaJson.tags || [],
+        request: {
+          method: '',
+          url: '',
+          params: [],
+          headers: [],
+          auth: { mode: 'none' },
+          body: { mode: 'none' },
+          script: {},
+          vars: {},
+          assertions: [],
+          tests: '',
+          docs: ''
+        }
+      };
+
+      return transformedJson;
     } else {
       console.log('No "meta" block found in the file.');
+      return null;
     }
   } catch (err) {
     console.error('Error reading file:', err);
+    return null;
   }
 }
 
@@ -264,10 +316,286 @@ const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
+const replaceTabsWithSpaces = (str, numSpaces = 2) => {
+  if (!str || !str.length || !isString(str)) {
+    return '';
+  }
+
+  return str.replaceAll('\t', ' '.repeat(numSpaces));
+};
+
+const transformRequestToSaveToFilesystem = (item) => {
+  const _item = item.draft ? item.draft : item;
+  const itemToSave = {
+    uid: _item.uid,
+    type: _item.type,
+    name: _item.name,
+    seq: _item.seq,
+    settings: _item.settings,
+    tags: _item.tags,
+    request: {
+      method: _item.request.method,
+      url: _item.request.url,
+      params: [],
+      headers: [],
+      auth: _item.request.auth,
+      body: _item.request.body,
+      script: _item.request.script,
+      vars: _item.request.vars,
+      assertions: _item.request.assertions,
+      tests: _item.request.tests,
+      docs: _item.request.docs
+    }
+  };
+
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    delete itemToSave.request.params
+  }
+
+  // Only process params for non-gRPC requests
+  if (_item.type !== 'grpc-request') {
+    each(_item.request.params, (param) => {
+      itemToSave.request.params.push({
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        type: param.type,
+        enabled: param.enabled
+      });
+    });
+  }
+
+  each(_item.request.headers, (header) => {
+    itemToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  if (itemToSave.request.body.mode === 'json') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
+    };
+  }
+
+  return itemToSave;
+}
+
+const sortCollection = (collection) => {
+  const items = collection.items || [];
+  let folderItems = filter(items, (item) => item.type === 'folder');
+  let requestItems = filter(items, (item) => item.type !== 'folder');
+
+  folderItems = sortByNameThenSequence(folderItems);
+  requestItems = requestItems.sort((a, b) => a.seq - b.seq);
+
+  collection.items = folderItems.concat(requestItems);
+
+  each(folderItems, (item) => {
+    sortCollection(item);
+  });
+};
+
+const sortFolder = (folder = {}) => {
+  const items = folder.items || [];
+  let folderItems = filter(items, (item) => item.type === 'folder');
+  let requestItems = filter(items, (item) => item.type !== 'folder');
+
+  folderItems = sortByNameThenSequence(folderItems);
+  requestItems = requestItems.sort((a, b) => a.seq - b.seq);
+
+  folder.items = folderItems.concat(requestItems);
+
+  each(folderItems, (item) => {
+    sortFolder(item);
+  });
+
+  return folder;
+};
+
+const getAllRequestsInFolderRecursively = (folder = {}) => {
+  let requests = [];
+
+  if (folder.items && folder.items.length) {
+    folder.items.forEach((item) => {
+      if (item.type !== 'folder') {
+        requests.push(item);
+      } else {
+        requests = requests.concat(getAllRequestsInFolderRecursively(item));
+      }
+    });
+  }
+
+  return requests;
+};
+
+const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {
+      __name__: environment.name
+    };
+  }
+
+  const envVars = {};
+  each(variables, (variable) => {
+    if (variable.enabled) {
+      envVars[variable.name] = variable.value;
+    }
+  });
+
+  return {
+    ...envVars,
+    __name__: environment.name
+  };
+};
+
+const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
+  let credentialsVariables = {};
+  oauth2Credentials.forEach(({ credentialsId, credentials }) => {
+    if (credentials) {
+      Object.entries(credentials).forEach(([key, value]) => {
+        credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
+      });
+    }
+  });
+  return credentialsVariables;
+};
+
+const mergeAuth = (collection, request, requestTreePath) => {
+  // Start with collection level auth (always consider collection auth as base)
+  let collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
+  let effectiveAuth = collectionAuth;
+  let lastFolderWithAuth = null;
+
+  // Traverse through the path to find the closest auth configuration
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderAuth = get(i, 'root.request.auth');
+      // Only consider folders that have a valid auth mode
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        effectiveAuth = folderAuth;
+        lastFolderWithAuth = i;
+      }
+    }
+  }
+
+  // If request is set to inherit, use the effective auth from collection/folders
+  if (request.auth.mode === 'inherit') {
+    request.auth = effectiveAuth;
+    
+    // For OAuth2, we need to handle credentials properly
+    if (effectiveAuth.mode === 'oauth2') {
+      if (lastFolderWithAuth) {
+        // If auth is from folder, add folderUid and clear itemUid
+        request.oauth2Credentials = {
+          ...request.oauth2Credentials,
+          folderUid: lastFolderWithAuth.uid,
+          itemUid: null,
+          mode: request.auth.mode
+        };
+      } else {
+        // If auth is from collection, ensure no folderUid and no itemUid
+        request.oauth2Credentials = {
+          ...request.oauth2Credentials,
+          folderUid: null,
+          itemUid: null,
+          mode: request.auth.mode
+        };
+      }
+    }
+  }
+};
+
+const resolveInheritedSettings = (settings) => {
+  const resolvedSettings = {};
+
+  // Resolve each setting individually
+  Object.keys(settings).forEach((settingKey) => {
+    const currentValue = settings[settingKey];
+
+    // If setting is inherited, fallback to preferences only for timeout setting
+    if (currentValue === 'inherit' || currentValue === undefined || currentValue === null) {
+      if (settingKey === 'timeout') {
+        resolvedSettings[settingKey] = preferencesUtil.getRequestTimeout();
+      }
+    } else {
+      // Use the current value as-is
+      resolvedSettings[settingKey] = currentValue;
+    }
+  });
+
+  // Handle missing timeout setting - if timeout is not in settings, treat it as inherited
+  if (!settings.hasOwnProperty('timeout')) {
+    resolvedSettings.timeout = preferencesUtil.getRequestTimeout();
+  }
+
+  return resolvedSettings;
+};
+
+const sortByNameThenSequence = items => {
+  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+
+  // Sort folders alphabetically by name
+  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
+
+  // Extract folders without 'seq'
+  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+
+  // Extract folders with 'seq' and sort them by 'seq'
+  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+
+  const sortedItems = withoutSeq;
+
+  // Insert folders with 'seq' at their specified positions
+  withSeq.forEach((item) => {
+    const position = item.seq - 1;
+    const existingItem = withoutSeq[position];
+
+    // Check if there's already an item with the same sequence number
+    const hasItemWithSameSeq = Array.isArray(existingItem)
+      ? existingItem?.[0]?.seq === item.seq
+      : existingItem?.seq === item.seq;
+
+    if (hasItemWithSameSeq) {
+      // If there's a conflict, group items with same sequence together
+      const newGroup = Array.isArray(existingItem)
+        ? [...existingItem, item]
+        : [existingItem, item];
+      
+      withoutSeq.splice(position, 1, newGroup);
+    } else {
+      // Insert item at the specified position
+      withoutSeq.splice(position, 0, item);
+    }
+  });
+
+  // return flattened sortedItems
+  return sortedItems.flat();
+};
+
 module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
+  mergeAuth,
   getTreePathFromCollectionToItem,
   flattenItems,
   findItem,
@@ -275,6 +603,15 @@ module.exports = {
   findItemByPathname,
   findItemInCollectionByPathname,
   findParentItemInCollection,
+  findParentItemInCollectionByPathname,
   parseBruFileMeta,
-  hydrateRequestWithUuid
+  hydrateRequestWithUuid,
+  transformRequestToSaveToFilesystem,
+  sortCollection,
+  sortFolder,
+  getAllRequestsInFolderRecursively,
+  getEnvVars,
+  getFormattedCollectionOauth2Credentials,
+  sortByNameThenSequence,
+  resolveInheritedSettings
 };

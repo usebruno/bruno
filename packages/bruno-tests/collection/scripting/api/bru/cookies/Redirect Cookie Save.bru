@@ -1,0 +1,32 @@
+meta {
+  name: Redirect Cookie Save
+  type: http
+  seq: 9
+}
+
+get {
+  url: https://httpbun.com/mix/s=302/c=foo:bar/r=https%3A%2F%2Fhttpbun.org%2Fget
+  body: none
+  auth: inherit
+}
+
+tests {
+  const jar = bru.cookies.jar()
+  
+  const cookieData = await jar.getCookie(
+    "https://httpbun.com",
+    "foo"
+  );
+  
+  test("should store redirect cookie under initial request domain", function () {
+    expect(cookieData).to.not.be.undefined;
+    expect(cookieData.key).to.equal("foo");
+    expect(cookieData.value).to.equal("bar");
+  });
+  
+  jar.clear();
+}
+
+settings {
+  encodeUrl: true
+}

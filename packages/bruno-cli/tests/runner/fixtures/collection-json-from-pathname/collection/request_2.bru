@@ -1,0 +1,58 @@
+meta {
+  name: request_2
+  type: http
+  seq: 4
+}
+
+post {
+  url: https://echo.usebruno.com/:request_path_param?request_query_param=request_query_param_value
+  body: text
+  auth: basic
+}
+
+params:query {
+  request_query_param: request_query_param_value
+}
+
+params:path {
+  request_path_param: request_path_param_value
+}
+
+headers {
+  request_header: request_header_value
+}
+
+auth:basic {
+  username: username
+  password: password
+}
+
+body:text {
+  ping
+}
+
+vars:pre-request {
+  request_pre_var: request_pre_var_value
+}
+
+vars:post-response {
+  request_post_var: request_post_var_value
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:pre-request {
+  const requestPreRequestScript = true;
+}
+
+script:post-response {
+  const requestPostResponseScript = true;
+}
+
+tests {
+  test("request level script", function() {
+    expect("test").to.equal("test");
+  });
+}

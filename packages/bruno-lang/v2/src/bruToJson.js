@@ -1,10 +1,10 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { outdentString } = require('../../v1/src/utils');
+const { safeParseJson, outdentString } = require('./utils');
 
 /**
  * A Bru file is made up of blocks.
- * There are two types of blocks
+ * There are three types of blocks
  *
  * 1. Dictionary Blocks - These are blocks that have key value pairs
  * ex:
@@ -19,15 +19,28 @@ const { outdentString } = require('../../v1/src/utils');
  *   "username": "John Nash",
  *   "password": "governingdynamics
  *  }
+
+ * 3. List Blocks - These are blocks that have a list of items
+ * ex:
+ *  tags [
+ *   regression
+ *   smoke-test
+ *  ]
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
-
+  
+  // Oauth2 additional parameters
+  authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
+  oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
+ 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   stnl = st | nl
@@ -43,9 +56,15 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* key st* ":" st* value st*
+  pair = st* (quoted_key | key) st* ":" st* value st*
+  disable_char = "~"
+  quote_char = "\\""
+  esc_char = "\\\\"
+  esc_quote_char = esc_char quote_char
+  quoted_key_char = ~(quote_char | esc_quote_char | nl) any
+  quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = multilinetextblock | valuechar*
+  value = list | multilinetextblock | valuechar*
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -59,9 +78,17 @@ const grammar = ohm.grammar(`Bru {
   textline = textchar*
   textchar = ~nl any
 
-  meta = "meta" dictionary
+  // List
+  list = st* "[" nl+ listitems? st* nl+ st* "]"
+  listitems = listitem (nl+ listitem)*
+  listitem = st+ (alnum | "_" | "-")+ st*
 
-  http = get | post | put | delete | patch | options | head | connect | trace
+  meta = "meta" dictionary
+  settings = "settings" dictionary
+
+  http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
+  grpc = "grpc" dictionary
+  ws = "ws" dictionary
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -71,8 +98,11 @@ const grammar = ohm.grammar(`Bru {
   head = "head" dictionary
   connect = "connect" dictionary
   trace = "trace" dictionary
+  httpcustom = "http" dictionary
+
 
   headers = "headers" dictionary
+  metadata = "metadata" dictionary
 
   query = "query" dictionary
   paramspath = "params:path" dictionary
@@ -92,6 +122,15 @@ const grammar = ohm.grammar(`Bru {
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
 
+  oauth2AuthReqHeaders = "auth:oauth2:additional_params:auth_req:headers" dictionary
+  oauth2AuthReqQueryParams = "auth:oauth2:additional_params:auth_req:queryparams" dictionary
+  oauth2AccessTokenReqHeaders = "auth:oauth2:additional_params:access_token_req:headers" dictionary
+  oauth2AccessTokenReqQueryParams = "auth:oauth2:additional_params:access_token_req:queryparams" dictionary
+  oauth2AccessTokenReqBody = "auth:oauth2:additional_params:access_token_req:body" dictionary
+  oauth2RefreshTokenReqHeaders = "auth:oauth2:additional_params:refresh_token_req:headers" dictionary
+  oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
+  oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
+
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
@@ -99,6 +138,8 @@ const grammar = ohm.grammar(`Bru {
   bodysparql = "body:sparql" st* "{" nl* textblock tagend
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
+  bodygrpc = "body:grpc" dictionary
+  bodyws = "body:ws" dictionary
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
@@ -239,6 +280,19 @@ const mapPairListToKeyValPair = (pairList = []) => {
   return _.merge({}, ...pairList[0]);
 };
 
+/**
+ * @param {Record<unknown,unknown>} obj
+ * @returns {(key:string, opts?:{fallback: number })=>number|undefined}
+ */
+const createGetNumFromRecord = (obj) => (key, { fallback } = {}) => {
+  if (!(key in obj)) return fallback;
+  const asNumber = typeof obj[key] === 'number' ? obj[key] : Number(obj[key]);
+  if (isNaN(asNumber)) {
+    return fallback;
+  }
+  return asNumber;
+};
+
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
@@ -261,13 +315,28 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
+    if (Array.isArray(value.ast)) {
+      res[key.ast] = value.ast;
+      return res;
+    }
     res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
+  },
+  esc_quote_char(_1, quote) {
+    // unescape
+    return quote.sourceString;
+  },
+  quoted_key(disabled, _1, chars, _2) {
+    // unquote
+    return (disabled? disabled.sourceString : "") + chars.ast.join("");
   },
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    if (chars.ctorName === 'list') {
+      return chars.ast;
+    }
     try {
       let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
       if (isMultiline) {
@@ -297,6 +366,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   assertkey(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
+  list(_1, _2, _3, listitems, _4, _5, _6, _7) {
+    return listitems.ast.flat()
+  },
+  listitems(listitem, _1, rest) {
+    return [listitem.ast, ...rest.ast]
+  },
+  listitem(_1, textchar, _2) {
+    return textchar.sourceString;
+  },
   textblock(line, _1, rest) {
     return [line.ast, ...rest.ast].join('\n');
   },
@@ -315,6 +393,16 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   tagend(_1, _2) {
     return '';
   },
+  _terminal(){
+    return this.sourceString;
+  },
+  multilinetextblockdelimiter(_) {
+    return '';
+  },
+  multilinetextblock(_1, content, _2) {
+    // Join all the content between the triple quotes and trim it
+    return content.sourceString.trim();
+  },
   _iter(...elements) {
     return elements.map((e) => e.ast);
   },
@@ -331,6 +419,68 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     return {
       meta
+    };
+  },
+  settings(_1, dictionary) {
+    let settings = mapPairListToKeyValPair(dictionary.ast);
+    const getNumFromRecord = createGetNumFromRecord(settings);
+
+    const keepAliveInterval = getNumFromRecord('keepAliveInterval');
+
+    const parsedSettings = {};
+    if (settings.followRedirects !== undefined) {
+      parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
+    }
+
+    // Parse maxRedirects as number
+    if (settings.maxRedirects !== undefined) {
+      const maxRedirects = parseInt(settings.maxRedirects, 10);
+      if (!isNaN(maxRedirects)) {
+        parsedSettings.maxRedirects = maxRedirects;
+      }
+    }
+
+    // Parse timeout as number or inherit
+    if (settings.timeout !== undefined) {
+      if (settings.timeout === 'inherit') {
+        parsedSettings.timeout = 'inherit';
+      } else {
+        const timeout = parseInt(settings.timeout, 10);
+        if (!isNaN(timeout)) {
+          parsedSettings.timeout = timeout;
+        }
+      }
+    }
+
+    const _settings = {
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+      timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0
+    };
+
+    if (parsedSettings.followRedirects !== undefined) {
+      _settings.followRedirects = parsedSettings.followRedirects;
+    }
+
+    if (parsedSettings.maxRedirects !== undefined) {
+      _settings.maxRedirects = parsedSettings.maxRedirects;
+    }
+
+    if (keepAliveInterval) {
+      _settings.keepAliveInterval = keepAliveInterval;
+    }
+
+    return {
+      settings: _settings
+    };
+  },
+  grpc(_1, dictionary) {
+    return {
+      grpc: mapPairListToKeyValPair(dictionary.ast)
+    };
+  },
+  ws(_1, dictionary) {
+    return {
+      ws: mapPairListToKeyValPair(dictionary.ast)
     };
   },
   get(_1, dictionary) {
@@ -397,6 +547,26 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  trace(_1, dictionary) {
+    return {
+      http: {
+        method: 'trace',
+        ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  httpcustom(_1, dictionary) {
+    const dict = mapPairListToKeyValPair(dictionary.ast);
+    const method = dict.method;
+    const rest = { ...dict };
+    delete rest.method;
+    return {
+      http: {
+        method,
+        ...rest
+      }
+    };
+  },
   query(_1, dictionary) {
     return {
       params: mapRequestParams(dictionary.ast, 'query')
@@ -415,6 +585,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   headers(_1, dictionary) {
     return {
       headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  metadata(_1, dictionary) {
+    return {
+      metadata: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   authawsv4(_1, dictionary) {
@@ -514,11 +689,19 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const callbackUrlKey = _.find(auth, { name: 'callback_url' });
     const authorizationUrlKey = _.find(auth, { name: 'authorization_url' });
     const accessTokenUrlKey = _.find(auth, { name: 'access_token_url' });
+    const refreshTokenUrlKey = _.find(auth, { name: 'refresh_token_url' });
     const clientIdKey = _.find(auth, { name: 'client_id' });
     const clientSecretKey = _.find(auth, { name: 'client_secret' });
     const scopeKey = _.find(auth, { name: 'scope' });
     const stateKey = _.find(auth, { name: 'state' });
     const pkceKey = _.find(auth, { name: 'pkce' });
+    const credentialsPlacementKey = _.find(auth, { name: 'credentials_placement' });
+    const credentialsIdKey = _.find(auth, { name: 'credentials_id' });
+    const tokenPlacementKey = _.find(auth, { name: 'token_placement' });
+    const tokenHeaderPrefixKey = _.find(auth, { name: 'token_header_prefix' });
+    const tokenQueryKeyKey = _.find(auth, { name: 'token_query_key' });
+    const autoFetchTokenKey = _.find(auth, { name: 'auto_fetch_token' });
+    const autoRefreshTokenKey = _.find(auth, { name: 'auto_refresh_token' });
     return {
       auth: {
         oauth2:
@@ -526,11 +709,19 @@ const sem = grammar.createSemantics().addAttribute('ast', {
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                 username: usernameKey ? usernameKey.value : '',
                 password: passwordKey ? passwordKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
-                scope: scopeKey ? scopeKey.value : ''
+                scope: scopeKey ? scopeKey.value : '',
+                credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
             ? {
@@ -538,22 +729,92 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
                 authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',
                 state: stateKey ? stateKey.value : '',
-                pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
+                pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
+                credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
-                scope: scopeKey ? scopeKey.value : ''
+                scope: scopeKey ? scopeKey.value : '',
+                credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
+              }
+            : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                scope: scopeKey ? scopeKey.value : '',
+                state: stateKey ? stateKey.value : '',
+                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
               }
             : {}
       }
+    };
+  },
+  oauth2AuthReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AuthReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   authwsse(_1, dictionary) {
@@ -736,6 +997,63 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       docs: outdentString(textblock.sourceString)
     };
+  },
+  bodygrpc(_1, dictionary) {
+    const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
+    const namePair = _.find(pairs, { name: 'name' });
+    const contentPair = _.find(pairs, { name: 'content' });
+    
+    const messageName = namePair ? namePair.value : '';
+    const messageContent = contentPair ? contentPair.value : '';
+    
+    try {
+      // Validate JSON by parsing (but don't modify the original string)
+      JSON.parse(messageContent);
+    } catch (error) {
+      console.error("Error validating gRPC message JSON:", error);
+      return {
+        body: {
+          mode: 'grpc',
+          grpc: [{
+            name: messageName,
+            content: '{}'
+          }]
+        }
+      };
+    }
+    
+    return {
+      body: {
+        mode: 'grpc',
+        grpc: [{
+          name: messageName,
+          content: messageContent
+        }]
+      }
+    };
+  },
+  bodyws(_1, dictionary) {
+    const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
+    const namePair = _.find(pairs, { name: 'name' });
+    const contentPair = _.find(pairs, { name: 'content' });
+    const typePair = _.find(pairs, { name: 'type' });
+
+    const messageName = namePair ? namePair.value : '';
+    const messageContent = contentPair ? contentPair.value : '';
+    const messageTypeContent = typePair ? typePair.value : '';
+
+    return {
+      body: {
+        mode: 'ws',
+        ws: [
+          {
+            name: messageName,
+            type: messageTypeContent,
+            content: messageContent
+          }
+        ]
+      }
+    };
   }
 });
 
@@ -743,11 +1061,12 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    return sem(match).ast;
+    let ast = sem(match).ast
+
+    return ast;
   } else {
     throw new Error(match.message);
   }
 };
 
 module.exports = parser;
-      

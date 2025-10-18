@@ -2,7 +2,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 
 import cloneDeep from 'lodash/cloneDeep';
-import { uuid, normalizeFileName } from 'utils/common';
+import { uuid } from 'utils/common';
 import { isItemARequest } from 'utils/collections';
 import { collectionSchema } from '@usebruno/schema';
 import { BrunoError } from 'utils/common/error';
@@ -62,9 +62,10 @@ export const updateUidsInCollection = (_collection) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
-
-      if (['http', 'graphql'].includes(item.type)) {
+      if (['http', 'graphql', 'grpc', 'ws'].includes(item.type)) {
         item.type = `${item.type}-request`;
+        const isGrpcRequest = item.type === 'grpc-request';
+        const isWSRequest = item.type === 'ws-request';
 
         if (item.request.query) {
           item.request.params = item.request.query.map((queryItem) => ({
@@ -72,6 +73,15 @@ export const transformItemsInCollection = (collection) => {
             type: 'query',
             uid: queryItem.uid || uuid()
           }));
+        }
+
+        if (isGrpcRequest) {
+          delete item.request.params;
+        }
+
+        if (isWSRequest) {
+          delete item.request.params;
+          delete item.request.method;
         }
 
         delete item.request.query;
@@ -96,7 +106,6 @@ export const transformItemsInCollection = (collection) => {
   };
 
   transformItems(collection.items);
-
   return collection;
 };
 

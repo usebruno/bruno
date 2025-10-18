@@ -24,6 +24,22 @@ const StyledWrapper = styled.div`
       }
     }
   }
+
+  .keycap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 6px;
+    border: 1px solid ${(props) => props.theme.modal.input.border};
+    border-radius: 4px;
+    background: ${(props) =>
+      props.theme.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'};
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1;
+    color: ${(props) => props.theme.text};
+  }
 `;
 
 export default StyledWrapper;
