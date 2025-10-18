@@ -23,6 +23,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getCollectionName', getCollectionName);
   getCollectionName.dispose();
 
+  let isSafeMode = vm.newFunction('isSafeMode', function () {
+    return marshallToVm(bru.isSafeMode(), vm);
+  });
+  vm.setProp(bruObject, 'isSafeMode', isSafeMode);
+  isSafeMode.dispose();
+
   let getProcessEnv = vm.newFunction('getProcessEnv', function (key) {
     return marshallToVm(bru.getProcessEnv(vm.dump(key)), vm);
   });
