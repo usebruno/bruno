@@ -4,7 +4,8 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { IconPlus, IconTrash, IconAdjustmentsHorizontal } from '@tabler/icons';
 import { cloneDeep } from "lodash";
-import SingleLineEditor from "components/SingleLineEditor/index";
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from "./StyledWrapper";
 import Table from "components/Table/index";
 
@@ -205,7 +206,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
                 />
               </td>
               <td>
-                <SingleLineEditor
+                <MultiLineEditor
                   value={param?.value || ''}
                   theme={storedTheme}
                   onChange={(value) => handleUpdateAdditionalParam({ 

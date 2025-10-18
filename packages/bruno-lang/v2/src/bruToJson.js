@@ -56,13 +56,14 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* (quoted_key | key) st* ":" st* value st*
+  pair = st* (multiline_key | quoted_key | key) st* ":" st* value st*
   disable_char = "~"
   quote_char = "\\""
   esc_char = "\\\\"
   esc_quote_char = esc_char quote_char
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
+  multiline_key = disable_char? multilinetextblock
   key = keychar*
   value = list | multilinetextblock | valuechar*
 
@@ -329,6 +330,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   quoted_key(disabled, _1, chars, _2) {
     // unquote
     return (disabled? disabled.sourceString : "") + chars.ast.join("");
+  },
+  multiline_key(disabled, multilinetextblock) {
+    // Parse multiline key - extract content from triple quotes
+    const content = multilinetextblock.ast;
+    const outdented = outdentString(content);
+    return (disabled.sourceString || '') + outdented;
   },
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';

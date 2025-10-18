@@ -19,6 +19,22 @@ const Headers = ({ collection, folder }) => {
   const headers = get(folder, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
+  const validationErrors = headers.reduce((errors, header) => {
+    // Validate name
+    if (/[\r\n]/.test(header.name)) {
+      errors[`${header.uid}-name`] = 'Key contains invalid newline characters.';
+    } else if (/[\s]/.test(header.name)) {
+      errors[`${header.uid}-name`] = 'Key contains invalid whitespace characters.';
+    }
+
+    // Validate value
+    if (/[\r\n]/.test(header.value)) {
+      errors[`${header.uid}-value`] = 'Value contains invalid newline characters.';
+    }
+
+    return errors;
+  }, {});
+
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
   };
@@ -124,6 +140,7 @@ const Headers = ({ collection, folder }) => {
                         }
                         autocomplete={headerAutoCompleteList}
                         collection={collection}
+                        validationError={validationErrors[`${header.uid}-name`]}
                       />
                     </td>
                     <td>
@@ -145,6 +162,7 @@ const Headers = ({ collection, folder }) => {
                         collection={collection}
                         item={folder}
                         autocomplete={MimeTypes}
+                        validationError={validationErrors[`${header.uid}-value`]}
                       />
                     </td>
                     <td>
