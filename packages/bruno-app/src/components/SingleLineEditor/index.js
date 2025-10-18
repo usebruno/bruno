@@ -107,8 +107,11 @@ class SingleLineEditor extends Component {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
       this.maskedEditor.enable();
     } else {
-      this.maskedEditor?.disable();
-      this.maskedEditor = null;
+      if (this.maskedEditor) {
+        this.maskedEditor.disable();
+        this.maskedEditor.destroy();
+        this.maskedEditor = null;
+      }
     }
   };
 
