@@ -1,14 +1,14 @@
-name: 'Setup CA Certificates - macOS'
-description: 'Setup CA certificates and start test server for custom CA certs tests on macOS'
+name: 'Setup Test Server - macOS'
+description: 'Setup Test Server and start test server for custom CA certs tests on macOS'
 runs:
   using: 'composite'
   steps:
-    - name: Setup CA certificates
+    - name: Setup Test Server
       shell: bash
       run: |
         set -euo pipefail
         
-        cd tests/ssl/custom-ca-certs/server
+        cd tests/_server
         
         echo "running certificate setup"
         node scripts/generate-certs.js
@@ -18,7 +18,7 @@ runs:
       run: |
         set -euo pipefail
         
-        cd tests/ssl/custom-ca-certs/server
+        cd tests/_server
         
         echo "starting server in background"
         node index.js &
