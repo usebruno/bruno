@@ -1,0 +1,51 @@
+{
+    "meta": {
+        "name": "Body Types API",
+        "type": "http"
+    },
+    "http": {
+        "method": "get",
+        "url": "https://api.example.com/test"
+    },
+    "examples": [
+        {
+            "meta": {
+                "name": "JSON Body Example",
+                "type": "http"
+            },
+            "http": {
+                "method": "post",
+                "url": "https://api.example.com/json"
+            },
+            "body": {
+                "json": "{\n  \"name\": \"Test\",\n  \"value\": 123\n}"
+            }
+        },
+        {
+            "meta": {
+                "name": "XML Body Example",
+                "type": "http"
+            },
+            "http": {
+                "method": "post",
+                "url": "https://api.example.com/xml"
+            },
+            "body": {
+                "xml": "<?xml version=\"1.0\"?>\n<data>\n  <name>Test</name>\n  <value>123</value>\n</data>"
+            }
+        },
+        {
+            "meta": {
+                "name": "Text Body Example",
+                "type": "http"
+            },
+            "http": {
+                "method": "post",
+                "url": "https://api.example.com/text"
+            },
+            "body": {
+                "text": "Plain text data\nwith multiple lines"
+            }
+        }
+    ]
+}
