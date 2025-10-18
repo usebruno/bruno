@@ -4,6 +4,22 @@ import { mockDataFunctions } from '@usebruno/common';
 const CodeMirror = require('codemirror');
 
 const pathFoundInVariables = (path, obj) => {
+  if (path.includes('.')) {
+    const parts = path.split('.');
+    const firstPart = parts[0];
+    
+    if (obj && typeof obj === 'object' && firstPart in obj) {
+      const firstObj = obj[firstPart];
+    
+      if (firstObj && typeof firstObj === 'object') {
+        const remainingPath = parts.slice(1).join('.');
+        if (Object.prototype.hasOwnProperty.call(firstObj, remainingPath)) {
+          return true;
+        }
+      }
+    }
+  }
+  
   const value = get(obj, path);
   return value !== undefined;
 };
