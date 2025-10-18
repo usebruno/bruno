@@ -1,5 +1,6 @@
 const KeyMapping = {
   save: { mac: 'command+s', windows: 'ctrl+s', name: 'Save' },
+  saveAll: { mac: 'command+shift+s', windows: 'ctrl+shift+s', name: 'Save All' },
   sendRequest: { mac: 'command+enter', windows: 'ctrl+enter', name: 'Send Request' },
   editEnvironment: { mac: 'command+e', windows: 'ctrl+e', name: 'Edit Environment' },
   newRequest: { mac: 'command+b', windows: 'ctrl+b', name: 'New Request' },
