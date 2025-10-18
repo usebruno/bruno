@@ -12,7 +12,7 @@ const StyledWrapper = styled.div`
     flex-direction: column-reverse;
   }
 
-  /* Removes the glow outline around the folded json */
+  /* Removes the glow outline around the folded JSON */
   .CodeMirror-foldmarker {
     text-shadow: none;
     color: ${(props) => props.theme.textLink};
@@ -58,8 +58,7 @@ const StyledWrapper = styled.div`
     position: relative;
   }
 
-  // Todo: dark mode temporary fix
-  // Clean this
+  /* === Dark mode (Monokai) legacy fix === */
   .CodeMirror.cm-s-monokai {
     .CodeMirror-overlayscroll-horizontal div,
     .CodeMirror-overlayscroll-vertical div {
@@ -67,6 +66,7 @@ const StyledWrapper = styled.div`
     }
   }
 
+  /* === Monokai syntax colors === */
   .cm-s-monokai span.cm-property,
   .cm-s-monokai span.cm-attribute {
     color: #9cdcfe !important;
@@ -84,41 +84,39 @@ const StyledWrapper = styled.div`
     color: #569cd6 !important;
   }
 
-  .cm-variable-valid {
-    color: green;
+  /* === Default theme syntax colors (from theme) === */
+  .cm-s-default span.cm-property {
+    color: ${(props) => props.theme.codemirror.syntax?.property || '#1f61a0'} !important;
   }
+
+  .cm-s-default span.cm-string {
+    color: ${(props) => props.theme.codemirror.syntax?.string || '#ce9178'} !important;
+  }
+
+  .cm-s-default span.cm-number {
+    color: ${(props) => props.theme.codemirror.syntax?.number || '#b5cea8'} !important;
+  }
+
+  .cm-s-default span.cm-atom {
+    color: ${(props) => props.theme.codemirror.syntax?.boolean || '#569cd6'} !important;
+  }
+
+  .cm-variable-valid {
+    color: ${(props) => props.theme.codemirror.variable?.valid || 'green'};
+  }
+
   .cm-variable-invalid {
-    color: red;
+    color: ${(props) => props.theme.codemirror.variable?.invalid || 'red'};
   }
 
   .CodeMirror-search-hint {
     display: inline;
   }
 
-  .cm-s-default span.cm-property {
-    color: #1f61a0 !important;
-  }
-
-  .cm-s-default span.cm-variable {
-    color: #397d13 !important;
-  }
-  
-  //matching bracket fix
+  /* === Matching bracket highlight === */
   .CodeMirror-matchingbracket {
-    background: #5cc0b48c !important;
-    text-decoration:unset;
-  }
-
-  .cm-search-line-highlight {
-    background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
-  }
-
-  .cm-search-match {
-    background: rgba(255, 193, 7, 0.25);
-  }
-
-  .cm-search-current {
-    background: rgba(255, 193, 7, 0.4);
+    background: ${(props) => props.theme.codemirror.syntax?.matchingBracketBg || '#5cc0b48c'} !important;
+    text-decoration: unset;
   }
 `;
 

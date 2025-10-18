@@ -6,8 +6,8 @@ const lightTheme = {
 
   colors: {
     text: {
-      green: '#047857',
-      danger: '#B91C1C',
+      green: '#04780aff',
+      danger: '#b91c97ff',
       muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
@@ -27,16 +27,11 @@ const lightTheme = {
     }
   },
 
-  menubar: {
-    bg: 'rgb(44, 44, 44)'
-  },
+  menubar: { bg: 'rgb(44, 44, 44)' },
 
   variables: {
     bg: '#fff',
-
-    name: {
-      color: '#546de5'
-    }
+    name: { color: '#546de5' }
   },
 
   sidebar: {
@@ -45,29 +40,20 @@ const lightTheme = {
     bg: '#F3F3F3',
     dragbar: 'rgb(200, 200, 200)',
 
-    badge: {
-      bg: '#e1e1e1'
-    },
+    badge: { bg: '#e1e1e1' },
 
-    search: {
-      border: '1px solid rgb(211 211 211)',
-      bg: '#fff'
-    },
+    search: { border: '1px solid rgb(211 211 211)', bg: '#fff' },
 
     collection: {
       item: {
         bg: '#e1e1e1',
         hoverBg: '#e7e7e7',
         indentBorder: 'solid 1px #e1e1e1',
-        active: {
-          indentBorder: 'solid 1px #d0d0d0'
-        }
+        active: { indentBorder: 'solid 1px #d0d0d0' }
       }
     },
 
-    dropdownIcon: {
-      color: 'rgb(110 110 110)'
-    }
+    dropdownIcon: { color: 'rgb(110 110 110)' }
   },
 
   welcome: {
@@ -80,7 +66,8 @@ const lightTheme = {
     iconColor: 'rgb(75, 85, 99)',
     bg: '#fff',
     hoverBg: '#e9ecef',
-    shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
+    shadow:
+      'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
     separator: '#e7e7e7',
     labelBg: '#f3f3f3',
     selectedBg: '#D977060F',
@@ -97,7 +84,6 @@ const lightTheme = {
       post: '#8e44ad',
       put: '#ca7811',
       delete: 'rgb(185, 28, 28)',
-      // customize these colors if needed
       patch: '#ca7811',
       options: '#ca7811',
       head: '#ca7811'
@@ -108,70 +94,41 @@ const lightTheme = {
   },
 
   requestTabPanel: {
-    url: {
-      bg: '#f3f3f3',
-      icon: '#515151',
-      errorHoverBg: '#fef2f2'
-    },
-    dragbar: {
-      border: '#efefef',
-      activeBorder: 'rgb(200, 200, 200)'
-    },
-    bodyModeSelect: {
-      color: '#efefef'
-    },
+    url: { bg: '#f3f3f3', icon: '#515151' },
+    dragbar: { border: '#efefef', activeBorder: 'rgb(200, 200, 200)' },
+    bodyModeSelect: { color: '#efefef' },
     responseSendIcon: 'rgb(209, 213, 219)',
     responseStatus: 'rgb(117 117 117)',
     responseOk: '#047857',
     responseError: 'rgb(185, 28, 28)',
     responsePending: '#1663bb',
     responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
-    card: {
-      bg: '#fff',
-      border: '#f4f4f4',
-      hr: '#f4f4f4'
-    },
+    card: { bg: '#fff', border: '#f4f4f4', hr: '#f4f4f4' },
     cardTable: {
       border: '#efefef',
       bg: '#fff',
       table: {
-        thead: {
-          bg: 'rgb(249, 250, 251)',
-          color: 'rgb(75 85 99)'
-        }
+        thead: { bg: 'rgb(249, 250, 251)', color: 'rgb(75 85 99)' }
       }
     },
-    graphqlDocsExplorer: {
-      bg: '#fff',
-      color: 'rgb(52, 52, 52)'
-    }
+    graphqlDocsExplorer: { bg: '#fff', color: 'rgb(52, 52, 52)' }
   },
 
   collection: {
     environment: {
       bg: '#efefef',
-
       settings: {
         bg: 'white',
-        sidebar: {
-          bg: '#eaeaea',
-          borderRight: 'transparent'
-        },
+        sidebar: { bg: '#eaeaea', borderRight: 'transparent' },
         item: {
           border: '#546de5',
           hoverBg: '#e4e4e4',
-          active: {
-            bg: '#dcdcdc',
-            hoverBg: '#dcdcdc'
-          }
+          active: { bg: '#dcdcdc', hoverBg: '#dcdcdc' }
         },
         gridBorder: '#f4f4f4'
       }
     },
-
-    sidebar: {
-      bg: '#eaeaea'
-    }
+    sidebar: { bg: '#eaeaea' }
   },
 
   notifications: {
@@ -181,32 +138,15 @@ const lightTheme = {
       borderRight: 'transparent',
       borderBottom: '#d3d3d3',
       hoverBg: '#e4e4e4',
-      active: {
-        border: '#546de5',
-        bg: '#dcdcdc',
-        hoverBg: '#dcdcdc'
-      }
+      active: { border: '#546de5', bg: '#dcdcdc', hoverBg: '#dcdcdc' }
     }
   },
 
   modal: {
-    title: {
-      color: 'rgb(86 86 86)',
-      bg: '#f1f1f1',
-      iconColor: 'black'
-    },
-    body: {
-      color: 'rgb(52, 52, 52)',
-      bg: 'white'
-    },
-    input: {
-      bg: 'white',
-      border: '#ccc',
-      focusBorder: '#8b8b8b'
-    },
-    backdrop: {
-      opacity: 0.4
-    }
+    title: { color: 'rgb(86 86 86)', bg: '#f1f1f1', iconColor: 'black' },
+    body: { color: 'rgb(52 52 52)', bg: 'white' },
+    input: { bg: 'white', border: '#ccc', focusBorder: '#8b8b8b' },
+    backdrop: { opacity: 0.4 }
   },
 
   button: {
@@ -216,30 +156,16 @@ const lightTheme = {
       border: '#dae0e5',
       hoverBorder: '#696969'
     },
-    close: {
-      color: '212529',
-      bg: 'white',
-      border: 'white',
-      hoverBorder: ''
-    },
+    close: { color: '212529', bg: 'white', border: 'white', hoverBorder: '' },
     disabled: {
-      color: '#9f9f9f',
+      color: '#9f9f9fff',
       bg: '#efefef',
       border: 'rgb(234, 234, 234)'
     },
-    danger: {
-      color: '#fff',
-      bg: '#dc3545',
-      border: '#dc3545'
-    }
+    danger: { color: '#fff', bg: '#dc3545', border: '#dc3545' }
   },
 
-  tabs: {
-    active: {
-      color: '#343434',
-      border: '#D97706'
-    }
-  },
+  tabs: { active: { color: '#000000ff', border: '#068cd9ff' } },
 
   requestTabs: {
     color: 'rgb(52, 52, 52)',
@@ -250,9 +176,7 @@ const lightTheme = {
       hoverColor: 'rgb(76 76 76)',
       hoverBg: 'rgb(234, 234, 234)'
     },
-    active: {
-      bg: '#e7e7e7'
-    },
+    active: { bg: '#e7e7e7' },
     shortTab: {
       color: 'rgb(117 117 117)',
       bg: 'white',
@@ -264,18 +188,22 @@ const lightTheme = {
   codemirror: {
     bg: 'white',
     border: '#efefef',
-    placeholder: {
-      color: '#a2a2a2',
-      opacity: 0.75
+    placeholder: { color: '#a2a2a2ff', opacity: 0.75 },
+    gutter: { bg: '#f3f3f3ff' },
+
+    // Hardcoded default CodeMirror colors
+    syntax: {
+      property: '#1f61a0',
+      string: '#a11',
+      number: '#164',
+      boolean: '#219'
     },
-    gutter: {
-      bg: '#f3f3f3'
-    },
+
     variable: {
-      valid: '#047857',
+      valid: '#1f35f5ff',
       invalid: 'rgb(185, 28, 28)',
       info: {
-        color: 'rgb(52, 52, 52)',
+        color: 'rgba(75, 74, 74, 1)',
         bg: 'white',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)'
       }
@@ -287,34 +215,20 @@ const lightTheme = {
 
   table: {
     border: '#efefef',
-    thead: {
-      color: '#616161'
-    },
+    thead: { color: '#616161' },
     striped: '#f3f3f3',
-    input: {
-      color: '#000000'
-    }
+    input: { color: '#000000' }
   },
 
-  plainGrid: {
-    hoverBg: '#f4f4f4'
-  },
+  plainGrid: { hoverBg: '#f4f4f4' },
 
-  scrollbar: {
-    color: 'rgb(152 151 149)'
-  },
+  scrollbar: { color: 'rgb(152 151 149)' },
 
   dragAndDrop: {
-    border: '#8b8b8b', // Using the same gray as focusBorder from input
+    border: '#8b8b8b',
     borderStyle: '2px solid',
-    hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
+    hoverBg: 'rgba(139, 139, 139, 0.05)',
     transition: 'all 0.1s ease'
-  },
-
-  tooltip: {
-    bg: '#374151',
-    color: '#ffffff',
-    shortcutColor: '#f59e0b'
   },
 
   infoTip: {
@@ -323,10 +237,8 @@ const lightTheme = {
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
   },
 
-  statusBar: {
-    border: '#E9E9E9',
-    color: 'rgb(100, 100, 100)'
-  },
+  statusBar: { border: '#E9E9E9', color: 'rgb(100, 100, 100)' },
+
   console: {
     bg: '#f8f9fa',
     headerBg: '#f8f9fa',

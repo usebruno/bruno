@@ -29,15 +29,10 @@ const darkTheme = {
 
   variables: {
     bg: 'rgb(48, 48, 49)',
-
-    name: {
-      color: '#569cd6'
-    }
+    name: { color: '#569cd6' }
   },
 
-  menubar: {
-    bg: '#333333'
-  },
+  menubar: { bg: '#333333' },
 
   sidebar: {
     color: '#ccc',
@@ -45,29 +40,20 @@ const darkTheme = {
     bg: '#252526',
     dragbar: '#666666',
 
-    badge: {
-      bg: '#3D3D3D'
-    },
+    badge: { bg: '#3D3D3D' },
 
-    search: {
-      border: '1px solid transparent',
-      bg: '#3D3D3D'
-    },
+    search: { border: '1px solid transparent', bg: '#3D3D3D' },
 
     collection: {
       item: {
         bg: '#37373D',
         hoverBg: '#2A2D2F',
         indentBorder: 'solid 1px #585858',
-        active: {
-          indentBorder: 'solid 1px #4c4c4c'
-        }
+        active: { indentBorder: 'solid 1px #4c4c4c' }
       }
     },
 
-    dropdownIcon: {
-      color: '#ccc'
-    }
+    dropdownIcon: { color: '#ccc' }
   },
 
   welcome: {
@@ -97,7 +83,6 @@ const darkTheme = {
       post: '#cd56d6',
       put: '#d69956',
       delete: '#f06f57',
-      // customize these colors if needed
       patch: '#d69956',
       options: '#d69956',
       head: '#d69956'
@@ -108,18 +93,9 @@ const darkTheme = {
   },
 
   requestTabPanel: {
-    url: {
-      bg: '#3D3D3D',
-      icon: 'rgb(204, 204, 204)',
-      errorHoverBg: '#4a2a2a'
-    },
-    dragbar: {
-      border: '#444',
-      activeBorder: '#8a8a8a'
-    },
-    bodyModeSelect: {
-      color: 'transparent'
-    },
+    url: { bg: '#3D3D3D', icon: 'rgb(204, 204, 204)' },
+    dragbar: { border: '#444', activeBorder: '#8a8a8a' },
+    bodyModeSelect: { color: 'transparent' },
     responseSendIcon: '#555',
     responseStatus: '#ccc',
     responseOk: '#8cd656',
@@ -127,46 +103,28 @@ const darkTheme = {
     responsePending: '#569cd6',
     responseOverlayBg: 'rgba(30, 30, 30, 0.6)',
 
-    card: {
-      bg: '#252526',
-      border: 'transparent',
-      borderDark: '#8cd656',
-      hr: '#424242'
-    },
+    card: { bg: '#252526', border: 'transparent', borderDark: '#8cd656', hr: '#424242' },
 
     cardTable: {
       border: '#333',
       bg: '#252526',
       table: {
-        thead: {
-          bg: '#3D3D3D',
-          color: '#ccc'
-        }
+        thead: { bg: '#3D3D3D', color: '#ccc' }
       }
     },
-    graphqlDocsExplorer: {
-      bg: '#1e1e1e',
-      color: '#d4d4d4'
-    }
+    graphqlDocsExplorer: { bg: '#1e1e1e', color: '#d4d4d4' }
   },
 
   collection: {
     environment: {
       bg: '#3D3D3D',
-
       settings: {
         bg: '#3D3D3D',
-        sidebar: {
-          bg: '#3D3D3D',
-          borderRight: '#4f4f4f'
-        },
+        sidebar: { bg: '#3D3D3D', borderRight: '#4f4f4f' },
         item: {
           border: '#569cd6',
           hoverBg: 'transparent',
-          active: {
-            bg: 'transparent',
-            hoverBg: 'transparent'
-          }
+          active: { bg: 'transparent', hoverBg: 'transparent' }
         },
         gridBorder: '#4f4f4f'
       }
@@ -180,32 +138,15 @@ const darkTheme = {
       borderRight: '#4f4f4f',
       borderBottom: '#545454',
       hoverBg: '#434343',
-      active: {
-        border: '#569cd6',
-        bg: '#4f4f4f',
-        hoverBg: '#4f4f4f'
-      }
+      active: { border: '#569cd6', bg: '#4f4f4f', hoverBg: '#4f4f4f' }
     }
   },
 
   modal: {
-    title: {
-      color: '#ccc',
-      bg: 'rgb(38, 38, 39)',
-      iconColor: '#ccc'
-    },
-    body: {
-      color: '#ccc',
-      bg: 'rgb(48, 48, 49)'
-    },
-    input: {
-      bg: 'rgb(65, 65, 65)',
-      border: 'rgb(65, 65, 65)',
-      focusBorder: 'rgb(65, 65, 65)'
-    },
-    backdrop: {
-      opacity: 0.2
-    }
+    title: { color: '#ccc', bg: 'rgb(38, 38, 39)', iconColor: '#ccc' },
+    body: { color: '#ccc', bg: 'rgb(48, 48, 49)' },
+    input: { bg: 'rgb(65, 65, 65)', border: 'rgb(65, 65, 65)', focusBorder: 'rgb(65, 65, 65)' },
+    backdrop: { opacity: 0.2 }
   },
 
   button: {
@@ -215,61 +156,36 @@ const darkTheme = {
       border: '#185387',
       hoverBorder: '#696969'
     },
-    close: {
-      color: '#ccc',
-      bg: 'transparent',
-      border: 'transparent',
-      hoverBorder: ''
-    },
-    disabled: {
-      color: '#a5a5a5',
-      bg: '#626262',
-      border: '#626262'
-    },
-    danger: {
-      color: '#fff',
-      bg: '#dc3545',
-      border: '#dc3545'
-    }
+    close: { color: '#ccc', bg: 'transparent', border: 'transparent', hoverBorder: '' },
+    disabled: { color: '#a5a5a5', bg: '#626262', border: '#626262' },
+    danger: { color: '#fff', bg: '#dc3545', border: '#dc3545' }
   },
 
-  tabs: {
-    active: {
-      color: '#CCCCCC',
-      border: '#F59E0B'
-    }
-  },
+  tabs: { active: { color: '#CCCCCC', border: '#F59E0B' } },
 
   requestTabs: {
     color: '#ccc',
     bg: '#2A2D2F',
     bottomBorder: '#444',
-    icon: {
-      color: '#9f9f9f',
-      hoverColor: 'rgb(204, 204, 204)',
-      hoverBg: '#1e1e1e'
-    },
-    active: {
-      bg: '#3D3D3D'
-    },
-    shortTab: {
-      color: '#ccc',
-      bg: 'transparent',
-      hoverColor: '#ccc',
-      hoverBg: '#3D3D3D'
-    }
+    icon: { color: '#9f9f9f', hoverColor: 'rgb(204, 204, 204)', hoverBg: '#1e1e1e' },
+    active: { bg: '#3D3D3D' },
+    shortTab: { color: '#ccc', bg: 'transparent', hoverColor: '#ccc', hoverBg: '#3D3D3D' }
   },
 
   codemirror: {
     bg: '#1e1e1e',
     border: '#373737',
-    placeholder: {
-      color: '#a2a2a2',
-      opacity: 0.5
+    placeholder: { color: '#a2a2a2', opacity: 0.50 },
+    gutter: { bg: '#262626' },
+
+    // Hardcoded default CodeMirror syntax colors for dark
+    syntax: {
+      property: '#9cdcfe',
+      string: '#ce9178',
+      number: '#b5cea8',
+      boolean: '#569cd6'
     },
-    gutter: {
-      bg: '#262626'
-    },
+
     variable: {
       valid: 'rgb(11 178 126)',
       invalid: '#f06f57',
@@ -286,22 +202,14 @@ const darkTheme = {
 
   table: {
     border: '#333',
-    thead: {
-      color: 'rgb(204, 204, 204)'
-    },
+    thead: { color: 'rgb(204, 204, 204)' },
     striped: '#2A2D2F',
-    input: {
-      color: '#ccc'
-    }
+    input: { color: '#ccc' }
   },
 
-  plainGrid: {
-    hoverBg: '#3D3D3D'
-  },
+  plainGrid: { hoverBg: '#3D3D3D' },
 
-  scrollbar: {
-    color: 'rgb(52 51 49)'
-  },
+  scrollbar: { color: 'rgb(52 51 49)' },
 
   dragAndDrop: {
     border: '#666666',
@@ -309,22 +217,10 @@ const darkTheme = {
     hoverBg: 'rgba(102, 102, 102, 0.08)',
     transition: 'all 0.1s ease'
   },
-  tooltip: {
-    bg: '#1f1f1f',
-    color: '#ffffff',
-    shortcutColor: '#f59e0b'
-  },
 
-  infoTip: {
-    bg: '#1f1f1f',
-    border: '#333333',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
-  },
+  infoTip: { bg: '#1f1f1f', border: '#333333', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)' },
 
-  statusBar: {
-    border: '#323233',
-    color: 'rgb(169, 169, 169)'
-  },
+  statusBar: { border: '#323233', color: 'rgb(169, 169, 169)' },
 
   console: {
     bg: '#1e1e1e',
