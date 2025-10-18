@@ -37,6 +37,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'packages/bruno-lang/**/*.js',
       'packages/bruno-requests/**/*.ts',
       'packages/bruno-requests/**/*.js',
+      'packages/bruno-opencollection/**/*.{js,ts}'
     ],
     processor: 'diff/diff',
     rules: {
