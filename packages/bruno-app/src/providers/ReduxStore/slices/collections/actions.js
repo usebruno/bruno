@@ -1467,8 +1467,16 @@ export const mergeAndPersistEnvironment =
         }
       });
 
-      // Save only non-ephemeral vars, or ephemerals explicitly persisted this run
+        // Save all non-ephemeral vars and all variables that were previously persisted
       const persistedNames = new Set(Object.keys(persistentEnvVariables));
+
+        // Add all existing non-ephemeral variables to persistedNames so they are preserved
+        existingVars.forEach((v) => {
+          if (!v.ephemeral) {
+            persistedNames.add(v.name);
+          }
+        });
+
       const environmentToSave = cloneDeep(environment);
       environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
 
