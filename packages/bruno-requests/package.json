@@ -28,6 +28,7 @@
     "debug": "^4.4.3",
     "grpc-reflection-js": "^0.3.0",
     "is-ip": "^5.0.1",
+    "json-bigint": "^1.0.0"
     "ws": "^8.18.3",
     "system-ca": "^2.0.1",
     "tough-cookie": "^6.0.0"

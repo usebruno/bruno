@@ -1,4 +1,5 @@
 const axios = require('axios');
+const JSONBigNative = require('json-bigint')({ useNativeBigInt: true });
 const { CLI_VERSION } = require('../constants');
 const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
@@ -77,6 +78,18 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
 
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
+    transformResponse: [function transformResponse(data, headers) {
+      try {
+        const contentType = headers?.['content-type'] || headers?.['Content-Type'] || '';
+        const isJSON = typeof contentType === 'string' && /json/i.test(contentType);
+        if (isJSON && typeof data === 'string') {
+          return JSONBigNative.parse(data);
+        }
+        return data;
+      } catch (e) {
+        return data;
+      }
+    }],
     proxy: false,
     maxRedirects: 0,
     headers: {

@@ -43,10 +43,31 @@ export const safeStringifyJSON = (obj, indent = false) => {
     return obj;
   }
   try {
-    if (indent) {
-      return JSON.stringify(obj, null, 2);
-    }
-    return JSON.stringify(obj);
+    // We want to keep BigInt values in-memory as BigInt, but when rendering JSON
+    // for preview we want them to appear as numeric literals (no quotes), while
+    // still producing valid JSON text for all other types.
+    // JSON.stringify cannot emit BigInt directly, so we mark them during
+    // stringification and then post-process the resulting string to remove quotes
+    // around those markers.
+    const MARK = '___BRUNO_BIGINT_MARKER___';
+    const replacer = (_key, value) => {
+      if (typeof value === 'bigint') {
+        // Use a unique marker so we can safely unquote it later.
+        // Store as a string to satisfy JSON.stringify, then replace.
+        return `${MARK}${value.toString()}`;
+      }
+      return value;
+    };
+
+    const space = indent ? 2 : undefined;
+    let json = JSON.stringify(obj, replacer, space);
+
+    // Replace occurrences of "\"MARK<digits>\"" with <digits>
+    // Supports optional leading minus sign.
+    const pattern = new RegExp(`"${MARK}(-?\\d+)"`, 'g');
+    json = json.replace(pattern, '$1');
+
+    return json;
   } catch (e) {
     return obj;
   }
