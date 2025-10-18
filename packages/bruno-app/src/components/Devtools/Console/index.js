@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactJson from 'react-json-view';
 import { useTheme } from 'providers/Theme';
-import { 
-  IconX, 
-  IconTrash, 
+import {
+  IconX,
+  IconTrash,
   IconFilter,
-  IconAlertTriangle, 
-  IconAlertCircle, 
+  IconAlertTriangle,
+  IconAlertCircle,
   IconBug,
   IconCode,
   IconChevronDown,
@@ -15,10 +15,10 @@ import {
   IconNetwork,
   IconDashboard,
 } from '@tabler/icons';
-import { 
-  closeConsole, 
-  clearLogs, 
-  updateFilter, 
+import {
+  closeConsole,
+  clearLogs,
+  updateFilter,
   toggleAllFilters,
   setActiveTab,
   clearDebugErrors,
@@ -32,10 +32,11 @@ import RequestDetailsPanel from './RequestDetailsPanel';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
 import Performance from '../Performance';
 import StyledWrapper from './StyledWrapper';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 
 const LogIcon = ({ type }) => {
   const iconProps = { size: 16, strokeWidth: 1.5 };
-  
+
   switch (type) {
     case 'error':
       return <IconAlertCircle className="log-icon error" {...iconProps} />;
@@ -52,20 +53,20 @@ const LogIcon = ({ type }) => {
 
 const LogTimestamp = ({ timestamp }) => {
   const date = new Date(timestamp);
-  const time = date.toLocaleTimeString('en-US', { 
-    hour12: false, 
-    hour: '2-digit', 
-    minute: '2-digit', 
+  const time = date.toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
     second: '2-digit',
     fractionalSecondDigits: 3
   });
-  
+
   return <span className="log-timestamp">{time}</span>;
 };
 
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
-  
+
   const formatMessage = (msg, originalArgs) => {
     if (originalArgs && originalArgs.length > 0) {
       return originalArgs.map((arg, index) => {
@@ -98,7 +99,7 @@ const LogMessage = ({ message, args }) => {
   };
 
   const formattedMessage = formatMessage(message, args);
-  
+
   return (
     <span className="log-message">
       {Array.isArray(formattedMessage) ? formattedMessage.map((item, index) => (
@@ -128,7 +129,7 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
 
   return (
     <div className="filter-dropdown" ref={dropdownRef}>
-      <button 
+      <button
         className="filter-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
         title="Filter logs by type"
@@ -139,19 +140,19 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
         </span>
         <IconChevronDown size={14} strokeWidth={1.5} />
       </button>
-      
+
       {isOpen && (
         <div className={`filter-dropdown-menu right`}>
           <div className="filter-dropdown-header">
             <span>Filter by Type</span>
-            <button 
+            <button
               className="filter-toggle-all"
               onClick={() => onToggleAll(!allFiltersEnabled)}
             >
               {allFiltersEnabled ? 'Hide All' : 'Show All'}
             </button>
           </div>
-          
+
           <div className="filter-dropdown-options">
             {Object.entries(filters).map(([filterType, enabled]) => (
               <label key={filterType} className="filter-option">
@@ -207,7 +208,7 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
 
   return (
     <div className="filter-dropdown" ref={dropdownRef}>
-      <button 
+      <button
         className="filter-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
         title="Filter requests by method"
@@ -218,19 +219,19 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
         </span>
         <IconChevronDown size={14} strokeWidth={1.5} />
       </button>
-      
+
       {isOpen && (
         <div className={`filter-dropdown-menu right`}>
           <div className="filter-dropdown-header">
             <span>Filter by Method</span>
-            <button 
+            <button
               className="filter-toggle-all"
               onClick={() => onToggleAll(!allFiltersEnabled)}
             >
               {allFiltersEnabled ? 'Hide All' : 'Show All'}
             </button>
           </div>
-          
+
           <div className="filter-dropdown-options">
             {Object.entries(filters).map(([method, enabled]) => (
               <label key={method} className="filter-option">
@@ -258,7 +259,7 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
 const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onClearLogs }) => {
   const logsEndRef = useRef(null);
   const prevLogsCountRef = useRef(0);
-  
+
   useEffect(() => {
     // Only scroll when new logs are added, not when switching tabs
     if (logsEndRef.current && logs.length > prevLogsCountRef.current) {
@@ -301,7 +302,103 @@ const Console = () => {
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector(state => state.logs);
   const collections = useSelector(state => state.collections.collections);
+  const prefs = useSelector((state) => state.app.preferences);
   const consoleRef = useRef(null);
+
+  // DevTools Network details pane resizable width
+  const DEFAULT_WIDTH = 480;
+  const MIN_WIDTH = 400;
+  const MAX_WIDTH = 1000;
+
+  const clamp = (v, min = MIN_WIDTH, max = MAX_WIDTH) => Math.min(max, Math.max(min, v));
+
+  const [detailsWidth, setDetailsWidth] = useState(() => {
+    const stored = prefs?.devTools?.network?.detailsWidth;
+    if (typeof stored === 'number') return clamp(stored);
+    const viewport = typeof window !== 'undefined' ? window.innerWidth : DEFAULT_WIDTH * 2.5;
+    const base = Math.round(viewport * 0.33);
+    return clamp(base);
+  });
+  const widthRef = useRef(detailsWidth);
+  useEffect(() => {
+    widthRef.current = detailsWidth;
+  }, [detailsWidth]);
+
+  useEffect(() => {
+    const w = prefs?.devTools?.network?.detailsWidth;
+    if (typeof w === 'number') setDetailsWidth(clamp(w));
+  }, [prefs?.devTools?.network?.detailsWidth]);
+
+  const startXRef = useRef(0);
+  const startWRef = useRef(0);
+  const draggingRef = useRef(false);
+
+  const persistWidth = (w) => {
+    const next = {
+      ...prefs,
+      devTools: {
+        ...prefs?.devTools,
+        network: {
+          ...(prefs?.devTools?.network || {}),
+          detailsWidth: clamp(w)
+        }
+      }
+    };
+    dispatch(savePreferences(next));
+  };
+
+  const onMouseMove = (e) => {
+    if (!draggingRef.current) return;
+    const dx = e.clientX - startXRef.current;
+    const next = clamp(startWRef.current - dx);
+    setDetailsWidth(next);
+    widthRef.current = next;
+  };
+
+  const endDrag = () => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', endDrag);
+    persistWidth(widthRef.current);
+  };
+
+  const startDrag = (e) => {
+    draggingRef.current = true;
+    startXRef.current = e.clientX;
+    startWRef.current = detailsWidth;
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', endDrag);
+    e.preventDefault();
+  };
+
+  useEffect(() => () => {
+    if (draggingRef.current) endDrag();
+  }, []);
+
+  const onKeyDownDivider = (e) => {
+    const step = e.shiftKey ? 24 : 8;
+    if (e.key === 'ArrowLeft') {
+      const next = clamp(detailsWidth - step);
+      setDetailsWidth(next);
+      widthRef.current = next;
+      persistWidth(next);
+      e.preventDefault();
+    } else if (e.key === 'ArrowRight') {
+      const next = clamp(detailsWidth + step);
+      setDetailsWidth(next);
+      persistWidth(next);
+      e.preventDefault();
+    }
+  };
+
+  const toggleMaxMin = () => {
+    const nearMax = Math.abs(detailsWidth - MAX_WIDTH) <= 4;
+    const next = nearMax ? MIN_WIDTH : MAX_WIDTH;
+    setDetailsWidth(next);
+    widthRef.current = next;
+    persistWidth(next);
+  };
 
   const logCounts = logs.reduce((counts, log) => {
     counts[log.type] = (counts[log.type] || 0) + 1;
@@ -310,7 +407,7 @@ const Console = () => {
 
   const allRequests = React.useMemo(() => {
     const requests = [];
-    
+
     collections.forEach(collection => {
       if (collection.timeline) {
         collection.timeline
@@ -324,7 +421,7 @@ const Console = () => {
           });
       }
     });
-    
+
     return requests.sort((a, b) => a.timestamp - b.timestamp);
   }, [collections]);
 
@@ -419,7 +516,7 @@ const Console = () => {
               />
             </div>
             <div className="action-controls">
-              <button 
+              <button
                 className="control-button"
                 onClick={handleClearLogs}
                 title="Clear all logs"
@@ -447,7 +544,7 @@ const Console = () => {
       //     <div className="tab-controls">
       //       <div className="action-controls">
       //         {debugErrors.length > 0 && (
-      //           <button 
+      //           <button
       //             className="control-button"
       //             onClick={handleClearDebugErrors}
       //             title="Clear all errors"
@@ -467,28 +564,28 @@ const Console = () => {
 
   return (
     <StyledWrapper ref={consoleRef}>
-      <div 
+      <div
         className="console-resize-handle"
       />
-      
+
       <div className="console-header">
         <div className="console-tabs">
-          <button 
+          <button
             className={`console-tab ${activeTab === 'console' ? 'active' : ''}`}
             onClick={() => handleTabChange('console')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />
             <span>Console</span>
           </button>
-          
-          <button 
+
+          <button
             className={`console-tab ${activeTab === 'network' ? 'active' : ''}`}
             onClick={() => handleTabChange('network')}
           >
             <IconNetwork size={16} strokeWidth={1.5} />
             <span>Network</span>
           </button>
-          
+
           <button
             className={`console-tab ${activeTab === 'performance' ? 'active' : ''}`}
             onClick={() => handleTabChange('performance')}
@@ -497,7 +594,7 @@ const Console = () => {
             <span>Performance</span>
           </button>
 
-          {/* <button 
+          {/* <button
             className={`console-tab ${activeTab === 'debug' ? 'active' : ''}`}
             onClick={() => handleTabChange('debug')}
           >
@@ -508,7 +605,7 @@ const Console = () => {
 
         <div className="console-controls">
           {renderTabControls()}
-          <button 
+          <button
             className="control-button close-button"
             onClick={handlecloseConsole}
             title="Close console"
@@ -524,7 +621,19 @@ const Console = () => {
             <div className="network-main">
               {renderTabContent()}
             </div>
-            <RequestDetailsPanel />
+            <div
+              role="separator"
+              tabIndex={0}
+              aria-orientation="vertical"
+              onMouseDown={startDrag}
+              onKeyDown={onKeyDownDivider}
+              onDoubleClick={toggleMaxMin}
+              style={{ width: 10, cursor: 'col-resize', alignSelf: 'stretch' }}
+              title="Resize details panel"
+            />
+            <RequestDetailsPanel
+              style={{ width: detailsWidth, minWidth: MIN_WIDTH, maxWidth: MAX_WIDTH }}
+            />
           </div>
         ) : activeTab === 'debug' && selectedError ? (
           <div className="debug-with-details">
@@ -541,4 +650,4 @@ const Console = () => {
   );
 };
 
-export default Console; 
+export default Console;
