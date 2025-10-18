@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactJson from 'react-json-view';
 import { useTheme } from 'providers/Theme';
@@ -304,6 +304,7 @@ const Console = () => {
   const collections = useSelector(state => state.collections.collections);
   const prefs = useSelector((state) => state.app.preferences);
   const consoleRef = useRef(null);
+  const containerRef = useRef(null);
 
   // DevTools Network details pane resizable width
   const DEFAULT_WIDTH = 480;
@@ -328,6 +329,16 @@ const Console = () => {
     const w = prefs?.devTools?.network?.detailsWidth;
     if (typeof w === 'number') setDetailsWidth(clamp(w));
   }, [prefs?.devTools?.network?.detailsWidth]);
+
+  // After mount, refine default using the actual container width (closer to what you see)
+  useLayoutEffect(() => {
+    const hasSaved = typeof prefs?.devTools?.network?.detailsWidth === 'number';
+    if (hasSaved) return; // don't override user preference
+    const el = containerRef.current;
+    if (!el) return;
+    const base = Math.round(el.clientWidth * 0.33);
+    setDetailsWidth(clamp(base));
+  }, [prefs?.devTools?.network?.detailsWidth, activeTab, selectedRequest]);
 
   const startXRef = useRef(0);
   const startWRef = useRef(0);
@@ -387,6 +398,7 @@ const Console = () => {
     } else if (e.key === 'ArrowRight') {
       const next = clamp(detailsWidth + step);
       setDetailsWidth(next);
+      widthRef.current = next;
       persistWidth(next);
       e.preventDefault();
     }
@@ -617,7 +629,7 @@ const Console = () => {
 
       <div className="console-content">
         {activeTab === 'network' && selectedRequest ? (
-          <div className="network-with-details">
+          <div className="network-with-details" ref={containerRef}>
             <div className="network-main">
               {renderTabContent()}
             </div>
