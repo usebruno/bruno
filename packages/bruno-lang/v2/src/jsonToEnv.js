@@ -20,13 +20,16 @@ const envToJson = (json) => {
       return indentString(`${prefix}${name}`);
     });
 
+  const color = _.get(json, 'color', undefined);
+
+  let output = '';
+
   if (!variables || !variables.length) {
-    return `vars {
+    output += `vars {
 }
 `;
   }
 
-  let output = '';
   if (vars.length) {
     output += `vars {
 ${vars.join('\n')}
@@ -38,6 +41,10 @@ ${vars.join('\n')}
     output += `vars:secret [
 ${secretVars.join(',\n')}
 ]
+`;
+  }
+  if (color) {
+    output += `color: ${color}
 `;
   }
 
