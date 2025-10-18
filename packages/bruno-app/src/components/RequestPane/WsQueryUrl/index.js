@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { getPropertyFromDraftOrRequest } from 'utils/collections';
 import { isMacOS } from 'utils/common/platform';
+import { hasRequestChanges } from 'utils/collections';
 import { closeWsConnection, isWsConnectionActive } from 'utils/network/index';
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
@@ -108,15 +109,15 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               className="infotip mr-3"
               onClick={(e) => {
                 e.stopPropagation();
-                if (!item.draft) return;
+                if (!hasRequestChanges(item)) return;
                 onSave();
               }}
             >
               <IconDeviceFloppy
-                color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+                color={hasRequestChanges(item) ? theme.colors.text.yellow : theme.requestTabs.icon.color}
                 strokeWidth={1.5}
                 size={22}
-                className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
+                className={`${hasRequestChanges(item) ? 'cursor-pointer' : 'cursor-default'}`}
               />
               <span className="infotip-text text-xs">
                 Save <span className="shortcut">({saveShortcut})</span>

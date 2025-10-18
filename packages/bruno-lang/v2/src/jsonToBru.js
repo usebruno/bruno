@@ -17,8 +17,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
-
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples, response } = json;
 
   let bru = '';
 
@@ -748,6 +747,47 @@ ${indentString(docs)}
 }
 
 `;
+  }
+
+  // Handle response blocks
+  if (response) {
+    // Response headers
+    if (response.headers && response.headers.length) {
+      bru += 'response:headers {';
+      if (enabled(response.headers).length) {
+        bru += `\n${indentString(enabled(response.headers)
+          .map((item) => `${quoteKey(item.name)}: ${item.value}`)
+          .join('\n'))}`;
+      }
+
+      if (disabled(response.headers).length) {
+        bru += `\n${indentString(disabled(response.headers)
+          .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
+          .join('\n'))}`;
+      }
+
+      bru += '\n}\n\n';
+    }
+
+    // Response status
+    if (response.status) {
+      bru += 'response:status {\n';
+      for (const key in response.status) {
+        bru += `  ${key}: ${response.status[key]}\n`;
+      }
+      bru += '}\n\n';
+    }
+
+    if (response.body) {
+      bru += `response:body {\n${indentString(response.body)}\n}\n\n`;
+    }
+  }
+
+  if (examples && examples.length) {
+    examples.forEach((example) => {
+      const bruExample = jsonToBru(example);
+      bru += `example {\n${indentString(bruExample)}\n}\n\n`;
+    });
   }
 
   return stripLastLine(bru);

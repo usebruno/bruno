@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "name": "Test API",
+        "type": "http",
+        "seq": 1
+    },
+    "examples": [
+        {
+            "meta": {
+                "name": "JSON Example",
+                "type": "http",
+                "seq": 1
+            },
+            "http": {
+                "method": "post",
+                "url": "https://api.example.com/data"
+            },
+            "body": {
+                "json": "{\n  \"name\": \"Test\",\n  \"value\": 123\n}"
+            }
+        }
+    ]
+}

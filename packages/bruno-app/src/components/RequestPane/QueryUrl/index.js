@@ -8,6 +8,7 @@ import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconArrowRight, IconCode } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
+import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
@@ -133,15 +134,15 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             className="infotip mr-3"
             onClick={(e) => {
               e.stopPropagation();
-              if (!item.draft) return;
+              if (!hasRequestChanges(item)) return;
               onSave();
             }}
           >
             <IconDeviceFloppy
-              color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              color={hasRequestChanges(item) ? theme.colors.text.yellow : theme.requestTabs.icon.color}
               strokeWidth={1.5}
               size={22}
-              className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
+              className={`${hasRequestChanges(item) ? 'cursor-pointer' : 'cursor-default'}`}
             />
             <span className="infotiptext text-xs">
               Save <span className="shortcut">({saveShortcut})</span>

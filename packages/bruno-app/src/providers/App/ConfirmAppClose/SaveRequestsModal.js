@@ -4,7 +4,7 @@ import filter from 'lodash/filter';
 import groupBy from 'lodash/groupBy';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
-import { findCollectionByUid, flattenItems, isItemARequest } from 'utils/collections';
+import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
@@ -23,7 +23,7 @@ const SaveRequestsModal = ({ onClose }) => {
     const collection = findCollectionByUid(collections, collectionUid);
     if (collection) {
       const items = flattenItems(collection.items);
-      const drafts = filter(items, (item) => isItemARequest(item) && item.draft);
+      const drafts = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
       each(drafts, (draft) => {
         currentDrafts.push({
           ...draft,
