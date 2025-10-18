@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import debounce from 'lodash/debounce';
 import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLetterW } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
@@ -9,7 +8,7 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
 }
 
-const CustomSearch = ({ visible, editor, onClose }) => {
+const CodeMirrorSearch = ({ visible, editor, onClose }) => {
   const [searchText, setSearchText] = useState('');
   const [regex, setRegex] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
@@ -199,4 +198,4 @@ const CustomSearch = ({ visible, editor, onClose }) => {
   );
 };
 
-export default CustomSearch;
+export default CodeMirrorSearch;
