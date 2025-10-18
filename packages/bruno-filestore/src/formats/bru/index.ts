@@ -24,11 +24,19 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
       case 'grpc':
         requestType = 'grpc-request';
         break;
+      case 'ws':
+        requestType = 'ws-request';
+        break;
       default:
         requestType = 'http-request';
     }
 
     const sequence = _.get(json, 'meta.seq');
+    const urlPath: Record<typeof requestType, string> = {
+      'grpc-request': 'grpc.url',
+      'ws-request': 'ws.url',
+      'default': 'http.url'
+    };
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
@@ -36,9 +44,12 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
       settings: _.get(json, 'settings', {}),
       tags: _.get(json, 'meta.tags', []),
       request: {
+        // Preserving special characters in custom methods. Using _.upperCase strips special characters.
         method:
-          requestType === 'grpc-request' ? _.get(json, 'grpc.method', '') : _.upperCase(_.get(json, 'http.method')),
-        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
+          requestType === 'grpc-request'
+            ? _.get(json, 'grpc.method', '')
+            : String(_.get(json, 'http.method') ?? '').toUpperCase(),
+        url: _.get(json, urlPath[requestType], _.get(json, urlPath.default)),
         headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         body: _.get(json, 'body', {}),
@@ -60,6 +71,17 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
       transformedJson.request.body = _.get(json, 'body', {
         mode: 'grpc',
         grpc: _.get(json, 'body.grpc', [
+          {
+            name: 'message 1',
+            content: '{}'
+          }
+        ])
+      });
+    } else if (requestType === 'ws-request') {
+      transformedJson.request.auth.mode = _.get(json, 'ws.auth', 'none');
+      transformedJson.request.body = _.get(json, 'body', {
+        mode: 'ws',
+        ws: _.get(json, 'body.ws', [
           {
             name: 'message 1',
             content: '{}'
@@ -102,6 +124,9 @@ export const jsonRequestToBru = (json: any): string => {
       case 'grpc-request':
         type = 'grpc';
         break;
+      case 'ws-request':
+        type = 'ws';
+        break;
       default:
         type = 'http';
     }
@@ -121,7 +146,8 @@ export const jsonRequestToBru = (json: any): string => {
     // For HTTP and GraphQL requests, maintain the current structure
     if (type === 'http' || type === 'graphql') {
       bruJson.http = {
-        method: _.lowerCase(_.get(json, 'request.method')),
+        // Preserve special characters in custom request methods. Avoid _.lowerCase which strips symbols.
+        method: String(_.get(json, 'request.method') ?? '').toLowerCase(),
         url: _.get(json, 'request.url'),
         auth: _.get(json, 'request.auth.mode', 'none'),
         body: _.get(json, 'request.body.mode', 'none')
@@ -148,6 +174,22 @@ export const jsonRequestToBru = (json: any): string => {
       bruJson.body = _.get(json, 'request.body', {
         mode: 'grpc',
         grpc: _.get(json, 'request.body.grpc', [
+          {
+            name: 'message 1',
+            content: '{}'
+          }
+        ])
+      });
+    } else if (type === 'ws') {
+      bruJson.ws = {
+        url: _.get(json, 'request.url'),
+        auth: _.get(json, 'request.auth.mode', 'none'),
+        body: _.get(json, 'request.body.mode', 'ws')
+      };
+
+      bruJson.body = _.get(json, 'request.body', {
+        mode: 'ws',
+        ws: _.get(json, 'request.body.ws', [
           {
             name: 'message 1',
             content: '{}'

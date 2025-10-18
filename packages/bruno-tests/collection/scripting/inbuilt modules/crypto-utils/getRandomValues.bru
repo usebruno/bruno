@@ -1,0 +1,43 @@
+meta {
+  name: getRandomValues
+  type: http
+  seq: 3
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  const { doesUint8ArraysWorkAsExpected, getRandomValuesFunction, isUint8Array } = require('./scripting/inbuilt modules/utils.js');
+  
+  if (!doesUint8ArraysWorkAsExpected()) {
+    console.warn('Uint8Array does not work as expected in vm2');
+    return;
+  }
+  
+  // check if Uint8Array work as expected
+  test("should get random values", function() {
+    const uint8Array = new Uint8Array(32).fill(0);
+    const randomValueUint8Array = getRandomValuesFunction(new Uint8Array(uint8Array));
+    
+    const isValueUint8Array = isUint8Array(randomValueUint8Array);
+    expect(isValueUint8Array).to.be.true;
+    
+    const plainArray = Array.from(randomValueUint8Array);
+    expect(plainArray).to.be.of.length(32);
+    
+    const ogPlainArray = Array.from(uint8Array);
+    expect(ogPlainArray).to.not.deep.eql(plainArray);
+  });
+}
+
+settings {
+  encodeUrl: true
+}

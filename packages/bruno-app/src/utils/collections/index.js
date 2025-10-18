@@ -261,7 +261,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
             file: copyFileParams(si.request.body.file),
-            grpc: si.request.body.grpc
+            grpc: si.request.body.grpc,
+            ws: si.request.body.ws
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -424,6 +425,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             content: replaceTabsWithSpaces(content)
           }))
         }
+
+        if (di.request.body.mode === 'ws') {
+          di.request.body.ws = di.request.body.ws.map(({ name, content, type }, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            type: type ?? 'json',
+            content: replaceTabsWithSpaces(content)
+          }));
+        }
       }
 
       if (si.type == 'folder' && si?.root) {
@@ -574,6 +583,20 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     delete collectionToSave.brunoConfig.proxy.auth.password;
   }
 
+  if (collectionToSave?.brunoConfig?.protobuf?.importPaths) {
+    collectionToSave.brunoConfig.protobuf.importPaths = collectionToSave.brunoConfig.protobuf.importPaths.map((importPath) => {
+      delete importPath.exists;
+      return importPath;
+    });
+  }
+
+  if (collectionToSave?.brunoConfig?.protobuf?.protoFiles) {
+    collectionToSave.brunoConfig.protobuf.protoFiles = collectionToSave.brunoConfig.protobuf.protoFiles.map((protoFile) => {
+      delete protoFile.exists;
+      return protoFile;
+    });
+  }
+
   copyItems(collection.items, collectionToSave.items);
   return collectionToSave;
 };
@@ -609,8 +632,14 @@ export const transformRequestToSaveToFilesystem = (item) => {
     delete itemToSave.request.params
   }
 
+  if (_item.type === 'ws-request') {
+    delete itemToSave.request.method;
+    delete itemToSave.request.methodType;
+    delete itemToSave.request.params;
+  }
+
   // Only process params for non-gRPC requests
-  if (_item.type !== 'grpc-request') {
+  if (!['grpc-request', 'ws-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
       itemToSave.request.params.push({
         uid: param.uid,
@@ -650,6 +679,17 @@ export const transformRequestToSaveToFilesystem = (item) => {
     };
   }
 
+  if (itemToSave.request.body.mode === 'ws') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        type,
+        content: replaceTabsWithSpaces(content)
+      }))
+    };
+  }
+
   return itemToSave;
 };
 
@@ -677,7 +717,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -860,7 +900,7 @@ export const getDefaultRequestPaneTab = (item) => {
     return 'query';
   }
 
-  if (item.type === 'grpc-request') {
+  if (['ws-request', 'grpc-request'].includes(item.type)) {
     return 'body';
   }
 };

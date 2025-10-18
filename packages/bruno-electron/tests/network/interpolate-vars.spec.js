@@ -54,6 +54,135 @@ describe('interpolate-vars: interpolateVars', () => {
       });
     });
 
+    describe('With path params', () => {
+      it('keeps the original url search params as is', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/:param/?search=hello world',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/foobar/?search=hello world');
+      });
+
+      it('keeps the original url search params as is even when url might not have protocl ', async () => {
+        const request = {
+          method: 'GET',
+          url: 'example.com/:param/?search=hello world',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/foobar/?search=hello world');
+      });
+
+      it('keeps the original url search params as is even when encoded', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/:param?search=hello%20world',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/foobar?search=hello%20world');
+      });
+
+      it('keeps the original url search params as is with edge cases', async () => {
+        const requestOne = {
+          method: 'GET',
+          url: 'https://example.com/:param?x=1#section',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const requestTwo = {
+          method: 'GET',
+          url: 'https://example.com/:param?x?y=2',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const resultOne = interpolateVars(requestOne, null, null, null);
+        expect(resultOne.url).toBe('https://example.com/foobar?x=1#section');
+
+        const resultTwo = interpolateVars(requestTwo, null, null, null);
+        expect(resultTwo.url).toBe('https://example.com/foobar?x?y=2');
+      });
+
+      it('keeps the original url even without search', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/:param',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/foobar');
+      });
+
+      it('updates the path with odata style params | smoke', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/Category(\':CategoryID\')/Item(:ItemId)/:xpath/Tags("tag test")',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'CategoryID',
+              value: 'foobar',
+            },
+            {
+              type: 'path',
+              name: 'ItemId',
+              value: 1,
+            },
+            {
+              type: 'path',
+              name: 'xpath',
+              value: 'foobar',
+            },
+          ],
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/Category(\'foobar\')/Item(1)/foobar/Tags(%22tag%20test%22)');
+      });
+    });
+
     describe('With process environment variables', () => {
       /*
        * It should NOT turn process env vars into literal segments.

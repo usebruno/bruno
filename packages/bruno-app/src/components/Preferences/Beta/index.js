@@ -11,9 +11,9 @@ import get from 'lodash/get';
 // Beta features configuration
 const BETA_FEATURES = [
   {
-    id: 'grpc',
-    label: 'gRPC Support',
-    description: 'Enable gRPC request support for making gRPC calls to services'
+    id: 'nodevm',
+    label: 'Node VM Runtime',
+    description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
   }
 ];
 
@@ -68,7 +68,7 @@ const Beta = ({ close }) => {
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
   };
 
-  const hasAnyBetaFeatures = Object.values(formik.values).length > 0;
+  const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
 
   return (
     <StyledWrapper>
@@ -98,16 +98,6 @@ const Beta = ({ close }) => {
                 <label className="block ml-2 select-none font-medium" htmlFor={feature.id}>
                   {feature.label}
                 </label>
-                {feature.id === 'grpc' && (
-                  <a 
-                    href="https://github.com/usebruno/bruno/discussions/5447" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="ml-2 text-xs text-blue-500 hover:text-blue-600 underline"
-                  >
-                    Share feedback
-                  </a>
-                )}
               </div>
               <div className="beta-feature-description ml-6 text-xs text-gray-500 dark:text-gray-400">
                 {feature.description}

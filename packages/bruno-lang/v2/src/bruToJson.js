@@ -29,9 +29,9 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
   
@@ -86,9 +86,9 @@ const grammar = ohm.grammar(`Bru {
   meta = "meta" dictionary
   settings = "settings" dictionary
 
-  http = get | post | put | delete | patch | options | head | connect | trace
+  http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
   grpc = "grpc" dictionary
-
+  ws = "ws" dictionary
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -98,6 +98,7 @@ const grammar = ohm.grammar(`Bru {
   head = "head" dictionary
   connect = "connect" dictionary
   trace = "trace" dictionary
+  httpcustom = "http" dictionary
 
 
   headers = "headers" dictionary
@@ -138,6 +139,7 @@ const grammar = ohm.grammar(`Bru {
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
   bodygrpc = "body:grpc" dictionary
+  bodyws = "body:ws" dictionary
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
@@ -278,6 +280,19 @@ const mapPairListToKeyValPair = (pairList = []) => {
   return _.merge({}, ...pairList[0]);
 };
 
+/**
+ * @param {Record<unknown,unknown>} obj
+ * @returns {(key:string, opts?:{fallback: number })=>number|undefined}
+ */
+const createGetNumFromRecord = (obj) => (key, { fallback } = {}) => {
+  if (!(key in obj)) return fallback;
+  const asNumber = typeof obj[key] === 'number' ? obj[key] : Number(obj[key]);
+  if (isNaN(asNumber)) {
+    return fallback;
+  }
+  return asNumber;
+};
+
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
@@ -408,16 +423,64 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   settings(_1, dictionary) {
     let settings = mapPairListToKeyValPair(dictionary.ast);
+    const getNumFromRecord = createGetNumFromRecord(settings);
+
+    const keepAliveInterval = getNumFromRecord('keepAliveInterval');
+
+    const parsedSettings = {};
+    if (settings.followRedirects !== undefined) {
+      parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
+    }
+
+    // Parse maxRedirects as number
+    if (settings.maxRedirects !== undefined) {
+      const maxRedirects = parseInt(settings.maxRedirects, 10);
+      if (!isNaN(maxRedirects)) {
+        parsedSettings.maxRedirects = maxRedirects;
+      }
+    }
+
+    // Parse timeout as number or inherit
+    if (settings.timeout !== undefined) {
+      if (settings.timeout === 'inherit') {
+        parsedSettings.timeout = 'inherit';
+      } else {
+        const timeout = parseInt(settings.timeout, 10);
+        if (!isNaN(timeout)) {
+          parsedSettings.timeout = timeout;
+        }
+      }
+    }
+
+    const _settings = {
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+      timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0
+    };
+
+    if (parsedSettings.followRedirects !== undefined) {
+      _settings.followRedirects = parsedSettings.followRedirects;
+    }
+
+    if (parsedSettings.maxRedirects !== undefined) {
+      _settings.maxRedirects = parsedSettings.maxRedirects;
+    }
+
+    if (keepAliveInterval) {
+      _settings.keepAliveInterval = keepAliveInterval;
+    }
 
     return {
-      settings: {
-        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
-      }
+      settings: _settings
     };
   },
   grpc(_1, dictionary) {
     return {
       grpc: mapPairListToKeyValPair(dictionary.ast)
+    };
+  },
+  ws(_1, dictionary) {
+    return {
+      ws: mapPairListToKeyValPair(dictionary.ast)
     };
   },
   get(_1, dictionary) {
@@ -481,6 +544,26 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       http: {
         method: 'connect',
         ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  trace(_1, dictionary) {
+    return {
+      http: {
+        method: 'trace',
+        ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  httpcustom(_1, dictionary) {
+    const dict = mapPairListToKeyValPair(dictionary.ast);
+    const method = dict.method;
+    const rest = { ...dict };
+    delete rest.method;
+    return {
+      http: {
+        method,
+        ...rest
       }
     };
   },
@@ -946,6 +1029,29 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           name: messageName,
           content: messageContent
         }]
+      }
+    };
+  },
+  bodyws(_1, dictionary) {
+    const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
+    const namePair = _.find(pairs, { name: 'name' });
+    const contentPair = _.find(pairs, { name: 'content' });
+    const typePair = _.find(pairs, { name: 'type' });
+
+    const messageName = namePair ? namePair.value : '';
+    const messageContent = contentPair ? contentPair.value : '';
+    const messageTypeContent = typePair ? typePair.value : '';
+
+    return {
+      body: {
+        mode: 'ws',
+        ws: [
+          {
+            name: messageName,
+            type: messageTypeContent,
+            content: messageContent
+          }
+        ]
       }
     };
   }

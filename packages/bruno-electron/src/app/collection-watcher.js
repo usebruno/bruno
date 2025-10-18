@@ -21,6 +21,7 @@ const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
+const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -187,7 +188,28 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const brunoConfig = JSON.parse(content);
+      let brunoConfig = JSON.parse(content);
+      /*
+      * This is a temporary migration to convert grpc to protobuf
+      * This got added on september 18, 2025
+      * TODO: Remove this after 1st January, 2026
+      */
+      if (brunoConfig.grpc) {
+        brunoConfig.protobuf = brunoConfig.grpc;
+        delete brunoConfig.grpc;
+        const stringifiedConfig = JSON.stringify(brunoConfig, null, 2);
+        fs.writeFileSync(pathname, stringifiedConfig);
+
+        const payload = {
+          collectionUid,
+          brunoConfig: brunoConfig
+        };
+
+        win.webContents.send('main:bruno-config-update', payload);
+      }
+
+      // Transform the config to add existence checks for protobuf files and import paths
+      brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
       setBrunoConfig(collectionUid, brunoConfig);
     } catch (err) {
@@ -388,7 +410,10 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const brunoConfig = JSON.parse(content);
+      let brunoConfig = JSON.parse(content);
+
+      // Transform the config to add existence checks for protobuf files and import paths
+      brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
       const payload = {
         collectionUid,

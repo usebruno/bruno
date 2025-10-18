@@ -60,8 +60,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    type: `collection-item-${collectionUid}`,
-    item,
+    type: 'collection-item',
+    item: { ...item, sourceCollectionUid: collectionUid },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -92,9 +92,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
     const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
-    const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+    const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
 
     if (draggedItemUid === targetItemUid) return false;
+
+    // For cross-collection moves, we allow the drop
+    if (sourceCollectionUid !== collectionUid) {
+      return true;
+    }
 
     const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
     if (!newPathname) return false;
@@ -105,7 +110,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const [{ isOver, canDrop }, drop] = useDrop({
-    accept: `collection-item-${collectionUid}`,
+    accept: 'collection-item',
     hover: (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;

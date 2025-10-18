@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString } = require('./utils');
+const { indentString, getValueString } = require('./utils');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
@@ -16,25 +16,8 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
-const getValueString = (value) => {
-  const hasNewLines = value?.includes('\n');
-
-  if (!hasNewLines) {
-    return value;
-  }
-
-  // Add one level of indentation to the contents of the multistring
-  const indentedLines = value
-    .split('\n')
-    .map((line) => `  ${line}`)
-    .join('\n');
-
-  // Join the lines back together with newline characters and enclose them in triple single quotes
-  return `'''\n${indentedLines}\n'''`;
-};
-
 const jsonToBru = (json) => {
-  const { meta, http, grpc, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
 
 
   let bru = '';
@@ -60,24 +43,24 @@ const jsonToBru = (json) => {
     bru += '}\n\n';
   }
 
-  if (http && http.method) {
-    bru += `${http.method} {
-  url: ${http.url}`;
+  if (http?.method) {
+    const { method, url, body, auth } = http;
+    const standardMethods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect']);
 
-    if (http.body && http.body.length) {
-      bru += `
-  body: ${http.body}`;
+    const isStandard = standardMethods.has(method);
+
+    bru += isStandard ? `${method} {` : `http {\n  method: ${method}`;
+    bru += `\n  url: ${url}`;
+
+    if (body?.length) {
+      bru += `\n  body: ${body}`;
     }
 
-    if (http.auth && http.auth.length) {
-      bru += `
-  auth: ${http.auth}`;
+    if (auth?.length) {
+      bru += `\n  auth: ${auth}`;
     }
 
-    bru += `
-}
-
-`;
+    bru += `\n}\n\n`;
   }
 
   if(grpc && grpc.url) {
@@ -107,6 +90,31 @@ const jsonToBru = (json) => {
     if (grpc.methodType && grpc.methodType.length) {
       bru += `
   methodType: ${grpc.methodType}`;
+    }
+
+    bru += `
+}
+
+`;
+  }
+
+  if (ws && ws.url) {
+    bru += `ws {
+  url: ${ws.url}`;
+
+    if (ws.body && ws.body.length) {
+      bru += `
+  body: ${ws.body}`;
+    }
+
+    if (ws.auth && ws.auth.length) {
+      bru += `
+  auth: ${ws.auth}`;
+    }
+
+    if (ws.methodType && ws.methodType.length) {
+      bru += `
+  methodType: ${ws.methodType}`;
     }
 
     bru += `
@@ -597,6 +605,29 @@ ${indentString(body.sparql)}
         
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
+        bru += '}\n\n';
+      });
+    }
+  }
+
+  if (body && body.ws) {
+    // Convert each ws message to a separate body:ws block
+    if (Array.isArray(body.ws)) {
+      body.ws.forEach((message) => {
+        const { name, content, type = '' } = message;
+
+        bru += `body:ws {\n`;
+
+        bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
+        if (type.length) {
+          bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
+        }
+
+        // Convert content to JSON string if it's an object
+        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+
+        // Wrap content with triple quotes for multiline support, without extra indentation
+        bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
         bru += '}\n\n';
       });
     }
