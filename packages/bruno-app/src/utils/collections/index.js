@@ -1,6 +1,9 @@
 import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
+import { buildPersistedEnvVariables } from 'utils/environments';
+import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
+import { isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -135,6 +138,10 @@ export const findEnvironmentInCollectionByName = (collection, name) => {
 };
 
 export const areItemsLoading = (folder) => {
+  if (!folder || folder.isLoading) {
+    return true;
+  }
+  
   let flattenedItems = flattenItems(folder.items);
   return flattenedItems?.reduce((isLoading, i) => {
     if (i?.loading) {
@@ -226,12 +233,16 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         return;
       }
 
+      const isGrpcRequest = si.type === 'grpc-request'
+
       const di = {
         uid: si.uid,
         type: si.type,
         name: si.name,
         filename: si.filename,
-        seq: si.seq
+        seq: si.seq,
+        settings: si.settings,
+        tags: si.tags
       };
 
       if (si.request) {
@@ -249,7 +260,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
-            file: copyFileParams(si.request.body.file)
+            file: copyFileParams(si.request.body.file),
+            grpc: si.request.body.grpc,
+            ws: si.request.body.ws
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -257,6 +270,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           tests: si.request.tests,
           docs: si.request.docs
         };
+
+        if (isGrpcRequest) {
+          di.request.methodType = si.request.methodType;
+          di.request.protoPath = si.request.protoPath;
+          delete di.request.params;
+        }
+        
 
         // Handle auth object dynamically
         di.request.auth = {
@@ -314,10 +334,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'authorization_code':
@@ -334,10 +355,27 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   pkce: get(si.request, 'auth.oauth2.pkce', false),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                };
+                break;
+              case 'implicit':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
+                  authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  state: get(si.request, 'auth.oauth2.state', ''),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'client_credentials':
@@ -351,10 +389,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
             }
@@ -379,6 +418,21 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         if (di.request.body.mode === 'json') {
           di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
         }
+
+        if (di.request.body.mode === 'grpc') {
+          di.request.body.grpc = di.request.body.grpc.map(({name, content}, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            content: replaceTabsWithSpaces(content)
+          }))
+        }
+
+        if (di.request.body.mode === 'ws') {
+          di.request.body.ws = di.request.body.ws.map(({ name, content, type }, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            type: type ?? 'json',
+            content: replaceTabsWithSpaces(content)
+          }));
+        }
       }
 
       if (si.type == 'folder' && si?.root) {
@@ -387,7 +441,12 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         };
 
         let { request, meta, docs } = si?.root || {};
-        let { headers, script = {}, vars = {}, tests } = request || {};
+        let { auth, headers, script = {}, vars = {}, tests } = request || {};
+
+        // folder level auth
+        if (auth?.mode) {
+          di.root.request.auth = auth;
+        }
 
         // folder level headers
         if (headers?.length) {
@@ -457,7 +516,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  collectionToSave.environments = collection.environments || [];
+  // Save environments without runtime metadata (ephemeral/persistedValue)
+  collectionToSave.environments = (collection.environments || []).map((env) => ({
+    ...env,
+    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
+  }));
 
   collectionToSave.root = {
     request: {}
@@ -520,17 +583,34 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     delete collectionToSave.brunoConfig.proxy.auth.password;
   }
 
+  if (collectionToSave?.brunoConfig?.protobuf?.importPaths) {
+    collectionToSave.brunoConfig.protobuf.importPaths = collectionToSave.brunoConfig.protobuf.importPaths.map((importPath) => {
+      delete importPath.exists;
+      return importPath;
+    });
+  }
+
+  if (collectionToSave?.brunoConfig?.protobuf?.protoFiles) {
+    collectionToSave.brunoConfig.protobuf.protoFiles = collectionToSave.brunoConfig.protobuf.protoFiles.map((protoFile) => {
+      delete protoFile.exists;
+      return protoFile;
+    });
+  }
+
   copyItems(collection.items, collectionToSave.items);
   return collectionToSave;
 };
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
     name: _item.name,
     seq: _item.seq,
+    settings: _item.settings,
+    tags: _item.tags,
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -546,16 +626,31 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }
   };
 
-  each(_item.request.params, (param) => {
-    itemToSave.request.params.push({
-      uid: param.uid,
-      name: param.name,
-      value: param.value,
-      description: param.description,
-      type: param.type,
-      enabled: param.enabled
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    delete itemToSave.request.params
+  }
+
+  if (_item.type === 'ws-request') {
+    delete itemToSave.request.method;
+    delete itemToSave.request.methodType;
+    delete itemToSave.request.params;
+  }
+
+  // Only process params for non-gRPC requests
+  if (!['grpc-request', 'ws-request'].includes(_item.type)) {
+    each(_item.request.params, (param) => {
+      itemToSave.request.params.push({
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        type: param.type,
+        enabled: param.enabled
+      });
     });
-  });
+  }
 
   each(_item.request.headers, (header) => {
     itemToSave.request.headers.push({
@@ -571,6 +666,27 @@ export const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'ws') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        type,
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 
@@ -601,7 +717,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -705,23 +821,22 @@ export const humanizeRequestAPIKeyPlacement = (placement) => {
 };
 
 export const humanizeGrantType = (mode) => {
-  let label = 'No Auth';
-  switch (mode) {
-    case 'password': {
-      label = 'Password Credentials';
-      break;
-    }
-    case 'authorization_code': {
-      label = 'Authorization Code';
-      break;
-    }
-    case 'client_credentials': {
-      label = 'Client Credentials';
-      break;
-    }
+  if (!mode || typeof mode !== 'string') {
+    return '';
   }
 
-  return label;
+  switch (mode) {
+    case 'password':
+      return 'Password Credentials';
+    case 'authorization_code':
+      return 'Authorization Code';
+    case 'client_credentials':
+      return 'Client Credentials';
+    case 'implicit':
+      return 'Implicit';
+    default:
+      return mode;
+  }
 };
 
 export const refreshUidsInItem = (item) => {
@@ -783,6 +898,10 @@ export const getDefaultRequestPaneTab = (item) => {
 
   if (item.type === 'graphql-request') {
     return 'query';
+  }
+
+  if (['ws-request', 'grpc-request'].includes(item.type)) {
+    return 'body';
   }
 };
 
@@ -935,7 +1054,7 @@ export const maskInputValue = (value) => {
     .join('');
 };
 
-const getTreePathFromCollectionToItem = (collection, _item) => {
+export const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
   let item = findItemInCollection(collection, _item?.uid);
   while (item) {
@@ -1017,7 +1136,7 @@ export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = []
 
 export const resetSequencesInFolder = (folderItems) => {
   const items = folderItems;
-  const sortedItems = items.sort((a, b) => a.seq - b.seq);
+  const sortedItems = sortByNameThenSequence(items);
   return sortedItems.map((item, index) => {
     item.seq = index + 1;
     return item;
@@ -1085,3 +1204,52 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 
 // item sequence utils - END
 
+export const getUniqueTagsFromItems = (items = []) => {
+  const allTags = new Set();
+  const getTags = (items) => {
+    items.forEach(item => {
+      if (isItemARequest(item)) {
+        const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
+        tags.forEach(tag => allTags.add(tag));
+      }
+      if (item.items) {
+        getTags(item.items);
+      }
+    });
+  };
+  getTags(items);
+  return Array.from(allTags).sort();
+};
+
+
+export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
+  let requestItems = [];
+  
+  if (recursive) {
+    requestItems = flattenItems(items);
+  } else {
+    each(items, (item) => {
+      if (item.request) {
+        requestItems.push(item);
+      }
+    });
+  }
+
+  const requestTypes = ['http-request', 'graphql-request'];
+  requestItems = requestItems.filter(request => requestTypes.includes(request.type));
+
+  if (tags && tags.include && tags.exclude) {
+    const includeTags = tags.include ? tags.include : [];
+    const excludeTags = tags.exclude ? tags.exclude : [];
+    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
+      requestTags = draft?.tags || requestTags || [];
+      return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+    });
+  }
+
+  return requestItems;
+};
+
+export const getPropertyFromDraftOrRequest = (item, propertyKey, defaultValue = null) => {
+  return item.draft ? get(item, `draft.${propertyKey}`, defaultValue) : get(item, propertyKey, defaultValue);
+};

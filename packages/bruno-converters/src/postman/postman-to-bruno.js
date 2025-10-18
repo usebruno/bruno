@@ -2,7 +2,18 @@ import get from 'lodash/get';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
-import { invalidVariableCharacterRegex } from '../constants/index';  
+import { invalidVariableCharacterRegex } from '../constants/index';
+
+const AUTH_TYPES = Object.freeze({
+  BASIC: 'basic',
+  BEARER: 'bearer',
+  AWSV4: 'awsv4',
+  APIKEY: 'apikey',
+  DIGEST: 'digest',
+  OAUTH2: 'oauth2',
+  NOAUTH: 'noauth',
+  NONE: 'none'
+});
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
@@ -32,6 +43,31 @@ const parseGraphQLRequest = (graphqlSource) => {
   }
 };
 
+/**
+ * Transforms Postman descriptions to handle both legacy and new formats.
+ *
+ * Postman changed their description format:
+ * - Legacy format: description was a simple string
+ * - New format: description is an object with 'content' and 'type' properties
+ *
+ * This function handles both formats to ensure backward compatibility.
+ */
+const transformDescription = (description) => {
+  if (!description) {
+    return '';
+  }
+
+  if (typeof description === 'string') {
+    return description;
+  }
+
+  if (typeof description === 'object' && description.hasOwnProperty('content')) {
+    return description.content;
+  }
+
+  return '';
+};
+
 const isItemAFolder = (item) => {
   return !item.request;
 };
@@ -45,7 +81,7 @@ const convertV21Auth = (array) => {
 
 const constructUrlFromParts = (url) => {
   if (!url) return '';
-  
+
   const { protocol = 'http', host, path, port, query, hash } = url || {};
   const hostStr = Array.isArray(host) ? host.filter(Boolean).join('.') : host || '';
   const pathStr = Array.isArray(path) ? path.filter(Boolean).join('/') : path || '';
@@ -53,9 +89,9 @@ const constructUrlFromParts = (url) => {
   const queryStr =
     query && Array.isArray(query) && query.length > 0
       ? `?${query
-          .filter((q) => q && q.key)
-          .map((q) => `${q.key}=${q.value || ''}`)
-          .join('&')}`
+        .filter((q) => q && q.key)
+        .map((q) => `${q.key}=${q.value || ''}`)
+        .join('&')}`
       : '';
   const urlStr = `${protocol}://${hostStr}${portStr}${pathStr ? `/${pathStr}` : ''}${queryStr}`;
   return urlStr;
@@ -103,14 +139,14 @@ const importScriptsFromEvents = (events, requestObject) => {
       }
 
       if (event.listen === 'test') {
-        if (!requestObject.tests) {
-          requestObject.tests = {};
+        if (!requestObject.script) {
+          requestObject.script = {};
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.tests = postmanTranslation(event.script.exec)
+          requestObject.script.res = postmanTranslation(event.script.exec)
         } else {
-          requestObject.tests = '';
+          requestObject.script.res = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
       }
@@ -119,125 +155,147 @@ const importScriptsFromEvents = (events, requestObject) => {
 };
 
 const importCollectionLevelVariables = (variables, requestObject) => {
-  const vars = variables.map((v) => ({
+  const vars = variables.filter(v => !(v.key == null && v.value == null)).map((v) => ({
     uid: uuid(),
-    name: v.key.replace(invalidVariableCharacterRegex, '_'),
-    value: v.value,
+    name: (v.key ?? '').replace(invalidVariableCharacterRegex, '_'),
+    value: v.value ?? '',
     enabled: true
   }));
 
   requestObject.vars.req = vars;
 };
 
-const processAuth = (auth, requestObject) => {
-  if (!auth || !auth.type || auth.type === 'noauth') {
-    return;
+export const processAuth = (auth, requestObject, isCollection = false) => {
+  // As of 14/05/2025
+  // When collections are set to "No Auth" in Postman, the auth object is null.
+  // When folders and requests are set to "Inherit" in Postman, the auth object is null.
+  // When folders and requests are set to "No Auth" in Postman, the auth object is present.
+
+  // Handle collection-specific "No Auth"
+  if (isCollection && !auth) return; // Return as requestObject is a collection and has a default mode = none
+
+  // Handle folder/request specific "Inherit"
+  if (!auth) return; // Return as requestObject is a folder/request and has a default mode = inherit
+
+  // Handle folder/request specific "No Auth"
+  if (auth.type === AUTH_TYPES.NOAUTH) {
+    requestObject.auth.mode = AUTH_TYPES.NONE; // Set the mode to none
+    return; // No further processing needed
   }
 
-  let authValues = auth[auth.type];
+  let authValues = auth[auth.type] ?? [];
   if (Array.isArray(authValues)) {
     authValues = convertV21Auth(authValues);
   }
 
-  if (auth.type === 'basic') {
-    requestObject.auth.mode = 'basic';
-    requestObject.auth.basic = {
-      username: authValues.username || '',
-      password: authValues.password || ''
-    };
-  } else if (auth.type === 'bearer') {
-    requestObject.auth.mode = 'bearer';
-    requestObject.auth.bearer = {
-      token: authValues.token || ''
-    };
-  } else if (auth.type === 'awsv4') {
-    requestObject.auth.mode = 'awsv4';
-    requestObject.auth.awsv4 = {
-      accessKeyId: authValues.accessKey || '',
-      secretAccessKey: authValues.secretKey || '',
-      sessionToken: authValues.sessionToken || '',
-      service: authValues.service || '',
-      region: authValues.region || '',
-      profileName: ''
-    };
-  } else if (auth.type === 'apikey') {
-    requestObject.auth.mode = 'apikey';
-    requestObject.auth.apikey = {
-      key: authValues.key || '',
-      value: authValues.value?.toString() || '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
-      placement: 'header' //By default we are placing the apikey values in headers!
-    };
-  } else if (auth.type === 'digest') {
-    requestObject.auth.mode = 'digest';
-    requestObject.auth.digest = {
-      username: authValues.username || '',
-      password: authValues.password || ''
-    };
-  } else if (auth.type === 'oauth2') {
-    const findValueUsingKey = (key) => {
-      return authValues[key] || '';
-    };
-    const oauth2GrantTypeMaps = {
-      authorization_code_with_pkce: 'authorization_code',
-      authorization_code: 'authorization_code',
-      client_credentials: 'client_credentials',
-      password_credentials: 'password_credentials'
-    };
-    const grantType = oauth2GrantTypeMaps[findValueUsingKey('grant_type')] || 'authorization_code';
+  requestObject.auth.mode = auth.type; // Set the mode based on Postman's auth type
 
-    requestObject.auth.mode = 'oauth2';
-    if (grantType === 'authorization_code') {
-      requestObject.auth.oauth2 = {
-        grantType: 'authorization_code',
-        authorizationUrl: findValueUsingKey('authUrl'),
-        callbackUrl: findValueUsingKey('redirect_uri'),
+  switch (auth.type) {
+    case AUTH_TYPES.BASIC:
+      requestObject.auth.basic = {
+        username: authValues.username || '',
+        password: authValues.password || ''
+      };
+      break;
+    case AUTH_TYPES.BEARER:
+      requestObject.auth.bearer = {
+        token: authValues.token || ''
+      };
+      break;
+    case AUTH_TYPES.AWSV4:
+      requestObject.auth.awsv4 = {
+        accessKeyId: authValues.accessKey || '',
+        secretAccessKey: authValues.secretKey || '',
+        sessionToken: authValues.sessionToken || '',
+        service: authValues.service || '',
+        region: authValues.region || '',
+        profileName: ''
+      };
+      break;
+    case AUTH_TYPES.APIKEY:
+      requestObject.auth.apikey = {
+        key: authValues.key || '',
+        value: authValues.value?.toString() || '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
+        placement: 'header' //By default we are placing the apikey values in headers!
+      };
+      break;
+    case AUTH_TYPES.DIGEST:
+      requestObject.auth.digest = {
+        username: authValues.username || '',
+        password: authValues.password || ''
+      };
+      break;
+    case AUTH_TYPES.OAUTH2:
+      const findValueUsingKey = (key) => authValues[key] || '';
+
+      // Maps Postman's grant_type to the Bruno's grantType string expected in the target object
+      const oauth2GrantTypeMaps = {
+        authorization_code_with_pkce: 'authorization_code',
+        authorization_code: 'authorization_code',
+        client_credentials: 'client_credentials',
+        password_credentials: 'password'
+      };
+
+      const postmanGrantType = findValueUsingKey('grant_type');
+      const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
+
+      // Common properties for all OAuth2 grant types
+      const baseOAuth2Config = {
+        grantType: targetGrantType,
         accessTokenUrl: findValueUsingKey('accessTokenUrl'),
         refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
         clientId: findValueUsingKey('clientId'),
         clientSecret: findValueUsingKey('clientSecret'),
         scope: findValueUsingKey('scope'),
         state: findValueUsingKey('state'),
-        pkce: Boolean(findValueUsingKey('grant_type') == 'authorization_code_with_pkce'),
-        tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
-        credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+        tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
+        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
       };
-    } else if (grantType === 'password_credentials') {
-      requestObject.auth.oauth2 = {
-        grantType: 'password',
-        accessTokenUrl: findValueUsingKey('accessTokenUrl'),
-        refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
-        username: findValueUsingKey('username'),
-        password: findValueUsingKey('password'),
-        clientId: findValueUsingKey('clientId'),
-        clientSecret: findValueUsingKey('clientSecret'),
-        scope: findValueUsingKey('scope'),
-        state: findValueUsingKey('state'),
-        tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
-        credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
-      };
-    } else if (grantType === 'client_credentials') {
-      requestObject.auth.oauth2 = {
-        grantType: 'client_credentials',
-        accessTokenUrl: findValueUsingKey('accessTokenUrl'),
-        refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
-        clientId: findValueUsingKey('clientId'),
-        clientSecret: findValueUsingKey('clientSecret'),
-        scope: findValueUsingKey('scope'),
-        state: findValueUsingKey('state'),
-        tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
-        credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
-      };
-    }
-  } else {
-    console.warn('Unexpected auth.type', auth.type);
+
+      switch (postmanGrantType) {
+        case 'authorization_code':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            authorizationUrl: findValueUsingKey('authUrl'),
+            callbackUrl: findValueUsingKey('redirect_uri'),
+            pkce: false // PKCE is not used for standard authorization_code
+          };
+          break;
+        case 'authorization_code_with_pkce':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            authorizationUrl: findValueUsingKey('authUrl'),
+            callbackUrl: findValueUsingKey('redirect_uri'),
+            pkce: true, // Explicitly set pkce to true for this grant type
+          };
+          break;
+        case 'password_credentials':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            username: findValueUsingKey('username'),
+            password: findValueUsingKey('password'),
+          };
+          break;
+        case 'client_credentials':
+          requestObject.auth.oauth2 = baseOAuth2Config;
+          break;
+        default:
+          console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
+          requestObject.auth.oauth2 = baseOAuth2Config; // Fallback to default which is Client Credentials
+          break;
+      }
+      break;
+    default:
+      requestObject.auth.mode = AUTH_TYPES.NONE;
+      console.warn('Unexpected auth.type:', auth.type, '- Mode set, but no specific config generated.');
+      break;
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorkers = false } = {}, scriptMap)=> {
+const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false } = {}, scriptMap) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
-  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   item.forEach((i, index) => {
     if (isItemAFolder(i)) {
@@ -257,13 +315,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
         items: [],
         seq: index + 1,
         root: {
-          docs: i.description || '',
+          docs: transformDescription(i.description),
           meta: {
             name: folderName
           },
           request: {
             auth: {
-              mode: 'none',
+              mode: 'inherit',
               basic: null,
               bearer: null,
               awsv4: null,
@@ -282,19 +340,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
       brunoParent.items.push(brunoFolderItem);
 
       // Folder level auth
-      if (i.auth) {
-        processAuth(i.auth, brunoFolderItem.root.request);
-      } else if (parentAuth) {
-        // Inherit parent auth if folder doesn't define its own
-        processAuth(parentAuth, brunoFolderItem.root.request);
-      }
+      processAuth(i.auth, brunoFolderItem.root.request);
 
       if (i.item && i.item.length) {
-         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, { useWorkers }, scriptMap);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, { useWorkers }, scriptMap);
       }
 
       if (i.event) {
-        if(useWorkers) {
+        if (useWorkers) {
           scriptMap.set(brunoFolderItem.uid, {
             events: i.event,
             request: brunoFolderItem.root.request
@@ -307,8 +360,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
       folderMap[folderName] = brunoFolderItem;
 
     } else if (i.request) {
-      if (!requestMethods.includes(i?.request?.method.toUpperCase())) {
-        console.warn('Unexpected request.method', i?.request?.method);
+      const method =  i?.request?.method?.toUpperCase();
+      if (!method || typeof method !== 'string' || !method.trim()) {
+        console.warn('Missing or invalid request.method', method);
         return;
       }
 
@@ -327,12 +381,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
         uid: uuid(),
         name: requestName,
         type: 'http-request',
-        seq: index + 1, 
+        seq: index + 1,
         request: {
           url: url,
-          method: i?.request?.method?.toUpperCase(),
+          method: method,
           auth: {
-            mode: 'none',
+            mode: 'inherit',
             basic: null,
             bearer: null,
             awsv4: null,
@@ -350,15 +404,31 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
             formUrlEncoded: [],
             multipartForm: []
           },
-          docs: i.request.description || ''
+          docs: transformDescription(i.request.description)
         }
       };
+
+      const settings = {
+        encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
+      }
+
+      // Handle followRedirects setting
+      if (i.protocolProfileBehavior?.followRedirects !== undefined) {
+        settings.followRedirects = i.protocolProfileBehavior.followRedirects;
+      }
+
+      // Handle maxRedirects setting
+      if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
+        settings.maxRedirects = i.protocolProfileBehavior.maxRedirects;
+      }
+
+      brunoRequestItem.settings = settings;
 
       brunoParent.items.push(brunoRequestItem);
 
       if (i.event) {
-        if(useWorkers) {
-            scriptMap.set(brunoRequestItem.uid, {
+        if (useWorkers) {
+          scriptMap.set(brunoRequestItem.uid, {
             events: i.event,
             request: brunoRequestItem.request
           });
@@ -376,16 +446,17 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request?.tests) {
-                brunoRequestItem.request.tests = {};
+              if (!brunoRequestItem.request?.script) {
+                brunoRequestItem.request.script = {};
               }
               if (event.script.exec && event.script.exec.length > 0) {
-                brunoRequestItem.request.tests = postmanTranslation(event.script.exec)
+                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec)
               } else {
-                brunoRequestItem.request.tests = '';
+                brunoRequestItem.request.script.res = '';
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
+
           });
         }
       }
@@ -415,7 +486,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
               type: type,
               name: param.key,
               value: value,
-              description: param.description,
+              description: transformDescription(param.description),
               enabled: !param.disabled
             });
           });
@@ -428,7 +499,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
               uid: uuid(),
               name: param.key,
               value: param.value,
-              description: param.description,
+              description: transformDescription(param.description),
               enabled: !param.disabled
             });
           });
@@ -463,21 +534,20 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
           uid: uuid(),
           name: header.key,
           value: header.value,
-          description: header.description,
+          description: transformDescription(header.description),
           enabled: !header.disabled
         });
       });
 
-      // Handle request-level auth or inherit from parent
-      const auth = i.request.auth ?? parentAuth;
-      processAuth(auth, brunoRequestItem.request);
+      // Request-level auth
+      processAuth(i.request.auth, brunoRequestItem.request);
 
       each(get(i, 'request.url.query'), (param) => {
         brunoRequestItem.request.params.push({
           uid: uuid(),
           name: param.key,
           value: param.value,
-          description: param.description,
+          description: transformDescription(param.description),
           type: 'query',
           enabled: !param.disabled
         });
@@ -493,7 +563,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
           uid: uuid(),
           name: param.key,
           value: param.value ?? '',
-          description: param.description ?? '',
+          description: transformDescription(param.description),
           type: 'path',
           enabled: true
         });
@@ -504,7 +574,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
   });
 };
 
-  
+
 const searchLanguageByHeader = (headers) => {
   let contentType;
   each(headers, (header) => {
@@ -528,7 +598,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
     items: [],
     environments: [],
     root: {
-      docs: collection.info.description || '',
+      docs: transformDescription(collection.info.description),
       meta: {
         name: collection.info.name || 'Untitled Collection'
       },
@@ -559,19 +629,19 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
   }
 
   // Collection level auth
-  processAuth(collection.auth, brunoCollection.root.request);
+  processAuth(collection.auth, brunoCollection.root.request, true);
 
   // Create a single scriptMap for all items
   const scriptMap = useWorkers ? new Map() : null;
-  
-  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, { useWorkers }, scriptMap);
-  
+
+  importPostmanV2CollectionItem(brunoCollection, collection.item, { useWorkers }, scriptMap);
+
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {
     try {
-      const { default: scriptTranslationWorker } = await import('../workers/postman-translator-worker');    
+      const { default: scriptTranslationWorker } = await import('../workers/postman-translator-worker');
       const translatedScripts = await scriptTranslationWorker(scriptMap);
-      
+
       // Apply translated scripts to all items in the collection
       const applyScriptsToItems = (items) => {
         items.forEach(item => {
@@ -584,14 +654,14 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
               if (!item.root.request.tests) {
                 item.root.request.tests = '';
               }
-              
+
               const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.tests;
-              
+              const tests = translatedScripts.get(item.uid).request?.script?.res;
+
               item.root.request.script.req = script && script.length > 0 ? script : '';
-              item.root.request.tests = tests && tests.length > 0 ? tests : '';
+              item.root.request.script.res = tests && tests.length > 0 ? tests : '';
             }
-            
+
             // Recursively apply to nested items
             if (item.items && item.items.length > 0) {
               applyScriptsToItems(item.items);
@@ -604,26 +674,26 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
               if (!item.request.tests) {
                 item.request.tests = '';
               }
-              
+
               const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.tests;
-              
+              const tests = translatedScripts.get(item.uid).request?.script?.res;
+
               item.request.script.req = script && script.length > 0 ? script : '';
-              item.request.tests = tests && tests.length > 0 ? tests : '';
+              item.request.script.res = tests && tests.length > 0 ? tests : '';
             }
           }
         });
       };
-      
+
       applyScriptsToItems(brunoCollection.items);
-      
+
     } catch (error) {
       console.error('Error in script translation worker:', error);
     } finally {
       scriptMap.clear();
     }
   }
-  
+
   return brunoCollection;
 };
 
@@ -667,6 +737,5 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) =>
     throw new Error(`Import collection failed: ${err.message}`);
   }
 };
-
 
 export default postmanToBruno;

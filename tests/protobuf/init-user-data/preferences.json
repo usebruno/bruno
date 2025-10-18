@@ -1,0 +1,12 @@
+{
+    "maximized": true,
+    "lastOpenedCollections": [
+        "{{projectRoot}}/tests/protobuf/collection"
+    ],
+    "preferences": {
+        "beta": {
+            "grpc": true,
+            "nodevm": false
+        }
+    }
+}

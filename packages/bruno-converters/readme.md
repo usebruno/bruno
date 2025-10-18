@@ -31,7 +31,7 @@ const brunoEnvironment = postmanToBrunoEnvironment(postmanEnvironment);
 ### Convert Insomnia collection to Bruno collection
 
 ```javascript
-import { insomniaToBruno } from '@usebruno/converters';
+const { insomniaToBruno } = require('@usebruno/converters');
 
 const brunoCollection = insomniaToBruno(insomniaCollection);
 ```
@@ -39,7 +39,7 @@ const brunoCollection = insomniaToBruno(insomniaCollection);
 ### Convert OpenAPI specification to Bruno collection
 
 ```javascript
-import { openApiToBruno } from '@usebruno/converters';
+const { openApiToBruno } = require('@usebruno/converters');
 
 const brunoCollection = openApiToBruno(openApiSpecification);
 ```

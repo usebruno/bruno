@@ -7,6 +7,7 @@ const Wrapper = styled.div`
     user-select: none;
     padding-left: 8px;
     font-weight: 600;
+    border: ${(props) => props.theme.dragAndDrop.borderStyle} transparent;
 
     .rotate-90 {
       transform: rotateZ(90deg);
@@ -41,6 +42,7 @@ const Wrapper = styled.div`
     }
 
     &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .collection-actions {
         .dropdown {
           div[aria-expanded='false'] {
@@ -65,6 +67,7 @@ const Wrapper = styled.div`
     }
 
     &.drop-target {
+      border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
       transition: ${(props) => props.theme.dragAndDrop.transition};
     }
@@ -84,15 +87,14 @@ const Wrapper = styled.div`
       background: transparent;
       transition: ${(props) => props.theme.dragAndDrop.transition};
     }
-  }
 
-  .collection-name.drop-target {
-    border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
-    border-radius: 4px;
-    background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
-    margin: -2px;
-    transition: ${(props) => props.theme.dragAndDrop.transition};
-    box-shadow: 0 0 0 2px ${(props) => props.theme.dragAndDrop.hoverBg};
+    &.collection-focused-in-tab {
+      background: ${(props) => props.theme.sidebar.collection.item.bg};
+
+      &:hover {
+        background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
+      }
+    }
   }
 
   #sidebar-collection-name {

@@ -1,24 +1,30 @@
 import Modal from 'components/Modal/index';
-import { useState } from 'react';
+import { useMemo } from 'react';
 import CodeView from './CodeView';
+import CodeViewToolbar from './CodeViewToolbar';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
-import { findEnvironmentInCollection } from 'utils/collections';
+import {
+  findEnvironmentInCollection
+} from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { resolveInheritedAuth } from './utils/auth-utils';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const languages = getLanguages();
-
   const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
-
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
-
+  const generateCodePrefs = useSelector((state) => state.app.generateCode);
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+    globalEnvironments,
+    activeGlobalEnvironmentUid
+  });
   const environment = findEnvironmentInCollection(collection, collection?.activeEnvironmentUid);
+
   let envVars = {};
   if (environment) {
     const vars = get(environment, 'variables', []);
@@ -31,13 +37,13 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const requestUrl =
     get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
 
-  // interpolate the url
+  const variables = useMemo(() => {
+    return getAllVariables({ ...collection, globalEnvironmentVariables }, item);
+  }, [collection, globalEnvironmentVariables, item]);
+
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
-    globalEnvironmentVariables,
-    envVars,
-    runtimeVariables: collection.runtimeVariables,
-    processEnvVars: collection.processEnvVariables
+    variables
   });
 
   // interpolate the path params
@@ -46,72 +52,40 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
   );
 
-  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
+  // Get the full language object based on current preferences
+  const selectedLanguage = useMemo(() => {
+    const fullName = generateCodePrefs.library === 'default'
+      ? generateCodePrefs.mainLanguage
+      : `${generateCodePrefs.mainLanguage}-${generateCodePrefs.library}`;
+
+    return languages.find(lang => lang.name === fullName) || languages[0];
+  }, [generateCodePrefs.mainLanguage, generateCodePrefs.library, languages]);
+
+  // Resolve auth inheritance
+  const resolvedRequest = resolveInheritedAuth(item, collection);
+
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
-        <div className="flex w-full flexible-container">
-          <div>
-            <div className="generate-code-sidebar">
-              {languages &&
-                languages.length &&
-                languages.map((language) => (
-                  <div
-                    key={language.name}
-                    className={
-                      language.name === selectedLanguage.name ? 'generate-code-item active' : 'generate-code-item'
-                    }
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedLanguage(language)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Tab' || (e.shiftKey && e.key === 'Tab')) {
-                        e.preventDefault();
-                        const currentIndex = languages.findIndex((lang) => lang.name === selectedLanguage.name);
-                        const nextIndex = e.shiftKey
-                          ? (currentIndex - 1 + languages.length) % languages.length
-                          : (currentIndex + 1) % languages.length;
-                        setSelectedLanguage(languages[nextIndex]);
+        <div className="code-generator">
+          <CodeViewToolbar />
 
-                        // Explicitly focus on the new active element
-                        const nextElement = document.querySelector(`[data-language="${languages[nextIndex].name}"]`);
-                        nextElement?.focus();
-                      }
-                      
-                    }}
-                    data-language={language.name}
-                    aria-pressed={language.name === selectedLanguage.name}
-                  >
-                    <span className="capitalize">{language.name}</span>
-                  </div>
-                ))}
-            </div>
-          </div>
-          <div className="flex-grow p-4">
+          <div className="editor-container">
             {isValidUrl(finalUrl) ? (
               <CodeView
-                tabIndex={-1}
                 language={selectedLanguage}
                 item={{
                   ...item,
-                  request:
-                    item.request.url !== ''
-                      ? {
-                          ...item.request,
-                          url: finalUrl
-                        }
-                      : {
-                          ...item.draft.request,
-                          url: finalUrl
-                        }
+                  request: {
+                    ...resolvedRequest,
+                    url: finalUrl
+                  }
                 }}
               />
             ) : (
-              <div className="flex flex-col justify-center items-center w-full">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {finalUrl}</h1>
-                  <p className="text-gray-500">Please check the URL and try again</p>
-                </div>
+              <div className="error-message">
+                <h1>Invalid URL: {finalUrl}</h1>
+                <p>Please check the URL and try again</p>
               </div>
             )}
           </div>

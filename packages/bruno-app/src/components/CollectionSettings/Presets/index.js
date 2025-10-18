@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useFormik } from 'formik';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
@@ -62,6 +62,19 @@ const PresetsSettings = ({ collection }) => {
             <label htmlFor="graphql" className="ml-1 cursor-pointer select-none">
               GraphQL
             </label>
+
+            <input
+              id="grpc"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={formik.handleChange}
+              value="grpc"
+              checked={formik.values.requestType === 'grpc'}
+            />
+            <label htmlFor="grpc" className="ml-1 cursor-pointer select-none">
+              gRPC
+            </label>
           </div>
         </div>
         <div className="mb-3 flex items-center">
@@ -74,7 +87,7 @@ const PresetsSettings = ({ collection }) => {
                 id="request-url"
                 type="text"
                 name="requestUrl"
-                placeholder='Request URL'
+                placeholder="Request URL"
                 className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
@@ -87,6 +100,7 @@ const PresetsSettings = ({ collection }) => {
             </div>
           </div>
         </div>
+
         <div className="mt-6">
           <button type="submit" className="submit btn btn-sm btn-secondary">
             Save

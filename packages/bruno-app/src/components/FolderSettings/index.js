@@ -9,16 +9,8 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
 import Documentation from './Documentation';
 import Auth from './Auth';
-import DotIcon from 'components/Icons/Dot';
+import StatusDot from 'components/StatusDot';
 import get from 'lodash/get';
-
-const ContentIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium">
-      <DotIcon width="10"></DotIcon>
-    </sup>
-  );
-};
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -82,7 +74,7 @@ const FolderSettings = ({ collection, folder }) => {
   };
 
   return (
-    <StyledWrapper className="flex flex-col h-full">
+    <StyledWrapper className="flex flex-col h-full overflow-auto">
       <div className="flex flex-col h-full relative px-4 py-4">
         <div className="flex flex-wrap items-center tabs" role="tablist">
           <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
@@ -91,11 +83,11 @@ const FolderSettings = ({ collection, folder }) => {
           </div>
           <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
             Script
-            {hasScripts && <ContentIndicator />}
+            {hasScripts && <StatusDot />}
           </div>
           <div className={getTabClassname('test')} role="tab" onClick={() => setTab('test')}>
             Test
-            {hasTests && <ContentIndicator />}
+            {hasTests && <StatusDot />}
           </div>
           <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
             Vars
@@ -103,13 +95,13 @@ const FolderSettings = ({ collection, folder }) => {
           </div>
           <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
             Auth
-            {hasAuth && <ContentIndicator />}
+            {hasAuth && <StatusDot />}
           </div>
           <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
             Docs
           </div>
         </div>
-        <section className={`flex mt-4 h-full`}>{getTabPanel(tab)}</section>
+        <section className={`flex mt-4 h-full overflow-auto`}>{getTabPanel(tab)}</section>
       </div>
     </StyledWrapper>
   );

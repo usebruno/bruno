@@ -1,6 +1,14 @@
 const { describe, it, expect } = require('@jest/globals');
 
-import { normalizeFileName, startsWith, humanizeDate, relativeDate } from './index';
+import {
+  normalizeFileName,
+  startsWith,
+  humanizeDate,
+  relativeDate,
+  getContentType,
+  formatSize,
+  prettifyJSON
+} from './index';
 
 describe('common utils', () => {
   describe('normalizeFileName', () => {
@@ -105,6 +113,109 @@ describe('common utils', () => {
       let date = new Date();
       date.setDate(date.getDate() - 60);
       expect(relativeDate(date)).toBe('2 months ago');
+    });
+  });
+
+  describe('getContentType', () => {
+    it('should handle JSON content types correctly', () => {
+      expect(getContentType({ 'content-type': 'application/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'content-type': 'application/ld+json' })).toBe('application/ld+json');
+    });
+
+    it('should handle XML content types correctly', () => {
+      expect(getContentType({ 'content-type': 'text/xml' })).toBe('application/xml');
+      expect(getContentType({ 'content-type': 'application/xml' })).toBe('application/xml');
+      expect(getContentType({ 'content-type': 'application/atom+xml' })).toBe('application/xml');
+    });
+
+    it('should handle image content types correctly', () => {
+      expect(getContentType({ 'content-type': 'image/svg+xml;charset=utf-8' })).toBe('image/svg+xml');
+      expect(getContentType({ 'content-type': 'IMAGE/SVG+xml' })).toBe('image/svg+xml');
+    });
+
+    it('should return original content type when no pattern matches', () => {
+      expect(getContentType({ 'content-type': 'image/jpeg' })).toBe('image/jpeg');
+      expect(getContentType({ 'content-type': 'application/pdf' })).toBe('application/pdf');
+    });
+
+    it('should not be case sensitive', () => {
+      expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'Content-Type': 'text/json' })).toBe('application/ld+json');
+    });
+
+    it('should handle empty content type', () => {
+      expect(getContentType({ 'content-type': '' })).toBe('');
+      expect(getContentType({ 'content-type': null })).toBe('');
+      expect(getContentType({ 'content-type': undefined })).toBe('');
+    });
+
+    it('should handle empty or invalid inputs', () => {
+      expect(getContentType({})).toBe('');
+      expect(getContentType(null)).toBe('');
+      expect(getContentType(undefined)).toBe('');
+    });
+  });
+
+  describe('formatSize', () => {
+    it('should format bytes', () => {
+      expect(formatSize(0)).toBe('0B');
+      expect(formatSize(1023)).toBe('1023B');
+    });
+
+    it('should format kilobytes', () => {
+      expect(formatSize(1024)).toBe('1.0KB');
+      expect(formatSize(1048575)).toBe('1024.0KB');
+    });
+
+    it('should format megabytes', () => {
+      expect(formatSize(1048576)).toBe('1.0MB');
+      expect(formatSize(1073741823)).toBe('1024.0MB');
+    });
+
+    it('should format gigabytes', () => {
+      expect(formatSize(1073741824)).toBe('1.0GB');
+      expect(formatSize(1099511627776)).toBe('1024.0GB');
+    });
+
+    it('should format decimal values', () => {
+      expect(formatSize(1126.5)).toBe('1.1KB');
+      expect(formatSize(1153433.6)).toBe('1.1MB');
+      expect(formatSize(1153433600)).toBe('1.1GB');
+      expect(formatSize(1024.1)).toBe('1.0KB');
+      expect(formatSize(1048576.1)).toBe('1.0MB');
+    });
+
+    it('should format invalid inputs', () => {
+      expect(formatSize(null)).toBe('0B');
+      expect(formatSize(undefined)).toBe('0B');
+      expect(formatSize(NaN)).toBe('0B');
+    });
+  });
+
+  describe('prettifyJSON', () => {
+    it('should prettify a standard JSON string', () => {
+      const input = '{"key":"value","number":123}';
+      const expected = '{\n  "key": "value",\n  "number": 123\n}';
+      expect(prettifyJSON(input)).toBe(expected);
+    });
+
+    it('should handle JSON with a Bruno variable as a value', () => {
+      const input = '{"id":{{request_id}}}';
+      const expected = '{\n  "id": {{request_id}}\n}';
+      expect(prettifyJSON(input)).toBe(expected);
+    });
+
+    it('should handle JSON with a Bruno variable inside a string value', () => {
+      const input = '{"url":"https://example.com/{{path}}"}';
+      const expected = '{\n  "url": "https://example.com/{{path}}"\n}';
+      expect(prettifyJSON(input)).toBe(expected);
+    });
+
+    it('should return the original string for invalid JSON', () => {
+      const input = '{"key":"value",';
+      const expected = '{\n  "key": "value",';
+      expect(prettifyJSON(input)).toBe(expected);
     });
   });
 });

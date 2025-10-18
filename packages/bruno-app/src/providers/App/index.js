@@ -13,7 +13,6 @@ export const AppContext = React.createContext();
 export const AppProvider = (props) => {
   useTelemetry({ version });
   useIpcEvents();
-
   const dispatch = useDispatch();
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useRef, Fragment } from 'react';
+import React, { useCallback, useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -18,10 +18,12 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
+import { closeWsConnection } from 'utils/network/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
   const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   const dropdownTippyRef = useRef();
@@ -65,8 +67,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const getMethodColor = (method = '') => {
-    const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
-    return theme.request.methods[method.toLocaleLowerCase()];
+    const colorMap = {
+      ...theme.request.methods,
+      ...theme.request
+    };
+    return colorMap[method.toLocaleLowerCase()];
   };
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
@@ -89,6 +94,21 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const item = findItemInCollection(collection, tab.uid);
 
+  const getMethodText = useCallback((item) => {
+    if (!item) return;
+
+    switch (item.type) {
+      case 'grpc-request':
+        return 'gRPC';
+      case 'ws-request':
+        return 'WS';
+      case 'graphql-request':
+        return 'GQL';
+      default:
+        return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+    }
+  }, [item]);
+
   if (!item) {
     return (
       <StyledWrapper
@@ -107,7 +127,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+  const isWS = item.type === 'ws-request';
+  const method = getMethodText(item);
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
@@ -116,6 +137,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           item={item}
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
+            isWS && closeWsConnection(item.uid);
             dispatch(
               deleteRequestDraft({
                 itemUid: item.uid,
@@ -178,7 +200,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       <div
         className="flex px-2 close-icon-container"
         onClick={(e) => {
-          if (!item.draft) return handleCloseClick(e);
+          if (!item.draft) {
+            isWS && closeWsConnection(item.uid);
+            return handleCloseClick(e);
+          };
 
           e.stopPropagation();
           e.preventDefault();
@@ -263,14 +288,13 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   return (
     <Fragment>
       {showAddNewRequestModal && (
-        <NewRequest collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowAddNewRequestModal(false)} />
+        <NewRequest collectionUid={collection.uid} onClose={() => setShowAddNewRequestModal(false)} />
       )}
 
       {showCloneRequestModal && (
         <CloneCollectionItem
           item={currentTabItem}
           collectionUid={collection.uid}
-          collectionPathname={collection.pathname}
           onClose={() => setShowCloneRequestModal(false)}
         />
       )}

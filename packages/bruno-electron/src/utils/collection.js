@@ -3,6 +3,7 @@ const fs = require('fs');
 const { getRequestUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
+const { preferencesUtil } = require('../store/preferences');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -47,7 +48,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
 };
 
-const mergeVars = (collection, request, requestTreePath) => {
+const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
   let collectionRequestVars = get(collection, 'root.request.vars.req', []);
   let collectionVariables = {};
@@ -237,12 +238,47 @@ const parseBruFileMeta = (data) => {
           metaJson[key] = isNaN(value) ? value : Number(value);
         }
       });
-      return { meta: metaJson };
+
+      // Transform to the format expected by bruno-app
+      let requestType = metaJson.type;
+      if (requestType === 'http') {
+        requestType = 'http-request';
+      } else if (requestType === 'graphql') {
+        requestType = 'graphql-request';
+      } else {
+        requestType = 'http-request';
+      }
+
+      const sequence = metaJson.seq;
+      const transformedJson = {
+        type: requestType,
+        name: metaJson.name,
+        seq: !isNaN(sequence) ? Number(sequence) : 1,
+        settings: {},
+        tags: metaJson.tags || [],
+        request: {
+          method: '',
+          url: '',
+          params: [],
+          headers: [],
+          auth: { mode: 'none' },
+          body: { mode: 'none' },
+          script: {},
+          vars: {},
+          assertions: [],
+          tests: '',
+          docs: ''
+        }
+      };
+
+      return transformedJson;
     } else {
       console.log('No "meta" block found in the file.');
+      return null;
     }
   } catch (err) {
     console.error('Error reading file:', err);
+    return null;
   }
 }
 
@@ -295,6 +331,8 @@ const transformRequestToSaveToFilesystem = (item) => {
     type: _item.type,
     name: _item.name,
     seq: _item.seq,
+    settings: _item.settings,
+    tags: _item.tags,
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -310,16 +348,25 @@ const transformRequestToSaveToFilesystem = (item) => {
     }
   };
 
-  each(_item.request.params, (param) => {
-    itemToSave.request.params.push({
-      uid: param.uid,
-      name: param.name,
-      value: param.value,
-      description: param.description,
-      type: param.type,
-      enabled: param.enabled
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    delete itemToSave.request.params
+  }
+
+  // Only process params for non-gRPC requests
+  if (_item.type !== 'grpc-request') {
+    each(_item.request.params, (param) => {
+      itemToSave.request.params.push({
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        type: param.type,
+        enabled: param.enabled
+      });
     });
-  });
+  }
 
   each(_item.request.headers, (header) => {
     itemToSave.request.headers.push({
@@ -338,6 +385,16 @@ const transformRequestToSaveToFilesystem = (item) => {
     };
   }
 
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
+    };
+  }
+
   return itemToSave;
 }
 
@@ -346,7 +403,7 @@ const sortCollection = (collection) => {
   let folderItems = filter(items, (item) => item.type === 'folder');
   let requestItems = filter(items, (item) => item.type !== 'folder');
 
-  folderItems = folderItems.sort((a, b) => a.seq - b.seq);
+  folderItems = sortByNameThenSequence(folderItems);
   requestItems = requestItems.sort((a, b) => a.seq - b.seq);
 
   collection.items = folderItems.concat(requestItems);
@@ -361,7 +418,7 @@ const sortFolder = (folder = {}) => {
   let folderItems = filter(items, (item) => item.type === 'folder');
   let requestItems = filter(items, (item) => item.type !== 'folder');
 
-  folderItems = folderItems.sort((a, b) => a.seq - b.seq);
+  folderItems = sortByNameThenSequence(folderItems);
   requestItems = requestItems.sort((a, b) => a.seq - b.seq);
 
   folder.items = folderItems.concat(requestItems);
@@ -467,6 +524,73 @@ const mergeAuth = (collection, request, requestTreePath) => {
   }
 };
 
+const resolveInheritedSettings = (settings) => {
+  const resolvedSettings = {};
+
+  // Resolve each setting individually
+  Object.keys(settings).forEach((settingKey) => {
+    const currentValue = settings[settingKey];
+
+    // If setting is inherited, fallback to preferences only for timeout setting
+    if (currentValue === 'inherit' || currentValue === undefined || currentValue === null) {
+      if (settingKey === 'timeout') {
+        resolvedSettings[settingKey] = preferencesUtil.getRequestTimeout();
+      }
+    } else {
+      // Use the current value as-is
+      resolvedSettings[settingKey] = currentValue;
+    }
+  });
+
+  // Handle missing timeout setting - if timeout is not in settings, treat it as inherited
+  if (!settings.hasOwnProperty('timeout')) {
+    resolvedSettings.timeout = preferencesUtil.getRequestTimeout();
+  }
+
+  return resolvedSettings;
+};
+
+const sortByNameThenSequence = items => {
+  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+
+  // Sort folders alphabetically by name
+  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
+
+  // Extract folders without 'seq'
+  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+
+  // Extract folders with 'seq' and sort them by 'seq'
+  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+
+  const sortedItems = withoutSeq;
+
+  // Insert folders with 'seq' at their specified positions
+  withSeq.forEach((item) => {
+    const position = item.seq - 1;
+    const existingItem = withoutSeq[position];
+
+    // Check if there's already an item with the same sequence number
+    const hasItemWithSameSeq = Array.isArray(existingItem)
+      ? existingItem?.[0]?.seq === item.seq
+      : existingItem?.seq === item.seq;
+
+    if (hasItemWithSameSeq) {
+      // If there's a conflict, group items with same sequence together
+      const newGroup = Array.isArray(existingItem)
+        ? [...existingItem, item]
+        : [existingItem, item];
+      
+      withoutSeq.splice(position, 1, newGroup);
+    } else {
+      // Insert item at the specified position
+      withoutSeq.splice(position, 0, item);
+    }
+  });
+
+  // return flattened sortedItems
+  return sortedItems.flat();
+};
+
 module.exports = {
   mergeHeaders,
   mergeVars,
@@ -487,5 +611,7 @@ module.exports = {
   sortFolder,
   getAllRequestsInFolderRecursively,
   getEnvVars,
-  getFormattedCollectionOauth2Credentials
+  getFormattedCollectionOauth2Credentials,
+  sortByNameThenSequence,
+  resolveInheritedSettings
 };

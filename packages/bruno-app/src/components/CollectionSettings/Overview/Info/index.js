@@ -53,7 +53,7 @@ const Info = ({ collection }) => {
             </div>
             <div className="ml-4">
               <div className="font-semibold text-sm">Requests</div>
-              <div className="mt-1 text-sm text-muted font-mono">
+              <div className="mt-1 text-sm text-muted">
                 {
                   isCollectionLoading? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
                 }
@@ -72,7 +72,7 @@ const Info = ({ collection }) => {
               </div>
             </div>
           </div>
-          {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={handleToggleShowShareCollectionModal(false)} />}
+          {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
     </div>

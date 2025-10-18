@@ -22,4 +22,20 @@ const postmanToBruno = (collection) => {
   });
 };
 
-export { postmanToBruno, readFile };
+const isPostmanCollection = (data) => {
+  const info = data.info;
+  if (!info || typeof info !== 'object') {
+    return false;
+  }
+
+  const schema = info.schema;
+  // Accept schemas hosted at schema.getpostman.com or schema.postman.com
+  const schemaRegex = /^https:\/\/schema\.(?:getpostman|postman)\.com\//;
+  if (typeof schema === 'string' && schemaRegex.test(schema)) {
+    return true;
+  }
+
+  return false;
+};
+
+export { postmanToBruno, readFile, isPostmanCollection };

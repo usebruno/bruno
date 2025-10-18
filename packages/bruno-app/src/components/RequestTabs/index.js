@@ -4,11 +4,12 @@ import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
+import DraggableTab from './DraggableTab';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -18,6 +19,7 @@ const RequestTabs = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
+  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
 
   const getTabClassname = (tab, index) => {
@@ -49,7 +51,8 @@ const RequestTabs = () => {
   const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
 
-  const maxTablistWidth = screenWidth - leftSidebarWidth - 150;
+  const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
+  const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
   const tabsWidth = collectionRequestTabs.length * 150 + 34; // 34: (+)icon
   const showChevrons = maxTablistWidth < tabsWidth;
 
@@ -79,7 +82,7 @@ const RequestTabs = () => {
   return (
     <StyledWrapper className={getRootClassname()}>
       {newRequestModalOpen && (
-        <NewRequest collectionUid={activeCollection?.uid} collectionPathname={activeCollection?.pathname} onClose={() => setNewRequestModalOpen(false)} />
+        <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
@@ -104,10 +107,17 @@ const RequestTabs = () => {
               {collectionRequestTabs && collectionRequestTabs.length
                 ? collectionRequestTabs.map((tab, index) => {
                     return (
-                      <li
+                      <DraggableTab
                         key={tab.uid}
+                        id={tab.uid}
+                        index={index}
+                        onMoveTab={(source, target) => {
+                          dispatch(reorderTabs({
+                            sourceUid: source,
+                            targetUid: target
+                          }));
+                        }}
                         className={getTabClassname(tab, index)}
-                        role="tab"
                         onClick={() => handleClick(tab)}
                       >
                         <RequestTab
@@ -118,7 +128,7 @@ const RequestTabs = () => {
                           collection={activeCollection}
                           folderUid={tab.folderUid}
                         />
-                      </li>
+                      </DraggableTab>
                     );
                   })
                 : null}

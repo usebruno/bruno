@@ -1,0 +1,9 @@
+openapi: 3.0.0
+# Missing required info section
+paths:
+  /test:
+    get:
+      summary: Test endpoint
+      responses:
+        '200':
+          description: Success

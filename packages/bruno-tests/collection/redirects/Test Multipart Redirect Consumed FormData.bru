@@ -1,0 +1,45 @@
+meta {
+  name: Test Multipart Redirect Consumed FormData
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{localhost}}/api/redirect/multipart-redirect-source
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  consumed-field: consumed-value
+}
+
+assert {
+  res.status: 200
+}
+
+tests {
+  test("should handle consumed FormData recreation during 308 redirect", function() {
+    const data = res.getBody();
+    expect(data).to.be.an('object');
+    expect(data.status).to.equal('success');
+    expect(data.method).to.equal('POST');
+  });
+  
+  test("should preserve POST method when FormData is consumed and recreated", function() {
+    const data = res.getBody();
+    expect(data.method).to.equal('POST');
+  });
+  
+  test("should receive form data after FormData recreation", function() {
+    const data = res.getBody();
+    expect(data.body).to.have.property('consumed-field');
+    expect(data.body['consumed-field']).to.equal('consumed-value');
+  });
+  
+  test("should maintain proper content-type after FormData recreation", function() {
+    const data = res.getBody();
+    expect(data.headers).to.have.property('content-type');
+    expect(data.headers['content-type']).to.include('multipart/form-data');
+  });
+}

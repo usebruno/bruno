@@ -1,3 +1,1 @@
-# .husky/pre-commit
-
-npx lint-staged
+npx nano-staged
