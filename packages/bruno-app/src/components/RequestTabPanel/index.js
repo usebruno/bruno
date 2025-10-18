@@ -28,6 +28,7 @@ import { produce } from 'immer';
 import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
+import { useTheme } from 'providers/Theme';
 import FolderNotFound from './FolderNotFound';
 import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
@@ -43,6 +44,7 @@ const RequestTabPanel = () => {
     return <div></div>;
   }
   const dispatch = useDispatch();
+  const { displayedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -340,7 +342,7 @@ const RequestTabPanel = () => {
 
       {item.type === 'graphql-request' ? (
         <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
-          <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
+          <DocExplorer schema={schema} theme={displayedTheme} ref={(r) => (docExplorerRef.current = r)}>
             <button className="mr-2" onClick={toggleDocs} aria-label="Close Documentation Explorer">
               {'\u2715'}
             </button>
