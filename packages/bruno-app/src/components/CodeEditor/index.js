@@ -252,13 +252,6 @@ export default class CodeEditor extends React.Component {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
       this.editor.off('scroll', this.onScroll);
-
-      // Clean up context menu handler if it exists
-      if (this.contextMenuHandler && this.props.readOnly) {
-        const editorElement = this.editor.getWrapperElement();
-        editorElement.removeEventListener('contextmenu', this.contextMenuHandler);
-      }
-
       this.editor = null;
     }
   }
