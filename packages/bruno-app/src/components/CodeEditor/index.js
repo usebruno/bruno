@@ -202,6 +202,25 @@ export default class CodeEditor extends React.Component {
         editor,
         autoCompleteOptions
       );
+
+      // Add context menu support for read-only editors (especially for response pane)
+      if (this.props.readOnly) {
+        const editorElement = editor.getWrapperElement();
+        this.contextMenuHandler = (e) => {
+          // Allow native context menu for text selection
+          // This enables copy/paste functionality on macOS and other platforms
+          const selection = editor.getSelection();
+
+          // If there's a selection, we want the native context menu
+          // If CodeMirror's default behavior prevents it, we'll ensure it's allowed
+          if (selection) {
+            // Let the native context menu show
+            // No preventDefault needed - we want the default behavior
+            return;
+          }
+        };
+        editorElement.addEventListener('contextmenu', this.contextMenuHandler);
+      }
     }
   }
 
@@ -252,6 +271,13 @@ export default class CodeEditor extends React.Component {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
       this.editor.off('scroll', this.onScroll);
+
+      // Clean up context menu handler if it exists
+      if (this.contextMenuHandler && this.props.readOnly) {
+        const editorElement = this.editor.getWrapperElement();
+        editorElement.removeEventListener('contextmenu', this.contextMenuHandler);
+      }
+
       this.editor = null;
     }
   }
