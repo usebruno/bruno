@@ -577,7 +577,6 @@ export const renameItem =
 
       const renameName = async () => {
         return ipcRenderer.invoke('renderer:rename-item-name', { itemPath: item.pathname, newName }).catch((err) => {
-          toast.error('Failed to rename the item name');
           console.error(err);
           throw new Error('Failed to rename the item name');
         });
@@ -596,7 +595,6 @@ export const renameItem =
         return ipcRenderer
           .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename })
           .catch((err) => {
-            toast.error('Failed to rename the file');
             console.error(err);
             throw new Error('Failed to rename the file');
           });
