@@ -1,6 +1,12 @@
 import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Tag persistence', () => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
   test('Verify tag persistence while moving requests within a collection', async ({ pageWithUserData: page, createTmpDir }) => {
     // Create first collection - click dropdown menu first
     await page.getByLabel('Create Collection').click();
@@ -59,6 +65,7 @@ test.describe('Tag persistence', () => {
 
     // Click on r3 to verify the tag persisted after the move
     await page.locator('.collection-item-name').filter({ hasText: 'r3' }).click();
+    await page.locator('.request-tab.active', { hasText: 'r3' }).waitFor({ state: 'visible' });
     await page.getByRole('tab', { name: 'Settings' }).click();
     
     // Verify the tag is still present after the move
@@ -143,6 +150,7 @@ test.describe('Tag persistence', () => {
 
     // Click on r2 to verify the tag persisted after the move
     await page.locator('.collection-item-name').filter({ hasText: 'r2' }).click();
+    await page.locator('.request-tab.active', { hasText: 'r2' }).waitFor({ state: 'visible' });
     await page.getByRole('tab', { name: 'Settings' }).click();
     await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
   });

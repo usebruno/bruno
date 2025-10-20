@@ -17,6 +17,13 @@ test.describe('Import OpenAPI v3 JSON Collection', () => {
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
+    // verify that the import settings modal appears
+    const settingsModal = page.getByTestId('import-settings-modal');
+    await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
+
+    // click the Import button in the settings modal footer
+    await settingsModal.getByRole('button', { name: 'Import' }).click();
+
     // Verify that the Import Collection modal is displayed (for location selection)
     const locationModal = page.getByRole('dialog');
     await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');

@@ -63,6 +63,9 @@ const bruToJson = (bru) => {
       case 'grpc':
         requestType = 'grpc-request';
         break;
+      case 'ws':
+        requestType = 'ws-request';
+        break;
       default:
         requestType = 'http-request';
     }
@@ -103,6 +106,13 @@ const bruToJson = (bru) => {
           content: '{}'
         }]
       });
+    } else if (requestType === 'ws-request') {
+      transformedJson.request.auth.mode = _.get(json, 'ws.auth', 'none');
+      const bodyFromBru = _.get(json, 'body') || {};
+      transformedJson.request.body = {
+        mode: 'ws',
+        ws: [bodyFromBru]
+      };
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');

@@ -17,8 +17,8 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs }
-    = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
+
 
   let bru = '';
 
@@ -97,6 +97,32 @@ const jsonToBru = (json) => {
 
 `;
   }
+
+  if (ws && ws.url) {
+    bru += `ws {
+  url: ${ws.url}`;
+
+    if (ws.body && ws.body.length) {
+      bru += `
+  body: ${ws.body}`;
+    }
+
+    if (ws.auth && ws.auth.length) {
+      bru += `
+  auth: ${ws.auth}`;
+    }
+
+    if (ws.methodType && ws.methodType.length) {
+      bru += `
+  methodType: ${ws.methodType}`;
+    }
+
+    bru += `
+}
+
+`;
+  }
+
 
   if (params && params.length) {
     const queryParams = params.filter((param) => param.type === 'query');
@@ -643,6 +669,29 @@ ${indentString(body.sparql)}
 
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
+        bru += '}\n\n';
+      });
+    }
+  }
+
+  if (body && body.ws) {
+    // Convert each ws message to a separate body:ws block
+    if (Array.isArray(body.ws)) {
+      body.ws.forEach((message) => {
+        const { name, content, type = '' } = message;
+
+        bru += `body:ws {\n`;
+
+        bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
+        if (type.length) {
+          bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
+        }
+
+        // Convert content to JSON string if it's an object
+        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+
+        // Wrap content with triple quotes for multiline support, without extra indentation
+        bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
         bru += '}\n\n';
       });
     }

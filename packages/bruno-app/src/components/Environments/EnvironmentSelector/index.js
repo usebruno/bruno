@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef } from 'react';
+import React, { useMemo, useState, useRef, forwardRef } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
 import { IconWorld, IconDatabase, IconCaretDown, IconSettings, IconPlus, IconDownload } from '@tabler/icons';
@@ -14,6 +14,7 @@ import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
 import ImportEnvironment from '../EnvironmentSettings/ImportEnvironment';
 import CreateGlobalEnvironment from 'components/GlobalEnvironments/EnvironmentSettings/CreateEnvironment';
 import ImportGlobalEnvironment from 'components/GlobalEnvironments/EnvironmentSettings/ImportEnvironment';
+import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentSelector = ({ collection }) => {
@@ -113,6 +114,18 @@ const EnvironmentSelector = ({ collection }) => {
     dispatch(updateEnvironmentSettingsModalVisibility(false));
   };
 
+  // Calculate dropdown width based on the longest environment name.
+  // To prevent resizing while switching between collection and global environments.
+  const dropdownWidth = useMemo(() => {
+    const allEnvironments = [...environments, ...globalEnvironments];
+    if (allEnvironments.length === 0) return 0;
+
+    const maxCharLength = Math.max(...allEnvironments.map((env) => env.name?.length || 0));
+    // 8 pixels per character: This is a rough estimate for the average character width in most fonts
+    // (monospace fonts are typically 8-10px, proportional fonts vary but 8px is a safe average)
+    return maxCharLength * 8;
+  }, [environments, globalEnvironments]);
+
   // Create icon component for dropdown trigger
   const Icon = forwardRef((props, ref) => {
     const hasAnyEnv = activeGlobalEnvironment || activeCollectionEnvironment;
@@ -123,7 +136,15 @@ const EnvironmentSelector = ({ collection }) => {
           <>
             <div className="flex items-center">
               <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
-              <span className="env-text max-w-24 truncate no-wrap">{activeCollectionEnvironment.name}</span>
+              <ToolHint
+                text={activeCollectionEnvironment.name}
+                toolhintId={`collection-env-${activeCollectionEnvironment.uid}`}
+                place="bottom-start"
+                delayShow={1000}
+                hidden={activeCollectionEnvironment.name?.length < 7}
+              >
+                <span className="env-text max-w-24 truncate overflow-hidden">{activeCollectionEnvironment.name}</span>
+              </ToolHint>
             </div>
             {activeGlobalEnvironment && <span className="env-separator">|</span>}
           </>
@@ -131,7 +152,15 @@ const EnvironmentSelector = ({ collection }) => {
         {activeGlobalEnvironment && (
           <div className="flex items-center">
             <IconWorld size={14} strokeWidth={1.5} className="env-icon" />
-            <span className="env-text max-w-24 truncate no-wrap">{activeGlobalEnvironment.name}</span>
+            <ToolHint
+              text={activeGlobalEnvironment.name}
+              toolhintId={`global-env-${activeGlobalEnvironment.uid}`}
+              place="bottom-start"
+              delayShow={1000}
+              hidden={activeGlobalEnvironment.name?.length < 7}
+            >
+              <span className="env-text max-w-24 truncate overflow-hidden">{activeGlobalEnvironment.name}</span>
+            </ToolHint>
           </div>
         )}
       </>
@@ -154,11 +183,11 @@ const EnvironmentSelector = ({ collection }) => {
   });
 
   return (
-    <StyledWrapper>
+    <StyledWrapper width={dropdownWidth}>
       <div className="environment-selector flex align-center cursor-pointer">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           {/* Tab Headers */}
-          <div className="tab-header flex justify-center p-[0.75rem]">
+          <div className="tab-header flex p-[0.75rem]">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -193,7 +222,12 @@ const EnvironmentSelector = ({ collection }) => {
 
       {/* Modals - Rendered outside dropdown to avoid conflicts */}
       {showGlobalSettings && (
-        <GlobalEnvironmentSettings globalEnvironments={globalEnvironments} collection={collection} onClose={handleCloseSettings} />
+        <GlobalEnvironmentSettings
+          globalEnvironments={globalEnvironments}
+          collection={collection}
+          activeGlobalEnvironmentUid={activeGlobalEnvironmentUid}
+          onClose={handleCloseSettings}
+        />
       )}
 
       {showCollectionSettings && <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />}

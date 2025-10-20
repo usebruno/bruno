@@ -16,9 +16,16 @@ module.exports = runESMImports().then(() => defineConfig([
       'diff': fixupPluginRules(eslintPluginDiff),
       '@stylistic': stylistic,
     },
+    languageOptions: {
+      parser: require('@typescript-eslint/parser'),
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      }
+    },
     files: [
       './eslint.config.js',
-      'tests/**/*.spec.{ts,js}',
+      'tests/**/*.{ts,js}',
       'packages/bruno-app/**/*.{js,jsx,ts}',
       'packages/bruno-app/src/test-utils/mocks/codemirror.js',
       'packages/bruno-cli/**/*.js',
@@ -37,11 +44,11 @@ module.exports = runESMImports().then(() => defineConfig([
         indent: 2,
         quotes: 'single',
         semi: true,
-        arrowParens: false,
         jsx: true,
       }).rules,
+      '@stylistic/comma-dangle': ['error', 'never'],
       '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
-      '@stylistic/arrow-parens': ['error', 'as-needed'],
+      '@stylistic/arrow-parens': ['error', 'always'],
       '@stylistic/curly-newline': ['error', {
         multiline: true,
         minElements: 2,
@@ -55,6 +62,7 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/padding-line-between-statements': ['off'],
       '@stylistic/semi-style': ['error', 'last'],
       '@stylistic/max-len': ['off'],
+      '@stylistic/jsx-one-expression-per-line': ['off']
     },
   },
   {

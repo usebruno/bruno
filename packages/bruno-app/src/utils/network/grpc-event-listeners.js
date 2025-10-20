@@ -13,8 +13,6 @@ const useGrpcEventListeners = () => {
       return () => {};
     }
 
-    ipcRenderer.invoke('renderer:ready');
-
     // Handle gRPC requestSent event
     const removeGrpcRequestSentListener = ipcRenderer.on('grpc:request', (requestId, collectionUid, eventData) => {
 

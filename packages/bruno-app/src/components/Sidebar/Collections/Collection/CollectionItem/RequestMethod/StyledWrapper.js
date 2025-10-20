@@ -37,6 +37,12 @@ const Wrapper = styled.div`
   .method-grpc {
     color: ${(props) => props.theme.request.grpc};
   }
+  .method-ws {
+    color: ${(props) => props.theme.request.ws};
+  }
+  .method-graphql {
+    color: ${(props) => props.theme.request.gql};
+  }
 `;
 
 export default Wrapper;
