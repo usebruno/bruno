@@ -63,7 +63,7 @@ const setupContextMenu = (mainWindow) => {
           label: 'Select All',
           role: 'selectAll',
           accelerator: 'CmdOrCtrl+A',
-          enabled: true
+          enabled: editFlags.canSelectAll
         });
       }
     }
