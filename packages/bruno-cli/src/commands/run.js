@@ -214,6 +214,12 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Allow verbose output for debugging purposes'
     })
+    .option('max-timeout', {
+      alias: 't',
+      describe: 'Maximum time in milliseconds to wait for each request to complete, default is no timeout',
+      default: -1,
+      type: 'integer'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
@@ -290,7 +296,8 @@ const handler = async function (argv) {
       delay,
       tags: includeTags,
       excludeTags,
-      verbose
+      verbose,
+      maxTimeout
     } = argv;
     const collectionPath = process.cwd();
 
@@ -441,6 +448,11 @@ const handler = async function (argv) {
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
+    if (typeof maxTimeout !== 'number') {
+      console.error(chalk.red('Timeout must be a number'));
+      process.exit(constants.EXIT_STATUS.ERROR_TIMEOUT_FORMAT);
+    }
+
     let formats = {};
 
     // Maintains back compat with --format and --output
@@ -524,6 +536,10 @@ const handler = async function (argv) {
         }
         const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
         if (requestItem) {
+          if (maxTimeout > 0 && maxTimeout < (requestItem.settings?.timeout || Infinity)) {
+            requestItem.settings.timeout = maxTimeout;
+          }
+
           const res = await runSingleRequest(
             requestItem,
             collectionPath,
@@ -547,6 +563,10 @@ const handler = async function (argv) {
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { pathname } = requestItem;
+
+      if (maxTimeout > 0 && maxTimeout < (requestItem.settings?.timeout || Infinity)) {
+        requestItem.settings.timeout = maxTimeout;
+      }
 
       const start = process.hrtime();
       const result = await runSingleRequest(

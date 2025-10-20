@@ -25,6 +25,8 @@ const EXIT_STATUS = {
   ERROR_INCORRECT_OUTPUT_FORMAT: 9,
   // Invalid file format
   ERROR_INVALID_FILE: 10,
+  // Invalid timeout option
+  ERROR_TIMEOUT_FORMAT: 11,
   // Everything else
   ERROR_GENERIC: 255
 };
