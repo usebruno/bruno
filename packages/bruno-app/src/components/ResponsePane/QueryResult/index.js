@@ -167,6 +167,8 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
   const queryFilterEnabled = useMemo(() => mode.includes('json'), [mode]);
   const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
+  const [searchFilterIsExpanded, setSearchFilterExpanded] = useState(false);
+
   return (
     <StyledWrapper
       className="w-full h-full relative flex"
@@ -196,7 +198,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
         />
       ) : (
         <div className="h-full flex flex-col">
-          <div className="flex-1 relative">
+          <div className={'flex-1 relative ' + (searchFilterIsExpanded ? 'pb-12' : '')}>
             <QueryResultPreview
               previewTab={previewTab}
               data={data}
@@ -211,7 +213,12 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
               displayedTheme={displayedTheme}
             />
             {queryFilterEnabled && (
-              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+              <QueryResultFilter
+                filter={filter}
+                onChange={debouncedResultFilterOnChange}
+                mode={mode}
+                onExpandChange={setSearchFilterExpanded}
+              />
             )}
           </div>
         </div>
