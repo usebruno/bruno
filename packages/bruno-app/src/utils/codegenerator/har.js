@@ -44,13 +44,25 @@ const createHeaders = (request, headers) => {
   return enabledHeaders;
 };
 
-const createQuery = (queryParams = []) => {
-  return queryParams
+const createQuery = (queryParams = [], request) => {
+  const params = queryParams
     .filter((param) => param.enabled && param.type === 'query')
     .map((param) => ({
       name: param.name,
       value: param.value
     }));
+
+  if (request?.auth?.mode === 'apikey' && 
+      request?.auth?.apikey?.placement === 'queryparams' && 
+      request?.auth?.apikey?.key && 
+      request?.auth?.apikey?.value) {
+    params.push({
+      name: request.auth.apikey.key,
+      value: request.auth.apikey.value
+    });
+  }
+
+  return params;
 };
 
 const createPostData = (body) => {
@@ -125,7 +137,7 @@ export const buildHarRequest = ({ request, headers }) => {
     httpVersion: 'HTTP/1.1',
     cookies: [],
     headers: createHeaders(request, headers),
-    queryString: createQuery(request.params),
+    queryString: createQuery(request.params, request),
     postData: createPostData(request.body),
     headersSize: 0,
     bodySize: 0,

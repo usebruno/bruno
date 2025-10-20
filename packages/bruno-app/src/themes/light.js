@@ -103,7 +103,8 @@ const lightTheme = {
       head: '#ca7811'
     },
     grpc: '#6366f1',
-    ws: '#f59e0b'
+    ws: '#f59e0b',
+    gql: '#e535ab'
   },
 
   requestTabPanel: {
