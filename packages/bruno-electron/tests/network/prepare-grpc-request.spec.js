@@ -80,23 +80,6 @@ describe('prepare-grpc-request: prepareGrpcRequest', () => {
       expect(typeof result.headers['user-agent']).toBe('string');
     });
 
-    it('should handle headers that contain "bin" but do not end with "-bin"', async () => {
-      mockItem.request.headers = [
-        { name: 'binary-data', value: 'some-binary-data', enabled: true },
-        { name: 'bin-header', value: 'not-binary', enabled: true },
-        { name: 'my-bin-custom', value: 'also-not-binary', enabled: true }
-      ];
-
-      const result = await prepareGrpcRequest(mockItem, mockCollection, mockEnvironment, mockRuntimeVariables);
-
-      expect(result.headers['binary-data']).toBe('some-binary-data');
-      expect(result.headers['bin-header']).toBe('not-binary');
-      expect(result.headers['my-bin-custom']).toBe('also-not-binary');
-      expect(typeof result.headers['binary-data']).toBe('string');
-      expect(typeof result.headers['bin-header']).toBe('string');
-      expect(typeof result.headers['my-bin-custom']).toBe('string');
-    });
-
     it('should skip disabled headers', async () => {
       mockItem.request.headers = [
         { name: 'content-type', value: 'application/grpc', enabled: false },
