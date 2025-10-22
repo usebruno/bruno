@@ -36,6 +36,10 @@ const lightTheme = {
 
     name: {
       color: '#546de5'
+    },
+
+    runtime: {
+      color: 'rgb(0, 0, 0)'
     }
   },
 
@@ -103,7 +107,8 @@ const lightTheme = {
       head: '#ca7811'
     },
     grpc: '#6366f1',
-    ws: '#f59e0b'
+    ws: '#f59e0b',
+    gql: '#e535ab'
   },
 
   requestTabPanel: {

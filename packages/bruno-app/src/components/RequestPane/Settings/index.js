@@ -68,12 +68,12 @@ const Settings = ({ item, collection }) => {
 
   const handleTimeoutDropdownSelect = useCallback((option) => {
     if (option === 'inherit') {
-      onTimeoutChange({ target: { value: 'inherit' } });
+      updateSetting({ timeout: 'inherit' });
     } else if (option === 'custom') {
       // Switch to custom value - start with 0
-      onTimeoutChange({ target: { value: 0 } });
+      updateSetting({ timeout: 0 });
     }
-  }, [onTimeoutChange]);
+  }, [updateSetting]);
 
   // Keyboard shortcut handlers
   const onSave = useCallback(() => {
@@ -148,7 +148,7 @@ const Settings = ({ item, collection }) => {
             isInherited={isTimeoutInherited}
             onDropdownSelect={handleTimeoutDropdownSelect}
             onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
-            onCustomValueReset={() => onTimeoutChange({ target: { value: 'inherit' } })}
+            onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
           />
         </div>
       </div>

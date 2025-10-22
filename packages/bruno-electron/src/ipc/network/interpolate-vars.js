@@ -104,12 +104,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         } catch (err) {}
       }
     } else if (contentType === 'application/x-www-form-urlencoded') {
-      if (typeof request.data === 'object') {
-        try {
-          forOwn(request?.data, (value, key) => {
-            request.data[key] = _interpolate(value);
-          });
-        } catch (err) {}
+      if (request.data && Array.isArray(request.data)) {
+        request.data = request.data.map((d) => ({
+          ...d,
+          value: _interpolate(d?.value)
+        }));
       }
     } else if (contentType === 'multipart/form-data') {
       if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
@@ -142,22 +141,44 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
-    const paramRegex = /[:](\w+)/g;
     const urlPathnameInterpolatedWithPathParams = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        const matches = path.match(paramRegex);
-        if (matches) {
-          const paramName = matches[0].slice(1); // Remove the : prefix
+        // traditional path parameters
+        if (path.startsWith(':')) {
+          const paramName = path.slice(1);
           const existingPathParam = request.pathParams.find(param => param.name === paramName);
           if (!existingPathParam) {
             return '/' + path;
           }
-          return '/' + path.replace(':' + paramName, existingPathParam.value);
-        } else {
-          return '/' + path;
+          return '/' + existingPathParam.value;
         }
+
+        // for OData-style parameters (parameters inside parentheses)
+        // Check if path matches valid OData syntax:
+        // 1. EntitySet('key') or EntitySet(key)
+        // 2. EntitySet(Key1=value1,Key2=value2)
+        // 3. Function(param=value)
+        if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
+          const paramRegex = /[:](\w+)/g;
+          let match;
+          let result = path;
+          while ((match = paramRegex.exec(path))) {
+            if (match[1]) {
+              let name = match[1].replace(/[')"`]+$/, '');
+              name = name.replace(/^[('"`]+/, '');
+              if (name) {
+                const existingPathParam = request.pathParams.find((param) => param.name === name);
+                if (existingPathParam) {
+                  result = result.replace(':' + match[1], existingPathParam.value);
+                }
+              }
+            }
+          }
+          return '/' + result;
+        }
+        return '/' + path;
       })
       .join('');
 

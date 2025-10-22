@@ -6,6 +6,9 @@ import { isValidUrl } from 'utils/url/index';
 
 const Markdown = ({ collectionPath, onDoubleClick, content }) => {
   const markdownItOptions = {
+    html: true,
+    breaks: true,
+    linkify: true,
     replaceLink: function (link, env) {
       return link.replace(/^\./, collectionPath);
     }

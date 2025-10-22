@@ -1,7 +1,7 @@
-const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
+const qs = require('qs');
 const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
@@ -35,6 +35,7 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
+const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -276,6 +277,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const runtimeVars = collection.runtimeVariables;
 
     // Precedence: runtimeVars > requestVariables > folderVars > envVars > collectionVariables > globalEnvironmentVars
+    const processEnvVars = getProcessEnvVars(collection.uid);
     const resolvedVars = merge(
       {},
       globalEnvironmentVars,
@@ -283,7 +285,14 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       envVars,
       folderVars,
       requestVariables,
-      runtimeVars
+      runtimeVars,
+      {
+        process: {
+          env: {
+            ...processEnvVars
+          }
+        }
+      }
     );
 
     const collectionRoot = get(collection, 'root', {});
@@ -300,7 +309,6 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     }
 
     const collectionPath = collection.pathname;
-    const processEnvVars = getProcessEnvVars(collection.uid);
 
     const axiosInstance = await configureRequest(
       collection.uid,
@@ -423,11 +431,18 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // stringify the request url encoded params
-    if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+    const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
+
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+      if (Array.isArray(request.data)) {
+        request.data = buildFormUrlEncodedPayload(request.data);
+      } else if (typeof request.data !== 'string') {
+        request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      }
+      // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    if (request.headers['content-type'] === 'multipart/form-data') {
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
       if (!(request.data instanceof FormData)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;

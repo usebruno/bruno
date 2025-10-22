@@ -25,7 +25,7 @@ const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const { getCACertificates } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
-const { encodeUrl } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -332,8 +332,14 @@ const runSingleRequest = async function (
     const contentTypeHeader = Object.keys(request.headers).find(
       name => name.toLowerCase() === 'content-type'
     );
+
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      if (Array.isArray(request.data)) {
+        request.data = buildFormUrlEncodedPayload(request.data);
+      } else if (typeof request.data !== 'string') {
+        request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      }
+      // if `data` is of string type - return as-is (assumes already encoded)
     }
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
@@ -406,7 +412,7 @@ const runSingleRequest = async function (
       });
 
       if (request.ntlmConfig) {
-        axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
         delete request.ntlmConfig;
       }
 
