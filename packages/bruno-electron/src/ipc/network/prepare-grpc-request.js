@@ -4,21 +4,20 @@ const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts,
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
 const { setAuthHeaders } = require('./prepare-request');
-const { sanitizeGrpcHeaderValue } = require('./grpc-header-utils');
+
+const processHeaders = (headers) => {
+  Object.entries(headers).forEach(([key, value]) => {
+    if (key?.toLowerCase().endsWith('-bin')) {
+      headers[key] = Buffer.from(value, 'base64');
+    }
+  });
+};
 
 const prepareGrpcRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const headers = {};
   const url = request.url;
-  let contentTypeDefined = false;
-
-  each(get(collectionRoot, 'request.headers', []), (h) => {
-    if (h.enabled && h.name?.toLowerCase() === 'content-type') {
-      contentTypeDefined = true;
-      return false;
-    }
-  });
 
   const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
@@ -33,10 +32,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
 
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
-      headers[h.name] = sanitizeGrpcHeaderValue(h.name, h.value);
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
+      headers[h.name] = h.value;
     }
   });
 
@@ -117,6 +113,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   }
 
   interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars);
+  processHeaders(grpcRequest.headers);
 
   return grpcRequest;
 };

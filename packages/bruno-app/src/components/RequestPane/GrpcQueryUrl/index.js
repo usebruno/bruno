@@ -407,6 +407,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           {(!isConnectionActive || !isStreamingMethod) && (
             <div
               className="cursor-pointer"
+              data-testid="grpc-send-request-button"
               onClick={(e) => {
                 e.stopPropagation();
                 handleRun(e);

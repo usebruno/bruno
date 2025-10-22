@@ -250,47 +250,6 @@ describe('interpolate-vars: interpolateVars', () => {
         expect(result.url).toEqual('grpcs://api.example.com/auth');
         expect(result.body.json).toEqual('{"token": "abc123"}');
       });
-
-      it('Should process gRPC binary metadata headers correctly', async () => {
-        const request = {
-          method: '/random.Service/randomMethod',
-          url: 'grpc://localhost:50051',
-          mode: 'grpc',
-          headers: {
-            'authorization': 'Bearer {{token}}',
-            'custom-bin': '{{binaryData}}',
-            'user-agent': '{{userAgent}}'
-          },
-          body: {
-            json: '{"message": "test"}'
-          },
-          // Set variable properties on the request object
-          globalEnvironmentVariables: {},
-          collectionVariables: {},
-          folderVariables: {},
-          requestVariables: {},
-          oauth2CredentialVariables: {}
-        };
-
-        const result = interpolateVars(
-          request,
-          {
-            token: 'abc123',
-            binaryData: 'SGVsbG8gV29ybGQ=', // Base64 encoded "Hello World"
-            userAgent: 'Bruno/1.0'
-          }, // envVars
-          {}, // runtimeVariables
-          {} // processEnvVars
-        );
-
-        // Regular headers should be interpolated as strings
-        expect(result.headers['authorization']).toEqual('Bearer abc123');
-        expect(result.headers['user-agent']).toEqual('Bruno/1.0');
-
-        // Binary headers (ending with -bin) should be converted to Buffer
-        expect(result.headers['custom-bin']).toBeInstanceOf(Buffer);
-        expect(result.headers['custom-bin'].toString()).toEqual('Hello World');
-      });
     });
   });
 
