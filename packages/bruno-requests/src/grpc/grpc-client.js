@@ -119,6 +119,17 @@ const getParsedGrpcUrlObject = (url) => {
 };
 
 /**
+ * grpc-js expects all the headers ends with -bin to be Buffers
+ * so we need to convert the headers that ends with -bin to Buffers
+ */
+const processGrpcRequestMetadata = (name, value) => {
+  if (name.endsWith('-bin')) {
+    return Buffer.from(value, 'base64');
+  }
+  return value;
+};
+
+/**
  * Handles gRPC events and forwards them using the provided callback
  * @param {Function} callback - Callback function to send events
  * @param {string} requestId - The unique ID of the request
@@ -502,7 +513,7 @@ class GrpcClient {
     const collectionUid = collection.uid;
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
-      metadata.add(name, value);
+      metadata.add(name, processGrpcRequestMetadata(name, value));
     });
 
     this.#handleConnection({
@@ -578,7 +589,7 @@ class GrpcClient {
     const { host, path } = getParsedGrpcUrlObject(request.url);
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
-      metadata.add(name, value);
+      metadata.add(name, processGrpcRequestMetadata(name, value));
     });
 
     try {

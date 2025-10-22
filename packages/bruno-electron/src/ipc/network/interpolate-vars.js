@@ -1,6 +1,5 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
-const { sanitizeGrpcHeaderValue } = require('./grpc-header-utils');
 const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
@@ -73,7 +72,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     const interpolatedKey = _interpolate(key);
     const interpolatedValue = _interpolate(value);
     if (isGrpcRequest) {
-      request.headers[interpolatedKey] = sanitizeGrpcHeaderValue(interpolatedKey, interpolatedValue);
+      request.headers[interpolatedKey] = interpolatedValue;
     } else {
       request.headers[interpolatedKey] = interpolatedValue;
     }

@@ -1,12 +1,12 @@
 meta {
-  name: sayHello
+  name: SayHello
   type: grpc
   seq: 1
 }
 
 grpc {
-  url: {{host}}
-  method: /addsvc.Add/Sum
+  url: grpc://grpcb.in:9000
+  method: /hello.HelloService/SayHello
   body: grpc
   auth: inherit
   methodType: unary
@@ -21,8 +21,7 @@ body:grpc {
   name: message 1
   content: '''
     {
-      "a": 90,
-      "b": 631
+      "greeting": "amoveo"
     }
   '''
 }

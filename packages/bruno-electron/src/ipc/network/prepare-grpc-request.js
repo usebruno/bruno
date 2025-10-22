@@ -4,7 +4,6 @@ const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts,
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
 const { setAuthHeaders } = require('./prepare-request');
-const { sanitizeGrpcHeaderValue } = require('./grpc-header-utils');
 
 const prepareGrpcRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
@@ -33,7 +32,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
 
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
-      headers[h.name] = sanitizeGrpcHeaderValue(h.name, h.value);
+      headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
