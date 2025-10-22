@@ -25,9 +25,16 @@ const interpolate = (
 
   const { escapeJSONStrings } = options;
 
-  const patternRegex = /\{\{\$(\w+)\}\}/g;
-  str = str.replace(patternRegex, (match, keyword) => {
-    let replacement = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.();
+  // Pattern breakdown:
+  // \{\{ - start with {{
+  // \$(\w+) - match a keyword for a dynamic variable
+  // (?:\s*\|\s*([^}]+))? - match an optional parameter followed by |
+  // \}\} - end with }}
+  // A simple example: {{$randomFirstName}}
+  // With a parameter: {{$timestamp|yyyyMMDD}}
+  const patternRegex = /\{\{\$(\w+)(?:\s*\|\s*([^}]+)?)?\}\}/g;
+  str = str.replace(patternRegex, (match, keyword, keywordParameter) => {
+    let replacement = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.(keywordParameter);
 
     if (replacement === undefined) return match;
     replacement = String(replacement);

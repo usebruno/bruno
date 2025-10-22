@@ -536,6 +536,49 @@ describe('interpolate - mock variable interpolation', () => {
   });
 });
 
+describe('interpolate - formatted timestamp handling', () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-10-21T19:22:40.123Z'));
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  it('should return a formatted date of when a format parameter of yyyyMMDDHHmmss is specified in the timestamp mock variable', () => {
+    const inputString = '{ "formattedTimestamp": "{{$timestamp|yyyyMMDDHHmmss}}" }';
+    const result = interpolate(inputString, {}, {});
+
+    // Test that it replaced the value with a formatted value.
+    expect(result).toBe('{ "formattedTimestamp": "20241021192240" }');
+  })
+
+  it('should return a formatted date of when a format parameter of MMM Do, YYYY is specified in the timestamp mock variable', () => {
+    const inputString = '{ "formattedTimestamp": "{{$timestamp|MMM Do, YYYY}}" }';
+    const result = interpolate(inputString, {}, {});
+
+    // Test that it replaced the value with a formatted value.
+    expect(result).toBe('{ "formattedTimestamp": "Oct 21st, 2024" }');
+  })
+
+  it('should return the plain timestamp when no pipe is included', () => {
+    const inputString = '{ "formattedTimestamp": "{{$timestamp}}" }';
+    const result = interpolate(inputString, {}, {});
+
+    // Test that it replaced the value with a formatted value.
+    expect(result).toBe('{ "formattedTimestamp": "1729538560" }');
+  })
+
+  it('should return the plain timestamp when a pipe is included, but no format string', () => {
+    const inputString = '{ "formattedTimestamp": "{{$timestamp|}}" }';
+    const result = interpolate(inputString, {}, {});
+
+    // Test that it replaced the value with a formatted value.
+    expect(result).toBe('{ "formattedTimestamp": "1729538560" }');
+  })
+});
+
 describe('interpolate - Date() handling', () => {
   it('should interpolate Date() using JSON.stringify', () => {
     const inputString = 'Date is {{date}}';
