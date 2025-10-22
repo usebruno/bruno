@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find } = require('lodash');
+const { each, forOwn, cloneDeep } = require('lodash');
+const { sanitizeGrpcHeaderValue } = require('./grpc-header-utils');
 const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
@@ -65,16 +66,22 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   };
 
   request.url = _interpolate(request.url);
+  const isGrpcRequest = request.mode === 'grpc';
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
-    request.headers[_interpolate(key)] = _interpolate(value);
+    const interpolatedKey = _interpolate(key);
+    const interpolatedValue = _interpolate(value);
+    if (isGrpcRequest) {
+      request.headers[interpolatedKey] = sanitizeGrpcHeaderValue(interpolatedKey, interpolatedValue);
+    } else {
+      request.headers[interpolatedKey] = interpolatedValue;
+    }
   });
 
   const contentType = getContentType(request.headers);
-  const isGrpcBody = request.mode === 'grpc';
 
-  if (isGrpcBody) {
+  if (isGrpcRequest) {
     const jsonDoc = JSON.stringify(request.body);
     const parsed = _interpolate(jsonDoc, {
       escapeJSONStrings: true
