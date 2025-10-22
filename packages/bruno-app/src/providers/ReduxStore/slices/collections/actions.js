@@ -1059,26 +1059,35 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
       }
     };
 
+    // itemUid is null when we are creating a new request at the root level
+    const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
     const resolvedFilename = resolveRequestFilename(filename);
-    const fullName = path.join(collection.pathname, resolvedFilename);
-    const { ipcRenderer } = window;
 
-    // Set the seq field for gRPC requests
-    const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    if (!parentItem) {
+      return reject(new Error('Parent item not found'));
+    }
+
+    const reqWithSameNameExists = find(parentItem.items,
+      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename));
+
+    if (reqWithSameNameExists) {
+      return reject(new Error('Duplicate request names are not allowed under the same folder'));
+    }
+
+    const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
     item.seq = items.length + 1;
-
+    const fullName = path.join(parentItem.pathname, resolvedFilename);
+    const { ipcRenderer } = window;
     ipcRenderer
       .invoke('renderer:new-request', fullName, item)
       .then(() => {
         // task middleware will track this and open the new request in a new tab once request is created
-        dispatch(
-          insertTaskIntoQueue({
-            uid: uuid(),
-            type: 'OPEN_REQUEST',
-            collectionUid,
-            itemPathname: fullName
-          })
-        );
+        dispatch(insertTaskIntoQueue({
+          uid: uuid(),
+          type: 'OPEN_REQUEST',
+          collectionUid,
+          itemPathname: fullName
+        }));
         resolve();
       })
       .catch(reject);
@@ -1120,14 +1129,25 @@ export const newWsRequest = (params) => (dispatch, getState) => {
       }
     };
 
+    // itemUid is null when we are creating a new request at the root level
+    const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
     const resolvedFilename = resolveRequestFilename(filename);
-    const fullName = path.join(collection.pathname, resolvedFilename);
-    const { ipcRenderer } = window;
 
-    // Set the seq field for WebSocket requests
-    const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    if (!parentItem) {
+      return reject(new Error('Parent item not found'));
+    }
+
+    const reqWithSameNameExists = find(parentItem.items,
+      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename));
+
+    if (reqWithSameNameExists) {
+      return reject(new Error('Duplicate request names are not allowed under the same folder'));
+    }
+
+    const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
     item.seq = items.length + 1;
-
+    const fullName = path.join(parentItem.pathname, resolvedFilename);
+    const { ipcRenderer } = window;
     ipcRenderer
       .invoke('renderer:new-request', fullName, item)
       .then(() => {

@@ -136,7 +136,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                   />
                 </td>
                 <td>
-                  <div className="flex items-center">
+                  <div className="flex items-center" data-testid={`env-var-name-${index}`}>
                     <input
                       type="text"
                       autoComplete="off"
@@ -153,7 +153,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                   </div>
                 </td>
                 <td className="flex flex-row flex-nowrap items-center">
-                  <div className="overflow-hidden grow w-full relative">
+                  <div className="overflow-hidden grow w-full relative" data-testid={`env-var-value-${index}`}>
                     <MultiLineEditor
                       theme={storedTheme}
                       collection={_collection}

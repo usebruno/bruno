@@ -3,19 +3,6 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-/**
- * @param {Array.<object>} params The request body Array
- * @returns {string} Returns a order respecting standard compliant string of form encoded values
- */
-const buildFormUrlEncodedPayload = (params) => {
-  const resultParams = new URLSearchParams();
-  for (const param of params) {
-    resultParams.append(param.name, param.value);
-  }
-  return resultParams.toString();
-};
-
-
 const createFormData = (data, collectionPath) => {
   // make axios work in node using form data
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
@@ -51,6 +38,5 @@ const createFormData = (data, collectionPath) => {
 };
 
 module.exports = {
-  buildFormUrlEncodedPayload,
   createFormData
 };
