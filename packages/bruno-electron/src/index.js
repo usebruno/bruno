@@ -100,7 +100,7 @@ app.on('ready', async () => {
     y,
     width,
     height,
-    minWidth: 1000,
+    minWidth: 700,
     minHeight: 640,
     show: false,
     webPreferences: {

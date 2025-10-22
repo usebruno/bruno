@@ -51,3 +51,6 @@ bruno.iml
 
 # Playwright
 /blob-report/
+
+# Development plan files
+*.plan.md
