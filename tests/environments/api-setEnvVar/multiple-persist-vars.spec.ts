@@ -25,7 +25,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
           await key2Row.getByRole('button').click(); // Click the delete button
         }
 
-        await page.getByText('×').click();
+        await page.getByTestId('modal-close-button').click();
       }
     } catch (error) {
       // Ignore cleanup errors to avoid masking test failures
@@ -74,7 +74,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       await expect(page.getByRole('row', { name: 'value1' }).getByRole('cell').nth(2)).toBeVisible();
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key2' }).getByRole('cell').nth(1)).toBeVisible();
       await expect(page.getByRole('row', { name: 'value2' }).getByRole('cell').nth(2)).toBeVisible();
-      await page.getByText('×').click();
+      await page.getByTestId('modal-close-button').click();
     });
 
     await test.step('Verify variables are persisted to file', async () => {
