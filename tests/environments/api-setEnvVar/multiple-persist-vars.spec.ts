@@ -1,11 +1,43 @@
 import { test, expect } from '../../../playwright';
+import fs from 'fs';
+import path from 'path';
 
 test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
   test.setTimeout(2 * 10 * 1000);
 
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    // Clean up test environment variables after each test
+    try {
+      // Check if the page is still valid before attempting cleanup
+      if (page && !page.isClosed()) {
+        await page.locator('#sidebar-collection-name').click();
+        await page.locator('div.current-environment').click();
+        await page.getByText('Configure', { exact: true }).click();
+
+        // Remove the test environment variables
+        const key1Row = page.getByRole('row', { name: 'multiple-persist-vars-key1' });
+        if (await key1Row.isVisible()) {
+          await key1Row.getByRole('button').click(); // Click the delete button
+        }
+
+        const key2Row = page.getByRole('row', { name: 'multiple-persist-vars-key2' });
+        if (await key2Row.isVisible()) {
+          await key2Row.getByRole('button').click(); // Click the delete button
+        }
+
+        await page.getByText('×').click();
+      }
+    } catch (error) {
+      // Ignore cleanup errors to avoid masking test failures
+      console.log('Cleanup failed:', error);
+    }
+  });
+
   test('should persist multiple environment variables from different requests', async ({ pageWithUserData: page }) => {
     await test.step('Select collection', async () => {
       await page.locator('#sidebar-collection-name').click();
+      // The collection name should be 'collection' based on the test setup
+      await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'collection' })).toBeVisible();
     });
 
     await test.step('Select stage environment', async () => {
@@ -16,6 +48,9 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
     });
 
     await test.step('Run the folder containing both requests', async () => {
+      // Ensure we're in the correct collection context before selecting the folder
+      await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'collection' })).toBeVisible();
+
       // Right-click on the folder to open context menu
       await page.getByText('multiple-persist-vars-folder', { exact: true }).click({ button: 'right' });
 
@@ -30,6 +65,9 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
     });
 
     await test.step('Verify both environment variables are set in UI', async () => {
+      // Ensure we're still in the correct collection context
+      await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'collection' })).toBeVisible();
+
       await page.locator('div.current-environment').click();
       await page.getByText('Configure', { exact: true }).click();
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key1' }).getByRole('cell').nth(1)).toBeVisible();
@@ -38,5 +76,18 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       await expect(page.getByRole('row', { name: 'value2' }).getByRole('cell').nth(2)).toBeVisible();
       await page.getByText('×').click();
     });
+
+    await test.step('Verify variables are persisted to file', async () => {
+      // Check that the variables are written to the Stage.bru file
+      const stageBruPath = path.join(__dirname, 'collection/environments/Stage.bru');
+      const stageBruContent = fs.readFileSync(stageBruPath, 'utf8');
+
+      // Both variables should be present in the file
+      expect(stageBruContent).toContain('multiple-persist-vars-key1');
+      expect(stageBruContent).toContain('value1');
+      expect(stageBruContent).toContain('multiple-persist-vars-key2');
+      expect(stageBruContent).toContain('value2');
+    });
   });
+
 });
