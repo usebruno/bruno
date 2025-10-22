@@ -2,6 +2,45 @@ import axios, { AxiosRequestConfig, ResponseType } from 'axios';
 import qs from 'qs';
 import debug from 'debug';
 
+/**
+ * Setup proxy agents for OAuth2 token requests
+ * This is needed because:
+ * - bruno-electron uses setupProxyAgents which sets httpAgent/httpsAgent on requests
+ * - bruno-cli also uses proxies when HTTP_PROXY/HTTPS_PROXY env vars are set
+ * - OAuth2 token requests need to honor system proxy settings in CI environments
+ *
+ * To test: Set HTTP_PROXY/HTTPS_PROXY env vars and run CLI with client_credentials grant
+ */
+const setupProxyAgents = (requestConfig: RequestConfig): void => {
+  try {
+    const httpProxy = process.env.http_proxy || process.env.HTTP_PROXY;
+    const httpsProxy = process.env.https_proxy || process.env.HTTPS_PROXY;
+
+    if (httpProxy) {
+      try {
+        const { HttpProxyAgent } = require('http-proxy-agent');
+        requestConfig.httpAgent = new HttpProxyAgent(httpProxy);
+      } catch (err) {
+        // Fail silently if http-proxy-agent is not available
+        debug('oauth2')('http-proxy-agent not available, skipping httpAgent setup');
+      }
+    }
+
+    if (httpsProxy) {
+      try {
+        const { HttpsProxyAgent } = require('https-proxy-agent');
+        requestConfig.httpsAgent = new HttpsProxyAgent(httpsProxy);
+      } catch (err) {
+        // Fail silently if https-proxy-agent is not available
+        debug('oauth2')('https-proxy-agent not available, skipping httpsAgent setup');
+      }
+    }
+  } catch (err) {
+    // Catch-all to ensure proxy setup never crashes the token fetch
+    debug('oauth2')('Error setting up proxy agents:', err);
+  }
+};
+
 export interface TokenStore {
   saveCredential({ url, credentialsId, credentials }: { url: string; credentialsId: string; credentials: any }): Promise<boolean>;
   getCredential({ url, credentialsId }: { url: string; credentialsId: string }): Promise<any>;
@@ -42,6 +81,8 @@ interface RequestConfig extends AxiosRequestConfig {
   };
   data: string;
   responseType: ResponseType;
+  httpAgent?: any;
+  httpsAgent?: any;
 }
 
 interface ClientCredentialsData {
@@ -162,6 +203,9 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
 
   requestConfig.data = qs.stringify(data);
 
+  // Setup proxy agents if HTTP_PROXY/HTTPS_PROXY env vars are set
+  setupProxyAgents(requestConfig);
+
   debug('oauth2')('> request');
   debug('oauth2')(JSON.stringify(requestConfig, null, 2));
 
@@ -262,6 +306,9 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
   }
 
   requestConfig.data = qs.stringify(data);
+
+  // Setup proxy agents if HTTP_PROXY/HTTPS_PROXY env vars are set
+  setupProxyAgents(requestConfig);
 
   debug('oauth2')('> request');
   debug('oauth2')(JSON.stringify(requestConfig, null, 2));
