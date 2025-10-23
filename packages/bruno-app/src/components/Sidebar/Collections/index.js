@@ -113,7 +113,7 @@ const Collections = () => {
         )}
       </div>
 
-      <div className="mt-4 flex flex-col overflow-hidden hover:overflow-y-auto absolute top-32 bottom-10 left-0 right-0">
+      <div className="mt-4 flex flex-col overflow-hidden hover:overflow-y-auto absolute top-32 bottom-0 left-0 right-0">
         {collections && collections.length
           ? collections.map((c) => {
               return (

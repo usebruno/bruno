@@ -1,7 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
 const FormData = require('form-data');
-const { mockDataFunctions } = require('./faker-functions');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -14,12 +13,9 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateMockVars = (str) => {
-  const patternRegex = /\{\{\$(\w+)\}\}/g;
-  return str.replace(patternRegex, (match, keyword) => {
-    const replacement = mockDataFunctions[keyword]?.();
-    return replacement || match;
-  });
+const getRawQueryString = (url) => {
+  const queryIndex = url.indexOf('?');
+  return queryIndex !== -1 ? url.slice(queryIndex) : '';
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
@@ -37,13 +33,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     envVariables[key] = interpolate(value, {
       process: {
         env: {
-          ...processEnvVars
         }
       }
     });
   });
 
-  const _interpolate = (str) => {
+  const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -64,7 +59,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolateMockVars(interpolate(str, combinedVars));
+    return interpolate(str, combinedVars, {
+      escapeJSONStrings
+    });
   };
 
   request.url = _interpolate(request.url);
@@ -75,42 +72,56 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   const contentType = getContentType(request.headers);
+  const isGrpcBody = request.mode === 'grpc';
 
-  /*
-    We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode. 
-    Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
-  */
-  if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
-    if (typeof request.data === 'string') {
-      if (request.data.length) {
-        request.data = _interpolate(request.data);
+  if (isGrpcBody) {
+    const jsonDoc = JSON.stringify(request.body);
+    const parsed = _interpolate(jsonDoc, {
+      escapeJSONStrings: true
+    });
+    request.body = JSON.parse(parsed);
+  }
+
+  if (typeof contentType === 'string') {
+    /*
+      We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode. 
+      Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
+    */
+    if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+      if (typeof request.data === 'string') {
+        if (request.data.length) {
+          request.data = _interpolate(request.data, {
+            escapeJSONStrings: true,
+          });
+        }
+      } else if (typeof request.data === 'object') {
+        try {
+          const jsonDoc = JSON.stringify(request.data);
+          const parsed = _interpolate(jsonDoc, {
+            escapeJSONStrings: true,
+          });
+          request.data = JSON.parse(parsed);
+        } catch (err) {}
       }
-    } else if (typeof request.data === 'object') {
-      try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
-      } catch (err) {}
-    }
-  } else if (contentType === 'application/x-www-form-urlencoded') {
-    if (typeof request.data === 'object') {
-      try {
-        forOwn(request?.data, (value, key) => {
-          request.data[key] = _interpolate(value);
-        });
-      } catch (err) {}
-    }
-  } else if (contentType === 'multipart/form-data') {
-    if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
-      try {
-        request.data = request?.data?.map(d => ({
+    } else if (contentType === 'application/x-www-form-urlencoded') {
+      if (request.data && Array.isArray(request.data)) {
+        request.data = request.data.map((d) => ({
           ...d,
           value: _interpolate(d?.value)
-        }));   
-      } catch (err) {}
+        }));
+      }
+    } else if (contentType === 'multipart/form-data') {
+      if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
+        try {
+          request.data = request?.data?.map(d => ({
+            ...d,
+            value: _interpolate(d?.value)
+          }));
+        } catch (err) {}
+      }
+    } else {
+      request.data = _interpolate(request.data);
     }
-  } else {
-    request.data = _interpolate(request.data);
   }
 
   each(request.pathParams, (param) => {
@@ -119,7 +130,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   if (request?.pathParams?.length) {
     let url = request.url;
-
+    const urlSearchRaw = getRawQueryString(request.url)
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
@@ -134,18 +145,45 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        if (path[0] !== ':') {
-          return '/' + path;
-        } else {
-          const name = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.type === 'path' && param.name === name);
-          return existingPathParam ? '/' + existingPathParam.value : '';
+        // traditional path parameters
+        if (path.startsWith(':')) {
+          const paramName = path.slice(1);
+          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+          if (!existingPathParam) {
+            return '/' + path;
+          }
+          return '/' + existingPathParam.value;
         }
+
+        // for OData-style parameters (parameters inside parentheses)
+        // Check if path matches valid OData syntax:
+        // 1. EntitySet('key') or EntitySet(key)
+        // 2. EntitySet(Key1=value1,Key2=value2)
+        // 3. Function(param=value)
+        if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
+          const paramRegex = /[:](\w+)/g;
+          let match;
+          let result = path;
+          while ((match = paramRegex.exec(path))) {
+            if (match[1]) {
+              let name = match[1].replace(/[')"`]+$/, '');
+              name = name.replace(/^[('"`]+/, '');
+              if (name) {
+                const existingPathParam = request.pathParams.find((param) => param.name === name);
+                if (existingPathParam) {
+                  result = result.replace(':' + match[1], existingPathParam.value);
+                }
+              }
+            }
+          }
+          return '/' + result;
+        }
+        return '/' + path;
       })
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + url.search;
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
   }
 
   if (request.proxy) {
@@ -189,6 +227,18 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
         request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
         break;
+      case 'implicit':
+        request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
+        request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.state = _interpolate(request.oauth2.state) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
+        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
+        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
+        break;
       case 'authorization_code':
         request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
         request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
@@ -223,6 +273,39 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         break;
       default:
         break;
+    }
+
+    // Interpolate additional parameters for all OAuth2 grant types
+    if (request.oauth2.additionalParameters) {
+      // Interpolate authorization parameters
+      if (Array.isArray(request.oauth2.additionalParameters.authorization)) {
+        request.oauth2.additionalParameters.authorization.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate token parameters
+      if (Array.isArray(request.oauth2.additionalParameters.token)) {
+        request.oauth2.additionalParameters.token.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate refresh parameters
+      if (Array.isArray(request.oauth2.additionalParameters.refresh)) {
+        request.oauth2.additionalParameters.refresh.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
     }
   }
 

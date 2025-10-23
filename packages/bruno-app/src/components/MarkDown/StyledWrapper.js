@@ -78,6 +78,14 @@ const StyledMarkdownBodyWrapper = styled.div`
         background-color: ${(props) => props.theme.bg};
       }
     }
+
+    p {
+      white-space: pre-wrap;
+    }
+
+    div {
+      white-space: pre-wrap;
+    }
   }
 `;
 

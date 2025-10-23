@@ -1,4 +1,6 @@
 import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -12,6 +14,8 @@ const AwsV4Auth = ({ collection }) => {
   const { storedTheme } = useTheme();
 
   const awsv4Auth = get(collection, 'root.request.auth.awsv4', {});
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 
@@ -21,12 +25,12 @@ const AwsV4Auth = ({ collection }) => {
         mode: 'awsv4',
         collectionUid: collection.uid,
         content: {
-          accessKeyId: accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -38,12 +42,12 @@ const AwsV4Auth = ({ collection }) => {
         mode: 'awsv4',
         collectionUid: collection.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -55,12 +59,12 @@ const AwsV4Auth = ({ collection }) => {
         mode: 'awsv4',
         collectionUid: collection.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -72,12 +76,12 @@ const AwsV4Auth = ({ collection }) => {
         mode: 'awsv4',
         collectionUid: collection.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -89,12 +93,12 @@ const AwsV4Auth = ({ collection }) => {
         mode: 'awsv4',
         collectionUid: collection.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -106,12 +110,12 @@ const AwsV4Auth = ({ collection }) => {
         mode: 'awsv4',
         collectionUid: collection.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: profileName || ''
         }
       })
     );
@@ -131,7 +135,7 @@ const AwsV4Auth = ({ collection }) => {
       </div>
 
       <label className="block font-medium mb-2">Secret Access Key</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <div className="single-line-editor-wrapper mb-2 flex items-center">
         <SingleLineEditor
           value={awsv4Auth.secretAccessKey || ''}
           theme={storedTheme}
@@ -140,6 +144,7 @@ const AwsV4Auth = ({ collection }) => {
           collection={collection}
           isSecret={true}
         />
+        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}
       </div>
 
       <label className="block font-medium mb-2">Session Token</label>

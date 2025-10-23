@@ -1,0 +1,40 @@
+meta {
+  name: setCookie header inclusion
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{echo-host}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar();
+  
+  // Set a cookie that should be sent with the upcoming request
+  await jar.setCookie('https://echo.usebruno.com', {
+    key: 'auth',
+    value: 'token123',
+    path: '/',
+    secure: false
+  });
+}
+
+tests {
+  const cookieHeader = res.getHeader('cookie');
+  
+  test('should attach auth cookie in request headers', function () {
+    expect(cookieHeader).to.be.a('string');
+    expect(cookieHeader).to.include('auth=token123');
+  });
+  
+  // Clean up the jar so other tests are not affected
+  const jar = bru.cookies.jar();
+  await jar.clear();
+}
+
+settings {
+  encodeUrl: false
+}

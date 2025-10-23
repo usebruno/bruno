@@ -11,6 +11,8 @@ import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { multiLineMsg } from "utils/common";
+import { formatIpcError } from "utils/common/error";
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
@@ -34,9 +36,8 @@ const TitleBar = () => {
         toast.success('Collection imported successfully');
       })
       .catch((err) => {
-        setImportCollectionLocationModalOpen(false);
         console.error(err);
-        toast.error('An error occurred while importing the collection. Check the logs for more information.');
+        toast.error(multiLineMsg('An error occurred while importing the collection.', formatIpcError(err)));
       });
   };
 
@@ -54,7 +55,10 @@ const TitleBar = () => {
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
-      (err) => console.log(err) && toast.error('An error occurred while opening the collection')
+      (err) => {
+        console.log(err);
+        toast.error('An error occurred while opening the collection');
+      }
     );
   };
 
@@ -77,7 +81,7 @@ const TitleBar = () => {
       ) : null}
 
       <div className="flex items-center">
-        <button className="flex items-center gap-2 text-sm font-medium" onClick={handleTitleClick}>
+        <button className="bruno-logo flex items-center gap-2 text-sm font-medium" onClick={handleTitleClick}>
           <span aria-hidden>
             <Bruno width={30} />
           </span>

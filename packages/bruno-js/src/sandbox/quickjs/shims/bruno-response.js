@@ -10,17 +10,20 @@ const addBrunoResponseShimToContext = (vm, res) => {
   const headers = marshallToVm(res?.headers, vm);
   const body = marshallToVm(res?.body, vm);
   const responseTime = marshallToVm(res?.responseTime, vm);
+  const url = marshallToVm(res?.url, vm);
 
   vm.setProp(resFn, 'status', status);
   vm.setProp(resFn, 'statusText', statusText);
   vm.setProp(resFn, 'headers', headers);
   vm.setProp(resFn, 'body', body);
   vm.setProp(resFn, 'responseTime', responseTime);
+  vm.setProp(resFn, 'url', url);
 
   status.dispose();
   headers.dispose();
   body.dispose();
   responseTime.dispose();
+  url.dispose();
   statusText.dispose();
 
   let getStatusText = vm.newFunction('getStatusText', function () {
@@ -59,11 +62,23 @@ const addBrunoResponseShimToContext = (vm, res) => {
   vm.setProp(resFn, 'getResponseTime', getResponseTime);
   getResponseTime.dispose();
 
+  let getUrl = vm.newFunction('getUrl', function () {
+    return marshallToVm(res.getUrl(), vm);
+  });
+  vm.setProp(resFn, 'getUrl', getUrl);
+  getUrl.dispose();
+
   let setBody = vm.newFunction('setBody', function (data) {
     res.setBody(vm.dump(data));
   });
   vm.setProp(resFn, 'setBody', setBody);
   setBody.dispose();
+
+  let getSize = vm.newFunction('getSize', function () {
+    return marshallToVm(res.getSize(), vm);
+  });
+  vm.setProp(resFn, 'getSize', getSize);
+  getSize.dispose();
 
   vm.setProp(vm.global, 'res', resFn);
   resFn.dispose();
