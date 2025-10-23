@@ -4,6 +4,8 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import Modal from 'components/Modal';
+import Help from 'components/Help';
+
 
 const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => {
   const inputRef = useRef();
@@ -46,7 +48,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="sm" title="Import Collection" confirmText="Import" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal size="sm" title="Import Collection" confirmText="Import" handleConfirm={onSubmit} handleCancel={onClose} dataTestId="import-collection-location-modal">
       <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
           <label htmlFor="collectionName" className="block font-semibold">
@@ -54,14 +56,21 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
           </label>
           <div className="mt-2">{collectionName}</div>
           <>
-            <label htmlFor="collectionLocation" className="block font-semibold mt-3">
+            <label htmlFor="collectionLocation" className="block font-semibold mt-3 flex items-center">
               Location
+              <Help>
+                <p>
+                  Bruno stores your collections on your computer's filesystem.
+                </p>
+                <p className="mt-2">
+                  Choose the location where you want to store this collection.
+                </p>
+              </Help>
             </label>
             <input
               id="collection-location"
               type="text"
               name="collectionLocation"
-              readOnly={true}
               className="block textbox mt-2 w-full cursor-pointer"
               autoComplete="off"
               autoCorrect="off"
@@ -69,6 +78,9 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
               spellCheck="false"
               value={formik.values.collectionLocation || ''}
               onClick={browse}
+              onChange={e => {
+                formik.setFieldValue('collectionLocation', e.target.value);
+              }}
             />
           </>
           {formik.touched.collectionLocation && formik.errors.collectionLocation ? (

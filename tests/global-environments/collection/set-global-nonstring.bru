@@ -1,0 +1,16 @@
+meta {
+  name: set-global-nonstring
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setGlobalEnvVar('numericVar', 170001);
+  bru.setGlobalEnvVar('booleanVar', true);
+}

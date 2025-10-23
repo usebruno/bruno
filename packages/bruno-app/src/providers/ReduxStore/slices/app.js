@@ -1,11 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
-import toast from 'react-hot-toast';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   leftSidebarWidth: 222,
+  sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
@@ -24,7 +24,15 @@ const initialState = {
     },
     font: {
       codeFont: 'default'
+    },
+    general: {
+      defaultCollectionLocation: ''
     }
+  },
+  generateCode: {
+    mainLanguage: 'Shell',
+    library: 'curl',
+    shouldInterpolate: true
   },
   cookies: [],
   taskQueue: [],
@@ -76,6 +84,15 @@ export const appSlice = createSlice({
     },
     updateSystemProxyEnvVariables: (state, action) => {
       state.systemProxyEnvVariables = action.payload;
+    },
+    updateGenerateCode: (state, action) => {
+      state.generateCode = {
+        ...state.generateCode,
+        ...action.payload
+      };
+    },
+    toggleSidebarCollapse: (state) => {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
     }
   }
 });
@@ -94,7 +111,9 @@ export const {
   insertTaskIntoQueue,
   removeTaskFromQueue,
   removeAllTasksFromQueue,
-  updateSystemProxyEnvVariables
+  updateSystemProxyEnvVariables,
+  updateGenerateCode,
+  toggleSidebarCollapse
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -103,14 +122,9 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:save-preferences', preferences)
-      .then(() => toast.success('Preferences saved successfully'))
       .then(() => dispatch(updatePreferences(preferences)))
       .then(resolve)
-      .catch((err) => {
-        toast.error('An error occurred while saving preferences');
-        console.error(err);
-        reject(err);
-      });
+      .catch(reject);
   });
 };
 

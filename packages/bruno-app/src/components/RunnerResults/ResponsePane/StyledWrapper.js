@@ -33,6 +33,10 @@ const StyledWrapper = styled.div`
   .all-tests-passed {
     color: ${(props) => props.theme.colors.text.green} !important;
   }
+
+  .skipped-request {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
 `;
 
 export default StyledWrapper;

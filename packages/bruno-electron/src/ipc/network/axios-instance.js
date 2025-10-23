@@ -7,6 +7,7 @@ const { setupProxyAgents } = require('../../utils/proxy-util');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
+const { createFormData } = require('../../utils/form-data');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -125,7 +126,16 @@ function makeAxiosInstance({
       type: 'request',
       message: `${config.method.toUpperCase()} ${config.url}`,
     });
+
     Object.entries(config.headers).forEach(([key, value]) => {
+      // See https://github.com/usebruno/bruno/issues/1693
+      // Axios adds 'Content-Type': 'application/x-www-form-urlencoded for requests with no body
+      // Bruno sets content-type: false for no body requests so that axios doesn't add the default content-type header
+      // Hence we skip content-type if it's false
+      if (key.toLowerCase() === 'content-type' && value === false) {
+        return;
+      }
+
       timeline.push({
         timestamp: new Date(),
         type: 'requestHeader',
@@ -297,7 +307,7 @@ function makeAxiosInstance({
           }
 
           if (preferencesUtil.shouldStoreCookies()) {
-            saveCookies(redirectUrl, error.response.headers);
+            saveCookies(error.config.url, error.response.headers);
           }
 
           // Create a new request config for the redirect
@@ -309,6 +319,62 @@ function makeAxiosInstance({
             },
           };
 
+          // Apply proper HTTP redirect behavior based on status code
+          const statusCode = error.response.status;
+          const originalMethod = (error.config.method || 'get').toLowerCase();
+
+          // For 301, 302, 303: change method to GET unless it was HEAD
+          if ([301, 302, 303].includes(statusCode) && originalMethod !== 'head') {
+              requestConfig.method = 'get';
+              requestConfig.data = undefined;
+              delete requestConfig.headers['content-length'];
+              delete requestConfig.headers['Content-Length'];
+              
+              delete requestConfig.headers['content-type']; 
+              delete requestConfig.headers['Content-Type'];
+              
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`,
+              });
+          } else {
+            // For 307, 308 and other status codes: preserve method and body
+            if (requestConfig.data && typeof requestConfig.data === 'object' && 
+                requestConfig.data.constructor && requestConfig.data.constructor.name === 'FormData') {
+              
+              const formData = requestConfig.data;
+              if (formData._released || (formData._streams && formData._streams.length === 0)) {
+                if (error.config._originalMultipartData && error.config.collectionPath) {
+                  timeline.push({
+                    timestamp: new Date(),
+                    type: 'info',
+                    message: `Recreating consumed FormData for ${statusCode} redirect`,
+                  });
+
+                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+                  requestConfig.data = recreatedForm;
+                  
+                  const formHeaders = recreatedForm.getHeaders();
+                  Object.assign(requestConfig.headers, formHeaders);
+                  
+                  // preserve the original data for potential future redirects
+                  requestConfig._originalMultipartData = error.config._originalMultipartData;
+                  requestConfig.collectionPath = error.config.collectionPath;
+                } else {
+                  timeline.push({
+                    timestamp: new Date(),
+                    type: 'info',
+                    message: `FormData consumed but no original data available for ${statusCode} redirect`,
+                  });
+                }
+              } else {
+                requestConfig._originalMultipartData = error.config._originalMultipartData;
+                requestConfig.collectionPath = error.config.collectionPath;
+              }
+            }
+          }
+
           if (preferencesUtil.shouldSendCookies()) {
             const cookieString = getCookieStringForUrl(redirectUrl);
             if (cookieString && typeof cookieString === 'string' && cookieString.length) {
@@ -316,7 +382,7 @@ function makeAxiosInstance({
             }
           }
 
-         try { 
+          try { 
             setupProxyAgents({
               requestConfig,
               proxyMode,
