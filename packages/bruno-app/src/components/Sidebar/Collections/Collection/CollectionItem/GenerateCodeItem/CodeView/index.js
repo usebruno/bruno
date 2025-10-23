@@ -46,19 +46,20 @@ const CodeView = ({ language, item }) => {
     ...(requestHeaders ?? [])
   ];
 
-  let snippet = '';
-
-  try {
-    const request = cloneDeep(item.request);
-    if (request.url) {
-      request.url = decodeURIComponent(request.url);
+  const snippet = useMemo(() => {
+    try {
+      const request = cloneDeep(item.request);
+      if (request.url) {
+        request.url = decodeURIComponent(request.url);
+      }
+      const { target, client } = language;
+      return new HTTPSnippet(buildHarRequest({ request: request, headers, type: item.type })).convert(target,
+        client);
+    } catch (e) {
+      console.error(e);
+      return 'Error generating code snippet';
     }
-    const { target, client } = language;
-    snippet = new HTTPSnippet(buildHarRequest({ request: request, headers, type: item.type })).convert(target, client);
-  } catch (e) {
-    console.error(e);
-    snippet = 'Error generating code snippet';
-  }
+  }, [language, item, collection, generateCodePrefs.shouldInterpolate]);
 
   return (
     <StyledWrapper>
