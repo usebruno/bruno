@@ -9,14 +9,15 @@ test.describe('Code Generation URL Encoding', () => {
         await modalCloseButton.click();
         await modalCloseButton.waitFor({ state: 'hidden' });
       }
-    } catch (e) {
-
-    }
+    } catch (e) {}
 
     await closeAllCollections(page);
   });
 
-  test('Should generate code with proper URL encoding for unencoded input', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('Should generate code with proper URL encoding for unencoded input', async ({
+    pageWithUserData: page,
+    createTmpDir
+  }) => {
     await page.locator('.dropdown-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
     await page.getByLabel('Name').fill('unencoded-test-collection');
@@ -55,7 +56,10 @@ test.describe('Code Generation URL Encoding', () => {
     await page.locator('[data-test-id="modal-close-button"]').waitFor({ state: 'hidden' });
   });
 
-  test('Should generate code with proper URL encoding for encoded input', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('Should generate code with proper URL encoding for encoded input', async ({
+    pageWithUserData: page,
+    createTmpDir
+  }) => {
     await page.locator('.dropdown-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
     await page.getByLabel('Name').fill('encoded-test-collection');
