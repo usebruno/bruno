@@ -6,23 +6,13 @@ meta {
 
 grpc {
   url: {{host}}
-  method: /addsvc.Add/Sum
   body: grpc
   auth: inherit
-  methodType: unary
-}
-
-metadata {
-  test-bin: hello
-  test: hello
 }
 
 body:grpc {
   name: message 1
   content: '''
-    {
-      "a": 90,
-      "b": 631
-    }
+    {}
   '''
 }
