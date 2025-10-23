@@ -151,7 +151,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
                           param,
                           'filePath') : () => {}}
                         collection={collection}
-                        editMode={editMode}
+                        readOnly={!editMode}
                       />
                     </td>
                     <td>

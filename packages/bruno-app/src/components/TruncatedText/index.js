@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import PropTypes from 'prop-types';
 
 const TruncatedText = ({
   text,
@@ -12,7 +11,7 @@ const TruncatedText = ({
   showButton = true,
   onToggle = null,
   children,
-  ...props
+  dataTestId = ''
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [shouldTruncate, setShouldTruncate] = useState(false);
@@ -81,7 +80,7 @@ const TruncatedText = ({
   }
 
   return (
-    <div className={className} {...props}>
+    <div className={className} data-testid={dataTestId}>
       <div
         ref={textRef}
         className={textClassName}

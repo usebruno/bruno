@@ -1,0 +1,57 @@
+meta {
+  name: User API Documentation
+  type: http
+}
+
+get {
+  url: https://api.example.com/users
+}
+
+example {
+  name: Get User by ID
+  description: Example of getting a user by ID
+
+  request: {
+    url: https://api.example.com/users/123
+  }
+
+  response: {
+    status: {
+      code: 200
+    }
+
+    body: {
+      "id": 123,
+      "name": "John Doe",
+      "email": "john@example.com"
+    }
+  }
+}
+
+example {
+  name: Create New User
+  description: Example of creating a new user
+
+  request: {
+    url: https://api.example.com/users
+    body:json: {
+      {
+        "name": "New User",
+        "email": "newuser@example.com"
+      }
+    }
+  }
+
+  response: {
+    status: {
+      code: 201
+    }
+    
+    body: {
+      "id": 456,
+      "name": "New User",
+      "email": "newuser@example.com",
+      "created_at": "2023-01-15T10:30:00Z"
+    }
+  }
+}

@@ -168,7 +168,7 @@ const ResponseExampleTopBar = ({
                 buttonClassName="text-blue-600 hover:text-blue-800 font-medium"
                 viewMoreText="View More"
                 viewLessText="View Less"
-                data-testid="response-example-description"
+                dataTestId="response-example-description"
               />
             )}
           </div>

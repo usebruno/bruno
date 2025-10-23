@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -15,10 +15,11 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  // Get form data from the specific example
-  const params = item.draft
-    ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.formUrlEncoded || []
-    : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.formUrlEncoded || [];
+  const params = useMemo(() => {
+    return item.draft
+      ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.formUrlEncoded || []
+      : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.formUrlEncoded || [];
+  }, [item, exampleUid]);
 
   const addParam = () => {
     const newParam = {

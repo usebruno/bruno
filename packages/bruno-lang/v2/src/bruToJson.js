@@ -1,6 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
+const parseExample = require('./exampleBruToJson');
 
 /**
  * A Bru file is made up of blocks.
@@ -29,13 +30,11 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | responses | example)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
-  responses = responseheaders | responsebodies | responsestatus
-  responsebodies = responsebody
   
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
@@ -147,10 +146,6 @@ const grammar = ohm.grammar(`Bru {
   bodymultipart = "body:multipart-form" dictionary
   bodyfile = "body:file" dictionary
 
-  // Response blocks
-  responseheaders = "response:headers" dictionary
-  responsestatus = "response:status" dictionary
-  responsebody = "response:body" st* "{" nl* textblock tagend
 
   // Examples - multiple example blocks
   example = "example" st* "{" nl* examplecontent tagend
@@ -304,7 +299,7 @@ const createGetNumFromRecord = (obj) => (key, { fallback } = {}) => {
   return asNumber;
 };
 
-// Recursive parser for example content
+// Parse example content using dedicated example parser
 const parseExampleContent = (content) => {
   try {
     // Unindent the content by removing leading whitespace from each line
@@ -327,14 +322,8 @@ const parseExampleContent = (content) => {
 
     const unindentedContent = unindentedLines.join('\n').trim();
 
-    // Parse the unindented content using the same grammar
-    const match = grammar.match(unindentedContent);
-    if (match.succeeded()) {
-      return sem(match).ast;
-    } else {
-      console.warn('Failed to parse example content:', match.message);
-      return { error: 'Failed to parse example content' };
-    }
+    // Parse the unindented content using the dedicated example parser
+    return parseExample(unindentedContent);
   } catch (error) {
     console.error('Error parsing example content:', error);
     return { error: error.message };
@@ -1100,28 +1089,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
             content: messageContent
           }
         ]
-      }
-    };
-  },
-  // Response semantic rules
-  responseheaders(_1, dictionary) {
-    return {
-      response: {
-        headers: mapPairListToKeyValPairs(dictionary.ast)
-      }
-    };
-  },
-  responsestatus(_1, dictionary) {
-    return {
-      response: {
-        status: mapPairListToKeyValPair(dictionary.ast)
-      }
-    };
-  },
-  responsebody(_1, _2, _3, _4, textblock, _5) {
-    return {
-      response: {
-        body: outdentString(textblock.sourceString)
       }
     };
   },

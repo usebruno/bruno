@@ -46,3 +46,109 @@ tests {
   });  
 }
 
+example {
+  name: tests
+  description: description is chnaged
+  
+  request: {
+    url: {{host}}/api/echo/json/:id?param=lol:&param=lo
+    params:query: {
+      param: lol:
+      param: lo
+    }
+  
+    params:path: {
+      id: value
+    }
+  
+    headers: {
+      foo: bar
+      test: header
+      header2: valuedaq
+    }
+  
+    body:form-urlencoded: {
+      test: form-urle
+    }
+  }
+  
+  response: {
+    headers: {
+      date: Sat, 25 Oct 2025 21:41:02 GMT
+      content-type: application/json; charset=utf-8
+      content-length: 17
+      connection: keep-alive
+      cf-ray: 9944e033ff5c7ab9-MAA
+      x-powered-by: Expressd
+      access-control-allow-origin: *
+      etag: W/"11-kkVht/dYNh/LshFy6O8PEmORASI"
+      x-do-app-origin: 926ac182-3c90-4dd9-ad71-717f024a0eb2
+      cache-control: private
+      x-do-orig-status: 200
+      cf-cache-status: DYNAMIC
+      set-cookie: __cf_bm=oG6HSnibag4eDyXsGgIGGEYtyFu8A1Iu20TE.WdAvyA-1761428462-1.0.1.1-wxcwegkgayX.jE_GUznJYxGMXqpTrevqtdX13lyJa2PWosN2GImi.zqZ_RWIhBkrFvFXQ89B7XgRrKPFCkdvzGctMtD0FVM58MGQ0ADBD84; path=/; expires=Sat, 25-Oct-25 22:11:02 GMT; domain=.testbench-sanity.usebruno.com; HttpOnly; Secure; SameSite=None
+      server: cloudflare
+      alt-svc: h3=":443"; ma=86400
+    }
+  
+    status: {
+      code: 900
+      text: hojj
+    }
+  
+    body: {
+      {
+        "hello": "bruno"
+      }
+    }
+  }
+}
+
+example {
+  name: resr
+  description: example description
+  
+  request: {
+    url: {{host}}/api/echo/json
+    headers: {
+      foo: bar
+    }
+  
+    body:json: {
+      {
+        "hello": "bruno"
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      date: Sun, 26 Oct 2025 09:55:13 GMT
+      content-type: application/json; charset=utf-8
+      content-length: 17
+      connection: keep-alive
+      cf-ray: 994913a628d3ef77-MAA
+      x-powered-by: Express
+      access-control-allow-origin: *
+      etag: W/"11-kkVht/dYNh/LshFy6O8PEmORASI"
+      x-do-app-origin: 926ac182-3c90-4dd9-ad71-717f024a0eb2
+      cache-control: private
+      x-do-orig-status: 200
+      cf-cache-status: DYNAMIC
+      set-cookie: __cf_bm=i.NVEJi0SUCr2PFNheuo.38SBjlTqioBO5aUmv3fMSE-1761472513-1.0.1.1-hzZ.6REHAOwfpFZFGFbYPF7mL6Ex3qvjY1C.DyxLW.wXnlYyntjA7NxGV5eDqKkaTI.YMQ.U.ISLf1bCAt6ND9V1A_5DI_IcE_1FpXx2pT4; path=/; expires=Sun, 26-Oct-25 10:25:13 GMT; domain=.testbench-sanity.usebruno.com; HttpOnly; Secure; SameSite=None
+      server: cloudflare
+      alt-svc: h3=":443"; ma=86400
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      {
+        "hello": "bruno"
+      }
+    }
+  }
+}

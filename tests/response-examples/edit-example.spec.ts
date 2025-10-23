@@ -1,13 +1,13 @@
 import { test, expect } from '../../playwright';
 
 test.describe('Edit Response Examples', () => {
-  test('should enter edit mode when edit button is clicked', async ({ pageWithUserData: page }) => {
+  test('should enter edit mode and show editable fields when edit button is clicked', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
       await page.locator('.collection-item-name').getByText('echo-request').click();
     });
 
-    await test.step('make a successful request, and create an example', async () => {
+    await test.step('Make a successful request and create an example', async () => {
       await page.getByTestId('send-arrow-icon').click();
       await page.getByTestId('response-bookmark-btn').click();
       await page.getByTestId('create-example-name-input').fill('Test Example');
@@ -21,7 +21,7 @@ test.describe('Edit Response Examples', () => {
       await exampleItem.click();
     });
 
-    await test.step('Test edit mode', async () => {
+    await test.step('Verify edit mode functionality', async () => {
       await expect(page.getByTestId('response-example-title')).toBeVisible();
       await expect(page.getByTestId('response-example-edit-btn')).toBeVisible();
       await page.getByTestId('response-example-edit-btn').click();
@@ -32,7 +32,7 @@ test.describe('Edit Response Examples', () => {
     });
   });
 
-  test('should allow editing example name', async ({ pageWithUserData: page }) => {
+  test('should successfully update example name and persist changes', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
       await page.locator('.collection-item-name').getByText('echo-request').click();
@@ -44,7 +44,7 @@ test.describe('Edit Response Examples', () => {
       await exampleItem.click();
     });
 
-    await test.step('Edit example name', async () => {
+    await test.step('Update example name and verify persistence', async () => {
       await page.getByTestId('response-example-edit-btn').click();
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('Updated Example Name');
@@ -53,7 +53,7 @@ test.describe('Edit Response Examples', () => {
     });
   });
 
-  test('should allow editing example description', async ({ pageWithUserData: page }) => {
+  test('should successfully update example description and persist changes', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
       await page.locator('.collection-item-name').getByText('echo-request').click();
@@ -65,7 +65,7 @@ test.describe('Edit Response Examples', () => {
       await exampleItem.click();
     });
 
-    await test.step('Edit example description', async () => {
+    await test.step('Update example description and verify persistence', async () => {
       await page.getByTestId('response-example-edit-btn').click();
       await page.getByTestId('response-example-description-input').clear();
       await page.getByTestId('response-example-description-input').fill('Updated description for the example');
@@ -74,7 +74,7 @@ test.describe('Edit Response Examples', () => {
     });
   });
 
-  test('should cancel editing and revert changes', async ({ pageWithUserData: page }) => {
+  test('should discard changes and revert to original values when cancel is clicked', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
       await page.locator('.collection-item-name').getByText('echo-request').click();
@@ -86,7 +86,7 @@ test.describe('Edit Response Examples', () => {
       await exampleItem.click();
     });
 
-    await test.step('Test cancel editing', async () => {
+    await test.step('Test cancel functionality and verify reversion', async () => {
       const originalName = await page.getByTestId('response-example-title').textContent();
       await page.getByTestId('response-example-edit-btn').click();
       await page.getByTestId('response-example-name-input').clear();
@@ -96,7 +96,7 @@ test.describe('Edit Response Examples', () => {
     });
   });
 
-  test('should support keyboard shortcuts for saving', async ({ pageWithUserData: page }) => {
+  test('should save changes using keyboard shortcut (Cmd+S)', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
       await page.locator('.collection-item-name').getByText('echo-request').click();
@@ -108,7 +108,7 @@ test.describe('Edit Response Examples', () => {
       await exampleItem.click();
     });
 
-    await test.step('Test keyboard shortcut', async () => {
+    await test.step('Test keyboard shortcut save functionality', async () => {
       await page.getByTestId('response-example-edit-btn').click();
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('Keyboard Shortcut Test');

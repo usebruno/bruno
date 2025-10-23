@@ -9,7 +9,7 @@ import StyledWrapper from './StyledWrapper';
 
 const ResponseBookmark = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const [showNameModal, setShowNameModal] = useState(false);
+  const [showSaveResponseExampleModal, setShowSaveResponseExampleModal] = useState(false);
   const response = item.response || {};
 
   // Only show for HTTP requests
@@ -22,7 +22,7 @@ const ResponseBookmark = ({ item, collection }) => {
       toast.error('No valid response to save as example');
       return;
     }
-    setShowNameModal(true);
+    setShowSaveResponseExampleModal(true);
   };
 
   const saveAsExample = (name, description = '') => {
@@ -50,7 +50,7 @@ const ResponseBookmark = ({ item, collection }) => {
       example: exampleData
     }));
     dispatch(saveRequest(item.uid, collection.uid));
-    setShowNameModal(false);
+    setShowSaveResponseExampleModal(false);
     toast.success(`Example "${name}" created successfully`);
   };
 
@@ -61,7 +61,7 @@ const ResponseBookmark = ({ item, collection }) => {
           onClick={handleSaveClick}
           disabled={!response || response.error}
           title="Save current response as example"
-          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
+          className="p-1"
           data-testid="response-bookmark-btn"
         >
           <IconBookmark size={16} strokeWidth={1.5} />
@@ -69,8 +69,8 @@ const ResponseBookmark = ({ item, collection }) => {
       </StyledWrapper>
 
       <CreateExampleModal
-        isOpen={showNameModal}
-        onClose={() => setShowNameModal(false)}
+        isOpen={showSaveResponseExampleModal}
+        onClose={() => setShowSaveResponseExampleModal(false)}
         onSave={saveAsExample}
         title="Save Response as Example"
       />

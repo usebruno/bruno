@@ -7,7 +7,7 @@ test.describe('Response Example Menu Operations', () => {
       await page.locator('.collection-item-name').getByText('echo-request').click();
     });
 
-    await test.step('Create and clone example', async () => {
+    await test.step('Create example', async () => {
       await page.locator('#send-request').getByRole('img').nth(2).click();
       await page.getByTestId('response-bookmark-btn').click();
       await page.getByTestId('create-example-name-input').fill('Example to Clone');
@@ -15,6 +15,10 @@ test.describe('Response Example Menu Operations', () => {
 
       const exampleItem = page.locator('.collection-item-name').getByText('Example to Clone');
       await expect(exampleItem).toBeVisible();
+    });
+
+    await test.step('Clone example', async () => {
+      const exampleItem = page.locator('.collection-item-name').getByText('Example to Clone');
       await exampleItem.hover();
       await page.getByTestId('response-example-menu-icon').last().click();
 

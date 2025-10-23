@@ -71,6 +71,11 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
     }
   };
 
+  const onModeSelect = (mode) => {
+    dropdownTippyRef.current.hide();
+    onModeChange(mode);
+  };
+
   const onPrettify = () => {
     if (body?.json && bodyMode === 'json') {
       try {
@@ -105,75 +110,51 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
           <div className="label-item font-medium">Form</div>
           <div
             className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('multipartForm');
-            }}
+            onClick={() => onModeSelect('multipartForm')}
           >
             Multipart Form
           </div>
           <div
             className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('formUrlEncoded');
-            }}
+            onClick={() => onModeSelect('formUrlEncoded')}
           >
             Form URL Encoded
           </div>
           <div className="label-item font-medium">Raw</div>
           <div
             className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('json');
-            }}
+            onClick={() => onModeSelect('json')}
           >
             JSON
           </div>
           <div
             className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('xml');
-            }}
+            onClick={() => onModeSelect('xml')}
           >
             XML
           </div>
           <div
             className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('text');
-            }}
+            onClick={() => onModeSelect('text')}
           >
             TEXT
           </div>
           <div
             className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('sparql');
-            }}
+            onClick={() => onModeSelect('sparql')}
           >
             SPARQL
           </div>
           <div className="label-item font-medium">Other</div>
           <div
             className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('file');
-            }}
+            onClick={() => onModeSelect('file')}
           >
             File / Binary
           </div>
           <div
             className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('none');
-            }}
+            onClick={() => onModeSelect('none')}
           >
             None
           </div>

@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "name": "Test API",
+    "type": "http",
+    "seq": 1
+  },
+  "examples": [
+    {
+      "name": "JSON Example",
+      "description": "An example with JSON body",
+      "request": {
+        "url": "https://api.example.com/data",
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"name\": \"Test\",\n  \"value\": 123\n}"
+        }
+      }
+    }
+  ]
+}

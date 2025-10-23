@@ -328,7 +328,6 @@ const exampleSchema = Yup.object({
     method: requestMethodSchema,
     headers: Yup.array().of(keyValueSchema).required('headers are required'),
     params: Yup.array().of(requestParamsSchema).required('params are required'),
-    auth: authSchema,
     body: requestBodySchema
   })
     .noUnknown(true)
@@ -338,7 +337,7 @@ const exampleSchema = Yup.object({
     status: Yup.string().nullable(),
     statusText: Yup.string().nullable(),
     headers: Yup.array().of(keyValueSchema).nullable(),
-    body: Yup.mixed().nullable(),
+    body: Yup.mixed().nullable()
   })
     .noUnknown(true)
     .strict()
@@ -372,7 +371,7 @@ const requestSchema = Yup.object({
     .nullable(),
   assertions: Yup.array().of(keyValueSchema).nullable(),
   tests: Yup.string().nullable(),
-  docs: Yup.string().nullable(),
+  docs: Yup.string().nullable()
 })
   .noUnknown(true)
   .strict();
