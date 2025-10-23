@@ -32,9 +32,23 @@ const CodeView = ({ language, item }) => {
     return c;
   }, [collectionOriginal, globalEnvironments, activeGlobalEnvironmentUid]);
 
-  const snippet = useMemo(() => {
-    return generateSnippet({ language, item, collection, shouldInterpolate: generateCodePrefs.shouldInterpolate });
-  }, [language, item, collection, generateCodePrefs.shouldInterpolate]);
+   const snippet = useMemo(() => {
+      let snippet = '';
+      try {
+        const request = cloneDeep(item.request);
+        if (request.url) {
+          request.url = decodeURIComponent(request.url);
+        }
+        return new HTTPSnippet(buildHarRequest({ request: request, headers, type: item.type })).convert(
+          target,
+          client
+        );
+      } catch (e) {
+        console.error(e);
+        return 'Error generating code snippet';
+      }
+   }, [language, item, collection, generateCodePrefs.shouldInterpolate]);
+
 
   return (
     <StyledWrapper>
