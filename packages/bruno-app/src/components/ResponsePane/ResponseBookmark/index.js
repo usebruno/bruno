@@ -61,7 +61,7 @@ const ResponseBookmark = ({ item, collection }) => {
           onClick={handleSaveClick}
           disabled={!response || response.error}
           title="Save current response as example"
-          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
+          className="p-1"
           data-testid="response-bookmark-btn"
         >
           <IconBookmark size={16} strokeWidth={1.5} />
