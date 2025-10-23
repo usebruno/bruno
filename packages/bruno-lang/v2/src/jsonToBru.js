@@ -754,18 +754,10 @@ ${indentString(docs)}
     // Response headers
     if (response.headers && response.headers.length) {
       bru += 'response:headers {';
-      if (enabled(response.headers).length) {
-        bru += `\n${indentString(enabled(response.headers)
-          .map((item) => `${quoteKey(item.name)}: ${item.value}`)
-          .join('\n'))}`;
-      }
-
-      if (disabled(response.headers).length) {
-        bru += `\n${indentString(disabled(response.headers)
-          .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
-          .join('\n'))}`;
-      }
-
+      // Response headers don't need enable/disable functionality - they're just data from server
+      bru += `\n${indentString(response.headers
+        .map((item) => `${quoteKey(item.name)}: ${item.value}`)
+        .join('\n'))}`;
       bru += '\n}\n\n';
     }
 
