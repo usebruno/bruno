@@ -9,9 +9,7 @@ import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { cloneDeep } from 'lodash';
 import { useMemo } from 'react';
-import { buildHarRequest } from 'utils/codegenerator/har';
-import { getAuthHeaders } from '../../../../../../../utils/codegenerator/auth';
-import { HTTPSnippet } from 'httpsnippet';
+import { generateSnippet } from '../utils/snippet-generator';
 const CodeView = ({ language, item }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
@@ -37,28 +35,13 @@ const CodeView = ({ language, item }) => {
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   collection.globalEnvironmentVariables = globalEnvironmentVariables;
 
-  const collectionRootAuth = collection?.root?.request?.auth;
-  const requestAuth = item.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
-  const requestHeaders = item?.request?.headers;
-  const headers = [
-    ...getAuthHeaders(collectionRootAuth, requestAuth),
-    ...(collection?.root?.request?.headers || []),
-    ...(requestHeaders ?? [])
-  ];
-
   const snippet = useMemo(() => {
-    try {
-      const request = cloneDeep(item.request);
-      if (request.url) {
-        request.url = decodeURIComponent(request.url);
-      }
-      const { target, client } = language;
-      return new HTTPSnippet(buildHarRequest({ request: request, headers, type: item.type })).convert(target,
-        client);
-    } catch (e) {
-      console.error(e);
-      return 'Error generating code snippet';
-    }
+    return generateSnippet({
+      language,
+      item,
+      collection,
+      shouldInterpolate: generateCodePrefs.shouldInterpolate
+    });
   }, [language, item, collection, generateCodePrefs.shouldInterpolate]);
 
   return (

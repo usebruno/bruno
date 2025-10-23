@@ -1,7 +1,5 @@
 import { get } from 'lodash';
-import {
-  getTreePathFromCollectionToItem
-} from 'utils/collections/index';
+import { getTreePathFromCollectionToItem } from 'utils/collections/index';
 
 // Resolve inherited auth by traversing up the folder hierarchy
 export const resolveInheritedAuth = (item, collection) => {

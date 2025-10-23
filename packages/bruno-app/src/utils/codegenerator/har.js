@@ -1,3 +1,5 @@
+import url from 'url';
+
 const createContentType = (mode) => {
   switch (mode) {
     case 'json':
@@ -52,10 +54,12 @@ const createQuery = (queryParams = [], request) => {
       value: param.value
     }));
 
-  if (request?.auth?.mode === 'apikey' && 
-      request?.auth?.apikey?.placement === 'queryparams' && 
-      request?.auth?.apikey?.key && 
-      request?.auth?.apikey?.value) {
+  if (
+    request?.auth?.mode === 'apikey'
+    && request?.auth?.apikey?.placement === 'queryparams'
+    && request?.auth?.apikey?.key
+    && request?.auth?.apikey?.value
+  ) {
     params.push({
       name: request.auth.apikey.key,
       value: request.auth.apikey.value
@@ -107,13 +111,13 @@ const createPostData = (body) => {
         text: filePath,
         params: filePath
           ? [
-            {
-              name: selectedFile?.name || 'file',
-              value: filePath,
-              fileName: filePath,
-              contentType: selectedFile?.contentType || 'application/octet-stream'
-            }
-          ]
+              {
+                name: selectedFile?.name || 'file',
+                value: filePath,
+                fileName: filePath,
+                contentType: selectedFile?.contentType || 'application/octet-stream'
+              }
+            ]
           : []
       };
     }
@@ -130,10 +134,17 @@ const createPostData = (body) => {
   }
 };
 
-export const buildHarRequest = ({ request, headers }) => { 
+export const buildHarRequest = ({ request, headers }) => {
+  // NOTE:
+  // This is just a safety check.
+  // The interpolateUrlPathParams method validates the url, but it does not throw
+  if (!url.parse(request.url)) {
+    throw new Error('invalid request url');
+  }
+
   return {
     method: request.method,
-    url: encodeURI(request.url),
+    url: request.url,
     httpVersion: 'HTTP/1.1',
     cookies: [],
     headers: createHeaders(request, headers),
