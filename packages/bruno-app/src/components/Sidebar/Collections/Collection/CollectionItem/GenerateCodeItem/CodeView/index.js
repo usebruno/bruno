@@ -9,8 +9,9 @@ import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { cloneDeep } from 'lodash';
 import { useMemo } from 'react';
-import { generateSnippet } from '../utils/snippet-generator';
-
+import { buildHarRequest } from 'utils/codegenerator/har';
+import { getAuthHeaders } from '../../../../../../../utils/codegenerator/auth';
+import { HTTPSnippet } from 'httpsnippet';
 const CodeView = ({ language, item }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
@@ -38,23 +39,22 @@ const CodeView = ({ language, item }) => {
 
   const collectionRootAuth = collection?.root?.request?.auth;
   const requestAuth = item.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
-
+  const requestHeaders = item?.request?.headers;
   const headers = [
     ...getAuthHeaders(collectionRootAuth, requestAuth),
     ...(collection?.root?.request?.headers || []),
-    ...(requestHeaders || [])
+    ...(requestHeaders ?? [])
   ];
 
   let snippet = '';
+
   try {
     const request = cloneDeep(item.request);
     if (request.url) {
       request.url = decodeURIComponent(request.url);
     }
-    snippet = new HTTPSnippet(buildHarRequest({ request: request, headers, type: item.type })).convert(
-      target,
-      client
-    );
+    const { target, client } = language;
+    snippet = new HTTPSnippet(buildHarRequest({ request: request, headers, type: item.type })).convert(target, client);
   } catch (e) {
     console.error(e);
     snippet = 'Error generating code snippet';
@@ -62,10 +62,7 @@ const CodeView = ({ language, item }) => {
 
   return (
     <StyledWrapper>
-      <CopyToClipboard
-        text={snippet}
-        onCopy={() => toast.success('Copied to clipboard!')}
-      >
+      <CopyToClipboard text={snippet} onCopy={() => toast.success('Copied to clipboard!')}>
         <button className="copy-to-clipboard">
           <IconCopy size={25} strokeWidth={1.5} />
         </button>
