@@ -111,7 +111,7 @@ const MethodDropdown = ({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setFocusedIndex((prev) =>
-        prev >= 0 ? prev - 1 : -1);
+        prev > 0 ? prev - 1 : 0);
     } else if (e.key === 'Enter' && focusedIndex >= 0) {
       e.preventDefault();
       handleGrpcMethodSelect(flatMethodList[focusedIndex]);
@@ -132,13 +132,8 @@ const MethodDropdown = ({
     setFocusedIndex(-1);
   };
 
-  const handleSearchChange = (e) => {
-    // auto focus the first method when the search input is not empty
-    if (e.target.value.trim().length > 0) {
-      setFocusedIndex(0);
-    } else {
-      setFocusedIndex(-1);
-    }
+  const handleSearchChange = () => {
+    setFocusedIndex(-1);
   };
 
   if (!grpcMethods || grpcMethods.length === 0) {
@@ -157,7 +152,6 @@ const MethodDropdown = ({
           onBlur={focusSearchInput}
           onChange={handleSearchChange}
           className="mt-2 mb-3 "
-          data-testid="grpc-methods-search-input"
         />
         <div ref={listRef} className="max-h-96 overflow-y-auto w-96 min-w-60" data-testid="grpc-methods-list">
           {Object.entries(groupedMethods).map(([serviceName, methods], serviceIndex) => (
