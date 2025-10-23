@@ -1,19 +1,20 @@
 import React from 'react';
 import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
 import { useFormik } from 'formik';
-import { uuid } from 'utils/common';
 import * as Yup from 'yup';
-import { IconEye, IconEyeOff } from '@tabler/icons';
-import { useState } from 'react';
-
 import StyledWrapper from './StyledWrapper';
 import { useRef } from 'react';
 import path from 'utils/common/path';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
+import { useTheme } from 'styled-components';
 
-const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
+const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }) => {
   const certFilePathInputRef = useRef();
   const keyFilePathInputRef = useRef();
   const pfxFilePathInputRef = useRef();
+  const { storedTheme } = useTheme();
 
   const formik = useFormik({
     initialValues: {
@@ -68,10 +69,13 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
     }
   });
 
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(formik.values.passphrase);
+
   const getFile = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
     if (filePath) {
-      let relativePath = path.relative(root, filePath);
+      let relativePath = path.relative(collection.pathname, filePath);
       formik.setFieldValue(e.name, relativePath);
     }
   };
@@ -81,8 +85,6 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
     keyFilePathInputRef.current.value = '';
     pfxFilePathInputRef.current.value = '';
   };
-
-  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleTypeChange = (e) => {
     formik.setFieldValue('type', e.target.value);
@@ -314,21 +316,15 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
             Passphrase
           </label>
           <div className="textbox flex flex-row items-center w-[300px] h-[1.70rem] relative">
-            <input
-              id="passphrase"
-              type={passwordVisible ? 'text' : 'password'}
-              name="passphrase"
-              className="outline-none w-64 bg-transparent"
-              onChange={formik.handleChange}
+            <SingleLineEditor
               value={formik.values.passphrase || ''}
+              theme={storedTheme}
+              onSave={formik.handleSubmit}
+              onChange={(val) => formik.setFieldValue('passphrase', val)}
+              collection={collection}
+              isSecret={true}
             />
-            <button
-              type="button"
-              className="btn btn-sm absolute right-0 l"
-              onClick={() => setPasswordVisible(!passwordVisible)}
-            >
-              {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
-            </button>
+            {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
           </div>
           {formik.touched.passphrase && formik.errors.passphrase ? (
             <div className="ml-1 text-red-500">{formik.errors.passphrase}</div>
