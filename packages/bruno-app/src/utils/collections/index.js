@@ -799,6 +799,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'API Key';
       break;
     }
+    case 'edgegrid': {
+      label = 'Akamai EdgeGrid';
+      break;
+    }
   }
 
   return label;

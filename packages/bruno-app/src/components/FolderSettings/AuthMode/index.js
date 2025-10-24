@@ -111,6 +111,15 @@ const AuthMode = ({ collection, folder }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('edgegrid');
+            }}
+          >
+            Akamai EdgeGrid
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('inherit');
             }}
           >

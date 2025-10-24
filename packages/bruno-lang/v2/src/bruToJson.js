@@ -30,7 +30,7 @@ const { safeParseJson, outdentString } = require('./utils');
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
@@ -121,6 +121,7 @@ const grammar = ohm.grammar(`Bru {
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
+  authedgegrid = "auth:edgegrid" dictionary
 
   oauth2AuthReqHeaders = "auth:oauth2:additional_params:auth_req:headers" dictionary
   oauth2AuthReqQueryParams = "auth:oauth2:additional_params:auth_req:queryparams" dictionary
@@ -852,6 +853,38 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           key,
           value,
           placement
+        }
+      }
+    };
+  },
+  authedgegrid(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const findValueByName = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+
+    const access_token = findValueByName('access_token');
+    const client_token = findValueByName('client_token');
+    const client_secret = findValueByName('client_secret');
+    const nonce = findValueByName('nonce');
+    const timestamp = findValueByName('timestamp');
+    const base_url = findValueByName('base_url');
+    const headers_to_sign = findValueByName('headers_to_sign');
+    const max_body_size = findValueByName('max_body_size');
+
+    return {
+      auth: {
+        edgegrid: {
+          access_token,
+          client_token,
+          client_secret,
+          nonce,
+          timestamp,
+          base_url,
+          headers_to_sign,
+          max_body_size
         }
       }
     };
