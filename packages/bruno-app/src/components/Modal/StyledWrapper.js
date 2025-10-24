@@ -40,6 +40,7 @@ const Wrapper = styled.div`
     flex-grow: 0;
     margin: 3vh 10vw;
     margin-top: 50px;
+    word-break: break-word;
 
     &.modal-sm {
       min-width: 300px;
