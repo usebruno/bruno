@@ -5,6 +5,7 @@ import EnvironmentList from './EnvironmentList';
 import StyledWrapper from './StyledWrapper';
 import ImportEnvironment from './ImportEnvironment';
 import { IconFileAlert } from '@tabler/icons';
+import ExportModal from 'components/Environments/Common/ExportModal';
 
 export const SharedButton = ({ children, className, onClick }) => {
   return (
@@ -19,7 +20,7 @@ export const SharedButton = ({ children, className, onClick }) => {
   );
 };
 
-const DefaultTab = ({ setTab }) => {
+const DefaultTab = ({ setTab, setShowExportModal }) => {
   return (
     <div className="text-center items-center flex flex-col">
       <IconFileAlert size={64} strokeWidth={1} />
@@ -38,6 +39,12 @@ const DefaultTab = ({ setTab }) => {
           <span>Import Environment</span>
         </SharedButton>
       </div>
+
+      <div className="flex items-center justify-center mt-4">
+        <SharedButton onClick={() => setShowExportModal(true)}>
+          <span>Export Environments</span>
+        </SharedButton>
+      </div>
     </div>
   );
 };
@@ -47,6 +54,7 @@ const EnvironmentSettings = ({ collection, onClose }) => {
   const { environments } = collection;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [tab, setTab] = useState('default');
+  const [showExportModal, setShowExportModal] = useState(false);
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
@@ -56,24 +64,39 @@ const EnvironmentSettings = ({ collection, onClose }) => {
           ) : tab === 'import' ? (
             <ImportEnvironment collection={collection} onClose={() => setTab('default')} />
           ) : (
-            <DefaultTab setTab={setTab} />
+            <DefaultTab setTab={setTab} setShowExportModal={setShowExportModal} />
           )}
         </Modal>
+        {showExportModal && (
+          <ExportModal
+            onClose={() => setShowExportModal(false)}
+            collection={collection}
+          />
+        )}
       </StyledWrapper>
     );
   }
 
   return (
-    <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
-      <EnvironmentList
-        selectedEnvironment={selectedEnvironment}
-        setSelectedEnvironment={setSelectedEnvironment}
-        collection={collection}
-        isModified={isModified}
-        setIsModified={setIsModified}
-        onClose={onClose}
-      />
-    </Modal>
+    <StyledWrapper>
+      <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
+        <EnvironmentList
+          selectedEnvironment={selectedEnvironment}
+          setSelectedEnvironment={setSelectedEnvironment}
+          collection={collection}
+          isModified={isModified}
+          setIsModified={setIsModified}
+          onClose={onClose}
+          setShowExportModal={setShowExportModal}
+        />
+      </Modal>
+      {showExportModal && (
+        <ExportModal
+          onClose={() => setShowExportModal(false)}
+          collection={collection}
+        />
+      )}
+    </StyledWrapper>
   );
 };
 

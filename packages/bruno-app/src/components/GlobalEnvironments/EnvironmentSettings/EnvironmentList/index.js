@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
-import { IconDownload, IconShieldLock } from '@tabler/icons';
+import { IconDownload, IconShieldLock, IconUpload } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ManageSecrets from 'components/Environments/EnvironmentSettings/ManageSecrets/index';
@@ -10,7 +10,7 @@ import ImportEnvironment from '../ImportEnvironment';
 import { isEqual } from 'lodash';
 import ToolHint from 'components/ToolHint/index';
 
-const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified, collection }) => {
+const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified, collection, setShowExportModal }) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
@@ -90,6 +90,12 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
     setOpenManageSecretsModal(true);
   };
 
+  const handleExportClick = () => {
+    if (setShowExportModal) {
+      setShowExportModal(true);
+    }
+  };
+
   const handleConfirmSwitch = (saveChanges) => {
     if (!saveChanges) {
       setSwitchEnvConfirmClose(false);
@@ -132,6 +138,10 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
                 <IconDownload size={12} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Import</span>
               </div>
+              <div className="flex items-center mt-2" onClick={() => handleExportClick()}>
+                <IconUpload size={12} strokeWidth={2} />
+                <span className="label ml-1 text-xs">Export</span>
+              </div>
               <div className="flex items-center mt-2" onClick={() => handleSecretsClick()}>
                 <IconShieldLock size={12} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Managing Secrets</span>
@@ -144,6 +154,7 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
           setIsModified={setIsModified}
           originalEnvironmentVariables={originalEnvironmentVariables}
           collection={collection}
+          allEnvironments={environments}
         />
       </div>
     </StyledWrapper>
