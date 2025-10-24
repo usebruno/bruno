@@ -21,7 +21,7 @@ wss.on('connection', function connection(ws, request) {
   ws.on('message', function message(data) {
     const msg = Buffer.from(data).toString().trim();
     let isJSON = false;
-    let obj = {}
+    let obj = {};
     try {
        obj = JSON.parse(msg);
       isJSON = true;
@@ -30,20 +30,20 @@ wss.on('connection', function connection(ws, request) {
     }
     if (isJSON) {
       if ('func' in obj && obj.func === 'headers') {
-        ws.send(
+        return ws.send(
           JSON.stringify({
             headers: request.headers
           })
         );
       } else {
-        ws.send(
+        return ws.send(
           JSON.stringify({
             data: JSON.parse(Buffer.from(data).toString())
           })
         );
       }
     }
-    ws.send(Buffer.from(data).toString());
+    return ws.send(Buffer.from(data).toString());
   });
 });
 
