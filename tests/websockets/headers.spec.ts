@@ -7,8 +7,6 @@ test.describe.serial('headers', () => {
   test('headers are returned if passed', async ({ pageWithUserData: page, restartApp }) => {
     const locators = buildWebsocketCommonLocators(page);
 
-    // await page.pause();
-
     // Open the most recent collection
     await page.locator('#sidebar-collection-name').click();
 
