@@ -131,9 +131,16 @@ const createPostData = (body) => {
 };
 
 export const buildHarRequest = ({ request, headers }) => { 
+  // NOTE:
+  // This is just a safety check.
+  // The interpolateUrlPathParams method validates the url, but it does not throw
+  if (!URL.canParse(request.url)) {
+    throw new Error('invalid request url');
+  }
+
   return {
     method: request.method,
-    url: encodeURI(request.url),
+    url: request.url,
     httpVersion: 'HTTP/1.1',
     cookies: [],
     headers: createHeaders(request, headers),
