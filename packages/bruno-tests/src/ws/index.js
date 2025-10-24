@@ -20,20 +20,26 @@ const wss = new ws.Server({
 wss.on('connection', function connection(ws, request) {
   ws.on('message', function message(data) {
     const msg = Buffer.from(data).toString().trim();
-    const obj = JSON.parse(msg);
-    if ('func' in obj && obj.func === 'headers') {
-      ws.send(
-        JSON.stringify({
-          headers: request.headers
-        })
-      );
-    } else {
-      ws.send(
-        JSON.stringify({
-          data: JSON.parse(Buffer.from(data).toString())
-        })
-      );
+    let isJSON = false;
+    let obj = {};
+    try {
+      obj = JSON.parse(msg);
+      isJSON = true;
+    } catch (err) {
+      // Not a json value, don't do any modification
     }
+    if (isJSON) {
+      if ('func' in obj && obj.func === 'headers') {
+        return ws.send(JSON.stringify({
+          headers: request.headers
+        }));
+      } else {
+        return ws.send(JSON.stringify({
+          data: JSON.parse(Buffer.from(data).toString())
+        }));
+      }
+    }
+    return ws.send(Buffer.from(data).toString());
   });
 });
 
