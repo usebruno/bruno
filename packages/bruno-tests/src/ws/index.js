@@ -20,11 +20,11 @@ const wss = new ws.Server({
 wss.on('connection', function connection(ws, request) {
   ws.on('message', function message(data) {
     const msg = Buffer.from(data).toString().trim();
-    let isJSON = false
+    let isJSON = false;
     let obj = {}
     try {
-       obj= JSON.parse(msg);
-      isJSON = true
+       obj = JSON.parse(msg);
+      isJSON = true;
     } catch (err) {
       // Not a json value, don't do any modification
     }
