@@ -16,7 +16,7 @@ import { resolveInheritedAuth } from './utils/auth-utils';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const languages = getLanguages();
-  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const generateCodePrefs = useSelector((state) => state.app.generateCode);
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({
@@ -46,6 +46,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     variables
   });
 
+  // interpolate the path params
   const finalUrl = interpolateUrlPathParams(
     interpolatedUrl,
     get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
@@ -53,12 +54,11 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
 
   // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {
-    const fullName
-      = generateCodePrefs.library === 'default'
-        ? generateCodePrefs.mainLanguage
-        : `${generateCodePrefs.mainLanguage}-${generateCodePrefs.library}`;
+    const fullName = generateCodePrefs.library === 'default'
+      ? generateCodePrefs.mainLanguage
+      : `${generateCodePrefs.mainLanguage}-${generateCodePrefs.library}`;
 
-    return languages.find((lang) => lang.name === fullName) || languages[0];
+    return languages.find(lang => lang.name === fullName) || languages[0];
   }, [generateCodePrefs.mainLanguage, generateCodePrefs.library, languages]);
 
   // Resolve auth inheritance

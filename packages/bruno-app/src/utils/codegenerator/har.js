@@ -52,12 +52,10 @@ const createQuery = (queryParams = [], request) => {
       value: param.value
     }));
 
-  if (
-    request?.auth?.mode === 'apikey'
-    && request?.auth?.apikey?.placement === 'queryparams'
-    && request?.auth?.apikey?.key
-    && request?.auth?.apikey?.value
-  ) {
+  if (request?.auth?.mode === 'apikey' &&
+    request?.auth?.apikey?.placement === 'queryparams' &&
+    request?.auth?.apikey?.key &&
+    request?.auth?.apikey?.value) {
     params.push({
       name: request.auth.apikey.key,
       value: request.auth.apikey.value
@@ -109,13 +107,13 @@ const createPostData = (body) => {
         text: filePath,
         params: filePath
           ? [
-              {
-                name: selectedFile?.name || 'file',
-                value: filePath,
-                fileName: filePath,
-                contentType: selectedFile?.contentType || 'application/octet-stream'
-              }
-            ]
+            {
+              name: selectedFile?.name || 'file',
+              value: filePath,
+              fileName: filePath,
+              contentType: selectedFile?.contentType || 'application/octet-stream'
+            }
+          ]
           : []
       };
     }

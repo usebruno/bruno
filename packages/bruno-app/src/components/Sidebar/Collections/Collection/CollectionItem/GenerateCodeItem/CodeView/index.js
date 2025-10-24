@@ -42,7 +42,10 @@ const CodeView = ({ language, item }) => {
 
   return (
     <StyledWrapper>
-      <CopyToClipboard text={snippet} onCopy={() => toast.success('Copied to clipboard!')}>
+      <CopyToClipboard
+        text={snippet}
+        onCopy={() => toast.success('Copied to clipboard!')}
+      >
         <button className="copy-to-clipboard">
           <IconCopy size={25} strokeWidth={1.5} />
         </button>
