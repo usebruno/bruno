@@ -282,6 +282,19 @@ const prepareRequest = async (item = {}, collection = {}) => {
         }
       }
     }
+
+    if (request.auth.mode === 'edgegrid') {
+      axiosRequest.edgeGridConfig = {
+        accessToken: get(request, 'auth.edgegrid.access_token'),
+        clientToken: get(request, 'auth.edgegrid.client_token'),
+        clientSecret: get(request, 'auth.edgegrid.client_secret'),
+        nonce: get(request, 'auth.edgegrid.nonce'),
+        timestamp: get(request, 'auth.edgegrid.timestamp'),
+        baseURL: get(request, 'auth.edgegrid.base_url'),
+        headersToSign: get(request, 'auth.edgegrid.headers_to_sign'),
+        maxBodySize: get(request, 'auth.edgegrid.max_body_size')
+      };
+    }
   }
 
   request.body = request.body || {};

@@ -4,7 +4,7 @@ const { safeParseJson, outdentString } = require('./utils');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey | authOauth2Configs
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
 
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
@@ -61,6 +61,7 @@ const grammar = ohm.grammar(`Bru {
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
+  authedgegrid = "auth:edgegrid" dictionary
 
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -450,6 +451,38 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           key,
           value,
           placement
+        }
+      }
+    };
+  },
+  authedgegrid(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const findValueByName = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+
+    const access_token = findValueByName('access_token');
+    const client_token = findValueByName('client_token');
+    const client_secret = findValueByName('client_secret');
+    const nonce = findValueByName('nonce');
+    const timestamp = findValueByName('timestamp');
+    const base_url = findValueByName('base_url');
+    const headers_to_sign = findValueByName('headers_to_sign');
+    const max_body_size = findValueByName('max_body_size');
+
+    return {
+      auth: {
+        edgegrid: {
+          access_token,
+          client_token,
+          client_secret,
+          nonce,
+          timestamp,
+          base_url,
+          headers_to_sign,
+          max_body_size
         }
       }
     };

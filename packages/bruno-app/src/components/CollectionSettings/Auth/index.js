@@ -12,6 +12,7 @@ import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/acti
 import StyledWrapper from './StyledWrapper';
 import OAuth2 from './OAuth2';
 import NTLMAuth from './NTLMAuth';
+import EdgeGridAuth from './EdgeGridAuth';
 
 
 const Auth = ({ collection }) => {
@@ -45,6 +46,9 @@ const Auth = ({ collection }) => {
       }
       case 'apikey': {
         return <ApiKeyAuth collection={collection} />;
+      }
+      case 'edgegrid': {
+        return <EdgeGridAuth collection={collection} />;
       }
     }
   };

@@ -836,6 +836,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'apikey';
               item.draft.request.auth.apikey = action.payload.content;
               break;
+            case 'edgegrid':
+              item.draft.request.auth.mode = 'edgegrid';
+              item.draft.request.auth.edgegrid = action.payload.content;
+              break;
           }
         }
       }
@@ -1831,6 +1835,9 @@ export const collectionsSlice = createSlice({
           case 'apikey':
             set(collection, 'root.request.auth.apikey', action.payload.content);
             break;
+          case 'edgegrid':
+            set(collection, 'root.request.auth.edgegrid', action.payload.content);
+            break;
         }
       }
     },
@@ -2019,6 +2026,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'apikey':
             set(folder, 'root.request.auth.apikey', action.payload.content);
+            break;
+          case 'edgegrid':
+            set(folder, 'root.request.auth.edgegrid', action.payload.content);
             break;
           case 'awsv4':
             set(folder, 'root.request.auth.awsv4', action.payload.content);

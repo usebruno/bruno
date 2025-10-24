@@ -12,6 +12,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 
 import ApiKeyAuth from './ApiKeyAuth';
+import EdgeGridAuth from './EdgeGridAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import OAuth2 from './OAuth2/index';
@@ -95,6 +96,9 @@ const Auth = ({ item, collection }) => {
       }
       case 'apikey': {
         return <ApiKeyAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
+      }
+      case 'edgegrid': {
+        return <EdgeGridAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'inherit': {
         const source = getEffectiveAuthSource();

@@ -17,6 +17,7 @@ import NTLMAuth from 'components/RequestPane/Auth/NTLMAuth';
 import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
+import EdgeGridAuth from 'components/RequestPane/Auth/EdgeGridAuth';
 import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
 
 const GrantTypeComponentMap = ({ collection, folder }) => {
@@ -156,6 +157,17 @@ const Auth = ({ collection, folder }) => {
       case 'awsv4': {
         return (
           <AwsV4Auth
+            collection={collection}
+            item={folder}
+            updateAuth={updateFolderAuth}
+            request={request}
+            save={() => handleSave()}
+          />
+        );
+      }
+      case 'edgegrid': {
+        return (
+          <EdgeGridAuth
             collection={collection}
             item={folder}
             updateAuth={updateFolderAuth}
