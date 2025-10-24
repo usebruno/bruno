@@ -77,7 +77,7 @@ const MethodDropdown = ({
         {selectedGrpcMethod && <div className="mr-2">{getIconForMethodType(selectedGrpcMethod.type)}</div>}
         <span className="text-xs">
           {selectedGrpcMethod ? (
-            <span className="dark:text-neutral-300 text-neutral-700 text-nowrap">
+            <span className="dark:text-neutral-300 text-neutral-700 text-nowrap" data-testid="selected-grpc-method-name">
               {selectedGrpcMethod.path.split('.').at(-1) || selectedGrpcMethod.path}
             </span>
           ) : (
@@ -152,6 +152,7 @@ const MethodDropdown = ({
           onBlur={focusSearchInput}
           onChange={handleSearchChange}
           className="mt-2 mb-3 "
+          data-testid="grpc-methods-search-input"
         />
         <div ref={listRef} className="max-h-96 overflow-y-auto w-96 min-w-60" data-testid="grpc-methods-list">
           {Object.entries(groupedMethods).map(([serviceName, methods], serviceIndex) => (
