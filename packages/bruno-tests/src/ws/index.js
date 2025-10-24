@@ -23,7 +23,7 @@ wss.on('connection', function connection(ws, request) {
     let isJSON = false;
     let obj = {};
     try {
-       obj = JSON.parse(msg);
+      obj = JSON.parse(msg);
       isJSON = true;
     } catch (err) {
       // Not a json value, don't do any modification
