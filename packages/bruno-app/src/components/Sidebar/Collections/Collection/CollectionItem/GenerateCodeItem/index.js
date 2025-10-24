@@ -5,7 +5,9 @@ import CodeViewToolbar from './CodeViewToolbar';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
-import { findEnvironmentInCollection } from 'utils/collections';
+import {
+  findEnvironmentInCollection
+} from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
