@@ -569,6 +569,159 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         });
       });
 
+      // Handle Postman examples (responses)
+      if (i.response && Array.isArray(i.response)) {
+        brunoRequestItem.examples = [];
+
+        i.response.forEach((response, responseIndex) => {
+          const exampleName = response.name || `Example ${responseIndex + 1}`;
+
+          // Convert originalRequest to Bruno request format
+          const originalRequest = response.originalRequest || {};
+          const exampleUrl = constructUrl(originalRequest.url);
+          const exampleMethod = originalRequest.method?.toUpperCase() || method;
+
+          const example = {
+            uid: uuid(),
+            itemUid: brunoRequestItem.uid,
+            name: exampleName,
+            description: '',
+            type: 'http-request',
+            request: {
+              url: exampleUrl,
+              method: exampleMethod,
+              headers: [],
+              params: [],
+              body: {
+                mode: 'none',
+                json: null,
+                text: null,
+                xml: null,
+                formUrlEncoded: [],
+                multipartForm: []
+              },
+              auth: {
+                mode: 'inherit',
+                basic: null,
+                bearer: null,
+                awsv4: null,
+                apikey: null,
+                oauth2: null,
+                digest: null
+              }
+            },
+            response: {
+              status: response.status || '',
+              statusText: response.code ? response.code.toString() : '',
+              headers: [],
+              body: response.body || ''
+            }
+          };
+
+          // Convert original request headers
+          if (originalRequest.header && Array.isArray(originalRequest.header)) {
+            originalRequest.header.forEach((header) => {
+              example.request.headers.push({
+                uid: uuid(),
+                name: header.key,
+                value: header.value,
+                description: transformDescription(header.description),
+                enabled: !header.disabled
+              });
+            });
+          }
+
+          // Convert original request query parameters
+          if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
+            originalRequest.url.query.forEach((param) => {
+              example.request.params.push({
+                uid: uuid(),
+                name: param.key,
+                value: param.value,
+                description: transformDescription(param.description),
+                type: 'query',
+                enabled: !param.disabled
+              });
+            });
+          }
+
+          // Convert original request body
+          if (originalRequest.body) {
+            const bodyMode = originalRequest.body.mode;
+            if (bodyMode === 'formdata') {
+              example.request.body.mode = 'multipartForm';
+              if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
+                originalRequest.body.formdata.forEach((param) => {
+                  const isFile = param.type === 'file';
+                  let value;
+                  let type;
+
+                  if (isFile) {
+                    value = Array.isArray(param.src) ? param.src : typeof param.src === 'string' ? [param.src] : null;
+                    type = 'file';
+                  } else {
+                    value = param.value;
+                    type = 'text';
+                  }
+
+                  example.request.body.multipartForm.push({
+                    uid: uuid(),
+                    type: type,
+                    name: param.key,
+                    value: value,
+                    description: transformDescription(param.description),
+                    enabled: !param.disabled
+                  });
+                });
+              }
+            } else if (bodyMode === 'urlencoded') {
+              example.request.body.mode = 'formUrlEncoded';
+              if (originalRequest.body.urlencoded && Array.isArray(originalRequest.body.urlencoded)) {
+                originalRequest.body.urlencoded.forEach((param) => {
+                  example.request.body.formUrlEncoded.push({
+                    uid: uuid(),
+                    name: param.key,
+                    value: param.value,
+                    description: transformDescription(param.description),
+                    enabled: !param.disabled
+                  });
+                });
+              }
+            } else if (bodyMode === 'raw') {
+              let language = get(originalRequest, 'body.options.raw.language');
+              if (!language) {
+                language = searchLanguageByHeader(originalRequest.header || []);
+              }
+              if (language === 'json') {
+                example.request.body.mode = 'json';
+                example.request.body.json = originalRequest.body.raw;
+              } else if (language === 'xml') {
+                example.request.body.mode = 'xml';
+                example.request.body.xml = originalRequest.body.raw;
+              } else {
+                example.request.body.mode = 'text';
+                example.request.body.text = originalRequest.body.raw;
+              }
+            }
+          }
+
+          // Convert response headers
+          if (response.header && Array.isArray(response.header)) {
+            response.header.forEach((header) => {
+              example.response.headers.push({
+                uid: uuid(),
+                name: header.key,
+                value: header.value,
+                description: transformDescription(header.description),
+                enabled: true
+              });
+            });
+          }
+
+          brunoRequestItem.examples.push(example);
+        });
+      }
+
       requestMap[requestName] = brunoRequestItem;
     }
   });

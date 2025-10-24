@@ -1,0 +1,41 @@
+meta {
+  name: Auth Example API
+  type: http
+}
+
+get {
+  url: https://api.example.com/test
+}
+
+example {
+  meta {
+    name: Basic Auth Example
+    type: http
+  }
+  
+  get {
+    url: https://api.example.com/protected
+  }
+  
+  auth:basic {
+    username: testuser
+    password: testpass
+  }
+  
+}
+
+example {
+  meta {
+    name: Bearer Token Example
+    type: http
+  }
+  
+  get {
+    url: https://api.example.com/protected2
+  }
+  
+  auth:bearer {
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+  }
+  
+}

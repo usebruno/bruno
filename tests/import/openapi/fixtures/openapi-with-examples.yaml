@@ -1,0 +1,155 @@
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with Examples'
+  description: 'A sample API with response examples'
+servers:
+  - url: 'https://api.example.com'
+    description: 'Production server'
+paths:
+  /users:
+    get:
+      summary: 'Get all users'
+      operationId: 'getUsers'
+      responses:
+        '200':
+          description: 'Successful response'
+          content:
+            application/json:
+              examples:
+                success:
+                  summary: 'Success Response'
+                  description: 'A successful response with user data'
+                  value:
+                    users:
+                      - id: 1
+                        name: 'John Doe'
+                        email: 'john@example.com'
+                      - id: 2
+                        name: 'Jane Smith'
+                        email: 'jane@example.com'
+                empty:
+                  summary: 'Empty Response'
+                  description: 'No users found'
+                  value:
+                    users: []
+        '400':
+          description: 'Bad Request'
+          content:
+            application/json:
+              examples:
+                validation_error:
+                  summary: 'Validation Error'
+                  description: 'Invalid request parameters'
+                  value:
+                    error: 'Invalid parameters'
+                    message: 'The request contains invalid data'
+                    code: 'VALIDATION_ERROR'
+        '500':
+          description: 'Internal Server Error'
+          content:
+            application/json:
+              examples:
+                server_error:
+                  summary: 'Server Error'
+                  description: 'Internal server error occurred'
+                  value:
+                    error: 'Internal Server Error'
+                    message: 'Something went wrong on our end'
+                    code: 'INTERNAL_ERROR'
+    post:
+      summary: 'Create a new user'
+      operationId: 'createUser'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  example: 'John Doe'
+                email:
+                  type: string
+                  format: email
+                  example: 'john@example.com'
+            examples:
+              valid_user:
+                summary: 'Valid User'
+                description: 'A valid user creation request'
+                value:
+                  name: 'John Doe'
+                  email: 'john@example.com'
+              invalid_user:
+                summary: 'Invalid User'
+                description: 'An invalid user creation request'
+                value:
+                  name: ''
+                  email: 'invalid-email'
+      responses:
+        '201':
+          description: 'User created successfully'
+          content:
+            application/json:
+              examples:
+                created:
+                  summary: 'User Created'
+                  description: 'Successfully created user'
+                  value:
+                    id: 123
+                    name: 'John Doe'
+                    email: 'john@example.com'
+                    created_at: '2023-01-01T00:00:00Z'
+        '400':
+          description: 'Bad Request'
+          content:
+            application/json:
+              examples:
+                validation_error:
+                  summary: 'Validation Error'
+                  description: 'Invalid user data'
+                  value:
+                    error: 'Validation failed'
+                    message: 'Name and email are required'
+                    code: 'VALIDATION_ERROR'
+  /users/{id}:
+    get:
+      summary: 'Get user by ID'
+      operationId: 'getUserById'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 123
+      responses:
+        '200':
+          description: 'User found'
+          content:
+            application/json:
+              examples:
+                found:
+                  summary: 'User Found'
+                  description: 'User successfully retrieved'
+                  value:
+                    id: 123
+                    name: 'John Doe'
+                    email: 'john@example.com'
+                    created_at: '2023-01-01T00:00:00Z'
+        '404':
+          description: 'User not found'
+          content:
+            application/json:
+              examples:
+                not_found:
+                  summary: 'User Not Found'
+                  description: 'User with the specified ID does not exist'
+                  value:
+                    error: 'Not Found'
+                    message: 'User with ID 123 not found'
+                    code: 'USER_NOT_FOUND'

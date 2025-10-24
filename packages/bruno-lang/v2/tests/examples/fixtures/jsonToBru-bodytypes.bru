@@ -1,0 +1,64 @@
+meta {
+  name: Body Types API
+  type: http
+}
+
+get {
+  url: https://api.example.com/test
+}
+
+example {
+  meta {
+    name: JSON Body Example
+    type: http
+  }
+  
+  post {
+    url: https://api.example.com/json
+  }
+  
+  body:json {
+    {
+      "name": "Test",
+      "value": 123
+    }
+  }
+  
+}
+
+example {
+  meta {
+    name: XML Body Example
+    type: http
+  }
+  
+  post {
+    url: https://api.example.com/xml
+  }
+  
+  body:xml {
+    <?xml version="1.0"?>
+    <data>
+      <name>Test</name>
+      <value>123</value>
+    </data>
+  }
+  
+}
+
+example {
+  meta {
+    name: Text Body Example
+    type: http
+  }
+  
+  post {
+    url: https://api.example.com/text
+  }
+  
+  body:text {
+    Plain text data
+    with multiple lines
+  }
+  
+}
