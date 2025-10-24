@@ -152,6 +152,7 @@ const MethodDropdown = ({
           onBlur={focusSearchInput}
           onChange={handleSearchChange}
           className="mt-2 mb-3 "
+          data-testid="grpc-methods-search-input"
         />
         <div ref={listRef} className="max-h-96 overflow-y-auto w-96 min-w-60" data-testid="grpc-methods-list">
           {Object.entries(groupedMethods).map(([serviceName, methods], serviceIndex) => (

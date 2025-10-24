@@ -6,12 +6,14 @@ const SearchInput = ({
   setSearchText,
   placeholder = 'Search',
   className = '',
+  onChange,
   ...props
 }) => {
+
   const handleChange = (e) => {
     setSearchText(e.target.value);
-    if (props.onChange) {
-      props.onChange(e);
+    if (onChange) {
+      onChange(e);
     }
   };
 
@@ -26,7 +28,7 @@ const SearchInput = ({
         type="text"
         name="search"
         placeholder={placeholder}
-        id="search"
+        id="search-input"
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
