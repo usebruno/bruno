@@ -30,7 +30,7 @@ export const transformItemsInCollection = (collection) => {
           item.request.params = item.request.query.map((queryItem) => ({
             ...queryItem,
             type: 'query',
-            uid: queryItem.uid || generateUID(),
+            uid: queryItem.uid || generateUID()
           }));
         }
         delete item.request.query;
@@ -49,7 +49,7 @@ export const transformItemsInCollection = (collection) => {
           item.request.params = item.request.query.map((queryItem) => ({
             ...queryItem,
             type: 'query',
-            uid: queryItem.uid || generateUID(),
+            uid: queryItem.uid || generateUID()
           }));
         }
         delete item.request.query;
@@ -571,7 +571,7 @@ class WSDLParser {
       const parts = this.getArray(message['wsdl:part'] || message.part);
       this.messages.set(message.name, {
         name: message.name,
-        parts: parts.map(part => ({
+        parts: parts.map((part) => ({
           name: part.name,
           type: part.type,
           element: part.element
@@ -589,7 +589,7 @@ class WSDLParser {
       const operations = this.getArray(portType['wsdl:operation'] || portType.operation);
       this.portTypes.set(portType.name, {
         name: portType.name,
-        operations: operations.map(op => ({
+        operations: operations.map((op) => ({
           name: op.name,
           input: op['wsdl:input'] || op.input,
           output: op['wsdl:output'] || op.output,
@@ -609,7 +609,7 @@ class WSDLParser {
       this.bindings.set(binding.name, {
         name: binding.name,
         type: binding.type,
-        operations: operations.map(op => {
+        operations: operations.map((op) => {
           // Robustly extract soapAction from any soap:operation child element
           let soapAction = '';
           for (const key of Object.keys(op)) {
@@ -647,7 +647,7 @@ class WSDLParser {
       const ports = this.getArray(service['wsdl:port'] || service.port);
       this.services.set(service.name, {
         name: service.name,
-        ports: ports.map(port => ({
+        ports: ports.map((port) => ({
           name: port.name,
           binding: port.binding,
           address: this.extractAddress(port)
@@ -789,7 +789,7 @@ class XMLSampleGenerator {
       if (complexType) {
         const allTypeAttrs = this.collectAllAttributes(complexType);
         // Avoid duplicates by attribute name
-        const existingNames = new Set(attributes.map(a => a.name));
+        const existingNames = new Set(attributes.map((a) => a.name));
         for (const attr of allTypeAttrs) {
           if (!existingNames.has(attr.name)) {
             attributes.push(attr);
@@ -799,7 +799,7 @@ class XMLSampleGenerator {
     }
 
     if (attributes.length > 0) {
-      return ' ' + attributes.map(attr => `${attr.name}="?"`).join(' ');
+      return ' ' + attributes.map((attr) => `${attr.name}="?"`).join(' ');
     }
     return '';
   }
@@ -1083,7 +1083,7 @@ const parseWSDLCollection = (wsdlData) => {
         if (portType) {
           for (const portTypeOp of portType.operations) {
             // Find the corresponding binding operation by name
-            const bindingOp = binding.operations.find(bop => bop.name === portTypeOp.name);
+            const bindingOp = binding.operations.find((bop) => bop.name === portTypeOp.name);
             if (bindingOp) {
               const request = transformWSDLOperation(portTypeOp, wsdlData, port.address, allOperations.length, binding.operations, bindingOp);
               allOperations.push(request);

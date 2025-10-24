@@ -144,7 +144,7 @@ const readOpenApiFile = async (source, options = {}) => {
 const readWSDLFile = async (source, options = {}) => {
   try {
     let content;
-    
+
     if (isUrl(source)) {
       // Handle URL input
       console.log(chalk.yellow(`Fetching WSDL from URL: ${source}`));
@@ -152,22 +152,22 @@ const readWSDLFile = async (source, options = {}) => {
         const axiosOptions = {
           timeout: 30000, // 30 second timeout
           maxContentLength: 10 * 1024 * 1024,
-          validateStatus: status => status >= 200 && status < 300 
+          validateStatus: (status) => status >= 200 && status < 300
         };
-        
+
         // Skip SSL certificate validation if insecure flag is set
         if (options.insecure) {
           console.log(chalk.yellow('Warning: SSL certificate verification is disabled. Use with caution.'));
           axiosOptions.httpsAgent = new (require('https')).Agent({ rejectUnauthorized: false });
         }
-        
+
         const response = await axios.get(source, axiosOptions);
         content = response.data;
       } catch (error) {
         if (error.code === 'ECONNABORTED') {
           throw new Error('Request timed out. The server took too long to respond.');
-        } else if (error.code === 'CERT_HAS_EXPIRED' || error.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || 
-                   error.code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
+        } else if (error.code === 'CERT_HAS_EXPIRED' || error.code === 'DEPTH_ZERO_SELF_SIGNED_CERT'
+          || error.code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
           throw new Error(`SSL Certificate error: ${error.code}. Try using --insecure if you trust this source.`);
         } else if (error.response) {
           throw new Error(`Failed to fetch from URL: ${error.response.status} ${error.response.statusText}`);
@@ -184,12 +184,12 @@ const readWSDLFile = async (source, options = {}) => {
       }
       content = fs.readFileSync(source, 'utf8');
     }
-    
+
     // WSDL files are XML, so we return the content as a string
     if (typeof content === 'string') {
       return content;
     }
-    
+
     throw new Error('WSDL content must be a string');
   } catch (error) {
     // Let the specific error handling from above propagate
@@ -220,30 +220,30 @@ const handler = async (argv) => {
 
     if (type === 'openapi') {
       console.log(chalk.yellow(`Reading OpenAPI specification from ${source}...`));
-      
+
       const openApiSpec = await readOpenApiFile(source, { insecure });
-      
+
       if (!openApiSpec) {
         console.error(chalk.red('Failed to parse OpenAPI specification'));
         process.exit(1);
       }
 
       console.log(chalk.yellow('Converting OpenAPI specification to Bruno format...'));
-      
+
       // Convert OpenAPI to Bruno format
       brunoCollection = openApiToBruno(openApiSpec, { groupBy });
     } else if (type === 'wsdl') {
       console.log(chalk.yellow(`Reading WSDL from ${source}...`));
-      
+
       const wsdlContent = await readWSDLFile(source, { insecure });
-      
+
       if (!wsdlContent) {
         console.error(chalk.red('Failed to read WSDL file'));
         process.exit(1);
       }
 
       console.log(chalk.yellow('Converting WSDL to Bruno format...'));
-      
+
       // Convert WSDL to Bruno format
       brunoCollection = await wsdlToBruno(wsdlContent);
     }

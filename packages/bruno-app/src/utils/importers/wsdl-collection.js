@@ -38,11 +38,11 @@ const isWSDLCollection = (data) => {
   ];
 
   // Check if the content contains WSDL namespace or elements
-  const hasWSDLNamespace = data.includes('xmlns:wsdl=') ||
-    data.includes('xmlns="http://schemas.xmlsoap.org/wsdl/"') ||
-    data.includes('xmlns="http://www.w3.org/2001/XMLSchema"');
+  const hasWSDLNamespace = data.includes('xmlns:wsdl=')
+    || data.includes('xmlns="http://schemas.xmlsoap.org/wsdl/"')
+    || data.includes('xmlns="http://www.w3.org/2001/XMLSchema"');
 
-  const hasWSDLElements = wsdlIndicators.some(indicator => data.includes(indicator));
+  const hasWSDLElements = wsdlIndicators.some((indicator) => data.includes(indicator));
 
   return hasWSDLNamespace || hasWSDLElements;
 };
@@ -61,4 +61,4 @@ const importCollection = () => {
 };
 
 export { isWSDLCollection, readFile };
-export default importCollection; 
+export default importCollection;
