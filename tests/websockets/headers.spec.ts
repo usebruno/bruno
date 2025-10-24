@@ -7,6 +7,8 @@ test.describe.serial('headers', () => {
   test('headers are returned if passed', async ({ pageWithUserData: page, restartApp }) => {
     const locators = buildWebsocketCommonLocators(page);
 
+    // await page.pause();
+
     // Open the most recent collection
     await page.locator('#sidebar-collection-name').click();
 
@@ -16,5 +18,6 @@ test.describe.serial('headers', () => {
 
     // Check if the message has the authorisation header
     await expect(locators.messages().nth(2).locator('.text-ellipsis')).toHaveText(/\"(authorization)\"\:\s+\"Dummy\"/);
+    await expect(locators.messages().nth(2).locator('.text-ellipsis')).toHaveText(/\"(x-bruno-collection-var)\"\:\s+\"Variable Value\"/);
   });
 });
