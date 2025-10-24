@@ -1,4 +1,4 @@
-import { test, expect } from '../../playwright';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Import WSDL Collection', () => {

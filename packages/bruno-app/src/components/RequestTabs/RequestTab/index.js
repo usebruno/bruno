@@ -1,4 +1,4 @@
-import React, { useState, useRef, Fragment } from 'react';
+import React, { useCallback, useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -18,6 +18,7 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
+import { closeWsConnection } from 'utils/network/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
@@ -66,9 +67,12 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const getMethodColor = (method = '') => {
-    return theme.request.methods[method.toLocaleLowerCase()];
+    const colorMap = {
+      ...theme.request.methods,
+      ...theme.request
+    };
+    return colorMap[method.toLocaleLowerCase()];
   };
-
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
@@ -90,6 +94,21 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const item = findItemInCollection(collection, tab.uid);
 
+  const getMethodText = useCallback((item) => {
+    if (!item) return;
+
+    switch (item.type) {
+      case 'grpc-request':
+        return 'gRPC';
+      case 'ws-request':
+        return 'WS';
+      case 'graphql-request':
+        return 'GQL';
+      default:
+        return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+    }
+  }, [item]);
+
   if (!item) {
     return (
       <StyledWrapper
@@ -108,8 +127,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  const isGrpc = item.type === 'grpc-request';
-  const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+  const isWS = item.type === 'ws-request';
+  const method = getMethodText(item);
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
@@ -118,6 +137,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           item={item}
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
+            isWS && closeWsConnection(item.uid);
             dispatch(
               deleteRequestDraft({
                 itemUid: item.uid,
@@ -161,8 +181,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: isGrpc ? theme.request.grpc : getMethodColor(method), fontSize: 12 }}>
-          {isGrpc ? 'gRPC' : method}
+        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
+          {method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
           {item.name}
@@ -180,7 +200,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       <div
         className="flex px-2 close-icon-container"
         onClick={(e) => {
-          if (!item.draft) return handleCloseClick(e);
+          if (!item.draft) {
+            isWS && closeWsConnection(item.uid);
+            return handleCloseClick(e);
+          };
 
           e.stopPropagation();
           e.preventDefault();
@@ -225,6 +248,25 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
       }
 
       dispatch(closeTabs({ tabUids: [tabUid] }));
+    } catch (err) {}
+  }
+
+  function handleRevertChanges(event) {
+    event.stopPropagation();
+    dropdownTippyRef.current.hide();
+
+    if (!currentTabUid) {
+      return;
+    }
+
+    try {
+      const item = findItemInCollection(collection, currentTabUid);
+      if (item.draft) {
+        dispatch(deleteRequestDraft({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        }));
+      }
     } catch (err) {}
   }
 
@@ -294,6 +336,13 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
           }}
         >
           Clone Request
+        </button>
+        <button
+          className="dropdown-item w-full"
+          onClick={handleRevertChanges}
+          disabled={!currentTabItem?.draft}
+        >
+          Revert Changes
         </button>
         <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
           Close

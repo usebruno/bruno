@@ -39,7 +39,7 @@ const DefaultTab = ({ setTab }) => {
   );
 };
 
-const EnvironmentSettings = ({ globalEnvironments, onClose }) => {
+const EnvironmentSettings = ({ globalEnvironments, collection, activeGlobalEnvironmentUid, onClose }) => {
   const [isModified, setIsModified] = useState(false);
   const environments = globalEnvironments;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
@@ -64,10 +64,12 @@ const EnvironmentSettings = ({ globalEnvironments, onClose }) => {
     <Modal size="lg" title="Global Environments" handleCancel={onClose} hideFooter={true}>
       <EnvironmentList
         environments={globalEnvironments}
+        activeEnvironmentUid={activeGlobalEnvironmentUid}
         selectedEnvironment={selectedEnvironment}
         setSelectedEnvironment={setSelectedEnvironment}
         isModified={isModified}
         setIsModified={setIsModified}
+        collection={collection}
       />
     </Modal>
   );

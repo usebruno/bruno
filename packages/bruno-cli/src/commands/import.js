@@ -45,12 +45,21 @@ const builder = (yargs) => {
       describe: 'Skip SSL certificate verification when fetching from URLs',
       default: false
     })
+    .option('group-by', {
+      alias: 'g',
+      describe: 'How to group the imported requests: "tags" groups by OpenAPI tags, "path" groups by URL path structure',
+      type: 'string',
+      choices: ['tags', 'path'],
+      default: 'tags'
+    })
     .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --collection-name "My API"')
     .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -n "My API"')
     .example('$0 import openapi --source https://example.com/api-spec.json --output ~/Desktop --collection-name "Remote API"')
     .example('$0 import openapi --source https://self-signed.example.com/api.json --insecure --output ~/Desktop')
-    .example('$0 import openapi -s api.yml -f ~/Desktop/my-collection.json --collection-name "My API"')
+    .example('$0 import openapi --source api.yml --output-file ~/Desktop/my-collection.json --collection-name "My API"')
     .example('$0 import openapi -s api.yml -f ~/Desktop/my-collection.json -n "My API"')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --group-by path')
+    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -g tags')
     .example('$0 import wsdl --source service.wsdl --output ~/Desktop/soap-collection --collection-name "SOAP Service"')
     .example('$0 import wsdl -s https://example.com/service.wsdl -o ~/Desktop -n "Remote SOAP Service"');
 };
@@ -190,7 +199,7 @@ const readWSDLFile = async (source, options = {}) => {
 
 const handler = async (argv) => {
   try {
-    const { type, source, output, outputFile, collectionName, insecure } = argv;
+    const { type, source, output, outputFile, collectionName, insecure, groupBy } = argv;
 
     if (!type || !['openapi', 'wsdl'].includes(type)) {
       console.error(chalk.red('Only OpenAPI and WSDL imports are supported currently'));
@@ -222,7 +231,7 @@ const handler = async (argv) => {
       console.log(chalk.yellow('Converting OpenAPI specification to Bruno format...'));
       
       // Convert OpenAPI to Bruno format
-      brunoCollection = openApiToBruno(openApiSpec);
+      brunoCollection = openApiToBruno(openApiSpec, { groupBy });
     } else if (type === 'wsdl') {
       console.log(chalk.yellow(`Reading WSDL from ${source}...`));
       

@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { findIndex } from 'lodash';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
@@ -43,7 +42,7 @@ export const tabsSlice = createSlice({
 
       // Determine the default requestPaneTab based on request type
       let defaultRequestPaneTab = 'params';
-      if (type === 'grpc-request') {
+      if (type === 'grpc-request' || type === 'ws-request') {
         defaultRequestPaneTab = 'body';
       } else if (type === 'graphql-request') {
         defaultRequestPaneTab = 'query';
@@ -178,6 +177,33 @@ export const tabsSlice = createSlice({
       } else {
         console.error('Tab not found!');
       }
+    },
+    reorderTabs: (state, action) => {
+      const { direction, sourceUid, targetUid } = action.payload;
+      const tabs = state.tabs;
+
+      let sourceIdx, targetIdx;
+      if (direction) {
+        sourceIdx = tabs.findIndex((t) => t.uid === state.activeTabUid);
+        if (sourceIdx < 0) {
+          return;
+        }
+        targetIdx = sourceIdx + (direction === -1 ? -1 : 1);
+      } else {
+        sourceIdx = tabs.findIndex((t) => t.uid === sourceUid);
+        targetIdx = tabs.findIndex((t) => t.uid === targetUid);
+      }
+
+      const sourceBoundary = sourceIdx < 0;
+      const targetBoundary = targetIdx < 0 || targetIdx >= tabs.length;
+      if (sourceBoundary || sourceIdx === targetIdx || targetBoundary) {
+        return;
+      }
+
+      const [moved] = tabs.splice(sourceIdx, 1);
+      tabs.splice(targetIdx, 0, moved);
+
+      state.tabs = tabs;
     }
   }
 });
@@ -192,7 +218,8 @@ export const {
   updateResponsePaneScrollPosition,
   closeTabs,
   closeAllCollectionTabs,
-  makeTabPermanent
+  makeTabPermanent,
+  reorderTabs
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

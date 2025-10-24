@@ -26,6 +26,7 @@ import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
+import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -145,6 +146,10 @@ const useIpcEvents = () => {
       }));
     });
 
+    const removeSystemResourcesListener = ipcRenderer.on('main:filesync-system-resources', (resourceData) => {
+      dispatch(updateSystemResources(resourceData));
+    });
+
     const removeConfigUpdatesListener = ipcRenderer.on('main:bruno-config-update', (val) =>
       dispatch(brunoConfigUpdateEvent(val))
     );
@@ -209,6 +214,7 @@ const useIpcEvents = () => {
       removeCollectionOauth2CredentialsUpdatesListener();
       removeCollectionLoadingStateListener();
       removePersistentEnvVariablesUpdateListener();
+      removeSystemResourcesListener();
     };
   }, [isElectron]);
 };

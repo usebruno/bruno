@@ -9,12 +9,7 @@
  * @returns {Promise<boolean>} - True if file exists, false otherwise
  */
 export const existsSync = async (filePath) => {
-  try {
-    return await window?.ipcRenderer?.invoke('renderer:exists-sync', filePath);
-  } catch (error) {
-    console.error('Error checking if file exists:', error);
-    return false;
-  }
+  return await window.ipcRenderer.invoke('renderer:exists-sync', filePath);
 };
 
 /**
@@ -24,10 +19,18 @@ export const existsSync = async (filePath) => {
  * @returns {Promise<string>} - The resolved absolute path
  */
 export const resolvePath = async (relativePath, basePath) => {
-  try {
-    return await window?.ipcRenderer?.invoke('renderer:resolve-path', relativePath, basePath);
-  } catch (error) {
-    console.error('Error resolving path:', error);
-    return relativePath;
-  }
-}; 
+  return await window.ipcRenderer.invoke('renderer:resolve-path', relativePath, basePath);
+};
+
+export const browseDirectory = async (pathname) => {
+  return await window.ipcRenderer.invoke('renderer:browse-directory', pathname);
+};
+
+/**
+ * Check if a path is a directory
+ * @param {string} dirPath - The directory path to check
+ * @returns {Promise<boolean>} - True if path is a directory, false otherwise
+ */
+export const isDirectory = async (dirPath) => {
+  return await window.ipcRenderer.invoke('renderer:is-directory', dirPath);
+};

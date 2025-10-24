@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { IconLoader2, IconFileImport } from '@tabler/icons';
+import { IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 import jsyaml from 'js-yaml';
@@ -9,6 +9,8 @@ import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-co
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { wsdlToBruno } from '@usebruno/converters';
+import ImportSettings from 'components/Sidebar/ImportSettings';
+import FullscreenLoader from './FullscreenLoader/index';
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
@@ -33,60 +35,22 @@ const convertFileToObject = async (file) => {
   }
 };
 
-const FullscreenLoader = ({ isLoading }) => {
-  const [loadingMessage, setLoadingMessage] = useState('');
-
-  // Messages to cycle through while loading
-  const loadingMessages = [
-    'Processing collection...',
-    'Analyzing requests...',
-    'Translating scripts...',
-    'Preparing collection...',
-    'Almost done...'
-  ];
-
-  useEffect(() => {
-    if (!isLoading) return;
-
-    let messageIndex = 0;
-    const interval = setInterval(() => {
-      messageIndex = (messageIndex + 1) % loadingMessages.length;
-      setLoadingMessage(loadingMessages[messageIndex]);
-    }, 2000);
-
-    setLoadingMessage(loadingMessages[0]);
-
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm transition-all duration-300">
-      <div className="flex flex-col items-center p-8 rounded-lg bg-white dark:bg-zinc-800 shadow-lg max-w-md text-center">
-        <IconLoader2 className="animate-spin h-12 w-12 mb-4" strokeWidth={1.5} />
-        <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50 mb-2">
-          {loadingMessage}
-        </h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          This may take a moment depending on the collection size
-        </p>
-      </div>
-    </div>
-  );
-};
-
 const ImportCollection = ({ onClose, handleSubmit }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [showImportSettings, setShowImportSettings] = useState(false);
+  const [openApiData, setOpenApiData] = useState(null);
+  const [groupingType, setGroupingType] = useState('tags');
   const fileInputRef = useRef(null);
 
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'copy';
     }
-    
+
     if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
     } else if (e.type === 'dragleave') {
@@ -94,33 +58,44 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     }
   };
 
+  const handleImportSettings = () => {
+    try {
+      const collection = convertOpenapiToBruno(openApiData, { groupBy: groupingType });
+      handleSubmit({ collection });
+    } catch (err) {
+      console.error(err);
+      toastError(err, 'Failed to process OpenAPI specification');
+    }
+  };
+
   const processFile = async (file) => {
     setIsLoading(true);
     try {
       const data = await convertFileToObject(file);
-      
+
       if (!data) {
         throw new Error('Failed to parse file content');
       }
-      
+
+      // Check if it's an OpenAPI spec and show settings
+      if (isOpenApiSpec(data)) {
+        setOpenApiData(data);
+        setIsLoading(false);
+        setShowImportSettings(true);
+        return;
+      }
+
       let collection;
-      
       if (isWSDLCollection(data)) {
         collection = await wsdlToBruno(data);
-      }
-      else if (isPostmanCollection(data)) {
+      } else if (isPostmanCollection(data)) {
         collection = await postmanToBruno(data);
-      } 
-      else if (isInsomniaCollection(data)) {
+      } else if (isInsomniaCollection(data)) {
         collection = convertInsomniaToBruno(data);
-      }
-      else if (isOpenApiSpec(data)) {
-        collection = convertOpenapiToBruno(data);
-      } 
-      else {
+      } else {
         collection = await processBrunoCollection(data);
       }
-      
+
       handleSubmit({ collection });
     } catch (err) {
       toastError(err, 'Import collection failed');
@@ -133,7 +108,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       await processFile(e.dataTransfer.files[0]);
     }
@@ -163,7 +138,18 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     'application/x-yaml',
     'text/xml',
     'application/xml'
-  ]
+  ];
+
+  if (showImportSettings) {
+    return (
+      <ImportSettings
+        groupingType={groupingType}
+        setGroupingType={setGroupingType}
+        onClose={onClose}
+        onConfirm={handleImportSettings}
+      />
+    );
+  }
 
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
@@ -177,16 +163,13 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
             onDrop={handleDrop}
             className={`
               border-2 border-dashed rounded-lg p-6 transition-colors duration-200
-              ${dragActive 
-                ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' 
-                : 'border-gray-200 dark:border-gray-700'
-              }
+              ${dragActive ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'}
             `}
           >
             <div className="flex flex-col items-center justify-center">
-              <IconFileImport 
-                size={28} 
-                className="text-gray-400 dark:text-gray-500 mb-3" 
+              <IconFileImport
+                size={28}
+                className="text-gray-400 dark:text-gray-500 mb-3"
               />
               <input
                 ref={fileInputRef}
