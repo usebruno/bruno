@@ -31,10 +31,6 @@ const CodeView = ({ language, item }) => {
     return c;
   }, [collectionOriginal, globalEnvironments, activeGlobalEnvironmentUid]);
 
-  // add selected global env variables to the collection object
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
-  collection.globalEnvironmentVariables = globalEnvironmentVariables;
-
   const snippet = useMemo(() => {
     return generateSnippet({
       language,

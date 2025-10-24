@@ -1,5 +1,3 @@
-import url from 'url';
-
 const createContentType = (mode) => {
   switch (mode) {
     case 'json':
@@ -138,7 +136,7 @@ export const buildHarRequest = ({ request, headers }) => {
   // NOTE:
   // This is just a safety check.
   // The interpolateUrlPathParams method validates the url, but it does not throw
-  if (!url.parse(request.url)) {
+  if (!URL.canParse(request.url)) {
     throw new Error('invalid request url');
   }
 

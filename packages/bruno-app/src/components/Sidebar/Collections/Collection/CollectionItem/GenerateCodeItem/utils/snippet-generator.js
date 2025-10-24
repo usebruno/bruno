@@ -86,4 +86,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
   }
 };
 
-export { generateSnippet, mergeHeaders };
+export {
+  generateSnippet,
+  mergeHeaders
+};
