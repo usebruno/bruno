@@ -983,6 +983,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const partialItem = { uid: itemUid };
           const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
           mergeVars(collection, requestCopy, requestTreePath);
+        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
 
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
           const certsAndProxyConfig = await getCertsAndProxyConfig({
@@ -991,7 +992,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             envVars,
             runtimeVariables,
             processEnvVars,
-            collectionPath
+          collectionPath,
+          globalEnvironmentVariables
           });
           const { oauth2: { grantType }} = requestCopy || {};
           
@@ -1115,6 +1117,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
           mergeVars(collection, requestCopy, requestTreePath);
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
 
           const certsAndProxyConfig = await getCertsAndProxyConfig({
             collectionUid,
@@ -1122,7 +1125,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             envVars,
             runtimeVariables,
             processEnvVars,
-            collectionPath
+          collectionPath,
+          globalEnvironmentVariables
           });
           
           let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });

@@ -319,7 +319,6 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
             <SingleLineEditor
               value={formik.values.passphrase || ''}
               theme={storedTheme}
-              onSave={formik.handleSubmit}
               onChange={(val) => formik.setFieldValue('passphrase', val)}
               collection={collection}
               isSecret={true}
