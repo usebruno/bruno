@@ -34,7 +34,7 @@ export const parsePathParams = (url) => {
 
   // Enhanced: also match :param inside parentheses and/or quotes
   const foundParams = new Set();
-  paths.forEach((segment) => {
+  paths.forEach(segment => {
     // traditional path parameters
     if (segment.startsWith(':')) {
       const name = segment.slice(1);
@@ -65,7 +65,7 @@ export const parsePathParams = (url) => {
       }
     }
   });
-  return Array.from(foundParams).map((name) => ({ name, value: '' }));
+  return Array.from(foundParams).map(name => ({ name, value: '' }));
 };
 
 export const splitOnFirst = (str, char) => {
