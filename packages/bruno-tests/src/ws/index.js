@@ -8,12 +8,12 @@ const wss = new ws.Server({
   noServer: true,
   handleProtocols: (protocols, request) => {
     if (request.url == '/ws/sub-proto') {
-      if (protocols.has("soap")) {
-        return 'soap'
+      if (protocols.has('soap')) {
+        return 'soap';
       }
-      return false
+      return false;
     }
-    return false
+    return false;
   }
 });
 
@@ -55,20 +55,18 @@ const wsRouter = (request, socket, head) => {
   }
 
   if (request.url == '/ws/sub-proto') {
-    const subproto = request.headers["sec-websocket-protocol"] || request.headers["Sec-WebSocket-Protocol"]
-    if (subproto != "soap") {
-      const message = "Unsupported WebSocket subprotocol"
-      socket.write(
-        'HTTP/1.1 400 Bad Request\r\n' +
-        'Content-Type: text/plain\r\n' +
-        `Content-Length: ${Buffer.byteLength(message)}\r\n` +
-        'Connection: close\r\n' +
-        '\r\n' +
-        message
-      );
+    const subproto = request.headers['sec-websocket-protocol'] || request.headers['Sec-WebSocket-Protocol'];
+    if (subproto != 'soap') {
+      const message = 'Unsupported WebSocket subprotocol';
+      socket.write('HTTP/1.1 400 Bad Request\r\n'
+        + 'Content-Type: text/plain\r\n'
+        + `Content-Length: ${Buffer.byteLength(message)}\r\n`
+        + 'Connection: close\r\n'
+        + '\r\n'
+        + message);
       socket.destroy();
       socket.removeListener('error', onSocketError);
-      return
+      return;
     }
   }
 
