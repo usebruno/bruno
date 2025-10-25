@@ -11,6 +11,8 @@ import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from 'components/BulkEditor/index';
+import { useParamAddAutoFocusIntent, addWithAutoFocus } from 'hooks/useParamAddAutoFocusIntent';
+
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const Headers = ({ collection, folder }) => {
@@ -18,6 +20,7 @@ const Headers = ({ collection, folder }) => {
   const { storedTheme } = useTheme();
   const headers = get(folder, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
@@ -28,12 +31,10 @@ const Headers = ({ collection, folder }) => {
   };
 
   const addHeader = () => {
-    dispatch(
-      addFolderHeader({
-        collectionUid: collection.uid,
-        folderUid: folder.uid
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addFolderHeader, {
+      collectionUid: collection.uid,
+      folderUid: folder.uid
+    });
   };
 
   const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
@@ -108,6 +109,7 @@ const Headers = ({ collection, folder }) => {
                   <tr key={header.uid}>
                     <td>
                       <SingleLineEditor
+                        ref={inputRef(header.uid)}
                         value={header.name}
                         theme={storedTheme}
                         onSave={handleSave}

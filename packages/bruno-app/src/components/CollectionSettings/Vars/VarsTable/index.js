@@ -14,18 +14,18 @@ import {
   deleteCollectionVar,
   updateCollectionVar
 } from 'providers/ReduxStore/slices/collections/index';
+import { useParamAddAutoFocusIntent, addWithAutoFocus } from 'hooks/useParamAddAutoFocusIntent';
 
 const VarsTable = ({ collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   const addVar = () => {
-    dispatch(
-      addCollectionVar({
-        collectionUid: collection.uid,
-        type: varType
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addCollectionVar, {
+      collectionUid: collection.uid,
+      type: varType
+    });
   };
 
   const onSave = () => dispatch(saveCollectionRoot(collection.uid));
@@ -110,6 +110,7 @@ const VarsTable = ({ collection, vars, varType }) => {
                         spellCheck="false"
                         value={_var.name}
                         className="mousetrap"
+                        ref={inputRef(_var.uid)}
                         onChange={(e) => handleVarChange(e, _var, 'name')}
                       />
                     </td>

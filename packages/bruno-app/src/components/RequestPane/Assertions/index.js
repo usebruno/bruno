@@ -9,18 +9,18 @@ import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
 import { moveAssertion } from 'providers/ReduxStore/slices/collections/index';
+import { useParamAddAutoFocusIntent, addWithAutoFocus } from 'hooks/useParamAddAutoFocusIntent';
 
 const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
   const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   const handleAddAssertion = () => {
-    dispatch(
-      addAssertion({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addAssertion, {
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    });
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -86,7 +86,8 @@ const Assertions = ({ item, collection }) => {
               return (
                 <tr key={assertion.uid} data-uid={assertion.uid}>
                   <td className='flex relative'>
-                    <input
+                      <input
+                        ref={inputRef(assertion.uid)}
                       type="text"
                       autoComplete="off"
                       autoCorrect="off"

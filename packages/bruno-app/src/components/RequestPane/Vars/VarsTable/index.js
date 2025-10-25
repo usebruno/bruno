@@ -12,19 +12,19 @@ import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
+import { useParamAddAutoFocusIntent, addWithAutoFocus } from 'hooks/useParamAddAutoFocusIntent';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   const handleAddVar = () => {
-    dispatch(
-      addVar({
-        type: varType,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addVar, {
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      type: varType
+    });
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -118,6 +118,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         spellCheck="false"
                         value={_var.name}
                         className="mousetrap"
+                        ref={inputRef(_var.uid)}
                         onChange={(e) => handleVarChange(e, _var, 'name')}
                       />
                     </td>

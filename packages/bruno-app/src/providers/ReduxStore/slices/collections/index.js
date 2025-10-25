@@ -849,9 +849,10 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+
           item.draft.request.params = item.draft.request.params || [];
           item.draft.request.params.push({
-            uid: uuid(),
+            uid: action.payload.paramUid ?? uuid(),
             name: '',
             value: '',
             description: '',
@@ -1043,7 +1044,7 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.headers = item.draft.request.headers || [];
           item.draft.request.headers.push({
-            uid: uuid(),
+            uid: action.payload.paramUid ?? uuid(),
             name: '',
             value: '',
             description: '',
@@ -1181,7 +1182,7 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.body.formUrlEncoded = item.draft.request.body.formUrlEncoded || [];
           item.draft.request.body.formUrlEncoded.push({
-            uid: uuid(),
+            uid: action.payload.paramUid ?? uuid(),
             name: '',
             value: '',
             description: '',
@@ -1261,7 +1262,7 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.body.multipartForm = item.draft.request.body.multipartForm || [];
           item.draft.request.body.multipartForm.push({
-            uid: uuid(),
+            uid: action.payload.paramUid ?? uuid(),
             type: action.payload.type,
             name: '',
             value: action.payload.value,
@@ -1601,7 +1602,7 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.assertions = item.draft.request.assertions || [];
           item.draft.request.assertions.push({
-            uid: uuid(),
+            uid: action.payload.paramUid ?? uuid(),
             name: '',
             value: '',
             enabled: true
@@ -1681,7 +1682,7 @@ export const collectionsSlice = createSlice({
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.req = item.draft.request.vars.req || [];
             item.draft.request.vars.req.push({
-              uid: uuid(),
+              uid: action.payload.paramUid ?? uuid(),
               name: '',
               value: '',
               local: false,
@@ -1691,7 +1692,7 @@ export const collectionsSlice = createSlice({
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.res = item.draft.request.vars.res || [];
             item.draft.request.vars.res.push({
-              uid: uuid(),
+              uid: action.payload.paramUid ?? uuid(),
               name: '',
               value: '',
               local: false,
@@ -1867,7 +1868,7 @@ export const collectionsSlice = createSlice({
       if (folder) {
         const headers = get(folder, 'root.request.headers', []);
         headers.push({
-          uid: uuid(),
+          uid: action.payload.paramUid ?? uuid(),
           name: '',
           value: '',
           description: '',
@@ -1907,7 +1908,7 @@ export const collectionsSlice = createSlice({
         if (type === 'request') {
           const vars = get(folder, 'root.request.vars.req', []);
           vars.push({
-            uid: uuid(),
+            uid: action.payload.paramUid ?? uuid(),
             name: '',
             value: '',
             enabled: true
@@ -1916,7 +1917,7 @@ export const collectionsSlice = createSlice({
         } else if (type === 'response') {
           const vars = get(folder, 'root.request.vars.res', []);
           vars.push({
-            uid: uuid(),
+            uid: action.payload.paramUid ?? uuid(),
             name: '',
             value: '',
             enabled: true
@@ -2037,7 +2038,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const headers = get(collection, 'root.request.headers', []);
         headers.push({
-          uid: uuid(),
+          uid: action.payload.paramUid ?? uuid(),
           name: '',
           value: '',
           description: '',
@@ -2076,7 +2077,7 @@ export const collectionsSlice = createSlice({
         if (type === 'request') {
           const vars = get(collection, 'root.request.vars.req', []);
           vars.push({
-            uid: uuid(),
+            uid: action.payload.paramUid ?? uuid(),
             name: '',
             value: '',
             enabled: true
@@ -2085,7 +2086,7 @@ export const collectionsSlice = createSlice({
         } else if (type === 'response') {
           const vars = get(collection, 'root.request.vars.res', []);
           vars.push({
-            uid: uuid(),
+            uid: action.payload.paramUid ?? uuid(),
             name: '',
             value: '',
             enabled: true

@@ -17,12 +17,14 @@ import { Tooltip } from 'react-tooltip';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'utils/collections';
 import { sensitiveFields } from './constants';
+import { useParamAddAutoFocusIntent } from 'hooks/useParamAddAutoFocusIntent';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   let _collection = cloneDeep(collection);
   
@@ -130,8 +132,11 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   };
 
   const addVariable = () => {
+    const newItemUid = uuid();
+    uidSetter(newItemUid);
+
     const newVariable = {
-      uid: uuid(),
+      uid: newItemUid,
       name: '',
       value: '',
       type: 'text',
@@ -207,6 +212,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                       id={`${index}.name`}
                       name={`${index}.name`}
                       value={variable.name}
+                      ref={inputRef(variable.uid)}
                       onChange={formik.handleChange}
                     />
                     <ErrorMessage name={`${index}.name`} />

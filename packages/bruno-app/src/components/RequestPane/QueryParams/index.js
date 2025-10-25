@@ -20,6 +20,7 @@ import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable';
 import BulkEditor from '../../BulkEditor';
+import { useParamAddAutoFocusIntent, addWithAutoFocus } from 'hooks/useParamAddAutoFocusIntent';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -27,16 +28,15 @@ const QueryParams = ({ item, collection }) => {
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
   
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const handleAddQueryParam = () => {
-    dispatch(
-      addQueryParam({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addQueryParam, {
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    });
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -79,7 +79,6 @@ const QueryParams = ({ item, collection }) => {
 
   const handlePathParamChange = (e, data) => {
     let value = e.target.value;
-
     let pathParam = cloneDeep(data);
 
     if (pathParam['value'] === value) {
@@ -164,6 +163,7 @@ const QueryParams = ({ item, collection }) => {
                         spellCheck="false"
                         value={param.name}
                         className="mousetrap"
+                        ref={inputRef(param.uid)}
                         onChange={(e) => handleQueryParamChange(e, param, 'name')}
                       />
                     </td>
