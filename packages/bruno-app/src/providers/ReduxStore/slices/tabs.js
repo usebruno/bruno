@@ -112,6 +112,13 @@ export const tabsSlice = createSlice({
         tab.requestPaneWidth = action.payload.requestPaneWidth;
       }
     },
+    updateRequestPaneTabHeight: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.requestPaneHeight = action.payload.requestPaneHeight;
+      }
+    },
     updateRequestPaneTab: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -213,6 +220,7 @@ export const {
   focusTab,
   switchTab,
   updateRequestPaneTabWidth,
+  updateRequestPaneTabHeight,
   updateRequestPaneTab,
   updateResponsePaneTab,
   updateResponsePaneScrollPosition,
