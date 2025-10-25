@@ -1,7 +1,7 @@
 {
   "collections": [
     {
-      "path": "{{projectRoot}}/tests/environments/api-setEnvVar/collection",
+      "path": "{{projectRoot}}/tests/environments/api-setEnvVar/fixtures/collection",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }
