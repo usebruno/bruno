@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <wsdl:definitions 
-  name="TestService" 
+  name="TestWSDLServiceXML" 
   targetNamespace="http://example.com/testservice" 
   xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
   xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"

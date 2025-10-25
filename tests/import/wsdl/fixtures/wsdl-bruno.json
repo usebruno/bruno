@@ -1,7 +1,7 @@
 {
   "uid": "TestServiceCollection",
   "version": "1",
-  "name": "TestService",
+  "name": "TestWSDLServiceJSON",
   "items": [
     {
       "uid": "UserServiceFolder",
