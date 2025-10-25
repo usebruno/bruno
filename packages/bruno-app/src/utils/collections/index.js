@@ -611,6 +611,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
+    examples: _item.examples || [],
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -889,6 +890,54 @@ export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
   deleteUidsInItem(item2);
 
   return isEqual(item1, item2);
+};
+
+/**
+ * Check if a request has actual changes (excluding examples)
+ * This function compares the request data between the original item and its draft,
+ * but excludes examples from the comparison to determine if the save dot should be shown
+ */
+export const hasRequestChanges = (item) => {
+  if (!item || !item.draft) {
+    return false;
+  }
+
+  // Create copies of the item and draft without examples for comparison
+  const originalItem = cloneDeep(item);
+  const draftItem = cloneDeep(item.draft);
+
+  // Remove examples from both items for comparison
+  delete originalItem.examples;
+  delete originalItem.draft;
+  delete draftItem.examples;
+  delete draftItem.draft;
+
+  return !isEqual(originalItem, draftItem);
+};
+
+/**
+ * Check if a specific example has unsaved changes
+ * This function compares the example data between the original item and its draft
+ */
+export const hasExampleChanges = (item, exampleUid) => {
+  if (!item || !item.draft || !exampleUid) {
+    return false;
+  }
+
+  // Get the original example from the saved item
+  const originalExample = item.examples?.find((ex) => ex.uid === exampleUid);
+  if (!originalExample) {
+    return false;
+  }
+
+  // Get the draft example from the draft item
+  const draftExample = item.draft.examples?.find((ex) => ex.uid === exampleUid);
+  if (!draftExample) {
+    return false;
+  }
+
+  // Compare the examples (excluding any internal metadata)
+  return !isEqual(originalExample, draftExample);
 };
 
 export const getDefaultRequestPaneTab = (item) => {
@@ -1252,4 +1301,35 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
 
 export const getPropertyFromDraftOrRequest = (item, propertyKey, defaultValue = null) => {
   return item.draft ? get(item, `draft.${propertyKey}`, defaultValue) : get(item, propertyKey, defaultValue);
+};
+
+export const transformExampleToDraft = (example, newExample) => {
+  const exampleToDraft = cloneDeep(example);
+
+  if (newExample.name) {
+    exampleToDraft.name = newExample.name;
+  }
+  if (newExample.description) {
+    exampleToDraft.description = newExample.description;
+  }
+  if (newExample.status) {
+    exampleToDraft.response.status = String(newExample.status);
+  }
+  if (newExample.statusText) {
+    exampleToDraft.response.statusText = newExample.statusText;
+  }
+  if (newExample.headers && newExample.headers.length) {
+    exampleToDraft.response.headers = newExample.headers.map((header) => ({
+      uid: uuid(),
+      name: String(header.name),
+      value: String(header.value),
+      description: String(header.description),
+      enabled: header.enabled
+    }));
+  }
+  if (newExample.body) {
+    exampleToDraft.response.body = newExample.body;
+  }
+
+  return exampleToDraft;
 };

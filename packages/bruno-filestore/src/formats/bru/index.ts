@@ -9,9 +9,9 @@ import {
 } from '@usebruno/lang';
 import { getOauth2AdditionalParameters } from './utils/oauth2-additional-params';
 
-export const bruRequestToJson = (data: string | any, parsed: boolean = false): any => {
+export const bruRequestToJson = (data: string | any, parsed: boolean = false, isExample: boolean = false): any => {
   try {
-    const json = parsed ? data : bruToJsonV2(data);
+    const json = parsed ? data : bruToJsonV2(data, isExample);
 
     let requestType = _.get(json, 'meta.type');
     switch (requestType) {
@@ -58,8 +58,34 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
         assertions: _.get(json, 'assertions', []),
         tests: _.get(json, 'tests', ''),
         docs: _.get(json, 'docs', '')
-      }
-    };
+      },
+      examples: _.get(json, 'examples', []).map((e: any) => {
+        return bruRequestToJson(e, true, true);
+      })
+    } as any;
+
+    if (isExample) {
+      delete transformedJson.seq;
+      delete transformedJson.tags;
+      delete transformedJson.settings;
+      delete transformedJson.examples;
+      delete transformedJson.request.script;
+      delete transformedJson.request.vars;
+      delete transformedJson.request.assertions;
+      delete transformedJson.request.tests;
+      delete transformedJson.request.docs;
+      transformedJson.description = _.get(json, 'meta.description', '');
+      const res = _.get(json, 'response', {});
+      transformedJson.response = {
+        headers: (res.headers || []).map((header: any) => ({
+          name: header.name,
+          value: header.value
+        })),
+        status: res.status.code,
+        statusText: res.status.text,
+        body: typeof res.body !== 'string' ? JSON.stringify(res.body, null, 2) : res.body || ''
+      };
+    }
 
     // Add request type specific fields
     if (requestType === 'grpc-request') {
@@ -104,14 +130,14 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
         transformedJson.request.auth.oauth2.additionalParameters = additionalParameters;
       }
     }
-
     return transformedJson;
   } catch (error) {
+    console.log('bruRequestToJson error', error);
     throw error;
   }
 };
 
-export const jsonRequestToBru = (json: any): string => {
+export const jsonRequestToBru = (json: any, isExample: boolean = false): string => {
   try {
     let type = _.get(json, 'type');
     switch (type) {
@@ -215,6 +241,44 @@ export const jsonRequestToBru = (json: any): string => {
     bruJson.tests = _.get(json, 'request.tests', '');
     bruJson.settings = _.get(json, 'settings', {});
     bruJson.docs = _.get(json, 'request.docs', '');
+    bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonRequestToBru(e, true));
+
+    // TODO:  do we even care about certain keys like assertions, tests, docs, etc. for examples?
+    if (isExample) {
+      delete bruJson.meta.seq;
+      delete bruJson.meta.tags;
+      delete bruJson.settings;
+      delete bruJson.docs;
+      delete bruJson.assertions;
+      delete bruJson.tests;
+      delete bruJson.vars;
+      delete bruJson.auth;
+      delete bruJson.script;
+      delete bruJson.examples;
+
+      bruJson.meta.description = _.get(json, 'description', '');
+
+      const response = _.get(json, 'response', {
+        headers: [],
+        status: {
+          code: 200,
+          text: 'OK'
+        },
+        body: ''
+      });
+      bruJson.response = {
+        headers: response.headers,
+        status: {
+          code: response.status,
+          text: response.statusText
+        },
+        body: typeof response.body !== 'string' ? JSON.stringify(response.body, null, 2) : response.body || ''
+      };
+    }
+
+    if (isExample) {
+      return bruJson;
+    }
 
     const bru = jsonToBruV2(bruJson);
     return bru;

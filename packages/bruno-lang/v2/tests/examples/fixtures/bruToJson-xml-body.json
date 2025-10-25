@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "name": "Test API",
+        "type": "http",
+        "seq": 1
+    },
+    "examples": [
+        {
+            "meta": {
+                "name": "XML Example",
+                "type": "http",
+                "seq": 1
+            },
+            "http": {
+                "method": "post",
+                "url": "https://api.example.com/data"
+            },
+            "body": {
+                "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<data>\n  <name>Test</name>\n  <value>123</value>\n</data>"
+            }
+        }
+    ]
+}
