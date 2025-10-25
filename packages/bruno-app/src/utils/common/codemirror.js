@@ -8,6 +8,21 @@ const pathFoundInVariables = (path, obj) => {
   return value !== undefined;
 };
 
+const checkMockVariable = (word) => {
+  // The word must start with a $ for it to be a mock variable.
+  if (!word.startsWith('$')) { return false; }
+
+  // The work can have a pipe followed by a parameter, for example a format string for a timestamp.
+  const indexOfPipe = word.indexOf('|');
+
+  // If it has a pipe, just get everything up to the pipe, and make sure that name exists.
+  if (indexOfPipe >= 1) { word = word.substring(1, indexOfPipe).trim(); }
+  else { word = word.substring(1); }
+
+  // Check that we have a mock data function by that name.
+  return mockDataFunctions.hasOwnProperty(word);
+};
+
 /**
  * Defines a custom CodeMirror mode for Bruno variables highlighting.
  * This function creates a specialized mode that can highlight both Bruno template
@@ -31,7 +46,7 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
             if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
               // Check if it's a mock variable (starts with $) and exists in mockDataFunctions
-              const isMockVariable = word.startsWith('$') && mockDataFunctions.hasOwnProperty(word.substring(1));
+              const isMockVariable = checkMockVariable(word);
               const found = isMockVariable || pathFoundInVariables(word, variables);
               const status = found ? 'valid' : 'invalid';
               const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;

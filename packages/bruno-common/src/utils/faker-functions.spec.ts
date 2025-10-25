@@ -13,9 +13,11 @@ describe("mockDataFunctions Regex Validation", () => {
   test("timestamp and isoTimestamp should return mocked time values", () => {
     const expectedTimestamp = '1704067200'; 
     const expectedIsoTimestamp = '2024-01-01T00:00:00.000Z';
+    const expectedFormattedTimestamp = '20240101000000';
 
     expect(mockDataFunctions.timestamp()).toBe(expectedTimestamp);
     expect(mockDataFunctions.isoTimestamp()).toBe(expectedIsoTimestamp);
+    expect(mockDataFunctions.timestamp("yyyyMMDDHHmmss")).toBe(expectedFormattedTimestamp);
   });
 
   test("all values should match their expected patterns", () => {
