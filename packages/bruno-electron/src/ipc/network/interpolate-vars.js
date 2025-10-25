@@ -1,5 +1,5 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find } = require('lodash');
+const { each, forOwn, cloneDeep } = require('lodash');
 const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
@@ -65,6 +65,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   };
 
   request.url = _interpolate(request.url);
+  const isGrpcRequest = request.mode === 'grpc';
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
@@ -72,9 +73,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   const contentType = getContentType(request.headers);
-  const isGrpcBody = request.mode === 'grpc';
 
-  if (isGrpcBody) {
+  if (isGrpcRequest) {
     const jsonDoc = JSON.stringify(request.body);
     const parsed = _interpolate(jsonDoc, {
       escapeJSONStrings: true
