@@ -3,16 +3,14 @@ import fs from 'fs';
 import path from 'path';
 
 test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
-  test.setTimeout(2 * 10 * 1000);
-
   test.afterEach(async ({ pageWithUserData: page }) => {
     // Clean up test environment variables after each test
     try {
       // Check if the page is still valid before attempting cleanup
       if (page && !page.isClosed()) {
         await page.locator('#sidebar-collection-name').click();
-        await page.locator('div.current-environment').click();
-        await page.getByText('Configure', { exact: true }).click();
+        await page.getByTestId('environment-selector-trigger').click();
+        await page.locator('#configure-env').click();
 
         // Remove the test environment variables
         const key1Row = page.getByRole('row', { name: 'multiple-persist-vars-key1' });
@@ -41,15 +39,15 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
     });
 
     await test.step('Select stage environment', async () => {
-      await page.locator('div.current-environment').click();
-      await expect(page.locator('.dropdown-item').filter({ hasText: 'Stage' })).toBeVisible();
-      await page.locator('.dropdown-item').filter({ hasText: 'Stage' }).click();
-      await expect(page.locator('.current-environment').filter({ hasText: /Stage/ })).toBeVisible();
+      await page.getByTestId('environment-selector-trigger').click();
+      await expect(page.locator('.environment-list .dropdown-item', { hasText: 'Stage' })).toBeVisible();
+      await page.locator('.environment-list .dropdown-item', { hasText: 'Stage' }).click();
+      await expect(page.locator('.current-environment', { hasText: 'Stage' })).toBeVisible();
     });
 
     await test.step('Run the folder containing both requests', async () => {
       // Ensure we're in the correct collection context before selecting the folder
-      await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'collection' })).toBeVisible();
+      await expect(page.locator('#sidebar-collection-name', { hasText: 'collection' })).toBeVisible();
 
       // Right-click on the folder to open context menu
       await page.getByText('multiple-persist-vars-folder', { exact: true }).click({ button: 'right' });
@@ -66,10 +64,10 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
 
     await test.step('Verify both environment variables are set in UI', async () => {
       // Ensure we're still in the correct collection context
-      await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'collection' })).toBeVisible();
+      await expect(page.locator('#sidebar-collection-name', { hasText: 'collection' })).toBeVisible();
 
-      await page.locator('div.current-environment').click();
-      await page.getByText('Configure', { exact: true }).click();
+      await page.getByTestId('environment-selector-trigger').click();
+      await page.locator('#configure-env').click();
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key1' }).getByRole('cell').nth(1)).toBeVisible();
       await expect(page.getByRole('row', { name: 'value1' }).getByRole('cell').nth(2)).toBeVisible();
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key2' }).getByRole('cell').nth(1)).toBeVisible();
@@ -79,7 +77,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
 
     await test.step('Verify variables are persisted to file', async () => {
       // Check that the variables are written to the Stage.bru file
-      const stageBruPath = path.join(__dirname, 'collection/environments/Stage.bru');
+      const stageBruPath = path.join(__dirname, 'fixtures/collection/environments/Stage.bru');
       const stageBruContent = fs.readFileSync(stageBruPath, 'utf8');
 
       // Both variables should be present in the file
@@ -89,5 +87,4 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       expect(stageBruContent).toContain('value2');
     });
   });
-
 });
