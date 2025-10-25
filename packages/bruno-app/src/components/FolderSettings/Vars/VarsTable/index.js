@@ -10,19 +10,19 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { addFolderVar, deleteFolderVar, updateFolderVar } from 'providers/ReduxStore/slices/collections/index';
+import { useParamAddAutoFocusIntent, addWithAutoFocus } from 'hooks/useParamAddAutoFocusIntent';
 
 const VarsTable = ({ folder, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   const addVar = () => {
-    dispatch(
-      addFolderVar({
-        collectionUid: collection.uid,
-        folderUid: folder.uid,
-        type: varType
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addFolderVar, {
+      collectionUid: collection.uid,
+      folderUid: folder.uid,
+      type: varType
+    });
   };
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
@@ -109,6 +109,7 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
                         spellCheck="false"
                         value={_var.name}
                         className="mousetrap"
+                        ref={inputRef(_var.uid)}
                         onChange={(e) => handleVarChange(e, _var, 'name')}
                       />
                     </td>

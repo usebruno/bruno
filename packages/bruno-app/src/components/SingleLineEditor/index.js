@@ -24,6 +24,11 @@ class SingleLineEditor extends Component {
     };
   }
 
+  focus = () => {
+    if (!this.editor) return;
+    this.editor.focus();
+  };
+
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */

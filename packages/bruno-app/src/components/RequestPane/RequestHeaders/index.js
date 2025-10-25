@@ -13,6 +13,7 @@ import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
 import BulkEditor from '../../BulkEditor';
+import { useParamAddAutoFocusIntent, addWithAutoFocus } from 'hooks/useParamAddAutoFocusIntent';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -22,14 +23,13 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   const addHeader = () => {
-    dispatch(
-      addRequestHeader({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addRequestHeader, {
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    });
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -117,6 +117,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                   <tr key={header.uid} data-uid={header.uid}>
                     <td className='flex relative'>
                       <SingleLineEditor
+                        ref={inputRef(header.uid)}
                         value={header.name}
                         theme={storedTheme}
                         onSave={onSave}

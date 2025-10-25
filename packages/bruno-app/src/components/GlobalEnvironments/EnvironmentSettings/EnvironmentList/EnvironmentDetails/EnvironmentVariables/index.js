@@ -13,12 +13,14 @@ import toast from 'react-hot-toast';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
+import { useParamAddAutoFocusIntent } from 'hooks/useParamAddAutoFocusIntent';
 
 const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector(state => state.globalEnvironments);
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   let _collection = cloneDeep(collection);
 
@@ -83,8 +85,11 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
   };
 
   const addVariable = () => {
+    const newItemUid = uuid();
+    uidSetter(newItemUid);
+
     const newVariable = {
-      uid: uuid(),
+      uid: newItemUid,
       name: '',
       value: '',
       type: 'text',
@@ -144,6 +149,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       autoCapitalize="off"
                       spellCheck="false"
                       className="mousetrap"
+                      ref={inputRef(variable.uid)}
                       id={`${index}.name`}
                       name={`${index}.name`}
                       value={variable.name}

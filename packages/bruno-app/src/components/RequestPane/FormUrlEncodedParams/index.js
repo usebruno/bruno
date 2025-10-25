@@ -15,19 +15,19 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import ReorderTable from 'components/ReorderTable/index';
 import Table from 'components/Table/index';
+import { useParamAddAutoFocusIntent, addWithAutoFocus } from 'hooks/useParamAddAutoFocusIntent';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.formUrlEncoded') : get(item, 'request.body.formUrlEncoded');
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   const addParam = () => {
-    dispatch(
-      addFormUrlEncodedParam({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addFormUrlEncodedParam, {
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    });
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -92,7 +92,8 @@ const FormUrlEncodedParams = ({ item, collection }) => {
               return (
                 <tr key={param.uid} data-uid={param.uid}>
                   <td className='flex relative'>
-                    <input
+                      <input
+                        ref={inputRef(param.uid)}
                       type="text"
                       autoComplete="off"
                       autoCorrect="off"

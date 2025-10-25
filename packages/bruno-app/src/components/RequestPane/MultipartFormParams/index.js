@@ -16,32 +16,30 @@ import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
+import { useParamAddAutoFocusIntent, addWithAutoFocus } from 'hooks/useParamAddAutoFocusIntent';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.multipartForm') : get(item, 'request.body.multipartForm');
+  const { uidSetter, inputRef } = useParamAddAutoFocusIntent();
 
   const addParam = () => {
-    dispatch(
-      addMultipartFormParam({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        type: 'text',
-        value: ''
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addMultipartFormParam, {
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      type: 'text',
+      value: ''
+    });
   };
 
   const addFile = () => {
-    dispatch(
-      addMultipartFormParam({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        type: 'file',
-        value: []
-      })
-    );
+    addWithAutoFocus(uidSetter, dispatch, addMultipartFormParam, {
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      type: 'file',
+      value: []
+    });
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -111,7 +109,8 @@ const MultipartFormParams = ({ item, collection }) => {
               return (
                 <tr key={param.uid} className='w-full' data-uid={param.uid}>
                   <td className="flex relative">
-                    <input
+                      <input
+                        ref={inputRef(param.uid)}
                       type="text"
                       autoComplete="off"
                       autoCorrect="off"
