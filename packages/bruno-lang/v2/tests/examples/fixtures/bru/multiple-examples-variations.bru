@@ -36,6 +36,7 @@ example {
   
   request: {
     url: https://api.example.com/data?id=123
+    mode: none
     headers: {
       accept: "application/json"
     }
@@ -63,6 +64,7 @@ example {
   
   request: {
     url: https://api.example.com/data?page=1&limit=20&sort=name&order=asc&filter[status]=active&filter[type]=premium
+    mode: none
     headers: {
       accept: "application/json",
       x-api-key: "search-key-789"
@@ -107,6 +109,7 @@ example {
   
   request: {
     url: https://api.example.com/data/text
+    mode: none
     headers: {
       accept: "text/plain"
     }
@@ -132,6 +135,7 @@ example {
   
   request: {
     url: https://api.example.com/data/xml
+    mode: none
     headers: {
       accept: "application/xml"
     }
@@ -177,6 +181,7 @@ example {
   
   request: {
     url: https://api.example.com/graphql
+    mode: graphql
     headers: {
       content-type: "application/json",
       authorization: "Bearer graphql-token-xyz"
@@ -229,6 +234,7 @@ example {
   
   request: {
     url: https://sparql.example.com/query
+    mode: sparql
     headers: {
       content-type: "application/sparql-query"
     }

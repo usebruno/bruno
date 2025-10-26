@@ -20,6 +20,12 @@ export const addResponseExample = (state, action) => {
     item.draft.examples = [];
   }
 
+  // Ensure body always has a mode field (default to 'none' if not present)
+  const requestBody = item.draft.request.body || {};
+  if (!requestBody.mode) {
+    requestBody.mode = 'none';
+  }
+
   const newExample = {
     uid: uuid(),
     itemUid: item.uid,
@@ -31,7 +37,7 @@ export const addResponseExample = (state, action) => {
       method: item.draft.request.method,
       headers: item.draft.request.headers,
       params: item.draft.request.params,
-      body: item.draft.request.body
+      body: requestBody
     },
     response: {
       status: String(example.status ?? ''),
@@ -529,6 +535,13 @@ export const updateResponseExampleRequest = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
+  // Ensure body always has a mode field if it's being updated
+  if (request.body) {
+    if (!request.body.mode) {
+      request.body.mode = 'none';
+    }
+  }
+
   example.request = { ...example.request, ...request };
 };
 
@@ -888,6 +901,11 @@ export const updateResponseExampleBody = (state, action) => {
 
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
+
+  // Ensure body always has a mode field
+  if (!body.mode && !example.request.body?.mode) {
+    body.mode = 'none';
+  }
 
   example.request.body = { ...example.request.body, ...body };
 };

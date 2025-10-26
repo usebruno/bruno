@@ -13,15 +13,17 @@ example {
 
   request: {
     url: https://api.example.com/example1
+    mode: none
   }
 }
 
 example {
   name: Example 2
   description: Second example with JSON body
-  
+
   request: {
     url: https://api.example.com/example2
+    mode: json
     body:json: {
       {
         "data": "test"

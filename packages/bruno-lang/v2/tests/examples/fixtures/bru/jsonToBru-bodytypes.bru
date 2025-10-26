@@ -13,6 +13,7 @@ example {
   
   request: {
     url: https://api.example.com/json
+    mode: json
     body:json: {
       {
         "name": "Test",
@@ -28,6 +29,7 @@ example {
   
   request: {
     url: https://api.example.com/xml
+    mode: xml
     body:xml: {
       <?xml version="1.0"?>
       <data>
@@ -44,6 +46,7 @@ example {
   
   request: {
     url: https://api.example.com/text
+    mode: text
     body:text: {
       Plain text data
       with multiple lines

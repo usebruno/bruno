@@ -23,6 +23,7 @@ example {
 
   request: {
     url: https://api.example.com/json
+    mode: json
     body:json: {
       {
         "format": "json",
@@ -53,6 +54,7 @@ example {
 
   request: {
     url: https://api.example.com/xml
+    mode: xml
     body:xml: {
       <?xml version="1.0" encoding="UTF-8"?>
       <data>
@@ -84,6 +86,7 @@ example {
 
   request: {
     url: https://api.example.com/text
+    mode: text
     body:text: {
       Plain text data
       Format: text

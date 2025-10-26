@@ -54,6 +54,9 @@
       "description": "Basic GET request with minimal data",
       "request": {
         "url": "https://api.example.com/data?id=123",
+        "body": {
+          "mode": "none"
+        },
         "headers": [
           {
             "name": "accept",
@@ -73,6 +76,9 @@
       "description": "GET request with complex query parameters",
       "request": {
         "url": "https://api.example.com/data?page=1&limit=20&sort=name&order=asc&filter[status]=active&filter[type]=premium",
+        "body": {
+          "mode": "none"
+        },
         "headers": [
           {
             "name": "accept",
@@ -97,6 +103,9 @@
       "description": "Request returning plain text response",
       "request": {
         "url": "https://api.example.com/data/text",
+        "body": {
+          "mode": "none"
+        },
         "headers": [
           {
             "name": "accept",
@@ -116,6 +125,9 @@
       "description": "Example with complex XML response",
       "request": {
         "url": "https://api.example.com/data/xml",
+        "body": {
+          "mode": "none"
+        },
         "headers": [
           {
             "name": "accept",

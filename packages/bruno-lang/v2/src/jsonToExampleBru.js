@@ -43,6 +43,11 @@ const jsonToExampleBru = (json) => {
     bru += `  url: ${url}\n`;
   }
 
+  // Add mode field inside request block, right after url
+  if (request && request.body && request.body.mode) {
+    bru += `  mode: ${request.body.mode}\n`;
+  }
+
   if (params && params.length) {
     const queryParams = params.filter((param) => param.type === 'query');
     const pathParams = params.filter((param) => param.type === 'path');

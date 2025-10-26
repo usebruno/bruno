@@ -76,6 +76,7 @@ example {
   
   request: {
     url: https://api.example.com/oauth/protected
+    mode: json
     headers: {
       authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9",
       content-type: "application/json"
@@ -119,6 +120,7 @@ example {
   
   request: {
     url: https://api.example.com/oauth/token
+    mode: json
     headers: {
       content-type: "application/json",
       accept: "application/json"
@@ -158,6 +160,7 @@ example {
   
   request: {
     url: https://api.example.com/oauth/client-credentials
+    mode: json
     headers: {
       content-type: "application/json"
     }
@@ -195,6 +198,7 @@ example {
   
   request: {
     url: https://api.example.com/oauth/password
+    mode: json
     headers: {
       content-type: "application/json"
     }

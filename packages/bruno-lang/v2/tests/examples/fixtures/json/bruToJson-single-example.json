@@ -13,7 +13,10 @@
       "name": "Example Request",
       "description": "A simple example request",
       "request": {
-        "url": "https://api.example.com/example"
+        "url": "https://api.example.com/example",
+        "body": {
+          "mode": "none"
+        }
       }
     }
   ]

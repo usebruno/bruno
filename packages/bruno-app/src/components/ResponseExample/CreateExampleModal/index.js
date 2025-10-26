@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 
@@ -35,8 +35,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
     onClose();
   };
 
-  // Reset form when modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       setName('');
       setDescription('');

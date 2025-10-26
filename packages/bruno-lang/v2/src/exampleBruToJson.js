@@ -52,8 +52,9 @@ const exampleGrammar = ohm.grammar(`Example {
 
   // Request block
   request = nl* "request" st* ":" st* "{" nl* requestcontent nl* "}"
-  requestcontent = (stnl* (requesturl | requestparamspath | requestparamsquery | requestheaders | requestbodies))*
+  requestcontent = (stnl* (requesturl | requestmode | requestparamspath | requestparamsquery | requestheaders | requestbodies))*
   requesturl = "url" st* ":" st* valuechar* stnl*
+  requestmode = "mode" st* ":" st* valuechar* stnl*
   requestbody = "body" st* ":" st* "{" nl* textblock tagend
   requestparamspath = "params:path" st* ":" st* dictionary
   requestparamsquery = "params:query" st* ":" st* dictionary
@@ -207,9 +208,11 @@ const sem = exampleGrammar.createSemantics().addAttribute('ast', {
       return {};
     }
 
-    return _.reduce(tags.ast, (result, item) => {
-      return _.merge(result, item);
+    const result = _.reduce(tags.ast, (acc, item) => {
+      return _.merge(acc, item);
     }, {});
+
+    return result;
   },
   dictionary(_1, _2, pairlist, _3) {
     return pairlist.ast;
@@ -318,20 +321,66 @@ const sem = exampleGrammar.createSemantics().addAttribute('ast', {
     }
     // Filter out empty items and merge the results
     const validItems = tags.ast.filter((item) => item && Object.keys(item).length > 0);
-    return _.reduce(validItems, (result, item) => {
+
+    const result = _.reduce(validItems, (acc, item) => {
       // Special handling for params to combine arrays instead of overwriting
-      if (item.params && result.params) {
+      if (item.params && acc.params) {
         return {
-          ...result,
+          ...acc,
           ...item,
-          params: [...result.params, ...item.params]
+          params: [...acc.params, ...item.params]
         };
       }
-      return _.merge(result, item);
+
+      // Store mode separately if it exists
+      if (item.mode) {
+        acc._mode = item.mode;
+        return acc;
+      }
+
+      return _.merge(acc, item);
     }, {});
+
+    // Body-related fields (json, text, xml, etc.) go into body object
+    const bodyFields = ['json', 'text', 'xml', 'sparql', 'graphql', 'formUrlEncoded', 'multipartForm', 'file'];
+    const bodyContent = {};
+
+    bodyFields.forEach((field) => {
+      if (result[field]) {
+        if (field === 'graphql') {
+          bodyContent.graphql = result[field];
+        } else {
+          bodyContent[field] = result[field];
+        }
+      }
+    });
+
+    // If we have body content, wrap it in a body object
+    if (Object.keys(bodyContent).length > 0) {
+      result.body = bodyContent;
+
+      // Clean up the individual body fields from the result
+      bodyFields.forEach((field) => {
+        delete result[field];
+      });
+    }
+
+    // Merge mode into body if it exists
+    if (result._mode) {
+      if (!result.body) {
+        result.body = {};
+      }
+      result.body.mode = result._mode;
+      delete result._mode;
+    }
+
+    return result;
   },
   requesturl(_1, _2, _3, _4, value, _5) {
     return { url: value.sourceString ? value.sourceString.trim() : '' };
+  },
+  requestmode(_1, _2, _3, _4, value, _5) {
+    return { mode: value.sourceString ? value.sourceString.trim() : '' };
   },
   requestbody(_1, _2, _3, _4, _5, _6, textblock, _7) {
     return { body: outdentString(textblock.sourceString) };
@@ -380,78 +429,51 @@ const sem = exampleGrammar.createSemantics().addAttribute('ast', {
   // All body types from request side
   bodyjson(_1, _2, _3, _4, bodyblock) {
     return {
-      body: {
-        mode: 'json',
-        json: outdentString(bodyblock.ast, 4)
-      }
+      json: outdentString(bodyblock.ast, 4)
     };
   },
   bodytext(_1, _2, _3, _4, bodyblock) {
     return {
-      body: {
-        mode: 'text',
-        text: outdentString(bodyblock.ast, 4)
-      }
+      text: outdentString(bodyblock.ast, 4)
     };
   },
   bodyxml(_1, _2, _3, _4, bodyblock) {
     return {
-      body: {
-        mode: 'xml',
-        xml: outdentString(bodyblock.ast, 4)
-      }
+      xml: outdentString(bodyblock.ast, 4)
     };
   },
   bodysparql(_1, _2, _3, _4, bodyblock) {
     return {
-      body: {
-        mode: 'sparql',
-        sparql: outdentString(bodyblock.ast, 4)
-      }
+      sparql: outdentString(bodyblock.ast, 4)
     };
   },
   bodygraphql(_1, _2, _3, _4, bodyblock) {
     return {
-      body: {
-        mode: 'graphql',
-        graphql: {
-          query: outdentString(bodyblock.ast, 4)
-        }
+      graphql: {
+        query: outdentString(bodyblock.ast, 4)
       }
     };
   },
   bodygraphqlvars(_1, _2, _3, _4, bodyblock) {
     return {
-      body: {
-        mode: 'graphql',
-        graphql: {
-          variables: outdentString(bodyblock.ast, 4)
-        }
+      graphql: {
+        variables: outdentString(bodyblock.ast, 4)
       }
     };
   },
   bodyformurlencoded(_1, _2, _3, _4, dictionary) {
     return {
-      body: {
-        mode: 'formUrlEncoded',
-        formUrlEncoded: mapPairListToKeyValPairs(dictionary.ast)
-      }
+      formUrlEncoded: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   bodymultipart(_1, _2, _3, _4, dictionary) {
     return {
-      body: {
-        mode: 'multipartForm',
-        multipartForm: mapPairListToKeyValPairsMultipart(dictionary.ast)
-      }
+      multipartForm: mapPairListToKeyValPairsMultipart(dictionary.ast)
     };
   },
   bodyfile(_1, _2, _3, _4, dictionary) {
     return {
-      body: {
-        mode: 'file',
-        file: mapPairListToKeyValPairsFile(dictionary.ast)
-      }
+      file: mapPairListToKeyValPairsFile(dictionary.ast)
     };
   }
 

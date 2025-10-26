@@ -13,7 +13,10 @@
       "name": "Example with Response",
       "description": "An example with response data",
       "request": {
-        "url": "https://api.example.com/users/123"
+        "url": "https://api.example.com/users/123",
+        "body": {
+          "mode": "none"
+        }
       },
       "response": {
         "headers": [

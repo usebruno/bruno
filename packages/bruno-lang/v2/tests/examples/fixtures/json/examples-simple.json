@@ -13,7 +13,10 @@
       "name": "Get User by ID",
       "description": "Example of getting a user by ID",
       "request": {
-        "url": "https://api.example.com/users/123"
+        "url": "https://api.example.com/users/123",
+        "body": {
+          "mode": "none"
+        }
       },
       "response": {
         "status": "200",

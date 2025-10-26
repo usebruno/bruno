@@ -43,6 +43,7 @@ example {
   
   request: {
     url: https://api.example.com/upload
+    mode: multipartForm
     headers: {
       authorization: "Bearer upload-token-abc123xyz",
       x-upload-client: "bruno"
@@ -89,6 +90,7 @@ example {
   
   request: {
     url: https://api.example.com/submit
+    mode: formUrlEncoded
     headers: {
       content-type: "application/x-www-form-urlencoded",
       authorization: "Basic dGVzdDp0ZXN0"
