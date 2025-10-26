@@ -18,10 +18,6 @@ const ExampleNotFound = ({ exampleUid }) => {
     }, 300);
   }, []);
 
-  // add a delay component in react that shows a loading spinner
-  // and then shows the error message after a delay
-  // this will prevent the error message from flashing on the screen
-
   if (!showErrorMessage) {
     return null;
   }
@@ -31,7 +27,7 @@ const ExampleNotFound = ({ exampleUid }) => {
       <div className="p-4 bg-orange-100 border-l-4 border-yellow-500 text-yellow-700">
         <div>Response example no longer exists.</div>
         <div className="mt-2">
-          This can happen when the example was deleted from the .bru file or the file was modified on your filesystem.
+          This can occur when the example definition in your local file has been deleted or updated.
         </div>
       </div>
       <button className="btn btn-md btn-secondary mt-6" onClick={closeTab}>

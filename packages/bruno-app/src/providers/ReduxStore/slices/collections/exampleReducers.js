@@ -34,8 +34,8 @@ export const addResponseExample = (state, action) => {
       body: item.draft.request.body
     },
     response: {
-      status: String(example.status),
-      statusText: example.statusText ? String(example.statusText) : '',
+      status: String(example.status ?? ''),
+      statusText: String(example.statusText ?? ''),
       headers: (example.headers || []).map((header) => ({
         uid: uuid(),
         name: String(header.name),
