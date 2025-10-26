@@ -1,6 +1,6 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
-import { IconCheckMark } from 'components/Icons/examples';
+import IconCheckMark from 'components/Icons/IconCheckMark';
 import { useTheme } from 'providers/Theme';
 
 const Checkbox = ({

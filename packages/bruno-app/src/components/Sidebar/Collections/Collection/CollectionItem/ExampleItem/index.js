@@ -4,7 +4,7 @@ import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { deleteResponseExample, updateResponseExample, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { IconDots } from '@tabler/icons';
-import { ExampleIcon } from 'components/Icons/examples';
+import ExampleIcon from 'components/Icons/Examples';
 import range from 'lodash/range';
 import Dropdown from 'components/Dropdown';
 import Modal from 'components/Modal';

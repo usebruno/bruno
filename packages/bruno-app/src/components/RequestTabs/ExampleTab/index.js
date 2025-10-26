@@ -3,14 +3,14 @@ import { useDispatch } from 'react-redux';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { hasExampleChanges, findItemInCollection } from 'utils/collections';
-import { ExampleIcon } from 'components/Icons/examples';
+import ExampleIcon from 'components/Icons/Examples';
 import ConfirmRequestClose from '../RequestTab/ConfirmRequestClose';
 import RequestTabNotFound from '../RequestTab/RequestTabNotFound';
 import StyledWrapper from '../RequestTab/StyledWrapper';
 import CloseTabIcon from '../RequestTab/CloseTabIcon';
 import DraftTabIcon from '../RequestTab/DraftTabIcon';
 
-const ExampleTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
+const ExampleTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
 

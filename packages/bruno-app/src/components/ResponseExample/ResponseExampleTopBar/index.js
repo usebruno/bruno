@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { IconEdit } from 'components/Icons/examples';
+import IconEdit from 'components/Icons/IconEdit';
 import { IconCode, IconDeviceFloppy } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
