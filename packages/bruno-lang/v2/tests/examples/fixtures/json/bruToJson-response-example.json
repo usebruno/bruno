@@ -23,10 +23,8 @@
             "enabled": true
           }
         ],
-        "status": {
-          "code": "200",
-          "text": "OK"
-        },
+        "status": "200",
+        "statusText": "OK",
         "body": "\"id\": 123,\n\"name\": \"John Doe\""
       }
     }

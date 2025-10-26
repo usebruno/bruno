@@ -1,0 +1,199 @@
+{
+  "meta": {
+    "name": "Complex API with Auth",
+    "type": "http",
+    "seq": "1"
+  },
+  "http": {
+    "method": "post",
+    "url": "https://api.example.com/users",
+    "body": "json",
+    "auth": "bearer"
+  },
+  "headers": [
+    {
+      "name": "content-type",
+      "value": "application/json",
+      "enabled": true
+    },
+    {
+      "name": "x-api-key",
+      "value": "my-secret-key",
+      "enabled": true
+    },
+    {
+      "name": "x-request-id",
+      "value": "{{$uuid}}",
+      "enabled": true
+    }
+  ],
+  "params": [
+    {
+      "name": "include",
+      "value": "details",
+      "enabled": true,
+      "type": "query"
+    },
+    {
+      "name": "format",
+      "value": "json",
+      "enabled": true,
+      "type": "query"
+    },
+    {
+      "name": "id",
+      "value": "123",
+      "enabled": true,
+      "type": "path"
+    },
+    {
+      "name": "status",
+      "value": "active",
+      "enabled": true,
+      "type": "path"
+    }
+  ],
+  "auth": {
+    "basic": {
+      "username": "admin",
+      "password": "secret123"
+    },
+    "bearer": {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHluKJe2vncyz4h4SH6FSS7YOKIx"
+    },
+    "apikey": {
+      "key": "x-api-key",
+      "value": "api-secret-key-12345",
+      "placement": "header"
+    }
+  },
+  "body": {
+    "json": "{\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"profile\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"age\": 30\n  },\n  \"preferences\": {\n    \"theme\": \"dark\",\n    \"notifications\": true\n  },\n  \"tags\": [\"admin\", \"user\", \"verified\"]\n}"
+  },
+  "script": {
+    "req": "const timestamp = Date.now();\nbru.setVar(\"request_timestamp\", timestamp);\nbru.setVar(\"signature\", crypto.createHash('md5').update(timestamp.toString()).digest('hex'));"
+  },
+  "vars": {
+    "req": [
+      {
+        "name": "user_id",
+        "value": "12345",
+        "enabled": true,
+        "local": false
+      },
+      {
+        "name": "environment",
+        "value": "production",
+        "enabled": true,
+        "local": false
+      }
+    ],
+    "res": [
+      {
+        "name": "response_id",
+        "value": "{{res.id}}",
+        "enabled": true,
+        "local": false
+      },
+      {
+        "name": "processed_at",
+        "value": "{{$timestamp}}",
+        "enabled": true,
+        "local": false
+      }
+    ]
+  },
+  "tests": "test(\"Response should be 201\", function() {\n  expect(res.getStatus()).to.eql(201);\n});\n\ntest(\"Response should have user data\", function() {\n  const body = res.getBody();\n  expect(body.username).to.be.ok;\n  expect(body.email).to.be.ok;\n});",
+  "docs": "This endpoint creates a new user account.\nRequires authentication via Bearer token or API key.\nSupports nested JSON structures with arrays.",
+  "examples": [
+    {
+      "name": "Basic User Creation",
+      "description": "Creates a new user with minimal required fields",
+      "request": {
+        "url": "https://api.example.com/users",
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"username\": \"newuser\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+        },
+        "headers": [
+          {
+            "name": "authorization",
+            "value": "\"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\",",
+            "enabled": true
+          },
+          {
+            "name": "content-type",
+            "value": "\"application/json\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "201",
+        "statusText": "OK",
+        "body": "\"id\": 100,\n\"username\": \"newuser\",\n\"email\": \"newuser@example.com\",\n\"created_at\": \"2024-01-15T10:30:00Z\",\n\"status\": \"active\""
+      }
+    },
+    {
+      "name": "Advanced User with Profile",
+      "description": "Creates a user with complete profile information and nested data",
+      "request": {
+        "url": "https://api.example.com/users",
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"username\": \"developer\",\n  \"email\": \"dev@example.com\",\n  \"password\": \"DevPass2024!\",\n  \"profile\": {\n    \"firstName\": \"Jane\",\n    \"lastName\": \"Developer\",\n    \"bio\": \"Software engineer passionate about APIs\",\n    \"location\": {\n      \"city\": \"San Francisco\",\n      \"country\": \"USA\",\n      \"timezone\": \"America/Los_Angeles\"\n    },\n    \"social\": {\n      \"github\": \"jandeveloper\",\n      \"twitter\": \"@jane_dev\"\n    }\n  },\n  \"skills\": [\"JavaScript\", \"Node.js\", \"React\", \"API Design\"],\n  \"experience\": 5,\n  \"preferences\": {\n    \"theme\": \"dark\",\n    \"language\": \"en\",\n    \"notifications\": {\n      \"email\": true,\n      \"push\": true,\n      \"sms\": false\n    }\n  }\n}"
+        },
+        "headers": [
+          {
+            "name": "authorization",
+            "value": "\"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\",",
+            "enabled": true
+          },
+          {
+            "name": "content-type",
+            "value": "\"application/json\",",
+            "enabled": true
+          },
+          {
+            "name": "x-api-key",
+            "value": "\"advanced-api-key-45678\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "201",
+        "statusText": "OK",
+        "body": "\"id\": 101,\n\"username\": \"developer\",\n\"email\": \"dev@example.com\",\n\"profile\": {\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Developer\",\n  \"bio\": \"Software engineer passionate about APIs\",\n  \"location\": {\n    \"city\": \"San Francisco\",\n    \"country\": \"USA\",\n    \"timezone\": \"America/Los_Angeles\"\n  }\n},\n\"skills\": [\"JavaScript\", \"Node.js\", \"React\", \"API Design\"],\n\"experience\": 5,\n\"created_at\": \"2024-01-15T12:45:30Z\",\n\"status\": \"active\",\n\"verified\": false"
+      }
+    },
+    {
+      "name": "XML Data Example",
+      "description": "Example with XML format and complex structure",
+      "request": {
+        "url": "https://api.example.com/users/xml",
+        "body": {
+          "mode": "xml",
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<user>\n  <username>xmluser</username>\n  <email>xml@example.com</email>\n  <profile>\n    <firstName>XML</firstName>\n    <lastName>User</lastName>\n  </profile>\n</user>"
+        },
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "\"application/xml\",",
+            "enabled": true
+          },
+          {
+            "name": "authorization",
+            "value": "\"Basic YWRtaW46cGFzc3dvcmQ=\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "201",
+        "statusText": "OK",
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<response>\n  <id>102</id>\n  <status>created</status>\n  <user>\n    <username>xmluser</username>\n    <email>xml@example.com</email>\n  </user>\n</response>"
+      }
+    }
+  ]
+}

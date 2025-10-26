@@ -1,0 +1,187 @@
+{
+  "meta": {
+    "name": "Multiple Examples Variations",
+    "type": "http",
+    "seq": "1"
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com/data"
+  },
+  "headers": [
+    {
+      "name": "accept",
+      "value": "application/json",
+      "enabled": true
+    },
+    {
+      "name": "x-client",
+      "value": "bruno",
+      "enabled": true
+    }
+  ],
+  "params": [
+    {
+      "name": "page",
+      "value": "1",
+      "enabled": true,
+      "type": "query"
+    },
+    {
+      "name": "limit",
+      "value": "10",
+      "enabled": true,
+      "type": "query"
+    },
+    {
+      "name": "sort",
+      "value": "desc",
+      "enabled": true,
+      "type": "query"
+    }
+  ],
+  "auth": {
+    "bearer": {
+      "token": "token-for-multiple-examples"
+    }
+  },
+  "body": {
+    "json": "{\n  \"query\": \"search\",\n  \"filters\": []\n}"
+  },
+  "examples": [
+    {
+      "name": "Simple GET Request",
+      "description": "Basic GET request with minimal data",
+      "request": {
+        "url": "https://api.example.com/data?id=123",
+        "headers": [
+          {
+            "name": "accept",
+            "value": "\"application/json\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "{\n  \"id\": 123,\n  \"name\": \"Item\",\n  \"value\": 42\n}"
+      }
+    },
+    {
+      "name": "Complex Search Query",
+      "description": "GET request with complex query parameters",
+      "request": {
+        "url": "https://api.example.com/data?page=1&limit=20&sort=name&order=asc&filter[status]=active&filter[type]=premium",
+        "headers": [
+          {
+            "name": "accept",
+            "value": "\"application/json\",",
+            "enabled": true
+          },
+          {
+            "name": "x-api-key",
+            "value": "\"search-key-789\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Premium Item 1\",\n      \"status\": \"active\",\n      \"type\": \"premium\"\n    },\n    {\n      \"id\": 2,\n      \"name\": \"Premium Item 2\",  \n      \"status\": \"active\",\n      \"type\": \"premium\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 2\n  }\n}"
+      }
+    },
+    {
+      "name": "Text Response Example",
+      "description": "Request returning plain text response",
+      "request": {
+        "url": "https://api.example.com/data/text",
+        "headers": [
+          {
+            "name": "accept",
+            "value": "\"text/plain\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "This is a plain text response\nMultiple lines of content\nNo JSON formatting needed"
+      }
+    },
+    {
+      "name": "XML Response with Nested Structure",
+      "description": "Example with complex XML response",
+      "request": {
+        "url": "https://api.example.com/data/xml",
+        "headers": [
+          {
+            "name": "accept",
+            "value": "\"application/xml\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<response>\n  <metadata>\n    <version>1.0</version>\n    <timestamp>2024-01-15T15:00:00Z</timestamp>\n  </metadata>\n  <data>\n    <item id=\"1\">\n      <name>Item One</name>\n      <value>100</value>\n      <nested>\n        <attribute key=\"type\">primary</attribute>\n      </nested>\n    </item>\n    <item id=\"2\">\n      <name>Item Two</name>\n      <value>200</value>\n      <nested>\n        <attribute key=\"type\">secondary</attribute>\n      </nested>\n    </item>\n  </data>\n</response>"
+      }
+    },
+    {
+      "name": "GraphQL Query Example",
+      "description": "Example with GraphQL query body",
+      "request": {
+        "url": "https://api.example.com/graphql",
+        "body": {
+          "mode": "graphql",
+          "graphql": {
+            "query": "query {\n  user(id: \"123\") {\n    id\n    name\n    email\n    posts {\n      title\n      content\n    }\n  }\n}"
+          }
+        },
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "\"application/json\",",
+            "enabled": true
+          },
+          {
+            "name": "authorization",
+            "value": "\"Bearer graphql-token-xyz\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "{\n  \"data\": {\n    \"user\": {\n      \"id\": \"123\",\n      \"name\": \"John Doe\",\n      \"email\": \"john@example.com\",\n      \"posts\": [\n        {\n          \"title\": \"First Post\",\n          \"content\": \"This is my first blog post\"\n        }\n      ]\n    }\n  }\n}"
+      }
+    },
+    {
+      "name": "SPARQL Query Example",
+      "description": "Example with SPARQL query",
+      "request": {
+        "url": "https://sparql.example.com/query",
+        "body": {
+          "mode": "sparql",
+          "sparql": "SELECT ?name ?email WHERE {\n  ?person <http://example.org/name> ?name .\n  ?person <http://example.org/email> ?email .\n  ?person <http://example.org/age> ?age .\n  FILTER(?age > 18)\n}"
+        },
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "\"application/sparql-query\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "{\n  \"results\": {\n    \"bindings\": [\n      {\n        \"name\": {\n          \"value\": \"John Doe\"\n        },\n        \"email\": {\n          \"value\": \"john@example.com\"\n        }\n      }\n    ]\n  }\n}"
+      }
+    }
+  ]
+}

@@ -369,10 +369,8 @@ const sem = exampleGrammar.createSemantics().addAttribute('ast', {
   responsestatus(_1, _2, _3, _4, dictionary) {
     const statusPairs = mapPairListToKeyValPairs(dictionary.ast, false);
     return {
-      status: {
-        code: statusPairs.find((p) => p.name === 'code')?.value || 200,
-        text: statusPairs.find((p) => p.name === 'text')?.value || 'OK'
-      }
+      status: statusPairs.find((p) => p.name === 'code')?.value || 200,
+      statusText: statusPairs.find((p) => p.name === 'text')?.value || 'OK'
     };
   },
   responsebody(_1, _2, _3, _4, bodyblock) {

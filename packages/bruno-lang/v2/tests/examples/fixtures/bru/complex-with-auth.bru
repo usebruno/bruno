@@ -1,0 +1,248 @@
+meta {
+  name: Complex API with Auth
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://api.example.com/users
+  body: json
+  auth: bearer
+}
+
+params:query {
+  include: details
+  format: json
+}
+
+params:path {
+  id: 123
+  status: active
+}
+
+headers {
+  content-type: application/json
+  x-api-key: my-secret-key
+  x-request-id: {{$uuid}}
+}
+
+auth:basic {
+  username: admin
+  password: secret123
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHluKJe2vncyz4h4SH6FSS7YOKIx
+}
+
+auth:apikey {
+  key: x-api-key
+  value: api-secret-key-12345
+  placement: header
+}
+
+body:json {
+  {
+    "username": "johndoe",
+    "email": "john@example.com",
+    "profile": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "age": 30
+    },
+    "preferences": {
+      "theme": "dark",
+      "notifications": true
+    },
+    "tags": ["admin", "user", "verified"]
+  }
+}
+
+vars:pre-request {
+  user_id: 12345
+  environment: production
+}
+
+vars:post-response {
+  response_id: {{res.id}}
+  processed_at: {{$timestamp}}
+}
+
+script:pre-request {
+  const timestamp = Date.now();
+  bru.setVar("request_timestamp", timestamp);
+  bru.setVar("signature", crypto.createHash('md5').update(timestamp.toString()).digest('hex'));
+}
+
+tests {
+  test("Response should be 201", function() {
+    expect(res.getStatus()).to.eql(201);
+  });
+  
+  test("Response should have user data", function() {
+    const body = res.getBody();
+    expect(body.username).to.be.ok;
+    expect(body.email).to.be.ok;
+  });
+}
+
+docs {
+  This endpoint creates a new user account.
+  Requires authentication via Bearer token or API key.
+  Supports nested JSON structures with arrays.
+}
+
+example {
+  name: Basic User Creation
+  description: Creates a new user with minimal required fields
+  
+  request: {
+    url: https://api.example.com/users
+    headers: {
+      authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+      content-type: "application/json"
+    }
+  
+    body:json: {
+      {
+        "username": "newuser",
+        "email": "newuser@example.com",
+        "password": "SecurePass123!"
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 201
+      text: OK
+    }
+  
+    body: {
+      "id": 100,
+      "username": "newuser",
+      "email": "newuser@example.com",
+      "created_at": "2024-01-15T10:30:00Z",
+      "status": "active"
+    }
+  }
+}
+
+example {
+  name: Advanced User with Profile
+  description: Creates a user with complete profile information and nested data
+  
+  request: {
+    url: https://api.example.com/users
+    headers: {
+      authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+      content-type: "application/json",
+      x-api-key: "advanced-api-key-45678"
+    }
+  
+    body:json: {
+      {
+        "username": "developer",
+        "email": "dev@example.com",
+        "password": "DevPass2024!",
+        "profile": {
+          "firstName": "Jane",
+          "lastName": "Developer",
+          "bio": "Software engineer passionate about APIs",
+          "location": {
+            "city": "San Francisco",
+            "country": "USA",
+            "timezone": "America/Los_Angeles"
+          },
+          "social": {
+            "github": "jandeveloper",
+            "twitter": "@jane_dev"
+          }
+        },
+        "skills": ["JavaScript", "Node.js", "React", "API Design"],
+        "experience": 5,
+        "preferences": {
+          "theme": "dark",
+          "language": "en",
+          "notifications": {
+            "email": true,
+            "push": true,
+            "sms": false
+          }
+        }
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 201
+      text: OK
+    }
+  
+    body: {
+      "id": 101,
+      "username": "developer",
+      "email": "dev@example.com",
+      "profile": {
+        "firstName": "Jane",
+        "lastName": "Developer",
+        "bio": "Software engineer passionate about APIs",
+        "location": {
+          "city": "San Francisco",
+          "country": "USA",
+          "timezone": "America/Los_Angeles"
+        }
+      },
+      "skills": ["JavaScript", "Node.js", "React", "API Design"],
+      "experience": 5,
+      "created_at": "2024-01-15T12:45:30Z",
+      "status": "active",
+      "verified": false
+    }
+  }
+}
+
+example {
+  name: XML Data Example
+  description: Example with XML format and complex structure
+  
+  request: {
+    url: https://api.example.com/users/xml
+    headers: {
+      content-type: "application/xml",
+      authorization: "Basic YWRtaW46cGFzc3dvcmQ="
+    }
+  
+    body:xml: {
+      <?xml version="1.0" encoding="UTF-8"?>
+      <user>
+        <username>xmluser</username>
+        <email>xml@example.com</email>
+        <profile>
+          <firstName>XML</firstName>
+          <lastName>User</lastName>
+        </profile>
+      </user>
+    }
+  }
+  
+  response: {
+    status: {
+      code: 201
+      text: OK
+    }
+  
+    body: {
+      <?xml version="1.0" encoding="UTF-8"?>
+      <response>
+        <id>102</id>
+        <status>created</status>
+        <user>
+          <username>xmluser</username>
+          <email>xml@example.com</email>
+        </user>
+      </response>
+    }
+  }
+}

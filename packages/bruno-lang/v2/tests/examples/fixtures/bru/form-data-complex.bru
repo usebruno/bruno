@@ -1,0 +1,122 @@
+meta {
+  name: Form Data Complex
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://api.example.com/upload
+  body: multipart-form
+  auth: bearer
+}
+
+headers {
+  content-type: multipart/form-data
+  x-upload-version: v2
+}
+
+auth:basic {
+  username: uploader
+  password: upload-secure-pass
+}
+
+auth:bearer {
+  token: upload-token-abc123xyz
+}
+
+body:multipart-form {
+  document: @file(/path/to/file.pdf)
+  title: Quarterly Report 2024
+  description: Detailed quarterly financial analysis
+  tags: finance,q4,2024
+}
+
+script:pre-request {
+  const file = bru.readFile("/path/to/file.pdf");
+  bru.setVar("file_size", file.length);
+  bru.setVar("file_name", "document.pdf");
+}
+
+example {
+  name: File Upload with Metadata
+  description: Upload a file with comprehensive metadata
+  
+  request: {
+    url: https://api.example.com/upload
+    headers: {
+      authorization: "Bearer upload-token-abc123xyz",
+      x-upload-client: "bruno"
+    }
+  
+    body:multipart-form: {
+      document: @file(examples/sample.pdf)
+      title: Sample Document
+      description: This is a sample document for testing
+      category: documents
+      tags: sample,test,documents
+      metadata: {"author":"John Doe","version":"1.0","date":"2024-01-15"}
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      {
+        "id": "file-12345",
+        "filename": "sample.pdf",
+        "size": 245760,
+        "uploaded_at": "2024-01-15T14:30:00Z",
+        "status": "completed",
+        "url": "https://cdn.example.com/files/sample.pdf",
+        "metadata": {
+          "title": "Sample Document",
+          "description": "This is a sample document for testing",
+          "category": "documents",
+          "tags": ["sample", "test", "documents"]
+        }
+      }
+    }
+  }
+}
+
+example {
+  name: Form URL Encoded Data
+  description: Example with form-urlencoded body type
+  
+  request: {
+    url: https://api.example.com/submit
+    headers: {
+      content-type: "application/x-www-form-urlencoded",
+      authorization: "Basic dGVzdDp0ZXN0"
+    }
+  
+    body:form-urlencoded: {
+      username: testuser
+      password: testpass123
+      remember: true
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      {
+        "success": true,
+        "message": "Form submitted successfully",
+        "session_id": "sess-abc123def456",
+        "user": {
+          "username": "testuser",
+          "authenticated": true
+        }
+      }
+    }
+  }
+}

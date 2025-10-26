@@ -1,0 +1,228 @@
+meta {
+  name: OAuth2 Examples API
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://api.example.com/oauth/protected
+  body: json
+  auth: oauth2
+}
+
+headers {
+  content-type: application/json
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: https://api.example.com/oauth/callback
+  authorization_url: https://oauth.example.com/authorize
+  access_token_url: https://oauth.example.com/token
+  refresh_token_url: https://oauth.example.com/token
+  client_id: my-client-id
+  client_secret: my-client-secret
+  scope: read write
+  state: 
+  pkce: true
+  credentials_placement: header
+  credentials_id: authorization
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: true
+  auto_refresh_token: true
+}
+
+body:json {
+  {
+    "action": "test",
+    "data": {
+      "message": "Protected resource access"
+    }
+  }
+}
+
+vars:pre-request {
+  oauth_state: {{$uuid}}
+  client_scopes: read,write,admin
+}
+
+script:pre-request {
+  const state = crypto.randomBytes(16).toString('hex');
+  bru.setVar('oauth_state', state);
+  bru.setVar('timestamp', Date.now());
+}
+
+tests {
+  test("Response should be 200", function() {
+    expect(res.getStatus()).to.eql(200);
+  });
+  
+  test("Should have user data in response", function() {
+    const body = res.getBody();
+    expect(body.access_token).to.be.ok;
+  });
+}
+
+docs {
+  This collection demonstrates OAuth2 authentication flows.
+  Supports authorization code, client credentials, and password grant types.
+  Examples show token refresh and protected resource access.
+}
+
+example {
+  name: OAuth2 Protected Resource
+  description: Example accessing resource protected with OAuth2 authorization code flow
+  
+  request: {
+    url: https://api.example.com/oauth/protected
+    headers: {
+      authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9",
+      content-type: "application/json"
+    }
+  
+    body:json: {
+      {
+        "action": "fetch",
+        "resource": "user_profile"
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      {
+        "user": {
+          "id": "123",
+          "name": "John Doe",
+          "email": "john@example.com",
+          "scopes": ["read", "write"]
+        },
+        "token": {
+          "access_token": "access_token_abc123",
+          "expires_in": 3600,
+          "token_type": "Bearer"
+        }
+      }
+    }
+  }
+}
+
+example {
+  name: OAuth2 Token Refresh
+  description: Example demonstrating OAuth2 token refresh flow
+  
+  request: {
+    url: https://api.example.com/oauth/token
+    headers: {
+      content-type: "application/json",
+      accept: "application/json"
+    }
+  
+    body:json: {
+      {
+        "grant_type": "refresh_token",
+        "refresh_token": "refresh_token_xyz789",
+        "client_id": "my-client-id",
+        "client_secret": "my-client-secret"
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      {
+        "access_token": "new_access_token_def456",
+        "refresh_token": "new_refresh_token_abc789",
+        "expires_in": 3600,
+        "token_type": "Bearer",
+        "scope": "read write"
+      }
+    }
+  }
+}
+
+example {
+  name: OAuth2 Client Credentials
+  description: Example using OAuth2 client credentials grant type
+  
+  request: {
+    url: https://api.example.com/oauth/client-credentials
+    headers: {
+      content-type: "application/json"
+    }
+  
+    body:json: {
+      {
+        "grant_type": "client_credentials",
+        "client_id": "service-account",
+        "client_secret": "service-secret-key",
+        "scope": "admin"
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      {
+        "access_token": "service_access_token_123",
+        "expires_in": 7200,
+        "token_type": "Bearer",
+        "scope": "admin"
+      }
+    }
+  }
+}
+
+example {
+  name: OAuth2 Password Grant
+  description: Example using OAuth2 password grant (username/password)
+  
+  request: {
+    url: https://api.example.com/oauth/password
+    headers: {
+      content-type: "application/json"
+    }
+  
+    body:json: {
+      {
+        "grant_type": "password",
+        "username": "user@example.com",
+        "password": "SecurePass123!",
+        "client_id": "mobile-app",
+        "client_secret": "mobile-app-secret"
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      {
+        "access_token": "user_access_token_456",
+        "refresh_token": "user_refresh_token_789",
+        "expires_in": 3600,
+        "token_type": "Bearer"
+      }
+    }
+  }
+}

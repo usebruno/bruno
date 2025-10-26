@@ -1,0 +1,169 @@
+{
+  "meta": {
+    "name": "OAuth2 Examples API",
+    "type": "http",
+    "seq": "1"
+  },
+  "http": {
+    "method": "post",
+    "url": "https://api.example.com/oauth/protected",
+    "body": "json",
+    "auth": "oauth2"
+  },
+  "headers": [
+    {
+      "name": "content-type",
+      "value": "application/json",
+      "enabled": true
+    }
+  ],
+  "auth": {
+    "oauth2": {
+      "grantType": "authorization_code",
+      "callbackUrl": "https://api.example.com/oauth/callback",
+      "authorizationUrl": "https://oauth.example.com/authorize",
+      "accessTokenUrl": "https://oauth.example.com/token",
+      "refreshTokenUrl": "https://oauth.example.com/token",
+      "clientId": "my-client-id",
+      "clientSecret": "my-client-secret",
+      "scope": "read write",
+      "state": "",
+      "pkce": true,
+      "credentialsPlacement": "header",
+      "credentialsId": "authorization",
+      "tokenPlacement": "header",
+      "tokenHeaderPrefix": "Bearer",
+      "tokenQueryKey": "access_token",
+      "autoFetchToken": true,
+      "autoRefreshToken": true
+    }
+  },
+  "body": {
+    "json": "{\n  \"action\": \"test\",\n  \"data\": {\n    \"message\": \"Protected resource access\"\n  }\n}"
+  },
+  "vars": {
+    "req": [
+      {
+        "name": "oauth_state",
+        "value": "{{$uuid}}",
+        "enabled": true,
+        "local": false
+      },
+      {
+        "name": "client_scopes",
+        "value": "read,write,admin",
+        "enabled": true,
+        "local": false
+      }
+    ]
+  },
+  "script": {
+    "req": "const state = crypto.randomBytes(16).toString('hex');\nbru.setVar('oauth_state', state);\nbru.setVar('timestamp', Date.now());"
+  },
+  "tests": "test(\"Response should be 200\", function() {\n  expect(res.getStatus()).to.eql(200);\n});\n\ntest(\"Should have user data in response\", function() {\n  const body = res.getBody();\n  expect(body.access_token).to.be.ok;\n});",
+  "examples": [
+    {
+      "name": "OAuth2 Protected Resource",
+      "description": "Example accessing resource protected with OAuth2 authorization code flow",
+      "request": {
+        "url": "https://api.example.com/oauth/protected",
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"action\": \"fetch\",\n  \"resource\": \"user_profile\"\n}"
+        },
+        "headers": [
+          {
+            "name": "authorization",
+            "value": "\"Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9\",",
+            "enabled": true
+          },
+          {
+            "name": "content-type",
+            "value": "\"application/json\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "{\n  \"user\": {\n    \"id\": \"123\",\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"scopes\": [\"read\", \"write\"]\n  },\n  \"token\": {\n    \"access_token\": \"access_token_abc123\",\n    \"expires_in\": 3600,\n    \"token_type\": \"Bearer\"\n  }\n}"
+      }
+    },
+    {
+      "name": "OAuth2 Token Refresh",
+      "description": "Example demonstrating OAuth2 token refresh flow",
+      "request": {
+        "url": "https://api.example.com/oauth/token",
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"grant_type\": \"refresh_token\",\n  \"refresh_token\": \"refresh_token_xyz789\",\n  \"client_id\": \"my-client-id\",\n  \"client_secret\": \"my-client-secret\"\n}"
+        },
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "\"application/json\",",
+            "enabled": true
+          },
+          {
+            "name": "accept",
+            "value": "\"application/json\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "{\n  \"access_token\": \"new_access_token_def456\",\n  \"refresh_token\": \"new_refresh_token_abc789\",\n  \"expires_in\": 3600,\n  \"token_type\": \"Bearer\",\n  \"scope\": \"read write\"\n}"
+      }
+    },
+    {
+      "name": "OAuth2 Client Credentials",
+      "description": "Example using OAuth2 client credentials grant type",
+      "request": {
+        "url": "https://api.example.com/oauth/client-credentials",
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"grant_type\": \"client_credentials\",\n  \"client_id\": \"service-account\",\n  \"client_secret\": \"service-secret-key\",\n  \"scope\": \"admin\"\n}"
+        },
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "\"application/json\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "{\n  \"access_token\": \"service_access_token_123\",\n  \"expires_in\": 7200,\n  \"token_type\": \"Bearer\",\n  \"scope\": \"admin\"\n}"
+      }
+    },
+    {
+      "name": "OAuth2 Password Grant",
+      "description": "Example using OAuth2 password grant (username/password)",
+      "request": {
+        "url": "https://api.example.com/oauth/password",
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"grant_type\": \"password\",\n  \"username\": \"user@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"client_id\": \"mobile-app\",\n  \"client_secret\": \"mobile-app-secret\"\n}"
+        },
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "\"application/json\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": "{\n  \"access_token\": \"user_access_token_456\",\n  \"refresh_token\": \"user_refresh_token_789\",\n  \"expires_in\": 3600,\n  \"token_type\": \"Bearer\"\n}"
+      }
+    }
+  ],
+  "docs": "This collection demonstrates OAuth2 authentication flows.\nSupports authorization code, client credentials, and password grant types.\nExamples show token refresh and protected resource access."
+}

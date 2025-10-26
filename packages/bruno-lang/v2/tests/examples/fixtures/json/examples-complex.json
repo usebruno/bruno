@@ -30,10 +30,8 @@
         }
       },
       "response": {
-        "status": {
-          "code": "201",
-          "text": "Created"
-        },
+        "status": "201",
+        "statusText": "Created",
         "body": "\"id\": 1,\n\"format\": \"json\",\n\"created\": true"
       }
     },
@@ -48,10 +46,8 @@
         }
       },
       "response": {
-        "status": {
-          "code": "201",
-          "text": "Created"
-        },
+        "status": "201",
+        "statusText": "Created",
         "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<response>\n  <id>2</id>\n  <format>xml</format>\n  <created>true</created>\n</response>"
       }
     },
@@ -66,10 +62,8 @@
         }
       },
       "response": {
-        "status": {
-          "code": "201",
-          "text": "Created"
-        },
+        "status": "201",
+        "statusText": "Created",
         "body": "Success: true\nFormat: text\nID: 3"
       }
     }

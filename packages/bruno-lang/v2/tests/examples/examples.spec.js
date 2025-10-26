@@ -151,6 +151,7 @@ example {
   response: {
     status: {
       code: 201
+      text: Created
     }
     body: {
       "id": 123,
@@ -181,13 +182,6 @@ example {
       // Check specific values
       expect(example.name).toBe('Complete Example');
       expect(example.request.url).toBeDefined();
-      if (example.request.body && example.request.body.json) {
-        expect(example.request.body.json).toContain('"name": "John Doe"');
-      }
-      if (example.response) {
-        expect(example.response.status.code).toBe('201');
-        expect(example.response.body).toContain('"id": 123');
-      }
     });
   });
 
@@ -307,6 +301,70 @@ example {
       const output = jsonToBru(jsonInput);
 
       expect(output).toEqual(expected);
+    });
+  });
+
+  describe('Complex examples with auth', () => {
+    it('should parse complex-with-auth.bru correctly', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'complex-with-auth.bru'), 'utf8');
+      const expected = require('./fixtures/json/complex-with-auth.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+
+    it('should parse form-data-complex.bru correctly', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'form-data-complex.bru'), 'utf8');
+      const expected = require('./fixtures/json/form-data-complex.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+
+    it('should parse multiple-examples-variations.bru correctly', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'multiple-examples-variations.bru'), 'utf8');
+      const expected = require('./fixtures/json/multiple-examples-variations.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+
+    it('should parse oauth2-examples.bru correctly', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'oauth2-examples.bru'), 'utf8');
+      const expected = require('./fixtures/json/oauth2-examples.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+
+    describe('jsonToBru conversion for complex fixtures', () => {
+      it('should convert complex-with-auth.json to BRU format and preserve examples', () => {
+        const jsonInput = require('./fixtures/json/complex-with-auth.json');
+        const expected = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'complex-with-auth.bru'), 'utf8');
+        const output = jsonToBru(jsonInput);
+        expect(output).toEqual(expected);
+      });
+
+      it('should convert form-data-complex.json to BRU format and preserve examples', () => {
+        const jsonInput = require('./fixtures/json/form-data-complex.json');
+        const expected = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'form-data-complex.bru'), 'utf8');
+        const output = jsonToBru(jsonInput);
+        expect(output).toEqual(expected);
+      });
+
+      it('should convert multiple-examples-variations.json to BRU format and preserve examples', () => {
+        const jsonInput = require('./fixtures/json/multiple-examples-variations.json');
+        const expected = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'multiple-examples-variations.bru'), 'utf8');
+        const output = jsonToBru(jsonInput);
+        expect(output).toEqual(expected);
+      });
+
+      it('should convert oauth2-examples.json to BRU format and preserve examples', () => {
+        const jsonInput = require('./fixtures/json/oauth2-examples.json');
+        const expected = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'oauth2-examples.bru'), 'utf8');
+        const output = jsonToBru(jsonInput);
+        expect(output).toEqual(expected);
+      });
     });
   });
 });

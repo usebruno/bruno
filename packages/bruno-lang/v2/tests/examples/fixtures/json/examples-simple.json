@@ -16,10 +16,8 @@
         "url": "https://api.example.com/users/123"
       },
       "response": {
-        "status": {
-          "code": "200",
-          "text": "OK"
-        },
+        "status": "200",
+        "statusText": "OK",
         "body": "\"id\": 123,\n\"name\": \"John Doe\",\n\"email\": \"john@example.com\""
       }
     },
@@ -34,10 +32,8 @@
         }
       },
       "response": {
-        "status": {
-          "code": "201",
-          "text": "OK"
-        },
+        "status": "201",
+        "statusText": "OK",
         "body": "\"id\": 456,\n\"name\": \"New User\",\n\"email\": \"newuser@example.com\",\n\"created_at\": \"2023-01-15T10:30:00Z\""
       }
     }
