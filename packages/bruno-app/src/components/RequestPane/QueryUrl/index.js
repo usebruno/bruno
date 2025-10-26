@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
@@ -25,6 +25,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
+  const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   useEffect(() => {
     const el = document.querySelector('.method-selector-container');
@@ -134,15 +135,15 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             className="infotip mr-3"
             onClick={(e) => {
               e.stopPropagation();
-              if (!hasRequestChanges(item)) return;
+              if (!hasChanges) return;
               onSave();
             }}
           >
             <IconDeviceFloppy
-              color={hasRequestChanges(item) ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
               strokeWidth={1.5}
               size={22}
-              className={`${hasRequestChanges(item) ? 'cursor-pointer' : 'cursor-default'}`}
+              className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
             />
             <span className="infotiptext text-xs">
               Save <span className="shortcut">({saveShortcut})</span>

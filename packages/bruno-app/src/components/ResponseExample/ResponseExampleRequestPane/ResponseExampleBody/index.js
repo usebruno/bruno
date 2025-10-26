@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
 import { updateResponseExampleRequest } from 'providers/ReduxStore/slices/collections';
@@ -9,8 +9,11 @@ import StyledWrapper from './StyledWrapper';
 const ResponseExampleBody = ({ editMode, item, collection, exampleUid, onSave }) => {
   const dispatch = useDispatch();
 
-  // Get body from item draft, similar to how RequestHeaders works
-  const body = item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body || { mode: 'none' } : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body || { mode: 'none' };
+  const body = useMemo(() => {
+    return item.draft
+      ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body || { mode: 'none' }
+      : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body || { mode: 'none' };
+  }, [item, exampleUid]);
 
   const onBodyEdit = (value) => {
     if (editMode && item && collection.uid && exampleUid) {

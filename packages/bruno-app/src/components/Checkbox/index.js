@@ -1,6 +1,6 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
-import { IconCheckMark } from 'components/Icons/examples';
+import IconCheckMark from 'components/Icons/IconCheckMark';
 import { useTheme } from 'providers/Theme';
 
 const Checkbox = ({
@@ -11,7 +11,7 @@ const Checkbox = ({
   id,
   name,
   value,
-  ...props
+  dataTestId = 'checkbox'
 }) => {
   const { theme } = useTheme();
 
@@ -33,7 +33,7 @@ const Checkbox = ({
           disabled={disabled}
           onChange={handleChange}
           className="checkbox-input"
-          {...props}
+          data-testid={dataTestId}
         />
         <IconCheckMark className="checkbox-checkmark" color={theme.examples.checkbox.color} size={14} />
       </div>

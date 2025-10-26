@@ -1,6 +1,6 @@
 {
-    "maximized": true,
+    "maximized": false,
     "lastOpenedCollections": [
-        "{{projectRoot}}/tests/response-examples/collection"
+        "{{projectRoot}}/tests/response-examples/fixtures/collection"
     ]
 }

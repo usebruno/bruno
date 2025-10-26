@@ -53,7 +53,7 @@ class SingleLineEditor extends Component {
       },
       scrollbarStyle: null,
       tabindex: 0,
-      readOnly: this.props.readOnly || false,
+      readOnly: this.props.readOnly ? 'nocursor' : false,
       extraKeys: {
         Enter: runHandler,
         'Ctrl-Enter': runHandler,
@@ -153,7 +153,7 @@ class SingleLineEditor extends Component {
       this.setState({ maskInput: this.props.isSecret });
     }
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
-      this.editor.setOption('readOnly', this.props.readOnly || false);
+      this.editor.setOption('readOnly', this.props.readOnly ? 'nocursor' : false);
     }
     this.ignoreChangeEvent = false;
   }
@@ -205,7 +205,7 @@ class SingleLineEditor extends Component {
   render() {
     return (
       <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
-        <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
+        <StyledWrapper ref={this.editorRef} className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`} />
         {this.secretEye(this.props.isSecret)}
       </div>
     );
