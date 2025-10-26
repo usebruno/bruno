@@ -1,6 +1,11 @@
 import { test, expect } from '../../playwright';
+import { closeAllCollections } from '../utils/page';
 
 test.describe('Response Example Menu Operations', () => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
+    await closeAllCollections(page);
+  });
+
   test('should clone a response example via three dots menu', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
