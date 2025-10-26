@@ -9,7 +9,7 @@ const RadioButton = ({
   value,
   id,
   className = '',
-  ...props
+  dataTestId = 'radio-button'
 }) => {
   const handleChange = (e) => {
     if (!disabled && onChange) {
@@ -29,7 +29,7 @@ const RadioButton = ({
           disabled={disabled}
           onChange={handleChange}
           className="radio-input"
-          {...props}
+          data-testid={dataTestId}
         />
         <label htmlFor={id} className="radio-label" />
       </div>

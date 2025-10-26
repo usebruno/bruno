@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { get, cloneDeep, isArray } from 'lodash';
+import React, { useState, useMemo } from 'react';
+import { get, cloneDeep } from 'lodash';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -18,12 +18,11 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
   const { storedTheme } = useTheme();
 
   // Get file data from the specific example
-  const rawParams = item.draft
-    ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file
-    : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file;
-
-  // Ensure params is always an array
-  const params = Array.isArray(rawParams) ? rawParams : [];
+  const params = useMemo(() => {
+    return item.draft
+      ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file || []
+      : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file || [];
+  }, [item.draft, item.examples, item, exampleUid]);
 
   const [enabledFileUid, setEnableFileUid] = useState(params.length > 0 ? params[0].uid : '');
 
@@ -151,7 +150,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
                           param,
                           'filePath') : () => {}}
                         collection={collection}
-                        editMode={editMode}
+                        readOnly={!editMode}
                       />
                     </td>
                     <td>
@@ -186,6 +185,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
                           onChange={editMode ? (e) => handleParamChange(e, param, 'selected') : () => {}}
                           disabled={!editMode}
                           className="mr-1 mousetrap"
+                          dataTestId={`file-radio-button-${index}`}
                         />
                         <button
                           tabIndex="-1"

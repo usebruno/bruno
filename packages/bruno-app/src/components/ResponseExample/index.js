@@ -11,15 +11,17 @@ import StyledWrapper from './StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
-const MIN_TOP_PANE_HEIGHT = 150;
+const MIN_TOP_PANE_HEIGHT = 300;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
 const ResponseExample = ({ item, collection, example }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
+  const screenWidth = useSelector((state) => state.app.screenWidth);
+  const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
 
-  const [leftPaneWidth, setLeftPaneWidth] = useState(400);
+  const [leftPaneWidth, setLeftPaneWidth] = useState((screenWidth - leftSidebarWidth) / 2.2);
   const [topPaneHeight, setTopPaneHeight] = useState(MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -120,6 +122,20 @@ const ResponseExample = ({ item, collection, example }) => {
   const handleTryExample = (example) => {
     // TODO: Implement try example functionality
   };
+
+  // Update width when screen width or sidebar width changes
+  useEffect(() => {
+    if (mainSectionRef.current) {
+      const mainRect = mainSectionRef.current.getBoundingClientRect();
+      if (isVerticalLayout) {
+        // In vertical mode, set leftPaneWidth to full container width
+        setLeftPaneWidth(mainRect.width);
+      } else {
+        // In horizontal mode, set to roughly half width
+        setLeftPaneWidth((screenWidth - leftSidebarWidth) / 2.2);
+      }
+    }
+  }, [isVerticalLayout, screenWidth, leftSidebarWidth]);
 
   // Keyboard shortcut support for Ctrl/Cmd+S
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -18,10 +18,11 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  // Get multipart form data from the specific example
-  const params = item.draft
-    ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.multipartForm || []
-    : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.multipartForm || [];
+  const params = useMemo(() => {
+    return item.draft
+      ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.multipartForm || []
+      : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.multipartForm || [];
+  }, [item, exampleUid]);
 
   const addParam = () => {
     const newParam = {
@@ -72,7 +73,6 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
       }
       case 'value': {
         param.value = e.target.value;
-        // Auto-detect content type for file types using mime library (same as updateFile)
         if (param.type === 'file' && e.target.value) {
           const contentType = mime.contentType(path.extname(e.target.value));
           param.contentType = contentType || '';
@@ -151,6 +151,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                           checked={param.enabled === true}
                           disabled={!editMode}
                           onChange={(e) => handleParamChange(e, param, 'enabled')}
+                          dataTestId={`multipart-form-param-checkbox-${index}`}
                         />
                       </div>
                       <input
@@ -161,7 +162,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                         spellCheck="false"
                         value={param.name}
                         className="mousetrap"
-                        onChange={editMode ? (e) => handleParamChange(e, param, 'name') : () => {}}
+                        onChange={(e) => handleParamChange(e, param, 'name')}
                         disabled={!editMode}
                       />
                     </td>
@@ -170,30 +171,30 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                         {param.type === 'file' ? (
                           <FilePickerEditor
                             value={param.value}
-                            onChange={editMode ? (newValue) =>
+                            onChange={(newValue) =>
                               handleParamChange({
                                 target: {
                                   value: newValue
                                 }
                               },
                               param,
-                              'value') : () => {}}
+                              'value')}
                             collection={collection}
-                            editMode={editMode}
+                            readOnly={!editMode}
                           />
                         ) : (
                           <MultiLineEditor
                             onSave={() => {}}
                             theme={storedTheme}
                             value={param.value}
-                            onChange={editMode ? (newValue) =>
+                            onChange={(newValue) =>
                               handleParamChange({
                                 target: {
                                   value: newValue
                                 }
                               },
                               param,
-                              'value') : () => {}}
+                              'value')}
                             onRun={() => {}}
                             allowNewlines={true}
                             collection={collection}
@@ -210,14 +211,14 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                           theme={storedTheme}
                           placeholder="Auto"
                           value={param.contentType}
-                          onChange={editMode ? (newValue) =>
+                          onChange={(newValue) =>
                             handleParamChange({
                               target: {
                                 value: newValue
                               }
                             },
                             param,
-                            'contentType') : () => {}}
+                            'contentType')}
                           onRun={() => {}}
                           collection={collection}
                           readOnly={!editMode}

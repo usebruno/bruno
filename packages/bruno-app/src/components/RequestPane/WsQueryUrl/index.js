@@ -5,7 +5,7 @@ import SingleLineEditor from 'components/SingleLineEditor/index';
 import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
 import { wsConnectOnly, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { getPropertyFromDraftOrRequest } from 'utils/collections';
@@ -24,6 +24,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const url = getPropertyFromDraftOrRequest(item, 'request.url');
   const response = item.draft ? get(item, 'draft.response', {}) : get(item, 'response', {});
   const saveShortcut = isMacOS() ? '⌘S' : 'Ctrl+S';
+  const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   const showConnectingPulse = isConnecting && response.status !== 'CLOSED';
 
@@ -109,15 +110,15 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               className="infotip mr-3"
               onClick={(e) => {
                 e.stopPropagation();
-                if (!hasRequestChanges(item)) return;
+                if (!hasChanges) return;
                 onSave();
               }}
             >
               <IconDeviceFloppy
-                color={hasRequestChanges(item) ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+                color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
                 strokeWidth={1.5}
                 size={22}
-                className={`${hasRequestChanges(item) ? 'cursor-pointer' : 'cursor-default'}`}
+                className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
               />
               <span className="infotip-text text-xs">
                 Save <span className="shortcut">({saveShortcut})</span>

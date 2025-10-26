@@ -20,3 +20,43 @@ body:json {
 assert {
   res.body: eq false
 }
+
+example {
+  name: test JSON false response example
+  
+  request: {
+    url: {{httpfaker}}/api/echo/custom
+    mode: json
+    body:json: {
+      {
+        "headers": { "content-type": "application/json" },
+        "content": "false"
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      server: nginx/1.26.0
+      date: Mon, 27 Oct 2025 22:37:33 GMT
+      content-type: application/json
+      transfer-encoding: chunked
+      connection: keep-alive
+      strict-transport-security: max-age=63072000; includeSubdomains
+      x-frame-options: DENY
+      x-content-type-options: nosniff
+    }
+  
+    status: {
+      code: 200
+      text: 
+    }
+  
+    body: {
+      type: json
+      content: '''
+        false
+      '''
+    }
+  }
+}

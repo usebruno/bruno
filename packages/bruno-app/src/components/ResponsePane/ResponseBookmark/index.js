@@ -5,11 +5,12 @@ import { addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
+import { getBodyType, processResponseContent } from 'utils/responseBodyProcessor';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseBookmark = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const [showNameModal, setShowNameModal] = useState(false);
+  const [showSaveResponseExampleModal, setShowSaveResponseExampleModal] = useState(false);
   const response = item.response || {};
 
   // Only show for HTTP requests
@@ -17,12 +18,46 @@ const ResponseBookmark = ({ item, collection }) => {
     return null;
   }
 
+  // Generate initial name for the example
+  const getInitialExampleName = () => {
+    const requestName = item.name || 'request';
+    const baseName = `${requestName} example`;
+    const existingExamples = item.draft?.examples || item.examples || [];
+
+    // Check if any existing example has the same base name
+    const hasSameBaseName = existingExamples.some((example) => {
+      const exampleName = example.name || '';
+      return exampleName === baseName || exampleName.startsWith(`${baseName} (`);
+    });
+
+    if (!hasSameBaseName) {
+      return baseName;
+    }
+
+    // Find the highest existing counter
+    let maxCounter = 0;
+    existingExamples.forEach((example) => {
+      const exampleName = example.name || '';
+      if (exampleName.startsWith(`${baseName} (`)) {
+        const match = exampleName.match(/\((\d+)\)$/);
+        if (match) {
+          const counter = parseInt(match[1], 10);
+          if (counter > maxCounter) {
+            maxCounter = counter;
+          }
+        }
+      }
+    });
+
+    return `${baseName} (${maxCounter + 1})`;
+  };
+
   const handleSaveClick = () => {
     if (!response || response.error) {
       toast.error('No valid response to save as example');
       return;
     }
-    setShowNameModal(true);
+    setShowSaveResponseExampleModal(true);
   };
 
   const saveAsExample = (name, description = '') => {
@@ -35,12 +70,20 @@ const ResponseBookmark = ({ item, collection }) => {
         }))
       : [];
 
-    // Only pass response-related data - the reducer will automatically capture current request state
+    const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
+    const contentType = contentTypeHeader?.value?.toLowerCase() || '';
+
+    const bodyType = getBodyType(contentType);
+    const content = response.data;
+
     const exampleData = {
       name: name,
       status: response.status || 200,
       headers: headersArray,
-      body: response.data || response.dataBuffer || '',
+      body: {
+        type: bodyType,
+        content: content
+      },
       description: description
     };
 
@@ -50,7 +93,7 @@ const ResponseBookmark = ({ item, collection }) => {
       example: exampleData
     }));
     dispatch(saveRequest(item.uid, collection.uid));
-    setShowNameModal(false);
+    setShowSaveResponseExampleModal(false);
     toast.success(`Example "${name}" created successfully`);
   };
 
@@ -69,10 +112,11 @@ const ResponseBookmark = ({ item, collection }) => {
       </StyledWrapper>
 
       <CreateExampleModal
-        isOpen={showNameModal}
-        onClose={() => setShowNameModal(false)}
+        isOpen={showSaveResponseExampleModal}
+        onClose={() => setShowSaveResponseExampleModal(false)}
         onSave={saveAsExample}
         title="Save Response as Example"
+        initialName={getInitialExampleName()}
       />
     </>
   );

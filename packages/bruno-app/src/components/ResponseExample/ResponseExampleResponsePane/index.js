@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
-import { useTheme } from 'providers/Theme';
+import React, { useState, useMemo } from 'react';
 import get from 'lodash/get';
 import Tab from 'components/Tab';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import StatusCode from 'components/ResponsePane/StatusCode';
 import ResponseExampleResponseContent from './ResponseExampleResponseContent';
 import ResponseExampleResponseHeaders from './ResponseExampleResponseHeaders';
+import ResponseExampleStatusInput from './ResponseExampleStatusInput';
 import StyledWrapper from './StyledWrapper';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 
 const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, onSave }) => {
   const [activeTab, setActiveTab] = useState('response');
 
-  // Get example data from item draft, similar to how RequestHeaders works
-  const exampleData = item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid) || {} : get(item, 'examples', []).find((e) => e.uid === exampleUid) || {};
+  const exampleData = useMemo(() => {
+    return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid) || {} : get(item, 'examples', []).find((e) => e.uid === exampleUid) || {};
+  }, [item, exampleUid]);
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -73,8 +74,18 @@ const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, o
 
         <div className="flex flex-grow justify-end items-center">
           <ResponseLayoutToggle />
-          {exampleData?.response?.status && (
-            <StatusCode status={exampleData.response.status} />
+          {editMode ? (
+            <ResponseExampleStatusInput
+              item={item}
+              collection={collection}
+              exampleUid={exampleUid}
+              status={exampleData?.response?.status}
+              statusText={exampleData?.response?.statusText}
+            />
+          ) : (
+            exampleData?.response?.status && (
+              <StatusCode status={exampleData.response.status} statusText={exampleData.response.statusText} />
+            )
           )}
         </div>
       </div>

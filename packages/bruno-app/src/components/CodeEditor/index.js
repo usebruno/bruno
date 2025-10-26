@@ -63,7 +63,7 @@ export default class CodeEditor extends React.Component {
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
       lint: this.lintOptions,
-      readOnly: this.props.readOnly,
+      readOnly: this.props.readOnly ? 'nocursor' : false,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
@@ -246,7 +246,7 @@ export default class CodeEditor extends React.Component {
     }
 
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
-      this.editor.setOption('readOnly', this.props.readOnly);
+      this.editor.setOption('readOnly', this.props.readOnly ? 'nocursor' : false);
     }
 
     this.ignoreChangeEvent = false;
@@ -266,7 +266,7 @@ export default class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className="h-full w-full flex flex-col relative graphiql-container"
+        className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
         aria-label="Code Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}

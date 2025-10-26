@@ -19,14 +19,15 @@ const indentString = (str) => {
     .join('\n');
 };
 
-const outdentString = (str) => {
+const outdentString = (str, spaces = 2) => {
   if (!str || !str.length) {
     return str || '';
   }
 
+  const spacesRegex = new RegExp(`^ {${spaces}}`);
   return str
     .split(/\r\n|\r|\n/)
-    .map((line) => line.replace(/^  /, ''))
+    .map((line) => line.replace(spacesRegex, ''))
     .join('\n');
 };
 

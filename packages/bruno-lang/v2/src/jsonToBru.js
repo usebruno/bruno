@@ -1,6 +1,7 @@
 const _ = require('lodash');
 
 const { indentString, getValueString } = require('./utils');
+const jsonToExampleBru = require('./example/jsonToBru');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
@@ -17,7 +18,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples, response } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
 
   let bru = '';
 
@@ -749,35 +750,9 @@ ${indentString(docs)}
 `;
   }
 
-  // Handle response blocks
-  if (response) {
-    // Response headers
-    if (response.headers && response.headers.length) {
-      bru += 'response:headers {';
-      // Response headers don't need enable/disable functionality - they're just data from server
-      bru += `\n${indentString(response.headers
-        .map((item) => `${quoteKey(item.name)}: ${item.value}`)
-        .join('\n'))}`;
-      bru += '\n}\n\n';
-    }
-
-    // Response status
-    if (response.status) {
-      bru += 'response:status {\n';
-      for (const key in response.status) {
-        bru += `  ${key}: ${response.status[key]}\n`;
-      }
-      bru += '}\n\n';
-    }
-
-    if (response.body) {
-      bru += `response:body {\n${indentString(response.body)}\n}\n\n`;
-    }
-  }
-
   if (examples && examples.length) {
     examples.forEach((example) => {
-      const bruExample = jsonToBru(example);
+      const bruExample = jsonToExampleBru(example);
       bru += `example {\n${indentString(bruExample)}\n}\n\n`;
     });
   }
@@ -786,5 +761,6 @@ ${indentString(docs)}
 };
 
 module.exports = jsonToBru;
+module.exports.jsonToExampleBru = jsonToExampleBru;
 
 // alternative to writing the below code to avoid undefined

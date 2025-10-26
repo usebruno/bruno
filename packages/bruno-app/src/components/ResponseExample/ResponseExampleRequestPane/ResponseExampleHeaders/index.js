@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { IconTrash } from '@tabler/icons';
@@ -19,8 +19,12 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
-  // Get headers from item draft, similar to how RequestHeaders works
-  const headers = item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.headers || [] : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.headers || [];
+
+  const headers = useMemo(() => {
+    return item.draft
+      ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.headers || []
+      : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.headers || [];
+  }, [item, exampleUid]);
 
   const handleAddHeader = () => {
     if (editMode) {
@@ -123,7 +127,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
       >
         <ReorderTable updateReorderedItem={handleHeaderDrag}>
           {headers && headers.length
-            ? headers.map((header) => (
+            ? headers.map((header, index) => (
                 <tr key={header.uid} data-uid={header.uid}>
                   <td className="flex relative">
                     <div className="flex items-center justify-center mr-3">
@@ -131,10 +135,12 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
                         checked={header.enabled === true}
                         disabled={!editMode}
                         onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
+                        dataTestId={`header-checkbox-${index}`}
                       />
                     </div>
                     <SingleLineEditor
                       value={header.name || ''}
+                      readOnly={!editMode}
                       theme={storedTheme}
                       onSave={() => {}}
                       onChange={(newValue) =>
@@ -154,6 +160,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
                     <div className="flex items-center justify-center pl-4">
                       <SingleLineEditor
                         value={header.value || ''}
+                        readOnly={!editMode}
                         theme={storedTheme}
                         onSave={() => {}}
                         onChange={(newValue) =>

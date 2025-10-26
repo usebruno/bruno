@@ -1,18 +1,22 @@
 import React, { useState, useRef, forwardRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { useDispatch, useSelector } from 'react-redux';
+import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { deleteResponseExample, updateResponseExample, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { IconDots } from '@tabler/icons';
-import { ExampleIcon } from 'components/Icons/examples';
+import ExampleIcon from 'components/Icons/Examples';
 import range from 'lodash/range';
+import classnames from 'classnames';
 import Dropdown from 'components/Dropdown';
 import Modal from 'components/Modal';
-import DeleteExampleModal from './DeleteExampleModal';
+import DeleteResponseExampleModal from './DeleteResponseExampleModal';
 import StyledWrapper from './StyledWrapper';
 
 const ExampleItem = ({ example, item, collection }) => {
   const dispatch = useDispatch();
+  // Check if this example is the active tab
+  const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
+  const isExampleActive = activeTabUid === example.uid;
   const [editName, setEditName] = useState(example.name);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -29,6 +33,10 @@ const ExampleItem = ({ example, item, collection }) => {
       type: 'response-example',
       itemUid: item.uid
     }));
+  };
+
+  const handleDoubleClick = () => {
+    dispatch(makeTabPermanent({ uid: example.uid }));
   };
 
   const handleRename = () => {
@@ -73,6 +81,16 @@ const ExampleItem = ({ example, item, collection }) => {
     }
   };
 
+  const handleRightClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Show the dropdown menu programmatically
+    if (dropdownTippyRef.current) {
+      dropdownTippyRef.current.show();
+    }
+  };
+
   const handleRenameConfirm = (newName) => {
     // Find the example index in the original examples array
     dispatch(updateResponseExample({
@@ -99,10 +117,16 @@ const ExampleItem = ({ example, item, collection }) => {
     );
   });
 
+  const itemRowClassName = classnames('flex collection-item-name relative items-center', {
+    'item-focused-in-tab': isExampleActive
+  });
+
   return (
     <StyledWrapper
-      className="flex collection-item-name relative items-center"
+      className={itemRowClassName}
       onClick={handleExampleClick}
+      onDoubleClick={handleDoubleClick}
+      onContextMenu={handleRightClick}
     >
       {indents && indents.length
         ? indents.map((i) => (
@@ -110,6 +134,7 @@ const ExampleItem = ({ example, item, collection }) => {
               className="indent-block"
               key={i}
               style={{ width: 16, minWidth: 16, height: '100%' }}
+              onContextMenu={handleRightClick}
             >
               &nbsp;{/* Indent */}
             </div>
@@ -118,7 +143,9 @@ const ExampleItem = ({ example, item, collection }) => {
       <div
         className="flex flex-grow items-center h-full overflow-hidden"
         style={{ paddingLeft: 8 }}
+        onContextMenu={handleRightClick}
       >
+        <div style={{ width: 16, minWidth: 16 }}></div>
         <ExampleIcon size={16} color="currentColor" className="mr-2 text-gray-400 flex-shrink-0" />
         <span className="item-name truncate text-gray-700 dark:text-gray-300 ">
           {example.name}
@@ -192,7 +219,7 @@ const ExampleItem = ({ example, item, collection }) => {
       )}
 
       {showDeleteModal && (
-        <DeleteExampleModal
+        <DeleteResponseExampleModal
           onClose={() => setShowDeleteModal(false)}
           example={example}
           item={item}
