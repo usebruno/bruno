@@ -77,6 +77,16 @@ const ExampleItem = ({ example, item, collection }) => {
     }
   };
 
+  const handleRightClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Show the dropdown menu programmatically
+    if (dropdownTippyRef.current) {
+      dropdownTippyRef.current.show();
+    }
+  };
+
   const handleRenameConfirm = (newName) => {
     // Find the example index in the original examples array
     dispatch(updateResponseExample({
@@ -108,6 +118,7 @@ const ExampleItem = ({ example, item, collection }) => {
       className="flex collection-item-name relative items-center"
       onClick={handleExampleClick}
       onDoubleClick={handleDoubleClick}
+      onContextMenu={handleRightClick}
     >
       {indents && indents.length
         ? indents.map((i) => (
@@ -115,6 +126,7 @@ const ExampleItem = ({ example, item, collection }) => {
               className="indent-block"
               key={i}
               style={{ width: 16, minWidth: 16, height: '100%' }}
+              onContextMenu={handleRightClick}
             >
               &nbsp;{/* Indent */}
             </div>
@@ -123,6 +135,7 @@ const ExampleItem = ({ example, item, collection }) => {
       <div
         className="flex flex-grow items-center h-full overflow-hidden"
         style={{ paddingLeft: 8 }}
+        onContextMenu={handleRightClick}
       >
         <ExampleIcon size={16} color="currentColor" className="mr-2 text-gray-400 flex-shrink-0" />
         <span className="item-name truncate text-gray-700 dark:text-gray-300 ">

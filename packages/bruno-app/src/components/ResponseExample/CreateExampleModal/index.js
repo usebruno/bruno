@@ -7,14 +7,6 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState('');
 
-  const handleNameBlur = () => {
-    if (!name.trim()) {
-      setNameError('Example name is required');
-    } else {
-      setNameError('');
-    }
-  };
-
   const handleNameChange = (e) => {
     setName(e.target.value);
     // Clear error when user starts typing
@@ -30,6 +22,8 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
       setName('');
       setDescription('');
       setNameError('');
+    } else {
+      setNameError('Example name is required');
     }
   };
 
@@ -63,7 +57,6 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
         handleConfirm={handleConfirm}
         confirmText="Create Example"
         cancelText="Cancel"
-        confirmDisabled={!name.trim()}
         isOpen={isOpen}
       >
         <div className="space-y-4">
@@ -77,7 +70,6 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
               className="textbox mt-2 w-full"
               value={name}
               onChange={handleNameChange}
-              onBlur={handleNameBlur}
               autoFocus
               required
               data-testid="create-example-name-input"
