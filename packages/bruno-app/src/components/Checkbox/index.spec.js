@@ -6,15 +6,20 @@ import Checkbox from './index';
 import themes from 'themes/index';
 
 // Mock the IconCheckMark component
-jest.mock('components/Icons/examples', () => ({
-  IconCheckMark: ({ className, color, size }) => (
-    <div
-      data-testid="icon-checkmark"
-      className={className}
-      style={{ color, fontSize: size }}
-    />
-  )
-}));
+jest.mock('components/Icons/IconCheckMark', () => {
+  return function IconCheckMark({ className, color, size, style, ...props }) {
+    return (
+      <svg
+        data-testid="icon-checkmark"
+        className={className}
+        style={{ color, fontSize: size, ...style }}
+        {...props}
+      >
+        <path />
+      </svg>
+    );
+  };
+});
 
 // Mock the useTheme hook
 jest.mock('providers/Theme', () => ({

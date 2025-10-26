@@ -8,7 +8,8 @@ const RadioButton = ({
   name,
   value,
   id,
-  className = ''
+  className = '',
+  ...rest // Allow passing through additional HTML attributes like data-testid, aria-label, aria-labelledby, role, tabIndex, etc.
 }) => {
   const handleChange = (e) => {
     if (!disabled && onChange) {
@@ -28,6 +29,7 @@ const RadioButton = ({
           disabled={disabled}
           onChange={handleChange}
           className="radio-input"
+          {...rest}
         />
         <label htmlFor={id} className="radio-label" />
       </div>
