@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "name": "Test API",
+    "type": "http",
+    "seq": 1
+  },
+  "examples": [
+    {}
+  ]
+}

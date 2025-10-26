@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { IconEdit } from 'components/Icons/examples';
+import IconEdit from 'components/Icons/IconEdit';
 import { IconCode, IconDeviceFloppy } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 import TruncatedText from 'components/TruncatedText';
-import { findItemInCollection } from 'utils/collections/index';
 import { updateResponseExampleName, updateResponseExampleDescription } from 'providers/ReduxStore/slices/collections';
 import get from 'lodash/get';
 
@@ -21,7 +20,10 @@ const ResponseExampleTopBar = ({
 }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
-  const example = item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid) : get(item, 'examples', []).find((e) => e.uid === exampleUid);
+
+  const example = useMemo(() => {
+    return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid) : get(item, 'examples', []).find((e) => e.uid === exampleUid);
+  }, [item.draft, item.examples, item, exampleUid]);
 
   const handleGenerateCode = () => {
     if (onGenerateCode) {
@@ -129,14 +131,14 @@ const ResponseExampleTopBar = ({
 
             <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
               <button
-                className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer border whitespace-nowrap"
+                className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
                 onClick={handleCancel}
                 data-testid="response-example-cancel-btn"
               >
                 Cancel
               </button>
               <button
-                className="primary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer border whitespace-nowrap"
+                className="primary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
                 onClick={handleSave}
                 data-testid="response-example-save-btn"
               >
@@ -156,7 +158,7 @@ const ResponseExampleTopBar = ({
       <div className="max-w-full">
         <div className="flex items-start justify-between gap-6 md:flex-row flex-col">
           <div className="flex-1 min-w-0">
-            <h2 className="response-example-title text-xl font-bold mb-2 leading-tight md:text-2xl" data-testid="response-example-title">
+            <h2 className="response-example-title text-lg font-bold mb-2 leading-tight md:text-xl" data-testid="response-example-title">
               {example.name}
             </h2>
             {example.description && example.description.trim().length > 0 && (
@@ -168,14 +170,14 @@ const ResponseExampleTopBar = ({
                 buttonClassName="text-blue-600 hover:text-blue-800 font-medium"
                 viewMoreText="View More"
                 viewLessText="View Less"
-                data-testid="response-example-description"
+                dataTestId="response-example-description"
               />
             )}
           </div>
 
           <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
             <button
-              className="secondary-btn flex items-center gap-1.5 p-2 rounded-md text-sm font-medium cursor-pointer border whitespace-nowrap"
+              className="secondary-btn flex items-center gap-1.5 p-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
               onClick={handleGenerateCode}
               title="Generate Code"
               data-testid="response-example-generate-code-btn"
@@ -183,7 +185,7 @@ const ResponseExampleTopBar = ({
               <IconCode size={16} color={theme.examples.buttonIconColor} />
             </button>
             <button
-              className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer border whitespace-nowrap"
+              className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
               onClick={onEditToggle}
               data-testid="response-example-edit-btn"
             >

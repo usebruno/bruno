@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { IconTrash } from '@tabler/icons';
 import get from 'lodash/get';
-import { addResponseExampleHeader, updateResponseExampleHeader, deleteResponseExampleHeader, moveResponseExampleHeader, setResponseExampleHeaders } from 'providers/ReduxStore/slices/collections';
+import { addResponseExampleHeader, updateResponseExampleHeader, deleteResponseExampleHeader, moveResponseExampleHeader, setResponseExampleHeaders, updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
+import { getBodyType } from 'utils/responseBodyProcessor';
 import Table from 'components/Table-v2';
 import ReorderTable from 'components/ReorderTable';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -16,65 +17,100 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid }) => {
   const dispatch = useDispatch();
-  const { theme, storedTheme } = useTheme();
+  const { storedTheme } = useTheme();
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
-  // Get headers from item draft, similar to how RequestHeaders works
-  const headers = item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.response?.headers || [] : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.response?.headers || [];
+  const headers = useMemo(() => {
+    return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.response?.headers || [] : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.response?.headers || [];
+  }, [item, exampleUid]);
+
+  const response = useMemo(() => {
+    return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.response || {} : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.response || {};
+  }, [item, exampleUid]);
 
   const handleAddHeader = () => {
-    if (editMode) {
-      dispatch(addResponseExampleHeader({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        exampleUid: exampleUid
-      }));
+    if (!editMode) {
+      return;
     }
+
+    dispatch(addResponseExampleHeader({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      exampleUid: exampleUid
+    }));
   };
 
   const handleHeaderValueChange = (e, header, type) => {
-    if (editMode) {
-      const updatedHeader = { ...header };
-      switch (type) {
-        case 'name': {
-          updatedHeader.name = e.target.value;
-          break;
-        }
-        case 'value': {
-          updatedHeader.value = e.target.value;
-          break;
-        }
-      }
+    if (!editMode) {
+      return;
+    }
 
-      dispatch(updateResponseExampleHeader({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        exampleUid: exampleUid,
-        header: updatedHeader
-      }));
+    const updatedHeader = { ...header };
+    switch (type) {
+      case 'name': {
+        updatedHeader.name = e.target.value;
+        break;
+      }
+      case 'value': {
+        updatedHeader.value = e.target.value;
+        break;
+      }
+    }
+
+    dispatch(updateResponseExampleHeader({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      exampleUid: exampleUid,
+      header: updatedHeader
+    }));
+
+    // If content-type header is being updated, automatically update the body type
+    if (header.name?.toLowerCase() === 'content-type' && type === 'value') {
+      const newContentType = updatedHeader.value?.toLowerCase() || '';
+      const newBodyType = getBodyType(newContentType);
+      const currentBodyType = response.body?.type || 'text';
+
+      // Only update if the body type has changed
+      if (newBodyType !== currentBodyType) {
+        dispatch(updateResponseExampleResponse({
+          itemUid: item.uid,
+          collectionUid: collection.uid,
+          exampleUid: exampleUid,
+          response: {
+            body: {
+              type: newBodyType,
+              content: response.body?.content || ''
+            }
+          }
+        }));
+      }
     }
   };
 
   const handleRemoveHeader = (header) => {
-    if (editMode) {
-      dispatch(deleteResponseExampleHeader({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        exampleUid: exampleUid,
-        headerUid: header.uid
-      }));
+    if (!editMode) {
+      return;
     }
+
+    dispatch(deleteResponseExampleHeader({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      exampleUid: exampleUid,
+      headerUid: header.uid
+    }));
   };
 
   const handleHeaderDrag = ({ updateReorderedItem }) => {
-    if (editMode) {
-      dispatch(moveResponseExampleHeader({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        exampleUid: exampleUid,
-        updateReorderedItem
-      }));
+    if (!editMode) {
+      return;
     }
+
+    dispatch(moveResponseExampleHeader({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      exampleUid: exampleUid,
+      updateReorderedItem
+    }));
   };
 
   const toggleBulkEditMode = () => {
@@ -82,19 +118,21 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
   };
 
   const handleBulkHeadersChange = (newHeaders) => {
-    if (editMode) {
-      const cleanedHeaders = newHeaders.map((header) => ({
-        uid: header.uid,
-        name: header.name,
-        value: header.value
-      }));
-      dispatch(setResponseExampleHeaders({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        exampleUid: exampleUid,
-        headers: cleanedHeaders
-      }));
+    if (!editMode) {
+      return;
     }
+    const cleanedHeaders = newHeaders.map((header) => ({
+      uid: header.uid,
+      name: header.name,
+      value: header.value
+    }));
+
+    dispatch(setResponseExampleHeaders({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      exampleUid: exampleUid,
+      headers: cleanedHeaders
+    }));
   };
 
   if (isBulkEditMode && editMode) {
@@ -131,17 +169,18 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
                       value={header.name || ''}
                       theme={storedTheme}
                       onSave={() => {}}
-                      onChange={editMode ? (newValue) =>
+                      onChange={(newValue) =>
                         handleHeaderValueChange({
                           target: {
                             value: newValue
                           }
                         },
                         header,
-                        'name') : () => {}}
+                        'name')}
                       autocomplete={headerAutoCompleteList}
                       onRun={() => {}}
                       collection={collection}
+                      readOnly={!editMode}
                     />
                   </td>
                   <td>
@@ -150,19 +189,20 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
                         value={header.value || ''}
                         theme={storedTheme}
                         onSave={() => {}}
-                        onChange={editMode ? (newValue) =>
+                        onChange={(newValue) =>
                           handleHeaderValueChange({
                             target: {
                               value: newValue
                             }
                           },
                           header,
-                          'value') : () => {}}
+                          'value')}
                         onRun={() => {}}
                         autocomplete={MimeTypes}
                         allowNewlines={true}
                         collection={collection}
                         item={item}
+                        readOnly={!editMode}
                       />
                       {editMode && (
                         <button tabIndex="-1" onClick={() => handleRemoveHeader(header)} className="delete-button">
