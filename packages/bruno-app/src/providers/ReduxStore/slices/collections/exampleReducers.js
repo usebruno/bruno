@@ -1200,7 +1200,7 @@ export const updateResponseExampleStatusCode = (state, action) => {
     example.response = {};
   }
 
-  example.response.status = String(statusCode);
+  example.response.status = String(statusCode ?? '');
 };
 
 export const updateResponseExampleStatusText = (state, action) => {
@@ -1227,5 +1227,5 @@ export const updateResponseExampleStatusText = (state, action) => {
     example.response = {};
   }
 
-  example.response.statusText = statusText ? String(statusText) : '';
+  example.response.statusText = String(statusText ?? '');
 };

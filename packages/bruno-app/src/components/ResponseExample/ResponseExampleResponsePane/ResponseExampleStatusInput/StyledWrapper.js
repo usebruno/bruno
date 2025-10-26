@@ -69,21 +69,12 @@ const StyledWrapper = styled.div`
                 background-color: ${(props) => props.theme.dropdown.hoverBg};
               }
 
-      .status-code {
+      .status {
         font-weight: 600;
         color: inherit;
         margin-right: 0.5rem;
         min-width: 40px;
         flex-shrink: 0;
-      }
-
-      .status-phrase {
-        color: inherit;
-        opacity: 0.8;
-        flex: 1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
     }
   }

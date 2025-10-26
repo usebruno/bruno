@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateResponseExampleStatusCode, updateResponseExampleStatusText } from 'providers/ReduxStore/slices/collections';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
@@ -8,18 +8,22 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
   const dispatch = useDispatch();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [inputValue, setInputValue] = useState('');
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
 
-  // Derive the display value directly from Redux state
-  const getDisplayValue = () => {
-    if (status && statusText) {
-      return `${status} ${statusText}`;
-    } else if (status) {
-      return status;
-    }
-    return '';
-  };
+  // Initialize inputValue from Redux state on mount or when prop changes
+  useEffect(() => {
+    const displayValue = () => {
+      if (status && statusText) {
+        return `${status} ${statusText}`;
+      } else if (status) {
+        return status;
+      }
+      return '';
+    };
+    setInputValue(displayValue());
+  }, [status, statusText]);
 
   // Create suggestions from status code map
   const suggestions = Object.entries(statusCodePhraseMap).map(([code, phrase]) => ({
@@ -31,8 +35,8 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
   const handleInputChange = (e) => {
     const value = e.target.value;
 
-    // Immediately update Redux state as user types
-    parseAndSaveStatus(value);
+    // Update local state to allow typing freely (including spaces)
+    setInputValue(value);
 
     if (value.trim()) {
       // Filter suggestions based on input
@@ -49,6 +53,12 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
   };
 
   const handleKeyDown = (e) => {
+    // Handle Cmd+S to save status to Redux
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault();
+      parseAndSaveStatus(inputValue);
+    }
+
     if (!showSuggestions) return;
 
     switch (e.key) {
@@ -60,6 +70,10 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
 
   const selectSuggestion = (suggestion) => {
     setShowSuggestions(false);
+
+    // Update local input value
+    const newValue = `${suggestion.code} ${suggestion.phrase}`;
+    setInputValue(newValue);
 
     // Save the status and statusText
     dispatch(updateResponseExampleStatusCode({
@@ -78,12 +92,20 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
   };
 
   const parseAndSaveStatus = (value) => {
-    const trimmedValue = value.trim();
+    // Find the first space
+    const firstSpaceIndex = value.indexOf(' ');
 
-    // Split on first space
-    const parts = trimmedValue.split(' ');
-    const statusCode = parts[0] || '';
-    const statusText = parts.slice(1).join(' ');
+    let statusCode, statusText;
+
+    if (firstSpaceIndex === -1) {
+      // No space found, treat entire value as status code
+      statusCode = value;
+      statusText = '';
+    } else {
+      // Split on first space only, preserving all other spaces
+      statusCode = value.substring(0, firstSpaceIndex);
+      statusText = value.substring(firstSpaceIndex + 1);
+    }
 
     // Save both as strings - no validation needed
     dispatch(updateResponseExampleStatusCode({
@@ -110,6 +132,9 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
       return; // Don't close suggestions if clicking on them
     }
 
+    // Save the status to Redux
+    parseAndSaveStatus(inputValue);
+
     // Small delay to allow click events on suggestions
     setTimeout(() => {
       setShowSuggestions(false);
@@ -117,12 +142,11 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
   };
 
   const handleFocus = () => {
-    const currentValue = getDisplayValue();
-    if (currentValue.trim()) {
+    if (inputValue.trim()) {
       const filtered = suggestions.filter((suggestion) =>
-        suggestion.display.toLowerCase().includes(currentValue.toLowerCase())
-        || suggestion.code.toString().includes(currentValue)
-        || suggestion.phrase.toLowerCase().includes(currentValue.toLowerCase()));
+        suggestion.display.toLowerCase().includes(inputValue.toLowerCase())
+        || suggestion.code.toString().includes(inputValue)
+        || suggestion.phrase.toLowerCase().includes(inputValue.toLowerCase()));
       setFilteredSuggestions(filtered);
       setShowSuggestions(true);
     }
@@ -143,7 +167,7 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
       <input
         ref={inputRef}
         type="text"
-        value={getDisplayValue()}
+        value={inputValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
@@ -172,8 +196,7 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
               onMouseDown={(e) => e.preventDefault()}
               data-testid={`suggestion-${suggestion.code}`}
             >
-              <span className="status-code">{suggestion.code}</span>
-              <span className="status-phrase">{suggestion.phrase}</span>
+              <span className="status">{`${suggestion.code} ${suggestion.phrase}`}</span>
             </div>
           ))}
         </div>
