@@ -29,6 +29,7 @@ import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
 import FolderNotFound from './FolderNotFound';
+import ExampleNotFound from './ExampleNotFound';
 import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
@@ -191,24 +192,8 @@ const RequestTabPanel = () => {
     const item = findItemInCollection(collection, focusedTab.itemUid);
     const example = item?.examples?.find((ex) => ex.uid === focusedTab.uid);
 
-    if (!item) {
-      return (
-        <div className="pb-4 px-4">
-          Item not found! ItemUid:
-          {focusedTab.itemUid}
-        </div>
-      );
-    }
-
     if (!example) {
-      return (
-        <div className="pb-4 px-4">
-          Example not found! Item:
-          {item?.uid}
-          , ExampleUid:
-          {focusedTab.uid}
-        </div>
-      );
+      return <ExampleNotFound itemUid={focusedTab.itemUid} exampleUid={focusedTab.uid} />;
     }
     return <ResponseExample item={item} collection={collection} example={example} />;
   }

@@ -1,14 +1,14 @@
 import React, { useState, useRef, forwardRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { deleteResponseExample, updateResponseExample, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { IconDots } from '@tabler/icons';
-import { ExampleIcon } from 'components/Icons/examples';
+import ExampleIcon from 'components/Icons/Examples';
 import range from 'lodash/range';
 import Dropdown from 'components/Dropdown';
 import Modal from 'components/Modal';
-import DeleteExampleModal from './DeleteExampleModal';
+import DeleteResponseExampleModal from './DeleteResponseExampleModal';
 import StyledWrapper from './StyledWrapper';
 
 const ExampleItem = ({ example, item, collection }) => {
@@ -29,6 +29,10 @@ const ExampleItem = ({ example, item, collection }) => {
       type: 'response-example',
       itemUid: item.uid
     }));
+  };
+
+  const handleDoubleClick = () => {
+    dispatch(makeTabPermanent({ uid: example.uid }));
   };
 
   const handleRename = () => {
@@ -103,6 +107,7 @@ const ExampleItem = ({ example, item, collection }) => {
     <StyledWrapper
       className="flex collection-item-name relative items-center"
       onClick={handleExampleClick}
+      onDoubleClick={handleDoubleClick}
     >
       {indents && indents.length
         ? indents.map((i) => (
@@ -192,7 +197,7 @@ const ExampleItem = ({ example, item, collection }) => {
       )}
 
       {showDeleteModal && (
-        <DeleteExampleModal
+        <DeleteResponseExampleModal
           onClose={() => setShowDeleteModal(false)}
           example={example}
           item={item}

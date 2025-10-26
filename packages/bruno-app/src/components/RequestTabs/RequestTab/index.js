@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef, Fragment } from 'react';
+import React, { useCallback, useState, useRef, Fragment, useMemo } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -7,8 +7,7 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
-import { findItemInCollection, hasRequestChanges, hasExampleChanges } from 'utils/collections';
-import { ExampleIcon } from 'components/Icons/examples';
+import { findItemInCollection, hasRequestChanges } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
@@ -20,6 +19,7 @@ import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
+import ExampleTab from '../ExampleTab';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
@@ -30,13 +30,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
-  // Get item and example data for both request and example tabs
-  const item = tab.type === 'response-example'
-    ? findItemInCollection(collection, tab.itemUid)
-    : findItemInCollection(collection, tab.uid);
-  const example = tab.type === 'response-example'
-    ? item?.examples?.find((ex) => ex.uid === tab.uid)
-    : null;
+  const item = findItemInCollection(collection, tab.uid);
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -103,66 +97,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   // Handle response-example tabs specially
   if (tab.type === 'response-example') {
-    const hasChanges = hasExampleChanges(item, tab.uid);
-
-    if (!item || !example) {
-      return (
-        <StyledWrapper
-          className="flex items-center justify-between tab-container px-1"
-          onMouseUp={(e) => {
-            if (e.button === 1) {
-              e.preventDefault();
-              e.stopPropagation();
-
-              dispatch(closeTabs({ tabUids: [tab.uid] }));
-            }
-          }}
-        >
-          <RequestTabNotFound handleCloseClick={handleCloseClick} />
-        </StyledWrapper>
-      );
-    }
-
     return (
-      <StyledWrapper className="flex items-center justify-between tab-container px-1">
-        <div
-          className={`flex items-center tab-label pl-2 ${tab.preview ? 'italic' : ''}`}
-          onContextMenu={handleRightClick}
-          onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
-          onMouseUp={(e) => {
-            if (!hasChanges) return handleMouseUp(e);
-
-            if (e.button === 1) {
-              e.stopPropagation();
-              e.preventDefault();
-              setShowConfirmClose(true);
-            }
-          }}
-        >
-          <ExampleIcon size={16} color="currentColor" className="mr-2 text-gray-500 flex-shrink-0" />
-          <span className="tab-name" title={example.name}>
-            {example.name}
-          </span>
-        </div>
-        <div
-          className="flex px-2 close-icon-container"
-          onClick={(e) => {
-            if (!hasChanges) {
-              return handleCloseClick(e);
-            }
-
-            e.stopPropagation();
-            e.preventDefault();
-            setShowConfirmClose(true);
-          }}
-        >
-          {!hasChanges ? (
-            <CloseTabIcon />
-          ) : (
-            <DraftTabIcon />
-          )}
-        </div>
-      </StyledWrapper>
+      <ExampleTab
+        tab={tab}
+        collection={collection}
+        tabIndex={tabIndex}
+        collectionRequestTabs={collectionRequestTabs}
+        folderUid={folderUid}
+      />
     );
   }
 
@@ -202,13 +144,13 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const isWS = item.type === 'ws-request';
   const method = getMethodText(item);
+  const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
-          example={tab.type === 'response-example' ? example : null}
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
             isWS && closeWsConnection(item.uid);
@@ -246,7 +188,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {
-          if (!hasRequestChanges(item)) return handleMouseUp(e);
+          if (!hasChanges) return handleMouseUp(e);
 
           if (e.button === 1) {
             e.stopPropagation();
@@ -274,7 +216,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       <div
         className="flex px-2 close-icon-container"
         onClick={(e) => {
-          if (!hasRequestChanges(item)) {
+          if (!hasChanges) {
             isWS && closeWsConnection(item.uid);
             return handleCloseClick(e);
           };
@@ -284,7 +226,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           setShowConfirmClose(true);
         }}
       >
-        {!hasRequestChanges(item) ? (
+        {!hasChanges ? (
           <CloseTabIcon />
         ) : (
           <DraftTabIcon />
@@ -301,6 +243,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   const totalTabs = collectionRequestTabs.length || 0;
   const currentTabUid = collectionRequestTabs[tabIndex]?.uid;
   const currentTabItem = findItemInCollection(collection, currentTabUid);
+  const currentTabHasChanges = useMemo(() => hasRequestChanges(currentTabItem), [currentTabItem]);
 
   const hasLeftTabs = tabIndex !== 0;
   const hasRightTabs = totalTabs > tabIndex + 1;

@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "name": "Test API",
+    "type": "http",
+    "seq": 1
+  },
+  "examples": [
+    {
+      "name": "Text Example",
+      "description": "An example with text body",
+      "request": {
+        "url": "https://api.example.com/data",
+        "body": {
+          "mode": "text",
+          "text": "Plain text data\nwith multiple lines"
+        }
+      }
+    }
+  ]
+}

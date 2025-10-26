@@ -1,0 +1,17 @@
+meta {
+  name: Test API
+  type: http
+}
+
+example {
+  name: Text Example
+  description: An example with text body
+  
+  request: {
+    url: https://api.example.com/data
+    body:text: {
+      Plain text data
+      with multiple lines
+    }
+  }
+}

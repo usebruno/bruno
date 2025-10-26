@@ -1,0 +1,106 @@
+meta {
+  name: Multi-format API
+  type: http
+}
+
+get {
+  url: https://api.example.com/data
+}
+
+headers {
+  content-type: application/json
+}
+
+body:json {
+  {
+    "message": "API supports multiple formats"
+  }
+}
+
+example {
+  name: JSON API Example
+  description: An example using JSON format
+
+  request: {
+    url: https://api.example.com/json
+    body:json: {
+      {
+        "format": "json",
+        "data": {
+          "name": "JSON Example",
+          "value": 123
+        }
+      }
+    }
+  }
+
+  response: {
+    status: {
+      code: 201
+    }
+
+    body: {
+      "id": 1,
+      "format": "json",
+      "created": true
+    }
+  }
+}
+
+example {
+  name: XML API Example
+  description: An example using XML format
+
+  request: {
+    url: https://api.example.com/xml
+    body:xml: {
+      <?xml version="1.0" encoding="UTF-8"?>
+      <data>
+        <format>xml</format>
+        <name>XML Example</name>
+        <value>456</value>
+      </data>
+    }
+  }
+  response: {
+    status: {
+      code: 201
+    }
+
+    body: {
+      <?xml version="1.0" encoding="UTF-8"?>
+      <response>
+        <id>2</id>
+        <format>xml</format>
+        <created>true</created>
+      </response>
+    }
+  }
+}
+
+example {
+  name: Text API Example
+  description: An example using text format
+
+  request: {
+    url: https://api.example.com/text
+    body:text: {
+      Plain text data
+      Format: text
+      Name: Text Example
+      Value: 789
+    }
+  }
+
+  response: {
+    status: {
+      code: 201
+    }
+    
+    body: {
+      Success: true
+      Format: text
+      ID: 3
+    }
+  }
+}

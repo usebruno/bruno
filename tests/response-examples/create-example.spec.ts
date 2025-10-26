@@ -7,9 +7,10 @@ test.describe('Create Response Examples', () => {
       await page.locator('.collection-item-name').getByText('echo-request').click();
     });
 
-    await test.step('Send request and create example', async () => {
+    await test.step('Send request and validate example creation', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click();
+      // Wait for 30 seconds for the response bookmark button to be visible, on slower internet connections it may take longer to get the response.
+      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
 
       await expect(page.getByText('Save Response as Example')).toBeVisible();
       await expect(page.getByTestId('create-example-name-input')).toBeVisible();
@@ -22,7 +23,7 @@ test.describe('Create Response Examples', () => {
     });
   });
 
-  test('should require example name to create', async ({ pageWithUserData: page }) => {
+  test('Validate name is required to create example', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
       await page.locator('.collection-item-name').getByText('echo-request').click();
@@ -30,7 +31,7 @@ test.describe('Create Response Examples', () => {
 
     await test.step('Test name requirement', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click();
+      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
 
       await expect(page.getByRole('button', { name: 'Create Example' })).toBeDisabled();
       await page.getByTestId('create-example-name-input').fill('Required Name');
@@ -42,7 +43,7 @@ test.describe('Create Response Examples', () => {
   test('should close modal when cancelled', async ({ pageWithUserData: page }) => {
     await test.step('Test modal cancellation', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click();
+      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
       await page.getByRole('button', { name: 'Cancel' }).click();
       await expect(page.getByText('Save Response as Example')).not.toBeVisible();
     });
@@ -56,14 +57,13 @@ test.describe('Create Response Examples', () => {
 
     await test.step('Test form reset', async () => {
       await page.locator('#send-request').getByRole('img').nth(2).click();
-      await page.waitForTimeout(2000);
-      await page.getByTestId('response-bookmark-btn').click();
+      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
 
       await page.getByTestId('create-example-name-input').fill('Test Name');
       await page.getByTestId('create-example-description-input').fill('Test Description');
       await page.getByRole('button', { name: 'Cancel' }).click();
 
-      await page.getByTestId('response-bookmark-btn').click();
+      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
       await expect(page.getByTestId('create-example-name-input')).toHaveValue('');
       await expect(page.getByTestId('create-example-description-input')).toHaveValue('');
       await page.getByRole('button', { name: 'Cancel' }).click();
@@ -78,7 +78,7 @@ test.describe('Create Response Examples', () => {
 
     await test.step('Create example and verify sidebar visibility', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click();
+      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
 
       await page.getByTestId('create-example-name-input').fill('Sidebar Test Example');
       await page.getByTestId('create-example-description-input').fill('This example should appear in the sidebar');

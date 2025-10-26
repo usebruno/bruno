@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { IconEdit } from 'components/Icons/examples';
+import IconEdit from 'components/Icons/IconEdit';
 import { IconCode, IconDeviceFloppy } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
@@ -168,7 +168,7 @@ const ResponseExampleTopBar = ({
                 buttonClassName="text-blue-600 hover:text-blue-800 font-medium"
                 viewMoreText="View More"
                 viewLessText="View Less"
-                data-testid="response-example-description"
+                dataTestId="response-example-description"
               />
             )}
           </div>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import groupBy from 'lodash/groupBy';
@@ -13,25 +13,30 @@ import Modal from 'components/Modal';
 
 const SaveRequestsModal = ({ onClose }) => {
   const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
-  const currentDrafts = [];
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
 
-  const tabsByCollection = groupBy(tabs, (t) => t.collectionUid);
-  Object.keys(tabsByCollection).forEach((collectionUid) => {
-    const collection = findCollectionByUid(collections, collectionUid);
-    if (collection) {
-      const items = flattenItems(collection.items);
-      const drafts = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
-      each(drafts, (draft) => {
-        currentDrafts.push({
-          ...draft,
-          collectionUid: collectionUid
+  const currentDrafts = useMemo(() => {
+    const drafts = [];
+    const tabsByCollection = groupBy(tabs, (t) => t.collectionUid);
+
+    Object.keys(tabsByCollection).forEach((collectionUid) => {
+      const collection = findCollectionByUid(collections, collectionUid);
+      if (collection) {
+        const items = flattenItems(collection.items);
+        const collectionDrafts = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
+        each(collectionDrafts, (draft) => {
+          drafts.push({
+            ...draft,
+            collectionUid: collectionUid
+          });
         });
-      });
-    }
-  });
+      }
+    });
+
+    return drafts;
+  }, [collections, tabs]);
 
   useEffect(() => {
     if (currentDrafts.length === 0) {

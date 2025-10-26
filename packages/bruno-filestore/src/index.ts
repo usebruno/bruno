@@ -19,8 +19,7 @@ import { bruRequestParseAndRedactBodyData } from './formats/bru/utils/request-pa
 
 export const parseRequest = (content: string, options: ParseOptions = { format: 'bru' }): any => {
   if (options.format === 'bru') {
-    const contentJson = bruRequestToJson(content);
-    return contentJson;
+    return bruRequestToJson(content);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };

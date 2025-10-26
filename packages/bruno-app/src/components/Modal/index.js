@@ -27,7 +27,7 @@ const ModalFooter = ({
   confirmDisabled,
   hideCancel,
   hideFooter,
-  confirmButtonClass
+  confirmButtonClass = 'btn-secondary'
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';

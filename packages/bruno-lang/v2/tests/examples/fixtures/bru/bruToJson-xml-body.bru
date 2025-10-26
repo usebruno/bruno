@@ -1,0 +1,20 @@
+meta {
+  name: Test API
+  type: http
+}
+
+example {
+  name: XML Example
+  description: An example with XML body
+  
+  request: {
+    url: https://api.example.com/data
+    body:xml: {
+      <?xml version="1.0" encoding="UTF-8"?>
+      <data>
+        <name>Test</name>
+        <value>123</value>
+      </data>
+    }
+  }
+}

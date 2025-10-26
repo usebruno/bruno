@@ -1,0 +1,19 @@
+meta {
+  name: Test API
+  type: http
+}
+
+example {
+  name: JSON Example
+  description: An example with JSON body
+  
+  request: {
+    url: https://api.example.com/data
+    body:json: {
+      {
+        "name": "Test",
+        "value": 123
+      }
+    }
+  }
+}

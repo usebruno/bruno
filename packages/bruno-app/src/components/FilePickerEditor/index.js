@@ -5,7 +5,7 @@ import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { IconX } from '@tabler/icons';
 import { isWindowsOS } from 'utils/common/platform';
 
-const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = false, editMode = true }) => {
+const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = false, readOnly = false }) => {
   const dispatch = useDispatch();
   const filenames = (isSingleFilePicker ? [value] : value || [])
     .filter((v) => v != null && v != '')
@@ -50,7 +50,7 @@ const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = fa
     return filenames.length + ' file(s) selected';
   };
 
-  const buttonClass = `btn btn-secondary px-1 ${editMode ? 'edit-mode' : 'view-mode'}`;
+  const buttonClass = `btn btn-secondary px-1 ${readOnly ? 'view-mode' : 'edit-mode'}`;
 
   return filenames.length > 0 ? (
     <div
@@ -58,16 +58,16 @@ const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = fa
       style={{ fontWeight: 400, width: '100%', textOverflow: 'ellipsis', overflowX: 'hidden' }}
       title={title}
     >
-      {editMode && (
+      {!readOnly && (
         <button className="align-middle" onClick={clear}>
           <IconX size={18} />
         </button>
       )}
-      {editMode && <>&nbsp;</>}
+      {!readOnly && <>&nbsp;</>}
       {renderButtonText(filenames)}
     </div>
   ) : (
-    <button className={buttonClass} style={{ width: '100%' }} onClick={editMode ? browse : undefined} disabled={!editMode}>
+    <button className={buttonClass} style={{ width: '100%' }} onClick={!readOnly ? browse : undefined} disabled={readOnly}>
       {isSingleFilePicker ? 'Select File' : 'Select Files'}
     </button>
   );
