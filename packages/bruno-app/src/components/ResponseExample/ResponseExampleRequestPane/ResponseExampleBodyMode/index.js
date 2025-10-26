@@ -1,27 +1,13 @@
-import React, { useRef, forwardRef } from 'react';
+import React from 'react';
 import { useDispatch } from 'react-redux';
-import { IconCaretDown } from '@tabler/icons';
 import { updateResponseExampleRequest } from 'providers/ReduxStore/slices/collections';
-import Dropdown from 'components/Dropdown';
-import { humanizeRequestBodyMode } from 'utils/collections';
+import BodyModeSelector from 'components/BodyModeSelector';
 import { format, applyEdits } from 'jsonc-parser';
 import xmlFormat from 'xml-formatter';
 import { toastError } from 'utils/common/error';
 
 const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode, onBodyEdit, editMode = false }) => {
   const dispatch = useDispatch();
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
-  const Icon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
-        {humanizeRequestBodyMode(bodyMode)}
-        {' '}
-        <IconCaretDown className="caret ml-2" size={14} strokeWidth={2} />
-      </div>
-    );
-  });
 
   const onModeChange = (value) => {
     if (item && collection && exampleUid) {
@@ -71,11 +57,6 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
     }
   };
 
-  const onModeSelect = (mode) => {
-    dropdownTippyRef.current.hide();
-    onModeChange(mode);
-  };
-
   const onPrettify = () => {
     if (body?.json && bodyMode === 'json') {
       try {
@@ -105,61 +86,11 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
           Prettify
         </button>
       )}
-      <div className={`inline-flex items-center body-mode-selector ${editMode ? 'cursor-pointer' : 'cursor-default'}`}>
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" disabled={!editMode}>
-          <div className="label-item font-medium">Form</div>
-          <div
-            className="dropdown-item"
-            onClick={() => onModeSelect('multipartForm')}
-          >
-            Multipart Form
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => onModeSelect('formUrlEncoded')}
-          >
-            Form URL Encoded
-          </div>
-          <div className="label-item font-medium">Raw</div>
-          <div
-            className="dropdown-item"
-            onClick={() => onModeSelect('json')}
-          >
-            JSON
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => onModeSelect('xml')}
-          >
-            XML
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => onModeSelect('text')}
-          >
-            TEXT
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => onModeSelect('sparql')}
-          >
-            SPARQL
-          </div>
-          <div className="label-item font-medium">Other</div>
-          <div
-            className="dropdown-item"
-            onClick={() => onModeSelect('file')}
-          >
-            File / Binary
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => onModeSelect('none')}
-          >
-            None
-          </div>
-        </Dropdown>
-      </div>
+      <BodyModeSelector
+        currentMode={bodyMode}
+        onModeChange={onModeChange}
+        disabled={!editMode}
+      />
     </div>
   );
 };
