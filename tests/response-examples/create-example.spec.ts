@@ -1,7 +1,6 @@
 import { test, expect } from '../../playwright';
 
 test.describe('Create Response Examples', () => {
-
   test('should create a response example from response bookmark', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();

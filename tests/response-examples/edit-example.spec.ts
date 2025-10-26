@@ -1,6 +1,5 @@
 import { test, expect } from '../../playwright';
 test.describe('Edit Response Examples', () => {
-
   test('should enter edit mode and show editable fields when edit button is clicked', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
