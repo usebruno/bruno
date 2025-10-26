@@ -84,7 +84,7 @@ const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, o
             />
           ) : (
             exampleData?.response?.status && (
-              <StatusCode status={exampleData.response.status} />
+              <StatusCode status={exampleData.response.status} statusText={exampleData.response.statusText} />
             )
           )}
         </div>
