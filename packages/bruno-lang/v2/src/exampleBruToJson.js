@@ -455,7 +455,7 @@ const sem = exampleGrammar.createSemantics().addAttribute('ast', {
         file: mapPairListToKeyValPairsFile(dictionary.ast)
       }
     };
-  },
+  }
 
 });
 

@@ -115,7 +115,6 @@ describe('Examples functionality', () => {
       expect(output).toEqual(expected);
     });
 
-
     it('should work without any examples', () => {
       const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'bruToJson-no-examples.bru'), 'utf8');
       const expected = require('./fixtures/json/bruToJson-no-examples.json');
