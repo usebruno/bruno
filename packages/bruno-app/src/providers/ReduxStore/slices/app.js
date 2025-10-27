@@ -36,7 +36,10 @@ const initialState = {
   },
   cookies: [],
   taskQueue: [],
-  systemProxyEnvVariables: {}
+  systemProxyEnvVariables: {},
+  clipboard: {
+    copiedItem: null
+  }
 };
 
 export const appSlice = createSlice({
@@ -93,6 +96,9 @@ export const appSlice = createSlice({
     },
     toggleSidebarCollapse: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
+    },
+    copyRequest: (state, action) => {
+      state.clipboard.copiedItem = action.payload.item;
     }
   }
 });
@@ -113,7 +119,8 @@ export const {
   removeAllTasksFromQueue,
   updateSystemProxyEnvVariables,
   updateGenerateCode,
-  toggleSidebarCollapse
+  toggleSidebarCollapse,
+  copyRequest
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

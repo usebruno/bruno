@@ -7,8 +7,9 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem } from 'providers/ReduxStore/slices/collections';
+import { copyRequest } from 'providers/ReduxStore/slices/app';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -40,6 +41,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
   
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
+  const clipboardItem = useSelector((state) => state.app.clipboard.copiedItem);
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
@@ -306,6 +308,23 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
+  const handleCopyRequest = () => {
+    dropdownTippyRef.current.hide();
+    dispatch(copyRequest({ item }));
+    toast.success('Request copied to clipboard');
+  };
+
+  const handlePasteRequest = () => {
+    dropdownTippyRef.current.hide();
+    dispatch(pasteItem(collectionUid, item.uid))
+      .then(() => {
+        toast.success('Request pasted successfully');
+      })
+      .catch((err) => {
+        toast.error(err ? err.message : 'An error occurred while pasting the request');
+      });
+  };
+
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && (
@@ -431,6 +450,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               >
                 Clone
               </div>
+              {!isFolder && (
+                <div
+                  className="dropdown-item"
+                  onClick={handleCopyRequest}
+                >
+                  Copy
+                </div>
+              )}
+              {isFolder && clipboardItem && (
+                <div
+                  className="dropdown-item"
+                  onClick={handlePasteRequest}
+                >
+                  Paste
+                </div>
+              )}
               {!isFolder && (
                 <div
                   className="dropdown-item"

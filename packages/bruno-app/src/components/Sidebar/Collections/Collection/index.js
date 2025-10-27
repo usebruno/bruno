@@ -7,10 +7,11 @@ import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
@@ -41,6 +42,7 @@ const Collection = ({ collection, searchText }) => {
   const collectionRef = useRef(null);
   
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
+  const clipboardItem = useSelector((state) => state.app.clipboard.copiedItem);
   
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
@@ -144,6 +146,17 @@ const Collection = ({ collection, searchText }) => {
         type: 'collection-settings'
       })
     );
+  };
+
+  const handlePasteRequest = () => {
+    menuDropdownTippyRef.current.hide();
+    dispatch(pasteItem(collection.uid, null))
+      .then(() => {
+        toast.success('Request pasted successfully');
+      })
+      .catch((err) => {
+        toast.error(err ? err.message : 'An error occurred while pasting the request');
+      });
   };
 
   const isCollectionItem = (itemType) => {
@@ -286,6 +299,14 @@ const Collection = ({ collection, searchText }) => {
             >
               Clone
             </div>
+            {clipboardItem && (
+              <div
+                className="dropdown-item"
+                onClick={handlePasteRequest}
+              >
+                Paste
+              </div>
+            )}
             <div
               className="dropdown-item"
               onClick={(_e) => {
