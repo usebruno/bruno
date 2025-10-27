@@ -88,7 +88,7 @@ test.describe('Tag persistence', () => {
     });
     await page.waitForTimeout(200);
     await page.getByText('New Folder').click();
-    await page.locator('#collection-name').fill('f1');
+    await page.locator('#folder-name').fill('f1');
     await page.getByRole('button', { name: 'Create' }).click();
     await page.waitForTimeout(200);
 
@@ -126,7 +126,7 @@ test.describe('Tag persistence', () => {
       button: 'right'
     });
     await page.locator('.dropdown-item').getByText('New Folder').click();
-    await page.locator('#collection-name').fill('f2');
+    await page.locator('#folder-name').fill('f2');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // open f2 folder
