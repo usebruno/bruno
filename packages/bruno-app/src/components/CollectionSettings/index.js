@@ -45,7 +45,7 @@ const CollectionSettings = ({ collection }) => {
   const authMode = get(collection, 'root.request.auth', {}).mode || 'none';
 
   const presets = get(collection, 'brunoConfig.presets', []);
-  const hasPresets = presets && presets.requestUrl !== "";
+  const hasPresets = presets && presets.requestUrl !== '';
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
   const proxyEnabled = proxyConfig.hostname ? true : false;
@@ -167,7 +167,7 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
           Presets
-          {hasPresets  && <StatusDot />}
+          {hasPresets && <StatusDot />}
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy

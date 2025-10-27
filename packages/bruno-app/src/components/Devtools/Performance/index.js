@@ -6,13 +6,13 @@ import {
   IconDatabase,
   IconClock,
   IconServer,
-  IconChartLine,
+  IconChartLine
 } from '@tabler/icons';
 
 const Performance = () => {
-  const { systemResources } = useSelector(state => state.performance);
+  const { systemResources } = useSelector((state) => state.performance);
 
-  const formatBytes = bytes => {
+  const formatBytes = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -20,7 +20,7 @@ const Performance = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatUptime = seconds => {
+  const formatUptime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
