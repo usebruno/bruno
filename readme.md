@@ -55,14 +55,14 @@ You can explore our [paid versions](https://www.usebruno.com/pricing) to see if 
 - [Installation](#installation)
 - [Features](#features)
   - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
-  - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-)
+  - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-%E2%80%8D%E2%80%8D)
 - [Important Links 📌](#important-links-)
 - [Showcase 🎥](#showcase-)
 - [Share Testimonials 📣](#share-testimonials-)
 - [Publishing to New Package Managers](#publishing-to-new-package-managers)
 - [Stay in touch 🌐](#stay-in-touch-)
 - [Trademark](#trademark)
-- [Contribute 👩‍💻🧑‍💻](#contribute-)
+- [Contribute 👩‍💻🧑‍💻](#contribute-%E2%80%8D%E2%80%8D)
 - [Authors](#authors)
 - [License 📄](#license-)
 
@@ -91,6 +91,9 @@ snap install bruno
 
 # On Linux via Flatpak
 flatpak install com.usebruno.Bruno
+
+# On Arch Linux via AUR
+yay -S bruno
 
 # On Linux via Apt
 sudo mkdir -p /etc/apt/keyrings

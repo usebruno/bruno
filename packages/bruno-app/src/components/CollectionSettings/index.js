@@ -44,7 +44,11 @@ const CollectionSettings = ({ collection }) => {
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
   const authMode = get(collection, 'root.request.auth', {}).mode || 'none';
 
+  const presets = get(collection, 'brunoConfig.presets', []);
+  const hasPresets = presets && presets.requestUrl !== '';
+
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
+  const proxyEnabled = proxyConfig.hostname ? true : false;
   const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
   const protobufConfig = get(collection, 'brunoConfig.protobuf', {});
 
@@ -163,10 +167,11 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
           Presets
+          {hasPresets && <StatusDot />}
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
-          {Object.keys(proxyConfig).length > 0 && <StatusDot />}
+          {Object.keys(proxyConfig).length > 0 && proxyEnabled && <StatusDot />}
         </div>
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates

@@ -360,15 +360,13 @@ export class MaskedEditor {
           const maskedNode = document.createTextNode(this.maskChar.repeat(lineLength));
 
           // Create mark with proper bounds checking
-          const mark = this.editor.markText(
-            { line, ch: 0 },
+          const mark = this.editor.markText({ line, ch: 0 },
             { line, ch: lineLength },
             {
               replacedWith: maskedNode,
               handleMouseEvents: false,
               className: 'masked-line'
-            }
-          );
+            });
 
           // Store mark for cleanup
           this.marks.add(mark);
@@ -463,8 +461,8 @@ export function createMaskedEditor(editor, maskChar = '*') {
  * Utility function to check if an editor supports masking
  */
 export function supportsMasking(editor) {
-  return editor &&
-         typeof editor.getValue === 'function' &&
-         typeof editor.markText === 'function' &&
-         typeof editor.operation === 'function';
+  return editor
+    && typeof editor.getValue === 'function'
+    && typeof editor.markText === 'function'
+    && typeof editor.operation === 'function';
 }

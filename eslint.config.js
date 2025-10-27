@@ -7,14 +7,14 @@ const eslintPluginDiff = require('eslint-plugin-diff');
 let stylistic;
 
 const runESMImports = async () => {
-  stylistic = await import('@stylistic/eslint-plugin').then(d => d.default);
+  stylistic = await import('@stylistic/eslint-plugin').then((d) => d.default);
 };
 
 module.exports = runESMImports().then(() => defineConfig([
   {
     plugins: {
       'diff': fixupPluginRules(eslintPluginDiff),
-      '@stylistic': stylistic,
+      '@stylistic': stylistic
     },
     languageOptions: {
       parser: require('@typescript-eslint/parser'),
@@ -37,6 +37,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'packages/bruno-lang/**/*.js',
       'packages/bruno-requests/**/*.ts',
       'packages/bruno-requests/**/*.js',
+      'packages/bruno-tests/**/*.{js,ts}'
     ],
     processor: 'diff/diff',
     rules: {
@@ -44,7 +45,7 @@ module.exports = runESMImports().then(() => defineConfig([
         indent: 2,
         quotes: 'single',
         semi: true,
-        jsx: true,
+        jsx: true
       }).rules,
       '@stylistic/comma-dangle': ['error', 'never'],
       '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
@@ -52,7 +53,7 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/curly-newline': ['error', {
         multiline: true,
         minElements: 2,
-        consistent: true,
+        consistent: true
       }],
       '@stylistic/function-paren-newline': ['error', 'never'],
       '@stylistic/array-bracket-spacing': ['error', 'never'],
@@ -63,7 +64,7 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/semi-style': ['error', 'last'],
       '@stylistic/max-len': ['off'],
       '@stylistic/jsx-one-expression-per-line': ['off']
-    },
+    }
   },
   {
     files: ["packages/bruno-app/**/*.{js,jsx,ts}"],

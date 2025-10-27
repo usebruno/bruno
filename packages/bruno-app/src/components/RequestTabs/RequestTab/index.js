@@ -251,6 +251,25 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
     } catch (err) {}
   }
 
+  function handleRevertChanges(event) {
+    event.stopPropagation();
+    dropdownTippyRef.current.hide();
+
+    if (!currentTabUid) {
+      return;
+    }
+
+    try {
+      const item = findItemInCollection(collection, currentTabUid);
+      if (item.draft) {
+        dispatch(deleteRequestDraft({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        }));
+      }
+    } catch (err) {}
+  }
+
   function handleCloseOtherTabs(event) {
     dropdownTippyRef.current.hide();
 
@@ -317,6 +336,13 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
           }}
         >
           Clone Request
+        </button>
+        <button
+          className="dropdown-item w-full"
+          onClick={handleRevertChanges}
+          disabled={!currentTabItem?.draft}
+        >
+          Revert Changes
         </button>
         <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
           Close

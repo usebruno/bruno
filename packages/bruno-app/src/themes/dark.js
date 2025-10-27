@@ -32,6 +32,10 @@ const darkTheme = {
 
     name: {
       color: '#569cd6'
+    },
+
+    runtime: {
+      color: 'rgb(255, 255, 255)'
     }
   },
 
