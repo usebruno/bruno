@@ -1,11 +1,12 @@
 import React, { useState, useRef, forwardRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { deleteResponseExample, updateResponseExample, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { IconDots } from '@tabler/icons';
 import ExampleIcon from 'components/Icons/Examples';
 import range from 'lodash/range';
+import classnames from 'classnames';
 import Dropdown from 'components/Dropdown';
 import Modal from 'components/Modal';
 import DeleteResponseExampleModal from './DeleteResponseExampleModal';
@@ -13,6 +14,9 @@ import StyledWrapper from './StyledWrapper';
 
 const ExampleItem = ({ example, item, collection }) => {
   const dispatch = useDispatch();
+  // Check if this example is the active tab
+  const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
+  const isExampleActive = activeTabUid === example.uid;
   const [editName, setEditName] = useState(example.name);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -113,9 +117,13 @@ const ExampleItem = ({ example, item, collection }) => {
     );
   });
 
+  const itemRowClassName = classnames('flex collection-item-name relative items-center', {
+    'item-focused-in-tab': isExampleActive
+  });
+
   return (
     <StyledWrapper
-      className="flex collection-item-name relative items-center"
+      className={itemRowClassName}
       onClick={handleExampleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleRightClick}

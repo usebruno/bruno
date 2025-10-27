@@ -16,6 +16,7 @@ test.describe('Create Response Examples', () => {
       await expect(page.getByTestId('create-example-name-input')).toBeVisible();
       await expect(page.getByTestId('create-example-description-input')).toBeVisible();
 
+      await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Test Example from Bookmark');
       await page.getByTestId('create-example-description-input').fill('This is a test example created from response bookmark');
       await page.getByRole('button', { name: 'Create Example' }).click();
@@ -35,6 +36,8 @@ test.describe('Create Response Examples', () => {
 
       await expect(page.getByRole('button', { name: 'Create Example' })).toBeEnabled();
 
+      // Clear the pre-filled name to test validation
+      await page.getByTestId('create-example-name-input').clear();
       await page.getByRole('button', { name: 'Create Example' }).click();
       await expect(page.getByTestId('name-error')).toBeVisible();
       await expect(page.getByTestId('name-error')).toHaveText('Example name is required');
@@ -73,7 +76,9 @@ test.describe('Create Response Examples', () => {
       await page.getByRole('button', { name: 'Cancel' }).click();
 
       await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
-      await expect(page.getByTestId('create-example-name-input')).toHaveValue('');
+      // The name field should have the pre-filled default value
+      await expect(page.getByTestId('create-example-name-input')).toHaveValue('echo-request example');
+      // Description should still be empty
       await expect(page.getByTestId('create-example-description-input')).toHaveValue('');
       await page.getByRole('button', { name: 'Cancel' }).click();
     });
@@ -89,6 +94,7 @@ test.describe('Create Response Examples', () => {
       await page.getByTestId('send-arrow-icon').click();
       await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
 
+      await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Sidebar Test Example');
       await page.getByTestId('create-example-description-input').fill('This example should appear in the sidebar');
       await page.getByRole('button', { name: 'Create Example' }).click();

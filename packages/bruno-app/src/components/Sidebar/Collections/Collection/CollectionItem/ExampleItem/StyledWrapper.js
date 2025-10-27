@@ -43,6 +43,18 @@ const StyledWrapper = styled.div`
         }
       }
     }
+
+    &.item-focused-in-tab {
+      background: ${(props) => props.theme.sidebar.collection.item.bg};
+
+      &:hover {
+        background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
+      }
+
+      .indent-block {
+        border-right: ${(props) => props.theme.sidebar.collection.item.active.indentBorder} !important;
+      }
+    }
   }
 `;
 

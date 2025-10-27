@@ -15,6 +15,7 @@ test.describe('Response Example Menu Operations', () => {
     await test.step('Create example', async () => {
       await page.locator('#send-request').getByRole('img').nth(2).click();
       await page.getByTestId('response-bookmark-btn').click();
+      await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Clone');
       await page.getByRole('button', { name: 'Create Example' }).click();
 
@@ -42,6 +43,7 @@ test.describe('Response Example Menu Operations', () => {
     await test.step('Create example to delete', async () => {
       await page.getByTestId('send-arrow-icon').click();
       await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
+      await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Delete');
       await page.getByTestId('create-example-description-input').fill('This example will be deleted');
       await page.getByRole('button', { name: 'Create Example' }).click();
@@ -72,6 +74,7 @@ test.describe('Response Example Menu Operations', () => {
     await test.step('Create example to rename', async () => {
       await page.getByTestId('send-arrow-icon').click();
       await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
+      await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Rename');
       await page.getByTestId('create-example-description-input').fill('This example will be renamed');
       await page.getByRole('button', { name: 'Create Example' }).click();
