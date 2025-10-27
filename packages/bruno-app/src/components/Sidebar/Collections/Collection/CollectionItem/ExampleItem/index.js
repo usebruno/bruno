@@ -145,6 +145,7 @@ const ExampleItem = ({ example, item, collection }) => {
         style={{ paddingLeft: 8 }}
         onContextMenu={handleRightClick}
       >
+        <div style={{ width: 16, minWidth: 16 }}></div>
         <ExampleIcon size={16} color="currentColor" className="mr-2 text-gray-400 flex-shrink-0" />
         <span className="item-name truncate text-gray-700 dark:text-gray-300 ">
           {example.name}

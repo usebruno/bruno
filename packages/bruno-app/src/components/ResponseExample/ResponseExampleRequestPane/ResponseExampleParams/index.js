@@ -161,6 +161,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
                         checked={param.enabled !== false}
                         disabled={!editMode}
                         onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
+                        dataTestId={`query-param-${param.uid}-checkbox`}
                       />
                     </div>
                     <SingleLineEditor

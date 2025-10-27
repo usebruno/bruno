@@ -135,6 +135,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
                         checked={header.enabled === true}
                         disabled={!editMode}
                         onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
+                        dataTestId={`header-${header.uid}-checkbox`}
                       />
                     </div>
                     <SingleLineEditor

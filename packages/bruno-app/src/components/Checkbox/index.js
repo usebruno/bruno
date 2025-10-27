@@ -11,7 +11,7 @@ const Checkbox = ({
   id,
   name,
   value,
-  ...rest // Allow passing through additional HTML attributes like data-testid, aria-label, aria-labelledby, role, tabIndex, etc.
+  dataTestId = 'checkbox'
 }) => {
   const { theme } = useTheme();
 
@@ -33,7 +33,7 @@ const Checkbox = ({
           disabled={disabled}
           onChange={handleChange}
           className="checkbox-input"
-          {...rest}
+          data-testid={dataTestId}
         />
         <IconCheckMark className="checkbox-checkmark" color={theme.examples.checkbox.color} size={14} />
       </div>

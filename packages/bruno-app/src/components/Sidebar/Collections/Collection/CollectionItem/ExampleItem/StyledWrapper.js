@@ -50,10 +50,6 @@ const StyledWrapper = styled.div`
       &:hover {
         background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
       }
-
-      .indent-block {
-        border-right: ${(props) => props.theme.sidebar.collection.item.active.indentBorder} !important;
-      }
     }
   }
 `;
