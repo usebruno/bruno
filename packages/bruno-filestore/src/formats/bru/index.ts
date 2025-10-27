@@ -374,7 +374,7 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
       description: _.get(json, 'description', ''),
       // Examples don't have seq, settings, tags
       request: {
-        method: requestMethod,
+        method: _.get(json, 'request.method') || requestMethod,
         url: _.get(json, 'request.url'),
         headers: _.get(json, 'request.headers', []),
         body: _.get(json, 'request.body', {}),
@@ -410,6 +410,7 @@ export const jsonExampleToBru = (json: any) => {
       description: _.get(json, 'description', ''),
       // Examples don't have seq, settings, tags
       request: {
+        method: _.get(json, 'request.method'),
         url: _.get(json, 'request.url'),
         headers: _.get(json, 'request.headers', []),
         body: _.get(json, 'request.body', {}),

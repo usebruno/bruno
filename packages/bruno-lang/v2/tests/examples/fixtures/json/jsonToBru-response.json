@@ -13,6 +13,7 @@
       "description": "An example with response data",
       "request": {
         "url": "https://api.example.com/users/123",
+        "method": "get",
         "body": {
           "mode": "none"
         }

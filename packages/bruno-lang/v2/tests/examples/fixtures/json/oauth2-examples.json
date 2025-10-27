@@ -67,6 +67,7 @@
       "description": "Example accessing resource protected with OAuth2 authorization code flow",
       "request": {
         "url": "https://api.example.com/oauth/protected",
+        "method": "post",
         "body": {
           "mode": "json",
           "json": "{\n  \"action\": \"fetch\",\n  \"resource\": \"user_profile\"\n}"
@@ -98,6 +99,7 @@
       "description": "Example demonstrating OAuth2 token refresh flow",
       "request": {
         "url": "https://api.example.com/oauth/token",
+        "method": "post",
         "body": {
           "mode": "json",
           "json": "{\n  \"grant_type\": \"refresh_token\",\n  \"refresh_token\": \"refresh_token_xyz789\",\n  \"client_id\": \"my-client-id\",\n  \"client_secret\": \"my-client-secret\"\n}"
@@ -129,6 +131,7 @@
       "description": "Example using OAuth2 client credentials grant type",
       "request": {
         "url": "https://api.example.com/oauth/client-credentials",
+        "method": "post",
         "body": {
           "mode": "json",
           "json": "{\n  \"grant_type\": \"client_credentials\",\n  \"client_id\": \"service-account\",\n  \"client_secret\": \"service-secret-key\",\n  \"scope\": \"admin\"\n}"
@@ -155,6 +158,7 @@
       "description": "Example using OAuth2 password grant (username/password)",
       "request": {
         "url": "https://api.example.com/oauth/password",
+        "method": "post",
         "body": {
           "mode": "json",
           "json": "{\n  \"grant_type\": \"password\",\n  \"username\": \"user@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"client_id\": \"mobile-app\",\n  \"client_secret\": \"mobile-app-secret\"\n}"

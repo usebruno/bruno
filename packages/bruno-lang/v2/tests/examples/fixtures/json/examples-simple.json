@@ -14,6 +14,7 @@
       "description": "Example of getting a user by ID",
       "request": {
         "url": "https://api.example.com/users/123",
+        "method": "get",
         "body": {
           "mode": "none"
         }
@@ -32,6 +33,7 @@
       "description": "Example of creating a new user",
       "request": {
         "url": "https://api.example.com/users",
+        "method": "post",
         "body": {
           "mode": "json",
           "json": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@example.com\"\n}"

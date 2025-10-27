@@ -74,6 +74,7 @@
       "description": "Upload a file with comprehensive metadata",
       "request": {
         "url": "https://api.example.com/upload",
+        "method": "post",
         "body": {
           "mode": "multipartForm",
           "multipartForm": [
@@ -150,6 +151,7 @@
       "description": "Example with form-urlencoded body type",
       "request": {
         "url": "https://api.example.com/submit",
+        "method": "post",
         "body": {
           "mode": "formUrlEncoded",
           "formUrlEncoded": [

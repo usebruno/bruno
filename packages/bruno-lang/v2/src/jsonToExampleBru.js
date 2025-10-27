@@ -23,7 +23,7 @@ const indentStringCustom = (str, spaces = 4) => {
 // Convert JSON to example BRU format with proper colon syntax
 const jsonToExampleBru = (json) => {
   const { name, description, request, response } = json;
-  const { url, params, headers, body } = request || {};
+  const { url, method, params, headers, body } = request || {};
   const { headers: responseHeaders, status: responseStatus, statusText: responseStatusText, body: responseBody } = response || {};
 
   let bru = '';
@@ -43,7 +43,12 @@ const jsonToExampleBru = (json) => {
     bru += `  url: ${url}\n`;
   }
 
-  // Add mode field inside request block, right after url
+  // Add method field right after url
+  if (method) {
+    bru += `  method: ${method}\n`;
+  }
+
+  // Add mode field inside request block, right after method
   if (request && request.body && request.body.mode) {
     bru += `  mode: ${request.body.mode}\n`;
   }

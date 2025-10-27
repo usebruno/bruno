@@ -52,8 +52,9 @@ const exampleGrammar = ohm.grammar(`Example {
 
   // Request block
   request = nl* "request" st* ":" st* "{" nl* requestcontent nl* "}"
-  requestcontent = (stnl* (requesturl | requestmode | requestparamspath | requestparamsquery | requestheaders | requestbodies))*
+  requestcontent = (stnl* (requesturl | requestmethod | requestmode | requestparamspath | requestparamsquery | requestheaders | requestbodies))*
   requesturl = "url" st* ":" st* valuechar* stnl*
+  requestmethod = "method" st* ":" st* valuechar* stnl*
   requestmode = "mode" st* ":" st* valuechar* stnl*
   requestbody = "body" st* ":" st* "{" nl* textblock tagend
   requestparamspath = "params:path" st* ":" st* dictionary
@@ -374,10 +375,21 @@ const sem = exampleGrammar.createSemantics().addAttribute('ast', {
       delete result._mode;
     }
 
-    return result;
+    // Reorder properties to maintain consistent order: url, method, mode, params, headers, body
+    const orderedResult = {};
+    if (result.url !== undefined) orderedResult.url = result.url;
+    if (result.method !== undefined) orderedResult.method = result.method;
+    if (result.params && result.params.length > 0) orderedResult.params = result.params;
+    if (result.headers !== undefined) orderedResult.headers = result.headers;
+    if (result.body !== undefined) orderedResult.body = result.body;
+
+    return orderedResult;
   },
   requesturl(_1, _2, _3, _4, value, _5) {
     return { url: value.sourceString ? value.sourceString.trim() : '' };
+  },
+  requestmethod(_1, _2, _3, _4, value, _5) {
+    return { method: value.sourceString ? value.sourceString.trim() : '' };
   },
   requestmode(_1, _2, _3, _4, value, _5) {
     return { mode: value.sourceString ? value.sourceString.trim() : '' };

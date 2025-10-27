@@ -13,6 +13,7 @@
       "description": "First example",
       "request": {
         "url": "https://api.example.com/example1",
+        "method": "get",
         "body": {
           "mode": "none"
         }
@@ -23,6 +24,7 @@
       "description": "Second example with JSON body",
       "request": {
         "url": "https://api.example.com/example2",
+        "method": "get",
         "body": {
           "mode": "json",
           "json": "{\n  \"data\": \"test2\"\n}"

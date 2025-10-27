@@ -36,6 +36,7 @@ example {
   
   request: {
     url: https://api.example.com/data?id=123
+    method: get
     mode: none
     headers: {
       accept: "application/json"
@@ -67,6 +68,7 @@ example {
   
   request: {
     url: https://api.example.com/data?page=1&limit=20&sort=name&order=asc&filter[status]=active&filter[type]=premium
+    method: get
     mode: none
     headers: {
       accept: "application/json",
@@ -115,6 +117,7 @@ example {
   
   request: {
     url: https://api.example.com/data/text
+    method: get
     mode: none
     headers: {
       accept: "text/plain"
@@ -144,6 +147,7 @@ example {
   
   request: {
     url: https://api.example.com/data/xml
+    method: get
     mode: none
     headers: {
       accept: "application/xml"
@@ -193,6 +197,7 @@ example {
   
   request: {
     url: https://api.example.com/graphql
+    method: post
     mode: graphql
     headers: {
       content-type: "application/json",
@@ -249,6 +254,7 @@ example {
   
   request: {
     url: https://sparql.example.com/query
+    method: post
     mode: sparql
     headers: {
       content-type: "application/sparql-query"

@@ -111,6 +111,7 @@
       "description": "Creates a new user with minimal required fields",
       "request": {
         "url": "https://api.example.com/users",
+        "method": "post",
         "body": {
           "mode": "json",
           "json": "{\n  \"username\": \"newuser\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
@@ -142,6 +143,7 @@
       "description": "Creates a user with complete profile information and nested data",
       "request": {
         "url": "https://api.example.com/users",
+        "method": "post",
         "body": {
           "mode": "json",
           "json": "{\n  \"username\": \"developer\",\n  \"email\": \"dev@example.com\",\n  \"password\": \"DevPass2024!\",\n  \"profile\": {\n    \"firstName\": \"Jane\",\n    \"lastName\": \"Developer\",\n    \"bio\": \"Software engineer passionate about APIs\",\n    \"location\": {\n      \"city\": \"San Francisco\",\n      \"country\": \"USA\",\n      \"timezone\": \"America/Los_Angeles\"\n    },\n    \"social\": {\n      \"github\": \"jandeveloper\",\n      \"twitter\": \"@jane_dev\"\n    }\n  },\n  \"skills\": [\"JavaScript\", \"Node.js\", \"React\", \"API Design\"],\n  \"experience\": 5,\n  \"preferences\": {\n    \"theme\": \"dark\",\n    \"language\": \"en\",\n    \"notifications\": {\n      \"email\": true,\n      \"push\": true,\n      \"sms\": false\n    }\n  }\n}"
@@ -178,6 +180,7 @@
       "description": "Example with XML format and complex structure",
       "request": {
         "url": "https://api.example.com/users/xml",
+        "method": "post",
         "body": {
           "mode": "xml",
           "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<user>\n  <username>xmluser</username>\n  <email>xml@example.com</email>\n  <profile>\n    <firstName>XML</firstName>\n    <lastName>User</lastName>\n  </profile>\n</user>"

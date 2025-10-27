@@ -13,6 +13,7 @@
       "description": "A simple example request",
       "request": {
         "url": "https://api.example.com/example",
+        "method": "post",
         "body": {
           "mode": "json",
           "json": "{\n  \"data\": \"test\"\n}"

@@ -24,6 +24,7 @@
       "description": "An example using JSON format",
       "request": {
         "url": "https://api.example.com/json",
+        "method": "post",
         "body": {
           "mode": "json",
           "json": "{\n  \"format\": \"json\",\n  \"data\": {\n    \"name\": \"JSON Example\",\n    \"value\": 123\n  }\n}"
@@ -43,6 +44,7 @@
       "description": "An example using XML format",
       "request": {
         "url": "https://api.example.com/xml",
+        "method": "post",
         "body": {
           "mode": "xml",
           "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<data>\n  <format>xml</format>\n  <name>XML Example</name>\n  <value>456</value>\n</data>"
@@ -62,6 +64,7 @@
       "description": "An example using text format",
       "request": {
         "url": "https://api.example.com/text",
+        "method": "post",
         "body": {
           "mode": "text",
           "text": "Plain text data\nFormat: text\nName: Text Example\nValue: 789"

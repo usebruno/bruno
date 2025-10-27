@@ -54,6 +54,7 @@
       "description": "Basic GET request with minimal data",
       "request": {
         "url": "https://api.example.com/data?id=123",
+        "method": "get",
         "body": {
           "mode": "none"
         },
@@ -79,6 +80,7 @@
       "description": "GET request with complex query parameters",
       "request": {
         "url": "https://api.example.com/data?page=1&limit=20&sort=name&order=asc&filter[status]=active&filter[type]=premium",
+        "method": "get",
         "body": {
           "mode": "none"
         },
@@ -109,6 +111,7 @@
       "description": "Request returning plain text response",
       "request": {
         "url": "https://api.example.com/data/text",
+        "method": "get",
         "body": {
           "mode": "none"
         },
@@ -134,6 +137,7 @@
       "description": "Example with complex XML response",
       "request": {
         "url": "https://api.example.com/data/xml",
+        "method": "get",
         "body": {
           "mode": "none"
         },
@@ -159,6 +163,7 @@
       "description": "Example with GraphQL query body",
       "request": {
         "url": "https://api.example.com/graphql",
+        "method": "post",
         "body": {
           "mode": "graphql",
           "graphql": {
@@ -192,6 +197,7 @@
       "description": "Example with SPARQL query",
       "request": {
         "url": "https://sparql.example.com/query",
+        "method": "post",
         "body": {
           "mode": "sparql",
           "sparql": "SELECT ?name ?email WHERE {\n  ?person <http://example.org/name> ?name .\n  ?person <http://example.org/email> ?email .\n  ?person <http://example.org/age> ?age .\n  FILTER(?age > 18)\n}"
