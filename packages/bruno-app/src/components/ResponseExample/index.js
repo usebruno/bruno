@@ -11,7 +11,7 @@ import StyledWrapper from './StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
-const MIN_TOP_PANE_HEIGHT = 150;
+const MIN_TOP_PANE_HEIGHT = 300;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
 const ResponseExample = ({ item, collection, example }) => {
