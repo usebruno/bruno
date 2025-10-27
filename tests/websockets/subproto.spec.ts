@@ -10,7 +10,6 @@ test.describe.serial('subprotocol tests', () => {
     // Open the needed request and keep the headers tab in focus for modifications
     await page.locator('#sidebar-collection-name').click();
     await page.getByTitle(BRU_REQ_NAME).click();
-    await page.pause();
     await page.locator('[role=tab].headers').click();
 
     // Check if the original / correct protocol is in place and then send a request
