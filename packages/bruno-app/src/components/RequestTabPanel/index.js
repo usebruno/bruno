@@ -113,29 +113,15 @@ const RequestTabPanel = () => {
   };
 
   const handleMouseUp = (e) => {
-    if (dragging && mainSectionRef.current) {
+    if (dragging) {
       e.preventDefault();
       setDragging(false);
-      if (!isVerticalLayout) {
-        const mainRect = mainSectionRef.current.getBoundingClientRect();
-        setLeftPaneWidth(e.clientX - mainRect.left);
-      }
     }
   };
 
   const handleDragbarMouseDown = (e) => {
     e.preventDefault();
     setDragging(true);
-
-    if (isVerticalLayout) {
-      const dragBar = e.currentTarget;
-      const dragBarRect = dragBar.getBoundingClientRect();
-      dragOffset.current.y = e.clientY - dragBarRect.top;
-    } else {
-      const dragBar = e.currentTarget;
-      const dragBarRect = dragBar.getBoundingClientRect();
-      dragOffset.current.x = e.clientX - dragBarRect.left;
-    }
   };
 
   useEffect(() => {
