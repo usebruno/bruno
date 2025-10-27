@@ -20,3 +20,43 @@ body:json {
 assert {
   res.body: eq '"ok"'
 }
+
+example {
+  name: test JSON string with quotes response example
+  
+  request: {
+    url: {{httpfaker}}/api/echo/custom
+    mode: json
+    body:json: {
+      {
+        "headers": { "content-type": "application/json" },
+        "contentJSON": "\"ok\""
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      server: nginx/1.26.0
+      date: Mon, 27 Oct 2025 22:36:51 GMT
+      content-type: application/json
+      transfer-encoding: chunked
+      connection: keep-alive
+      strict-transport-security: max-age=63072000; includeSubdomains
+      x-frame-options: DENY
+      x-content-type-options: nosniff
+    }
+  
+    status: {
+      code: 200
+      text: 
+    }
+  
+    body: {
+      type: json
+      content: '''
+        "ok"
+      '''
+    }
+  }
+}

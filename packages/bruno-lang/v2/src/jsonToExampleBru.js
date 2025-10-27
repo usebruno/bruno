@@ -210,8 +210,8 @@ const jsonToExampleBru = (json) => {
       }
 
       if (responseBody.content !== undefined) {
-        // let contentString = typeof responseBodyObj.content === 'string' ? responseBodyObj.content : JSON.stringify(responseBodyObj.content, null, 2);
-        bru += `    content: '''\n${indentStringCustom(responseBody.content, 6)}\n    '''\n`;
+        let contentString = typeof responseBody.content === 'string' ? responseBody.content : JSON.stringify(responseBody.content, null, 2);
+        bru += `    content: '''\n${indentStringCustom(contentString, 6)}\n    '''\n`;
       }
 
       bru += '  }\n\n';

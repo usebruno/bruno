@@ -20,3 +20,43 @@ body:json {
 assert {
   res.body: eq "this is encoded with utf16"
 }
+
+example {
+  name: test plain text utf16 response example
+  
+  request: {
+    url: {{httpfaker}}/api/echo/custom
+    mode: json
+    body:json: {
+      {
+        "headers": { "content-type": "text/plain; charset=utf-16" },
+        "contentBase64": "dABoAGkAcwAgAGkAcwAgAGUAbgBjAG8AZABlAGQAIAB3AGkAdABoACAAdQB0AGYAMQA2AA=="
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      server: nginx/1.26.0
+      date: Mon, 27 Oct 2025 22:38:02 GMT
+      content-type: text/plain; charset=utf-16
+      transfer-encoding: chunked
+      connection: keep-alive
+      strict-transport-security: max-age=63072000; includeSubdomains
+      x-frame-options: DENY
+      x-content-type-options: nosniff
+    }
+  
+    status: {
+      code: 200
+      text: 
+    }
+  
+    body: {
+      type: text
+      content: '''
+        this is encoded with utf16
+      '''
+    }
+  }
+}

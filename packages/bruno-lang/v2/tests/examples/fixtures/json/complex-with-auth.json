@@ -131,7 +131,10 @@
       "response": {
         "status": "201",
         "statusText": "OK",
-        "body": { "type": "json", "content": "\\\"id\\\": 100,\\n\\\"username\\\": \\\"newuser\\\",\\n\\\"email\\\": \\\"newuser@example.com\\\",\\n\\\"created_at\\\": \\\"2024-01-15T10:30:00Z\\\",\\n\\\"status\\\": \\\"active\\\"" }
+        "body": {
+          "type": "json",
+          "content": "{\n  \"id\": 100,\n  \"username\": \"newuser\",\n  \"email\": \"newuser@example.com\",\n  \"created_at\": \"2024-01-15T10:30:00Z\",\n  \"status\": \"active\"\n}"
+        }
       }
     },
     {
@@ -164,7 +167,10 @@
       "response": {
         "status": "201",
         "statusText": "OK",
-        "body": { "type": "json", "content": "\\\"id\\\": 101,\\n\\\"username\\\": \\\"developer\\\",\\n\\\"email\\\": \\\"dev@example.com\\\",\\n\\\"profile\\\": {\\n  \\\"firstName\\\": \\\"Jane\\\",\\n  \\\"lastName\\\": \\\"Developer\\\",\\n  \\\"bio\\\": \\\"Software engineer passionate about APIs\\\",\\n  \\\"location\\\": {\\n    \\\"city\\\": \\\"San Francisco\\\",\\n    \\\"country\\\": \\\"USA\\\",\\n    \\\"timezone\\\": \\\"America/Los_Angeles\\\"\\n  }\\n},\\n\\\"skills\\\": [\\\"JavaScript\\\", \\\"Node.js\\\", \\\"React\\\", \\\"API Design\\\"],\\n\\\"experience\\\": 5,\\n\\\"created_at\\\": \\\"2024-01-15T12:45:30Z\\\",\\n\\\"status\\\": \\\"active\\\",\\n\\\"verified\\\": false" }
+        "body": {
+          "type": "json",
+          "content": "{\n  \"id\": 101,\n  \"username\": \"developer\",\n  \"email\": \"dev@example.com\",\n  \"profile\": {\n    \"firstName\": \"Jane\",\n    \"lastName\": \"Developer\",\n    \"bio\": \"Software engineer passionate about APIs\",\n    \"location\": {\n      \"city\": \"San Francisco\",\n      \"country\": \"USA\",\n      \"timezone\": \"America/Los_Angeles\"\n    }\n  },\n  \"skills\": [\"JavaScript\", \"Node.js\", \"React\", \"API Design\"],\n  \"experience\": 5,\n  \"created_at\": \"2024-01-15T12:45:30Z\",\n  \"status\": \"active\",\n  \"verified\": false\n}"
+        }
       }
     },
     {
@@ -192,7 +198,10 @@
       "response": {
         "status": "201",
         "statusText": "OK",
-        "body": { "type": "xml", "content": "<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<response>\\n  <id>102</id>\\n  <status>created</status>\\n  <user>\\n    <username>xmluser</username>\\n    <email>xml@example.com</email>\\n  </user>\\n</response>" }
+        "body": {
+          "type": "xml",
+          "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<response>\n  <id>102</id>\n  <status>created</status>\n  <user>\n    <username>xmluser</username>\n    <email>xml@example.com</email>\n  </user>\n</response>"
+        }
       }
     }
   ]

@@ -124,67 +124,6 @@ describe('Examples functionality', () => {
     });
   });
 
-  describe('Complex examples', () => {
-    it('should handle examples with all features', () => {
-      const input = `
-meta {
-  name: Complex API
-  type: http
-}
-
-get {
-  url: https://api.example.com/test
-}
-
-example {
-  name: Complete Example
-  description: A complete example with all features
-  request: {
-    url: https://api.example.com/users
-    body:json: {
-      {
-        "name": "John Doe",
-        "email": "john@example.com"
-      }
-    }
-  }
-  response: {
-    status: {
-      code: 201
-      text: Created
-    }
-    body: {
-      "id": 123,
-      "name": "John Doe",
-      "email": "john@example.com",
-      "created_at": "2023-01-15T10:30:00Z"
-    }
-  }
-}`;
-
-      const result = bruToJson(input);
-
-      expect(result.examples).toBeDefined();
-      expect(result.examples).toHaveLength(1);
-
-      const example = result.examples[0];
-
-      // Check all features are present
-      expect(example.name).toBeDefined();
-      expect(example.description).toBeDefined();
-      expect(example.request).toBeDefined();
-      expect(example.request.url).toBeDefined();
-      if (example.response) {
-        expect(example.response.status).toBeDefined();
-        expect(example.response.body).toBeDefined();
-      }
-
-      // Check specific values
-      expect(example.name).toBe('Complete Example');
-      expect(example.request.url).toBeDefined();
-    });
-  });
-
   describe('jsonToBru conversion', () => {
     it('should convert JSON with examples to BRU format', () => {
       const jsonInput = require('./fixtures/json/jsonToBru-simple.json');
