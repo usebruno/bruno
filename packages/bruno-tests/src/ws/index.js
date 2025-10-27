@@ -43,6 +43,8 @@ wss.on('connection', function connection(ws, request) {
   });
 });
 
+const ACCEPTED_SUB_PROTOS = ['soap'];
+
 const wsRouter = (request, socket, head) => {
   socket.on('error', onSocketError);
 
@@ -56,7 +58,8 @@ const wsRouter = (request, socket, head) => {
 
   if (request.url == '/ws/sub-proto') {
     const subproto = request.headers['sec-websocket-protocol'] || request.headers['Sec-WebSocket-Protocol'];
-    if (subproto != 'soap') {
+    const hasAcceptedProtocols = subproto.split(',').some((d) => ACCEPTED_SUB_PROTOS.includes(d));
+    if (!hasAcceptedProtocols) {
       const message = 'Unsupported WebSocket subprotocol';
       socket.write('HTTP/1.1 400 Bad Request\r\n'
         + 'Content-Type: text/plain\r\n'

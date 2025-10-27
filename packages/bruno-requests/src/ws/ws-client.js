@@ -51,7 +51,13 @@ class WsClient {
 
     try {
       // Create WebSocket connection
-      const protocols = [].concat([headers['Sec-WebSocket-Protocol'], headers['sec-websocket-protocol']]).filter(Boolean);
+      // Note: unlike the standard Websocket constructor the `ws` library doesn't support adding Protocols as a single string
+      // and instead needs it broken down manually, make sure this tested with multiple protocols again.
+      const protocols = [].concat([headers['Sec-WebSocket-Protocol'], headers['sec-websocket-protocol']])
+        .filter(Boolean)
+        .map((d) => d.split(','))
+        .flat().map((d) => d.trim());
+
       const protocolVersion = headers['Sec-WebSocket-Version'] || headers['sec-websocket-version'];
 
       const wsOptions = {
