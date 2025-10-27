@@ -9,7 +9,6 @@ const SearchInput = ({
   onChange,
   ...props
 }) => {
-
   const handleChange = (e) => {
     setSearchText(e.target.value);
     if (onChange) {
