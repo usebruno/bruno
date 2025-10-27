@@ -17,6 +17,18 @@ const ResponseBookmark = ({ item, collection }) => {
     return null;
   }
 
+  // Generate initial name for the example
+  const getInitialExampleName = () => {
+    const requestName = item.name || 'request';
+    const existingExamples = item.draft?.examples || item.examples || [];
+    const exampleCount = existingExamples.length;
+
+    if (exampleCount === 0) {
+      return `${requestName} example`;
+    }
+    return `${requestName} example (${exampleCount})`;
+  };
+
   const handleSaveClick = () => {
     if (!response || response.error) {
       toast.error('No valid response to save as example');
@@ -73,6 +85,7 @@ const ResponseBookmark = ({ item, collection }) => {
         onClose={() => setShowSaveResponseExampleModal(false)}
         onSave={saveAsExample}
         title="Save Response as Example"
+        initialName={getInitialExampleName()}
       />
     </>
   );

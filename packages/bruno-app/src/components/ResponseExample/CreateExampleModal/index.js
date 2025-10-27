@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 
-const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response Example' }) => {
+const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response Example', initialName = '' }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState('');
@@ -37,11 +37,11 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
 
   useEffect(() => {
     if (isOpen) {
-      setName('');
+      setName(initialName);
       setDescription('');
       setNameError('');
     }
-  }, [isOpen]);
+  }, [isOpen, initialName]);
 
   if (!isOpen) {
     return null;
