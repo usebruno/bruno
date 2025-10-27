@@ -5,13 +5,20 @@ import Modal from 'components/Modal';
 import jsyaml from 'js-yaml';
 import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
-import { isOpenApiSpec, convertOpenapiToBruno } from 'utils/importers/openapi-collection';
+import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
+import { wsdlToBruno } from '@usebruno/converters';
 import ImportSettings from 'components/Sidebar/ImportSettings';
 import FullscreenLoader from './FullscreenLoader/index';
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
+
+  // Handle WSDL files - return as plain text
+  if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
+    return text;
+  }
 
   try {
     if (file.type === 'application/json' || file.name.endsWith('.json')) {
@@ -79,8 +86,9 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       }
 
       let collection;
-
-      if (isPostmanCollection(data)) {
+      if (isWSDLCollection(data)) {
+        collection = await wsdlToBruno(data);
+      } else if (isPostmanCollection(data)) {
         collection = await postmanToBruno(data);
       } else if (isInsomniaCollection(data)) {
         collection = convertInsomniaToBruno(data);
@@ -120,7 +128,17 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     return <FullscreenLoader isLoading={isLoading} />;
   }
 
-  const acceptedFileTypes = ['.json', '.yaml', '.yml', 'application/json', 'application/yaml', 'application/x-yaml'];
+  const acceptedFileTypes = [
+    '.json',
+    '.yaml',
+    '.yml',
+    '.wsdl',
+    'application/json',
+    'application/yaml',
+    'application/x-yaml',
+    'text/xml',
+    'application/xml'
+  ];
 
   if (showImportSettings) {
     return (
@@ -170,7 +188,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                 </button>
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, Postman, Insomnia, and OpenAPI v3 formats
+                Supports Bruno, Postman, Insomnia, OpenAPI v3, and WSDL formats
               </p>
             </div>
           </div>

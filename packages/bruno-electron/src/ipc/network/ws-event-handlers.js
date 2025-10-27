@@ -27,7 +27,17 @@ const { setAuthHeaders } = require('./prepare-request');
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
+  const brunoConfig = get(collection, 'brunoConfig', {});
   const headers = {};
+
+  const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  if (requestTreePath && requestTreePath.length > 0) {
+    mergeHeaders(collection, request, requestTreePath);
+    mergeScripts(collection, request, requestTreePath, scriptFlow);
+    mergeVars(collection, request, requestTreePath);
+    mergeAuth(collection, request, requestTreePath);
+  }
 
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name?.toLowerCase() === 'content-type') {

@@ -22,7 +22,6 @@ const safeParseJSON = (jsonString, context = 'JSON string') => {
   }
 };
 
-
 class WsClient {
   messageQueues = {};
   activeConnections = new Map();

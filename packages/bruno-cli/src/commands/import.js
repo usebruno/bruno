@@ -3,7 +3,7 @@ const path = require('path');
 const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
-const { openApiToBruno } = require('@usebruno/converters');
+const { openApiToBruno, wsdlToBruno } = require('@usebruno/converters');
 const { exists, isDirectory, sanitizeName } = require('../utils/filesystem');
 const { createCollectionFromBrunoObject } = require('../utils/collection');
 
@@ -15,7 +15,7 @@ const builder = (yargs) => {
     .positional('type', {
       describe: 'Type of collection to import',
       type: 'string',
-      choices: ['openapi']
+      choices: ['openapi', 'wsdl']
     })
     .option('source', {
       alias: 's',
@@ -59,7 +59,9 @@ const builder = (yargs) => {
     .example('$0 import openapi --source api.yml --output-file ~/Desktop/my-collection.json --collection-name "My API"')
     .example('$0 import openapi -s api.yml -f ~/Desktop/my-collection.json -n "My API"')
     .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --group-by path')
-    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -g tags');
+    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -g tags')
+    .example('$0 import wsdl --source service.wsdl --output ~/Desktop/soap-collection --collection-name "SOAP Service"')
+    .example('$0 import wsdl -s https://example.com/service.wsdl -o ~/Desktop -n "Remote SOAP Service"');
 };
 
 const isUrl = (str) => {
@@ -139,12 +141,68 @@ const readOpenApiFile = async (source, options = {}) => {
   }
 };
 
+const readWSDLFile = async (source, options = {}) => {
+  try {
+    let content;
+
+    if (isUrl(source)) {
+      // Handle URL input
+      console.log(chalk.yellow(`Fetching WSDL from URL: ${source}`));
+      try {
+        const axiosOptions = {
+          timeout: 30000, // 30 second timeout
+          maxContentLength: 10 * 1024 * 1024,
+          validateStatus: (status) => status >= 200 && status < 300
+        };
+
+        // Skip SSL certificate validation if insecure flag is set
+        if (options.insecure) {
+          console.log(chalk.yellow('Warning: SSL certificate verification is disabled. Use with caution.'));
+          axiosOptions.httpsAgent = new (require('https')).Agent({ rejectUnauthorized: false });
+        }
+
+        const response = await axios.get(source, axiosOptions);
+        content = response.data;
+      } catch (error) {
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('Request timed out. The server took too long to respond.');
+        } else if (error.code === 'CERT_HAS_EXPIRED' || error.code === 'DEPTH_ZERO_SELF_SIGNED_CERT'
+          || error.code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
+          throw new Error(`SSL Certificate error: ${error.code}. Try using --insecure if you trust this source.`);
+        } else if (error.response) {
+          throw new Error(`Failed to fetch from URL: ${error.response.status} ${error.response.statusText}`);
+        } else if (error.request) {
+          throw new Error(`No response received from server. Check the URL and your network connection.`);
+        } else {
+          throw new Error(`Error fetching URL: ${error.message}`);
+        }
+      }
+    } else {
+      // Handle file input
+      if (!await exists(source)) {
+        throw new Error(`File does not exist: ${source}`);
+      }
+      content = fs.readFileSync(source, 'utf8');
+    }
+
+    // WSDL files are XML, so we return the content as a string
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    throw new Error('WSDL content must be a string');
+  } catch (error) {
+    // Let the specific error handling from above propagate
+    throw error;
+  }
+};
+
 const handler = async (argv) => {
   try {
     const { type, source, output, outputFile, collectionName, insecure, groupBy } = argv;
 
-    if (!type || type !== 'openapi') {
-      console.error(chalk.red('Only OpenAPI import is supported currently'));
+    if (!type || !['openapi', 'wsdl'].includes(type)) {
+      console.error(chalk.red('Only OpenAPI and WSDL imports are supported currently'));
       process.exit(1);
     }
 
@@ -158,19 +216,37 @@ const handler = async (argv) => {
       process.exit(1);
     }
 
-    console.log(chalk.yellow(`Reading OpenAPI specification from ${source}...`));
-    
-    const openApiSpec = await readOpenApiFile(source, { insecure });
-    
-    if (!openApiSpec) {
-      console.error(chalk.red('Failed to parse OpenAPI specification'));
-      process.exit(1);
-    }
+    let brunoCollection;
 
-    console.log(chalk.yellow('Converting OpenAPI specification to Bruno format...'));
-    
-    // Convert OpenAPI to Bruno format
-    let brunoCollection = openApiToBruno(openApiSpec, { groupBy });
+    if (type === 'openapi') {
+      console.log(chalk.yellow(`Reading OpenAPI specification from ${source}...`));
+
+      const openApiSpec = await readOpenApiFile(source, { insecure });
+
+      if (!openApiSpec) {
+        console.error(chalk.red('Failed to parse OpenAPI specification'));
+        process.exit(1);
+      }
+
+      console.log(chalk.yellow('Converting OpenAPI specification to Bruno format...'));
+
+      // Convert OpenAPI to Bruno format
+      brunoCollection = openApiToBruno(openApiSpec, { groupBy });
+    } else if (type === 'wsdl') {
+      console.log(chalk.yellow(`Reading WSDL from ${source}...`));
+
+      const wsdlContent = await readWSDLFile(source, { insecure });
+
+      if (!wsdlContent) {
+        console.error(chalk.red('Failed to read WSDL file'));
+        process.exit(1);
+      }
+
+      console.log(chalk.yellow('Converting WSDL to Bruno format...'));
+
+      // Convert WSDL to Bruno format
+      brunoCollection = await wsdlToBruno(wsdlContent);
+    }
     
     // Override collection name if provided
     if (collectionName) {
@@ -235,5 +311,6 @@ module.exports = {
   builder,
   handler,
   isUrl,
-  readOpenApiFile
+  readOpenApiFile,
+  readWSDLFile
 }; 
