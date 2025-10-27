@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import IconEdit from 'components/Icons/IconEdit';
 import { IconCode, IconDeviceFloppy } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 import TruncatedText from 'components/TruncatedText';
-import { findItemInCollection } from 'utils/collections/index';
 import { updateResponseExampleName, updateResponseExampleDescription } from 'providers/ReduxStore/slices/collections';
 import get from 'lodash/get';
 
@@ -21,7 +20,10 @@ const ResponseExampleTopBar = ({
 }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
-  const example = item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid) : get(item, 'examples', []).find((e) => e.uid === exampleUid);
+
+  const example = useMemo(() => {
+    return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid) : get(item, 'examples', []).find((e) => e.uid === exampleUid);
+  }, [item.draft, item.examples, item, exampleUid]);
 
   const handleGenerateCode = () => {
     if (onGenerateCode) {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { get, cloneDeep, isArray } from 'lodash';
+import React, { useState, useMemo } from 'react';
+import { get, cloneDeep } from 'lodash';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -18,9 +18,11 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
   const { storedTheme } = useTheme();
 
   // Get file data from the specific example
-  const rawParams = item.draft
-    ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file
-    : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file;
+  const rawParams = useMemo(() => {
+    return item.draft
+      ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file
+      : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file;
+  }, [item.draft, item.examples, item, exampleUid]);
 
   // Ensure params is always an array
   const params = Array.isArray(rawParams) ? rawParams : [];

@@ -18,7 +18,7 @@ const ExampleTab = ({ tab, collection }) => {
 
   // Get item and example data
   const item = findItemInCollection(collection, tab.itemUid);
-  const example = item?.examples?.find((ex) => ex.uid === tab.uid);
+  const example = useMemo(() => item?.examples?.find((ex) => ex.uid === tab.uid), [item?.examples, tab.uid]);
 
   const hasChanges = useMemo(() => hasExampleChanges(item, tab.uid), [item, tab.uid]);
 
