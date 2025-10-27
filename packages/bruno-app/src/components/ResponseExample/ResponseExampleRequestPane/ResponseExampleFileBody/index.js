@@ -18,14 +18,11 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
   const { storedTheme } = useTheme();
 
   // Get file data from the specific example
-  const rawParams = useMemo(() => {
+  const params = useMemo(() => {
     return item.draft
-      ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file
-      : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file;
+      ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file || []
+      : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file || [];
   }, [item.draft, item.examples, item, exampleUid]);
-
-  // Ensure params is always an array
-  const params = Array.isArray(rawParams) ? rawParams : [];
 
   const [enabledFileUid, setEnableFileUid] = useState(params.length > 0 ? params[0].uid : '');
 

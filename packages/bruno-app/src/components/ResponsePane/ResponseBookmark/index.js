@@ -74,7 +74,7 @@ const ResponseBookmark = ({ item, collection }) => {
       name: name,
       status: response.status || 200,
       headers: headersArray,
-      body: response.data || response.dataBuffer || '',
+      body: response.data,
       description: description
     };
 

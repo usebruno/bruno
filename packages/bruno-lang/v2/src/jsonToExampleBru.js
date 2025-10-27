@@ -202,7 +202,7 @@ const jsonToExampleBru = (json) => {
     }
 
     // Response body (stays as simple text)
-    if (responseBody) {
+    if (responseBody || responseBody === null) {
       // Ensure responseBody is a string, not an object
       const bodyString = typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody, null, 2);
       bru += `  body: {\n${indentStringCustom(bodyString, 4)}\n  }\n\n`;
