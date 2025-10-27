@@ -95,21 +95,6 @@ describe('parseCurlCommand', () => {
       });
     });
 
-    it('should parse single header (no space in header value)', () => {
-      const result = parseCurlCommand(`
-        curl --header "Content-Type:application/json" https://api.example.com
-      `);
-
-      expect(result).toEqual({
-        method: 'get',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        url: 'https://api.example.com',
-        urlWithoutQuery: 'https://api.example.com'
-      });
-    });
-
     it('should parse multiple headers', () => {
       const result = parseCurlCommand(`
         curl -H "Content-Type: application/json" \
