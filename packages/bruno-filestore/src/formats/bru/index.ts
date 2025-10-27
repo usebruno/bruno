@@ -388,7 +388,10 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
         })),
         status: String(_.get(json, 'response.status', '200')),
         statusText: _.get(json, 'response.statusText', 'OK'),
-        body: typeof _.get(json, 'response.body') !== 'string' ? JSON.stringify(_.get(json, 'response.body'), null, 2) : _.get(json, 'response.body', '')
+        body: {
+          type: _.get(json, 'response.body.type', 'json'),
+          content: _.get(json, 'response.body.content', '')
+        }
       }
     } as any;
 

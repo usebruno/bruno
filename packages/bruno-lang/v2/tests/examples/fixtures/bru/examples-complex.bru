@@ -41,9 +41,14 @@ example {
     }
 
     body: {
-      "id": 1,
-      "format": "json",
-      "created": true
+      type: json
+      content: '''
+        {
+          "id": 1,
+          "format": "json",
+          "created": true
+        }
+      '''
     }
   }
 }
@@ -70,12 +75,15 @@ example {
     }
 
     body: {
-      <?xml version="1.0" encoding="UTF-8"?>
-      <response>
-        <id>2</id>
-        <format>xml</format>
-        <created>true</created>
-      </response>
+      type: xml
+      content: '''
+        <?xml version="1.0" encoding="UTF-8"?>
+        <response>
+          <id>2</id>
+          <format>xml</format>
+          <created>true</created>
+        </response>
+      '''
     }
   }
 }
@@ -101,9 +109,12 @@ example {
     }
     
     body: {
-      Success: true
-      Format: text
-      ID: 3
+      type: text
+      content: '''
+        Success: true
+        Format: text
+        ID: 3
+      '''
     }
   }
 }

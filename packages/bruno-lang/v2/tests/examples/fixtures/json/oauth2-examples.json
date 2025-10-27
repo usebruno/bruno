@@ -87,7 +87,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"user\": {\n    \"id\": \"123\",\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"scopes\": [\"read\", \"write\"]\n  },\n  \"token\": {\n    \"access_token\": \"access_token_abc123\",\n    \"expires_in\": 3600,\n    \"token_type\": \"Bearer\"\n  }\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"user\\\": {\\n    \\\"id\\\": \\\"123\\\",\\n    \\\"name\\\": \\\"John Doe\\\",\\n    \\\"email\\\": \\\"john@example.com\\\",\\n    \\\"scopes\\\": [\\\"read\\\", \\\"write\\\"]\\n  },\\n  \\\"token\\\": {\\n    \\\"access_token\\\": \\\"access_token_abc123\\\",\\n    \\\"expires_in\\\": 3600,\\n    \\\"token_type\\\": \\\"Bearer\\\"\\n  }\\n}" }
       }
     },
     {
@@ -115,7 +115,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"access_token\": \"new_access_token_def456\",\n  \"refresh_token\": \"new_refresh_token_abc789\",\n  \"expires_in\": 3600,\n  \"token_type\": \"Bearer\",\n  \"scope\": \"read write\"\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"access_token\\\": \\\"new_access_token_def456\\\",\\n  \\\"refresh_token\\\": \\\"new_refresh_token_abc789\\\",\\n  \\\"expires_in\\\": 3600,\\n  \\\"token_type\\\": \\\"Bearer\\\",\\n  \\\"scope\\\": \\\"read write\\\"\\n}" }
       }
     },
     {
@@ -138,7 +138,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"access_token\": \"service_access_token_123\",\n  \"expires_in\": 7200,\n  \"token_type\": \"Bearer\",\n  \"scope\": \"admin\"\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"access_token\\\": \\\"service_access_token_123\\\",\\n  \\\"expires_in\\\": 7200,\\n  \\\"token_type\\\": \\\"Bearer\\\",\\n  \\\"scope\\\": \\\"admin\\\"\\n}" }
       }
     },
     {
@@ -161,7 +161,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"access_token\": \"user_access_token_456\",\n  \"refresh_token\": \"user_refresh_token_789\",\n  \"expires_in\": 3600,\n  \"token_type\": \"Bearer\"\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"access_token\\\": \\\"user_access_token_456\\\",\\n  \\\"refresh_token\\\": \\\"user_refresh_token_789\\\",\\n  \\\"expires_in\\\": 3600,\\n  \\\"token_type\\\": \\\"Bearer\\\"\\n}" }
       }
     }
   ],

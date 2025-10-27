@@ -69,12 +69,39 @@ const ResponseBookmark = ({ item, collection }) => {
         }))
       : [];
 
-    // Only pass response-related data - the reducer will automatically capture current request state
+    const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
+    const contentType = contentTypeHeader?.value?.toLowerCase() || '';
+
+    let bodyType = 'text';
+    let content = '';
+
+    if (contentType.includes('application/json')) {
+      bodyType = 'json';
+      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
+    } else if (contentType.includes('text/xml') || contentType.includes('application/xml')) {
+      bodyType = 'xml';
+      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
+    } else if (contentType.includes('text/html')) {
+      bodyType = 'html';
+      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
+    } else if (contentType.startsWith('text/')) {
+      bodyType = 'text';
+      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
+    } else if (response.dataBuffer) {
+      bodyType = 'binary';
+      content = response.dataBuffer;
+    } else {
+      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
+    }
+
     const exampleData = {
       name: name,
       status: response.status || 200,
       headers: headersArray,
-      body: response.data,
+      body: {
+        type: bodyType,
+        content: content
+      },
       description: description
     };
 

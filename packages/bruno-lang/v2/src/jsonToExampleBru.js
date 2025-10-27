@@ -201,11 +201,20 @@ const jsonToExampleBru = (json) => {
       bru += '  }\n\n';
     }
 
-    // Response body (stays as simple text)
-    if (responseBody || responseBody === null) {
-      // Ensure responseBody is a string, not an object
-      const bodyString = typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody, null, 2);
-      bru += `  body: {\n${indentStringCustom(bodyString, 4)}\n  }\n\n`;
+    // Response body with type and content
+    if (responseBody) {
+      bru += '  body: {\n';
+
+      if (responseBody.type) {
+        bru += `    type: ${responseBody.type}\n`;
+      }
+
+      if (responseBody.content !== undefined) {
+        // let contentString = typeof responseBodyObj.content === 'string' ? responseBodyObj.content : JSON.stringify(responseBodyObj.content, null, 2);
+        bru += `    content: '''\n${indentStringCustom(responseBody.content, 6)}\n    '''\n`;
+      }
+
+      bru += '  }\n\n';
     }
 
     bru = stripLastLine(bru);

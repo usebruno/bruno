@@ -139,7 +139,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"id\": \"file-12345\",\n  \"filename\": \"sample.pdf\",\n  \"size\": 245760,\n  \"uploaded_at\": \"2024-01-15T14:30:00Z\",\n  \"status\": \"completed\",\n  \"url\": \"https://cdn.example.com/files/sample.pdf\",\n  \"metadata\": {\n    \"title\": \"Sample Document\",\n    \"description\": \"This is a sample document for testing\",\n    \"category\": \"documents\",\n    \"tags\": [\"sample\", \"test\", \"documents\"]\n  }\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"id\\\": \\\"file-12345\\\",\\n  \\\"filename\\\": \\\"sample.pdf\\\",\\n  \\\"size\\\": 245760,\\n  \\\"uploaded_at\\\": \\\"2024-01-15T14:30:00Z\\\",\\n  \\\"status\\\": \\\"completed\\\",\\n  \\\"url\\\": \\\"https://cdn.example.com/files/sample.pdf\\\",\\n  \\\"metadata\\\": {\\n    \\\"title\\\": \\\"Sample Document\\\",\\n    \\\"description\\\": \\\"This is a sample document for testing\\\",\\n    \\\"category\\\": \\\"documents\\\",\\n    \\\"tags\\\": [\\\"sample\\\", \\\"test\\\", \\\"documents\\\"]\\n  }\\n}" }
       }
     },
     {
@@ -183,7 +183,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"success\": true,\n  \"message\": \"Form submitted successfully\",\n  \"session_id\": \"sess-abc123def456\",\n  \"user\": {\n    \"username\": \"testuser\",\n    \"authenticated\": true\n  }\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"success\\\": true,\\n  \\\"message\\\": \\\"Form submitted successfully\\\",\\n  \\\"session_id\\\": \\\"sess-abc123def456\\\",\\n  \\\"user\\\": {\\n    \\\"username\\\": \\\"testuser\\\",\\n    \\\"authenticated\\\": true\\n  }\\n}" }
       }
     }
   ]

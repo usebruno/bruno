@@ -120,11 +120,16 @@ example {
     }
   
     body: {
-      "id": 100,
-      "username": "newuser",
-      "email": "newuser@example.com",
-      "created_at": "2024-01-15T10:30:00Z",
-      "status": "active"
+      type: json
+      content: '''
+        {
+          "id": 100,
+          "username": "newuser",
+          "email": "newuser@example.com",
+          "created_at": "2024-01-15T10:30:00Z",
+          "status": "active"
+        }
+      '''
     }
   }
 }
@@ -183,24 +188,29 @@ example {
     }
   
     body: {
-      "id": 101,
-      "username": "developer",
-      "email": "dev@example.com",
-      "profile": {
-        "firstName": "Jane",
-        "lastName": "Developer",
-        "bio": "Software engineer passionate about APIs",
-        "location": {
-          "city": "San Francisco",
-          "country": "USA",
-          "timezone": "America/Los_Angeles"
+      type: json
+      content: '''
+        {
+          "id": 101,
+          "username": "developer",
+          "email": "dev@example.com",
+          "profile": {
+            "firstName": "Jane",
+            "lastName": "Developer",
+            "bio": "Software engineer passionate about APIs",
+            "location": {
+              "city": "San Francisco",
+              "country": "USA",
+              "timezone": "America/Los_Angeles"
+            }
+          },
+          "skills": ["JavaScript", "Node.js", "React", "API Design"],
+          "experience": 5,
+          "created_at": "2024-01-15T12:45:30Z",
+          "status": "active",
+          "verified": false
         }
-      },
-      "skills": ["JavaScript", "Node.js", "React", "API Design"],
-      "experience": 5,
-      "created_at": "2024-01-15T12:45:30Z",
-      "status": "active",
-      "verified": false
+      '''
     }
   }
 }
@@ -237,15 +247,18 @@ example {
     }
   
     body: {
-      <?xml version="1.0" encoding="UTF-8"?>
-      <response>
-        <id>102</id>
-        <status>created</status>
-        <user>
-          <username>xmluser</username>
-          <email>xml@example.com</email>
-        </user>
-      </response>
+      type: xml
+      content: '''
+        <?xml version="1.0" encoding="UTF-8"?>
+        <response>
+          <id>102</id>
+          <status>created</status>
+          <user>
+            <username>xmluser</username>
+            <email>xml@example.com</email>
+          </user>
+        </response>
+      '''
     }
   }
 }

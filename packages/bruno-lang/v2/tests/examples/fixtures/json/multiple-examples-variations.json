@@ -68,7 +68,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"id\": 123,\n  \"name\": \"Item\",\n  \"value\": 42\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"id\\\": 123,\\n  \\\"name\\\": \\\"Item\\\",\\n  \\\"value\\\": 42\\n}" }
       }
     },
     {
@@ -95,7 +95,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Premium Item 1\",\n      \"status\": \"active\",\n      \"type\": \"premium\"\n    },\n    {\n      \"id\": 2,\n      \"name\": \"Premium Item 2\",  \n      \"status\": \"active\",\n      \"type\": \"premium\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 2\n  }\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"data\\\": [\\n    {\\n      \\\"id\\\": 1,\\n      \\\"name\\\": \\\"Premium Item 1\\\",\\n      \\\"status\\\": \\\"active\\\",\\n      \\\"type\\\": \\\"premium\\\"\\n    },\\n    {\\n      \\\"id\\\": 2,\\n      \\\"name\\\": \\\"Premium Item 2\\\",  \\n      \\\"status\\\": \\\"active\\\",\\n      \\\"type\\\": \\\"premium\\\"\\n    }\\n  ],\\n  \\\"pagination\\\": {\\n    \\\"page\\\": 1,\\n    \\\"limit\\\": 20,\\n    \\\"total\\\": 2\\n  }\\n}" }
       }
     },
     {
@@ -117,7 +117,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "This is a plain text response\nMultiple lines of content\nNo JSON formatting needed"
+        "body": { "type": "text", "content": "This is a plain text response\\nMultiple lines of content\\nNo JSON formatting needed" }
       }
     },
     {
@@ -139,7 +139,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<response>\n  <metadata>\n    <version>1.0</version>\n    <timestamp>2024-01-15T15:00:00Z</timestamp>\n  </metadata>\n  <data>\n    <item id=\"1\">\n      <name>Item One</name>\n      <value>100</value>\n      <nested>\n        <attribute key=\"type\">primary</attribute>\n      </nested>\n    </item>\n    <item id=\"2\">\n      <name>Item Two</name>\n      <value>200</value>\n      <nested>\n        <attribute key=\"type\">secondary</attribute>\n      </nested>\n    </item>\n  </data>\n</response>"
+        "body": { "type": "xml", "content": "<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<response>\\n  <metadata>\\n    <version>1.0</version>\\n    <timestamp>2024-01-15T15:00:00Z</timestamp>\\n  </metadata>\\n  <data>\\n    <item id=\\\"1\\\">\\n      <name>Item One</name>\\n      <value>100</value>\\n      <nested>\\n        <attribute key=\\\"type\\\">primary</attribute>\\n      </nested>\\n    </item>\\n    <item id=\\\"2\\\">\\n      <name>Item Two</name>\\n      <value>200</value>\\n      <nested>\\n        <attribute key=\\\"type\\\">secondary</attribute>\\n      </nested>\\n    </item>\\n  </data>\\n</response>" }
       }
     },
     {
@@ -169,7 +169,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"data\": {\n    \"user\": {\n      \"id\": \"123\",\n      \"name\": \"John Doe\",\n      \"email\": \"john@example.com\",\n      \"posts\": [\n        {\n          \"title\": \"First Post\",\n          \"content\": \"This is my first blog post\"\n        }\n      ]\n    }\n  }\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"data\\\": {\\n    \\\"user\\\": {\\n      \\\"id\\\": \\\"123\\\",\\n      \\\"name\\\": \\\"John Doe\\\",\\n      \\\"email\\\": \\\"john@example.com\\\",\\n      \\\"posts\\\": [\\n        {\\n          \\\"title\\\": \\\"First Post\\\",\\n          \\\"content\\\": \\\"This is my first blog post\\\"\\n        }\\n      ]\\n    }\\n  }\\n}" }
       }
     },
     {
@@ -192,7 +192,7 @@
       "response": {
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"results\": {\n    \"bindings\": [\n      {\n        \"name\": {\n          \"value\": \"John Doe\"\n        },\n        \"email\": {\n          \"value\": \"john@example.com\"\n        }\n      }\n    ]\n  }\n}"
+        "body": { "type": "json", "content": "{\\n  \\\"results\\\": {\\n    \\\"bindings\\\": [\\n      {\\n        \\\"name\\\": {\\n          \\\"value\\\": \\\"John Doe\\\"\\n        },\\n        \\\"email\\\": {\\n          \\\"value\\\": \\\"john@example.com\\\"\\n        }\\n      }\\n    ]\\n  }\\n}" }
       }
     }
   ]

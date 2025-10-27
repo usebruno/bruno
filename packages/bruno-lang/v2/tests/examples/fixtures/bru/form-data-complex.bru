@@ -66,20 +66,23 @@ example {
     }
   
     body: {
-      {
-        "id": "file-12345",
-        "filename": "sample.pdf",
-        "size": 245760,
-        "uploaded_at": "2024-01-15T14:30:00Z",
-        "status": "completed",
-        "url": "https://cdn.example.com/files/sample.pdf",
-        "metadata": {
-          "title": "Sample Document",
-          "description": "This is a sample document for testing",
-          "category": "documents",
-          "tags": ["sample", "test", "documents"]
+      type: json
+      content: '''
+        {
+          "id": "file-12345",
+          "filename": "sample.pdf",
+          "size": 245760,
+          "uploaded_at": "2024-01-15T14:30:00Z",
+          "status": "completed",
+          "url": "https://cdn.example.com/files/sample.pdf",
+          "metadata": {
+            "title": "Sample Document",
+            "description": "This is a sample document for testing",
+            "category": "documents",
+            "tags": ["sample", "test", "documents"]
+          }
         }
-      }
+      '''
     }
   }
 }
@@ -110,15 +113,18 @@ example {
     }
   
     body: {
-      {
-        "success": true,
-        "message": "Form submitted successfully",
-        "session_id": "sess-abc123def456",
-        "user": {
-          "username": "testuser",
-          "authenticated": true
+      type: json
+      content: '''
+        {
+          "success": true,
+          "message": "Form submitted successfully",
+          "session_id": "sess-abc123def456",
+          "user": {
+            "username": "testuser",
+            "authenticated": true
+          }
         }
-      }
+      '''
     }
   }
 }

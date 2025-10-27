@@ -77,7 +77,7 @@ const exampleGrammar = ohm.grammar(`Example {
   responsecontent = (stnl* (responseheaders | responsestatus | responsebody))*
   responseheaders = "headers" st* ":" st* dictionary
   responsestatus = "status" st* ":" st* dictionary
-  responsebody = "body" st* ":" st* bodyblock
+  responsebody = "body" st* ":" st* dictionary
 }`);
 
 const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
@@ -422,8 +422,19 @@ const sem = exampleGrammar.createSemantics().addAttribute('ast', {
       statusText: statusPairs.find((p) => p.name === 'text')?.value || 'OK'
     };
   },
-  responsebody(_1, _2, _3, _4, bodyblock) {
-    return { body: outdentString(bodyblock.ast, 4) };
+  responsebody(_1, _2, _3, _4, dictionary) {
+    const keyValPairs = mapPairListToKeyValPairs(dictionary.ast);
+    console.log('keyValPairs', keyValPairs);
+    const type = keyValPairs.find((p) => p.name === 'type')?.value;
+    const content = keyValPairs.find((p) => p.name === 'content')?.value;
+    const contentString = outdentString(content.replace(/^'''|'''$/g, ''), 6).trim();
+
+    return {
+      body: {
+        type,
+        content: contentString
+      }
+    };
   },
 
   // All body types from request side

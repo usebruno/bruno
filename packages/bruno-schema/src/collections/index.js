@@ -337,7 +337,10 @@ const exampleSchema = Yup.object({
     status: Yup.string().nullable(),
     statusText: Yup.string().nullable(),
     headers: Yup.array().of(keyValueSchema).nullable(),
-    body: Yup.mixed().nullable()
+    body: Yup.object({
+      type: Yup.string().oneOf(['json', 'text', 'xml', 'html', 'binary']).nullable(),
+      content: Yup.mixed().nullable()
+    }).nullable()
   })
     .noUnknown(true)
     .strict()

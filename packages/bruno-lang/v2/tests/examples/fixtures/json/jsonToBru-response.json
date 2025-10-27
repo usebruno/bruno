@@ -27,7 +27,10 @@
         ],
         "status": "200",
         "statusText": "OK",
-        "body": "{\n  \"id\": 123,\n  \"name\": \"John Doe\"\n}"
+        "body": {
+          "type": "json",
+          "content": "{\n  \"id\": 123,\n  \"name\": \"John Doe\"\n}"
+        }
       }
     }
   ]

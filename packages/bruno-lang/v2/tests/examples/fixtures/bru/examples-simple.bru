@@ -22,9 +22,14 @@ example {
     }
 
     body: {
-      "id": 123,
-      "name": "John Doe",
-      "email": "john@example.com"
+      type: json
+      content: '''
+        {
+          "id": 123,
+          "name": "John Doe",
+          "email": "john@example.com"
+        }
+      '''
     }
   }
 }
@@ -50,10 +55,15 @@ example {
     }
     
     body: {
-      "id": 456,
-      "name": "New User",
-      "email": "newuser@example.com",
-      "created_at": "2023-01-15T10:30:00Z"
+      type: json
+      content: '''
+        {
+          "id": 456,
+          "name": "New User",
+          "email": "newuser@example.com",
+          "created_at": "2023-01-15T10:30:00Z"
+        }
+      '''
     }
   }
 }

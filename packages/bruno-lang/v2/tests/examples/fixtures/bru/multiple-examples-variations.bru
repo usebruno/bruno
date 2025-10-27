@@ -49,11 +49,14 @@ example {
     }
   
     body: {
-      {
-        "id": 123,
-        "name": "Item",
-        "value": 42
-      }
+      type: json
+      content: '''
+        {
+          "id": 123,
+          "name": "Item",
+          "value": 42
+        }
+      '''
     }
   }
 }
@@ -78,27 +81,30 @@ example {
     }
   
     body: {
-      {
-        "data": [
-          {
-            "id": 1,
-            "name": "Premium Item 1",
-            "status": "active",
-            "type": "premium"
-          },
-          {
-            "id": 2,
-            "name": "Premium Item 2",  
-            "status": "active",
-            "type": "premium"
+      type: json
+      content: '''
+        {
+          "data": [
+            {
+              "id": 1,
+              "name": "Premium Item 1",
+              "status": "active",
+              "type": "premium"
+            },
+            {
+              "id": 2,
+              "name": "Premium Item 2",  
+              "status": "active",
+              "type": "premium"
+            }
+          ],
+          "pagination": {
+            "page": 1,
+            "limit": 20,
+            "total": 2
           }
-        ],
-        "pagination": {
-          "page": 1,
-          "limit": 20,
-          "total": 2
         }
-      }
+      '''
     }
   }
 }
@@ -122,9 +128,12 @@ example {
     }
   
     body: {
-      This is a plain text response
-      Multiple lines of content
-      No JSON formatting needed
+      type: text
+      content: '''
+        This is a plain text response
+        Multiple lines of content
+        No JSON formatting needed
+      '''
     }
   }
 }
@@ -148,31 +157,33 @@ example {
     }
   
     body: {
-      <?xml version="1.0" encoding="UTF-8"?>
-      <response>
-        <metadata>
-          <version>1.0</version>
-          <timestamp>2024-01-15T15:00:00Z</timestamp>
-        </metadata>
-        <data>
-          <item id="1">
-            <name>Item One</name>
-            <value>100</value>
-            <nested>
-              <attribute key="type">primary</attribute>
-            </nested>
-          </item>
-          <item id="2">
-            <name>Item Two</name>
-            <value>200</value>
-            <nested>
-              <attribute key="type">secondary</attribute>
-            </nested>
-          </item>
-        </data>
-      </response>
+      type: xml
+      content: '''
+        <?xml version="1.0" encoding="UTF-8"?>
+        <response>
+          <metadata>
+            <version>1.0</version>
+            <timestamp>2024-01-15T15:00:00Z</timestamp>
+          </metadata>
+          <data>
+            <item id="1">
+              <name>Item One</name>
+              <value>100</value>
+              <nested>
+                <attribute key="type">primary</attribute>
+              </nested>
+            </item>
+            <item id="2">
+              <name>Item Two</name>
+              <value>200</value>
+              <nested>
+                <attribute key="type">secondary</attribute>
+              </nested>
+            </item>
+          </data>
+        </response>
+      '''
     }
-  }
 }
 
 example {
@@ -209,21 +220,24 @@ example {
     }
   
     body: {
-      {
-        "data": {
-          "user": {
-            "id": "123",
-            "name": "John Doe",
-            "email": "john@example.com",
-            "posts": [
-              {
-                "title": "First Post",
-                "content": "This is my first blog post"
-              }
-            ]
+      type: json
+      content: '''
+        {
+          "data": {
+            "user": {
+              "id": "123",
+              "name": "John Doe",
+              "email": "john@example.com",
+              "posts": [
+                {
+                  "title": "First Post",
+                  "content": "This is my first blog post"
+                }
+              ]
+            }
           }
         }
-      }
+      '''
     }
   }
 }
@@ -256,20 +270,23 @@ example {
     }
   
     body: {
-      {
-        "results": {
-          "bindings": [
-            {
-              "name": {
-                "value": "John Doe"
-              },
-              "email": {
-                "value": "john@example.com"
+      type: json
+      content: '''
+        {
+          "results": {
+            "bindings": [
+              {
+                "name": {
+                  "value": "John Doe"
+                },
+                "email": {
+                  "value": "john@example.com"
+                }
               }
-            }
-          ]
+            ]
+          }
         }
-      }
+      '''
     }
   }
 }

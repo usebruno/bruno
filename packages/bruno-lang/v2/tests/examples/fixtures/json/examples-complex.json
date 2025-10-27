@@ -32,7 +32,10 @@
       "response": {
         "status": "201",
         "statusText": "Created",
-        "body": "\"id\": 1,\n\"format\": \"json\",\n\"created\": true"
+        "body": {
+          "type": "json",
+          "content": "{\n  \"id\": 1,\n  \"format\": \"json\",\n  \"created\": true\n}"
+        }
       }
     },
     {
@@ -48,7 +51,10 @@
       "response": {
         "status": "201",
         "statusText": "Created",
-        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<response>\n  <id>2</id>\n  <format>xml</format>\n  <created>true</created>\n</response>"
+        "body": {
+          "type": "xml",
+          "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<response>\n  <id>2</id>\n  <format>xml</format>\n  <created>true</created>\n</response>"
+        }
       }
     },
     {
@@ -64,7 +70,10 @@
       "response": {
         "status": "201",
         "statusText": "Created",
-        "body": "Success: true\nFormat: text\nID: 3"
+        "body": {
+          "type": "text",
+          "content": "Success: true\nFormat: text\nID: 3"
+        }
       }
     }
   ]
