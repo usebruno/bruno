@@ -62,7 +62,20 @@ class MultiLineEditor extends Component {
         'Ctrl-F': () => {},
         // Tabbing disabled to make tabindex work
         Tab: false,
-        'Shift-Tab': false
+        'Shift-Tab': false,
+        // Pass through tab navigation shortcuts to global handlers
+        'Cmd-W': () => CodeMirror.Pass,
+        'Ctrl-W': () => CodeMirror.Pass,
+        'Cmd-Shift-W': () => CodeMirror.Pass,
+        'Ctrl-Shift-W': () => CodeMirror.Pass,
+        'Cmd-PageUp': () => CodeMirror.Pass,
+        'Ctrl-PageUp': () => CodeMirror.Pass,
+        'Cmd-PageDown': () => CodeMirror.Pass,
+        'Ctrl-PageDown': () => CodeMirror.Pass,
+        'Cmd-Shift-PageUp': () => CodeMirror.Pass,
+        'Ctrl-Shift-PageUp': () => CodeMirror.Pass,
+        'Cmd-Shift-PageDown': () => CodeMirror.Pass,
+        'Ctrl-Shift-PageDown': () => CodeMirror.Pass
       }
     });
 
