@@ -131,14 +131,14 @@ const ResponseExampleTopBar = ({
 
             <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
               <button
-                className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer border whitespace-nowrap"
+                className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
                 onClick={handleCancel}
                 data-testid="response-example-cancel-btn"
               >
                 Cancel
               </button>
               <button
-                className="primary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer border whitespace-nowrap"
+                className="primary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
                 onClick={handleSave}
                 data-testid="response-example-save-btn"
               >
@@ -158,7 +158,7 @@ const ResponseExampleTopBar = ({
       <div className="max-w-full">
         <div className="flex items-start justify-between gap-6 md:flex-row flex-col">
           <div className="flex-1 min-w-0">
-            <h2 className="response-example-title text-xl font-bold mb-2 leading-tight md:text-2xl" data-testid="response-example-title">
+            <h2 className="response-example-title text-lg font-bold mb-2 leading-tight md:text-xl" data-testid="response-example-title">
               {example.name}
             </h2>
             {example.description && example.description.trim().length > 0 && (
@@ -177,7 +177,7 @@ const ResponseExampleTopBar = ({
 
           <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
             <button
-              className="secondary-btn flex items-center gap-1.5 p-2 rounded-md text-sm font-medium cursor-pointer border whitespace-nowrap"
+              className="secondary-btn flex items-center gap-1.5 p-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
               onClick={handleGenerateCode}
               title="Generate Code"
               data-testid="response-example-generate-code-btn"
@@ -185,7 +185,7 @@ const ResponseExampleTopBar = ({
               <IconCode size={16} color={theme.examples.buttonIconColor} />
             </button>
             <button
-              className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer border whitespace-nowrap"
+              className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
               onClick={onEditToggle}
               data-testid="response-example-edit-btn"
             >
