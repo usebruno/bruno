@@ -38,7 +38,7 @@ const getValueString = (value) => {
     return '';
   }
 
-  const hasNewLines = value?.includes('\n') || value?.includes('\r');
+  const hasNewLines = value.includes('\n') || value.includes('\r');
 
   if (!hasNewLines) {
     return value;
@@ -49,8 +49,12 @@ const getValueString = (value) => {
 };
 
 const getKeyString = (key) => {
+  if (!key) {
+    return '';
+  }
+
   // Check if key contains newlines - if so, use triple-quote format
-  const hasNewLines = key?.includes('\n') || key?.includes('\r');
+  const hasNewLines = key.includes('\n') || key.includes('\r');
   if (hasNewLines) {
     const normalizedKey = key.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     return `'''\n${normalizedKey}\n'''`;
@@ -67,7 +71,7 @@ const getValueUrl = (url) => {
     return '';
   }
 
-  const hasNewLines = url?.includes('\n') || url?.includes('\r');
+  const hasNewLines = url.includes('\n') || url.includes('\r');
 
   if (!hasNewLines) {
     return url;
