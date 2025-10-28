@@ -375,15 +375,7 @@ const sem = exampleGrammar.createSemantics().addAttribute('ast', {
       delete result._mode;
     }
 
-    // Reorder properties to maintain consistent order: url, method, mode, params, headers, body
-    const orderedResult = {};
-    if (result.url !== undefined) orderedResult.url = result.url;
-    if (result.method !== undefined) orderedResult.method = result.method;
-    if (result.params && result.params.length > 0) orderedResult.params = result.params;
-    if (result.headers !== undefined) orderedResult.headers = result.headers;
-    if (result.body !== undefined) orderedResult.body = result.body;
-
-    return orderedResult;
+    return result;
   },
   requesturl(_1, _2, _3, _4, value, _5) {
     return { url: value.sourceString ? value.sourceString.trim() : '' };
@@ -436,7 +428,6 @@ const sem = exampleGrammar.createSemantics().addAttribute('ast', {
   },
   responsebody(_1, _2, _3, _4, dictionary) {
     const keyValPairs = mapPairListToKeyValPairs(dictionary.ast);
-    console.log('keyValPairs', keyValPairs);
     const type = keyValPairs.find((p) => p.name === 'type')?.value;
     const content = keyValPairs.find((p) => p.name === 'content')?.value;
     const contentString = outdentString(content.replace(/^'''|'''$/g, ''), 6).trim();

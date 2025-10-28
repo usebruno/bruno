@@ -5,6 +5,7 @@ import { addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
+import { getBodyType, processResponseContent } from 'utils/responseBodyProcessor';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseBookmark = ({ item, collection }) => {
@@ -72,27 +73,8 @@ const ResponseBookmark = ({ item, collection }) => {
     const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
 
-    let bodyType = 'text';
-    let content = '';
-
-    if (contentType.includes('application/json')) {
-      bodyType = 'json';
-      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
-    } else if (contentType.includes('text/xml') || contentType.includes('application/xml')) {
-      bodyType = 'xml';
-      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
-    } else if (contentType.includes('text/html')) {
-      bodyType = 'html';
-      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
-    } else if (contentType.startsWith('text/')) {
-      bodyType = 'text';
-      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
-    } else if (response.dataBuffer) {
-      bodyType = 'binary';
-      content = response.dataBuffer;
-    } else {
-      content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
-    }
+    const bodyType = getBodyType(contentType);
+    const content = response.data;
 
     const exampleData = {
       name: name,

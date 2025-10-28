@@ -127,7 +127,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
       >
         <ReorderTable updateReorderedItem={handleHeaderDrag}>
           {headers && headers.length
-            ? headers.map((header) => (
+            ? headers.map((header, index) => (
                 <tr key={header.uid} data-uid={header.uid}>
                   <td className="flex relative">
                     <div className="flex items-center justify-center mr-3">
@@ -135,7 +135,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
                         checked={header.enabled === true}
                         disabled={!editMode}
                         onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
-                        dataTestId={`header-${header.uid}-checkbox`}
+                        dataTestId={`header-checkbox-${index}`}
                       />
                     </div>
                     <SingleLineEditor

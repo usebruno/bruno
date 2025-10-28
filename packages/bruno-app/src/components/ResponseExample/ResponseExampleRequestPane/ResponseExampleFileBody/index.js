@@ -185,7 +185,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
                           onChange={editMode ? (e) => handleParamChange(e, param, 'selected') : () => {}}
                           disabled={!editMode}
                           className="mr-1 mousetrap"
-                          dataTestId={`file-${param.uid}-radio-button`}
+                          dataTestId={`file-radio-button-${index}`}
                         />
                         <button
                           tabIndex="-1"

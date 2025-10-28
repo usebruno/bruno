@@ -153,7 +153,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       >
         <ReorderTable updateReorderedItem={handleQueryParamDrag}>
           {queryParams && queryParams.length
-            ? queryParams.map((param) => (
+            ? queryParams.map((param, index) => (
                 <tr key={param.uid} data-uid={param.uid}>
                   <td className="flex relative">
                     <div className="flex items-center justify-center mr-3">
@@ -161,7 +161,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
                         checked={param.enabled !== false}
                         disabled={!editMode}
                         onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
-                        dataTestId={`query-param-${param.uid}-checkbox`}
+                        dataTestId={`query-param-checkbox-${index}`}
                       />
                     </div>
                     <SingleLineEditor

@@ -112,7 +112,7 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
                           checked={param.enabled === true}
                           disabled={!editMode}
                           onChange={(e) => handleParamChange(e, param, 'enabled')}
-                          dataTestId={`urlencoded-param-${param.uid}-checkbox`}
+                          dataTestId={`urlencoded-param-checkbox-${index}`}
                         />
                       </div>
                       <input

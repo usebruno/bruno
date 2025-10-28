@@ -151,7 +151,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                           checked={param.enabled === true}
                           disabled={!editMode}
                           onChange={(e) => handleParamChange(e, param, 'enabled')}
-                          dataTestId={`multipart-form-param-${param.uid}-checkbox`}
+                          dataTestId={`multipart-form-param-checkbox-${index}`}
                         />
                       </div>
                       <input

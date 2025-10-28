@@ -6,7 +6,6 @@ import get from 'lodash/get';
 import { updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
 import CodeEditor from 'components/CodeEditor';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
-import { safeStringifyJSON } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid, onSave }) => {
@@ -27,12 +26,13 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
       return '';
     }
 
-    if (response.body.type === 'binary') {
-      // you'// receive base64 encoded string in response.body.content
-      return Buffer.from(response.body.content, 'base64').toString('utf-8');
-    } else {
-      return response.body.content;
-    }
+    // if (response.body.type === 'binary') {
+    //   // you'// receive base64 encoded string in response.body.content
+    //   return Buffer.from(response.body.content, 'base64').toString('utf-8');
+    // } else {
+    //   return response.body.content;
+    // }
+    return response.body.content;
   };
 
   const getCodeMirrorMode = () => {
