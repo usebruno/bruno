@@ -28,6 +28,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const brunoConfig = get(collection, 'brunoConfig', {});
+  const rawHeaders = cloneDeep(request.headers ?? []);
   const headers = {};
 
   const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
@@ -50,6 +51,14 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
       headers[h.name] = h.value;
     }
   });
+
+  const socketProtocols = rawHeaders.filter((header) => {
+    return header.name && header.name.toLowerCase() === 'sec-websocket-protocol' && header.enabled;
+  }).map((d) => d.value.trim()).join(',');
+
+  if (socketProtocols.length > 0) {
+    headers['Sec-WebSocket-Protocol'] = socketProtocols;
+  }
 
   const envVars = getEnvVars(environment);
   const processEnvVars = getProcessEnvVars(collection.uid);
