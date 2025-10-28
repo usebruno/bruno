@@ -22,6 +22,7 @@ import {
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
+import brunoClipboard from 'utils/bruno-clipboard';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
@@ -725,9 +726,10 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
 
 export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatch, getState) => {
   const state = getState();
-  const { clipboard } = state.app;
 
-  if (!clipboard.copiedItem) {
+  const clipboardResult = brunoClipboard.read();
+
+  if (!clipboardResult.hasData) {
     return Promise.reject(new Error('No item in clipboard'));
   }
 
@@ -737,7 +739,8 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
     return Promise.reject(new Error('Target collection not found'));
   }
 
-  const copiedItem = cloneDeep(clipboard.copiedItem);
+  // Get the first item from clipboard (single item paste for now)
+  const copiedItem = cloneDeep(clipboardResult.items[0]);
 
   // Only allow pasting requests (not folders)
   if (isItemAFolder(copiedItem)) {

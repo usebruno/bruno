@@ -41,7 +41,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
   
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-  const clipboardItem = useSelector((state) => state.app.clipboard.copiedItem);
+  const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
@@ -310,7 +310,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const handleCopyRequest = () => {
     dropdownTippyRef.current.hide();
-    dispatch(copyRequest({ item }));
+    dispatch(copyRequest(item));
     toast.success('Request copied to clipboard');
   };
 
@@ -458,7 +458,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   Copy
                 </div>
               )}
-              {isFolder && clipboardItem && (
+              {isFolder && hasCopiedItems && (
                 <div
                   className="dropdown-item"
                   onClick={handlePasteRequest}

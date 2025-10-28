@@ -42,8 +42,7 @@ const Collection = ({ collection, searchText }) => {
   const collectionRef = useRef(null);
   
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
-  const clipboardItem = useSelector((state) => state.app.clipboard.copiedItem);
-  
+  const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
   const MenuIcon = forwardRef((_props, ref) => {
@@ -299,7 +298,7 @@ const Collection = ({ collection, searchText }) => {
             >
               Clone
             </div>
-            {clipboardItem && (
+            {hasCopiedItems && (
               <div
                 className="dropdown-item"
                 onClick={handlePasteRequest}

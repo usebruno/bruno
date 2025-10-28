@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
+import brunoClipboard from 'utils/bruno-clipboard';
 
 const initialState = {
   isDragging: false,
@@ -38,7 +39,7 @@ const initialState = {
   taskQueue: [],
   systemProxyEnvVariables: {},
   clipboard: {
-    copiedItem: null
+    hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
   }
 };
 
@@ -97,8 +98,9 @@ export const appSlice = createSlice({
     toggleSidebarCollapse: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
     },
-    copyRequest: (state, action) => {
-      state.clipboard.copiedItem = action.payload.item;
+    setClipboardState: (state, action) => {
+      // Update clipboard UI state
+      state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     }
   }
 });
@@ -120,7 +122,7 @@ export const {
   updateSystemProxyEnvVariables,
   updateGenerateCode,
   toggleSidebarCollapse,
-  copyRequest
+  setClipboardState
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -184,6 +186,12 @@ export const createCookieString = (cookieObj) => () => {
 export const completeQuitFlow = () => (dispatch, getState) => {
   const { ipcRenderer } = window;
   return ipcRenderer.invoke('main:complete-quit-flow');
+};
+
+export const copyRequest = (item) => (dispatch, getState) => {
+  brunoClipboard.write(item);
+  dispatch(setClipboardState({ hasCopiedItems: true }));
+  return Promise.resolve();
 };
 
 export default appSlice.reducer;
