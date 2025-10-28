@@ -4,7 +4,6 @@ class BrunoClipboard {
   }
 
   /**
-   * Write items to Bruno's internal clipboard
    * @param {Object} item - Item to copy
    */
   write(item) {
@@ -12,7 +11,6 @@ class BrunoClipboard {
   }
 
   /**
-   * Read items from Bruno's internal clipboard
    * @returns {Object} Result with items array
    */
   read() {
