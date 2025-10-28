@@ -19,6 +19,7 @@ test.describe.serial('URL Interpolation', () => {
   });
 
   test('Interpolate oData path params', async ({ pageWithUserData: page }) => {
+    await page.locator('#sidebar-collection-name').click();
     await page.getByRole('complementary').getByText('echo-request-odata').click();
     await page.getByTestId('send-arrow-icon').click();
 

@@ -32,6 +32,7 @@ test.describe.serial('self signed rejected', () => {
   test('safe mode', async ({ pageWithUserData: page }) => {
     
     // init safe mode
+    await page.getByText('self-signed-badssl').click();
     await page.getByText('Developer Mode').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();

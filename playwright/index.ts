@@ -5,6 +5,25 @@ import * as fs from 'fs';
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
 
+const asyncExists = (filepath: string) => fs.promises.access(filepath).then(()=>true).catch(()=>false)
+
+async function recursiveCopy(src: string, dest: string) {
+  if(!await asyncExists(src)){
+    throw new Error(`${src} doesn't exist, if you are using \`pageWithUserData\` use \`page\` instead.`);
+  }
+  const files = await fs.promises.readdir(src, {
+    recursive:true,
+    withFileTypes:true
+  });
+  
+  for (const file of files){
+    if (!file.isFile()) continue 
+    const fullPath = path.join(src, file.name);
+    const fullDestPath = path.join(dest, file.name);
+    await fs.promises.copyFile(fullPath, fullDestPath);
+  }
+}
+
 export const test = baseTest.extend<
   {
     context: BrowserContext;
@@ -191,12 +210,16 @@ export const test = baseTest.extend<
     }
   },
 
-  pageWithUserData: async ({ reuseOrLaunchElectronApp }, use, testInfo) => {
+  pageWithUserData: async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
+    
+    // const tmpDir = initUserDataPath
+    const tmpDir = await createTmpDir();
+    await recursiveCopy(initUserDataPath, tmpDir)
 
-    const app = await reuseOrLaunchElectronApp(
-      (await fs.promises.stat(initUserDataPath).catch(() => false)) ? { initUserDataPath } : {}
+    const app = await launchElectronApp(
+      (await fs.promises.stat(tmpDir).catch(() => false)) ? { initUserDataPath: tmpDir } : {}
     );
 
     const context = await app.context();

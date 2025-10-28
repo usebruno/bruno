@@ -31,6 +31,7 @@ test.describe.serial('custom valid ca cert added to the config and NO default ca
   test('safe mode', async ({ pageWithUserData: page }) => {
     
     // init safe mode
+    await page.getByText('custom-ca-certs').click();
     await page.getByText('Developer Mode').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
