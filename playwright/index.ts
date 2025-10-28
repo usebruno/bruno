@@ -210,7 +210,7 @@ export const test = baseTest.extend<
     }
   },
 
-  pageWithUserData: async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }, use, testInfo) => {
+  pageWithUserData: async ({ launchElectronApp, createTmpDir }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
     

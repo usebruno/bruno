@@ -1,8 +1,13 @@
 import { test, expect } from '../../../../../playwright';
+import { closeAllCollections } from '../../../../utils/page';
 
-test.describe.serial('custom invalid ca cert added to the config and keep default ca certs', () => {
+test.describe('custom invalid ca cert added to the config and keep default ca certs', () => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
   test('developer mode', async ({ pageWithUserData: page }) => {
-
     // init dev mode
     await page.getByText('custom-ca-certs').click();
     await page.getByLabel('Developer Mode(use only if').check();
@@ -29,8 +34,8 @@ test.describe.serial('custom invalid ca cert added to the config and keep defaul
   });
 
   test('safe mode', async ({ pageWithUserData: page }) => {
-    
     // init safe mode
+    await page.getByText('custom-ca-certs').click();
     await page.getByText('Developer Mode').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
