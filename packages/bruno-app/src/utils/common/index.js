@@ -54,7 +54,7 @@ export const safeStringifyJSON = (obj, indent = false) => {
 
 export const prettifyJSON = (obj, spaces = 2) => {
   try {
-    const text = obj.replace(/\\"/g, '"').replace(/\\'/g, "'");
+    const text = obj.replace(/\\"/g, '"').replace(/\\'/g, '\'');
 
     const placeholders = [];
     const modifiedJson = text.replace(/"[^"]*?"|{{[^{}]+}}/g, (match) => {

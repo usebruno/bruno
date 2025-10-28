@@ -52,10 +52,10 @@ const createQuery = (queryParams = [], request) => {
       value: param.value
     }));
 
-  if (request?.auth?.mode === 'apikey' && 
-      request?.auth?.apikey?.placement === 'queryparams' && 
-      request?.auth?.apikey?.key && 
-      request?.auth?.apikey?.value) {
+  if (request?.auth?.mode === 'apikey'
+    && request?.auth?.apikey?.placement === 'queryparams'
+    && request?.auth?.apikey?.key
+    && request?.auth?.apikey?.value) {
     params.push({
       name: request.auth.apikey.key,
       value: request.auth.apikey.value

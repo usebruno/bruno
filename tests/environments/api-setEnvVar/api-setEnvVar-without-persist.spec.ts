@@ -1,31 +1,30 @@
 import { test, expect } from '../../../playwright';
 
 test.describe.serial('bru.setEnvVar(name, value)', () => {
-  test.setTimeout(2 * 10 * 1000);
-
   test('set env var using script', async ({ pageWithUserData: page, restartApp }) => {
     // Select the collection and request
     await page.locator('#sidebar-collection-name').click();
     await page.getByText('api-setEnvVar-without-persist', { exact: true }).click();
 
     // open environment dropdown
-    await page.locator('div.current-environment').click();
+    await page.getByTestId('environment-selector-trigger').click();
 
     // select stage environment
-    await expect(page.locator('.dropdown-item').filter({ hasText: 'Stage' })).toBeVisible();
-    await page.locator('.dropdown-item').filter({ hasText: 'Stage' }).click();
-    await expect(page.locator('.current-environment').filter({ hasText: /Stage/ })).toBeVisible();
+    await expect(page.locator('.environment-list .dropdown-item', { hasText: 'Stage' })).toBeVisible();
+    await page.locator('.environment-list .dropdown-item', { hasText: 'Stage' }).click();
+    await expect(page.locator('.current-environment', { hasText: 'Stage' })).toBeVisible();
 
     // Send the request
-    await page.locator('#send-request').getByRole('img').nth(2).click();
-    await page.waitForTimeout(1000);
+    await page.getByTestId('send-arrow-icon').click();
+    await page.getByTestId('response-status-code').getByText(/200/).waitFor({ state: 'visible' });
+    await page.waitForTimeout(100);
 
     // confirm that the environment variable is set
-    await page.locator('div.current-environment').click();
-    await page.getByText('Configure', { exact: true }).click();
+    await page.getByTestId('environment-selector-trigger').click();
+    await page.locator('#configure-env').click();
     await expect(page.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
     await expect(page.getByRole('row', { name: 'secret' }).getByRole('cell').nth(2)).toBeVisible();
-    await page.getByText('×').click();
+    await page.getByTestId('modal-close-button').click();
 
     // we restart the app to confirm that the environment variable is not persisted
     const newApp = await restartApp();
@@ -36,14 +35,14 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await newPage.getByText('api-setEnvVar-without-persist', { exact: true }).click();
 
     // open environment dropdown
-    await newPage.locator('div.current-environment').click();
-    await newPage.getByText('Configure', { exact: true }).click();
+    await newPage.getByTestId('environment-selector-trigger').click();
+    await newPage.locator('#configure-env').click();
 
     // ensure that the environment variable is not persisted
     await expect(newPage.locator('table.environment-variables tbody')).not.toContainText('token');
 
     // close the environment variable modal
-    await newPage.getByText('×').click();
+    await newPage.getByTestId('modal-close-button').click();
     await newPage.close();
   });
 });

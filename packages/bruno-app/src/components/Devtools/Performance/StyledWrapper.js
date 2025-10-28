@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: ${props => props.theme.console.bg};
+    background: ${(props) => props.theme.console.bg};
   }
 
   .tab-content-area {
@@ -30,19 +30,19 @@ const StyledWrapper = styled.div`
   .section-header {
     margin-bottom: 20px;
     padding-bottom: 12px;
-    border-bottom: 1px solid ${props => props.theme.console.border};
+    border-bottom: 1px solid ${(props) => props.theme.console.border};
 
     h3 {
       margin: 0 0 4px 0;
       font-size: 16px;
       font-weight: 600;
-      color: ${props => props.theme.console.titleColor};
+      color: ${(props) => props.theme.console.titleColor};
     }
 
     p {
       margin: 0;
       font-size: 13px;
-      color: ${props => props.theme.console.textMuted};
+      color: ${(props) => props.theme.console.textMuted};
     }
   }
 
@@ -53,7 +53,7 @@ const StyledWrapper = styled.div`
       margin: 0 0 8px 0;
       font-size: 14px;
       font-weight: 600;
-      color: ${props => props.theme.console.titleColor};
+      color: ${(props) => props.theme.console.titleColor};
     }
   }
 
@@ -65,8 +65,8 @@ const StyledWrapper = styled.div`
   }
 
   .resource-card {
-    background: ${props => props.theme.console.headerBg};
-    border: 1px solid ${props => props.theme.console.border};
+    background: ${(props) => props.theme.console.headerBg};
+    border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 4px;
     padding: 8px;
   }
@@ -76,7 +76,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 6px;
     margin-bottom: 6px;
-    color: ${props => props.theme.console.titleColor};
+    color: ${(props) => props.theme.console.titleColor};
   }
 
   .resource-title {
@@ -87,13 +87,13 @@ const StyledWrapper = styled.div`
   .resource-value {
     font-size: 18px;
     font-weight: 600;
-    color: ${props => props.theme.console.titleColor};
+    color: ${(props) => props.theme.console.titleColor};
     margin-bottom: 2px;
   }
 
   .resource-subtitle {
     font-size: 11px;
-    color: ${props => props.theme.console.buttonColor};
+    color: ${(props) => props.theme.console.buttonColor};
   }
 
   .resource-trend {
@@ -112,7 +112,7 @@ const StyledWrapper = styled.div`
     }
 
     &.stable {
-      color: ${props => props.theme.console.buttonColor};
+      color: ${(props) => props.theme.console.buttonColor};
     }
   }
 `;
