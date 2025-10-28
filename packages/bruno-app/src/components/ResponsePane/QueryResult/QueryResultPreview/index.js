@@ -135,6 +135,7 @@ const QueryResultPreview = ({
           mode={mode}
           initialScroll={focusedTab.responsePaneScrollPosition || 0}
           readOnly
+          clickableLink={true}
         />
       );
     }
