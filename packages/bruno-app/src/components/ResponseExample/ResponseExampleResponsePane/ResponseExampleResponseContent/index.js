@@ -26,12 +26,6 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
       return '';
     }
 
-    // if (response.body.type === 'binary') {
-    //   // you'// receive base64 encoded string in response.body.content
-    //   return Buffer.from(response.body.content, 'base64').toString('utf-8');
-    // } else {
-    //   return response.body.content;
-    // }
     return response.body.content;
   };
 
