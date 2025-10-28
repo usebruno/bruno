@@ -74,17 +74,12 @@ const StyledWrapper = styled.div`
   }
 
   .example-input-name {
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 700;
-    line-height: 1.2;
-
-    @media (min-width: 768px) {
-      font-size: 24px;
-    }
   }
 
   .example-input-description {
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.6;
     resize: none;
     min-height: 80px;

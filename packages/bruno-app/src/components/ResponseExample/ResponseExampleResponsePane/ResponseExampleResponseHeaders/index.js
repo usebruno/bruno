@@ -3,7 +3,8 @@ import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { IconTrash } from '@tabler/icons';
 import get from 'lodash/get';
-import { addResponseExampleHeader, updateResponseExampleHeader, deleteResponseExampleHeader, moveResponseExampleHeader, setResponseExampleHeaders } from 'providers/ReduxStore/slices/collections';
+import { addResponseExampleHeader, updateResponseExampleHeader, deleteResponseExampleHeader, moveResponseExampleHeader, setResponseExampleHeaders, updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
+import { getBodyType } from 'utils/responseBodyProcessor';
 import Table from 'components/Table-v2';
 import ReorderTable from 'components/ReorderTable';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -21,6 +22,10 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
 
   const headers = useMemo(() => {
     return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.response?.headers || [] : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.response?.headers || [];
+  }, [item, exampleUid]);
+
+  const response = useMemo(() => {
+    return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.response || {} : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.response || {};
   }, [item, exampleUid]);
 
   const handleAddHeader = () => {
@@ -58,6 +63,28 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
       exampleUid: exampleUid,
       header: updatedHeader
     }));
+
+    // If content-type header is being updated, automatically update the body type
+    if (header.name?.toLowerCase() === 'content-type' && type === 'value') {
+      const newContentType = updatedHeader.value?.toLowerCase() || '';
+      const newBodyType = getBodyType(newContentType);
+      const currentBodyType = response.body?.type || 'text';
+
+      // Only update if the body type has changed
+      if (newBodyType !== currentBodyType) {
+        dispatch(updateResponseExampleResponse({
+          itemUid: item.uid,
+          collectionUid: collection.uid,
+          exampleUid: exampleUid,
+          response: {
+            body: {
+              type: newBodyType,
+              content: response.body?.content || ''
+            }
+          }
+        }));
+      }
+    }
   };
 
   const handleRemoveHeader = (header) => {
