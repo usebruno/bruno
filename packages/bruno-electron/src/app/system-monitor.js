@@ -1,10 +1,13 @@
-const pidusage = require('pidusage');
+const { app } = require('electron');
 
 class SystemMonitor {
   constructor() {
     this.intervalId = null;
     this.isMonitoring = false;
+    this.isEmitting = false;
     this.startTime = Date.now();
+    this.lastCpuUsage = null;
+    this.lastTimestamp = Date.now();
   }
 
   start(win, intervalMs = 2000) {
@@ -14,43 +17,77 @@ class SystemMonitor {
 
     this.isMonitoring = true;
     this.startTime = Date.now();
+    this.lastTimestamp = Date.now();
 
     // Emit initial stats
     this.emitSystemStats(win);
 
     // Set up periodic monitoring
-    this.intervalId = setInterval(() => {
-      this.emitSystemStats(win);
+    // Use setTimeout pattern instead of setInterval to avoid overlapping calls
+    this.scheduleNextEmit(win, intervalMs);
+  }
+
+  scheduleNextEmit(win, intervalMs) {
+    if (!this.isMonitoring) {
+      return;
+    }
+
+    this.intervalId = setTimeout(async () => {
+      await this.emitSystemStats(win);
+      this.scheduleNextEmit(win, intervalMs);
     }, intervalMs);
   }
 
   stop() {
     if (this.intervalId) {
-      clearInterval(this.intervalId);
+      clearTimeout(this.intervalId);
       this.intervalId = null;
     }
     this.isMonitoring = false;
+    this.isEmitting = false;
+    this.lastCpuUsage = null;
   }
 
   async emitSystemStats(win) {
+    // Prevent overlapping calls
+    if (this.isEmitting) {
+      return;
+    }
+
+    this.isEmitting = true;
+
     try {
-      const pid = process.pid;
-      const stats = await pidusage(pid);
-      const uptime = (Date.now() - this.startTime) / 1000;
+      const metrics = app.getAppMetrics();
+      const currentTime = Date.now();
+
+      let totalCPU = 0;
+      let totalMemory = 0;
+
+      for (const metric of metrics) {
+        totalCPU += metric.cpu.percentCPUUsage;
+        totalMemory += metric.memory.workingSetSize;
+      }
+
+      this.lastCpuUsage = totalCPU;
+      this.lastTimestamp = currentTime;
+
+      const uptime = (currentTime - this.startTime) / 1000;
 
       const systemResources = {
-        cpu: stats.cpu || 0,
-        memory: stats.memory || 0,
-        pid: pid,
+        cpu: totalCPU,
+        memory: totalMemory,
+        pid: process.pid,
         uptime: uptime,
         timestamp: new Date().toISOString()
       };
 
-      win.webContents.send('main:filesync-system-resources', systemResources);
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('main:filesync-system-resources', systemResources);
+      }
     } catch (error) {
       console.error('Error getting system stats:', error);
 
-      // Fallback stats if pidusage fails
+      // Fallback stats using process.memoryUsage()
       const fallbackStats = {
         cpu: 0,
         memory: process.memoryUsage().rss,
@@ -59,7 +96,11 @@ class SystemMonitor {
         timestamp: new Date().toISOString()
       };
 
-      win.webContents.send('main:filesync-system-resources', fallbackStats);
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('main:filesync-system-resources', fallbackStats);
+      }
+    } finally {
+      this.isEmitting = false;
     }
   }
 
