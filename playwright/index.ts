@@ -5,19 +5,20 @@ import * as fs from 'fs';
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
 
-const asyncExists = (filepath: string) => fs.promises.access(filepath).then(()=>true).catch(()=>false)
+const existsAsync = (filepath: string) => fs.promises.access(filepath).then(() => true).catch(() => false);
 
 async function recursiveCopy(src: string, dest: string) {
-  if(!await asyncExists(src)){
-    throw new Error(`${src} doesn't exist, if you are using \`pageWithUserData\` use \`page\` instead.`);
+  if (!await existsAsync(src)) {
+    throw new Error(`${src} doesn't exist, either add one or if you don't need an initial state then use the \`page\` fixture instead of \`pageWithUserData\`.`);
   }
+
   const files = await fs.promises.readdir(src, {
-    recursive:true,
-    withFileTypes:true
+    recursive: true,
+    withFileTypes: true
   });
-  
-  for (const file of files){
-    if (!file.isFile()) continue 
+
+  for (const file of files) {
+    if (!file.isFile()) continue;
     const fullPath = path.join(src, file.name);
     const fullDestPath = path.join(dest, file.name);
     await fs.promises.copyFile(fullPath, fullDestPath);
@@ -213,14 +214,11 @@ export const test = baseTest.extend<
   pageWithUserData: async ({ launchElectronApp, createTmpDir }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
-    
-    // const tmpDir = initUserDataPath
-    const tmpDir = await createTmpDir();
-    await recursiveCopy(initUserDataPath, tmpDir)
 
-    const app = await launchElectronApp(
-      (await fs.promises.stat(tmpDir).catch(() => false)) ? { initUserDataPath: tmpDir } : {}
-    );
+    const tmpDir = await createTmpDir();
+    await recursiveCopy(initUserDataPath, tmpDir);
+
+    const app = await launchElectronApp((await fs.promises.stat(tmpDir).catch(() => false)) ? { initUserDataPath: tmpDir } : {});
 
     const context = await app.context();
     const page = await app.firstWindow();
