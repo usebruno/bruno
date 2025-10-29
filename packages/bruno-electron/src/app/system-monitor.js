@@ -6,8 +6,6 @@ class SystemMonitor {
     this.isMonitoring = false;
     this.isEmitting = false;
     this.startTime = Date.now();
-    this.lastCpuUsage = null;
-    this.lastTimestamp = Date.now();
   }
 
   start(win, intervalMs = 2000) {
@@ -32,8 +30,8 @@ class SystemMonitor {
       return;
     }
 
-    this.intervalId = setTimeout(async () => {
-      await this.emitSystemStats(win);
+    this.intervalId = setTimeout(() => {
+      this.emitSystemStats(win);
       this.scheduleNextEmit(win, intervalMs);
     }, intervalMs);
   }
@@ -45,10 +43,9 @@ class SystemMonitor {
     }
     this.isMonitoring = false;
     this.isEmitting = false;
-    this.lastCpuUsage = null;
   }
 
-  async emitSystemStats(win) {
+  emitSystemStats(win) {
     // Prevent overlapping calls
     if (this.isEmitting) {
       return;
@@ -67,9 +64,6 @@ class SystemMonitor {
         totalCPU += metric.cpu.percentCPUUsage;
         totalMemory += metric.memory.workingSetSize;
       }
-
-      this.lastCpuUsage = totalCPU;
-      this.lastTimestamp = currentTime;
 
       const uptime = (currentTime - this.startTime) / 1000;
 
