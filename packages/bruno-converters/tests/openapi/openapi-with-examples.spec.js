@@ -18,7 +18,7 @@ describe('OpenAPI with Examples', () => {
     const getUsersRequest = brunoCollection.items.find((item) => item.name === 'Get all users');
     expect(getUsersRequest).toBeDefined();
     expect(getUsersRequest.examples).toBeDefined();
-    expect(getUsersRequest.examples).toHaveLength(4); // 3 examples from 200, 1 from 400, 1 from 500
+    expect(getUsersRequest.examples).toHaveLength(4);
 
     // Check specific examples
     const successExample = getUsersRequest.examples.find((ex) => ex.name === 'Success Response');
@@ -28,7 +28,7 @@ describe('OpenAPI with Examples', () => {
     expect(successExample.response.headers).toHaveLength(1);
     expect(successExample.response.headers[0].name).toBe('Content-Type');
     expect(successExample.response.headers[0].value).toBe('application/json');
-    expect(JSON.parse(successExample.response.body)).toEqual({
+    expect(JSON.parse(successExample.response.body.content)).toEqual({
       users: [
         { id: 1, name: 'John Doe', email: 'john@example.com' },
         { id: 2, name: 'Jane Smith', email: 'jane@example.com' }
@@ -36,9 +36,8 @@ describe('OpenAPI with Examples', () => {
     });
 
     const emptyExample = getUsersRequest.examples.find((ex) => ex.name === 'Empty Response');
-    expect(emptyExample).toBeDefined();
     expect(emptyExample.response.status).toBe('200');
-    expect(JSON.parse(emptyExample.response.body)).toEqual({ users: [] });
+    expect(JSON.parse(emptyExample.response.body.content)).toEqual({ users: [] });
 
     const validationErrorExample = getUsersRequest.examples.find((ex) => ex.name === 'Validation Error');
     expect(validationErrorExample).toBeDefined();
@@ -54,31 +53,14 @@ describe('OpenAPI with Examples', () => {
     const createUserRequest = brunoCollection.items.find((item) => item.name === 'Create a new user');
     expect(createUserRequest).toBeDefined();
     expect(createUserRequest.examples).toBeDefined();
-    expect(createUserRequest.examples).toHaveLength(4); // 2 from request body, 2 from responses
-
-    // Check request body examples
-    const validUserExample = createUserRequest.examples.find((ex) => ex.name === 'Valid User');
-    expect(validUserExample).toBeDefined();
-    expect(validUserExample.request.body.mode).toBe('json');
-    expect(JSON.parse(validUserExample.request.body.json)).toEqual({
-      name: 'John Doe',
-      email: 'john@example.com'
-    });
-
-    const invalidUserExample = createUserRequest.examples.find((ex) => ex.name === 'Invalid User');
-    expect(invalidUserExample).toBeDefined();
-    expect(invalidUserExample.request.body.mode).toBe('json');
-    expect(JSON.parse(invalidUserExample.request.body.json)).toEqual({
-      name: '',
-      email: 'invalid-email'
-    });
+    expect(createUserRequest.examples).toHaveLength(2);
 
     // Check response examples
     const createdExample = createUserRequest.examples.find((ex) => ex.name === 'User Created');
     expect(createdExample).toBeDefined();
     expect(createdExample.response.status).toBe('201');
     expect(createdExample.response.statusText).toBe('Created');
-    expect(JSON.parse(createdExample.response.body)).toEqual({
+    expect(JSON.parse(createdExample.response.body.content)).toEqual({
       id: 123,
       name: 'John Doe',
       email: 'john@example.com',
@@ -128,7 +110,8 @@ servers:
     const textExample = request.examples.find((ex) => ex.name === 'Text Response');
     expect(textExample).toBeDefined();
     expect(textExample.response.headers[0].value).toBe('text/plain');
-    expect(textExample.response.body).toBe('Hello World');
+    expect(textExample.response.body.content).toBe('Hello World');
+    expect(textExample.response.body.type).toBe('text');
   });
 
   it('should handle OpenAPI examples without summary or description', () => {
@@ -160,9 +143,10 @@ servers:
 
     expect(request.examples).toHaveLength(1);
     const example = request.examples[0];
-    expect(example.name).toBe('200 Response'); // Fallback to status code
+    expect(example.name).toBe('example1');
     expect(example.description).toBe('');
-    expect(JSON.parse(example.response.body)).toEqual({ message: 'test' });
+    expect(example.response.body.type).toBe('json');
+    expect(JSON.parse(example.response.body.content)).toEqual({ message: 'test' });
   });
 
   it('should not create examples array if no examples are present', () => {

@@ -599,22 +599,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                 xml: null,
                 formUrlEncoded: [],
                 multipartForm: []
-              },
-              auth: {
-                mode: 'inherit',
-                basic: null,
-                bearer: null,
-                awsv4: null,
-                apikey: null,
-                oauth2: null,
-                digest: null
               }
             },
             response: {
               status: response.status || '',
               statusText: response.code ? response.code.toString() : '',
               headers: [],
-              body: response.body || ''
+              body: {
+                type: getBodyTypeFromContentTypeHeader(response.header),
+                content: response.body || ''
+              }
             }
           };
 
@@ -741,6 +735,21 @@ const searchLanguageByHeader = (headers) => {
     }
   });
   return contentType;
+};
+
+const getBodyTypeFromContentTypeHeader = (headers) => {
+  const contentTypeHeader = headers.find((header) => header.key.toLowerCase() === 'content-type');
+  if (contentTypeHeader) {
+    const contentType = contentTypeHeader.value?.toLowerCase();
+    if (contentType?.includes('application/json')) {
+      return 'json';
+    } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {
+      return 'xml';
+    } else if (contentType?.includes('text/html')) {
+      return 'html';
+    }
+  }
+  return 'text';
 };
 
 const importPostmanV2Collection = async (collection, { useWorkers = false }) => {
