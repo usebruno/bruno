@@ -21,6 +21,17 @@ const getStatusText = (statusCode) => {
   return statusTexts[statusCode] || 'Unknown';
 };
 
+const getBodyTypeFromContentType = (contentType) => {
+  if (contentType?.includes('application/json')) {
+    return 'json';
+  } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {
+    return 'xml';
+  } else if (contentType?.includes('text/html')) {
+    return 'html';
+  }
+  return 'text';
+};
+
 const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
   // Check for circular references
   if (visited.has(bodySchema)) {
@@ -334,7 +345,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
           Object.entries(response.content).forEach(([contentType, content]) => {
             if (content.examples) {
               Object.entries(content.examples).forEach(([exampleKey, example]) => {
-                const exampleName = example.summary || (exampleKey.startsWith('example') ? `${statusCode} Response` : exampleKey);
+                const exampleName = example.summary || exampleKey || `${statusCode} Response`;
                 const exampleDescription = example.description || '';
 
                 // Create Bruno example
@@ -349,11 +360,10 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
                     method: brunoRequestItem.request.method,
                     headers: [...brunoRequestItem.request.headers],
                     params: [...brunoRequestItem.request.params],
-                    body: { ...brunoRequestItem.request.body },
-                    auth: { ...brunoRequestItem.request.auth }
+                    body: { ...brunoRequestItem.request.body }
                   },
                   response: {
-                    status: statusCode,
+                    status: String(statusCode),
                     statusText: getStatusText(statusCode),
                     headers: [
                       {
@@ -364,66 +374,16 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
                         enabled: true
                       }
                     ],
-                    body: typeof example.value === 'object' ? JSON.stringify(example.value, null, 2) : example.value
+                    body: {
+                      type: getBodyTypeFromContentType(contentType),
+                      content: typeof example.value === 'object' ? JSON.stringify(example.value, null, 2) : example.value
+                    }
                   }
                 };
 
                 examples.push(brunoExample);
               });
             }
-          });
-        }
-      });
-    }
-
-    // Handle request body examples
-    if (_operationObject.requestBody && _operationObject.requestBody.content) {
-      Object.entries(_operationObject.requestBody.content).forEach(([contentType, content]) => {
-        if (content.examples) {
-          Object.entries(content.examples).forEach(([exampleKey, example]) => {
-            const exampleName = example.summary || (exampleKey.startsWith('example') ? 'Request Example' : exampleKey);
-            const exampleDescription = example.description || '';
-
-            // Create Bruno example with request body example
-            const brunoExample = {
-              uid: uuid(),
-              itemUid: brunoRequestItem.uid,
-              name: exampleName,
-              description: exampleDescription,
-              type: 'http-request',
-              request: {
-                url: brunoRequestItem.request.url,
-                method: brunoRequestItem.request.method,
-                headers: [
-                  ...brunoRequestItem.request.headers,
-                  {
-                    uid: uuid(),
-                    name: 'Content-Type',
-                    value: contentType,
-                    description: '',
-                    enabled: true
-                  }
-                ],
-                params: [...brunoRequestItem.request.params],
-                body: {
-                  mode: 'json',
-                  json: typeof example.value === 'object' ? JSON.stringify(example.value, null, 2) : example.value,
-                  text: null,
-                  xml: null,
-                  formUrlEncoded: [],
-                  multipartForm: []
-                },
-                auth: { ...brunoRequestItem.request.auth }
-              },
-              response: {
-                status: '',
-                statusText: '',
-                headers: [],
-                body: ''
-              }
-            };
-
-            examples.push(brunoExample);
           });
         }
       });

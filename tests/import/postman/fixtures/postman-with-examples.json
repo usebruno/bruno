@@ -1,116 +1,116 @@
 {
-    "info": {
-        "_postman_id": "d7b47cc4-c3c5-4c9d-99d4-04b6025c9000",
-        "name": "collection with examples",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-        "_exporter_id": "41238764"
-    },
-    "item": [
-        {
-            "name": "New Request",
-            "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                    "raw": "https://testbench-sanity.usebruno.com/ping",
-                    "protocol": "https",
-                    "host": [
-                        "testbench-sanity",
-                        "usebruno",
-                        "com"
-                    ],
-                    "path": [
-                        "ping"
-                    ]
-                }
-            },
-            "response": [
-                {
-                    "name": "Success Response",
-                    "originalRequest": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "https://testbench-sanity.usebruno.com/ping",
-                            "protocol": "https",
-                            "host": [
-                                "testbench-sanity",
-                                "usebruno",
-                                "com"
-                            ],
-                            "path": [
-                                "ping"
-                            ]
-                        }
-                    },
-                    "status": "OK",
-                    "code": 200,
-                    "_postman_previewlanguage": "json",
-                    "header": [
-                        {
-                            "key": "Content-Type",
-                            "value": "application/json",
-                            "name": "Content-Type",
-                            "description": "",
-                            "type": "text"
-                        },
-                        {
-                            "key": "x-powered-by",
-                            "value": "Express"
-                        }
-                    ],
-                    "cookie": [],
-                    "body": "{\n    \"ping\": \"pong\"\n}"
-                },
-                {
-                    "name": "Error Response",
-                    "originalRequest": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"ping\": \"pong\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "https://testbench-sanity.usebruno.com/ping",
-                            "protocol": "https",
-                            "host": [
-                                "testbench-sanity",
-                                "usebruno",
-                                "com"
-                            ],
-                            "path": [
-                                "ping"
-                            ]
-                        }
-                    },
-                    "status": "Internal Server Error",
-                    "code": 500,
-                    "_postman_previewlanguage": "json",
-                    "header": [
-                        {
-                            "key": "Content-Type",
-                            "value": "application/json",
-                            "name": "Content-Type",
-                            "description": "",
-                            "type": "text"
-                        }
-                    ],
-                    "cookie": [],
-                    "body": "{\n    \"error\": \"Internal Server Error\"\n}"
-                }
-            ]
+  "info": {
+    "_postman_id": "d7b47cc4-c3c5-4c9d-99d4-04b6025c9000",
+    "name": "collection with examples",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "41238764"
+  },
+  "item": [
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://testbench-sanity.usebruno.com/ping",
+          "protocol": "https",
+          "host": [
+            "testbench-sanity",
+            "usebruno",
+            "com"
+          ],
+          "path": [
+            "ping"
+          ]
         }
-    ]
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://testbench-sanity.usebruno.com/ping",
+              "protocol": "https",
+              "host": [
+                "testbench-sanity",
+                "usebruno",
+                "com"
+              ],
+              "path": [
+                "ping"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "name": "Content-Type",
+              "description": "",
+              "type": "text"
+            },
+            {
+              "key": "x-powered-by",
+              "value": "Express"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"ping\": \"pong\"\n}"
+        },
+        {
+          "name": "Error Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"ping\": \"pong\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://testbench-sanity.usebruno.com/ping",
+              "protocol": "https",
+              "host": [
+                "testbench-sanity",
+                "usebruno",
+                "com"
+              ],
+              "path": [
+                "ping"
+              ]
+            }
+          },
+          "status": "Internal Server Error",
+          "code": 500,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "name": "Content-Type",
+              "description": "",
+              "type": "text"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"error\": \"Internal Server Error\"\n}"
+        }
+      ]
+    }
+  ]
 }
