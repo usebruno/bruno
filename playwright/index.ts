@@ -9,7 +9,7 @@ const existsAsync = (filepath: string) => fs.promises.access(filepath).then(() =
 
 async function recursiveCopy(src: string, dest: string) {
   if (!await existsAsync(src)) {
-    throw new Error(`${src} doesn't exist, either add one or if you don't need an initial state then use the \`page\` fixture instead of \`pageWithUserData\`.`);
+    throw new Error(`${src} doesn't exist`);
   }
 
   const files = await fs.promises.readdir(src, {
@@ -216,7 +216,14 @@ export const test = baseTest.extend<
     const initUserDataPath = path.join(testDir, 'init-user-data');
 
     const tmpAppDataDir = await createTmpDir();
-    await recursiveCopy(initUserDataPath, tmpAppDataDir);
+    try {
+      await recursiveCopy(initUserDataPath, tmpAppDataDir);
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('doesn\'t exist')) {
+        throw new Error(`${initUserDataPath} doesn't exist, either add one or if you don't need an initial state then use the \`page\` fixture instead of \`pageWithUserData\`.`);
+      }
+      throw err;
+    }
 
     const app = await launchElectronApp({ initUserDataPath: tmpAppDataDir });
 
