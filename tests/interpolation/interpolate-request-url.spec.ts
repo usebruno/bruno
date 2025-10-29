@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 
 test.describe.serial('URL Interpolation', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
   });
@@ -19,7 +19,6 @@ test.describe.serial('URL Interpolation', () => {
   });
 
   test('Interpolate oData path params', async ({ pageWithUserData: page }) => {
-    await page.locator('#sidebar-collection-name').click();
     await page.getByRole('complementary').getByText('echo-request-odata').click();
     await page.getByTestId('send-arrow-icon').click();
 

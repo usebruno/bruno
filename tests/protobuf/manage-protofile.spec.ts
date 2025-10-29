@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 
 test.describe('manage protofile', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
