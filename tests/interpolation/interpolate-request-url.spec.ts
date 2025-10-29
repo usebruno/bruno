@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 
 test.describe.serial('URL Interpolation', () => {
-  test.afterAll(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
   });
