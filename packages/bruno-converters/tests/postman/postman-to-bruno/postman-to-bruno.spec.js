@@ -79,9 +79,177 @@ describe('postman-collection', () => {
     ]);
   });
 
-  it("should handle empty variables", async () => {
+  it('should successfully translate a URL path array with no empty elements', async () => {
+    const collectionWithFalsyVars = {
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with falsy vars',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      variable: [
+        {
+          type: 'string'
+        },
+        {
+          key: '',
+          type: 'string'
+        },
+        {
+          value: '',
+          type: 'string'
+        },
+        {
+          key: '',
+          value: '',
+          type: 'string'
+        }
+      ],
+      item: [
+        {
+          name: 'Request with all settings',
+          protocolProfileBehavior: {
+            maxRedirects: 10,
+            followRedirects: false,
+            disableUrlEncoding: true
+          },
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['httpbin', 'org'],
+              path: ['api', 'v1', 'resource']
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+
+    console.log('here here');
+    console.log(brunoCollection.items.map((item) => item.request.url));
+
+    expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
+      'https://httpbin.org/api/v1/resource'
+    ]);
+  });
+
+  it('should not mutate a URL path with an empty element representing a trailing slash', async () => {
+    const collectionWithFalsyVars = {
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with falsy vars',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      variable: [
+        {
+          type: 'string'
+        },
+        {
+          key: '',
+          type: 'string'
+        },
+        {
+          value: '',
+          type: 'string'
+        },
+        {
+          key: '',
+          value: '',
+          type: 'string'
+        }
+      ],
+      item: [
+        {
+          name: 'Request with all settings',
+          protocolProfileBehavior: {
+            maxRedirects: 10,
+            followRedirects: false,
+            disableUrlEncoding: true
+          },
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['httpbin', 'org'],
+              path: ['api', 'v1', 'resource', '']
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+
+    console.log('here here');
+    console.log(brunoCollection.items.map((item) => item.request.url));
+
+    expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
+      'https://httpbin.org/api/v1/resource/'
+    ]);
+  });
+
+  it('should not mutate a URL path with an empty element representing a trailing slash', async () => {
+    const collectionWithFalsyVars = {
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with falsy vars',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      variable: [
+        {
+          type: 'string'
+        },
+        {
+          key: '',
+          type: 'string'
+        },
+        {
+          value: '',
+          type: 'string'
+        },
+        {
+          key: '',
+          value: '',
+          type: 'string'
+        }
+      ],
+      item: [
+        {
+          name: 'Request with all settings',
+          protocolProfileBehavior: {
+            maxRedirects: 10,
+            followRedirects: false,
+            disableUrlEncoding: true
+          },
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['httpbin', 'org'],
+              path: ['api', '', 'resource']
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+
+    console.log('here here');
+    console.log(brunoCollection.items.map((item) => item.request.url));
+
+    expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
+      'https://httpbin.org/api//resource'
+    ]);
+  });
+
+  it('should handle empty variables', async () => {
     const collectionWithEmptyVars = {
-      "info": {
+      info: {
         "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
         "name": "collection with falsy vars",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
