@@ -9,6 +9,7 @@ class BrunoResponse {
     this.headers = res ? res.headers : null;
     this.body = res ? res.data : null;
     this.responseTime = res ? res.responseTime : null;
+    this.url = res?.request ? res.request.protocol + '//' + res.request.host + res.request.path : null;
 
     // Make the instance callable
     const callable = (...args) => get(this.body, ...args);
@@ -40,6 +41,10 @@ class BrunoResponse {
 
   getResponseTime() {
     return this.res ? this.res.responseTime : null;
+  }
+
+  getUrl() {
+    return this.res ? this.url : null;
   }
 
   setBody(data) {

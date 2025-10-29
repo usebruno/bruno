@@ -44,23 +44,28 @@ const createHeaders = (request, headers) => {
   return enabledHeaders;
 };
 
-const createQuery = (queryParams = []) => {
-  return queryParams
+const createQuery = (queryParams = [], request) => {
+  const params = queryParams
     .filter((param) => param.enabled && param.type === 'query')
     .map((param) => ({
       name: param.name,
       value: param.value
     }));
-};
 
-const createPostData = (body, type) => {
-  if (type === 'graphql-request') {
-    return {
-      mimeType: 'application/json',
-      text: JSON.stringify(body[body.mode])
-    };
+  if (request?.auth?.mode === 'apikey'
+    && request?.auth?.apikey?.placement === 'queryparams'
+    && request?.auth?.apikey?.key
+    && request?.auth?.apikey?.value) {
+    params.push({
+      name: request.auth.apikey.key,
+      value: request.auth.apikey.value
+    });
   }
 
+  return params;
+};
+
+const createPostData = (body) => {
   const contentType = createContentType(body.mode);
 
   switch (body.mode) {
@@ -112,6 +117,11 @@ const createPostData = (body, type) => {
           : []
       };
     }
+    case 'graphql':
+      return {
+        mimeType: contentType,
+        text: JSON.stringify(body[body.mode])
+      };
     default:
       return {
         mimeType: contentType,
@@ -120,15 +130,22 @@ const createPostData = (body, type) => {
   }
 };
 
-export const buildHarRequest = ({ request, headers, type }) => {
+export const buildHarRequest = ({ request, headers }) => { 
+  // NOTE:
+  // This is just a safety check.
+  // The interpolateUrlPathParams method validates the url, but it does not throw
+  if (!URL.canParse(request.url)) {
+    throw new Error('invalid request url');
+  }
+
   return {
     method: request.method,
-    url: encodeURI(request.url),
+    url: request.url,
     httpVersion: 'HTTP/1.1',
     cookies: [],
     headers: createHeaders(request, headers),
-    queryString: createQuery(request.params),
-    postData: createPostData(request.body, type),
+    queryString: createQuery(request.params, request),
+    postData: createPostData(request.body),
     headersSize: 0,
     bodySize: 0,
     binary: true

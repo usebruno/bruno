@@ -32,6 +32,10 @@ const darkTheme = {
 
     name: {
       color: '#569cd6'
+    },
+
+    runtime: {
+      color: 'rgb(255, 255, 255)'
     }
   },
 
@@ -79,10 +83,16 @@ const darkTheme = {
     color: 'rgb(204, 204, 204)',
     iconColor: 'rgb(204, 204, 204)',
     bg: 'rgb(48, 48, 49)',
-    hoverBg: '#185387',
+    hoverBg: '#6A6A6A29',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
     separator: '#444',
-    labelBg: '#4a4949'
+    labelBg: '#4a4949',
+    selectedBg: '#F59E0B14',
+    selectedColor: '#F59E0B',
+    mutedText: '#9B9B9B',
+    primaryText: '#D4D4D4',
+    secondaryText: '#9CA3AF',
+    headingText: '#FFFFFF'
   },
 
   request: {
@@ -95,13 +105,17 @@ const darkTheme = {
       patch: '#d69956',
       options: '#d69956',
       head: '#d69956'
-    }
+    },
+    grpc: '#6366f1',
+    ws: '#f59e0b',
+    gql: '#e535ab'
   },
 
   requestTabPanel: {
     url: {
       bg: '#3D3D3D',
-      icon: 'rgb(204, 204, 204)'
+      icon: 'rgb(204, 204, 204)',
+      errorHoverBg: '#4a2a2a'
     },
     dragbar: {
       border: '#444',
@@ -114,6 +128,7 @@ const darkTheme = {
     responseStatus: '#ccc',
     responseOk: '#8cd656',
     responseError: '#f06f57',
+    responsePending: '#569cd6',
     responseOverlayBg: 'rgba(30, 30, 30, 0.6)',
 
     card: {
@@ -132,6 +147,10 @@ const darkTheme = {
           color: '#ccc'
         }
       }
+    },
+    graphqlDocsExplorer: {
+      bg: '#1e1e1e',
+      color: '#d4d4d4'
     }
   },
 
@@ -220,8 +239,8 @@ const darkTheme = {
 
   tabs: {
     active: {
-      color: '#ccc',
-      border: '#569cd6'
+      color: '#CCCCCC',
+      border: '#F59E0B'
     }
   },
 
@@ -250,7 +269,7 @@ const darkTheme = {
     border: '#373737',
     placeholder: {
       color: '#a2a2a2',
-      opacity: 0.50
+      opacity: 0.5
     },
     gutter: {
       bg: '#262626'
@@ -263,7 +282,10 @@ const darkTheme = {
         bg: 'rgb(48,48,49)',
         boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px'
       }
-    }
+    },
+    searchLineHighlightCurrent: 'rgba(120,120,120,0.18)',
+    searchMatch: '#FFD700',
+    searchMatchActive: '#FFFF00'
   },
 
   table: {
@@ -291,6 +313,12 @@ const darkTheme = {
     hoverBg: 'rgba(102, 102, 102, 0.08)',
     transition: 'all 0.1s ease'
   },
+  tooltip: {
+    bg: '#1f1f1f',
+    color: '#ffffff',
+    shortcutColor: '#f59e0b'
+  },
+
   infoTip: {
     bg: '#1f1f1f',
     border: '#333333',
@@ -299,7 +327,9 @@ const darkTheme = {
 
   statusBar: {
     border: '#323233',
+    color: 'rgb(169, 169, 169)'
   },
+
   console: {
     bg: '#1e1e1e',
     headerBg: '#2d2d30',
@@ -325,6 +355,104 @@ const darkTheme = {
     scrollbarTrack: '#2d2d30',
     scrollbarThumb: '#5a5a5a',
     scrollbarThumbHover: '#6a6a6a'
+  },
+
+  grpc: {
+    tabNav: {
+      container: {
+        bg: '#262626'
+      },
+      button: {
+        active: {
+          bg: '#404040',
+          color: '#ffffff'
+        },
+        inactive: {
+          bg: 'transparent',
+          color: '#a3a3a3'
+        }
+      }
+    },
+    importPaths: {
+      header: {
+        text: '#9d9d9d',
+        button: {
+          color: '#9d9d9d',
+          hoverColor: '#d4d4d4'
+        }
+      },
+      error: {
+        bg: 'transparent',
+        text: '#f06f57',
+        link: {
+          color: '#f06f57',
+          hoverColor: '#ff8a7a'
+        }
+      },
+      item: {
+        bg: 'transparent',
+        hoverBg: 'rgba(255, 255, 255, 0.05)',
+        text: '#d4d4d4',
+        icon: '#9d9d9d',
+        checkbox: {
+          color: '#d4d4d4'
+        },
+        invalid: {
+          opacity: 0.6,
+          text: '#f06f57'
+        }
+      },
+      empty: {
+        text: '#9d9d9d'
+      },
+      button: {
+        bg: '#185387',
+        color: '#d4d4d4',
+        border: '#185387',
+        hoverBorder: '#696969'
+      }
+    },
+    protoFiles: {
+      header: {
+        text: '#9d9d9d',
+        button: {
+          color: '#9d9d9d',
+          hoverColor: '#d4d4d4'
+        }
+      },
+      error: {
+        bg: 'transparent',
+        text: '#f06f57',
+        link: {
+          color: '#f06f57',
+          hoverColor: '#ff8a7a'
+        }
+      },
+      item: {
+        bg: 'transparent',
+        hoverBg: 'rgba(255, 255, 255, 0.05)',
+        selected: {
+          bg: 'rgba(245, 158, 11, 0.2)',
+          border: '#f59e0b'
+        },
+        text: '#d4d4d4',
+        secondaryText: '#9d9d9d',
+        icon: '#9d9d9d',
+        invalid: {
+          opacity: 0.6,
+          text: '#f06f57'
+        }
+      },
+      empty: {
+        text: '#9d9d9d'
+      },
+      button: {
+        bg: '#185387',
+        color: '#d4d4d4',
+        border: '#185387',
+        hoverBorder: '#696969'
+      }
+    }
   }
 };
 

@@ -6,13 +6,16 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { update } from 'lodash';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 
 const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const awsv4Auth = get(request, 'auth.awsv4', {});
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -144,7 +147,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       </div>
 
       <label className="block font-medium mb-2">Secret Access Key</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <div className="single-line-editor-wrapper mb-2 flex items-center">
         <SingleLineEditor
           value={awsv4Auth.secretAccessKey || ''}
           theme={storedTheme}
@@ -155,6 +158,8 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
+
+        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}
       </div>
 
       <label className="block font-medium mb-2">Session Token</label>

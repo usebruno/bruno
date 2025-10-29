@@ -18,6 +18,7 @@ const StyledWrapper = styled.div`
     padding: 0;
     cursor: col-resize;
     background: transparent;
+    position: relative;
 
     div.dragbar-handle {
       display: flex;
@@ -45,6 +46,7 @@ const StyledWrapper = styled.div`
       height: 10px;
       cursor: row-resize;
       padding: 0 1rem;
+      position: relative;
 
       div.dragbar-handle {
         width: 100%;
@@ -61,7 +63,8 @@ const StyledWrapper = styled.div`
   }
 
   div.graphql-docs-explorer-container {
-    background: white;
+    background: ${(props) => props.theme.requestTabPanel.graphqlDocsExplorer.bg};
+    color: ${(props) => props.theme.requestTabPanel.graphqlDocsExplorer.color};
     outline: none;
     box-shadow: rgb(0 0 0 / 15%) 0px 0px 8px;
     position: absolute;
@@ -69,6 +72,14 @@ const StyledWrapper = styled.div`
     z-index: 2000;
     width: 350px;
     height: 100%;
+
+    .doc-explorer-contents,
+    .doc-explorer,
+    .search-box > input,
+    .search-box-clear {
+      background-color: ${(props) => props.theme.requestTabPanel.graphqlDocsExplorer.bg};
+      color: ${(props) => props.theme.requestTabPanel.graphqlDocsExplorer.color};
+    }
 
     div.doc-explorer-title {
       text-align: left;

@@ -2,9 +2,8 @@ const { get, each, find, compact } = require('lodash');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { jsonToBruV2, envJsonToBruV2, jsonToCollectionBru } = require('@usebruno/lang');
 const { sanitizeName } = require('./filesystem');
-const { bruToJson, collectionBruToJson } = require('./bru');
+const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -45,13 +44,23 @@ const createCollectionJsonFromPathname = (collectionPath) => {
         if (path.extname(filePath) !== '.bru') continue;
 
         // get the request item
-        const bruContent = fs.readFileSync(filePath, 'utf8');
-        const requestItem = bruToJson(bruContent);
-        currentDirItems.push({
-          name: file,
-          pathname: filePath,
-          ...requestItem
-        });
+        try {
+          const bruContent = fs.readFileSync(filePath, 'utf8');
+          const requestItem = parseRequest(bruContent);
+          currentDirItems.push({
+            name: file,
+            pathname: filePath,
+            ...requestItem
+          });
+        } catch (err) {
+          // Log warning for invalid .bru file but continue processing
+          console.warn(chalk.yellow(`Warning: Skipping invalid file ${filePath}\nError: ${err.message}`));
+          // Track skipped files for later reporting
+          if (!global.brunoSkippedFiles) {
+            global.brunoSkippedFiles = [];
+          }
+          global.brunoSkippedFiles.push({ path: filePath, error: err.message });
+        }
       }
     }
     let currentDirFolderItems = currentDirItems?.filter((iter) => iter.type === 'folder');
@@ -97,7 +106,7 @@ const getCollectionRoot = (dir) => {
   }
 
   const content = fs.readFileSync(collectionRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseCollection(content);
 };
 
 const getFolderRoot = (dir) => {
@@ -108,7 +117,7 @@ const getFolderRoot = (dir) => {
   }
 
   const content = fs.readFileSync(folderRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseFolder(content);
 };
 
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -417,7 +426,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
 
   // Create collection.bru if root exists
   if (collection.root) {
-    const collectionContent = await jsonToCollectionBru(collection.root);
+    const collectionContent = await stringifyCollection(collection.root);
     fs.writeFileSync(path.join(dirPath, 'collection.bru'), collectionContent);
   }
 
@@ -427,7 +436,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     fs.mkdirSync(envDirPath, { recursive: true });
 
     for (const env of collection.environments) {
-      const content = await envJsonToBruV2(env);
+      const content = await stringifyEnvironment(env);
       const filename = sanitizeName(`${env.name}.bru`);
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
@@ -459,10 +468,7 @@ const processCollectionItems = async (items = [], currentPath) => {
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = await jsonToCollectionBru(
-          item.root,
-          true 
-        );
+        const folderContent = await stringifyFolder(item.root);
         safeWriteFileSync(folderBruFilePath, folderContent);
       }
 
@@ -480,33 +486,28 @@ const processCollectionItems = async (items = [], currentPath) => {
       // Convert JSON to BRU format based on the item type
       let type = item.type === 'http-request' ? 'http' : 'graphql';
       const bruJson = {
-        meta: {
-          name: item.name,
-          type: type,
-          seq: typeof item.seq === 'number' ? item.seq : 1
-        },
-        http: {
-          method: (item.request?.method || 'GET').toLowerCase(),
+        type: type,
+        name: item.name,
+        seq: typeof item.seq === 'number' ? item.seq : 1,
+        tags: item.tags || [],
+        settings: {},
+        request: {
+          method: item.request?.method || 'GET',
           url: item.request?.url || '',
-          auth: item.request?.auth?.mode || 'none',
-          body: item.request?.body?.mode || 'none'
-        },
-        params: item.request?.params || [],
-        headers: item.request?.headers || [],
-        auth: item.request?.auth || {},
-        body: item.request?.body || {},
-        script: item.request?.script || {},
-        vars: {
-          req: item.request?.vars?.req || [],
-          res: item.request?.vars?.res || []
-        },
-        assertions: item.request?.assertions || [],
-        tests: item.request?.tests || '',
-        docs: item.request?.docs || ''
+          headers: item.request?.headers || [],
+          params: item.request?.params || [],
+          auth: item.request?.auth || {},
+          body: item.request?.body || {},
+          script: item.request?.script || {},
+          vars: item.request?.vars || { req: [], res: [] },
+          assertions: item.request?.assertions || [],
+          tests: item.request?.tests || '',
+          docs: item.request?.docs || ''
+        }
       };
 
       // Convert to BRU format and write to file
-      const content = await jsonToBruV2(bruJson);
+      const content = await stringifyRequest(bruJson);
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
     }
   }

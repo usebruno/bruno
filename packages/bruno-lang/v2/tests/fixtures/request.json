@@ -25,6 +25,36 @@
       "enabled": true
     },
     {
+      "name": "key with spaces",
+      "value": "is allowed",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name" : "colon:parameter",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name" : "nested escaped \"quote\"",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "{braces}",
+      "value": "is allowed",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name" : "disabled:colon:parameter",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": false
+    },
+    {
       "name": "message",
       "value": "hello",
       "type": "query",
@@ -47,6 +77,31 @@
       "name": "Authorization",
       "value": "Bearer 123",
       "enabled": true
+    },
+    {
+      "name": "key with spaces",
+      "value": "is allowed",
+      "enabled": true
+    },
+    {
+      "name": "colon:header",
+      "value": "is allowed",
+      "enabled": true
+    },
+    {
+      "name": "{braces}",
+      "value": "is allowed",
+      "enabled": true
+    },
+    {
+      "name": "nested escaped \"quote\"",
+      "value": "is allowed",
+      "enabled": true
+    },
+    {
+      "name": "disabled:colon:header",
+      "value": "is allowed",
+      "enabled": false
     },
     {
       "name": "transaction-id",
@@ -119,8 +174,33 @@
         "enabled": true
       },
       {
+        "name": "key with spaces",
+        "value": "is allowed",
+        "enabled": true
+      },
+      {
+        "name": "colon:parameter",
+        "value": "is allowed",
+        "enabled": true
+      },
+      {
+        "name": "nested escaped \"quote\"",
+        "value": "is allowed",
+        "enabled": true
+      },
+      {
+        "name": "{braces}",
+        "value": "is allowed",
+        "enabled": true
+      },
+      {
         "name": "message",
         "value": "hello",
+        "enabled": false
+      },
+      {
+        "name": "disabled colon:parameter",
+        "value": "is allowed",
         "enabled": false
       }
     ],
@@ -141,8 +221,43 @@
       },
       {
         "contentType": "",
+        "name": "key with spaces",
+        "value": "is allowed",
+        "enabled": true,
+        "type": "text"
+      },
+      {
+        "contentType": "",
+        "name": "colon:part",
+        "value": "is allowed",
+        "enabled": true,
+        "type": "text"
+      },
+      {
+        "contentType": "",
+        "name": "nested escaped \"quote\"",
+        "value": "is allowed",
+        "enabled": true,
+        "type": "text"
+      },
+      {
+        "contentType": "",
+        "name": "{braces}",
+        "value": "is allowed",
+        "enabled": true,
+        "type": "text"
+      },
+      {
+        "contentType": "",
         "name": "message",
         "value": "hello",
+        "enabled": false,
+        "type": "text"
+      },
+      {
+        "contentType": "",
+        "name": "disabled colon:part",
+        "value": "is allowed",
         "enabled": false,
         "type": "text"
       }

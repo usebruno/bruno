@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import get from 'lodash/get';
 import filter from 'lodash/filter';
-import { Inspector } from 'react-inspector';
+import { Inspector, chromeDark, chromeLight } from 'react-inspector';
 import { useTheme } from 'providers/Theme';
 import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
@@ -84,12 +84,15 @@ const RuntimeVariables = ({ collection, theme }) => {
 };
 
 const VariablesEditor = ({ collection }) => {
-  const { storedTheme } = useTheme();
+  const { displayedTheme, theme } = useTheme();
 
-  const reactInspectorTheme = storedTheme === 'light' ? 'chromeLight' : 'chromeDark';
+  const reactInspectorTheme
+    = displayedTheme === 'light'
+      ? { ...chromeLight, OBJECT_VALUE_STRING_COLOR: theme.variables.runtime.color }
+      : { ...chromeDark, OBJECT_VALUE_STRING_COLOR: theme.variables.runtime.color };
 
   return (
-    <StyledWrapper className="px-4 py-4 overflow-scroll">
+    <StyledWrapper className="px-4 py-4 overflow-auto">
       <RuntimeVariables collection={collection} theme={reactInspectorTheme} />
       <EnvVariables collection={collection} theme={reactInspectorTheme} />
 

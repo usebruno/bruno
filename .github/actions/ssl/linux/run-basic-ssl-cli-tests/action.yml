@@ -1,0 +1,36 @@
+name: 'Run Basic SSL CLI Tests - Linux'
+description: 'Run basic SSL CLI tests on Linux'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run CLI tests
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        # navigate to basic SSL test collection directory
+        cd tests/ssl/basic-ssl/collections/badssl
+
+        echo "basic ssl success"
+        # should pass
+        node ../../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit1.xml --insecure --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0"])' junit1.xml | grep -q "^1$" || exit 1
+
+        echo "with default/system ca certs"
+        # should pass
+        node ../../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit2.xml --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0"])' junit2.xml | grep -q "^1$" || exit 1
+
+        # navigate to self-signed SSL test collection directory
+        cd ../self-signed-badssl
+
+        echo "self-signed ssl with validation disabled"
+        # should pass
+        node ../../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit3.xml --insecure --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0"])' junit3.xml | grep -q "^1$" || exit 1
+
+        echo "self-signed ssl with default/system ca certs"
+        echo "request will error"
+        # should fail
+        node ../../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit4.xml --format junit 2>/dev/null || true
+        xmllint --xpath 'count(//testsuite[@errors="1"])' junit4.xml | grep -q "^1$" || exit 1

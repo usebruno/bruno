@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
+import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
@@ -105,8 +106,11 @@ class SingleLineEditor extends Component {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
       this.maskedEditor.enable();
     } else {
-      this.maskedEditor?.disable();
-      this.maskedEditor = null;
+      if (this.maskedEditor) {
+        this.maskedEditor.disable();
+        this.maskedEditor.destroy();
+        this.maskedEditor = null;
+      }
     }
   };
 
@@ -160,6 +164,10 @@ class SingleLineEditor extends Component {
     }
     if (this.brunoAutoCompleteCleanup) {
       this.brunoAutoCompleteCleanup();
+    }
+    if (this.maskedEditor) {
+      this.maskedEditor.destroy();
+      this.maskedEditor = null;
     }
   }
 

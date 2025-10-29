@@ -23,7 +23,8 @@
     "js-yaml": "^4.1.0",
     "jscodeshift": "^17.3.0",
     "lodash": "^4.17.21",
-    "nanoid": "3.3.8"
+    "nanoid": "3.3.8",
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -35,13 +36,13 @@
     "@web/rollup-plugin-copy": "^0.5.1",
     "babel-jest": "^29.7.0",
     "rimraf": "^5.0.7",
-    "rollup": "3.2.5",
+    "rollup": "3.29.5",
     "rollup-plugin-dts": "^5.0.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-terser": "^7.0.2",
     "typescript": "^4.8.4"
   },
   "overrides": {
-    "rollup": "3.2.5"
+    "rollup": "3.29.5"
   }
 }

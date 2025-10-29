@@ -5,13 +5,17 @@ import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
-import ErrorCapture from 'components/ErrorCapture';
+// import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
+import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
 import Devtools from 'components/Devtools';
+import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
+import useWsEventListeners from 'utils/network/ws-event-listeners';
+import Portal from 'components/Portal';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
@@ -51,19 +55,57 @@ export default function Main() {
   const showHomePage = useSelector((state) => state.app.showHomePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const mainSectionRef = useRef(null);
+  const [showRosettaBanner, setShowRosettaBanner] = useState(false);
+
+  // Initialize event listeners
+  useGrpcEventListeners();
+  useWsEventListeners();
 
   const className = classnames({
     'is-dragging': isDragging
   });
 
+  useEffect(() => {
+    if (!isElectron()) {
+      return;
+    }
+
+    const { ipcRenderer } = window;
+
+    const removeAppLoadedListener = ipcRenderer.on('main:app-loaded', (init) => {
+      if (mainSectionRef.current) {
+        mainSectionRef.current.setAttribute('data-app-state', 'loaded');
+      }
+      setShowRosettaBanner(init.isRunningInRosetta);
+    });
+
+    return () => {
+      removeAppLoadedListener();
+    };
+  }, []);
+
   return (
-    <ErrorCapture>
-      <div className="flex flex-col h-screen max-h-screen overflow-hidden">
-        <div 
-          ref={mainSectionRef}
-          className="flex-1 min-h-0 flex"
-          style={{
-            height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
+    // <ErrorCapture>
+    <div id="main-container" className="flex flex-col h-screen max-h-screen overflow-hidden">
+      {showRosettaBanner ? (
+        <Portal>
+          <div className="fixed bottom-0 left-0 right-0 z-10 bg-amber-100 border border-amber-400 text-amber-700 px-4 py-3" role="alert">
+            <strong className="font-bold">WARNING:</strong>
+            <div>
+              It looks like Bruno was launched as the Intel (x64) build under Rosetta on your Apple Silicon Mac. This can cause reduced performance and unexpected behavior.
+            </div>
+            <button className="absolute right-2 top-0 text-xl" onClick={() => setShowRosettaBanner(!showRosettaBanner)}>
+              &times;
+            </button>
+          </div>
+        </Portal>
+      ) : null}
+      <div
+        ref={mainSectionRef}
+        className="flex-1 min-h-0 flex"
+        data-app-state="loading"
+        style={{
+          height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
           }}
         >
           <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
@@ -80,10 +122,10 @@ export default function Main() {
             </section>
           </StyledWrapper>
         </div>
-        
+
         <Devtools mainSectionRef={mainSectionRef} />
         <StatusBar />
       </div>
-    </ErrorCapture>
+    // </ErrorCapture>
   );
 }

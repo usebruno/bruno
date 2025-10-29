@@ -55,7 +55,10 @@ const TitleBar = () => {
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
-      (err) => console.log(err) && toast.error('An error occurred while opening the collection')
+      (err) => {
+        console.log(err);
+        toast.error('An error occurred while opening the collection');
+      }
     );
   };
 
@@ -78,7 +81,7 @@ const TitleBar = () => {
       ) : null}
 
       <div className="flex items-center">
-        <button className="flex items-center gap-2 text-sm font-medium" onClick={handleTitleClick}>
+        <button className="bruno-logo flex items-center gap-2 text-sm font-medium" onClick={handleTitleClick}>
           <span aria-hidden>
             <Bruno width={30} />
           </span>
