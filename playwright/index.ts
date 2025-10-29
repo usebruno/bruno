@@ -215,10 +215,10 @@ export const test = baseTest.extend<
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
 
-    const tmpDir = await createTmpDir();
-    await recursiveCopy(initUserDataPath, tmpDir);
+    const tmpAppDataDir = await createTmpDir();
+    await recursiveCopy(initUserDataPath, tmpAppDataDir);
 
-    const app = await launchElectronApp(await existsAsync(tmpDir) ? { initUserDataPath: tmpDir } : {});
+    const app = await launchElectronApp({ initUserDataPath: tmpAppDataDir });
 
     const context = await app.context();
     const page = await app.firstWindow();
