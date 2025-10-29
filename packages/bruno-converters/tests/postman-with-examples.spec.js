@@ -122,7 +122,8 @@ describe('Postman to Bruno Converter with Examples', () => {
     expect(successExample.request.method).toBe('GET');
     expect(successExample.response.status).toBe('OK');
     expect(successExample.response.statusText).toBe('200');
-    expect(successExample.response.body).toBe('{\n    "ping": "pong"\n}');
+    expect(successExample.response.body.content).toBe('{\n    "ping": "pong"\n}');
+    expect(successExample.response.body.type).toBe('json');
     expect(successExample.response.headers).toHaveLength(2);
     expect(successExample.response.headers[0].name).toBe('Content-Type');
     expect(successExample.response.headers[0].value).toBe('application/json');
@@ -138,7 +139,8 @@ describe('Postman to Bruno Converter with Examples', () => {
     expect(errorExample.request.method).toBe('GET');
     expect(errorExample.response.status).toBe('Internal Server Error');
     expect(errorExample.response.statusText).toBe('500');
-    expect(errorExample.response.body).toBe('{\n    "error": "Internal Server Error"\n}');
+    expect(errorExample.response.body.content).toBe('{\n    "error": "Internal Server Error"\n}');
+    expect(errorExample.response.body.type).toBe('json');
     expect(errorExample.response.headers).toHaveLength(1);
     expect(errorExample.response.headers[0].name).toBe('Content-Type');
     expect(errorExample.response.headers[0].value).toBe('application/json');

@@ -46,7 +46,7 @@ test.describe('Import Bruno Collection with Examples', () => {
     });
 
     await test.step('Cleanup - close modal', async () => {
-      await page.locator('[data-test-id="modal-close-button"]').click();
+      await page.getByTestId('modal-close-button').click();
     });
   });
 });
