@@ -3,13 +3,10 @@ import { IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 import jsyaml from 'js-yaml';
-import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
-import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
-import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isPostmanCollection } from 'utils/importers/postman-collection';
+import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
+import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
-import { processBrunoCollection } from 'utils/importers/bruno-collection';
-import { wsdlToBruno } from '@usebruno/converters';
-import ImportSettings from 'components/Sidebar/ImportSettings';
 import FullscreenLoader from './FullscreenLoader/index';
 
 const convertFileToObject = async (file) => {
@@ -38,9 +35,6 @@ const convertFileToObject = async (file) => {
 const ImportCollection = ({ onClose, handleSubmit }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [showImportSettings, setShowImportSettings] = useState(false);
-  const [openApiData, setOpenApiData] = useState(null);
-  const [groupingType, setGroupingType] = useState('tags');
   const fileInputRef = useRef(null);
 
   const handleDrag = (e) => {
@@ -58,16 +52,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     }
   };
 
-  const handleImportSettings = () => {
-    try {
-      const collection = convertOpenapiToBruno(openApiData, { groupBy: groupingType });
-      handleSubmit({ collection });
-    } catch (err) {
-      console.error(err);
-      toastError(err, 'Failed to process OpenAPI specification');
-    }
-  };
-
   const processFile = async (file) => {
     setIsLoading(true);
     try {
@@ -77,26 +61,21 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         throw new Error('Failed to parse file content');
       }
 
-      // Check if it's an OpenAPI spec and show settings
+      let type = null;
+
       if (isOpenApiSpec(data)) {
-        setOpenApiData(data);
-        setIsLoading(false);
-        setShowImportSettings(true);
-        return;
-      }
-
-      let collection;
-      if (isWSDLCollection(data)) {
-        collection = await wsdlToBruno(data);
+        type = 'openapi';
+      } else if (isWSDLCollection(data)) {
+        type = 'wsdl';
       } else if (isPostmanCollection(data)) {
-        collection = await postmanToBruno(data);
+        type = 'postman';
       } else if (isInsomniaCollection(data)) {
-        collection = convertInsomniaToBruno(data);
+        type = 'insomnia';
       } else {
-        collection = await processBrunoCollection(data);
+        type = 'bruno';
       }
 
-      handleSubmit({ collection });
+      handleSubmit({ rawData: data, type });
     } catch (err) {
       toastError(err, 'Import collection failed');
     } finally {
@@ -139,17 +118,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     'text/xml',
     'application/xml'
   ];
-
-  if (showImportSettings) {
-    return (
-      <ImportSettings
-        groupingType={groupingType}
-        setGroupingType={setGroupingType}
-        onClose={onClose}
-        onConfirm={handleImportSettings}
-      />
-    );
-  }
 
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
