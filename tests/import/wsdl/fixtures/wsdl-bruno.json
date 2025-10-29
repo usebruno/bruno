@@ -1,0 +1,102 @@
+{
+  "uid": "TestServiceCollection",
+  "version": "1",
+  "name": "TestWSDLServiceJSON",
+  "items": [
+    {
+      "uid": "UserServiceFolder",
+      "name": "UserService",
+      "type": "folder",
+      "items": [
+        {
+          "uid": "GetUserRequest",
+          "name": "GetUser",
+          "type": "http-request",
+          "seq": 1,
+          "request": {
+            "url": "http://example.com/soap/userservice",
+            "method": "POST",
+            "auth": {
+              "mode": "none",
+              "basic": null,
+              "bearer": null,
+              "digest": null
+            },
+            "headers": [
+              {
+                "uid": "ContentTypeHeader",
+                "name": "Content-Type",
+                "value": "text/xml; charset=utf-8",
+                "description": "",
+                "enabled": true
+              },
+              {
+                "uid": "SOAPActionHeader",
+                "name": "SOAPAction",
+                "value": "http://example.com/testservice/GetUser",
+                "description": "",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "xml",
+              "json": null,
+              "text": null,
+              "xml": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><GetUserRequest xmlns=\"http://example.com/testservice\"><userId>string</userId><includeDetails>true</includeDetails></GetUserRequest></soap:Body></soap:Envelope>",
+              "formUrlEncoded": [],
+              "multipartForm": []
+            },
+            "script": {
+              "res": null
+            }
+          }
+        },
+        {
+          "uid": "CreateUserRequest",
+          "name": "CreateUser",
+          "type": "http-request",
+          "seq": 2,
+          "request": {
+            "url": "http://example.com/soap/userservice",
+            "method": "POST",
+            "auth": {
+              "mode": "none",
+              "basic": null,
+              "bearer": null,
+              "digest": null
+            },
+            "headers": [
+              {
+                "uid": "ContentTypeHeader2",
+                "name": "Content-Type",
+                "value": "text/xml; charset=utf-8",
+                "description": "",
+                "enabled": true
+              },
+              {
+                "uid": "SOAPActionHeader2",
+                "name": "SOAPAction",
+                "value": "http://example.com/testservice/CreateUser",
+                "description": "",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "xml",
+              "json": null,
+              "text": null,
+              "xml": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><CreateUserRequest xmlns=\"http://example.com/testservice\"><name>string</name><email>string</email><password>string</password></CreateUserRequest></soap:Body></soap:Envelope>",
+              "formUrlEncoded": [],
+              "multipartForm": []
+            },
+            "script": {
+              "res": null
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

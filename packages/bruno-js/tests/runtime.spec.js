@@ -246,4 +246,16 @@ describe('runtime', () => {
       expect(result.envVariables.number).toBe(42);
     });
   });
+
+  describe('bru.setVar random variable', () => {
+    it('should not be equal to {{$randomFirstName}}', async () => {
+      const script = `bru.setVar('title', '{{$randomFirstName}}')`;
+
+      const runtime = new ScriptRuntime({ runtime: 'vm2' });
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
+
+      expect(result.runtimeVariables.title).not.toBe('{{$randomFirstName}}');
+    });
+  });
 });

@@ -43,7 +43,7 @@ class SystemMonitor {
         memory: stats.memory || 0,
         pid: pid,
         uptime: uptime,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
 
       win.webContents.send('main:filesync-system-resources', systemResources);
@@ -56,7 +56,7 @@ class SystemMonitor {
         memory: process.memoryUsage().rss,
         pid: process.pid,
         uptime: (Date.now() - this.startTime) / 1000,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
 
       win.webContents.send('main:filesync-system-resources', fallbackStats);

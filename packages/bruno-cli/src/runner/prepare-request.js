@@ -323,7 +323,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
       axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
     }
 
-    const bodyFile = find(request.body.file, param => param.selected);
+    const bodyFile = find(request.body.file, (param) => param.selected);
     if (bodyFile) {
       let { filePath, contentType } = bodyFile;
 

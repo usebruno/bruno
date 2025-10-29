@@ -32,6 +32,10 @@ const darkTheme = {
 
     name: {
       color: '#569cd6'
+    },
+
+    runtime: {
+      color: 'rgb(255, 255, 255)'
     }
   },
 
@@ -103,7 +107,8 @@ const darkTheme = {
       head: '#d69956'
     },
     grpc: '#6366f1',
-    ws: '#f59e0b'
+    ws: '#f59e0b',
+    gql: '#e535ab'
   },
 
   requestTabPanel: {

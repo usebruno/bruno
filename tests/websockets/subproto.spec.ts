@@ -4,6 +4,20 @@ import { buildWebsocketCommonLocators } from '../utils/page/locators';
 const BRU_REQ_NAME = /^ws-test-request-with-subproto$/;
 
 test.describe.serial('subprotocol tests', () => {
+  test('has multiple sub proto headers', async ({ pageWithUserData: page, restartApp }) => {
+    const originalProtocols = ['soap', 'mqtt'];
+    const locators = buildWebsocketCommonLocators(page);
+    // Open the needed request and keep the headers tab in focus for modifications
+    await page.locator('#sidebar-collection-name').click();
+    await page.getByTitle(BRU_REQ_NAME).click();
+    await page.locator('[role=tab].headers').click();
+
+    // Check if the original / correct protocol is in place and then send a request
+    for (let proto of originalProtocols) {
+      await expect(page.locator('pre').filter({ hasText: proto })).toBeAttached();
+    }
+  });
+
   test('Only connect if a valid subprotocol is sent with the request', async ({ pageWithUserData: page, restartApp }) => {
     const locators = buildWebsocketCommonLocators(page);
     const clearText = async (text: string) => {
@@ -18,7 +32,7 @@ test.describe.serial('subprotocol tests', () => {
     // Open the needed request and keep the headers tab in focus for modifications
     await page.locator('#sidebar-collection-name').click();
     await page.getByTitle(BRU_REQ_NAME).click();
-    await page.getByRole('tab', { name: 'Headers1' }).click();
+    await page.locator('[role=tab].headers').click();
 
     // Check if the original / correct protocol is in place and then send a request
     await expect(page.locator('pre').filter({ hasText: originalProtocol })).toBeAttached();

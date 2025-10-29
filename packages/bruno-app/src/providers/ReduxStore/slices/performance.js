@@ -6,8 +6,8 @@ const initialState = {
     memory: 0,
     pid: null,
     uptime: 0,
-    lastUpdated: null,
-  },
+    lastUpdated: null
+  }
 };
 
 export const performanceSlice = createSlice({
@@ -18,10 +18,10 @@ export const performanceSlice = createSlice({
       state.systemResources = {
         ...state.systemResources,
         ...action.payload,
-        lastUpdated: new Date().toISOString(),
+        lastUpdated: new Date().toISOString()
       };
-    },
-  },
+    }
+  }
 });
 
 export const { updateSystemResources } = performanceSlice.actions;

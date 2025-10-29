@@ -1,0 +1,35 @@
+{
+	"environments": [
+		{
+			"uid": "RrPsTcwRnHMv3yljQO3ex",
+			"name": "global",
+			"variables": [
+				{
+					"uid": "VXKOZdkYw0DyI4mlhn6Wr",
+					"name": "baseUrl",
+					"value": "https://echo.usebruno.com",
+					"type": "text",
+					"secret": false,
+					"enabled": true
+				},
+				{
+					"uid": "NTwrSscXsaeh4uee6ocJN",
+					"name": "existingEnvEnabled",
+					"value": "existingEnvEnabledValue",
+					"type": "text",
+					"secret": false,
+					"enabled": true
+				},
+				{
+					"uid": "PCsUccFm4pktVowXEKRvw",
+					"name": "existingEnvDisabled",
+					"value": "existingEnvDisabledValue",
+					"type": "text",
+					"secret": false,
+					"enabled": false
+				}
+			]
+		}
+	],
+	"activeGlobalEnvironmentUid": "RrPsTcwRnHMv3yljQO3ex"
+}

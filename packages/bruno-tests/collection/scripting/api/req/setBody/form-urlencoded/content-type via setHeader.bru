@@ -1,0 +1,41 @@
+meta {
+  name: content-type via setHeader
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{echo-host}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  req.setHeader('content-type', 'application/x-www-form-urlencoded');
+  req.setBody([
+    {name: "key", value: "value"},
+    {name: "name", value: "bruno"}
+  ]);
+}
+
+tests {
+  test("req.setBody() - request body", function() {
+    const data = req.getBody();
+    expect(data).to.eql("key=value&name=bruno");
+  });
+  
+  test("req.setBody() - response body", function() {
+    const data = res.getBody();
+    expect(data).to.eql("key=value&name=bruno");
+  });
+  
+  test("Content-Type header is set correctly", function() {
+    const contentType = req.getHeader('content-type');
+    expect(contentType).to.eql('application/x-www-form-urlencoded');
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

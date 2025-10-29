@@ -9,7 +9,8 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
     {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
     {handleCancel && !hideClose ? (
-      <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null} data-test-id="modal-close-button">
+      // TODO: Remove data-test-id and use data-testid instead across the codebase.
+      <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null} data-test-id="modal-close-button" data-testid="modal-close-button">
         ×
       </div>
     ) : null}

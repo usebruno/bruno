@@ -13,7 +13,7 @@ import {
   IconChevronDown,
   IconTerminal2,
   IconNetwork,
-  IconDashboard,
+  IconDashboard
 } from '@tabler/icons';
 import { 
   closeConsole, 

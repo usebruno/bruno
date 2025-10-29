@@ -163,19 +163,19 @@ describe('interpolate-vars: interpolateVars', () => {
             {
               type: 'path',
               name: 'CategoryID',
-              value: 'foobar',
+              value: 'foobar'
             },
             {
               type: 'path',
               name: 'ItemId',
-              value: 1,
+              value: 1
             },
             {
               type: 'path',
               name: 'xpath',
-              value: 'foobar',
-            },
-          ],
+              value: 'foobar'
+            }
+          ]
         };
 
         const result = interpolateVars(request, null, null, null);

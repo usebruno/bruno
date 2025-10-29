@@ -90,7 +90,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
               Folder Name
             </label>
             <input
-              id="collection-name"
+              id="folder-name"
               type="text"
               name="folderName"
               ref={inputRef}

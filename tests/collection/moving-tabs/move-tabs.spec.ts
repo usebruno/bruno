@@ -1,29 +1,35 @@
 import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Move tabs', () => {
-  test('Verify tab move by drag and drop', async ({ pageWithUserData: page, createTmpDir }) => {
+  test.afterEach(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('Verify tab move by drag and drop', async ({ page, createTmpDir }) => {
     // Create a collection
     await page.locator('.dropdown-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('source-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
+    await page.getByLabel('Name').fill('source-collection-drag-drop');
+    await page.getByLabel('Location').fill(await createTmpDir('source-collection-drag-drop'));
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for collection to appear and click on it
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
+    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-drag-drop' })).toBeVisible();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-drag-drop' }).click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a folder in the collection
-    const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection' });
+    const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-drag-drop' });
     await sourceCollection.locator('.collection-actions').hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
     // Fill folder name in the modal
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('test-folder');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('test-folder');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the folder to be created and appear in the sidebar
@@ -89,29 +95,29 @@ test.describe('Move tabs', () => {
     }
   });
 
-  test('Verify tab move by keyboard shortcut', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('Verify tab move by keyboard shortcut', async ({ page, createTmpDir }) => {
     // Create a collection
     await page.locator('.dropdown-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('source-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
+    await page.getByLabel('Name').fill('source-collection-keyboard-shortcut');
+    await page.getByLabel('Location').fill(await createTmpDir('source-collection-keyboard-shortcut'));
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for collection to appear and click on it
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
+    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' })).toBeVisible();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' }).click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a folder in the collection
-    const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection' });
+    const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' });
     await sourceCollection.locator('.collection-actions').hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
     // Fill folder name in the modal
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('test-folder');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('test-folder');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the folder to be created and appear in the sidebar
