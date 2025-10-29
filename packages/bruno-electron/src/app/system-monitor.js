@@ -4,7 +4,6 @@ class SystemMonitor {
   constructor() {
     this.intervalId = null;
     this.isMonitoring = false;
-    this.isEmitting = false;
     this.startTime = Date.now();
   }
 
@@ -42,17 +41,9 @@ class SystemMonitor {
       this.intervalId = null;
     }
     this.isMonitoring = false;
-    this.isEmitting = false;
   }
 
   emitSystemStats(win) {
-    // Prevent overlapping calls
-    if (this.isEmitting) {
-      return;
-    }
-
-    this.isEmitting = true;
-
     try {
       const metrics = app.getAppMetrics();
       const currentTime = Date.now();
@@ -93,8 +84,6 @@ class SystemMonitor {
       if (win && !win.isDestroyed()) {
         win.webContents.send('main:filesync-system-resources', fallbackStats);
       }
-    } finally {
-      this.isEmitting = false;
     }
   }
 
