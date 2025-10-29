@@ -208,7 +208,7 @@ const sem = responseGrammar.createSemantics().addAttribute('ast', {
     };
   },
   responsebodycontentvalue(_1, _2, _3, _4, _5, multilinetextblock) {
-    const multilineString = multilinetextblock.sourceString?.replace(/^'''|'''$/g, '').replace(/^\n|\n$/g, '');
+    const multilineString = multilinetextblock.sourceString?.replace(/^'''|'''$/g, '').replace(/  $/g, '').replace(/^\n|\n$/g, '');
 
     return {
       content: outdentString(multilineString ?? '', 4)

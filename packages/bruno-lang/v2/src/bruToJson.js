@@ -1,7 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
-const parseExample = require('./example/ExampleBruToJson');
+const parseExample = require('./example/bruToJson');
 
 /**
  * A Bru file is made up of blocks.
