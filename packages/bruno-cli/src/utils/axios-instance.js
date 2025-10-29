@@ -19,11 +19,81 @@ const saveCookies = (url, headers) => {
   }
 };
 
+/**
+ * Check if two URLs share the same origin (protocol + hostname + port)
+ * Used to determine if sensitive headers should be preserved during redirects
+ * @param {string} url1 - The original URL
+ * @param {string} url2 - The redirect URL
+ * @returns {boolean} - True if same origin, false otherwise
+ */
+const isSameOrigin = (url1, url2) => {
+  const URL = require('url');
+  const parsed1 = URL.parse(url1);
+  const parsed2 = URL.parse(url2);
+
+  // Normalize ports: null/undefined means default port for the protocol
+  const getPort = (parsed) => {
+    if (parsed.port) return parsed.port;
+    // Return default port based on protocol
+    return parsed.protocol === 'https:' ? '443' : '80';
+  };
+
+  return (
+    parsed1.protocol === parsed2.protocol
+    && parsed1.hostname === parsed2.hostname
+    && getPort(parsed1) === getPort(parsed2)
+  );
+};
+
+/**
+ * List of sensitive headers that should not be sent across different origins
+ * to prevent credential leakage and follow browser security standards
+ */
+const SENSITIVE_HEADERS = [
+  'authorization',
+  'proxy-authorization',
+  'cookie',
+  'www-authenticate',
+  'proxy-authenticate'
+];
+
+/**
+ * Filter headers for redirect requests based on origin
+ * Strips sensitive headers when redirecting to a different origin (cross-domain)
+ * to prevent credential leakage, following browser security standards and RFC 7231
+ * @param {Object} headers - Original request headers
+ * @param {string} originalUrl - The original request URL
+ * @param {string} redirectUrl - The redirect target URL
+ * @returns {Object} - Filtered headers safe for the redirect
+ */
+const filterHeadersForRedirect = (headers, originalUrl, redirectUrl) => {
+  // If same origin, keep all headers
+  if (isSameOrigin(originalUrl, redirectUrl)) {
+    return { ...headers };
+  }
+
+  // Different origin - strip sensitive headers to prevent credential leakage
+  const filteredHeaders = { ...headers };
+
+  SENSITIVE_HEADERS.forEach((headerName) => {
+    // Remove all case variations of the header
+    Object.keys(filteredHeaders).forEach((key) => {
+      if (key.toLowerCase() === headerName) {
+        delete filteredHeaders[key];
+      }
+    });
+  });
+
+  return filteredHeaders;
+};
+
 const createRedirectConfig = (error, redirectUrl) => {
   const requestConfig = {
     ...error.config,
     url: redirectUrl,
-    headers: { ...error.config.headers }
+    headers: filterHeadersForRedirect(error.config.headers,
+      error.config.url,
+      redirectUrl)
   };
 
   const statusCode = error.response.status;
@@ -87,6 +157,14 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
   instance.interceptors.request.use((config) => {
     config.headers['request-start-time'] = Date.now();
 
+    // Initialize timeline metadata if not present
+    if (!config.metadata) {
+      config.metadata = {
+        startTime: Date.now(),
+        timeline: []
+      };
+    }
+
     // Add cookies to request if available and not disabled
     if (!disableCookies) {
       const cookieString = getCookieStringForUrl(config.url);
@@ -105,9 +183,17 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
+      // Attach timeline to response if it exists
+      const config = response.config;
+      const timeline = config?.metadata?.timeline || [];
+      response.timeline = timeline;
+
       return response;
     },
     (error) => {
+      const config = error.config;
+      const timeline = config?.metadata?.timeline || [];
+
       if (error.response) {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
@@ -138,6 +224,28 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
           }
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
+
+          // Log security filtering if cross-domain redirect
+          if (!isSameOrigin(error.config.url, redirectUrl)) {
+            const URL = require('url');
+            const originalHost = URL.parse(error.config.url).hostname;
+            const redirectHost = URL.parse(redirectUrl).hostname;
+            timeline.push({
+              timestamp: new Date(),
+              type: 'info',
+              message: `Cross-domain redirect detected (${originalHost} → ${redirectHost}). Sensitive headers (Authorization, Cookie, etc.) removed for security.`
+            });
+          }
+
+          // Ensure timeline is preserved in the redirect request
+          if (!requestConfig.metadata) {
+            requestConfig.metadata = {
+              startTime: config?.metadata?.startTime || Date.now(),
+              timeline: timeline
+            };
+          } else {
+            requestConfig.metadata.timeline = timeline;
+          }
 
           if (!disableCookies) {
             const cookieString = getCookieStringForUrl(redirectUrl);
