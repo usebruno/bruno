@@ -37,7 +37,7 @@ export const test = baseTest.extend<
     createTmpDir: (tag?: string) => Promise<string>;
     launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; dotEnv?: Record<string, string> }) => Promise<ElectronApplication>;
     electronApp: ElectronApplication;
-    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; dotEnv?: Record<string, string> }) => Promise<ElectronApplication>;
+    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; testFile?: string; userDataPath?: string; dotEnv?: Record<string, string> }) => Promise<ElectronApplication>;
   }
 >({
   createTmpDir: [
@@ -170,8 +170,8 @@ export const test = baseTest.extend<
   reuseOrLaunchElectronApp: [
     async ({ launchElectronApp }, use, testInfo) => {
       const apps: Record<string, ElectronApplication> = {};
-      await use(async ({ initUserDataPath, userDataPath, dotEnv = {} } = {}) => {
-        const key = userDataPath || initUserDataPath;
+      await use(async ({ initUserDataPath, testFile, userDataPath, dotEnv = {} } = {}) => {
+        const key = testFile || userDataPath || initUserDataPath;
         if (key && apps[key]) {
           return apps[key];
         }
@@ -211,7 +211,7 @@ export const test = baseTest.extend<
     }
   },
 
-  pageWithUserData: async ({ launchElectronApp, createTmpDir }, use, testInfo) => {
+  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
 
@@ -225,7 +225,7 @@ export const test = baseTest.extend<
       throw err;
     }
 
-    const app = await launchElectronApp({ initUserDataPath: tmpAppDataDir });
+    const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file });
 
     const context = await app.context();
     const page = await app.firstWindow();
@@ -242,8 +242,6 @@ export const test = baseTest.extend<
     } else {
       await use(page);
     }
-    await app.context().close();
-    await app.close();
   }
 });
 
