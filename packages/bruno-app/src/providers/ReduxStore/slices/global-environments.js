@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, has } from 'lodash';
 
 const initialState = {
   globalEnvironments: [],
@@ -94,6 +94,7 @@ export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch, get
     ipcRenderer
       .invoke('renderer:create-global-environment', { name, uid, variables })
       .then(() => dispatch(_addGlobalEnvironment({ name, uid, variables })))
+      .then(() => dispatch(selectGlobalEnvironment({ environmentUid: uid })))
       .then(resolve)
       .catch(reject);
   });
@@ -195,10 +196,13 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
 
     let variables = cloneDeep(environment?.variables);
 
-    // update existing values
+    // "globalEnvironmentVariables" will include only the enabled variables and newly added variables created using the script.
+    // Update the value of each variable if it's present in "globalEnvironmentVariables", otherwise keep the existing value.
     variables = variables?.map?.(variable => ({
       ...variable,
-      value: globalEnvironmentVariables?.[variable?.name]
+      value: has(globalEnvironmentVariables, variable?.name)
+        ? globalEnvironmentVariables[variable?.name]
+        : variable?.value
     }));
 
     // add new env values

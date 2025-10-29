@@ -1,4 +1,5 @@
 const { NodeVM } = require('@usebruno/vm2');
+const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const chai = require('chai');
 const path = require('path');
 const http = require('http');
@@ -34,6 +35,7 @@ const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const tv4 = require('tv4');
+const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class TestRuntime {
@@ -102,7 +104,8 @@ class TestRuntime {
       res,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      jwt: jsonwebtoken
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -130,7 +133,15 @@ class TestRuntime {
       if (this.runtime === 'quickjs') {
         await executeQuickJsVmAsync({
           script: testsFile,
-          context: context
+          context: context,
+          collectionPath
+        });
+      } else if (this.runtime === 'nodevm') {
+        await runScriptInNodeVm({
+          script: testsFile,
+          context,
+          collectionPath,
+          scriptingConfig
         });
       } else {
         // default runtime is vm2
@@ -139,6 +150,7 @@ class TestRuntime {
           require: {
             context: 'sandbox',
             external: true,
+            builtin: ['*'],
             root: [collectionPath, ...additionalContextRootsAbsolute],
             mock: {
               // node libs
@@ -166,6 +178,7 @@ class TestRuntime {
               'xml2js': xml2js,
               cheerio,
               tv4,
+              'jsonwebtoken': jsonwebtoken,
               ...whitelistedModules,
               fs: allowScriptFilesystemAccess ? fs : undefined,
               'node-vault': NodeVault
@@ -184,6 +197,7 @@ class TestRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };

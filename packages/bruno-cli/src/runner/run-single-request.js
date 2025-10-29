@@ -1,9 +1,7 @@
-const os = require('os');
 const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const tls = require('tls');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
@@ -20,13 +18,14 @@ const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-he
 const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
-const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
+const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
-const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
-const { encodeUrl } = require('@usebruno/common').utils;
+const { getCACertificates } = require('@usebruno/requests');
+const { getOAuth2Token } = require('../utils/oauth2');
+const { encodeUrl, buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -73,7 +72,7 @@ const runSingleRequest = async function (
     let preRequestTestResults = [];
     let postResponseTestResults = [];
 
-    request = prepareRequest(item, collection);
+    request = await prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
 
@@ -151,22 +150,14 @@ const runSingleRequest = async function (
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const httpsAgentRequestFields = {};
+    
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
-      const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-      const caCert = caCertArray.find((el) => el);
-      if (caCert && caCert.length > 1) {
-        try {
-          let caCertBuffer = fs.readFileSync(caCert);
-          if (!options['ignoreTruststore']) {
-            caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
-          }
-          httpsAgentRequestFields['ca'] = caCertBuffer;
-        } catch (err) {
-          console.log('Error reading CA cert file:' + caCert, err);
-        }
-      }
+      const caCertFilePath = options['cacert'];
+      let caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
+      let caCertificates = caCertificatesData.caCertificates;
+      httpsAgentRequestFields['ca'] = caCertificates || [];
     }
 
     const interpolationOptions = {
@@ -287,6 +278,10 @@ const runSingleRequest = async function (
               https_proxy,
               Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
             );
+          } else {
+            request.httpsAgent = new https.Agent({
+              ...httpsAgentRequestFields
+            });
           }
         } catch (error) {
           throw new Error('Invalid system https_proxy');
@@ -337,25 +332,43 @@ const runSingleRequest = async function (
     const contentTypeHeader = Object.keys(request.headers).find(
       name => name.toLowerCase() === 'content-type'
     );
+
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      if (Array.isArray(request.data)) {
+        request.data = buildFormUrlEncodedPayload(request.data);
+      } else if (typeof request.data !== 'string') {
+        request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      }
+      // if `data` is of string type - return as-is (assumes already encoded)
     }
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
       if (!(request?.data instanceof FormData)) {
+        request._originalMultipartData = request.data;
+        request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
         request.data = form;
         extend(request.headers, form.getHeaders());
       }
     }
 
-    let requestMaxRedirects = request.maxRedirects
-    request.maxRedirects = 0
-    
-    // Set default value for requestMaxRedirects if not explicitly set
-    if (requestMaxRedirects === undefined) {
+    // Get followRedirects setting, default to true for backward compatibility
+    const followRedirects = request.settings?.followRedirects ?? true;
+
+    // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
+    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+
+    // Ensure it's a valid number
+    if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
       requestMaxRedirects = 5; // Default to 5 redirects
     }
+
+    // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
+    if (!followRedirects) {
+      requestMaxRedirects = 0;
+    }
+
+    request.maxRedirects = 0;
 
     // Handle OAuth2 authentication
     if (request.oauth2) {
@@ -387,12 +400,22 @@ const runSingleRequest = async function (
     let response, responseTime;
     try {
       
-      let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
+      // Set timeout from request settings, default to 0 (no timeout)
+      const requestTimeout = request.settings?.timeout || 0;
+      if (requestTimeout > 0) {
+        request.timeout = requestTimeout;
+      }
+
+      let axiosInstance = makeAxiosInstance({
+        requestMaxRedirects: requestMaxRedirects,
+        disableCookies: options.disableCookies
+      });
+
       if (request.ntlmConfig) {
-        axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
         delete request.ntlmConfig;
       }
-    
+
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js
@@ -459,6 +482,7 @@ const runSingleRequest = async function (
             statusText: null,
             headers: null,
             data: null,
+            url: null,
             responseTime: 0
           },
           error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
@@ -598,6 +622,7 @@ const runSingleRequest = async function (
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
+        url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         responseTime
       },
       error: null,
@@ -626,6 +651,7 @@ const runSingleRequest = async function (
         statusText: null,
         headers: null,
         data: null,
+        url: null,
         responseTime: 0
       },
       status: 'error',

@@ -1,0 +1,85 @@
+meta {
+  name: verify with callback err
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo
+  body: none
+  auth: inherit
+}
+
+tests {
+  const jwt = require('jsonwebtoken');
+  
+  const HS_SECRET = 'supersecret';
+  
+  function verifyViaCallback(token, secret, options = {}) {
+    return new Promise((resolve, reject) => {
+      jwt.verify(token, secret, options, (err, decoded) => {
+        if (err) return reject(err); 
+        resolve(decoded);
+      });
+    });
+  }
+  
+  function createValidToken(payload = { sub: 'user123' }, secret = HS_SECRET) {
+    return jwt.sign(payload, secret, { algorithm: 'HS256', expiresIn: '1h' });
+  }
+  
+  /* ============================================================
+     ERROR TESTS — jwt.verify should call callback with `err`
+     ============================================================ */
+  
+  test('ERROR (callback) — malformed token', async function () {
+    const malformedToken = 'abc.def'; // not a valid JWT
+    try {
+      await verifyViaCallback(malformedToken, HS_SECRET, { algorithms: ['HS256'] });
+      throw new Error('Expected jwt.verify to error via callback');
+    } catch (err) {
+      expect(err).to.be.instanceOf(Error);
+      expect(String(err.message)).to.match(/jwt malformed|invalid token/i);
+    }
+  });
+  
+  test('ERROR (callback) — invalid signature (wrong secret)', async function () {
+    const token = createValidToken(); // signed with HS_SECRET
+    try {
+      await verifyViaCallback(token, 'wrong_secret', { algorithms: ['HS256'] });
+      throw new Error('Expected jwt.verify to error via callback');
+    } catch (err) {
+      expect(err).to.be.instanceOf(Error);
+      expect(String(err.message)).to.match(/invalid signature/i);
+    }
+  });
+  
+  test('ERROR (callback) — invalid algorithm', async function () {
+    const token = createValidToken();
+    try {
+      // Pass unsupported algorithm intentionally
+      await verifyViaCallback(token, HS_SECRET, { algorithms: ['RS256'] });
+      throw new Error('Expected jwt.verify to error due to invalid algorithm');
+    } catch (err) {
+      expect(err).to.be.instanceOf(Error);
+      expect(String(err.message)).to.match(/invalid algorithm/i);
+    }
+  });
+  
+  test('ERROR (callback) — missing secret', async function () {
+    const token = createValidToken();
+    try {
+      await verifyViaCallback(token, undefined, { algorithms: ['HS256'] });
+      throw new Error('Expected jwt.verify to error due to missing secret');
+    } catch (err) {
+      expect(err).to.be.instanceOf(Error);
+      expect(String(err.message)).to.match(/secret|key must be provided/i);
+    }
+  });
+  
+  
+}
+
+settings {
+  encodeUrl: true
+}

@@ -27,6 +27,7 @@ const STATIC_API_HINTS = {
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
     'req.getName()',
+    'req.getTags()',
     'req.disableParsingResponseJson()',
     'req.onFail(function(err) {})',
   ],
@@ -37,6 +38,7 @@ const STATIC_API_HINTS = {
     'res.headers',
     'res.body',
     'res.responseTime',
+    'res.url',
     'res.getStatus()',
     'res.getStatusText()',
     'res.getHeader(name)',
@@ -48,6 +50,7 @@ const STATIC_API_HINTS = {
     'res.getSize().header',
     'res.getSize().body',
     'res.getSize().total',
+    'res.getUrl()'
   ],
   bru: [
     'bru',
@@ -58,7 +61,8 @@ const STATIC_API_HINTS = {
     'bru.getEnvVar(key)',
     'bru.getFolderVar(key)',
     'bru.getCollectionVar(key)',
-    'bru.setEnvVar(key,value)',
+    'bru.setEnvVar(key, value)',
+    'bru.setEnvVar(key, value, options)',
     'bru.deleteEnvVar(key)',
     'bru.hasVar(key)',
     'bru.getVar(key)',
@@ -78,7 +82,20 @@ const STATIC_API_HINTS = {
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
     'bru.runner.stopExecution()',
-    'bru.interpolate(str)'
+    'bru.interpolate(str)',
+    'bru.cookies',
+    'bru.cookies.jar()',
+    'bru.cookies.jar().getCookie(url, name, callback)',
+    'bru.cookies.jar().getCookies(url, callback)',
+    'bru.cookies.jar().setCookie(url, name, value, callback)',
+    'bru.cookies.jar().setCookie(url, cookieObject, callback)',
+    'bru.cookies.jar().setCookies(url, cookiesArray, callback)',
+    'bru.cookies.jar().clear(callback)',
+    'bru.cookies.jar().deleteCookies(url, callback)',
+    'bru.cookies.jar().deleteCookie(url, name, callback)',
+    'bru.utils',
+    'bru.utils.minifyJson(json)',
+    'bru.utils.minifyXml(xml)'
   ]
 };
 

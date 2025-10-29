@@ -80,10 +80,6 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
   const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const responseEncoding = getEncoding(headers);
-  const formattedData = useMemo(
-    () => formatResponse(data, dataBuffer, responseEncoding, mode, filter),
-    [data, dataBuffer, responseEncoding, mode, filter]
-  );
   const { displayedTheme } = useTheme();
 
   const responseSize = useMemo(() => {
@@ -104,6 +100,16 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
   }, [dataBuffer, item.response]);
 
   const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
+
+  const formattedData = useMemo(
+    () => {
+      if (isLargeResponse && !showLargeResponse) {
+        return '';
+      }
+      return formatResponse(data, dataBuffer, responseEncoding, mode, filter);
+    },
+    [data, dataBuffer, responseEncoding, mode, filter, isLargeResponse, showLargeResponse]
+  );
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);

@@ -9,7 +9,7 @@ import { IconDatabaseImport } from '@tabler/icons';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { uuid } from 'utils/common/index';
 
-const ImportEnvironment = ({ onClose }) => {
+const ImportEnvironment = ({ onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
 
   const handleImportPostmanEnvironment = () => {
@@ -25,12 +25,7 @@ const ImportEnvironment = ({ onClose }) => {
                 }
           )
           .map((environment) => {
-            let variables = environment?.variables?.map(v => ({
-              ...v,
-              uid: uuid(),
-              type: 'text'
-            }));
-            dispatch(addGlobalEnvironment({ name: environment.name, variables }))
+            dispatch(addGlobalEnvironment({ name: environment.name, variables: environment.variables }))
               .then(() => {
                 toast.success('Global Environment imported successfully');
               })
@@ -42,17 +37,22 @@ const ImportEnvironment = ({ onClose }) => {
       })
       .then(() => {
         onClose();
+        // Call the callback if provided
+        if (onEnvironmentCreated) {
+          onEnvironmentCreated();
+        }
       })
       .catch((err) => toastError(err, 'Postman Import environment failed'));
   };
 
   return (
     <Portal>
-      <Modal size="sm" title="Import Global Environment" hideFooter={true} handleConfirm={onClose} handleCancel={onClose}>
+      <Modal size="sm" title="Import Global Environment" hideFooter={true} handleConfirm={onClose} handleCancel={onClose} dataTestId="import-global-environment-modal">
         <button
           type="button"
           onClick={handleImportPostmanEnvironment}
           className="flex justify-center flex-col items-center w-full dark:bg-zinc-700 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-400 p-12 text-center hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+          data-testid="import-postman-global-environment"
         >
           <IconDatabaseImport size={64} />
           <span className="mt-2 block text-sm font-semibold">Import your Postman environments</span>

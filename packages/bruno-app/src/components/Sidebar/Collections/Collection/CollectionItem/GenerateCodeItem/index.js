@@ -11,7 +11,7 @@ import {
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from './utils/auth-utils';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
@@ -37,12 +37,13 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const requestUrl =
     get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
 
+  const variables = useMemo(() => {
+    return getAllVariables({ ...collection, globalEnvironmentVariables }, item);
+  }, [collection, globalEnvironmentVariables, item]);
+
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
-    globalEnvironmentVariables,
-    envVars,
-    runtimeVariables: collection.runtimeVariables,
-    processEnvVars: collection.processEnvVariables
+    variables
   });
 
   // interpolate the path params

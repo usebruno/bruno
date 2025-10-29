@@ -1,0 +1,9 @@
+{
+  "name": "custom-search",
+  "version": "1.0.0",
+  "description": "A test collection for search functionality",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -13,6 +13,7 @@ import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
 import Presets from './Presets';
+import Protobuf from './Protobuf';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
@@ -43,9 +44,13 @@ const CollectionSettings = ({ collection }) => {
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
   const authMode = get(collection, 'root.request.auth', {}).mode || 'none';
 
-  const proxyConfig = get(collection, 'brunoConfig.proxy', {});
-  const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+  const presets = get(collection, 'brunoConfig.presets', []);
+  const hasPresets = presets && presets.requestUrl !== '';
 
+  const proxyConfig = get(collection, 'brunoConfig.proxy', {});
+  const proxyEnabled = proxyConfig.hostname ? true : false;
+  const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+  const protobufConfig = get(collection, 'brunoConfig.protobuf', {});
 
   const onProxySettingsUpdate = (config) => {
     const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -122,6 +127,9 @@ const CollectionSettings = ({ collection }) => {
           />
         );
       }
+      case 'protobuf': {
+        return <Protobuf collection={collection} />;
+      }
     }
   };
 
@@ -132,9 +140,9 @@ const CollectionSettings = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-scroll">
+    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden">
       <div className="flex flex-wrap items-center tabs" role="tablist">
-      <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
+        <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
           Overview
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
@@ -159,17 +167,22 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
           Presets
+          {hasPresets && <StatusDot />}
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
-          {Object.keys(proxyConfig).length > 0  && <StatusDot />}
+          {Object.keys(proxyConfig).length > 0 && proxyEnabled && <StatusDot />}
         </div>
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
           {clientCertConfig.length > 0 && <StatusDot />}
         </div>
+        <div className={getTabClassname('protobuf')} role="tab" onClick={() => setTab('protobuf')}>
+          Protobuf
+          {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
+        </div>
       </div>
-      <section className="mt-4 h-full overflow-scroll">{getTabPanel(tab)}</section>
+      <section className="mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };

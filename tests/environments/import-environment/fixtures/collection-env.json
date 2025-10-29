@@ -1,0 +1,45 @@
+{
+  "id": "test-collection-env-id",
+  "name": "Test Collection Environment",
+  "values": [
+    {
+      "key": "host",
+      "value": "https://jsonplaceholder.typicode.com",
+      "enabled": true,
+      "type": "text"
+    },
+    {
+      "key": "userId",
+      "value": "1",
+      "enabled": true,
+      "type": "text"
+    },
+    {
+      "key": "apiKey",
+      "value": "collection-api-key-12345",
+      "enabled": true,
+      "type": "text"
+    },
+    {
+      "key": "postTitle",
+      "value": "Collection Environment Test Post",
+      "enabled": true,
+      "type": "text"
+    },
+    {
+      "key": "postBody",
+      "value": "This is a test post created using collection environment variables",
+      "enabled": true,
+      "type": "text"
+    },
+    {
+      "key": "secretApiToken",
+      "value": "collection-secret-token-67890",
+      "enabled": true,
+      "type": "secret"
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2024-01-01T00:00:00.000Z",
+  "_postman_exported_using": "Postman/10.0.0"
+}
