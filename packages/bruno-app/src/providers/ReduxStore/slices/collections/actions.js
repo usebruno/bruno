@@ -818,18 +818,36 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
 
     const item = findItemInCollection(collection, itemUid);
     if (item) {
+      const parentDirectoryItem = findParentItemInCollection(collection, itemUid) || collection;
       const { ipcRenderer } = window;
 
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
         .then(() => {
-          resolve();
+          resolve({ parentDirectory: parentDirectoryItem });
         })
         .catch((error) => reject(error));
     }
     return;
   });
 };
+
+export const reorderDirectoryItems = (directory, itemUid) => (dispatch, getState) => {
+  if (!directory.items) return;
+  
+  const directoryItemsWithoutDeletedItem = directory.items.filter(
+    (i) => i.uid !== itemUid
+  );
+
+  const reorderedSourceItems = getReorderedItemsInSourceDirectory({
+    items: directoryItemsWithoutDeletedItem
+  });
+  if (reorderedSourceItems?.length) {
+    dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
+  }
+
+  return;
+}
 
 export const sortCollections = (payload) => (dispatch) => {
   dispatch(_sortCollections(payload));
