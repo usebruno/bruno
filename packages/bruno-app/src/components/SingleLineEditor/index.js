@@ -6,7 +6,9 @@ import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
-import makeLinkAwareCodeMirror from 'utils/codemirror/makeLinkAwareCodeMirror';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
+
+const CodeMirror = require('codemirror');
 
 class SingleLineEditor extends Component {
   constructor(props) {
@@ -40,7 +42,7 @@ class SingleLineEditor extends Component {
     };
     const noopHandler = () => {};
 
-    this.editor = makeLinkAwareCodeMirror(this.editorRef.current, {
+    this.editor = CodeMirror(this.editorRef.current, {
       placeholder: this.props.placeholder ?? '',
       lineWrapping: false,
       lineNumbers: false,
@@ -96,6 +98,8 @@ class SingleLineEditor extends Component {
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
+
+    setupLinkAware(this.editor);
   }
 
   /** Enable or disable masking the rendered content of the editor */
@@ -154,8 +158,8 @@ class SingleLineEditor extends Component {
 
   componentWillUnmount() {
     if (this.editor) {
-      if(this.editor._destroyLinkAware) {
-        this.editor._destroyLinkAware();
+      if (this.editor?._destroyLinkAware) {
+        this.editor?._destroyLinkAware?.();
       }
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
