@@ -1,7 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
-const parseExample = require('./exampleBruToJson');
+const parseExample = require('./example/ExampleBruToJson');
 
 /**
  * A Bru file is made up of blocks.
@@ -1100,7 +1100,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     };
   },
   examplecontent(chars) {
-    return chars.sourceString;
+    return outdentString(chars.sourceString);
   }
 });
 

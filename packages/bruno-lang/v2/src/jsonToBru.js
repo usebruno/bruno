@@ -1,7 +1,7 @@
 const _ = require('lodash');
 
 const { indentString, getValueString } = require('./utils');
-const jsonToExampleBru = require('./jsonToExampleBru');
+const jsonToExampleBru = require('./example/jsonToExampleBru');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);

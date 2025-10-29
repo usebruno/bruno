@@ -1,4 +1,4 @@
-const { indentString } = require('./utils');
+const { indentString } = require('../utils');
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
