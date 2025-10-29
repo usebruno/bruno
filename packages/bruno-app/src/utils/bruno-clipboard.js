@@ -7,7 +7,8 @@ class BrunoClipboard {
    * @param {Object} item - Item to copy
    */
   write(item) {
-    this.items.unshift(item);
+    // Limit to one item for now
+    this.items = [item];
   }
 
   /**

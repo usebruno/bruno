@@ -739,68 +739,71 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
     return Promise.reject(new Error('Target collection not found'));
   }
 
-  // Get the first item from clipboard (single item paste for now)
-  const copiedItem = cloneDeep(clipboardResult.items[0]);
+  return new Promise(async (resolve, reject) => {
+    try {
+      for (const clipboardItem of clipboardResult.items) {
+        const copiedItem = cloneDeep(clipboardItem);
 
-  // Only allow pasting requests (not folders)
-  if (isItemAFolder(copiedItem)) {
-    return Promise.reject(new Error('Pasting folders is not supported'));
-  }
+        // Only allow pasting requests (not folders)
+        if (isItemAFolder(copiedItem)) {
+          return reject(new Error('Pasting folders is not supported'));
+        }
 
-  return new Promise((resolve, reject) => {
-    const targetCollectionCopy = cloneDeep(targetCollection);
-    let targetItem = null;
-    let targetParentPathname = targetCollection.pathname;
+        const targetCollectionCopy = cloneDeep(targetCollection);
+        let targetItem = null;
+        let targetParentPathname = targetCollection.pathname;
 
-    // If targetItemUid is provided, we're pasting into a folder
-    if (targetItemUid) {
-      targetItem = findItemInCollection(targetCollectionCopy, targetItemUid);
-      if (!targetItem) {
-        return reject(new Error('Target folder not found'));
-      }
-      if (!isItemAFolder(targetItem)) {
-        return reject(new Error('Target must be a folder or collection'));
-      }
-      targetParentPathname = targetItem.pathname;
-    }
+        // If targetItemUid is provided, we're pasting into a folder
+        if (targetItemUid) {
+          targetItem = findItemInCollection(targetCollectionCopy, targetItemUid);
+          if (!targetItem) {
+            return reject(new Error('Target folder not found'));
+          }
+          if (!isItemAFolder(targetItem)) {
+            return reject(new Error('Target must be a folder or collection'));
+          }
+          targetParentPathname = targetItem.pathname;
+        }
 
-    // Generate a unique filename for the pasted item
-    let newName = copiedItem.name;
-    let newFilename = sanitizeName(copiedItem.name);
-    let counter = 1;
+        // Generate a unique filename for the pasted item
+        let newName = copiedItem.name;
+        let newFilename = sanitizeName(copiedItem.name);
+        let counter = 1;
 
-    const existingItems = targetItem ? targetItem.items : targetCollection.items;
+        const existingItems = targetItem ? targetItem.items : targetCollection.items;
 
-    // Check for duplicate names and append counter if needed
-    while (find(existingItems, (i) => i.type !== 'folder' && trim(i.filename) === trim(resolveRequestFilename(newFilename)))) {
-      newName = `${copiedItem.name} (${counter})`;
-      newFilename = `${sanitizeName(copiedItem.name)} (${counter})`;
-      counter++;
-    }
+        // Check for duplicate names and append counter if needed
+        while (find(existingItems, (i) => i.type !== 'folder' && trim(i.filename) === trim(resolveRequestFilename(newFilename)))) {
+          newName = `${copiedItem.name} (${counter})`;
+          newFilename = `${sanitizeName(copiedItem.name)} (${counter})`;
+          counter++;
+        }
 
-    const filename = resolveRequestFilename(newFilename);
-    const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
-    set(itemToSave, 'name', trim(newName));
-    set(itemToSave, 'filename', trim(filename));
+        const filename = resolveRequestFilename(newFilename);
+        const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+        set(itemToSave, 'name', trim(newName));
+        set(itemToSave, 'filename', trim(filename));
 
-    const fullPathname = path.join(targetParentPathname, filename);
-    const { ipcRenderer } = window;
-    const requestItems = filter(existingItems, (i) => i.type !== 'folder');
-    itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
+        const fullPathname = path.join(targetParentPathname, filename);
+        const { ipcRenderer } = window;
+        const requestItems = filter(existingItems, (i) => i.type !== 'folder');
+        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
-    itemSchema
-      .validate(itemToSave)
-      .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
-      .then(() => {
+        await itemSchema.validate(itemToSave);
+        await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave);
+
         dispatch(insertTaskIntoQueue({
           uid: uuid(),
           type: 'OPEN_REQUEST',
           collectionUid: targetCollectionUid,
           itemPathname: fullPathname
         }));
-        resolve();
-      })
-      .catch(reject);
+      }
+
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
   });
 };
 
