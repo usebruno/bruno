@@ -11,7 +11,8 @@ import {
   sendRequest,
   saveRequest,
   saveCollectionRoot,
-  saveFolderRoot
+  saveFolderRoot,
+  saveAllRequestsInCollection
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
@@ -70,6 +71,41 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('save')]);
     };
   }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen]);
+
+  // save all hotkey (ctrl/cmd + shift + s)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('saveAll')], (e) => {
+      // Prevent default behavior and stop propagation
+      e.preventDefault();
+      e.stopPropagation();
+
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (activeTab) {
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
+        if (collection) {
+          // Check if there are any drafts in the collection
+          const { flattenItems, isItemARequest } = require('utils/collections');
+          const items = flattenItems(collection.items);
+          const drafts = items.filter((item) => isItemARequest(item) && item.draft);
+
+          if (drafts.length > 0) {
+            // Dispatch custom event to trigger the modal
+            window.dispatchEvent(new CustomEvent('bruno:open-save-all-modal', {
+              detail: { collection }
+            }));
+          } else {
+            toast.info('No unsaved requests found');
+          }
+        }
+      }
+
+      return false; // this stops the event bubbling
+    }, 'keydown'); // Specify keydown event
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('saveAll')]);
+    };
+  }, [activeTabUid, tabs, collections]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {
