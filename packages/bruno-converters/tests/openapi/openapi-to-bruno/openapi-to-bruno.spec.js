@@ -8,6 +8,64 @@ describe('openapi-collection', () => {
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
 
+  it('should map OpenAPI descriptions into docs fields', () => {
+    const openApiWithDocs = `
+openapi: '3.0.0'
+info:
+  title: 'Docs Demo'
+  version: '2.0.0'
+  description: |
+    High level description for docs demo.
+    Provides additional context.
+  contact:
+    name: 'API Team'
+    email: 'team@example.com'
+    url: 'https://example.com/contact'
+  license:
+    name: 'MIT'
+    url: 'https://example.com/license'
+tags:
+  - name: Cache Operations
+    description: |
+      Manage cache entries and state.
+paths:
+  /cache:
+    description: |
+      Cache administration path.
+    get:
+      tags:
+        - Cache Operations
+      summary: 'List cache'
+      operationId: 'listCache'
+      description: |
+        Returns cache metadata.
+      externalDocs:
+        url: https://example.com/cache
+        description: Cache reference
+      responses:
+        '200':
+          description: Successful response
+`;
+
+    const tagGrouped = openApiToBruno(openApiWithDocs);
+    expect(tagGrouped.root.docs).toContain('High level description for docs demo.');
+    expect(tagGrouped.root.docs).toContain('**Version:** 2.0.0');
+    expect(tagGrouped.root.docs).toContain('API Team | team@example.com | https://example.com/contact');
+    expect(tagGrouped.root.docs).toContain('MIT | https://example.com/license');
+
+    const docsFolder = tagGrouped.items.find((item) => item.name === 'Cache Operations');
+    expect(docsFolder).toBeDefined();
+    expect(docsFolder.root.docs).toContain('Manage cache entries and state.');
+
+    const requestWithDocs = docsFolder.items.find((item) => item.type === 'http-request');
+    expect(requestWithDocs.request.docs).toContain('Returns cache metadata.');
+    expect(requestWithDocs.request.docs).toContain('[Cache reference](https://example.com/cache)');
+
+    const pathGrouped = openApiToBruno(openApiWithDocs, { groupBy: 'path' });
+    const cacheFolder = pathGrouped.items.find((item) => item.name === 'cache');
+    expect(cacheFolder.root.docs).toContain('Cache administration path.');
+  });
+
   it('should set auth mode to inherit when no security is defined in the collection', () => {
     const brunoCollection = openApiToBruno(openApiCollectionString);
     
