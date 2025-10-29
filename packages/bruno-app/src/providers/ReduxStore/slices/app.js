@@ -98,7 +98,7 @@ export const appSlice = createSlice({
     toggleSidebarCollapse: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
     },
-    setClipboardState: (state, action) => {
+    setClipboard: (state, action) => {
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     }
@@ -122,7 +122,7 @@ export const {
   updateSystemProxyEnvVariables,
   updateGenerateCode,
   toggleSidebarCollapse,
-  setClipboardState
+  setClipboard
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -190,7 +190,7 @@ export const completeQuitFlow = () => (dispatch, getState) => {
 
 export const copyRequest = (item) => (dispatch, getState) => {
   brunoClipboard.write(item);
-  dispatch(setClipboardState({ hasCopiedItems: true }));
+  dispatch(setClipboard({ hasCopiedItems: true }));
   return Promise.resolve();
 };
 
