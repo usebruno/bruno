@@ -218,7 +218,7 @@ export const test = baseTest.extend<
     const tmpDir = await createTmpDir();
     await recursiveCopy(initUserDataPath, tmpDir);
 
-    const app = await launchElectronApp((await fs.promises.stat(tmpDir).catch(() => false)) ? { initUserDataPath: tmpDir } : {});
+    const app = await launchElectronApp(await existsAsync(tmpDir) ? { initUserDataPath: tmpDir } : {});
 
     const context = await app.context();
     const page = await app.firstWindow();
@@ -235,6 +235,8 @@ export const test = baseTest.extend<
     } else {
       await use(page);
     }
+    await app.context().close();
+    await app.close();
   }
 });
 
