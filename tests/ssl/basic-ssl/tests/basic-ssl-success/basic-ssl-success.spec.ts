@@ -1,6 +1,6 @@
 import { test, expect } from '../../../../../playwright';
 
-test.describe('basic ssl success', () => {
+test.describe.serial('basic ssl success', () => {
   test('developer mode', async ({ pageWithUserData: page }) => {
 
     // init dev mode
@@ -30,9 +30,8 @@ test.describe('basic ssl success', () => {
   });
 
   test('safe mode', async ({ pageWithUserData: page }) => {
-    
+
     // init safe mode
-    await page.getByText('badssl').click();
     await page.getByText('Developer Mode').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
