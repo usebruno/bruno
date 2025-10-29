@@ -6,6 +6,7 @@ import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
 
 const CodeMirror = require('codemirror');
 
@@ -97,6 +98,8 @@ class SingleLineEditor extends Component {
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
+
+    setupLinkAware(this.editor);
   }
 
   /** Enable or disable masking the rendered content of the editor */
@@ -155,6 +158,9 @@ class SingleLineEditor extends Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      if (this.editor?._destroyLinkAware) {
+        this.editor?._destroyLinkAware?.();
+      }
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.getWrapperElement().remove();
