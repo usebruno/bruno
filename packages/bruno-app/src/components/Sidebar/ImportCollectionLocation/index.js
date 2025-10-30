@@ -15,6 +15,67 @@ import Help from 'components/Help';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 
+// Extract collection name from raw data
+const getCollectionName = (format, rawData) => {
+  if (!rawData) return 'Collection';
+
+  switch (format) {
+    case 'openapi':
+      return rawData.info?.title || 'OpenAPI Collection';
+    case 'postman':
+      return rawData.info?.name || rawData.collection?.info?.name || 'Postman Collection';
+    case 'insomnia':
+      // For Insomnia v4 format, name is in the workspace resource
+      if (rawData.resources && Array.isArray(rawData.resources)) {
+        const workspace = rawData.resources.find((r) => r._type === 'workspace');
+        if (workspace?.name) {
+          return workspace.name;
+        }
+      }
+      // Fallback to root name property
+      return rawData.name || 'Insomnia Collection';
+    case 'bruno':
+      return rawData.name || 'Bruno Collection';
+    case 'wsdl':
+      return 'WSDL Collection';
+    default:
+      return 'Collection';
+  }
+};
+
+// Convert raw data to Bruno collection format
+const convertCollection = async (format, rawData, groupingType) => {
+  try {
+    let collection;
+
+    switch (format) {
+      case 'openapi':
+        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType });
+        break;
+      case 'wsdl':
+        collection = await wsdlToBruno(rawData);
+        break;
+      case 'postman':
+        collection = await postmanToBruno(rawData);
+        break;
+      case 'insomnia':
+        collection = convertInsomniaToBruno(rawData);
+        break;
+      case 'bruno':
+        collection = await processBrunoCollection(rawData);
+        break;
+      default:
+        throw new Error('Unknown collection format');
+    }
+
+    return collection;
+  } catch (err) {
+    console.error('Conversion error:', err);
+    toastError(err, 'Failed to convert collection');
+    throw err;
+  }
+};
+
 const groupingOptions = [
   { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI tags', testId: 'grouping-option-tags' },
   { value: 'path', label: 'Paths', description: 'Group requests by URL path structure', testId: 'grouping-option-path' }
@@ -27,68 +88,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   const dropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
 
-  // Extract collection name from raw data
-  const getCollectionName = () => {
-    if (!rawData) return 'Collection';
-
-    switch (format) {
-      case 'openapi':
-        return rawData.info?.title || 'OpenAPI Collection';
-      case 'postman':
-        return rawData.info?.name || rawData.collection?.info?.name || 'Postman Collection';
-      case 'insomnia':
-        // For Insomnia v4 format, name is in the workspace resource
-        if (rawData.resources && Array.isArray(rawData.resources)) {
-          const workspace = rawData.resources.find((r) => r._type === 'workspace');
-          if (workspace?.name) {
-            return workspace.name;
-          }
-        }
-        // Fallback to root name property
-        return rawData.name || 'Insomnia Collection';
-      case 'bruno':
-        return rawData.name || 'Bruno Collection';
-      case 'wsdl':
-        return 'WSDL Collection';
-      default:
-        return 'Collection';
-    }
-  };
-
-  const collectionName = getCollectionName();
-
-  // Convert raw data to Bruno collection format
-  const convertCollection = async () => {
-    try {
-      let collection;
-
-      switch (format) {
-        case 'openapi':
-          collection = convertOpenapiToBruno(rawData, { groupBy: groupingType });
-          break;
-        case 'wsdl':
-          collection = await wsdlToBruno(rawData);
-          break;
-        case 'postman':
-          collection = await postmanToBruno(rawData);
-          break;
-        case 'insomnia':
-          collection = convertInsomniaToBruno(rawData);
-          break;
-        case 'bruno':
-          collection = await processBrunoCollection(rawData);
-          break;
-        default:
-          throw new Error('Unknown collection format');
-      }
-
-      return collection;
-    } catch (err) {
-      console.error('Conversion error:', err);
-      toastError(err, 'Failed to convert collection');
-      throw err;
-    }
-  };
+  const collectionName = getCollectionName(format, rawData);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -102,7 +102,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const convertedCollection = await convertCollection();
+      const convertedCollection = await convertCollection(format, rawData, groupingType);
       handleSubmit(convertedCollection, values.collectionLocation);
     }
   });
