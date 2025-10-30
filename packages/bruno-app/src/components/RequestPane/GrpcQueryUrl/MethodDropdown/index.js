@@ -111,7 +111,7 @@ const MethodDropdown = ({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setFocusedIndex((prev) =>
-        prev > 0 ? prev - 1 : 0);
+        prev >= 0 ? prev - 1 : -1);
     } else if (e.key === 'Enter' && focusedIndex >= 0) {
       e.preventDefault();
       handleGrpcMethodSelect(flatMethodList[focusedIndex]);
@@ -132,8 +132,13 @@ const MethodDropdown = ({
     setFocusedIndex(-1);
   };
 
-  const handleSearchChange = () => {
-    setFocusedIndex(-1);
+  const handleSearchChange = (e) => {
+    // auto focus the first method when the search input is not empty
+    if (e.target.value.trim().length > 0) {
+      setFocusedIndex(0);
+    } else {
+      setFocusedIndex(-1);
+    }
   };
 
   if (!grpcMethods || grpcMethods.length === 0) {
