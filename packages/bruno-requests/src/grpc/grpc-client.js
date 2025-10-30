@@ -1,4 +1,4 @@
-import { makeGenericClientConstructor, ChannelCredentials, Metadata, status } from '@grpc/grpc-js';
+import { makeGenericClientConstructor, ChannelCredentials, Metadata, status, credentials } from '@grpc/grpc-js';
 import { GrpcReflection } from 'grpc-js-reflection-client';
 import * as protoLoader from '@grpc/proto-loader';
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
@@ -182,7 +182,7 @@ class GrpcClient {
    * @param {grpc.ChannelOptions} options - channel options
    * @returns {Promise<{ client: GrpcReflection, version: 'v1' | 'v1alpha' }>}
    */
-  async #getReflectionClient(host, credentials = ChannelCredentials.createInsecure(), options = {}) {
+  async #getReflectionClient(host, credentials = ChannelCredentials.createInsecure(), metadata = null, options = {}) {
     const makeClient = (version) => new GrpcReflection(host, credentials, options, version);
     let client;
     let services;
@@ -235,8 +235,15 @@ class GrpcClient {
    * @param {VerifyOptions} verifyOptions - Additional options for verifying the server certificate
    * @returns {import('@grpc/grpc-js').ChannelCredentials} The gRPC channel credentials
    */
-  #getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions }) {
+  #getChannelCredentials({ url, headers, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions }) {
     const securedProtocols = ['grpcs', 'https'];
+    const metadata = new Metadata();
+    Object.entries(headers).forEach(([name, value]) => {
+      metadata.add(name, value);
+    });
+    const callCredentials = credentials.createFromMetadataGenerator((options, callback) => {
+      callback(null, metadata);
+    });
     try {
       const { protocol } = getParsedGrpcUrlObject(url);
       const isSecureConnection = securedProtocols.some((sp) => protocol === sp);
@@ -266,16 +273,17 @@ class GrpcClient {
           pfx: pfxBuffer,
           passphrase: passphrase
         });
-        return ChannelCredentials.createFromSecureContext(secureContext, sslOptions);
+        const channelCredentials = ChannelCredentials.createFromSecureContext(secureContext, sslOptions);
+        return credentials.combineChannelCredentials(channelCredentials, callCredentials);
       }
 
-      const credentials = ChannelCredentials.createSsl(rootCertBuffer, privateKeyBuffer, clientCertBuffer, sslOptions);
-
-      return credentials;
+      const channelCredentials = ChannelCredentials.createSsl(rootCertBuffer, privateKeyBuffer, clientCertBuffer, sslOptions);
+      return credentials.combineChannelCredentials(channelCredentials, callCredentials);
     } catch (error) {
       console.error('Error creating channel credentials:', error);
       // Default to insecure as fallback
-      return ChannelCredentials.createInsecure();
+      const channelCredentials = ChannelCredentials.createInsecure();
+      return credentials.combineChannelCredentials(channelCredentials, callCredentials);
     }
   }
 
@@ -460,6 +468,7 @@ class GrpcClient {
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
+      headers: request.headers,
       rootCertificate,
       privateKey,
       certificateChain,
@@ -594,8 +603,14 @@ class GrpcClient {
     verifyOptions,
     sendEvent
   }) {
+    const { host, path } = getParsedGrpcUrlObject(request.url);
+    const metadata = new Metadata();
+    Object.entries(request.headers).forEach(([name, value]) => {
+      metadata.add(name, value);
+    });
     const credentials = this.#getChannelCredentials({
       url: request.url,
+      headers: request.headers,
       rootCertificate,
       privateKey,
       certificateChain,
@@ -603,14 +618,9 @@ class GrpcClient {
       pfx,
       verifyOptions
     });
-    const { host, path } = getParsedGrpcUrlObject(request.url);
-    const metadata = new Metadata();
-    Object.entries(request.headers).forEach(([name, value]) => {
-      metadata.add(name, value);
-    });
 
     try {
-      const { client, services } = await this.#getReflectionClient(host, credentials, {});
+      const { client, services } = await this.#getReflectionClient(host, credentials, metadata, {});
       const methods = [];
 
       for (const service of services) {
