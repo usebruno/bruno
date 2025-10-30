@@ -1,0 +1,49 @@
+{
+  "environments": [
+    {
+      "uid": "local-env-export-test",
+      "name": "local",
+      "variables": [
+        {
+          "uid": "local-env-export-test-host",
+          "name": "host",
+          "value": "http://localhost:3000",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "uid": "local-env-export-test-secret-token",
+          "name": "secretToken",
+          "value": "",
+          "type": "text",
+          "enabled": true,
+          "secret": true
+        }
+      ]
+    },
+    {
+      "uid": "prod-env-export-test",
+      "name": "prod",
+      "variables": [
+        {
+          "uid": "prod-env-export-test-host",
+          "name": "host",
+          "value": "https://echo.usebruno.com",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "uid": "prod-env-export-test-secret-token",
+          "name": "secretToken",
+          "value": "",
+          "type": "text",
+          "enabled": true,
+          "secret": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "local-env-export-test"
+}
