@@ -18,6 +18,7 @@ import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
+import CopyRelativePath from './CopyRelativePath';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -28,7 +29,10 @@ import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
-import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
+import {
+  isTabForItemActive as isTabForItemActiveSelector,
+  isTabForItemPresent as isTabForItemPresentSelector
+} from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { calculateDraggedItemNewPathname } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
@@ -39,7 +43,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
-  
+
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const dispatch = useDispatch();
@@ -55,6 +59,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
+  const [copyRelativePathModalOpen, setCopyRelativePathModalOpen] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
@@ -68,7 +73,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       isDragging: monitor.isDragging()
     }),
     options: {
-      dropEffect: "move"
+      dropEffect: 'move'
     }
   });
 
@@ -107,7 +112,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (!newPathname) return false;
 
     if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
-    
+
     return true;
   };
 
@@ -128,19 +133,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     drop: async (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
-  
+
       if (draggedItemUid === targetItemUid) return;
-  
+
       const dropType = determineDropType(monitor);
       if (!dropType) return;
 
-      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }))
+      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
       setDropType(null);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
     collect: (monitor) => ({
       isOver: monitor.isOver()
-    }),
+    })
   });
 
   const dropdownTippyRef = useRef();
@@ -191,7 +196,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           uid: item.uid,
           collectionUid: collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(item),
-          type: 'request',
+          type: 'request'
         })
       );
     } else {
@@ -199,10 +204,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          type: 'folder-settings',
+          type: 'folder-settings'
         })
       );
-      if(item.collapsed) {
+      if (item.collapsed) {
         dispatch(
           toggleCollectionItem({
             itemUid: item.uid,
@@ -264,7 +269,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     dispatch(makeTabPermanent({ uid: item.uid }));
   };
 
-    // Sort items by their "seq" property.
+  // Sort items by their "seq" property.
   const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
@@ -276,16 +281,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
+  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i)));
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
- 
+
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();
-    if (
-      (item?.request?.url !== '') ||
-      (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
-    ) {
+    if (item?.request?.url !== '' || (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')) {
       setGenerateCodeItemModalOpen(true);
     } else {
       toast.error('URL is required');
@@ -346,10 +348,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
       )}
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collectionUid={collectionUid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem
+          collectionUid={collectionUid}
+          item={item}
+          onClose={() => setGenerateCodeItemModalOpen(false)}
+        />
       )}
-      {itemInfoModalOpen && (
-        <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />
+      {itemInfoModalOpen && <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />}
+      {copyRelativePathModalOpen && (
+        <CopyRelativePath
+          item={item}
+          collectionUid={collectionUid}
+          onClose={() => setCopyRelativePathModalOpen(false)}
+        />
       )}
       <div
         className={itemRowClassName}
@@ -498,6 +509,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 Show in Folder
               </div>
               <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setCopyRelativePathModalOpen(true);
+                }}
+              >
+                Copy Relative Path
+              </div>
+              <div
                 className="dropdown-item delete-item"
                 onClick={(e) => {
                   dropdownTippyRef.current.hide();
@@ -534,12 +554,28 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+                return (
+                  <CollectionItem
+                    key={i.uid}
+                    item={i}
+                    collectionUid={collectionUid}
+                    collectionPathname={collectionPathname}
+                    searchText={searchText}
+                  />
+                );
               })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+                return (
+                  <CollectionItem
+                    key={i.uid}
+                    item={i}
+                    collectionUid={collectionUid}
+                    collectionPathname={collectionPathname}
+                    searchText={searchText}
+                  />
+                );
               })
             : null}
         </div>
