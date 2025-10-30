@@ -20,7 +20,7 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
     });
   });
 
-  test('should search for grpc methods using the search input', async ({ pageWithUserData: page }) => {
+  test('Search for grpc methods using the search input', async ({ pageWithUserData: page }) => {
     await test.step('Select SayHello request', async () => {
       await page.getByText('SayHello').click();
     });
@@ -32,7 +32,6 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
 
     await test.step('Refresh gRPC methods and open methods dropdown', async () => {
       await page.getByTestId('refresh-methods-icon').click();
-      await page.waitForTimeout(1000);
       const grpcMethodsDropdown = page.getByTestId('grpc-methods-dropdown');
       await grpcMethodsDropdown.click();
     });
@@ -50,7 +49,7 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
     });
   });
 
-  test('should search for grpc methods using the keyboard', async ({ pageWithUserData: page }) => {
+  test('Search for grpc methods using the keyboard', async ({ pageWithUserData: page }) => {
     await test.step('Select SayHello request', async () => {
       await page.getByText('SayHello').click();
     });
@@ -62,7 +61,6 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
 
     await test.step('Refresh gRPC methods and open methods dropdown', async () => {
       await page.getByTestId('refresh-methods-icon').click();
-      await page.waitForTimeout(1000);
       const grpcMethodsDropdown = page.getByTestId('grpc-methods-dropdown');
       await grpcMethodsDropdown.click();
     });
