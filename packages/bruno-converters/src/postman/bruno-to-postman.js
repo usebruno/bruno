@@ -148,7 +148,8 @@ export const brunoToPostman = (collection) => {
   };
   const generateEventSection = (item) => {
     const eventArray = [];
-    const scriptBlock = item?.script || item?.root?.request?.script;
+    // Request: item.script, Folder: item.root.request.script, Collection: item.request.script
+    const scriptBlock = item?.script || item?.root?.request?.script || item?.request?.script;
 
     if (scriptBlock?.req) {
       eventArray.push({
@@ -169,28 +170,6 @@ export const brunoToPostman = (collection) => {
           packages: {},
           requests: {},
           exec: scriptBlock.res.split('\n')
-        }
-      });
-    }
-    if (item?.request?.script?.req) {
-      eventArray.push({
-        listen: 'prerequest',
-        script: {
-          type: 'text/javascript',
-          packages: {},
-          requests: {},
-          exec: item.request.script.req.split('\n')
-        }
-      });
-    }
-    if (item?.request?.script?.res) {
-      eventArray.push({
-        listen: 'test',
-        script: {
-          type: 'text/javascript',
-          packages: {},
-          requests: {},
-          exec: item.request.script.res.split('\n')
         }
       });
     }
