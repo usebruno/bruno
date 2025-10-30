@@ -1,8 +1,14 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Import Postman Collection v2.1', () => {
-  test('Import Postman Collection v2.1 successfully', async ({ page }) => {
+  test.afterEach(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('Import Postman Collection v2.1 successfully', async ({ page, createTmpDir }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-v21.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
@@ -24,7 +30,11 @@ test.describe('Import Postman Collection v2.1', () => {
     // Wait for collection to appear in the location modal
     await expect(locationModal.getByText('Postman v2.1 Collection')).toBeVisible();
 
-    // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    // Select a location and import
+    await page.locator('#collection-location').fill(await createTmpDir('postman-v21-test'));
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
+
+    // Verify the collection was imported successfully
+    await expect(page.locator('#sidebar-collection-name').getByText('Postman v2.1 Collection')).toBeVisible();
   });
 });

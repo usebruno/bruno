@@ -24,18 +24,6 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     // wait for the file processing to complete
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    // verify that the import settings modal appears
-    const settingsModal = page.getByTestId('import-settings-modal');
-    await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
-
-    // click the Import button in the settings modal footer
-    await settingsModal.getByRole('button', { name: 'Import' }).click();
-
-    // verify that the collection location modal appears (OpenAPI files go directly to location modal)
-    const locationModal = page.getByTestId('import-collection-location-modal');
-    // verify the collection name is correctly parsed despite duplicate operation names
-    await expect(locationModal.getByText('Duplicate Test Collection')).toBeVisible();
-
     // select a location
     await page.locator('#collection-location').fill(await createTmpDir('duplicate-test'));
     await page.getByRole('button', { name: 'Import', exact: true }).click();

@@ -18,7 +18,7 @@ test.describe('Invalid OpenAPI - Missing Info Section', () => {
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // The OpenAPI parser might handle missing info gracefully with defaults
-    const hasError = await page.getByText('Import collection failed').first().isVisible();
+    const hasError = await page.getByText('Unsupported collection format').first().isVisible();
 
     // Either should show an error or create an "Untitled Collection"
     expect(hasError).toBe(true);

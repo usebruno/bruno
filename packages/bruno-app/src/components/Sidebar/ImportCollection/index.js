@@ -7,6 +7,7 @@ import { isPostmanCollection } from 'utils/importers/postman-collection';
 import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
+import { isBrunoCollection } from 'utils/importers/bruno-collection';
 import FullscreenLoader from './FullscreenLoader/index';
 
 const convertFileToObject = async (file) => {
@@ -71,8 +72,10 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         type = 'postman';
       } else if (isInsomniaCollection(data)) {
         type = 'insomnia';
-      } else {
+      } else if (isBrunoCollection(data)) {
         type = 'bruno';
+      } else {
+        throw new Error('Unsupported collection format');
       }
 
       handleSubmit({ rawData: data, type });

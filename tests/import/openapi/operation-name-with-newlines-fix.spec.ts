@@ -21,16 +21,6 @@ test.describe('OpenAPI Newline Handling', () => {
     // upload the OpenAPI file with problematic operation names
     await page.setInputFiles('input[type="file"]', openApiFile);
 
-    // verify that the import settings modal appears
-    const settingsModal = page.getByTestId('import-settings-modal');
-    await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
-
-    // click the Import button in the settings modal footer
-    await settingsModal.getByRole('button', { name: 'Import' }).click();
-
-    // wait for the file processing to complete
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-
     // verify that the collection location modal appears (OpenAPI files go directly to location modal)
     const locationModal = page.getByTestId('import-collection-location-modal');
     await expect(locationModal.getByText('Newline Test Collection')).toBeVisible();

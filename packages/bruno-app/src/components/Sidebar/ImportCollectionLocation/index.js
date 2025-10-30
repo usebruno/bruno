@@ -37,6 +37,14 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
       case 'postman':
         return rawData.info?.name || rawData.collection?.info?.name || 'Postman Collection';
       case 'insomnia':
+        // For Insomnia v4 format, name is in the workspace resource
+        if (rawData.resources && Array.isArray(rawData.resources)) {
+          const workspace = rawData.resources.find((r) => r._type === 'workspace');
+          if (workspace?.name) {
+            return workspace.name;
+          }
+        }
+        // Fallback to root name property
         return rawData.name || 'Insomnia Collection';
       case 'bruno':
         return rawData.name || 'Bruno Collection';
