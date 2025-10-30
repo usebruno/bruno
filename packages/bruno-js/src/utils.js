@@ -136,10 +136,58 @@ const createResponseParser = (response = {}) => {
  *    Remove the cleanJson fix and execute the below post response script
  *    bru.setVar("a", {b:3});
  * Todo: Find a better fix
+ *
+ * serializes typedArrays by using Buffer to handle most binary cases
+ * // TODO: reaper, replace with `devalue` after evaluating all cases, current setup is
+ * more of a hotfix
  */
 const cleanJson = (data) => {
+  const typedArrays = [
+    // Baseline typed arrays
+    Int8Array,
+    Uint8Array,
+    Uint8ClampedArray,
+    Int16Array,
+    Uint16Array,
+    Int32Array,
+    Uint32Array,
+    Float32Array,
+    Float64Array,
+    BigInt64Array,
+    BigUint64Array,
+
+    // Baseline 2025 Newly available
+    'Float16Array' in globalThis ? Float16Array : null
+  ].filter(Boolean);
+
+  const replacer = (key, value) => {
+    const isBinary = typedArrays.find((d) => value instanceof d);
+    if (isBinary) {
+      return {
+        __cleanJSONType: isBinary.name,
+        __cleanJSONValue: Buffer.from(value.buffer).toJSON()
+      };
+    }
+    return value;
+  };
+
+  const reviver = (key, value) => {
+    const binaryNames = typedArrays.map((d) => d.name);
+    if (typeof value !== 'object') {
+      return value;
+    }
+    if ('__cleanJSONType' in value && '__cleanJSONValue' in value) {
+      const matchedName = binaryNames.find((d) => value.__cleanJSONType === d);
+      if (!matchedName) return;
+      const binConstructor = typedArrays.find((d) => d.name === matchedName);
+
+      return binConstructor.from(Buffer.from(value.__cleanJSONValue));
+    }
+    return value;
+  };
+
   try {
-    return JSON.parse(JSON.stringify(data));
+    return JSON.parse(JSON.stringify(data, replacer), reviver);
   } catch (e) {
     return data;
   }
