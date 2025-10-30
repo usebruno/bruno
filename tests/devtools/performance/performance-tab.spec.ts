@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 
 test.describe('DevTools Performance Tab', () => {
-  test('should display performance metrics when Performance tab is opened', async ({ pageWithUserData: page }) => {
+  test('should display performance metrics when Performance tab is opened', async ({ page }) => {
     const devToolsButton = page.locator('button[data-trigger="dev-tools"]');
     await expect(devToolsButton).toBeVisible();
     await devToolsButton.click();
@@ -66,7 +66,7 @@ test.describe('DevTools Performance Tab', () => {
     expect(pidText).toMatch(/^\d+$/);
   });
 
-  test('should update performance metrics over time', async ({ pageWithUserData: page }) => {
+  test('should update performance metrics over time', async ({ page }) => {
     await page.locator('button[data-trigger="dev-tools"]').click();
     await expect(page.locator('.console-header')).toBeVisible();
 
@@ -109,7 +109,7 @@ test.describe('DevTools Performance Tab', () => {
     expect(updatedSeconds).toBeGreaterThan(initialSeconds);
   });
 
-  test('should stop monitoring when switching away from Performance tab', async ({ pageWithUserData: page }) => {
+  test('should stop monitoring when switching away from Performance tab', async ({ page }) => {
     await page.locator('button[data-trigger="dev-tools"]').click();
     await expect(page.locator('.console-header')).toBeVisible();
 
