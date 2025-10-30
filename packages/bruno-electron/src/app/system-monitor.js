@@ -14,7 +14,6 @@ class SystemMonitor {
 
     this.isMonitoring = true;
     this.startTime = Date.now();
-    this.lastTimestamp = Date.now();
 
     // Emit initial stats
     this.emitSystemStats(win);
