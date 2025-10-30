@@ -31,8 +31,6 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   const getCollectionName = () => {
     if (!rawData) return 'Collection';
 
-    console.log('rawData', rawData);
-
     switch (format) {
       case 'openapi':
         return rawData.info?.title || 'OpenAPI Collection';
