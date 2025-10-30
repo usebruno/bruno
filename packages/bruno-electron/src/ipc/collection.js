@@ -974,80 +974,82 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
-        if (request.oauth2) {
-          let requestCopy = _.cloneDeep(request);
-          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
-          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
-          const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVars(collectionUid);
-          const partialItem = { uid: itemUid };
-          const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
-          mergeVars(collection, requestCopy, requestTreePath);
+      if (request.oauth2) {
+        let requestCopy = _.cloneDeep(request);
+        const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+        const envVars = getEnvVars(environment);
+        const processEnvVars = getProcessEnvVars(collectionUid);
+        const partialItem = { uid: itemUid };
+        const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+        mergeVars(collection, requestCopy, requestTreePath);
+        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
 
-          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-          const certsAndProxyConfig = await getCertsAndProxyConfig({
-            collectionUid,
-            request: requestCopy,
-            envVars,
-            runtimeVariables,
-            processEnvVars,
-            collectionPath
-          });
-          const { oauth2: { grantType }} = requestCopy || {};
-          
-          const handleOAuth2Response = (response) => {
-            if (response.error && !response.debugInfo) {
-              throw new Error(response.error);
-            }
-            return response;
-          };
-          
-          switch (grantType) {
-            case 'authorization_code':
-              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingAuthorizationCode({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true, 
-                certsAndProxyConfig 
-              }).then(handleOAuth2Response);
-              
-            case 'client_credentials':
-              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingClientCredentials({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true, 
-                certsAndProxyConfig 
-              }).then(handleOAuth2Response);
-              
-            case 'password':
-              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingPasswordCredentials({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true, 
-                certsAndProxyConfig 
-              }).then(handleOAuth2Response);
-              
-            case 'implicit':
-              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingImplicitGrant({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true 
-              }).then(handleOAuth2Response);
-              
-            default:
-              return {
-                error: `Unsupported grant type: ${grantType}`,
-                credentials: null,
-                url: null,
-                collectionUid,
-                credentialsId: null
-              };
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        const certsAndProxyConfig = await getCertsAndProxyConfig({
+          collectionUid,
+          request: requestCopy,
+          envVars,
+          runtimeVariables,
+          processEnvVars,
+          collectionPath,
+          globalEnvironmentVariables
+        });
+        const { oauth2: { grantType } } = requestCopy || {};
+
+        const handleOAuth2Response = (response) => {
+          if (response.error && !response.debugInfo) {
+            throw new Error(response.error);
           }
+          return response;
+        };
+
+        switch (grantType) {
+          case 'authorization_code':
+            interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+            return await getOAuth2TokenUsingAuthorizationCode({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfig
+            }).then(handleOAuth2Response);
+
+          case 'client_credentials':
+            interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+            return await getOAuth2TokenUsingClientCredentials({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfig
+            }).then(handleOAuth2Response);
+
+          case 'password':
+            interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+            return await getOAuth2TokenUsingPasswordCredentials({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfig
+            }).then(handleOAuth2Response);
+
+          case 'implicit':
+            interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+            return await getOAuth2TokenUsingImplicitGrant({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true
+            }).then(handleOAuth2Response);
+
+          default:
+            return {
+              error: `Unsupported grant type: ${grantType}`,
+              credentials: null,
+              url: null,
+              collectionUid,
+              credentialsId: null
+            };
         }
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1105,29 +1107,31 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
-        if (request.oauth2) {
-          let requestCopy = _.cloneDeep(request);
-          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
-          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
-          const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVars(collectionUid);
-          const partialItem = { uid: itemUid };
-          const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
-          mergeVars(collection, requestCopy, requestTreePath);
-          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+      if (request.oauth2) {
+        let requestCopy = _.cloneDeep(request);
+        const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+        const envVars = getEnvVars(environment);
+        const processEnvVars = getProcessEnvVars(collectionUid);
+        const partialItem = { uid: itemUid };
+        const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+        mergeVars(collection, requestCopy, requestTreePath);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
 
-          const certsAndProxyConfig = await getCertsAndProxyConfig({
-            collectionUid,
-            request: requestCopy,
-            envVars,
-            runtimeVariables,
-            processEnvVars,
-            collectionPath
-          });
-          
-          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
-          return { credentials, url, collectionUid, credentialsId, debugInfo };
-        }
+        const certsAndProxyConfig = await getCertsAndProxyConfig({
+          collectionUid,
+          request: requestCopy,
+          envVars,
+          runtimeVariables,
+          processEnvVars,
+          collectionPath,
+          globalEnvironmentVariables
+        });
+
+        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+        return { credentials, url, collectionUid, credentialsId, debugInfo };
+      }
     } catch (error) {
       return Promise.reject(error);
     }
