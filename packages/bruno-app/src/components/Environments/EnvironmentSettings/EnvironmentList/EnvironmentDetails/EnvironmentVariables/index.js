@@ -25,9 +25,8 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   let _collection = cloneDeep(collection);
-  
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
-  _collection.globalEnvironmentVariables = globalEnvironmentVariables;
+
+  _collection.globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
 
   const nonSecretSensitiveVarUsageMap = useMemo(() => {
     const result = {};

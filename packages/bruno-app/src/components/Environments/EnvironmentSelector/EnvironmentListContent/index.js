@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconPlus, IconDownload, IconSettings } from '@tabler/icons';
+import { IconPlus, IconDownload, IconSettings, IconDatabase } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 
 const EnvironmentListContent = ({
@@ -38,6 +38,7 @@ const EnvironmentListContent = ({
                     data-tooltip-content={env.name}
                     data-tooltip-hidden={env.name?.length < 90}
                   >
+                    <IconDatabase size={16} strokeWidth={1.5} color={env.color} />
                     <span className="max-w-100% truncate no-wrap">{env.name}</span>
                   </div>
                 ))}
