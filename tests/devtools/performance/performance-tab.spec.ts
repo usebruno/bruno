@@ -16,8 +16,6 @@ test.describe('DevTools Performance Tab', () => {
 
     await expect(performanceTab).toHaveClass(/active/);
 
-    await page.waitForTimeout(2500);
-
     await expect(page.locator('.system-resources h2')).toContainText('System Resources');
 
     // Verify all resource cards are present
@@ -72,8 +70,6 @@ test.describe('DevTools Performance Tab', () => {
 
     await page.locator('.console-tab').filter({ hasText: 'Performance' }).click();
 
-    await page.waitForTimeout(2500);
-
     const uptimeCard = page.locator('.resource-card').filter({
       has: page.locator('.resource-title', { hasText: 'Uptime' })
     });
@@ -117,8 +113,6 @@ test.describe('DevTools Performance Tab', () => {
     await performanceTab.click();
     await expect(performanceTab).toHaveClass(/active/);
 
-    await page.waitForTimeout(2500);
-
     await expect(page.locator('.resource-card')).toHaveCount(4);
 
     const consoleTab = page.locator('.console-tab').filter({ hasText: 'Console' });
@@ -132,9 +126,6 @@ test.describe('DevTools Performance Tab', () => {
     // Switch back to Performance tab
     await performanceTab.click();
     await expect(performanceTab).toHaveClass(/active/);
-
-    // Wait for metrics to restart
-    await page.waitForTimeout(2500);
 
     // Verify metrics are still working
     const resourceCards = page.locator('.resource-card');
