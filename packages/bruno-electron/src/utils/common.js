@@ -1,6 +1,8 @@
 const { customAlphabet } = require('nanoid');
 const iconv = require('iconv-lite');
 const { cloneDeep } = require('lodash');
+const JSONbig = require('json-bigint');
+const JSONBigNative = JSONbig({ useNativeBigInt: true, strict: true });
 
 // a customized version of nanoid without using _ and -
 const uuid = () => {
@@ -41,8 +43,14 @@ const getCircularReplacer = () => {
 const safeStringifyJSON = (data, indent = null) => {
   if (data === undefined) return undefined;
   try {
+    const replacer = (key, value) => {
+      if (typeof value === 'bigint') {
+        return value.toString();
+      }
+      return value;
+    };
     // getCircularReplacer - removes circular references that cause an error when stringifying
-    return JSON.stringify(data, getCircularReplacer(), indent);
+    return JSON.stringify(data, (key, value) => replacer(key, getCircularReplacer()(key, value)), indent);
   } catch (e) {
     console.warn('Failed to stringify data:', e.message);
     return data;
@@ -120,7 +128,7 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
     if (!disableParsingResponseJson) {
-      data = JSON.parse(data);
+      data = JSONBigNative.parse(data);
     }
   } catch { }
 
