@@ -16,6 +16,15 @@ import LargeResponseWarning from '../LargeResponseWarning';
 // Memory threshold to prevent crashes when decoding large buffers
 const LARGE_BUFFER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
 
+const applyJSONPathFilter = (data, filter) => {
+  try {
+    return JSONPath({ path: filter, json: data });
+  } catch (e) {
+    console.warn('Could not apply JSONPath filter:', e.message);
+    return data;
+  }
+};
+
 const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
   if (data === undefined || !dataBuffer || !mode) {
     return '';
@@ -32,29 +41,12 @@ const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
 
   if (mode.includes('json')) {
     try {
-      if (isVeryLargeResponse) {
-        if (filter) {
-          try {
-            const filteredData = JSONPath({ path: filter, json: data });
-            return typeof filteredData === 'string' ? filteredData : safeStringifyJSON(filteredData, true);
-          } catch (e) {
-            console.warn('Could not apply JSONPath filter to large response:', e.message);
-          }
-        }
-        return typeof data === 'string' ? data : safeStringifyJSON(data, false);
-      }
+      const prettyPrint = !isVeryLargeResponse;
+      const processedData = filter ? applyJSONPathFilter(data, filter) : data;
 
-      let processedData = data;
-
-      if (filter) {
-        try {
-          processedData = JSONPath({ path: filter, json: data });
-        } catch (e) {
-          console.warn('Could not apply JSONPath filter:', e.message);
-        }
-      }
-
-      return safeStringifyJSON(processedData, true);
+      return typeof processedData === 'string'
+        ? processedData
+        : safeStringifyJSON(processedData, prettyPrint);
     } catch (error) {
       return typeof data === 'string' ? data : String(data);
     }
