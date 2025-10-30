@@ -15,12 +15,36 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
   const [wholeWord, setWholeWord] = useState(false);
   const [matchIndex, setMatchIndex] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
+  const [editorContent, setEditorContent] = useState('');
 
   const searchMarks = useRef([]);
   const searchLineHighlight = useRef(null);
   const searchMatches = useRef([]);
+  const editorChangeTimeout = useRef(null);
 
   const debouncedSearchText = useDebounce(searchText, 150);
+
+  useEffect(() => {
+    if (!editor || !visible) return;
+
+    const handleEditorChange = () => {
+      if (editorChangeTimeout.current) {
+        clearTimeout(editorChangeTimeout.current);
+      }
+      editorChangeTimeout.current = setTimeout(() => {
+        setEditorContent(editor.getValue());
+      }, 150);
+    };
+    setEditorContent(editor.getValue());
+    editor.on('change', handleEditorChange);
+
+    return () => {
+      editor.off('change', handleEditorChange);
+      if (editorChangeTimeout.current) {
+        clearTimeout(editorChangeTimeout.current);
+      }
+    };
+  }, [editor, visible]);
 
   const memoizedMatches = useMemo(() => {
     if (!editor || !visible) return [];
@@ -52,9 +76,9 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
       console.error('Search error:', e);
       return [];
     }
-  }, [editor, visible, debouncedSearchText, regex, caseSensitive, wholeWord]);
+  }, [editor, visible, debouncedSearchText, regex, caseSensitive, wholeWord, editorContent]);
 
-  const doSearch = useCallback((newIndex = 0) => {
+  const doSearch = useCallback((newIndex = 0, scrollToMatch = false) => {
     if (!editor) return;
 
     // Clear previous marks
@@ -84,13 +108,17 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
         searchMarks.current.push(mark);
       });
 
-      if (matches.length) {
+      if (matches.length && scrollToMatch) {
         const currentLine = matches[matchIndex].from.line;
         editor.addLineClass(currentLine, 'wrap', 'cm-search-line-highlight');
         searchLineHighlight.current = currentLine;
 
         editor.scrollIntoView(matches[matchIndex].from, 100);
-        editor.setSelection(matches[matchIndex].from, matches[matchIndex].to);
+        editor.setCursor(matches[matchIndex].from);
+      } else if (matches.length) {
+        const currentLine = matches[matchIndex].from.line;
+        editor.addLineClass(currentLine, 'wrap', 'cm-search-line-highlight');
+        searchLineHighlight.current = currentLine;
       } else {
         searchLineHighlight.current = null;
       }
@@ -107,7 +135,7 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
   }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor, memoizedMatches]);
 
   useEffect(() => {
-    doSearch(0, debouncedSearchText);
+    doSearch(0, false);
   }, [debouncedSearchText, doSearch]);
 
   const handleSearchBarClose = useCallback(() => {
@@ -152,14 +180,14 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
     if (!searchMatches.current || !searchMatches.current.length) return;
     let next = (matchIndex + 1) % searchMatches.current.length;
     setMatchIndex(next);
-    doSearch(next);
+    doSearch(next, true);
   };
 
   const handlePrev = () => {
     if (!searchMatches.current || !searchMatches.current.length) return;
     let prev = (matchIndex - 1 + searchMatches.current.length) % searchMatches.current.length;
     setMatchIndex(prev);
-    doSearch(prev);
+    doSearch(prev, true);
   };
 
   if (!visible) return null;
