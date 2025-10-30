@@ -40,7 +40,7 @@ test.describe('Collection Environment Import Tests', () => {
 
     // Import environment file
     const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('button[data-testid="import-postman-environment"]').click();
+    await page.getByTestId('import-environment').click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(envFile);
 

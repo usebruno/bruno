@@ -29,3 +29,13 @@ export const buildPersistedEnvVariables = (variables, { mode, persistedNames } =
   // default to save mode
   return src.map(toPersistedEnvVarForSave);
 };
+
+export const buildEnvVariable = (obj) => {
+  return {
+    name: obj.name ?? '',
+    value: !!obj.secret ? '' : (obj.value ?? ''),
+    type: 'text',
+    enabled: obj.enabled !== false,
+    secret: !!obj.secret
+  };
+};
