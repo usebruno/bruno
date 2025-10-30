@@ -171,7 +171,8 @@ const registerGrpcEventHandlers = (window) => {
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
-        collectionPath: collection.pathname
+        collectionPath: collection.pathname,
+        globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
    
 
@@ -302,7 +303,8 @@ const registerGrpcEventHandlers = (window) => {
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
-        collectionPath: collection.pathname
+        collectionPath: collection.pathname,
+        globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
 
       // Extract certificate information from the config

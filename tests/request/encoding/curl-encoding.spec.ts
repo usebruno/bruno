@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 
 test.describe('Code Generation URL Encoding', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ page }) => {
     try {
       const modalCloseButton = page.locator('[data-test-id="modal-close-button"]');
       if (await modalCloseButton.isVisible()) {
@@ -15,7 +15,7 @@ test.describe('Code Generation URL Encoding', () => {
   });
 
   test('Should generate code with proper URL encoding for unencoded input', async ({
-    pageWithUserData: page,
+    page,
     createTmpDir
   }) => {
     await page.locator('.dropdown-icon').click();
@@ -57,7 +57,7 @@ test.describe('Code Generation URL Encoding', () => {
   });
 
   test('Should generate code with proper URL encoding for encoded input', async ({
-    pageWithUserData: page,
+    page,
     createTmpDir
   }) => {
     await page.locator('.dropdown-icon').click();

@@ -195,7 +195,6 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     }
 
     let variables = cloneDeep(environment?.variables);
-    console.log('globalEnvironmentVariables', globalEnvironmentVariables);
 
     // "globalEnvironmentVariables" will include only the enabled variables and newly added variables created using the script.
     // Update the value of each variable if it's present in "globalEnvironmentVariables", otherwise keep the existing value.

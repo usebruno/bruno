@@ -66,7 +66,6 @@
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
     "nanoid": "3.3.8",
-    "pidusage": "^4.0.1",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
     "tough-cookie": "^6.0.0",

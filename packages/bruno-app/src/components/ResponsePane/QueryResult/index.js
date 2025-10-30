@@ -13,40 +13,50 @@ import { useTheme } from 'providers/Theme/index';
 import { getEncoding, uuid } from 'utils/common/index';
 import LargeResponseWarning from '../LargeResponseWarning';
 
+// Memory threshold to prevent crashes when decoding large buffers
+const LARGE_BUFFER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
+
+const applyJSONPathFilter = (data, filter) => {
+  try {
+    return JSONPath({ path: filter, json: data });
+  } catch (e) {
+    console.warn('Could not apply JSONPath filter:', e.message);
+    return data;
+  }
+};
+
 const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
   if (data === undefined || !dataBuffer || !mode) {
     return '';
   }
 
-  // TODO: We need a better way to get the raw response-data here instead
-  // of using this dataBuffer param.
-  // Also, we only need the raw response-data and content-type to show the preview.
-  const rawData = iconv.decode(
-    Buffer.from(dataBuffer, "base64"),
-    iconv.encodingExists(encoding) ? encoding : "utf-8"
-  );
+  let bufferSize = 0;
+  try {
+    bufferSize = Buffer.from(dataBuffer, 'base64').length;
+  } catch (error) {
+    console.warn('Failed to calculate buffer size:', error);
+  }
+
+  const isVeryLargeResponse = bufferSize > LARGE_BUFFER_THRESHOLD;
 
   if (mode.includes('json')) {
     try {
-      JSON.parse(rawData);
+      const prettyPrint = !isVeryLargeResponse;
+      const processedData = filter ? applyJSONPathFilter(data, filter) : data;
+
+      return typeof processedData === 'string'
+        ? processedData
+        : safeStringifyJSON(processedData, prettyPrint);
     } catch (error) {
-      // If the response content-type is JSON and it fails parsing, its an invalid JSON.
-      // In that case, just show the response as it is in the preview.
-      return rawData;
+      return typeof data === 'string' ? data : String(data);
     }
-
-    if (filter) {
-      try {
-        data = JSONPath({ path: filter, json: data });
-      } catch (e) {
-        console.warn('Could not apply JSONPath filter:', e.message);
-      }
-    }
-
-    return safeStringifyJSON(data, true);
   }
 
   if (mode.includes('xml')) {
+    if (isVeryLargeResponse) {
+      return typeof data === 'string' ? data : safeStringifyJSON(data, false);
+    }
+
     let parsed = safeParseXML(data, { collapseContent: true });
     if (typeof parsed === 'string') {
       return parsed;
@@ -58,7 +68,7 @@ const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
     return data;
   }
 
-  return safeStringifyJSON(data, true);
+  return safeStringifyJSON(data, !isVeryLargeResponse);
 };
 
 const formatErrorMessage = (error) => {
