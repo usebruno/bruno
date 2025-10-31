@@ -325,6 +325,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setCreateExampleModalOpen(false);
   };
 
+  const getInitialExampleName = () => {
+    const baseName = 'example';
+    const existingExamples = item.draft?.examples || item.examples || [];
+    let maxCounter = 0;
+    existingExamples.forEach((example) => {
+      const exampleName = example.name || '';
+      if (exampleName.startsWith(baseName)) {
+        maxCounter++;
+      }
+    });
+    return `${baseName} (${maxCounter})`;
+  };
+
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
  
@@ -405,6 +418,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onClose={() => setCreateExampleModalOpen(false)}
         onSave={handleCreateExample}
         title="Create Response Example"
+        initialName={getInitialExampleName()}
       />
       <div
         className={itemRowClassName}

@@ -1,7 +1,8 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('../../utils');
-const astBaseAttribute = require('../../commons/astBaseAttribute');
+const astBaseAttribute = require('../../common/attributes');
+const { mapPairListToKeyValPairs } = require('../../common/semantic-utils');
 
 /**
  * Response Block Grammar for Bruno Examples
@@ -56,35 +57,6 @@ const responseGrammar = ohm.grammar(`Response {
   responsebodytype = st* "type" st* ":" st* valuechar* nl*
   responsebodycontentvalue = st* "content" st* ":" st* multilinetextblock
 }`);
-
-const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
-  if (!pairList.length) {
-    return [];
-  }
-  return _.map(pairList[0], (pair) => {
-    let name = _.keys(pair)[0];
-    let value = pair[name];
-
-    if (!parseEnabled) {
-      return {
-        name,
-        value
-      };
-    }
-
-    let enabled = true;
-    if (name && name.length && name.charAt(0) === '~') {
-      name = name.slice(1);
-      enabled = false;
-    }
-
-    return {
-      name,
-      value,
-      enabled
-    };
-  });
-};
 
 const astResponseAttribute = {
   ResponseFile(tags) {
@@ -146,16 +118,14 @@ const astResponseAttribute = {
   }
 };
 
-const responseGrammarSemantics = responseGrammar.createSemantics();
-responseGrammarSemantics.addAttribute('ast', _.merge({}, astBaseAttribute, astResponseAttribute));
-
-const sem = responseGrammarSemantics;
+const grammarSemantics = responseGrammar.createSemantics();
+grammarSemantics.addAttribute('ast', { ...astBaseAttribute, ...astResponseAttribute });
 
 const parseResponse = (input) => {
   const match = responseGrammar.match(input);
 
   if (match.succeeded()) {
-    let ast = sem(match).ast;
+    let ast = grammarSemantics(match).ast;
     return ast;
   } else {
     console.log('match failed', match);
