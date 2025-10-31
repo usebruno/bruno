@@ -19,8 +19,8 @@ const Wrapper = styled.div`
     }
     td {
       padding: 6px 10px;
-      }
     }
+  }
 
   .btn-add-param {
     font-size: 0.8125rem;
