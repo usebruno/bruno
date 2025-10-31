@@ -1,9 +1,17 @@
 import { test, expect } from '../../playwright';
-test.describe('Edit Response Examples', () => {
+import { execSync } from 'child_process';
+import path from 'path';
+
+test.describe.serial('Edit Response Examples', () => {
+  test.afterAll(async () => {
+    // Reset the collection request file to the original state
+    execSync(`git checkout -- ${path.join(__dirname, 'fixtures', 'collection', 'edit-example.bru')}`);
+  });
+
   test('should enter edit mode and show editable fields when edit button is clicked', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('edit-example').click();
     });
 
     await test.step('Make a successful request and create an example', async () => {
@@ -18,7 +26,7 @@ test.describe('Edit Response Examples', () => {
     });
 
     await test.step('Open existing example', async () => {
-      await page.getByTestId('request-item-chevron').click();
+      await page.locator('.collection-item-name', { hasText: 'edit-example' }).getByTestId('request-item-chevron').click();
       const exampleItem = page.locator('.collection-item-name').getByText('Test Example', { exact: true });
       await expect(exampleItem).toBeVisible();
       await exampleItem.click();
@@ -38,7 +46,7 @@ test.describe('Edit Response Examples', () => {
   test('should successfully update example name and persist changes', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('edit-example').click();
     });
 
     await test.step('Create example to update', async () => {
@@ -65,14 +73,14 @@ test.describe('Edit Response Examples', () => {
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('Updated Example Name');
       await page.getByTestId('response-example-save-btn').click();
-      await expect(page.getByTestId('response-example-title')).toHaveText('echo-request / Updated Example Name');
+      await expect(page.getByTestId('response-example-title')).toHaveText('edit-example / Updated Example Name');
     });
   });
 
   test('should successfully update example description and persist changes', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('edit-example').click();
     });
 
     await test.step('Create example to update description', async () => {
@@ -106,7 +114,7 @@ test.describe('Edit Response Examples', () => {
   test('should discard changes and revert to original values when cancel is clicked', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('edit-example').click();
     });
 
     await test.step('Create example to test cancel functionality', async () => {
@@ -141,7 +149,7 @@ test.describe('Edit Response Examples', () => {
   test('should save changes using keyboard shortcut (Cmd+S)', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('edit-example').click();
     });
 
     await test.step('Create example to test keyboard shortcut', async () => {
@@ -168,64 +176,7 @@ test.describe('Edit Response Examples', () => {
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('Keyboard Shortcut Test');
       await page.keyboard.press('Meta+s');
-      await expect(page.getByTestId('response-example-title')).toHaveText('echo-request / Keyboard Shortcut Test');
-    });
-  });
-
-  test('Cleanup: Delete all created examples', async ({ pageWithUserData: page }) => {
-    await test.step('Delete Test Example', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Test Example', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
-    });
-
-    await test.step('Delete Updated Example Name', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Updated Example Name', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
-    });
-
-    await test.step('Delete Description Test Example', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Description Test Example', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
-    });
-
-    await test.step('Delete Cancel Test Example', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Cancel Test Example', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
-    });
-
-    await test.step('Delete Keyboard Shortcut Test', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Keyboard Shortcut Test', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
+      await expect(page.getByTestId('response-example-title')).toHaveText('edit-example / Keyboard Shortcut Test');
     });
   });
 });

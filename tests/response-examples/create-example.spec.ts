@@ -1,10 +1,17 @@
+import { execSync } from 'child_process';
 import { test, expect } from '../../playwright';
+import path from 'path';
 
-test.describe('Create Response Examples', () => {
+test.describe.serial('Create and Delete Response Examples', () => {
+  test.afterAll(async () => {
+    // Reset the collection request file to the original state
+    execSync(`git checkout -- ${path.join(__dirname, 'fixtures', 'collection', 'create-example.bru')}`);
+  });
+
   test('should create a response example from response bookmark', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('create-example').click();
     });
 
     await test.step('Send request and validate example creation', async () => {
@@ -27,7 +34,7 @@ test.describe('Create Response Examples', () => {
   test('Validate name is required to create example', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('create-example').click();
     });
 
     await test.step('Validate error when name is empty', async () => {
@@ -64,7 +71,7 @@ test.describe('Create Response Examples', () => {
   test('should reset form when modal is reopened', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('create-example').click();
     });
 
     await test.step('Test form reset', async () => {
@@ -87,7 +94,7 @@ test.describe('Create Response Examples', () => {
   test('should show created example in sidebar after expanding request', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('create-example').click();
     });
 
     await test.step('Create example and verify sidebar visibility', async () => {
@@ -103,46 +110,9 @@ test.describe('Create Response Examples', () => {
     });
 
     await test.step('Verify example appears in sidebar', async () => {
-      await page.getByTestId('request-item-chevron').click();
+      await page.locator('.collection-item-name', { hasText: 'create-example' }).getByTestId('request-item-chevron').click();
       const exampleItem = page.locator('.collection-item-name').getByText('Sidebar Test Example', { exact: true });
       await expect(exampleItem).toBeVisible();
-
-      await exampleItem.click();
-    });
-  });
-
-  test('Cleanup: Delete all created examples', async ({ pageWithUserData: page }) => {
-    await test.step('Delete Test Example from Bookmark', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Test Example from Bookmark', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
-    });
-
-    await test.step('Delete Required Name example', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Required Name', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click({ timeout: 30000 });
-      await expect(exampleItem).not.toBeVisible();
-    });
-
-    await test.step('Delete Sidebar Test Example', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Sidebar Test Example', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
     });
   });
 });

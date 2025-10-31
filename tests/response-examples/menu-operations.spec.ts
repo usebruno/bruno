@@ -1,15 +1,17 @@
 import { test, expect } from '../../playwright';
-import { closeAllCollections } from '../utils/page';
+import { execSync } from 'child_process';
+import path from 'path';
 
-test.describe('Response Example Menu Operations', () => {
-  test.afterAll(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
+test.describe.serial('Response Example Menu Operations', () => {
+  test.afterAll(async () => {
+    // Reset the collection request file to the original state
+    execSync(`git checkout -- ${path.join(__dirname, 'fixtures', 'collection', 'menu-operations.bru')}`);
   });
 
   test('should clone a response example via three dots menu', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('menu-operations').click();
     });
 
     await test.step('Create example', async () => {
@@ -20,7 +22,7 @@ test.describe('Response Example Menu Operations', () => {
       await page.getByRole('button', { name: 'Create Example' }).click();
       // Wait for modal to close
       await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
-      await page.getByTestId('request-item-chevron').click();
+      await page.locator('.collection-item-name', { hasText: 'menu-operations' }).getByTestId('request-item-chevron').click();
 
       const exampleItem = page.locator('.collection-item-name').getByText('Example to Clone');
       await expect(exampleItem).toBeVisible();
@@ -40,7 +42,7 @@ test.describe('Response Example Menu Operations', () => {
   test('should delete a response example via three dots menu', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('menu-operations').click();
     });
 
     await test.step('Create example to delete', async () => {
@@ -73,7 +75,7 @@ test.describe('Response Example Menu Operations', () => {
   test('should rename a response example via three dots menu', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
+      await page.locator('.collection-item-name').getByText('menu-operations').click();
     });
 
     await test.step('Create example to rename', async () => {
@@ -107,46 +109,6 @@ test.describe('Response Example Menu Operations', () => {
       await expect(exampleItem).not.toBeVisible();
       await expect(updatedExampleItem).toBeVisible();
       await expect(updatedExampleItem).toHaveText('Renamed Example');
-    });
-  });
-
-  test('Cleanup: Delete all created examples', async ({ pageWithUserData: page }) => {
-    await test.step('Open collection and request', async () => {
-      await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
-    });
-
-    await test.step('Delete Example to Clone', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Example to Clone', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
-    });
-
-    await test.step('Delete Example to Clone (Copy)', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Example to Clone (Copy)', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
-    });
-
-    await test.step('Delete Renamed Example', async () => {
-      const exampleItem = page.locator('.collection-item-name').getByText('Renamed Example', { exact: true });
-      await expect(exampleItem).toBeVisible();
-      await exampleItem.click({ button: 'right' });
-      await page.getByText('Delete').click();
-      const deleteButton = page.getByRole('button', { name: 'Delete' });
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
-      await expect(exampleItem).not.toBeVisible();
     });
   });
 });
