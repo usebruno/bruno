@@ -6,6 +6,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { IconDots } from '@tabler/icons';
 import ExampleIcon from 'components/Icons/Examples';
 import range from 'lodash/range';
+import cloneDeep from 'lodash/cloneDeep';
 import classnames from 'classnames';
 import Dropdown from 'components/Dropdown';
 import Modal from 'components/Modal';
@@ -56,9 +57,10 @@ const ExampleItem = ({ example, item, collection }) => {
     // Only pass response-related data - the reducer will automatically capture current request state
     const clonedExample = {
       name: `${example.name} (Copy)`,
-      status: example.status,
-      headers: example.headers,
-      body: example.body,
+      status: example.response?.status || example.status,
+      statusText: example.response?.statusText || example.statusText,
+      headers: cloneDeep(example.response?.headers || example.headers),
+      body: cloneDeep(example.response?.body || example.body),
       description: example.description
     };
 
