@@ -1,0 +1,11 @@
+{
+  "maximized": true,
+  "lastOpenedCollections": [
+    "{{projectRoot}}/tests/grpc/metadata/fixtures/collection"
+  ],
+  "preferences": {
+    "beta": {
+      "nodevm": false
+    }
+  }
+}

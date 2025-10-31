@@ -83,7 +83,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                   {Object.entries(effectiveRequest.headers).map(([key, value], idx) => (
                     <div key={idx} className="contents">
                       <div className="text-xs font-medium overflow-hidden text-ellipsis">{key}:</div>
-                      <div className="text-xs overflow-hidden text-ellipsis">{value}</div>
+                      <div className="text-xs overflow-hidden text-ellipsis">{typeof value === 'string' ? value : '[Buffer Buffer]'}</div>
                     </div>
                   ))}
                 </div>
