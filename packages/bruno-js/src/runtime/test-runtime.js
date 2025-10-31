@@ -105,7 +105,6 @@ class TestRuntime {
       res,
       expect: chai.expect,
       assert: chai.assert,
-      Uint8Array: Uint8Array,
       __brunoTestResults: __brunoTestResults,
       jwt: jsonwebtoken
     };
