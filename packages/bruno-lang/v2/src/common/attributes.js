@@ -1,5 +1,3 @@
-const _ = require('lodash');
-
 /**
  * Base AST attributes common to all grammar parsers in examples
  * These attributes handle common grammar constructs like dictionaries, pairs, text blocks, etc.

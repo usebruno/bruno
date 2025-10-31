@@ -3,7 +3,7 @@ const _ = require('lodash');
 const { safeParseJson, outdentString } = require('../utils');
 const parseRequest = require('./request/bruToJson');
 const parseResponse = require('./response/bruToJson');
-const astBaseAttribute = require('../commons/astBaseAttribute');
+const astBaseAttribute = require('../common/attributes');
 
 /**
  * Example Grammar for Bruno
@@ -112,16 +112,14 @@ const astExampleAttribute = {
   }
 };
 
-const exampleGrammarSemantics = exampleGrammar.createSemantics();
-exampleGrammarSemantics.addAttribute('ast', _.merge({}, astBaseAttribute, astExampleAttribute));
-
-const sem = exampleGrammarSemantics;
+const grammarSemantics = exampleGrammar.createSemantics();
+grammarSemantics.addAttribute('ast', { ...astBaseAttribute, ...astExampleAttribute });
 
 const parseExample = (input) => {
   const match = exampleGrammar.match(input);
 
   if (match.succeeded()) {
-    let ast = sem(match).ast;
+    let ast = grammarSemantics(match).ast;
     return ast;
   } else {
     console.log('match failed', match);
