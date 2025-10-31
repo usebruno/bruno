@@ -73,11 +73,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .example-input-name {
-    font-size: 1.25rem;
-    font-weight: 700;
-  }
-
   .example-input-description {
     font-size: 0.875rem;
     line-height: 1.6;
