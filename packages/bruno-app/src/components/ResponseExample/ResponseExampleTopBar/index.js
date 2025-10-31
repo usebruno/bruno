@@ -158,7 +158,7 @@ const ResponseExampleTopBar = ({
       <div className="max-w-full">
         <div className="flex items-start justify-between gap-6 md:flex-row flex-col">
           <div className="flex-1 min-w-0">
-            <h2 className="response-example-title text-lg font-bold mb-2 leading-tight md:text-xl" data-testid="response-example-title">
+            <h2 className="response-example-title font-semibold mb-2 leading-tight text-base" data-testid="response-example-title">
               {example.name}
             </h2>
             {example.description && example.description.trim().length > 0 && (

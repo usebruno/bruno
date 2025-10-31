@@ -90,7 +90,7 @@ const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, o
         </div>
       </div>
 
-      <section className="flex w-full mt-3 flex-1 relative">
+      <section className="flex w-full flex-1 relative">
         <HeightBoundContainer>
           {getTabPanel(activeTab)}
         </HeightBoundContainer>
