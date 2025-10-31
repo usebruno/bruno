@@ -65,9 +65,9 @@ const StyledWrapper = styled.div`
       width: 100%;
       box-sizing: border-box;
 
-              &:hover:not(:disabled) {
-                background-color: ${(props) => props.theme.dropdown.hoverBg};
-              }
+      &:hover:not(:disabled) {
+        background-color: ${(props) => props.theme.dropdown.hoverBg};
+      }
 
       .status {
         font-weight: 600;

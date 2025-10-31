@@ -38,7 +38,6 @@ class MultiLineEditor extends Component {
       },
       readOnly: this.props.readOnly ? 'nocursor' : false,
       tabindex: 0,
-      readOnly: this.readOnly,
       extraKeys: {
         'Ctrl-Enter': () => {
           if (this.props.onRun) {

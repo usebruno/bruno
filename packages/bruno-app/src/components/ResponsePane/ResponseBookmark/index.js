@@ -20,14 +20,13 @@ const ResponseBookmark = ({ item, collection }) => {
 
   // Generate initial name for the example
   const getInitialExampleName = () => {
-    const requestName = item.name || 'request';
-    const baseName = `${requestName} example`;
+    const baseName = 'example';
     const existingExamples = item.draft?.examples || item.examples || [];
 
     // Check if any existing example has the same base name
     const hasSameBaseName = existingExamples.some((example) => {
       const exampleName = example.name || '';
-      return exampleName === baseName || exampleName.startsWith(`${baseName} (`);
+      return exampleName === baseName || exampleName.startsWith(baseName);
     });
 
     if (!hasSameBaseName) {
@@ -38,18 +37,12 @@ const ResponseBookmark = ({ item, collection }) => {
     let maxCounter = 0;
     existingExamples.forEach((example) => {
       const exampleName = example.name || '';
-      if (exampleName.startsWith(`${baseName} (`)) {
-        const match = exampleName.match(/\((\d+)\)$/);
-        if (match) {
-          const counter = parseInt(match[1], 10);
-          if (counter > maxCounter) {
-            maxCounter = counter;
-          }
-        }
+      if (exampleName.startsWith(baseName)) {
+        maxCounter++;
       }
     });
 
-    return `${baseName} (${maxCounter + 1})`;
+    return `${baseName} (${maxCounter})`;
   };
 
   const handleSaveClick = () => {

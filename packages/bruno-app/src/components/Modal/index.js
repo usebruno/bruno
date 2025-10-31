@@ -46,7 +46,7 @@ const ModalFooter = ({
       <span>
         <button
           type="submit"
-          className={`submit btn btn-md ${confirmButtonClass || 'btn-secondary'}`}
+          className={`submit btn btn-md ${confirmButtonClass}`}
           disabled={confirmDisabled}
           onClick={handleSubmit}
         >

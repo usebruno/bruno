@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { hasExampleChanges, findItemInCollection } from 'utils/collections';
-import ExampleIcon from 'components/Icons/Examples';
+import ExampleIcon from 'components/Icons/ExampleIcon';
 import ConfirmRequestClose from '../RequestTab/ConfirmRequestClose';
 import RequestTabNotFound from '../RequestTab/RequestTabNotFound';
 import StyledWrapper from '../RequestTab/StyledWrapper';

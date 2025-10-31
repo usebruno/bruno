@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   font-size: 0.8125rem;
+  height: 300px;
 
   .body-mode-selector {
     background: transparent;
