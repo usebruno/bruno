@@ -98,6 +98,8 @@ test.describe('Create Response Examples', () => {
       await page.getByTestId('create-example-name-input').fill('Sidebar Test Example');
       await page.getByTestId('create-example-description-input').fill('This example should appear in the sidebar');
       await page.getByRole('button', { name: 'Create Example' }).click();
+      // Wait for modal to close
+      await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
     });
 
     await test.step('Verify example appears in sidebar', async () => {
