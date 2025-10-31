@@ -1,7 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import * as fs from 'fs';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
 
 test.describe('Import Postman Collection with Examples', () => {
   let originalShowOpenDialog;
@@ -13,7 +12,8 @@ test.describe('Import Postman Collection with Examples', () => {
     });
   });
 
-  test.afterAll(async ({ electronApp }) => {
+  test.afterAll(async ({ electronApp, page }) => {
+    await closeAllCollections(page);
     // restore the original showOpenDialog function
     await electronApp.evaluate(({ dialog }) => {
       dialog.showOpenDialog = originalShowOpenDialog;
@@ -78,13 +78,10 @@ test.describe('Import Postman Collection with Examples', () => {
     await test.step('Complete import by clicking import button', async () => {
       const locationModal = page.getByRole('dialog');
       await locationModal.getByRole('button', { name: 'Import' }).click();
-      await page.locator('#sidebar-collection-name').filter({ hasText: 'collection with examples' }).click();
     });
 
     await test.step('Handle sandboox modal', async () => {
-      const saveButton = page.getByRole('button', { name: 'Save' });
-      await expect(saveButton).toBeVisible();
-      await saveButton.click();
+      await openCollectionAndAcceptSandbox(page, 'collection with examples', 'safe');
     });
 
     await test.step('Verify collection name appears in sidebar', async () => {
@@ -109,10 +106,6 @@ test.describe('Import Postman Collection with Examples', () => {
 
       await expect(successExample).toBeVisible();
       await expect(errorExample).toBeVisible();
-    });
-
-    await test.step('Cleanup - close all collections', async () => {
-      await closeAllCollections(page);
     });
   });
 });
