@@ -1,6 +1,5 @@
 exports.mixinTypedArrays = (obj) => {
   Object.assign(obj, {
-    Uint8Array: Uint8Array,
     Int8Array: Int8Array,
     Uint8Array: Uint8Array,
     Uint8ClampedArray: Uint8ClampedArray,

@@ -159,6 +159,7 @@ const cleanJson = (data) => {
     // Baseline 2025 Newly available
     'Float16Array' in globalThis ? Float16Array : null
   ].filter(Boolean);
+  const binaryNames = typedArrays.map((d) => d.name);
 
   const replacer = (key, value) => {
     const isBinary = typedArrays.find((d) => value instanceof d);
@@ -172,13 +173,12 @@ const cleanJson = (data) => {
   };
 
   const reviver = (key, value) => {
-    const binaryNames = typedArrays.map((d) => d.name);
-    if (typeof value !== 'object') {
+    if (typeof value !== 'object' || value === null) {
       return value;
     }
     if ('__cleanJSONType' in value && '__cleanJSONValue' in value) {
       const matchedName = binaryNames.find((d) => value.__cleanJSONType === d);
-      if (!matchedName) return;
+      if (!matchedName) return value;
       const binConstructor = typedArrays.find((d) => d.name === matchedName);
 
       return binConstructor.from(Buffer.from(value.__cleanJSONValue));
