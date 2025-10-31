@@ -639,6 +639,19 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
             });
           }
 
+          if (originalRequest.url && originalRequest.url.variable && Array.isArray(originalRequest.url.variable)) {
+            originalRequest.url.variable.forEach((param) => {
+              example.request.params.push({
+                uid: uuid(),
+                name: param.key,
+                value: param.value ?? '',
+                description: transformDescription(param.description),
+                type: 'path',
+                enabled: true
+              });
+            });
+          }
+
           // Convert original request body
           if (originalRequest.body) {
             const bodyMode = originalRequest.body.mode;
