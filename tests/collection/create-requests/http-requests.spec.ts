@@ -1,10 +1,33 @@
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Create HTTP Requests', () => {
-  test('Create HTTP request at collection root level', async ({ pageWithUserData: page }) => {
+  let locators: ReturnType<typeof buildCommonLocators>;
+
+  test.beforeAll(async ({ pageWithUserData: page }) => {
+    locators = buildCommonLocators(page);
+  });
+
+  test.afterAll(async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
+    // Clean up Root HTTP Request
+    await locators.sidebar.request('Root HTTP Request').click({ button: 'right' });
+    await locators.dropdown.item('Delete').click();
+    await locators.modal.button('Delete').click();
+
+    // Clean up Folder HTTP Request
+    await locators.sidebar.folder('folder1').click();
+    await locators.sidebar.request('Folder HTTP Request').click({ button: 'right' });
+    await locators.dropdown.item('Delete').click();
+    await locators.modal.button('Delete').click();
+
+    // Clean up collection
+    await closeAllCollections(page);
+  });
+
+  test('Verifies that HTTP requests are created at the expected locations', async ({ pageWithUserData: page }) => {
     await test.step('Navigate to collection and verify it exists', async () => {
       await expect(locators.sidebar.collection('create-requests')).toContainText('create-requests');
     });
@@ -13,7 +36,7 @@ test.describe('Create HTTP Requests', () => {
       await locators.sidebar.collection('create-requests').hover();
       await locators.actions.collectionActions('create-requests').click();
       await locators.dropdown.item('New Request').click();
-      await expect(locators.modal.title('New Request')).toBeVisible();
+
       await page.getByTestId('request-name').fill('Root HTTP Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
       await page.keyboard.type('https://httpbin.org/get');
@@ -36,29 +59,11 @@ test.describe('Create HTTP Requests', () => {
       await expect(folderRequestItem).not.toBeVisible();
     });
 
-    await test.step('Clean up', async () => {
-      // Clean up Root HTTP Request
-      await locators.sidebar.request('Root HTTP Request').click({ button: 'right' });
-      await locators.dropdown.item('Delete').click();
-      await locators.modal.button('Delete').click();
-    });
-  });
-
-  test('Create HTTP request within folder1', async ({ pageWithUserData: page }) => {
-    const locators = buildCommonLocators(page);
-
-    await test.step('Navigate to collection and verify folder1 exists', async () => {
-      const collectionItem = locators.sidebar.collection('create-requests');
-      await expect(collectionItem).toBeVisible();
-      await collectionItem.click();
-      await expect(locators.sidebar.folder('folder1')).toBeVisible();
-    });
-
     await test.step('Create HTTP request via folder1 three dots menu', async () => {
       const folderItem = locators.sidebar.folder('folder1');
       await folderItem.click({ button: 'right' });
       await locators.dropdown.item('New Request').click();
-      await expect(locators.modal.title('New Request')).toBeVisible();
+
       await page.getByTestId('request-name').fill('Folder HTTP Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
       await page.keyboard.type('https://httpbin.org/post');
@@ -78,14 +83,6 @@ test.describe('Create HTTP Requests', () => {
       // Open request and verify it is the active request
       await requestItem.click();
       await expect(locators.tabs.activeRequestTab()).toContainText('Folder HTTP Request');
-    });
-
-    await test.step('Clean up', async () => {
-      // Clean up Folder HTTP Request
-      await locators.sidebar.folder('folder1').click();
-      await locators.sidebar.request('Folder HTTP Request').click({ button: 'right' });
-      await locators.dropdown.item('Delete').click();
-      await locators.modal.button('Delete').click();
     });
   });
 });

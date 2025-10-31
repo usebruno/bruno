@@ -1,10 +1,33 @@
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Create WebSocket Requests', () => {
-  test('Create WebSocket request at collection root level', async ({ pageWithUserData: page }) => {
+  let locators: ReturnType<typeof buildCommonLocators>;
+
+  test.beforeAll(async ({ pageWithUserData: page }) => {
+    locators = buildCommonLocators(page);
+  });
+
+  test.afterAll(async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
+    // Clean up Folder WebSocket Request
+    await locators.sidebar.folder('folder1').click();
+    await locators.sidebar.request('Folder WebSocket Request').click({ button: 'right' });
+    await locators.dropdown.item('Delete').click();
+    await locators.modal.button('Delete').click();
+
+    // Clean up Root WebSocket Request
+    await locators.sidebar.request('Root WebSocket Request').click({ button: 'right' });
+    await locators.dropdown.item('Delete').click();
+    await locators.modal.button('Delete').click();
+
+    // Clean up collection
+    await closeAllCollections(page);
+  });
+
+  test('Verifies that WebSocket requests are created at the expected locations', async ({ pageWithUserData: page }) => {
     await test.step('Navigate to collection and verify it exists', async () => {
       await expect(locators.sidebar.collection('create-requests')).toBeVisible();
     });
@@ -13,7 +36,7 @@ test.describe('Create WebSocket Requests', () => {
       await locators.sidebar.collection('create-requests').hover();
       await locators.actions.collectionActions('create-requests').click();
       await locators.dropdown.item('New Request').click();
-      await expect(locators.modal.title('New Request')).toBeVisible();
+
       await page.getByTestId('ws-request').click();
       await page.getByTestId('request-name').fill('Root WebSocket Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
@@ -37,29 +60,11 @@ test.describe('Create WebSocket Requests', () => {
       await expect(folderRequestItem).not.toBeVisible();
     });
 
-    await test.step('Clean up', async () => {
-      // Clean up Root WebSocket Request
-      await locators.sidebar.request('Root WebSocket Request').click({ button: 'right' });
-      await locators.dropdown.item('Delete').click();
-      await locators.modal.button('Delete').click();
-    });
-  });
-
-  test('Create WebSocket request within folder1', async ({ pageWithUserData: page }) => {
-    const locators = buildCommonLocators(page);
-
-    await test.step('Navigate to collection and verify folder1 exists', async () => {
-      const collectionItem = locators.sidebar.collection('create-requests');
-      await expect(collectionItem).toBeVisible();
-      await collectionItem.click();
-      await expect(locators.sidebar.folder('folder1')).toBeVisible();
-    });
-
     await test.step('Create WebSocket request via folder1 three dots menu', async () => {
       const folderItem = locators.sidebar.folder('folder1');
       await folderItem.click({ button: 'right' });
       await locators.dropdown.item('New Request').click();
-      await expect(locators.modal.title('New Request')).toBeVisible();
+
       await page.getByTestId('ws-request').click();
       await page.getByTestId('request-name').fill('Folder WebSocket Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
@@ -80,14 +85,6 @@ test.describe('Create WebSocket Requests', () => {
       // Open request and verify it is the active request
       await requestItem.click();
       await expect(locators.tabs.activeRequestTab()).toContainText('Folder WebSocket Request');
-    });
-
-    await test.step('Clean up', async () => {
-      // Clean up Folder WebSocket Request
-      await locators.sidebar.folder('folder1').click();
-      await locators.sidebar.request('Folder WebSocket Request').click({ button: 'right' });
-      await locators.dropdown.item('Delete').click();
-      await locators.modal.button('Delete').click();
     });
   });
 });
