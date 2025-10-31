@@ -7,7 +7,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { copyRequest } from 'providers/ReduxStore/slices/app';
 import Dropdown from 'components/Dropdown';
@@ -308,7 +308,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       status: '200',
       statusText: 'OK',
       headers: [],
-      body: ''
+      body: {
+        type: 'text',
+        content: ''
+      }
     };
 
     dispatch(addResponseExample({
@@ -317,6 +320,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       example: exampleData
     }));
 
+    dispatch(saveRequest(item.uid, collectionUid));
     toast.success(`Example "${name}" created successfully`);
     setCreateExampleModalOpen(false);
   };
