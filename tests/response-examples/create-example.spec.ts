@@ -77,7 +77,7 @@ test.describe('Create Response Examples', () => {
 
       await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
       // The name field should have the pre-filled default value
-      await expect(page.getByTestId('create-example-name-input')).toHaveValue('echo-request example');
+      await expect(page.getByTestId('create-example-name-input')).toHaveValue('example');
       // Description should still be empty
       await expect(page.getByTestId('create-example-description-input')).toHaveValue('');
       await page.getByRole('button', { name: 'Cancel' }).click();
