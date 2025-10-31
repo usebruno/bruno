@@ -22,7 +22,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let _headers = get(i, 'root.request.headers', []);
+      const folderRoot = i?.draft || i?.root;
+      let _headers = get(folderRoot, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
           if (header.name.toLowerCase() === 'content-type') {
@@ -64,7 +65,8 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let requestVariables = {};
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.req', []);
+      const folderRoot = i?.draft || i?.root;
+      let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           reqVars.set(_var.name, _var.value);
@@ -104,7 +106,8 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.res', []);
+      const folderRoot = i?.draft || i?.root;
+      let vars = get(folderRoot, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           resVars.set(_var.name, _var.value);
@@ -141,17 +144,18 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   let combinedTests = [];
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let preReqScript = get(i, 'root.request.script.req', '');
+      const folderRoot = i?.draft || i?.root;
+      let preReqScript = get(folderRoot, 'request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
         combinedPreReqScript.push(preReqScript);
       }
 
-      let postResScript = get(i, 'root.request.script.res', '');
+      let postResScript = get(folderRoot, 'request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
       }
 
-      let tests = get(i, 'root.request.tests', '');
+      let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
       }
@@ -492,7 +496,8 @@ const mergeAuth = (collection, request, requestTreePath) => {
   // Traverse through the path to find the closest auth configuration
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      const folderAuth = get(i, 'root.request.auth');
+      const folderRoot = i?.draft || i?.root;
+      const folderAuth = get(folderRoot, 'request.auth');
       // Only consider folders that have a valid auth mode
       if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;

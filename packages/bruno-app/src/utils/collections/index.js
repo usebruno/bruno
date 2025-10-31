@@ -165,7 +165,7 @@ export const getItemsLoadStats = (folder) => {
   };
 }
 
-export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
+export const transformCollectionToSave = (collection, options = {}) => {
   const copyHeaders = (headers) => {
     return map(headers, (header) => {
       return {
@@ -601,6 +601,32 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   return collectionToSave;
 };
 
+export const transformFolderRootToSave = (folder) => {
+  const _folder = folder.draft ? folder.draft : folder.root;
+  const folderRootToSave = {
+    docs: _folder.docs,
+    request: {
+      auth: _folder?.request?.auth,
+      headers: [],
+      script: _folder?.request?.script,
+      vars: _folder?.request?.vars,
+      tests: _folder?.request?.tests
+    }
+  };
+
+  each(_folder.request.headers, (header) => {
+    folderRootToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  return folderRootToSave;
+};
+
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
 
@@ -694,87 +720,29 @@ export const transformRequestToSaveToFilesystem = (item) => {
 };
 
 export const transformCollectionRootToSave = (collection) => {
-  const _collection = collection.draft ? { ...collection, root: collection.draft } : collection;
+  const _collection = collection.draft ? collection.draft : collection.root;
 
   const collectionRootToSave = {
-    request: {}
+    docs: _collection?.docs,
+    meta: _collection?.meta,
+    request: {
+      auth: _collection?.request?.auth,
+      headers: [],
+      script: _collection?.request?.script,
+      vars: _collection?.request?.vars,
+      tests: _collection?.request?.tests
+    }
   };
 
-  const { request, docs, meta } = _collection.root || {};
-  const { auth, headers, script = {}, vars = {}, tests } = request || {};
-
-  // collection level auth
-  if (auth?.mode) {
-    collectionRootToSave.request.auth = auth;
-  }
-
-  // collection level headers
-  if (headers?.length) {
-    collectionRootToSave.request.headers = headers.map((header) => ({
+  each(_collection?.request?.headers, (header) => {
+    collectionRootToSave.request.headers.push({
       uid: header.uid,
       name: header.name,
       value: header.value,
       description: header.description,
       enabled: header.enabled
-    }));
-  }
-
-  // collection level script
-  if (Object.keys(script)?.length) {
-    collectionRootToSave.request.script = {};
-    if (script?.req?.length) {
-      collectionRootToSave.request.script.req = replaceTabsWithSpaces(script.req);
-    }
-    if (script?.res?.length) {
-      collectionRootToSave.request.script.res = replaceTabsWithSpaces(script.res);
-    }
-  }
-
-  // collection level vars
-  if (Object.keys(vars)?.length) {
-    collectionRootToSave.request.vars = {};
-    if (vars?.req?.length) {
-      collectionRootToSave.request.vars.req = vars.req.map((v) => ({
-        uid: v.uid,
-        name: v.name,
-        value: v.value,
-        description: v.description,
-        enabled: v.enabled
-      }));
-    }
-    if (vars?.res?.length) {
-      collectionRootToSave.request.vars.res = vars.res.map((v) => ({
-        uid: v.uid,
-        name: v.name,
-        value: v.value,
-        description: v.description,
-        enabled: v.enabled
-      }));
-    }
-  }
-
-  // collection level tests
-  if (tests?.length) {
-    collectionRootToSave.request.tests = replaceTabsWithSpaces(tests);
-  }
-
-  // collection level docs
-  if (docs?.length) {
-    collectionRootToSave.docs = docs;
-  }
-
-  // collection level meta
-  if (meta?.name) {
-    collectionRootToSave.meta = {
-      name: meta.name,
-      seq: meta.seq
-    };
-  }
-
-  // Clean up empty request object
-  if (!Object.keys(collectionRootToSave.request)?.length) {
-    delete collectionRootToSave.request;
-  }
+    });
+  });
 
   return collectionRootToSave;
 };

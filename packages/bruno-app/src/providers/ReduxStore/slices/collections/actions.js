@@ -45,7 +45,8 @@ import {
   updateActiveConnections,
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
-  saveCollectionDraft as _saveCollectionDraft
+  saveCollectionDraft as _saveCollectionDraft,
+  saveFolderDraft
 } from './index';
 
 import { each } from 'lodash';
@@ -60,7 +61,8 @@ import {
   getReorderedItemsInTargetDirectory,
   resetSequencesInFolder,
   getReorderedItemsInSourceDirectory,
-  calculateDraggedItemNewPathname
+  calculateDraggedItemNewPathname,
+  transformFolderRootToSave
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { buildPersistedEnvVariables } from 'utils/environments';
@@ -200,15 +202,24 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
 
     const { ipcRenderer } = window;
 
+    // Use draft if it exists, otherwise use root
+    const folderRootToSave = transformFolderRootToSave(folder);
+
     const folderData = {
       name: folder.name,
       pathname: folder.pathname,
-      root: folder.root
+      root: folderRootToSave
     };
 
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)
-      .then(() => toast.success('Folder Settings saved successfully'))
+      .then(() => {
+        toast.success('Folder Settings saved successfully');
+        // If there was a draft, save it to root and clear the draft
+        if (folder.draft) {
+          dispatch(saveFolderDraft({ collectionUid, folderUid }));
+        }
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save folder settings!');

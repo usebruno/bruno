@@ -3,12 +3,12 @@ import exportBrunoCollection from 'utils/collections/export';
 import exportPostmanCollection from 'utils/exporters/postman-collection';
 import cloneDeep from 'lodash/cloneDeep';
 import Modal from 'components/Modal';
-import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
+import { transformCollectionToSave } from 'utils/collections/index';
 
 const ExportCollection = ({ onClose, collection }) => {
   const handleExportBrunoCollection = () => {
     const collectionCopy = cloneDeep(collection);
-    exportBrunoCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+    exportBrunoCollection(transformCollectionToSave(collectionCopy));
     onClose();
   };
 

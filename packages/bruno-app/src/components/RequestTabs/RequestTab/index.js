@@ -1,8 +1,8 @@
 import React, { useCallback, useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, saveCollectionRoot, saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import darkTheme from 'themes/dark';
@@ -86,16 +86,27 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     setShowConfirmCollectionClose(true);
   };
 
-  const hasDraft = tab.type === 'collection-settings' && collection?.draft;
-
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
+
+  const handleCloseFolderSettings = (event) => {
+    if (!folder?.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmCollectionClose(true);
+  };
+
+  const hasDraft = tab.type === 'collection-settings' && collection?.draft;
+  const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-1 ${tab.preview ? "italic" : ""}`}
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
-        {showConfirmCollectionClose && (
+        {showConfirmCollectionClose && tab.type === 'collection-settings' && (
           <ConfirmCollectionClose
             collection={collection}
             onCancel={() => setShowConfirmCollectionClose(false)}
@@ -122,10 +133,38 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
           />
         )}
+        {showConfirmCollectionClose && tab.type === 'folder-settings' && (
+          <ConfirmCollectionClose
+            collection={collection}
+            onCancel={() => setShowConfirmCollectionClose(false)}
+            onCloseWithoutSave={() => {
+              dispatch(deleteFolderDraft({
+                collectionUid: collection.uid,
+                folderUid: folder.uid
+              }));
+              dispatch(closeTabs({
+                tabUids: [tab.uid]
+              }));
+              setShowConfirmCollectionClose(false);
+            }}
+            onSaveAndClose={() => {
+              dispatch(saveFolderRoot(collection.uid, folder.uid))
+                .then(() => {
+                  dispatch(closeTabs({
+                    tabUids: [tab.uid]
+                  }));
+                  setShowConfirmCollectionClose(false);
+                })
+                .catch((err) => {
+                  console.log('err', err);
+                });
+            }}
+          />
+        )}
         {tab.type === 'folder-settings' && !folder ? (
           <RequestTabNotFound handleCloseClick={handleCloseClick} />
         ) : tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
+          <SpecialTab handleCloseClick={handleCloseFolderSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} hasDraft={hasFolderDraft} />
         ) : tab.type === 'collection-settings' ? (
           <SpecialTab handleCloseClick={handleCloseCollectionSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={collection?.name} hasDraft={hasDraft} />
         ) : (

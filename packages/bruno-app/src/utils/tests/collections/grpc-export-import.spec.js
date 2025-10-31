@@ -1,8 +1,8 @@
-import { transformCollectionToSaveToExportAsFile, transformRequestToSaveToFilesystem } from '../../collections/index';
+import { transformCollectionToSave, transformRequestToSaveToFilesystem } from '../../collections/index';
 import { transformItemsInCollection } from '../../importers/common';
 
 describe('gRPC Export/Import', () => {
-  describe('transformCollectionToSaveToExportAsFile', () => {
+  describe('transformCollectionToSave', () => {
     it('should preserve gRPC-specific fields when exporting collection', () => {
       const collection = {
         uid: 'test-collection',
@@ -27,7 +27,7 @@ describe('gRPC Export/Import', () => {
         ]
       };
 
-      const result = transformCollectionToSaveToExportAsFile(collection);
+      const result = transformCollectionToSave(collection);
       const grpcRequest = result.items[0];
 
       expect(grpcRequest.request.methodType).toBe('unary');
@@ -57,7 +57,7 @@ describe('gRPC Export/Import', () => {
         ]
       };
 
-      const result = transformCollectionToSaveToExportAsFile(collection);
+      const result = transformCollectionToSave(collection);
       const grpcRequest = result.items[0];
 
       expect(grpcRequest.request.methodType).toBe('bidi-streaming');
@@ -84,7 +84,7 @@ describe('gRPC Export/Import', () => {
         ]
       };
 
-      const result = transformCollectionToSaveToExportAsFile(collection);
+      const result = transformCollectionToSave(collection);
       const grpcRequest = result.items[0];
 
       expect(grpcRequest.request.methodType).toBe('unary');

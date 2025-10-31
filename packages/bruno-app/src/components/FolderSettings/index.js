@@ -20,7 +20,7 @@ const FolderSettings = ({ collection, folder }) => {
     tab = folderLevelSettingsSelectedTab[folder?.uid];
   }
 
-  const folderRoot = folder?.root;
+  const folderRoot = folder?.draft || folder?.root;
   const hasScripts = folderRoot?.request?.script?.res || folderRoot?.request?.script?.req;
   const hasTests = folderRoot?.request?.tests;
 

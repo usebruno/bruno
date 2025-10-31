@@ -11,7 +11,7 @@ const AuthMode = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-  const authMode = get(folder, 'root.request.auth.mode');
+  const authMode = folder.draft ? get(folder, 'draft.request.auth.mode') : get(folder, 'root.request.auth.mode');
 
   const Icon = forwardRef((props, ref) => {
     return (

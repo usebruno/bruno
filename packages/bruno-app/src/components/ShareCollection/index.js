@@ -6,7 +6,7 @@ import Bruno from 'components/Bruno';
 import exportBrunoCollection from 'utils/collections/export';
 import exportPostmanCollection from 'utils/exporters/postman-collection';
 import { cloneDeep } from 'lodash';
-import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
+import { transformCollectionToSave } from 'utils/collections/index';
 import { useSelector } from 'react-redux';
 import { findCollectionByUid, areItemsLoading } from 'utils/collections/index';
 
@@ -38,7 +38,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
 
   const handleExportBrunoCollection = () => {
     const collectionCopy = cloneDeep(collection);
-    exportBrunoCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+    exportBrunoCollection(transformCollectionToSave(collectionCopy));
     onClose();
   };
 
