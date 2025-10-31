@@ -6,12 +6,12 @@ test.describe('Create GraphQL Requests', () => {
     const locators = buildCommonLocators(page);
 
     await test.step('Navigate to collection and verify it exists', async () => {
-      await expect(locators.sidebar.collection('create-requests')).toContainText('create-requests');
+      await expect(locators.sidebar.collection('create-requests')).toBeVisible();
     });
 
     await test.step('Create GraphQL request via collection three dots menu', async () => {
       await locators.sidebar.collection('create-requests').hover();
-      await locators.actions.collectionActions().click();
+      await locators.actions.collectionActions('create-requests').click();
       await locators.dropdown.item('New Request').click();
       await expect(locators.modal.title('New Request')).toBeVisible();
       await page.getByTestId('graphql-request').click();
@@ -22,18 +22,23 @@ test.describe('Create GraphQL Requests', () => {
     });
 
     await test.step('Verify GraphQL request was created at collection root', async () => {
-      const collectionItem = locators.sidebar.collection('create-requests');
-      await expect(collectionItem).toBeVisible();
-      await collectionItem.click();
-      const folderItem = locators.sidebar.folder('folder1');
-      await expect(folderItem).toBeVisible();
+      // Open collection and verify request is present in collection root
+      await locators.sidebar.collection('create-requests').click();
       const requestItem = locators.sidebar.request('Root GraphQL Request');
       await expect(requestItem).toBeVisible();
+
+      // Open request and verify it is the active request
       await requestItem.click();
-      await expect(locators.tabs.requestTab()).toContainText('Root GraphQL Request');
+      await expect(locators.tabs.activeRequestTab()).toContainText('Root GraphQL Request');
+
+      // Open folder1 and verify request is not in folder1
+      await locators.sidebar.folder('folder1').click();
+      const folderRequestItem = locators.sidebar.folderRequest('folder1', 'Root GraphQL Request');
+      await expect(folderRequestItem).not.toBeVisible();
     });
 
     await test.step('Clean up', async () => {
+      // Clean up Root GraphQL Request
       await locators.sidebar.request('Root GraphQL Request').click({ button: 'right' });
       await locators.dropdown.item('Delete').click();
       await locators.modal.button('Delete').click();
@@ -63,20 +68,23 @@ test.describe('Create GraphQL Requests', () => {
     });
 
     await test.step('Verify GraphQL request was created within folder1', async () => {
-      const folderItem = locators.sidebar.folder('folder1');
-      await folderItem.click();
+      // Open collection and verify request is not in collection root
+      await locators.sidebar.collection('create-requests').click();
       const requestItem = locators.sidebar.request('Folder GraphQL Request');
-      await expect(requestItem).toBeVisible({ timeout: 1000 });
+      await expect(requestItem).not.toBeVisible();
+
+      // Open folder1 and verify request is present in folder1
+      await locators.sidebar.folder('folder1').click();
+      await expect(requestItem).toBeVisible();
+
+      // Open request and verify it is the active request
       await requestItem.click();
-      await expect(locators.tabs.requestTab()).toContainText('Folder GraphQL Request');
-      const chevron = locators.folder.chevron('folder1');
-      await expect(chevron).toBeVisible();
-      await chevron.click();
-      await expect(requestItem).not.toBeVisible({ timeout: 1000 });
-      await folderItem.click();
+      await expect(locators.tabs.activeRequestTab()).toContainText('Folder GraphQL Request');
     });
 
     await test.step('Clean up', async () => {
+      // Clean up Folder GraphQL Request
+      await locators.sidebar.folder('folder1').click();
       await locators.sidebar.request('Folder GraphQL Request').click({ button: 'right' });
       await locators.dropdown.item('Delete').click();
       await locators.modal.button('Delete').click();

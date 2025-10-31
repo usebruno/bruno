@@ -1,7 +1,7 @@
 {
   "collections": [
     {
-      "path": "{{projectRoot}}/tests/collection/create-requests/collection",
+      "path": "{{projectRoot}}/tests/collection/create-requests/fixtures/collection",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }
