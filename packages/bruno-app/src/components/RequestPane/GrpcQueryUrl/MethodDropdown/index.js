@@ -73,7 +73,7 @@ const MethodDropdown = ({
 
   const MethodsDropdownIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-center ml-2 cursor-pointer select-none">
+      <div ref={ref} className="flex items-center justify-center ml-2 cursor-pointer select-none" data-testid="grpc-method-dropdown-trigger">
         {selectedGrpcMethod && <div className="mr-2">{getIconForMethodType(selectedGrpcMethod.type)}</div>}
         <span className="text-xs">
           {selectedGrpcMethod ? (

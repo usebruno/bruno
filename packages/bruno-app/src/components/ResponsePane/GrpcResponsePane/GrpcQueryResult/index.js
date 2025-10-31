@@ -61,13 +61,13 @@ const GrpcQueryResult = ({ item, collection }) => {
   }
 
   return (
-    <StyledWrapper className="w-full h-full relative flex flex-col mt-2">
+    <StyledWrapper className="w-full h-full relative flex flex-col mt-2" data-testid="grpc-response-content">
       {hasError && showErrorMessage && <GrpcError error={errorMessage} onClose={() => setShowErrorMessage(false)} />}
       {hasResponses && (
-        <div className={`overflow-y-auto ${responsesList.length === 1 ? 'flex-1' : ''}`}>
+        <div className={`overflow-y-auto ${responsesList.length === 1 ? 'flex-1' : ''}`} data-testid="grpc-responses-container">
           {responsesList.length === 1 ? (
             // Single message - render directly without accordion
-            <div className="h-full">
+            <div className="h-full" data-testid="grpc-single-response">
               <CodeEditor
                 collection={collection}
                 font={get(preferences, 'font.codeFont', 'default')}
@@ -80,13 +80,13 @@ const GrpcQueryResult = ({ item, collection }) => {
             </div>
           ) : (
             // Multiple messages - use accordion
-            <Accordion defaultIndex={0}>
+            <Accordion defaultIndex={0} dataTestId="grpc-responses-accordion">
               {reversedResponsesList.map((response, index) => {
                 // Calculate the original response number (for display purposes)
                 const originalIndex = responsesList.length - index - 1;
 
                 return (
-                  <Accordion.Item key={originalIndex} index={index}>
+                  <Accordion.Item key={originalIndex} index={index} data-testid={`grpc-response-item-${originalIndex}`}>
                     <Accordion.Header index={index} style={{ padding: '8px 12px', minHeight: '40px' }}>
                       <div className="flex justify-between w-full">
                         <div className="font-medium">
