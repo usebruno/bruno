@@ -7,6 +7,11 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
+const quoteKey = (key) => {
+  const quotableChars = [':', '"', '{', '}', ' '];
+  return quotableChars.some((char) => key.includes(char)) ? ('"' + key.replaceAll('"', '\\"') + '"') : key;
+};
+
 // Custom indentation function for proper spacing
 const indentStringCustom = (str, spaces = 4) => {
   if (!str || !str.length) {
@@ -60,7 +65,7 @@ const jsonToExampleBru = (json) => {
     if (queryParams.length) {
       bru += '  params:query: {\n';
       bru += `${indentStringCustom(queryParams
-        .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${item.value}`)
         .join('\n'), 4)}`;
       bru += '\n  }\n\n';
     }
@@ -68,7 +73,7 @@ const jsonToExampleBru = (json) => {
     if (pathParams.length) {
       bru += '  params:path: {\n';
       bru += `${indentStringCustom(pathParams
-        .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${item.value}`)
         .join('\n'), 4)}`;
       bru += '\n  }\n\n';
     }
@@ -77,7 +82,7 @@ const jsonToExampleBru = (json) => {
   if (headers && headers.length) {
     bru += '  headers: {\n';
     bru += `${indentStringCustom(headers
-      .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+      .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${item.value}`)
       .join('\n'), 4)}`;
     bru += '\n  }\n\n';
   }
@@ -111,11 +116,11 @@ const jsonToExampleBru = (json) => {
     bru += `  body:form-urlencoded: {\n`;
     const enabledValues = body.formUrlEncoded
       .filter((item) => item.enabled)
-      .map((item) => `${item.name}: ${item.value}`)
+      .map((item) => `${quoteKey(item.name)}: ${item.value}`)
       .join('\n');
     const disabledValues = body.formUrlEncoded
       .filter((item) => !item.enabled)
-      .map((item) => `~${item.name}: ${item.value}`)
+      .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
       .join('\n');
 
     if (enabledValues) {
@@ -138,14 +143,14 @@ const jsonToExampleBru = (json) => {
             = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
 
           if (item.type === 'text') {
-            return `${enabled}${item.name}: ${item.value}${contentType}`;
+            return `${enabled}${quoteKey(item.name)}: ${item.value}${contentType}`;
           }
 
           if (item.type === 'file') {
             const filepaths = Array.isArray(item.value) ? item.value : [];
             const filestr = filepaths.join('|');
             const value = `@file(${filestr})`;
-            return `${enabled}${item.name}: ${value}${contentType}`;
+            return `${enabled}${quoteKey(item.name)}: ${value}${contentType}`;
           }
         })
         .join('\n'), 4)}\n`;
@@ -165,7 +170,7 @@ const jsonToExampleBru = (json) => {
           const filePath = item.filePath || '';
           const value = `@file(${filePath})`;
           const itemName = 'file';
-          return `${selected}${itemName}: ${value}${contentType}`;
+          return `${selected}${quoteKey(itemName)}: ${value}${contentType}`;
         })
         .join('\n'), 4)}\n`;
     }
@@ -189,7 +194,7 @@ const jsonToExampleBru = (json) => {
     if (responseHeaders && responseHeaders.length) {
       bru += '  headers: {\n';
       bru += `${indentStringCustom(responseHeaders
-        .map((item) => `${item.name}: ${item.value}`)
+        .map((item) => `${quoteKey(item.name)}: ${item.value}`)
         .join('\n'), 4)}`;
       bru += '\n  }\n\n';
     }

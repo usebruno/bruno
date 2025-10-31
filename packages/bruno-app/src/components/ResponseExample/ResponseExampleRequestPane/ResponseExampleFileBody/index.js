@@ -19,9 +19,10 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
 
   // Get file data from the specific example
   const params = useMemo(() => {
-    return item.draft
+    const _params = item.draft
       ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file || []
       : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.request?.body?.file || [];
+    return Array.isArray(_params) ? _params : [];
   }, [item.draft, item.examples, item, exampleUid]);
 
   const [enabledFileUid, setEnableFileUid] = useState(params.length > 0 ? params[0].uid : '');
@@ -30,7 +31,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     const newParam = {
       filePath: '',
       contentType: '',
-      selected: params.length === 0 // First file is selected by default
+      selected: true
     };
 
     const updatedParams = [...params, newParam];

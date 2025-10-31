@@ -898,7 +898,6 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
   each(get(item, 'request.assertions'), (assertion) => (assertion.uid = uuid()));
-  each(get(item, 'response.headers'), (header) => (header.uid = uuid()));
 
   return item;
 };
@@ -911,7 +910,6 @@ export const deleteUidsInItem = (item) => {
   const bodyMultipartForm = get(item, 'request.body.multipartForm', []);
   const file = get(item, 'request.body.file', []);
   const assertions = get(item, 'request.assertions', []);
-  const responseHeaders = get(item, 'response.headers', []);
 
   params.forEach((param) => delete param.uid);
   headers.forEach((header) => delete header.uid);
@@ -919,11 +917,6 @@ export const deleteUidsInItem = (item) => {
   bodyMultipartForm.forEach((param) => delete param.uid);
   file.forEach((param) => delete param.uid);
   assertions.forEach((assertion) => delete assertion.uid);
-  responseHeaders.forEach((header) => delete header.uid);
-
-  if (item.draft) {
-    deleteUidsInItem(item.draft);
-  }
 
   return item;
 };
