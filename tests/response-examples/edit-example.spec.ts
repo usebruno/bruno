@@ -16,6 +16,7 @@ test.describe('Edit Response Examples', () => {
     });
 
     await test.step('Open existing example', async () => {
+      await page.getByTestId('request-item-chevron').click();
       const exampleItem = page.locator('.collection-item-name').getByText('Test Example', { exact: true });
       await expect(exampleItem).toBeVisible();
       await exampleItem.click();
@@ -61,7 +62,7 @@ test.describe('Edit Response Examples', () => {
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('Updated Example Name');
       await page.getByTestId('response-example-save-btn').click();
-      await expect(page.getByTestId('response-example-title')).toHaveText('Updated Example Name');
+      await expect(page.getByTestId('response-example-title')).toHaveText('echo-request / Updated Example Name');
     });
   });
 
@@ -161,7 +162,7 @@ test.describe('Edit Response Examples', () => {
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('Keyboard Shortcut Test');
       await page.keyboard.press('Meta+s');
-      await expect(page.getByTestId('response-example-title')).toHaveText('Keyboard Shortcut Test');
+      await expect(page.getByTestId('response-example-title')).toHaveText('echo-request / Keyboard Shortcut Test');
     });
   });
 

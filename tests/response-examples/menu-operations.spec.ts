@@ -18,6 +18,7 @@ test.describe('Response Example Menu Operations', () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Clone');
       await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.getByTestId('request-item-chevron').click();
 
       const exampleItem = page.locator('.collection-item-name').getByText('Example to Clone');
       await expect(exampleItem).toBeVisible();
