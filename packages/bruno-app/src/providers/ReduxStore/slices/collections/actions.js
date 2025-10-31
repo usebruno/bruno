@@ -17,7 +17,8 @@ import {
   isItemAFolder,
   refreshUidsInItem,
   isItemARequest,
-  transformRequestToSaveToFilesystem
+  transformRequestToSaveToFilesystem,
+  transformCollectionRootToSave
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -43,7 +44,8 @@ import {
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
   saveRequest as _saveRequest,
-  saveEnvironment as _saveEnvironment
+  saveEnvironment as _saveEnvironment,
+  saveCollectionDraft as _saveCollectionDraft
 } from './index';
 
 import { each } from 'lodash';
@@ -160,11 +162,20 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    const collectionCopy = cloneDeep(collection);
+
+    // Transform collection root (uses draft if exists)
+    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
     const { ipcRenderer } = window;
 
+    // Note: We don't have a specific schema for collection root, but we can validate the structure
+    // The structure should match what's expected in bruno.json (collection.bru)
     ipcRenderer
-      .invoke('renderer:save-collection-root', collection.pathname, collection.root)
-      .then(() => toast.success('Collection Settings saved successfully'))
+      .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave)
+      .then(() => {
+        toast.success('Collection Settings saved successfully');
+        dispatch(_saveCollectionDraft({ collectionUid }));
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save collection settings!');

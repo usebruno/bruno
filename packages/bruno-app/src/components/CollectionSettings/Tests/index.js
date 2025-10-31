@@ -9,7 +9,7 @@ import StyledWrapper from './StyledWrapper';
 
 const Tests = ({ collection }) => {
   const dispatch = useDispatch();
-  const tests = get(collection, 'root.request.tests', '');
+  const tests = collection.draft ? get(collection, 'draft.request.tests', '') : get(collection, 'root.request.tests', '');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);

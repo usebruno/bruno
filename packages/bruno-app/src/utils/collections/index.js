@@ -693,6 +693,92 @@ export const transformRequestToSaveToFilesystem = (item) => {
   return itemToSave;
 };
 
+export const transformCollectionRootToSave = (collection) => {
+  const _collection = collection.draft ? { ...collection, root: collection.draft } : collection;
+
+  const collectionRootToSave = {
+    request: {}
+  };
+
+  const { request, docs, meta } = _collection.root || {};
+  const { auth, headers, script = {}, vars = {}, tests } = request || {};
+
+  // collection level auth
+  if (auth?.mode) {
+    collectionRootToSave.request.auth = auth;
+  }
+
+  // collection level headers
+  if (headers?.length) {
+    collectionRootToSave.request.headers = headers.map((header) => ({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    }));
+  }
+
+  // collection level script
+  if (Object.keys(script)?.length) {
+    collectionRootToSave.request.script = {};
+    if (script?.req?.length) {
+      collectionRootToSave.request.script.req = replaceTabsWithSpaces(script.req);
+    }
+    if (script?.res?.length) {
+      collectionRootToSave.request.script.res = replaceTabsWithSpaces(script.res);
+    }
+  }
+
+  // collection level vars
+  if (Object.keys(vars)?.length) {
+    collectionRootToSave.request.vars = {};
+    if (vars?.req?.length) {
+      collectionRootToSave.request.vars.req = vars.req.map((v) => ({
+        uid: v.uid,
+        name: v.name,
+        value: v.value,
+        description: v.description,
+        enabled: v.enabled
+      }));
+    }
+    if (vars?.res?.length) {
+      collectionRootToSave.request.vars.res = vars.res.map((v) => ({
+        uid: v.uid,
+        name: v.name,
+        value: v.value,
+        description: v.description,
+        enabled: v.enabled
+      }));
+    }
+  }
+
+  // collection level tests
+  if (tests?.length) {
+    collectionRootToSave.request.tests = replaceTabsWithSpaces(tests);
+  }
+
+  // collection level docs
+  if (docs?.length) {
+    collectionRootToSave.docs = docs;
+  }
+
+  // collection level meta
+  if (meta?.name) {
+    collectionRootToSave.meta = {
+      name: meta.name,
+      seq: meta.seq
+    };
+  }
+
+  // Clean up empty request object
+  if (!Object.keys(collectionRootToSave.request)?.length) {
+    delete collectionRootToSave.request;
+  }
+
+  return collectionRootToSave;
+};
+
 // todo: optimize this
 export const deleteItemInCollection = (itemUid, collection) => {
   collection.items = filter(collection.items, (i) => i.uid !== itemUid);
@@ -1068,7 +1154,8 @@ const mergeVars = (collection, requestTreePath = []) => {
   let collectionVariables = {};
   let folderVariables = {};
   let requestVariables = {};
-  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  const collectionRoot = collection?.draft || collection?.root || {};
+  let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
       collectionVariables[_var.name] = _var.value;

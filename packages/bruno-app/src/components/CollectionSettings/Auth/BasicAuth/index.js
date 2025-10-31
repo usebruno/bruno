@@ -13,7 +13,7 @@ const BasicAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const basicAuth = get(collection, 'root.request.auth.basic', {});
+  const basicAuth = collection.draft ? get(collection, 'draft.request.auth.basic', {}) : get(collection, 'root.request.auth.basic', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(basicAuth?.password);
 

@@ -1,14 +1,15 @@
 import React, { useCallback, useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
 import { findItemInCollection } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
+import ConfirmCollectionClose from './ConfirmCollectionClose';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
@@ -25,6 +26,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const { storedTheme } = useTheme();
   const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -74,6 +76,18 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return colorMap[method.toLocaleLowerCase()];
   };
 
+  const handleCloseCollectionSettings = (event) => {
+    if (!collection.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmCollectionClose(true);
+  };
+
+  const hasDraft = tab.type === 'collection-settings' && collection?.draft;
+
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
@@ -81,10 +95,39 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         className={`flex items-center justify-between tab-container px-1 ${tab.preview ? "italic" : ""}`}
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
+        {showConfirmCollectionClose && (
+          <ConfirmCollectionClose
+            collection={collection}
+            onCancel={() => setShowConfirmCollectionClose(false)}
+            onCloseWithoutSave={() => {
+              dispatch(deleteCollectionDraft({
+                collectionUid: collection.uid
+              }));
+              dispatch(closeTabs({
+                tabUids: [tab.uid]
+              }));
+              setShowConfirmCollectionClose(false);
+            }}
+            onSaveAndClose={() => {
+              dispatch(saveCollectionRoot(collection.uid))
+                .then(() => {
+                  dispatch(closeTabs({
+                    tabUids: [tab.uid]
+                  }));
+                  setShowConfirmCollectionClose(false);
+                })
+                .catch((err) => {
+                  console.log('err', err);
+                });
+            }}
+          />
+        )}
         {tab.type === 'folder-settings' && !folder ? (
           <RequestTabNotFound handleCloseClick={handleCloseClick} />
         ) : tab.type === 'folder-settings' ? (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
+        ) : tab.type === 'collection-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseCollectionSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={collection?.name} hasDraft={hasDraft} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}

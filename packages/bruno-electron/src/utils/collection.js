@@ -8,7 +8,8 @@ const { preferencesUtil } = require('../store/preferences');
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
 
-  let collectionHeaders = get(collection, 'root.request.headers', []);
+  const collectionRoot = collection?.draft || collection?.root || {};
+  let collectionHeaders = get(collectionRoot, 'request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       if (header?.name?.toLowerCase?.() === 'content-type') {
@@ -50,7 +51,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
 const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
-  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  const collectionRoot = collection?.draft || collection?.root || {};
+  let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
@@ -94,7 +96,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   }
 
   let resVars = new Map();
-  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
+  let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
       resVars.set(_var.name, _var.value);
@@ -129,9 +131,10 @@ const mergeVars = (collection, request, requestTreePath = []) => {
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
-  let collectionPreReqScript = get(collection, 'root.request.script.req', '');
-  let collectionPostResScript = get(collection, 'root.request.script.res', '');
-  let collectionTests = get(collection, 'root.request.tests', '');
+  const collectionRoot = collection?.draft || collection?.root || {};
+  let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
+  let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
+  let collectionTests = get(collectionRoot, 'request.tests', '');
 
   let combinedPreReqScript = [];
   let combinedPostResScript = [];
@@ -481,7 +484,8 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
 
 const mergeAuth = (collection, request, requestTreePath) => {
   // Start with collection level auth (always consider collection auth as base)
-  let collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
+  const collectionRoot = collection?.draft || collection?.root || {};
+  let collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
   let lastFolderWithAuth = null;
 

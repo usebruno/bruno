@@ -19,7 +19,7 @@ const NTLMAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const ntlmAuth = get(collection, 'root.request.auth.ntlm', {});
+  const ntlmAuth = collection.draft ? get(collection, 'draft.request.auth.ntlm', {}) : get(collection, 'root.request.auth.ntlm', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 

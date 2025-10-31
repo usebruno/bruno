@@ -31,18 +31,18 @@ const CollectionSettings = ({ collection }) => {
     );
   };
 
-  const root = collection?.root;
+  const root = collection?.draft || collection?.root;
   const hasScripts = root?.request?.script?.res || root?.request?.script?.req;
   const hasTests = root?.request?.tests;
   const hasDocs = root?.docs;
 
-  const headers = get(collection, 'root.request.headers', []);
+  const headers = collection.draft ? get(collection, 'draft.request.headers', []) : get(collection, 'root.request.headers', []);
   const activeHeadersCount = headers.filter((header) => header.enabled).length;
 
-  const requestVars = get(collection, 'root.request.vars.req', []);
-  const responseVars = get(collection, 'root.request.vars.res', []);
+  const requestVars = collection.draft ? get(collection, 'draft.request.vars.req', []) : get(collection, 'root.request.vars.req', []);
+  const responseVars = collection.draft ? get(collection, 'draft.request.vars.res', []) : get(collection, 'root.request.vars.res', []);
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
-  const authMode = get(collection, 'root.request.auth', {}).mode || 'none';
+  const authMode = (collection.draft ? get(collection, 'draft.request.auth', {}) : get(collection, 'root.request.auth', {})).mode || 'none';
 
   const presets = get(collection, 'brunoConfig.presets', []);
   const hasPresets = presets && presets.requestUrl !== '';

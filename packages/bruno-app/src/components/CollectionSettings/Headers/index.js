@@ -21,7 +21,7 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const Headers = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const headers = get(collection, 'root.request.headers', []);
+  const headers = collection.draft ? get(collection, 'draft.request.headers', []) : get(collection, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const toggleBulkEditMode = () => {

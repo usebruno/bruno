@@ -1,8 +1,9 @@
 import React from 'react';
 import CloseTabIcon from './CloseTabIcon';
+import DraftTabIcon from './DraftTabIcon';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
 
-const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick }) => {
+const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
   const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
@@ -60,7 +61,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick }) => {
     <>
       <div className="flex items-center tab-label pl-2">{getTabInfo(type, tabName)}</div>
       <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
-        <CloseTabIcon />
+        {hasDraft ? <DraftTabIcon /> : <CloseTabIcon />}
       </div>
     </>
   );

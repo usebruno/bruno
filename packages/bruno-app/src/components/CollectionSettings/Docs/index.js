@@ -1,6 +1,6 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
-import { updateCollectionDocs } from 'providers/ReduxStore/slices/collections';
+import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,7 +14,7 @@ const Docs = ({ collection }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
-  const docs = get(collection, 'root.docs', '');
+  const docs = collection.draft ? get(collection, 'draft.docs', '') : get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
 
   const toggleViewMode = () => {
@@ -31,11 +31,11 @@ const Docs = ({ collection }) => {
   };
 
   const handleDiscardChanges = () => {
-    dispatch(
+    dispatch((
       updateCollectionDocs({
         collectionUid: collection.uid,
         docs: docs
-      })
+      }))
     );
     toggleViewMode();
   }
