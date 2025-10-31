@@ -9,8 +9,8 @@ import StyledWrapper from './StyledWrapper';
 
 const Script = ({ collection, folder }) => {
   const dispatch = useDispatch();
-  const requestScript = get(folder, 'root.request.script.req', '');
-  const responseScript = get(folder, 'root.request.script.res', '');
+  const requestScript = folder.draft ? get(folder, 'draft.request.script.req', '') : get(folder, 'root.request.script.req', '');
+  const responseScript = folder.draft ? get(folder, 'draft.request.script.res', '') : get(folder, 'root.request.script.res', '');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);

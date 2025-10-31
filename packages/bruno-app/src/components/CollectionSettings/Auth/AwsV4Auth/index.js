@@ -13,7 +13,7 @@ const AwsV4Auth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const awsv4Auth = get(collection, 'root.request.auth.awsv4', {});
+  const awsv4Auth = collection.draft ? get(collection, 'draft.request.auth.awsv4', {}) : get(collection, 'root.request.auth.awsv4', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 

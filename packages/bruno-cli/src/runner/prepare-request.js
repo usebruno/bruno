@@ -48,7 +48,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
     responseType: 'arraybuffer'
   };
 
-  const collectionAuth = get(collection, 'root.request.auth');
+  const collectionRoot = collection?.draft || collection?.root || {};
+  const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth?.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.basicAuth = {
