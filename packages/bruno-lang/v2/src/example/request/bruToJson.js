@@ -1,6 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('../../utils');
+const astBaseAttribute = require('../commons/astBaseAttribute');
 
 /**
  * Request Block Grammar for Bruno Examples
@@ -188,7 +189,7 @@ const concatArrays = (objValue, srcValue) => {
   }
 };
 
-const sem = requestGrammar.createSemantics().addAttribute('ast', {
+const astRequestAttribute = {
   RequestFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
       return {};
@@ -200,73 +201,6 @@ const sem = requestGrammar.createSemantics().addAttribute('ast', {
       },
       {});
   },
-  dictionary(_1, _2, pairlist, _3) {
-    return pairlist.ast;
-  },
-  pairlist(_1, pair, _2, rest) {
-    return [pair.ast, ...rest.ast];
-  },
-  pair(_1, key, _2, _3, _4, value, _5) {
-    let res = {};
-    res[key.ast] = value.ast ? value.ast.trim() : '';
-    return res;
-  },
-  esc_quote_char(_1, quote) {
-    return quote.sourceString;
-  },
-  quoted_key(disabled, _1, chars, _2) {
-    return (disabled ? disabled.sourceString : '') + chars.ast.join('');
-  },
-  key(chars) {
-    return chars.sourceString ? chars.sourceString.trim() : '';
-  },
-  value(chars) {
-    try {
-      let isMultiline = chars.sourceString?.startsWith('```') && chars.sourceString?.endsWith('```');
-      if (isMultiline) {
-        const multilineString = chars.sourceString?.replace(/^```|```$/g, '');
-        return multilineString
-          .split('\n')
-          .map((line) => line.slice(4))
-          .join('\n');
-      }
-      return chars.sourceString ? chars.sourceString.trim() : '';
-    } catch (err) {
-      console.error(err);
-    }
-    return chars.sourceString ? chars.sourceString.trim() : '';
-  },
-  textblock(line, _1, rest) {
-    return [line.ast, ...rest.ast].join('\n');
-  },
-  textline(chars) {
-    return chars.sourceString;
-  },
-  textchar(char) {
-    return char.sourceString;
-  },
-  nl(_1, _2) {
-    return '';
-  },
-  st(_) {
-    return '';
-  },
-  tagend(_1, _2) {
-    return '';
-  },
-  _terminal() {
-    return this.sourceString;
-  },
-  multilinetextblockdelimiter(_) {
-    return '';
-  },
-  multilinetextblock(_1, content, _2) {
-    return content.sourceString.trim();
-  },
-  _iter(...elements) {
-    return elements.map((e) => e.ast);
-  },
-
   requesturl(_1, _2, _3, _4, value) {
     return {
       url: value.sourceString ? value.sourceString.trim() : ''
@@ -383,7 +317,12 @@ const sem = requestGrammar.createSemantics().addAttribute('ast', {
       }
     };
   }
-});
+};
+
+const requestGrammarSemantics = requestGrammar.createSemantics();
+requestGrammarSemantics.addAttribute('ast', _.merge({}, astBaseAttribute, astRequestAttribute));
+
+const sem = requestGrammarSemantics;
 
 const parseRequest = (input) => {
   const match = requestGrammar.match(input);

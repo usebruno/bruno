@@ -1,6 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('../../utils');
+const astBaseAttribute = require('../commons/astBaseAttribute');
 
 /**
  * Response Block Grammar for Bruno Examples
@@ -85,7 +86,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   });
 };
 
-const sem = responseGrammar.createSemantics().addAttribute('ast', {
+const astResponseAttribute = {
   ResponseFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
       return {};
@@ -96,77 +97,6 @@ const sem = responseGrammar.createSemantics().addAttribute('ast', {
       return _.merge(result, item);
     }, {});
   },
-  dictionary(_1, _2, pairlist, _3) {
-    return pairlist.ast;
-  },
-  pairlist(_1, pair, _2, rest) {
-    return [pair.ast, ...rest.ast];
-  },
-  pair(_1, key, _2, _3, _4, value, _5) {
-    let res = {};
-    res[key.ast] = value.ast ? value.ast.trim() : '';
-    return res;
-  },
-  esc_quote_char(_1, quote) {
-    return quote.sourceString;
-  },
-  quoted_key(disabled, _1, chars, _2) {
-    return (disabled ? disabled.sourceString : '') + chars.ast.join('');
-  },
-  key(chars) {
-    return chars.sourceString ? chars.sourceString.trim() : '';
-  },
-  value(chars) {
-    if (chars.ctorName === 'list') {
-      return chars.ast;
-    }
-    try {
-      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
-      if (isMultiline) {
-        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
-        return multilineString
-          .split('\n')
-          .map((line) => line.slice(4))
-          .join('\n');
-      }
-      return chars.sourceString ?? '';
-    } catch (err) {
-      console.error(err);
-    }
-    return chars.sourceString ?? '';
-  },
-  textblock(line, _1, rest) {
-    return [line.ast, ...rest.ast].join('\n');
-  },
-  textline(chars) {
-    return chars.sourceString;
-  },
-  textchar(char) {
-    return char.sourceString;
-  },
-  nl(_1, _2) {
-    return '';
-  },
-  st(_) {
-    return '';
-  },
-  tagend(_1, _2) {
-    return '';
-  },
-  _terminal() {
-    return this.sourceString;
-  },
-  multilinetextblockdelimiter(_) {
-    return '';
-  },
-  multilinetextblock(_1, content, _2) {
-    // Join all the content between the triple quotes and trim it
-    return content.sourceString.trim();
-  },
-  _iter(...elements) {
-    return elements.map((e) => e.ast);
-  },
-
   responsecontent(content) {
     return content.ast;
   },
@@ -214,7 +144,12 @@ const sem = responseGrammar.createSemantics().addAttribute('ast', {
       content: outdentString(multilineString ?? '', 4)
     };
   }
-});
+};
+
+const responseGrammarSemantics = responseGrammar.createSemantics();
+responseGrammarSemantics.addAttribute('ast', _.merge({}, astBaseAttribute, astResponseAttribute));
+
+const sem = responseGrammarSemantics;
 
 const parseResponse = (input) => {
   const match = responseGrammar.match(input);
