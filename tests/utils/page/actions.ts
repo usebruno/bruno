@@ -45,6 +45,14 @@ const openCollectionAndAcceptSandbox = async (page, collectionName: string, sand
   });
 };
 
+/**
+ * Get a cell from a table row by index
+ * @param row - The row locator
+ * @param index - The index of the cell
+ * @returns The cell locator
+ */
+const getTableCell = (row, index) => row.locator('td').nth(index);
+
 const createCollection = async (page, collectionName: string, createDir: (tag?: string | undefined) => Promise<string>) => {
   await page.locator('.dropdown-icon').click();
   await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
@@ -57,4 +65,4 @@ const createCollection = async (page, collectionName: string, createDir: (tag?: 
   await page.getByRole('button', { name: 'Save' }).click();
 };
 
-export { closeAllCollections, openCollectionAndAcceptSandbox, createCollection };
+export { closeAllCollections, openCollectionAndAcceptSandbox, createCollection, getTableCell };
