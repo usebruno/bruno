@@ -185,7 +185,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
           </thead>
           <tbody>
             {formik.values.map((variable, index) => (
-              <tr key={variable.uid}>
+              <tr key={variable.uid} data-testid={`env-var-row-${variable.name}`}>
                 <td className="text-center">
                   <input
                     type="checkbox"

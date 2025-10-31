@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import {
@@ -11,6 +11,37 @@ import {
 
 const Performance = () => {
   const { systemResources } = useSelector((state) => state.performance);
+
+  useEffect(() => {
+    const { ipcRenderer } = window;
+
+    if (!ipcRenderer) {
+      console.warn('IPC Renderer not available');
+      return;
+    }
+
+    const startMonitoring = async () => {
+      try {
+        await ipcRenderer.invoke('renderer:start-system-monitoring', 2000);
+      } catch (error) {
+        console.error('Failed to start system monitoring:', error);
+      }
+    };
+
+    const stopMonitoring = async () => {
+      try {
+        await ipcRenderer.invoke('renderer:stop-system-monitoring');
+      } catch (error) {
+        console.error('Failed to stop system monitoring:', error);
+      }
+    };
+
+    startMonitoring();
+
+    return () => {
+      stopMonitoring();
+    };
+  }, []);
 
   const formatBytes = (bytes) => {
     if (bytes === 0) return '0 Bytes';

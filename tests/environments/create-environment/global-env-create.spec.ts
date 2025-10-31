@@ -3,7 +3,7 @@ import path from 'path';
 
 test.describe('Global Environment Create Tests', () => {
   test('should import collection and create global environment for request usage', async ({
-    pageWithUserData: page,
+    page,
     createTmpDir
   }) => {
     const openApiFile = path.join(__dirname, 'fixtures', 'bruno-collection.json');
