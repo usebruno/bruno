@@ -7,13 +7,15 @@ import { useDispatch } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
-import { saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
+import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders } from 'providers/ReduxStore/slices/collections/actions';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 
 const SaveRequestsModal = ({ onClose }) => {
-  const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
+  const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const currentDrafts = [];
+  const collectionDrafts = [];
+  const folderDrafts = [];
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
@@ -22,35 +24,79 @@ const SaveRequestsModal = ({ onClose }) => {
   Object.keys(tabsByCollection).forEach((collectionUid) => {
     const collection = findCollectionByUid(collections, collectionUid);
     if (collection) {
+      // Check for collection draft
+      if (collection.draft) {
+        collectionDrafts.push({
+          type: 'collection',
+          name: collection.name,
+          collectionUid: collectionUid
+        });
+      }
+
+      // Check for request drafts
       const items = flattenItems(collection.items);
-      const drafts = filter(items, (item) => isItemARequest(item) && item.draft);
-      each(drafts, (draft) => {
+      const requestDrafts = filter(items, (item) => isItemARequest(item) && item.draft);
+      each(requestDrafts, (draft) => {
         currentDrafts.push({
+          type: 'request',
+          name: draft.name,
           ...draft,
+          collectionUid: collectionUid
+        });
+      });
+
+      // Check for folder drafts
+      const folders = filter(items, (item) => item.type === 'folder' && item.draft);
+      each(folders, (folder) => {
+        folderDrafts.push({
+          type: 'folder',
+          name: folder.name,
+          folderUid: folder.uid,
           collectionUid: collectionUid
         });
       });
     }
   });
 
+  const allDrafts = [...collectionDrafts, ...folderDrafts, ...currentDrafts];
+  const totalDraftsCount = allDrafts.length;
+
   useEffect(() => {
-    if (currentDrafts.length === 0) {
+    if (totalDraftsCount === 0) {
       return dispatch(completeQuitFlow());
     }
-  }, [currentDrafts, dispatch]);
+  }, [totalDraftsCount, dispatch]);
 
   const closeWithoutSave = () => {
     dispatch(completeQuitFlow());
     onClose();
   };
 
-  const closeWithSave = () => {
-    dispatch(saveMultipleRequests(currentDrafts))
-      .then(() => dispatch(completeQuitFlow()))
-      .then(() => onClose());
+  const closeWithSave = async () => {
+    try {
+      // Save all collection drafts
+      if (collectionDrafts.length > 0) {
+        await dispatch(saveMultipleCollections(collectionDrafts));
+      }
+
+      // Save all folder drafts
+      if (folderDrafts.length > 0) {
+        await dispatch(saveMultipleFolders(folderDrafts));
+      }
+
+      // Save all request drafts
+      if (currentDrafts.length > 0) {
+        await dispatch(saveMultipleRequests(currentDrafts));
+      }
+
+      dispatch(completeQuitFlow());
+      onClose();
+    } catch (error) {
+      console.error('Error saving drafts:', error);
+    }
   };
 
-  if (!currentDrafts.length) {
+  if (totalDraftsCount === 0) {
     return null;
   }
 
@@ -72,23 +118,27 @@ const SaveRequestsModal = ({ onClose }) => {
       </div>
       <p className="mt-4">
         Do you want to save the changes you made to the following{' '}
-        <span className="font-medium">{currentDrafts.length}</span> {pluralizeWord('request', currentDrafts.length)}?
+        <span className="font-medium">{totalDraftsCount}</span> {pluralizeWord('item', totalDraftsCount)}?
       </p>
 
       <ul className="mt-4">
-        {currentDrafts.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
+        {allDrafts.slice(0, MAX_UNSAVED_ITEMS_TO_SHOW).map((item, index) => {
+          const prefix
+            = item.type === 'collection' ? 'Collection: '
+              : item.type === 'folder' ? 'Folder: '
+                : 'Request: ';
           return (
-            <li key={item.uid} className="mt-1 text-xs">
-              {item.filename}
+            <li key={`${item.type}-${item.collectionUid || item.uid}-${index}`} className="mt-1 text-xs">
+              {prefix}{item.name || item.filename}
             </li>
           );
         })}
       </ul>
 
-      {currentDrafts.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
+      {totalDraftsCount > MAX_UNSAVED_ITEMS_TO_SHOW && (
         <p className="mt-1 text-xs">
-          ...{currentDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
-          {pluralizeWord('request', currentDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
+          ...{totalDraftsCount - MAX_UNSAVED_ITEMS_TO_SHOW} additional{' '}
+          {pluralizeWord('item', totalDraftsCount - MAX_UNSAVED_ITEMS_TO_SHOW)} not shown
         </p>
       )}
 
@@ -103,7 +153,7 @@ const SaveRequestsModal = ({ onClose }) => {
             Cancel
           </button>
           <button className="btn btn-secondary btn-sm" onClick={closeWithSave}>
-            {currentDrafts.length > 1 ? 'Save All' : 'Save'}
+            {totalDraftsCount > 1 ? 'Save All' : 'Save'}
           </button>
         </div>
       </div>

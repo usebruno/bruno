@@ -601,32 +601,6 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   return collectionToSave;
 };
 
-export const transformFolderRootToSave = (folder) => {
-  const _folder = folder.draft ? folder.draft : folder.root;
-  const folderRootToSave = {
-    docs: _folder.docs,
-    request: {
-      auth: _folder?.request?.auth,
-      headers: [],
-      script: _folder?.request?.script,
-      vars: _folder?.request?.vars,
-      tests: _folder?.request?.tests
-    }
-  };
-
-  each(_folder.request.headers, (header) => {
-    folderRootToSave.request.headers.push({
-      uid: header.uid,
-      name: header.name,
-      value: header.value,
-      description: header.description,
-      enabled: header.enabled
-    });
-  });
-
-  return folderRootToSave;
-};
-
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
 
@@ -745,6 +719,32 @@ export const transformCollectionRootToSave = (collection) => {
   });
 
   return collectionRootToSave;
+};
+
+export const transformFolderRootToSave = (folder) => {
+  const _folder = folder.draft ? folder.draft : folder.root;
+  const folderRootToSave = {
+    docs: _folder.docs,
+    request: {
+      auth: _folder?.request?.auth,
+      headers: [],
+      script: _folder?.request?.script,
+      vars: _folder?.request?.vars,
+      tests: _folder?.request?.tests
+    }
+  };
+
+  each(_folder.request.headers, (header) => {
+    folderRootToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  return folderRootToSave;
 };
 
 // todo: optimize this

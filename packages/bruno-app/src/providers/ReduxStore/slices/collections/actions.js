@@ -228,6 +228,80 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
   });
 };
 
+export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const savePromises = [];
+
+    each(collectionDrafts, (collectionDraft) => {
+      const collection = findCollectionByUid(collections, collectionDraft.collectionUid);
+      if (collection) {
+        const collectionCopy = cloneDeep(collection);
+        const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
+        const { ipcRenderer } = window;
+
+        const savePromise = ipcRenderer
+          .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave)
+          .then(() => {
+            dispatch(_saveCollectionDraft({ collectionUid: collectionDraft.collectionUid }));
+          });
+
+        savePromises.push(savePromise);
+      }
+    });
+
+    Promise.all(savePromises)
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save collection settings!');
+        reject(err);
+      });
+  });
+};
+
+export const saveMultipleFolders = (folderDrafts) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const savePromises = [];
+
+    each(folderDrafts, (folderDraft) => {
+      const collection = findCollectionByUid(collections, folderDraft.collectionUid);
+      const folder = collection ? findItemInCollection(collection, folderDraft.folderUid) : null;
+
+      if (collection && folder) {
+        const folderRootToSave = transformFolderRootToSave(folder);
+        const folderData = {
+          name: folder.name,
+          pathname: folder.pathname,
+          root: folderRootToSave
+        };
+
+        const { ipcRenderer } = window;
+        const savePromise = ipcRenderer
+          .invoke('renderer:save-folder-root', folderData)
+          .then(() => {
+            if (folder.draft) {
+              dispatch(saveFolderDraft({ collectionUid: folderDraft.collectionUid, folderUid: folderDraft.folderUid }));
+            }
+          });
+
+        savePromises.push(savePromise);
+      }
+    });
+
+    Promise.all(savePromises)
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save folder settings!');
+        reject(err);
+      });
+  });
+};
+
 export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
