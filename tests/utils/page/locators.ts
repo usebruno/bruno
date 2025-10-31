@@ -9,7 +9,13 @@ export const buildCommonLocators = (page: Page) => ({
     collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    folderRequest: (folderName: string, requestName: string) => page.locator('.collection-item-name').filter({ hasText: requestName }).filter({ has: page.locator('.collection-item-name').filter({ hasText: folderName }) })
+    folderRequest: (folderName: string, requestName: string) => {
+      // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
+      // and search for the request within that container's descendants.
+      // Using .locator('..') gets the parent element of the folder's collection-item-name div.
+      const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+      return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
+    }
   },
   actions: {
     collectionActions: (collectionName: string) =>
