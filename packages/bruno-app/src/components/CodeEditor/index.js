@@ -9,6 +9,8 @@ import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { addClickableLinksToCodeMirror, addUrlStylingToCodeMirror, addLinkHoverTooltipToCodeMirror } from 'utils/codemirror/clickable-links';
+import { injectLinkStyles } from 'utils/codemirror/link-styles';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
@@ -42,6 +44,7 @@ export default class CodeEditor extends React.Component {
     this.state = {
       searchBarVisible: false
     };
+    this.clickableLink = props.clickableLink ?? false;
   }
 
   componentDidMount() {
@@ -202,6 +205,14 @@ export default class CodeEditor extends React.Component {
         editor,
         autoCompleteOptions
       );
+
+      // Setup clickable links functionality
+      if (this.clickableLink) {
+        injectLinkStyles();
+        this.clickableLinksCleanup = addClickableLinksToCodeMirror(editor);
+        this.urlStylingCleanup = addUrlStylingToCodeMirror(editor);
+        this.linkHoverTooltipCleanup = addLinkHoverTooltipToCodeMirror(editor);
+      }
     }
   }
 
@@ -253,6 +264,20 @@ export default class CodeEditor extends React.Component {
       this.editor.off('change', this._onEdit);
       this.editor.off('scroll', this.onScroll);
       this.editor = null;
+    }
+
+    // Cleanup clickable links functionality
+    if (this.clickableLinksCleanup) {
+      this.clickableLinksCleanup();
+    }
+    if (this.urlStylingCleanup) {
+      this.urlStylingCleanup();
+    }
+    if (this.linkHoverTooltipCleanup) {
+      this.linkHoverTooltipCleanup();
+    }
+    if (this.brunoAutoCompleteCleanup) {
+      this.brunoAutoCompleteCleanup();
     }
   }
 
