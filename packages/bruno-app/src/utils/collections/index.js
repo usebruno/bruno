@@ -165,7 +165,7 @@ export const getItemsLoadStats = (folder) => {
   };
 }
 
-export const transformCollectionToSave = (collection, options = {}) => {
+export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
   const copyHeaders = (headers) => {
     return map(headers, (header) => {
       return {
