@@ -87,6 +87,7 @@ test.describe('Global Environment Import Tests', () => {
       .locator('.collection-actions')
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).waitFor({ state: 'detached' });
     await page.getByRole('button', { name: 'Close' }).click();
   });
 });
