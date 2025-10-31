@@ -58,6 +58,7 @@ test.describe('Create gRPC Requests', () => {
       await locators.sidebar.folder('folder1').click();
       const folderRequestItem = locators.sidebar.folderRequest('folder1', 'Root gRPC Request');
       await expect(folderRequestItem).not.toBeVisible();
+      await locators.folder.chevron('folder1').click(); // close folder1
     });
 
     await test.step('Create gRPC request via folder1 three dots menu', async () => {

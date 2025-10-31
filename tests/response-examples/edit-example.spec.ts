@@ -173,11 +173,6 @@ test.describe('Edit Response Examples', () => {
   });
 
   test('Cleanup: Delete all created examples', async ({ pageWithUserData: page }) => {
-    await test.step('Open collection and request', async () => {
-      await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('echo-request').click();
-    });
-
     await test.step('Delete Test Example', async () => {
       const exampleItem = page.locator('.collection-item-name').getByText('Test Example', { exact: true });
       await expect(exampleItem).toBeVisible();
