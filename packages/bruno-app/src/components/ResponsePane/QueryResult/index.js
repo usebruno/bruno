@@ -1,10 +1,8 @@
 import { debounce } from 'lodash';
 import QueryResultFilter from './QueryResultFilter';
-import { JSONPath } from 'jsonpath-plus';
 import React from 'react';
 import classnames from 'classnames';
-import iconv from 'iconv-lite';
-import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
+import { getContentType, formatResponse } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
@@ -12,64 +10,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 import { getEncoding, uuid } from 'utils/common/index';
 import LargeResponseWarning from '../LargeResponseWarning';
-
-// Memory threshold to prevent crashes when decoding large buffers
-const LARGE_BUFFER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
-
-const applyJSONPathFilter = (data, filter) => {
-  try {
-    return JSONPath({ path: filter, json: data });
-  } catch (e) {
-    console.warn('Could not apply JSONPath filter:', e.message);
-    return data;
-  }
-};
-
-const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
-  if (data === undefined || !dataBuffer || !mode) {
-    return '';
-  }
-
-  let bufferSize = 0;
-  try {
-    bufferSize = Buffer.from(dataBuffer, 'base64').length;
-  } catch (error) {
-    console.warn('Failed to calculate buffer size:', error);
-  }
-
-  const isVeryLargeResponse = bufferSize > LARGE_BUFFER_THRESHOLD;
-
-  if (mode.includes('json')) {
-    try {
-      const prettyPrint = !isVeryLargeResponse;
-      const processedData = filter ? applyJSONPathFilter(data, filter) : data;
-
-      return typeof processedData === 'string'
-        ? processedData
-        : safeStringifyJSON(processedData, prettyPrint);
-    } catch (error) {
-      return typeof data === 'string' ? data : String(data);
-    }
-  }
-
-  if (mode.includes('xml')) {
-    if (isVeryLargeResponse) {
-      return typeof data === 'string' ? data : safeStringifyJSON(data, false);
-    }
-
-    let parsed = safeParseXML(data, { collapseContent: true });
-    if (typeof parsed === 'string') {
-      return parsed;
-    }
-    return safeStringifyJSON(parsed, true);
-  }
-
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  return safeStringifyJSON(data, !isVeryLargeResponse);
-};
 
 const formatErrorMessage = (error) => {
   if (!error) return 'Something went wrong';
@@ -116,7 +56,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
       if (isLargeResponse && !showLargeResponse) {
         return '';
       }
-      return formatResponse(data, dataBuffer, responseEncoding, mode, filter);
+      return formatResponse(data, dataBuffer, mode, filter);
     },
     [data, dataBuffer, responseEncoding, mode, filter, isLargeResponse, showLargeResponse]
   );
