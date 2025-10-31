@@ -1,7 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import * as fs from 'fs';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
 
 test.describe('Import OpenAPI Collection with Examples', () => {
   let originalShowOpenDialog;
@@ -13,7 +12,8 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     });
   });
 
-  test.afterAll(async ({ electronApp }) => {
+  test.afterAll(async ({ electronApp, page }) => {
+    await closeAllCollections(page);
     // restore the original showOpenDialog function
     await electronApp.evaluate(({ dialog }) => {
       dialog.showOpenDialog = originalShowOpenDialog;
@@ -74,13 +74,10 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     await test.step('Complete import by clicking import button', async () => {
       const settingsModal = page.getByRole('dialog');
       await settingsModal.getByRole('button', { name: 'Import' }).click();
-      await page.locator('#sidebar-collection-name').filter({ hasText: 'API with Examples' }).click();
     });
 
     await test.step('Handle sandbox modal', async () => {
-      const saveButton = page.getByRole('button', { name: 'Save' });
-      await expect(saveButton).toBeVisible();
-      await saveButton.click();
+      await openCollectionAndAcceptSandbox(page, 'API with Examples', 'safe');
     });
 
     await test.step('Verify collection name appears in sidebar', async () => {
@@ -98,9 +95,6 @@ test.describe('Import OpenAPI Collection with Examples', () => {
 
       // Click the chevron to expand examples
       await chevronIcon.click();
-
-      // Wait a moment for the examples to appear
-      await page.waitForTimeout(500);
 
       // Check if examples are visible
       const successExample = page.locator('.collection-item-name').getByText('Success Response');
@@ -122,18 +116,12 @@ test.describe('Import OpenAPI Collection with Examples', () => {
       await expect(createUserRequest).toBeVisible();
       await createUserRequest.click();
 
-      // Wait for the request to load
-      await page.waitForTimeout(1000);
-
       // Find the chevron icon specifically for the "Create a new user" request
       const chevronIcon = page.getByTestId('request-item-chevron').nth(1);
       await expect(chevronIcon).toBeVisible();
 
       // Click the chevron to expand examples
       await chevronIcon.click();
-
-      // Wait a moment for the examples to appear
-      await page.waitForTimeout(500);
 
       // Check if examples are visible
       const createdExample = page.locator('.collection-item-name').getByText('User Created');
@@ -197,16 +185,13 @@ test.describe('Import OpenAPI Collection with Examples', () => {
 
       // Click on the grouping dropdown to open it
       const groupingDropdown = settingsModal.getByTestId('grouping-dropdown');
-      await expect(groupingDropdown).toBeVisible();
       await groupingDropdown.click();
 
       // Wait for dropdown to open and select "Paths" option (note: it's "Paths" not "Path")
       const pathOption = page.getByTestId('grouping-option-path');
-      await expect(pathOption).toBeVisible();
       await pathOption.click();
       // click on import button
       const importButton = settingsModal.getByRole('button', { name: 'Import' });
-      await expect(importButton).toBeVisible();
       await importButton.click();
     });
 
@@ -218,13 +203,10 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     await test.step('Complete import by clicking import button', async () => {
       const settingsModal = page.getByRole('dialog');
       await settingsModal.getByRole('button', { name: 'Import' }).click();
-      await page.locator('#sidebar-collection-name').filter({ hasText: 'API with Examples' }).click();
     });
 
     await test.step('Handle sandbox modal', async () => {
-      const saveButton = page.getByRole('button', { name: 'Save' });
-      await expect(saveButton).toBeVisible();
-      await saveButton.click();
+      await openCollectionAndAcceptSandbox(page, 'API with Examples', 'safe');
     });
 
     await test.step('Verify collection name appears in sidebar', async () => {
@@ -240,7 +222,6 @@ test.describe('Import OpenAPI Collection with Examples', () => {
 
       // Click on the users folder to expand it
       await usersFolder.click();
-      await page.waitForTimeout(500);
 
       // Verify that the requests are inside the users folder
       const getUsersRequest = page.locator('.collection-item-name').getByText('Get all users');
@@ -258,15 +239,10 @@ test.describe('Import OpenAPI Collection with Examples', () => {
       const chevronIcon = page.getByTestId('request-item-chevron').nth(0);
       await expect(chevronIcon).toBeVisible();
       await chevronIcon.click();
-      await page.waitForTimeout(500);
 
       // Check if examples are visible
       const successExample = page.locator('.collection-item-name').getByText('Success Response');
       await expect(successExample).toBeVisible();
-    });
-
-    await test.step('Cleanup - close all collections', async () => {
-      await closeAllCollections(page);
     });
   });
 });

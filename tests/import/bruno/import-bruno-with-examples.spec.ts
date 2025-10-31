@@ -3,8 +3,10 @@ import * as path from 'path';
 
 test.describe('Import Bruno Collection with Examples', () => {
   test.beforeAll(async ({ page }) => {
-    // Navigate back to homescreen after all tests
     await page.locator('.bruno-logo').click();
+  });
+  test.afterAll(async ({ page }) => {
+    await page.getByTestId('modal-close-button').click();
   });
 
   test('Import Bruno collection with examples successfully', async ({ page }) => {
@@ -43,10 +45,6 @@ test.describe('Import Bruno Collection with Examples', () => {
     await test.step('Verify collection name appears in location modal', async () => {
       const locationModal = page.getByRole('dialog');
       await expect(locationModal.getByText('bruno-with-examples')).toBeVisible();
-    });
-
-    await test.step('Cleanup - close modal', async () => {
-      await page.getByTestId('modal-close-button').click();
     });
   });
 });

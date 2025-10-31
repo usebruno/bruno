@@ -61,9 +61,6 @@
               "formUrlEncoded": [],
               "multipartForm": [],
               "file": []
-            },
-            "auth": {
-              "mode": "none"
             }
           },
           "response": {
@@ -76,7 +73,10 @@
                 "enabled": true
               }
             ],
-            "body": "{\n  \"message\": \"Hello World\",\n  \"timestamp\": \"1760611876\"\n}"
+            "body": {
+              "type": "json",
+              "content": "{\n  \"message\": \"Hello World\",\n  \"timestamp\": \"1760611876\"\n}"
+            }
           }
         }
       ]
