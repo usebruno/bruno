@@ -221,8 +221,8 @@ const QueryParams = ({ item, collection }) => {
         </div>
         <Table
           headers={[
-            { name: 'Name', accessor: 'name' },
-            { name: 'Value', accessor: 'value' }
+            { name: 'Name', accessor: 'name', width: '31%' },
+            { name: 'Value', accessor: 'value', width: '56%' }
           ]}
         >
           <tbody>
