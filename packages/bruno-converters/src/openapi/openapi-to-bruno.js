@@ -3,6 +3,129 @@ import get from 'lodash/get';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 
+const normalizeDocString = (value) => {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+
+  const normalized = value.replace(/\r\n/g, '\n').split('\n');
+
+  while (normalized.length && normalized[0].trim() === '') {
+    normalized.shift();
+  }
+
+  while (normalized.length && normalized[normalized.length - 1].trim() === '') {
+    normalized.pop();
+  }
+
+  if (!normalized.length) {
+    return '';
+  }
+
+  let minIndent = null;
+  normalized.forEach((line) => {
+    if (!line.trim()) {
+      return;
+    }
+    const match = line.match(/^(\s*)/);
+    const indent = match ? match[1].length : 0;
+    if (minIndent === null || indent < minIndent) {
+      minIndent = indent;
+    }
+  });
+
+  const trimBy = minIndent || 0;
+  const trimmedLines = normalized.map((line) => {
+    if (!line.trim()) {
+      return '';
+    }
+    return trimBy ? line.slice(Math.min(trimBy, line.length)) : line;
+  });
+
+  return trimmedLines.join('\n');
+};
+
+const formatExternalDocs = (externalDocs) => {
+  if (!externalDocs || typeof externalDocs.url !== 'string' || !externalDocs.url.trim()) {
+    return '';
+  }
+
+  const label = typeof externalDocs.description === 'string' && externalDocs.description.trim()
+    ? externalDocs.description.trim()
+    : 'External Documentation';
+
+  return `[${label}](${externalDocs.url.trim()})`;
+};
+
+const formatDescriptionWithExternalDocs = (description, externalDocs) => {
+  const parts = [];
+  const normalized = normalizeDocString(description);
+  if (normalized) {
+    parts.push(normalized);
+  }
+
+  const external = formatExternalDocs(externalDocs);
+  if (external) {
+    parts.push(external);
+  }
+
+  return parts.join('\n\n').trim();
+};
+
+const formatCollectionDocs = (info = {}) => {
+  if (!info || typeof info !== 'object') {
+    return '';
+  }
+
+  const sections = [];
+  const description = formatDescriptionWithExternalDocs(info.description, info.externalDocs);
+  if (description) {
+    sections.push(description);
+  }
+
+  const metaLines = [];
+  if (typeof info.version === 'string' && info.version.trim()) {
+    metaLines.push(`- **Version:** ${info.version.trim()}`);
+  }
+
+  if (typeof info.termsOfService === 'string' && info.termsOfService.trim()) {
+    metaLines.push(`- **Terms of Service:** ${info.termsOfService.trim()}`);
+  }
+
+  const contact = info.contact || {};
+  const contactParts = [];
+  if (typeof contact.name === 'string' && contact.name.trim()) {
+    contactParts.push(contact.name.trim());
+  }
+  if (typeof contact.email === 'string' && contact.email.trim()) {
+    contactParts.push(contact.email.trim());
+  }
+  if (typeof contact.url === 'string' && contact.url.trim()) {
+    contactParts.push(contact.url.trim());
+  }
+  if (contactParts.length) {
+    metaLines.push(`- **Contact:** ${contactParts.join(' | ')}`);
+  }
+
+  const license = info.license || {};
+  const licenseParts = [];
+  if (typeof license.name === 'string' && license.name.trim()) {
+    licenseParts.push(license.name.trim());
+  }
+  if (typeof license.url === 'string' && license.url.trim()) {
+    licenseParts.push(license.url.trim());
+  }
+  if (licenseParts.length) {
+    metaLines.push(`- **License:** ${licenseParts.join(' | ')}`);
+  }
+
+  if (metaLines.length) {
+    sections.push(metaLines.join('\n'));
+  }
+
+  return sections.join('\n\n').trim();
+};
+
 const ensureUrl = (url) => {
   // removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
   return url.replace(/([^:])\/{2,}/g, '$1/');
@@ -97,7 +220,8 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
       },
       script: {
         res: null
-      }
+      },
+      docs: ''
     }
   };
 
@@ -310,6 +434,11 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     brunoRequestItem.request.script.res = script.join('\n');
   }
 
+  const requestDocs = formatDescriptionWithExternalDocs(_operationObject.description, _operationObject.externalDocs);
+  if (requestDocs) {
+    brunoRequestItem.request.docs = requestDocs;
+  }
+
   return brunoRequestItem;
 };
 
@@ -363,7 +492,7 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   return resolved;
 };
 
-const groupRequestsByTags = (requests) => {
+const groupRequestsByTags = (requests, tagDocsMap = {}) => {
   let _groups = {};
   let ungrouped = [];
   each(requests, (request) => {
@@ -387,14 +516,15 @@ const groupRequestsByTags = (requests) => {
   let groups = Object.keys(_groups).map((groupName) => {
     return {
       name: groupName,
-      requests: _groups[groupName]
+      requests: _groups[groupName],
+      docs: tagDocsMap[groupName] || ''
     };
   });
 
   return [groups, ungrouped];
 };
 
-const groupRequestsByPath = (requests) => {
+const groupRequestsByPath = (requests, pathDocs = {}) => {
   const pathGroups = {};
 
   // Group requests by their path segments
@@ -451,34 +581,37 @@ const groupRequestsByPath = (requests) => {
   });
 
   // Convert the nested structure to Bruno folder format
-  const buildFolderStructure = (group) => {
+  const buildFolderStructure = (group, parentSegments = []) => {
     // Create a new usedNames set for each folder/subfolder scope
     const localUsedNames = new Set();
-    const items = group.requests.map((req) => transformOpenapiRequestItem(req, localUsedNames));
+    const folderItems = group.requests.map((req) => transformOpenapiRequestItem(req, localUsedNames));
+    const currentSegments = [...parentSegments, group.name].filter((segment) => segment && segment.length);
+    const fullPathKey = currentSegments.length ? `/${currentSegments.join('/')}` : null;
 
-    // Add sub-folders
-    const subFolders = [];
     Object.values(group.subGroups).forEach((subGroup) => {
-      const subFolderItems = buildFolderStructure(subGroup);
-      if (subFolderItems.length > 0) {
-        subFolders.push({
-          uid: uuid(),
-          name: subGroup.name,
-          type: 'folder',
-          items: subFolderItems
-        });
+      const subFolder = buildFolderStructure(subGroup, currentSegments);
+      if (subFolder) {
+        folderItems.push(subFolder);
       }
     });
 
-    return [...items, ...subFolders];
+    const folder = {
+      uid: uuid(),
+      name: group.name,
+      type: 'folder',
+      items: folderItems
+    };
+
+    if (fullPathKey && pathDocs[fullPathKey]) {
+      folder.root = {
+        docs: pathDocs[fullPathKey]
+      };
+    }
+
+    return folder;
   };
 
-  const folders = Object.values(pathGroups).map((group) => ({
-    uid: uuid(),
-    name: group.name,
-    type: 'folder',
-    items: buildFolderStructure(group)
-  }));
+  const folders = Object.values(pathGroups).map((group) => buildFolderStructure(group));
 
   return folders;
 };
@@ -554,6 +687,18 @@ export const parseOpenApiCollection = (data, options = {}) => {
       }
 
       brunoCollection.name = collectionData.info?.title?.trim() || 'Untitled Collection';
+    const collectionDocs = formatCollectionDocs(collectionData.info);
+
+    const tagDocsMap = {};
+    each(collectionData.tags || [], (tag) => {
+      if (!tag || typeof tag.name !== 'string') {
+        return;
+      }
+      const docs = formatDescriptionWithExternalDocs(tag.description, tag.externalDocs);
+      if (docs) {
+        tagDocsMap[tag.name] = docs;
+      }
+    });
 
       let servers = collectionData.servers || [];
 
@@ -579,6 +724,17 @@ export const parseOpenApiCollection = (data, options = {}) => {
       });
 
       let securityConfig = getSecurity(collectionData);
+
+    const pathDocsMap = {};
+    each(collectionData.paths || {}, (pathItem, pathKey) => {
+      if (!pathKey || typeof pathItem !== 'object') {
+        return;
+      }
+      const docs = normalizeDocString(pathItem?.description);
+      if (docs) {
+        pathDocsMap[pathKey] = docs;
+      }
+    });
 
       let allRequests = Object.entries(collectionData.paths)
         .map(([path, methods]) => {
@@ -607,30 +763,36 @@ export const parseOpenApiCollection = (data, options = {}) => {
     const groupingType = options.groupBy || 'tags';
 
     if (groupingType === 'path') {
-      brunoCollection.items = groupRequestsByPath(allRequests);
+      brunoCollection.items = groupRequestsByPath(allRequests, pathDocsMap);
     } else {
       // Default tag-based grouping
-      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
+      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, tagDocsMap);
       let brunoFolders = groups.map((group) => {
+        const folderRoot = {
+          request: {
+            auth: {
+              mode: 'inherit',
+              basic: null,
+              bearer: null,
+              digest: null,
+              apikey: null,
+              oauth2: null
+            }
+          },
+          meta: {
+            name: group.name
+          }
+        };
+
+        if (group.docs) {
+          folderRoot.docs = group.docs;
+        }
+
         return {
           uid: uuid(),
           name: group.name,
           type: 'folder',
-          root: {
-            request: {
-              auth: {
-                mode: 'inherit',
-                basic: null,
-                bearer: null,
-                digest: null,
-                apikey: null,
-                oauth2: null
-              }
-            },
-            meta: {
-              name: group.name
-            }
-          },
+          root: folderRoot,
           items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames))
         };
       });
@@ -735,6 +897,10 @@ export const parseOpenApiCollection = (data, options = {}) => {
           name: brunoCollection.name
         }
       };
+
+    if (collectionDocs) {
+      brunoCollection.root.docs = collectionDocs;
+    }
 
       return brunoCollection;
     } catch (err) {
