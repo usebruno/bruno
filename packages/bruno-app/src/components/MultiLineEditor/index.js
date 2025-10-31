@@ -18,6 +18,7 @@ class MultiLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
+    this.readOnly = props.readOnly || false;
 
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
@@ -37,6 +38,7 @@ class MultiLineEditor extends Component {
       },
       readOnly: this.props.readOnly ? 'nocursor' : false,
       tabindex: 0,
+      readOnly: this.readOnly,
       extraKeys: {
         'Ctrl-Enter': () => {
           if (this.props.onRun) {
@@ -142,6 +144,9 @@ class MultiLineEditor extends Component {
       this._enableMaskedEditor(this.props.isSecret);
       // also set the maskInput flag to the new value
       this.setState({ maskInput: this.props.isSecret });
+    }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly || false);
     }
     this.ignoreChangeEvent = false;
   }

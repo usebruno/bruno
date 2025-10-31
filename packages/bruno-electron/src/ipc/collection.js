@@ -260,7 +260,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
-
       const content = await stringifyRequestViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {

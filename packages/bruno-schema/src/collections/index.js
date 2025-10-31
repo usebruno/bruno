@@ -317,6 +317,38 @@ const requestParamsSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const exampleSchema = Yup.object({
+  uid: uidSchema,
+  itemUid: uidSchema,
+  name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
+  description: Yup.string().nullable(),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'grpc-request',]).required('type is required'),
+  request: Yup.object({
+    url: requestUrlSchema,
+    method: requestMethodSchema,
+    headers: Yup.array().of(keyValueSchema).required('headers are required'),
+    params: Yup.array().of(requestParamsSchema).required('params are required'),
+    body: requestBodySchema
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable(),
+  response: Yup.object({
+    status: Yup.string().nullable(),
+    statusText: Yup.string().nullable(),
+    headers: Yup.array().of(keyValueSchema).nullable(),
+    body: Yup.object({
+      type: Yup.string().oneOf(['json', 'text', 'xml', 'html', 'binary']).nullable(),
+      content: Yup.mixed().nullable()
+    }).nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 // Right now, the request schema is very tightly coupled with http request
 // As we introduce more request types in the future, we will improve the definition to support
 // schema structure based on other request type
@@ -378,7 +410,7 @@ const grpcRequestSchema = Yup.object({
     .nullable(),
   assertions: Yup.array().of(keyValueSchema).nullable(),
   tests: Yup.string().nullable(),
-  docs: Yup.string().nullable()
+  docs: Yup.string().nullable(),
 })
   .noUnknown(true)
   .strict();
@@ -512,6 +544,11 @@ const itemSchema = Yup.object({
     otherwise: Yup.mixed().nullable().notRequired()
   }),
   items: Yup.lazy(() => Yup.array().of(itemSchema)),
+  examples: Yup.array().of(exampleSchema).when('type', {
+    is: (type) => ['http-request', 'graphql-request', 'grpc-request'].includes(type),
+    then: (schema) => schema.nullable(),
+    otherwise: Yup.array().strip()
+  }),
   filename: Yup.string().nullable(),
   pathname: Yup.string().nullable()
 })

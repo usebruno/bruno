@@ -1,6 +1,7 @@
 const _ = require('lodash');
 
 const { indentString, getValueString } = require('./utils');
+const jsonToExampleBru = require('./example/jsonToBru');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
@@ -17,8 +18,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
-
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
 
   let bru = '';
 
@@ -750,9 +750,17 @@ ${indentString(docs)}
 `;
   }
 
+  if (examples && examples.length) {
+    examples.forEach((example) => {
+      const bruExample = jsonToExampleBru(example);
+      bru += `example {\n${indentString(bruExample)}\n}\n\n`;
+    });
+  }
+
   return stripLastLine(bru);
 };
 
 module.exports = jsonToBru;
+module.exports.jsonToExampleBru = jsonToExampleBru;
 
 // alternative to writing the below code to avoid undefined

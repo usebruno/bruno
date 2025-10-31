@@ -1,6 +1,18 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  &.read-only {
+    div.CodeMirror .CodeMirror-lines {
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      -ms-user-select: none !important;
+    }
+
+    div.CodeMirror .CodeMirror-cursor {
+      display: none !important;
+    }
+  }
+
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};

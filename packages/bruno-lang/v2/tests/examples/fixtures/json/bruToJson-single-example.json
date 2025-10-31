@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "name": "Test API",
+    "type": "http",
+    "seq": 1
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com/test"
+  },
+  "examples": [
+    {
+      "name": "Example Request",
+      "description": "A simple example request",
+      "request": {
+        "url": "https://api.example.com/example",
+        "method": "get",
+        "body": {
+          "mode": "none"
+        }
+      }
+    }
+  ]
+}
