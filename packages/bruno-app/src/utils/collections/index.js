@@ -897,6 +897,8 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.assertions'), (assertion) => (assertion.uid = uuid()));
+  each(get(item, 'response.headers'), (header) => (header.uid = uuid()));
 
   return item;
 };
@@ -908,12 +910,20 @@ export const deleteUidsInItem = (item) => {
   const bodyFormUrlEncoded = get(item, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(item, 'request.body.multipartForm', []);
   const file = get(item, 'request.body.file', []);
+  const assertions = get(item, 'request.assertions', []);
+  const responseHeaders = get(item, 'response.headers', []);
 
   params.forEach((param) => delete param.uid);
   headers.forEach((header) => delete header.uid);
   bodyFormUrlEncoded.forEach((param) => delete param.uid);
   bodyMultipartForm.forEach((param) => delete param.uid);
   file.forEach((param) => delete param.uid);
+  assertions.forEach((assertion) => delete assertion.uid);
+  responseHeaders.forEach((header) => delete header.uid);
+
+  if (item.draft) {
+    deleteUidsInItem(item.draft);
+  }
 
   return item;
 };
@@ -968,10 +978,13 @@ export const hasRequestChanges = (item) => {
  * Check if a specific example has unsaved changes
  * This function compares the example data between the original item and its draft
  */
-export const hasExampleChanges = (item, exampleUid) => {
-  if (!item || !item.draft || !exampleUid) {
+export const hasExampleChanges = (_item, exampleUid) => {
+  if (!_item || !_item.draft || !exampleUid) {
     return false;
   }
+
+  const item = cloneDeep(_item);
+  deleteUidsInItem(item);
 
   // Get the original example from the saved item
   const originalExample = item.examples?.find((ex) => ex.uid === exampleUid);
