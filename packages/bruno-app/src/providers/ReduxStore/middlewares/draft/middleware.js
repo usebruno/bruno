@@ -1,6 +1,7 @@
 import { handleMakeTabParmanent } from "./utils";
 
 const actionsToIntercept = [
+  // Request-level actions
   'collections/requestUrlChanged',
   'collections/updateAuth',
   'collections/addQueryParam',
@@ -37,14 +38,36 @@ const actionsToIntercept = [
   'collections/updateVar',
   'collections/deleteVar',
   'collections/moveVar',
+  'collections/updateRequestDocs',
+  'collections/runRequestEvent', // TODO: This doesn't necessarily related to a draft state, need to rethink.
+
+  // Folder-level actions
   'collections/addFolderHeader',
   'collections/updateFolderHeader',
   'collections/deleteFolderHeader',
   'collections/addFolderVar',
   'collections/updateFolderVar',
   'collections/deleteFolderVar',
-  'collections/updateRequestDocs',
-  'collections/runRequestEvent', // TODO: This doesn't necessarily related to a draft state, need to rethink.
+  'collections/updateFolderRequestScript',
+  'collections/updateFolderResponseScript',
+  'collections/updateFolderTests',
+  'collections/updateFolderAuth',
+  'collections/updateFolderAuthMode',
+  'collections/updateFolderDocs',
+
+  // Collection-level actions
+  'collections/addCollectionHeader',
+  'collections/updateCollectionHeader',
+  'collections/deleteCollectionHeader',
+  'collections/addCollectionVar',
+  'collections/updateCollectionVar',
+  'collections/deleteCollectionVar',
+  'collections/updateCollectionAuth',
+  'collections/updateCollectionAuthMode',
+  'collections/updateCollectionRequestScript',
+  'collections/updateCollectionResponseScript',
+  'collections/updateCollectionTests',
+  'collections/updateCollectionDocs'
 ];
 
 export const draftDetectMiddleware = ({ dispatch, getState }) => (next) => (action) => {
