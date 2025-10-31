@@ -18,6 +18,8 @@ test.describe('Response Example Menu Operations', () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Clone');
       await page.getByRole('button', { name: 'Create Example' }).click();
+      // Wait for modal to close
+      await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
       await page.getByTestId('request-item-chevron').click();
 
       const exampleItem = page.locator('.collection-item-name').getByText('Example to Clone');
@@ -48,6 +50,8 @@ test.describe('Response Example Menu Operations', () => {
       await page.getByTestId('create-example-name-input').fill('Example to Delete');
       await page.getByTestId('create-example-description-input').fill('This example will be deleted');
       await page.getByRole('button', { name: 'Create Example' }).click();
+      // Wait for modal to close
+      await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
 
       const exampleItem = page.locator('.collection-item-name').getByText('Example to Delete', { exact: true });
       await expect(exampleItem).toBeVisible();
@@ -79,6 +83,8 @@ test.describe('Response Example Menu Operations', () => {
       await page.getByTestId('create-example-name-input').fill('Example to Rename');
       await page.getByTestId('create-example-description-input').fill('This example will be renamed');
       await page.getByRole('button', { name: 'Create Example' }).click();
+      // Wait for modal to close
+      await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
 
       const exampleItem = page.locator('.collection-item-name').getByText('Example to Rename', { exact: true });
       await expect(exampleItem).toBeVisible();
@@ -95,6 +101,8 @@ test.describe('Response Example Menu Operations', () => {
       await renameExampleNameInput.clear();
       await renameExampleNameInput.fill('Renamed Example');
       await page.getByRole('button', { name: 'Rename' }).click();
+      // Wait for modal to close
+      await page.waitForSelector('text=Rename Example', { state: 'detached' });
       const updatedExampleItem = page.locator('.collection-item-name').getByText('Renamed Example', { exact: true });
       await expect(exampleItem).not.toBeVisible();
       await expect(updatedExampleItem).toBeVisible();
