@@ -53,12 +53,15 @@ describe('Bruno to Postman Converter with Examples', () => {
                     enabled: true
                   }
                 ],
-                body: JSON.stringify({
-                  users: [
-                    { id: 1, name: 'John Doe', email: 'john@example.com' },
-                    { id: 2, name: 'Jane Smith', email: 'jane@example.com' }
-                  ]
-                })
+                body: {
+                  type: 'json',
+                  content: JSON.stringify({
+                    users: [
+                      { id: 1, name: 'John Doe', email: 'john@example.com' },
+                      { id: 2, name: 'Jane Smith', email: 'jane@example.com' }
+                    ]
+                  })
+                }
               }
             },
             {
@@ -90,10 +93,13 @@ describe('Bruno to Postman Converter with Examples', () => {
                     enabled: true
                   }
                 ],
-                body: JSON.stringify({
-                  error: 'Internal Server Error',
-                  message: 'Something went wrong'
-                })
+                body: {
+                  type: 'json',
+                  content: JSON.stringify({
+                    error: 'Internal Server Error',
+                    message: 'Something went wrong'
+                  })
+                }
               }
             }
           ]
@@ -154,12 +160,15 @@ describe('Bruno to Postman Converter with Examples', () => {
                     enabled: true
                   }
                 ],
-                body: JSON.stringify({
-                  id: 123,
-                  name: 'New User',
-                  email: 'newuser@example.com',
-                  createdAt: '2023-01-01T00:00:00Z'
-                })
+                body: {
+                  type: 'json',
+                  content: JSON.stringify({
+                    id: 123,
+                    name: 'New User',
+                    email: 'newuser@example.com',
+                    createdAt: '2023-01-01T00:00:00Z'
+                  })
+                }
               }
             }
           ]
@@ -207,6 +216,8 @@ describe('Bruno to Postman Converter with Examples', () => {
     expect(successResponse.originalRequest.header).toHaveLength(1);
     expect(successResponse.originalRequest.header[0].key).toBe('Accept');
     expect(successResponse.originalRequest.header[0].value).toBe('application/json');
+    // GET request with mode 'none' should not have body
+    expect(successResponse.originalRequest.body).toBeUndefined();
 
     // Test second example (Error Response)
     const errorResponse = getUsersRequest.response[1];
@@ -234,6 +245,17 @@ describe('Bruno to Postman Converter with Examples', () => {
       name: 'New User',
       email: 'newuser@example.com',
       createdAt: '2023-01-01T00:00:00Z'
+    });
+
+    // Verify originalRequest includes body when present
+    expect(createdResponse.originalRequest).toBeDefined();
+    expect(createdResponse.originalRequest.method).toBe('POST');
+    expect(createdResponse.originalRequest.body).toBeDefined();
+    expect(createdResponse.originalRequest.body.mode).toBe('raw');
+    expect(createdResponse.originalRequest.body.options.raw.language).toBe('json');
+    expect(JSON.parse(createdResponse.originalRequest.body.raw)).toEqual({
+      name: 'New User',
+      email: 'newuser@example.com'
     });
   });
 
@@ -330,7 +352,10 @@ describe('Bruno to Postman Converter with Examples', () => {
                     enabled: true
                   }
                 ],
-                body: '<users><user><id>1</id><name>John</name></user></users>'
+                body: {
+                  type: 'xml',
+                  content: '<users><user><id>1</id><name>John</name></user></users>'
+                }
               }
             },
             {
@@ -353,7 +378,10 @@ describe('Bruno to Postman Converter with Examples', () => {
                     enabled: true
                   }
                 ],
-                body: '<html><body><h1>Hello World</h1></body></html>'
+                body: {
+                  type: 'html',
+                  content: '<html><body><h1>Hello World</h1></body></html>'
+                }
               }
             }
           ]
@@ -421,7 +449,10 @@ describe('Bruno to Postman Converter with Examples', () => {
                         enabled: true
                       }
                     ],
-                    body: JSON.stringify({ id: 1, name: 'John Doe' })
+                    body: {
+                      type: 'json',
+                      content: JSON.stringify({ id: 1, name: 'John Doe' })
+                    }
                   }
                 }
               ]

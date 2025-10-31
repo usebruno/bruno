@@ -356,7 +356,7 @@ export const brunoToPostman = (collection) => {
         code: parseInt(example.response?.status) || 200,
         header: generateResponseHeaders(example.response?.headers),
         cookie: [],
-        body: example.response?.body || ''
+        body: example.response?.body?.content || ''
       };
 
       // Add preview language based on content type
@@ -386,11 +386,19 @@ export const brunoToPostman = (collection) => {
       };
     }
 
-    return {
+    const originalRequestObject = {
       method: request.method || 'GET',
       header: generateHeaders(request.headers),
-      url: transformUrl(request.url || '', request.params || [])
+      // We sanitize the URL to make sure it's in the right format before passing it to the transformUrl func. This means changing backslashes to forward slashes and reducing multiple slashes to a single one, except in the protocol part.
+      url: transformUrl(sanitizeUrl(request.url || ''), request.params || [])
     };
+
+    // Add body if it exists and is not 'none' mode
+    if (request.body && request.body.mode !== 'none') {
+      originalRequestObject.body = generateBody(request.body);
+    }
+
+    return originalRequestObject;
   };
 
   const generateResponseHeaders = (headers) => {
