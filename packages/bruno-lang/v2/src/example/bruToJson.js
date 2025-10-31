@@ -3,7 +3,7 @@ const _ = require('lodash');
 const { safeParseJson, outdentString } = require('../utils');
 const parseRequest = require('./request/bruToJson');
 const parseResponse = require('./response/bruToJson');
-const astBaseAttribute = require('./commons/astBaseAttribute');
+const astBaseAttribute = require('../commons/astBaseAttribute');
 
 /**
  * Example Grammar for Bruno

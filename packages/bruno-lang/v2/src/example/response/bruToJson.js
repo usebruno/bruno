@@ -1,7 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('../../utils');
-const astBaseAttribute = require('../commons/astBaseAttribute');
+const astBaseAttribute = require('../../commons/astBaseAttribute');
 
 /**
  * Response Block Grammar for Bruno Examples

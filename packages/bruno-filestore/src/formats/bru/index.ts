@@ -343,7 +343,7 @@ export const jsonEnvironmentToBru = (json: any): string => {
 // New functions for example handling
 export const bruExampleToJson = (data: string | any, parsed: boolean = false, parentType?: string, parentMethod?: string): any => {
   try {
-    const json = parsed ? data : bruToJsonV2(data, true); // Always use example parsing
+    const json = parsed ? data : bruToJsonV2(data);
 
     // Use parent request's type and method if provided
     const requestType = parentType || _.get(json, 'meta.type', 'http');
@@ -377,7 +377,9 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
         method: _.get(json, 'request.method') || requestMethod,
         url: _.get(json, 'request.url'),
         headers: _.get(json, 'request.headers', []),
-        body: _.get(json, 'request.body', {}),
+        body: _.get(json, 'request.body', {
+          mode: 'none'
+        }),
         // Examples don't have script, vars, assertions, tests, docs
         params: _.get(json, 'request.params', [])
       },
