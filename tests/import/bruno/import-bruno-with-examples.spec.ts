@@ -1,12 +1,10 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Import Bruno Collection with Examples', () => {
-  test.beforeAll(async ({ page }) => {
-    await page.locator('.bruno-logo').click();
-  });
   test.afterAll(async ({ page }) => {
-    await page.getByTestId('modal-close-button').click();
+    await closeAllCollections(page);
   });
 
   test('Import Bruno collection with examples successfully', async ({ page }) => {
@@ -45,6 +43,7 @@ test.describe('Import Bruno Collection with Examples', () => {
     await test.step('Verify collection name appears in location modal', async () => {
       const locationModal = page.getByRole('dialog');
       await expect(locationModal.getByText('bruno-with-examples')).toBeVisible();
+      await page.getByTestId('modal-close-button').click();
     });
   });
 });
