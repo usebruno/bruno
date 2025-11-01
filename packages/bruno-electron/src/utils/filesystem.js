@@ -44,6 +44,26 @@ const hasSubDirectories = (dir) => {
 };
 
 const normalizeAndResolvePath = (pathname) => {
+  // Handle file:// URLs first - convert to filesystem paths
+  // This fixes Windows path issues where file URLs like "file:///C:/path"
+  // can be incorrectly parsed as "\file\C:\path"
+  if (pathname.startsWith('file://') || pathname.startsWith('file:')) {
+    try {
+      // Use Node.js built-in URL to filesystem path conversion
+      const { fileURLToPath } = require('url');
+      pathname = fileURLToPath(pathname);
+    } catch (err) {
+      // Fallback: manual cleanup for malformed file URLs
+      // Handles: file:///C:/path, file://C:/path, file:C:/path, /C:/path
+      pathname = pathname
+        .replace(/^file:\/\/\//, '') // Remove file:/// (standard Unix file URL)
+        .replace(/^file:\/\//, '') // Remove file:// (alternative format)
+        .replace(/^file:/, '') // Remove file: (malformed URL)
+        .replace(/^\/+([A-Za-z]:)/, '$1'); // Fix /C:/path → C:/path on Windows
+
+      console.warn(`Manually cleaned malformed file URL: ${pathname}`);
+    }
+  }
 
   if (isWSLPath(pathname)) {
     return normalizeWSLPath(pathname);
