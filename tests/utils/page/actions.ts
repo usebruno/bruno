@@ -46,15 +46,18 @@ const openCollectionAndAcceptSandbox = async (page, collectionName: string, sand
 };
 
 const createCollection = async (page, collectionName: string, createDir: (tag?: string | undefined) => Promise<string>) => {
-  await page.locator('.dropdown-icon').click();
-  await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-  await page.getByLabel('Name').fill(collectionName);
-  await page.getByLabel('Location').fill(await createDir(collectionName));
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
-  await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
-  await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
-  await page.getByLabel('Safe Mode').check();
-  await page.getByRole('button', { name: 'Save' }).click();
+  test.step(`Create collection "${collectionName}" and accept sandbox "safe" mode`, async () => {
+    await page.locator('.collection-dropdown .dropdown-icon').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create Collection' }).click();
+
+    const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
+
+    await createCollectionModal.getByLabel('Name').fill(collectionName);
+    await createCollectionModal.getByLabel('Location').fill(await createDir(collectionName));
+    await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
+
+    await openCollectionAndAcceptSandbox(page, collectionName, 'safe');
+  });
 };
 
 export { closeAllCollections, openCollectionAndAcceptSandbox, createCollection };

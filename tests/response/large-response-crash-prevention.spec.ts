@@ -1,26 +1,29 @@
 import { test, expect } from '../../playwright';
+import { closeAllCollections, createCollection } from '../utils/page/actions';
 
-test.describe('Large Response Crash Prevention', () => {
-  test('should show appropriate warning for responses over 10MB', async ({ page, createTmpDir }) => {
+test.describe('Large Response Crash/High Memory Usage Prevention', () => {
+  test.afterAll(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('Show appropriate warning for responses over 10MB', async ({ page, createTmpDir }) => {
+    const collectionName = 'size-warning-test';
+
     // Create collection
-    await page.getByLabel('Create Collection').click();
-    await page.getByLabel('Name').fill('size-warning-test');
-    await page.getByLabel('Name').press('Tab');
-    await page.getByLabel('Location').fill(await createTmpDir('size-warning-test'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-    await page.getByText('size-warning-test').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await createCollection(page, collectionName, createTmpDir);
 
     // Create request
     await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByPlaceholder('Request Name').fill('size-check');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://samples.json-format.com/employees/json/employees_50MB.json');
-    await page.getByRole('button', { name: 'Create' }).click();
+
+    const createRequestModal = page.locator('.bruno-modal-card').filter({ hasText: 'New Request' });
+    await createRequestModal.getByPlaceholder('Request Name').fill('size-check');
+    await createRequestModal.locator('#new-request-url .CodeMirror').click();
+    await createRequestModal.locator('textarea').fill('https://samples.json-format.com/employees/json/employees_50MB.json');
+    await createRequestModal.getByRole('button', { name: 'Create' }).click();
 
     // Send request
-    const sendButton = page.locator('#send-request').getByRole('img').nth(2);
+    const sendButton = page.getByTestId('send-arrow-icon');
     await sendButton.click();
 
     // Verify warning appears
@@ -32,7 +35,5 @@ test.describe('Large Response Crash Prevention', () => {
 
     // Verify action button
     await expect(page.getByRole('button', { name: 'View' })).toBeVisible();
-
-    console.log('Large response warning displayed correctly');
   });
 });
