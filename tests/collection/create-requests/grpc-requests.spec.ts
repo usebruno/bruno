@@ -18,7 +18,6 @@ test.describe('Create gRPC Requests', () => {
     await locators.modal.button('Delete').click();
 
     // Clean up Folder gRPC Request
-    await locators.sidebar.folder('folder1').click();
     await locators.sidebar.request('Folder gRPC Request').click({ button: 'right' });
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
@@ -58,7 +57,6 @@ test.describe('Create gRPC Requests', () => {
       await locators.sidebar.folder('folder1').click();
       const folderRequestItem = locators.sidebar.folderRequest('folder1', 'Root gRPC Request');
       await expect(folderRequestItem).not.toBeVisible();
-      await locators.folder.chevron('folder1').click(); // close folder1
     });
 
     await test.step('Create gRPC request via folder1 three dots menu', async () => {
@@ -76,15 +74,11 @@ test.describe('Create gRPC Requests', () => {
     await test.step('Verify gRPC request was created within folder1', async () => {
       // Open collection and verify request is not in collection root
       await locators.sidebar.collection('create-requests').click();
-      const requestItem = locators.sidebar.request('Folder gRPC Request');
-      await expect(requestItem).not.toBeVisible();
-
-      // Open folder1 and verify request is present in folder1
-      await locators.sidebar.folder('folder1').click();
-      await expect(requestItem).toBeVisible();
+      const folderRequestItem = locators.sidebar.folderRequest('folder1', 'Folder gRPC Request');
+      await expect(folderRequestItem).toBeVisible();
 
       // Open request and verify it is the active request
-      await requestItem.click();
+      await folderRequestItem.click();
       await expect(locators.tabs.activeRequestTab()).toContainText('Folder gRPC Request');
     });
   });
