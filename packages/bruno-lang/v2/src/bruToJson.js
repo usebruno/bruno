@@ -1,6 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
+const parseExample = require('./example/bruToJson');
 
 /**
  * A Bru file is made up of blocks.
@@ -29,7 +30,7 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -144,6 +145,11 @@ const grammar = ohm.grammar(`Bru {
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
   bodyfile = "body:file" dictionary
+
+
+  // Examples - multiple example blocks
+  example = "example" st* "{" nl* examplecontent tagend
+  examplecontent = (~tagend any)*
   
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -291,6 +297,37 @@ const createGetNumFromRecord = (obj) => (key, { fallback } = {}) => {
     return fallback;
   }
   return asNumber;
+};
+
+// Parse example content using dedicated example parser
+const parseExampleContent = (content) => {
+  try {
+    // Unindent the content by removing leading whitespace from each line
+    const lines = content.split('\n');
+
+    // Find the minimum indentation (excluding empty lines)
+    let minIndent = Infinity;
+    lines.forEach((line) => {
+      if (line.trim() !== '') {
+        const indent = line.match(/^[ \t]*/)[0].length;
+        minIndent = Math.min(minIndent, indent);
+      }
+    });
+
+    // Remove the minimum indentation from all lines
+    const unindentedLines = lines.map((line) => {
+      if (line.trim() === '') return line; // Keep empty lines as is
+      return line.substring(minIndent);
+    });
+
+    const unindentedContent = unindentedLines.join('\n').trim();
+
+    // Parse the unindented content using the dedicated example parser
+    return parseExample(unindentedContent);
+  } catch (error) {
+    console.error('Error parsing example content:', error);
+    return { error: error.message };
+  }
 };
 
 const sem = grammar.createSemantics().addAttribute('ast', {
@@ -1054,6 +1091,16 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         ]
       }
     };
+  },
+  example(_1, _2, _3, _4, examplecontent, _5) {
+    const content = examplecontent.sourceString;
+    const parsedExample = parseExampleContent(content);
+    return {
+      examples: [parsedExample]
+    };
+  },
+  examplecontent(chars) {
+    return outdentString(chars.sourceString);
   }
 });
 
