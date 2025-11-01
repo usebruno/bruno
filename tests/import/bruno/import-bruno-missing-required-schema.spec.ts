@@ -18,7 +18,7 @@ test.describe('Import Bruno Collection - Missing Required Schema Fields', () => 
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // Check for schema validation error messages
-    const hasImportError = await page.getByText('Import collection failed').first().isVisible();
+    const hasImportError = await page.getByText('Unsupported collection format').first().isVisible();
 
     expect(hasImportError).toBe(true);
 

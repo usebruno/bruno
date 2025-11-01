@@ -15,24 +15,24 @@ import { multiLineMsg } from "utils/common";
 import { formatIpcError } from "utils/common/error";
 
 const TitleBar = () => {
-  const [importedCollection, setImportedCollection] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const [importData, setImportData] = useState(null);
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
-  const handleImportCollection = ({ collection }) => {
-    setImportedCollection(collection);
+  const handleImportCollection = ({ rawData, type }) => {
+    setImportData({ rawData, type });
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation))
+  const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
+    dispatch(importCollection(convertedCollection, collectionLocation))
       .then(() => {
         setImportCollectionLocationModalOpen(false);
-        setImportedCollection(null);
+        setImportData(null);
         toast.success('Collection imported successfully');
       })
       .catch((err) => {
@@ -72,9 +72,10 @@ const TitleBar = () => {
       {importCollectionModalOpen ? (
         <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} />
       ) : null}
-      {importCollectionLocationModalOpen ? (
+      {importCollectionLocationModalOpen && importData ? (
         <ImportCollectionLocation
-          collectionName={importedCollection.name}
+          rawData={importData.rawData}
+          format={importData.type}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />

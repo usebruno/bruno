@@ -32,12 +32,10 @@ test.describe('Import WSDL Collection', () => {
       const locationModal = page.getByRole('dialog');
       await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
-      // Wait for collection to appear in the location modal
-      await expect(locationModal.getByText('TestWSDLServiceXML')).toBeVisible();
-
       // select a location
       await page.locator('#collection-location').fill(await createTmpDir('wsdl-xml-test'));
       await page.getByRole('button', { name: 'Import', exact: true }).click();
+      await expect(page.locator('#sidebar-collection-name').getByText('TestWSDLServiceXML')).toBeVisible();
     });
 
     await test.step('Verify that the collection was imported successfully', async () => {

@@ -18,7 +18,7 @@ test.describe('Invalid Insomnia Collection - Missing Collection Array', () => {
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // Check for error message
-    const hasError = await page.getByText('Import collection failed').first().isVisible();
+    const hasError = await page.getByText('Unsupported collection format').first().isVisible();
     expect(hasError).toBe(true);
 
     // Cleanup: close any open modals

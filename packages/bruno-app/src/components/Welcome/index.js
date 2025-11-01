@@ -17,7 +17,7 @@ const Welcome = () => {
   const { t } = useTranslation();
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const collections = useSelector((state) => state.collections.collections);
-  const [importedCollection, setImportedCollection] = useState(null);
+  const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
@@ -30,17 +30,17 @@ const Welcome = () => {
       });
   };
 
-  const handleImportCollection = ({ collection }) => {
-    setImportedCollection(collection);
+  const handleImportCollection = ({ rawData, type }) => {
+    setImportData({ rawData, type });
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation))
+  const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
+    dispatch(importCollection(convertedCollection, collectionLocation))
       .then(() => {
         setImportCollectionLocationModalOpen(false);
-        setImportedCollection(null);
+        setImportData(null);
         toast.success(t('WELCOME.COLLECTION_IMPORT_SUCCESS'));
       })
       .catch((err) => {
@@ -56,9 +56,10 @@ const Welcome = () => {
       {importCollectionModalOpen ? (
         <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} />
       ) : null}
-      {importCollectionLocationModalOpen ? (
+      {importCollectionLocationModalOpen && importData ? (
         <ImportCollectionLocation
-          collectionName={importedCollection.name}
+          rawData={importData.rawData}
+          format={importData.type}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
