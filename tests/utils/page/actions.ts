@@ -46,7 +46,7 @@ const openCollectionAndAcceptSandbox = async (page, collectionName: string, sand
 };
 
 const createCollection = async (page, collectionName: string, createDir: (tag?: string | undefined) => Promise<string>) => {
-  test.step(`Create collection "${collectionName}" and accept sandbox "safe" mode`, async () => {
+  await test.step(`Create collection "${collectionName}" and accept sandbox "safe" mode`, async () => {
     await page.locator('.collection-dropdown .dropdown-icon').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create Collection' }).click();
 
