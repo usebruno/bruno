@@ -15,7 +15,7 @@ test.describe('Large Response Crash/High Memory Usage Prevention', () => {
     const collectionName = 'size-warning-test';
 
     // Create collection
-    await createCollection(page, collectionName, createTmpDir);
+    await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
 
     // Create request
     await page.locator('#create-new-tab').getByRole('img').click();
