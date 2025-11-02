@@ -43,7 +43,7 @@ const getCopyButton = (variableValue) => {
   copyButton.style.transition = 'opacity 0.2s ease';
   copyButton.style.display = 'flex';
   copyButton.style.alignItems = 'center';
-  copyButton.style.justifyContent = 'center';
+  copyButton.style.justifyContent = 'flex-end';
 
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
 
@@ -251,7 +251,7 @@ if (!SERVER_RENDERED) {
     if (leftPos < 10) {
       leftPos = 10;
     }
-    
+
     // Ensure it doesn't go off the right edge
     if (leftPos + popupWidth > window.innerWidth - 10) {
       leftPos = window.innerWidth - popupWidth - 10;
