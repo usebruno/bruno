@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import path from 'path';
 
 test.describe('Collection Environment Import Tests', () => {
-  test('should import collection environment from file', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('should import collection environment from file', async ({ page, createTmpDir }) => {
     const openApiFile = path.join(__dirname, 'fixtures', 'collection.json');
     const envFile = path.join(__dirname, 'fixtures', 'collection-env.json');
 

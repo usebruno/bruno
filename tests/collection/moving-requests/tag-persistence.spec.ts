@@ -2,12 +2,12 @@ import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 
 test.describe('Tag persistence', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
   });
 
-  test('Verify tag persistence while moving requests within a collection', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('Verify tag persistence while moving requests within a collection', async ({ page, createTmpDir }) => {
     // Create first collection - click dropdown menu first
     await page.getByLabel('Create Collection').click();
     await page.getByLabel('Name').fill('test-collection');
@@ -72,7 +72,7 @@ test.describe('Tag persistence', () => {
     await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
   });
 
-  test('verify tag persistence while moving requests between folders', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
     // Create first collection - click dropdown menu first
     await page.getByLabel('Create Collection').click();
     await page.getByLabel('Name').fill('test-collection');

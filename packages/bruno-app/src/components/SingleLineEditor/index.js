@@ -42,7 +42,7 @@ class SingleLineEditor extends Component {
     };
     const noopHandler = () => {};
 
-    this.editor = CodeMirror(this.editorRef.current, {
+    this.editor = makeLinkAwareCodeMirror(this.editorRef.current, {
       placeholder: this.props.placeholder ?? '',
       lineWrapping: false,
       lineNumbers: false,

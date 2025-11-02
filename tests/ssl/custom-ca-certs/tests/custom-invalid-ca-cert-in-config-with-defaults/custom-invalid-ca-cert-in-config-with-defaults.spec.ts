@@ -2,7 +2,6 @@ import { test, expect } from '../../../../../playwright';
 
 test.describe.serial('custom invalid ca cert added to the config and keep default ca certs', () => {
   test('developer mode', async ({ pageWithUserData: page }) => {
-
     // init dev mode
     await page.getByText('custom-ca-certs').click();
     await page.getByLabel('Developer Mode(use only if').check();
@@ -29,7 +28,6 @@ test.describe.serial('custom invalid ca cert added to the config and keep defaul
   });
 
   test('safe mode', async ({ pageWithUserData: page }) => {
-    
     // init safe mode
     await page.getByText('Developer Mode').click();
     await page.getByLabel('Safe Mode').check();
