@@ -276,6 +276,8 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .value-container {
     margin-bottom: 8px;
+    display: flex;
+    justify-content: flex-start;
   }
 
   .CodeMirror-brunoVarInfo .info-description {
@@ -309,7 +311,7 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .button-container {
     display: flex;
     gap: 8px;
-    justify-content: flex-end;
+    justify-content: flex-start;
     margin-top: 8px;
   }
 

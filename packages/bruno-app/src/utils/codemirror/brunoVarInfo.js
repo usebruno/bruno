@@ -43,7 +43,7 @@ const getCopyButton = (variableValue) => {
   copyButton.style.transition = 'opacity 0.2s ease';
   copyButton.style.display = 'flex';
   copyButton.style.alignItems = 'center';
-  copyButton.style.justifyContent = 'center';
+  copyButton.style.justifyContent = 'flex-end';
 
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
 
@@ -116,26 +116,20 @@ export const renderVarInfo = (token, options, cm, pos) => {
   contentDiv.style.gap = '8px';
   contentDiv.className = 'info-content';
 
-  const descriptionDiv = document.createElement('div');
-  descriptionDiv.className = 'info-description';
-  descriptionDiv.style.flex = '1';
-
-  if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
-    descriptionDiv.appendChild(document.createTextNode('*****'));
-  } else {
-    descriptionDiv.appendChild(document.createTextNode(variableValue));
-  }
-
-  const copyButton = getCopyButton(variableValue);
-
-  contentDiv.appendChild(descriptionDiv);
-  contentDiv.appendChild(copyButton);
-  into.appendChild(contentDiv);
-
+  appendVariableHeader(into, variableName, options);  
   appendVariableValue(into, variableName, variableValue, options, cm);
 
+  into.appendChild(contentDiv);
   return into;
 };
+
+const appendVariableHeader = (container, variableName, options) => {
+    const variableType = getVariableType(variableName, options);
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'info-name';
+    headerDiv.textContent = `${variableName} (${variableType})`;
+    container.appendChild(headerDiv);
+  };
 
 const appendVariableValue = (container, variableName, variableValue, options, cm) => {
     const variableType = getVariableType(variableName, options);
@@ -154,7 +148,7 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
   };
 
   const isVariableEditable = (variableType) => {
-    return ['global', 'environment', 'runtime'].includes(variableType);
+    return ['global', 'environment', 'collection', 'folder'].includes(variableType);
   };
 
   const isVariableMasked = (variableName, options) => {
@@ -168,6 +162,9 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
     const displayValue = isMasked ? '*****' : variableValue;
     const descriptionDiv = createValueDisplay(displayValue);
     valueContainer.appendChild(descriptionDiv);
+
+    const copyButton = getCopyButton(variableValue);
+    valueContainer.appendChild(copyButton);
     
     if (isEditable && !isMasked) {
       const editInput = createEditInput(variableValue);
@@ -376,12 +373,44 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
       }
     }
 
+    // Check folder variables (recursive check through all folders in collections)
+    if (collections) {
+      for (const collection of collections) {
+        if (hasFolderVariable(collection.items, variableName)) {
+          return 'folder';
+        }
+      }
+    }
+
     // Check if it's a process env variable
     if (variableName.startsWith('process.env.')) {
       return 'process';
     }
 
     return 'runtime';
+  };
+
+  const hasFolderVariable = (items, variableName) => {
+    if (!items || !Array.isArray(items)) {
+      return false;
+    }
+
+    for (const item of items) {
+      // Check if this item is a folder and has the variable
+      if (item.type === 'folder') {
+        const folderVars = item.root?.request?.vars?.req || [];
+        if (folderVars.some(v => v.name === variableName && v.enabled)) {
+          return true;
+        }
+        
+        // Recursively check nested folders
+        if (item.items && hasFolderVariable(item.items, variableName)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   };
 
   // Function to update variable value
@@ -403,6 +432,10 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
         return updateEnvironmentVariable(variableName, newValue, state, store);
       case 'runtime':
         return updateRuntimeVariable(variableName, newValue, options, cm, store);
+      case 'collection':
+        return updateCollectionVariable(variableName, newValue, options, cm, store);
+      case 'folder':
+        return updateFolderVariable(variableName, newValue, options, cm, store);
       default:
         throw new Error(`Variable '${variableName}' not found in editable contexts. Global, environment, and runtime variables can be edited from tooltips.`);
     }
@@ -469,6 +502,113 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
     if (collectionUid) {
       await dispatchRuntimeVariableUpdate(reduxStore, collectionUid, variableName, newValue);
     }
+  };
+
+  const updateCollectionVariable = async (variableName, newValue, options, cm, reduxStore) => {
+    const state = reduxStore.getState();
+    const collections = state?.collections?.collections;
+    if (!collections) {
+      throw new Error('No collections found');
+    }
+    
+    // Find the collection that contains this variable
+    for (const collection of collections) {
+      const collectionRequestVars = collection.root?.request?.vars?.req || [];
+      const collectionVar = collectionRequestVars.find(v => v.name === variableName && v.enabled);
+      
+      if (collectionVar) {
+        // Import the action creator and update the variable
+        const { updateCollectionVar } = await import('providers/ReduxStore/slices/collections');
+        await reduxStore.dispatch(updateCollectionVar({
+          collectionUid: collection.uid,
+          type: 'request',
+          var: {
+            ...collectionVar,
+            value: newValue
+          }
+        }));
+        
+        // Also save the collection root to persist the change
+        const { saveCollectionRoot } = await import('providers/ReduxStore/slices/collections/actions');
+        await reduxStore.dispatch(saveCollectionRoot(collection.uid));
+        
+        // Update the local options to reflect the change immediately
+        if (options.variables) {
+          options.variables[variableName] = newValue;
+        }
+        updateCodeMirrorState(cm, options.variables);
+        
+        return;
+      }
+    }
+    
+    throw new Error(`Collection variable '${variableName}' not found`);
+  };
+
+  const updateFolderVariable = async (variableName, newValue, options, cm, reduxStore) => {
+    const state = reduxStore.getState();
+    const collections = state?.collections?.collections;
+    if (!collections) {
+      throw new Error('No collections found');
+    }
+    
+    // Find the folder that contains this variable
+    for (const collection of collections) {
+      const folderInfo = findFolderWithVariable(collection.items, variableName);
+      
+      if (folderInfo) {
+        const { updateFolderVar } = await import('providers/ReduxStore/slices/collections');
+        await reduxStore.dispatch(updateFolderVar({
+          collectionUid: collection.uid,
+          folderUid: folderInfo.folderUid,
+          type: 'request',
+          var: {
+            ...folderInfo.variable,
+            value: newValue
+          }
+        }));
+        
+        const { saveFolderRoot } = await import('providers/ReduxStore/slices/collections/actions');
+        await reduxStore.dispatch(saveFolderRoot(collection.uid, folderInfo.folderUid));
+        
+        if (options.variables) {
+          options.variables[variableName] = newValue;
+        }
+        updateCodeMirrorState(cm, options.variables);
+        
+        return;
+      }
+    }
+    
+    throw new Error(`Folder variable '${variableName}' not found`);
+  };
+
+const findFolderWithVariable = (items, variableName) => {
+    if (!items || !Array.isArray(items)) {
+      return null;
+    }
+
+    for (const item of items) {
+      if (item.type === 'folder') {
+        const folderVars = item.root?.request?.vars?.req || [];
+        const variable = folderVars.find(v => v.name === variableName && v.enabled);
+        
+        if (variable) {
+          return {
+            folderUid: item.uid,
+            variable
+          };
+        }
+        
+        // Recursively check nested folders
+        const nestedResult = findFolderWithVariable(item.items, variableName);
+        if (nestedResult) {
+          return nestedResult;
+        }
+      }
+    }
+
+    return null;
   };
 
   const getActiveGlobalEnvironment = (state) => {
