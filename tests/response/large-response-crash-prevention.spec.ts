@@ -2,6 +2,10 @@ import { test, expect } from '../../playwright';
 import { closeAllCollections, createCollection } from '../utils/page/actions';
 
 test.describe('Large Response Crash/High Memory Usage Prevention', () => {
+  // Increase timeout to 1 minute for all tests in this describe block, default is 30 seconds.
+  // Prevents tests from failing due to timeout while waiting for the response, especially on slower internet connections.
+  test.setTimeout(1 * 60 * 1000); // 1 minute
+
   test.afterAll(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
@@ -11,7 +15,7 @@ test.describe('Large Response Crash/High Memory Usage Prevention', () => {
     const collectionName = 'size-warning-test';
 
     // Create collection
-    await createCollection(page, collectionName, createTmpDir);
+    await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
 
     // Create request
     await page.locator('#create-new-tab').getByRole('img').click();

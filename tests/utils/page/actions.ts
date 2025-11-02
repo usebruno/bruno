@@ -42,21 +42,39 @@ const openCollectionAndAcceptSandbox = async (page, collectionName: string, sand
     const modeLabel = sandboxMode === 'safe' ? 'Safe Mode' : 'Developer Mode';
     await sandboxModal.getByLabel(modeLabel).check();
     await sandboxModal.locator('.bruno-modal-footer .submit').click();
+    await sandboxModal.waitFor({ state: 'detached' });
   });
 };
 
-const createCollection = async (page, collectionName: string, createDir: (tag?: string | undefined) => Promise<string>) => {
-  test.step(`Create collection "${collectionName}" and accept sandbox "safe" mode`, async () => {
+type CreateCollectionOptions = {
+  openWithSandboxMode?: 'safe' | 'developer';
+};
+
+/**
+ * Create a collection
+ * @param page - The page object
+ * @param collectionName - The name of the collection to create
+ * @param collectionLocation - The location of the collection to create (eg)
+ * @param options - The options for creating the collection
+ *
+ * @returns void
+ */
+const createCollection = async (page, collectionName: string, collectionLocation: string, options: CreateCollectionOptions = {}) => {
+  await test.step(`Create collection "${collectionName}"`, async () => {
     await page.locator('.collection-dropdown .dropdown-icon').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create Collection' }).click();
 
     const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
 
     await createCollectionModal.getByLabel('Name').fill(collectionName);
-    await createCollectionModal.getByLabel('Location').fill(await createDir(collectionName));
+    await createCollectionModal.getByLabel('Location').fill(collectionLocation);
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
-    await openCollectionAndAcceptSandbox(page, collectionName, 'safe');
+    await createCollectionModal.waitFor({ state: 'detached' });
+
+    if (options.openWithSandboxMode != undefined) {
+      await openCollectionAndAcceptSandbox(page, collectionName, options.openWithSandboxMode);
+    }
   });
 };
 

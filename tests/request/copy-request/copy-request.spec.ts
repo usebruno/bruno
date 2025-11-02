@@ -7,7 +7,7 @@ test.describe('Copy and Paste Requests', () => {
   });
 
   test('should copy and paste a request within the same collection', async ({ page, createTmpDir }) => {
-    await createCollection(page, 'test-collection', createTmpDir);
+    await createCollection(page, 'test-collection', await createTmpDir('test-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a new request
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection' });
@@ -53,7 +53,7 @@ test.describe('Copy and Paste Requests', () => {
   });
 
   test('should copy and paste a request into a different collection', async ({ page, createTmpDir }) => {
-    await createCollection(page, 'test-collection-2', createTmpDir);
+    await createCollection(page, 'test-collection-2', await createTmpDir('test-collection-2'), { openWithSandboxMode: 'safe' });
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection-2' });
 
     // Paste into the collection root
