@@ -40,9 +40,9 @@ class SingleLineEditor extends Component {
         this.props.onSave();
       }
     };
-    const noopHandler = () => {};
+    const noopHandler = () => { };
 
-    this.editor = makeLinkAwareCodeMirror(this.editorRef.current, {
+    this.editor = CodeMirror(this.editorRef.current, {
       placeholder: this.props.placeholder ?? '',
       lineWrapping: false,
       lineNumbers: false,
@@ -91,7 +91,7 @@ class SingleLineEditor extends Component {
       this.editor,
       autoCompleteOptions
     );
-    
+
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);

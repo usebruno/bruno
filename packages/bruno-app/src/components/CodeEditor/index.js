@@ -48,7 +48,7 @@ export default class CodeEditor extends React.Component {
   componentDidMount() {
     const variables = getAllVariables(this.props.collection, this.props.item);
 
-    const editor = (this.editor = makeLinkAwareCodeMirror(this._node, {
+    const editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
       lineWrapping: this.props.enableLineWrapping ?? true,
@@ -142,7 +142,7 @@ export default class CodeEditor extends React.Component {
             } else var toParse = '{' + internal + '}';
             try {
               count = Object.keys(JSON.parse(toParse)).length;
-            } catch (e) {}
+            } catch (e) { }
           } else if (this.props.mode == 'application/xml') {
             var doc = new DOMParser();
             try {
@@ -152,12 +152,12 @@ export default class CodeEditor extends React.Component {
                 'application/xml'
               );
               count = dcm.documentElement.children.length;
-            } catch (e) {}
+            } catch (e) { }
           }
           return count ? `\u21A4${count}\u21A6` : '\u2194';
         }
       }
-    }));
+    });
     CodeMirror.registerHelper('lint', 'json', function (text) {
       let found = [];
       if (!window.jsonlint) {
@@ -183,7 +183,7 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
-    
+
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
@@ -192,7 +192,7 @@ export default class CodeEditor extends React.Component {
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
-      
+
       // Setup AutoComplete Helper for all modes
       const autoCompleteOptions = {
         showHintsFor: this.props.showHintsFor,

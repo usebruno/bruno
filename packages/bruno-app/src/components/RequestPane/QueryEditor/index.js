@@ -36,7 +36,7 @@ export default class QueryEditor extends React.Component {
   }
 
   componentDidMount() {
-    const editor = (this.editor = makeLinkAwareCodeMirror(this._node, {
+    const editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
       tabSize: 2,
@@ -131,7 +131,7 @@ export default class QueryEditor extends React.Component {
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent'
       }
-    }));
+    });
     if (editor) {
       editor.on('change', this._onEdit);
       editor.on('keyup', this._onKeyUp);
