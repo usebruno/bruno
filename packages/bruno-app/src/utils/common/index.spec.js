@@ -1,6 +1,14 @@
 const { describe, it, expect } = require('@jest/globals');
 
-import { normalizeFileName, startsWith, humanizeDate, relativeDate, getContentType, formatSize } from './index';
+import {
+  normalizeFileName,
+  startsWith,
+  humanizeDate,
+  relativeDate,
+  getContentType,
+  formatSize,
+  prettifyJSON
+} from './index';
 
 describe('common utils', () => {
   describe('normalizeFileName', () => {
@@ -182,6 +190,32 @@ describe('common utils', () => {
       expect(formatSize(null)).toBe('0B');
       expect(formatSize(undefined)).toBe('0B');
       expect(formatSize(NaN)).toBe('0B');
+    });
+  });
+
+  describe('prettifyJSON', () => {
+    it('should prettify a standard JSON string', () => {
+      const input = '{"key":"value","number":123}';
+      const expected = '{\n  "key": "value",\n  "number": 123\n}';
+      expect(prettifyJSON(input)).toBe(expected);
+    });
+
+    it('should handle JSON with a Bruno variable as a value', () => {
+      const input = '{"id":{{request_id}}}';
+      const expected = '{\n  "id": {{request_id}}\n}';
+      expect(prettifyJSON(input)).toBe(expected);
+    });
+
+    it('should handle JSON with a Bruno variable inside a string value', () => {
+      const input = '{"url":"https://example.com/{{path}}"}';
+      const expected = '{\n  "url": "https://example.com/{{path}}"\n}';
+      expect(prettifyJSON(input)).toBe(expected);
+    });
+
+    it('should return the original string for invalid JSON', () => {
+      const input = '{"key":"value",';
+      const expected = '{\n  "key": "value",';
+      expect(prettifyJSON(input)).toBe(expected);
     });
   });
 });

@@ -63,4 +63,31 @@ describe('prepareGqlIntrospectionRequest', () => {
     expect(result.headers['Content-Type']).toBe('application/json');
   });
 
+  it('should handle process.env variables in endpoint URL', () => {
+    const setup = createBasicSetup();
+    setup.endpoint = 'https://{{process.env.API_HOST}}/graphql';
+    const vars = {
+      process: {
+        env: {
+          API_HOST: 'api.example.com'
+        }
+      }
+    };
+
+    const result = prepareGqlIntrospectionRequest(setup.endpoint, vars, setup.request, setup.collectionRoot);
+
+    expect(result.url).toBe('https://api.example.com/graphql');
+    expect(result.method).toBe('POST');
+  });
+
+  it('should handle missing process.env variables gracefully', () => {
+    const setup = createBasicSetup();
+    setup.request.headers = [
+      { name: 'X-API-Key', value: '{{process.env.MISSING_VAR}}', enabled: true }
+    ];
+
+    const result = prepareGqlIntrospectionRequest(setup.endpoint, {}, setup.request, setup.collectionRoot);
+
+    expect(result.headers['X-API-Key']).toBe('{{process.env.MISSING_VAR}}');
+  });
 });

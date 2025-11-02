@@ -158,6 +158,22 @@ const validateName = (name) => {
   );
 };
 
+/**
+ * Checks if a file is larger than a given threshold.
+ * @param {string} filePath - The path to the file.
+ * @param {number} threshold - The threshold in bytes. Default is 10MB.
+ * @returns {boolean} True if the file is larger than the threshold, false otherwise.
+ */
+const isLargeFile = (filePath, threshold = 10 * 1024 * 1024) => {
+  if (!isFile(filePath)) {
+    throw new Error(`File ${filePath} is not a file`);
+  }
+
+  const size = fs.statSync(filePath).size;
+
+  return size > threshold;
+};
+
 module.exports = {
   exists,
   isSymbolicLink,
@@ -173,5 +189,6 @@ module.exports = {
   stripExtension,
   getSubDirectories,
   sanitizeName,
-  validateName
+  validateName,
+  isLargeFile
 };

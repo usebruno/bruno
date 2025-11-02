@@ -1,0 +1,22 @@
+meta {
+  name: SayHello
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: {{host}}
+  method: /hello.HelloService/SayHello
+  body: grpc
+  auth: inherit
+  methodType: unary
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+  {
+    "greeting": "supra"
+  }
+  '''
+}

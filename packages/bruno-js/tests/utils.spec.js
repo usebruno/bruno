@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-const { evaluateJsExpression, internalExpressionCache: cache, createResponseParser } = require('../src/utils');
+const { evaluateJsExpression, internalExpressionCache: cache, createResponseParser, cleanJson } = require('../src/utils');
 
 describe('utils', () => {
   describe('expression evaluation', () => {
@@ -151,6 +151,66 @@ describe('utils', () => {
     it('should allow json-query', () => {
       const value = res.jq('order.items[amount > 10].amount');
       expect(value).toBe(20);
+    });
+  });
+
+  describe('cleanJson', () => {
+    it('primitives should be kept as is', () => {
+      const input = {
+        number: 1,
+        string: 'hello world',
+        booleanFalse: false,
+        booleanTrue: true,
+        float: 2.1,
+        floatDeep: 2.2222222
+      };
+      expect(cleanJson(input)).toEqual(input);
+    });
+
+    it('functions are lost', () => {
+      const func = function (x, y) {
+        return x + y;
+      };
+
+      const input = {
+        func,
+        number: 1
+      };
+
+      expect(cleanJson(input)).toEqual({
+        number: 1
+      });
+    });
+
+    it('dates are serialized', () => {
+      const date = new Date();
+      const str = date.toISOString();
+
+      const input = {
+        date
+      };
+
+      expect(cleanJson(input)).toEqual({
+        date: str
+      });
+    });
+
+    it('typed arrays should be kept as is', () => {
+      const input = {
+        Int8Array: Int8Array.from(Buffer.from('hello world').toString()),
+        Uint8Array: Uint8Array.from(Buffer.from('hello world').toString()),
+        Uint8ClampedArray: Uint8ClampedArray.from(Buffer.from('hello world').toString()),
+        Int16Array: Int16Array.from(Buffer.from('hello world').toString()),
+        Uint16Array: Uint16Array.from(Buffer.from('hello world').toString()),
+        Int32Array: Int32Array.from(Buffer.from('hello world').toString()),
+        Uint32Array: Uint32Array.from(Buffer.from('hello world').toString()),
+        Float32Array: Float32Array.from(Buffer.from('hello world').toString()),
+        Float64Array: Float64Array.from(Buffer.from('hello world').toString()),
+        BigInt64Array: BigInt64Array.from(Buffer.from('123').toString()),
+        BigUint64Array: BigUint64Array.from(Buffer.from('234').toString())
+      };
+
+      expect(cleanJson(input)).toEqual(input);
     });
   });
 });

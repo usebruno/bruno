@@ -27,6 +27,7 @@ const STATIC_API_HINTS = {
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
     'req.getName()',
+    'req.getTags()',
     'req.disableParsingResponseJson()',
     'req.onFail(function(err) {})',
   ],
@@ -92,6 +93,9 @@ const STATIC_API_HINTS = {
     'bru.cookies.jar().clear(callback)',
     'bru.cookies.jar().deleteCookies(url, callback)',
     'bru.cookies.jar().deleteCookie(url, name, callback)',
+    'bru.utils',
+    'bru.utils.minifyJson(json)',
+    'bru.utils.minifyXml(xml)'
   ]
 };
 

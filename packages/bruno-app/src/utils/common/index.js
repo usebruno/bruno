@@ -1,6 +1,8 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
 import { format, applyEdits } from 'jsonc-parser';
+import { JSONPath } from 'jsonpath-plus';
+import fastJsonFormat from 'fast-json-format';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -54,10 +56,27 @@ export const safeStringifyJSON = (obj, indent = false) => {
 
 export const prettifyJSON = (obj, spaces = 2) => {
   try {
-    const formatted = obj.replace(/\\"/g, '"').replace(/\\'/g, "'");
-    const edits = format(formatted, undefined, { tabSize: spaces, insertSpaces: true });
+    const text = obj.replace(/\\"/g, '"').replace(/\\'/g, '\'');
 
-    return applyEdits(formatted, edits);
+    const placeholders = [];
+    const modifiedJson = text.replace(/"[^"]*?"|{{[^{}]+}}/g, (match) => {
+      if (match.startsWith('{{')) {
+        const placeholder = `__BRUNO_VAR_PLACEHOLDER_${placeholders.length}__`;
+        placeholders.push(match);
+        return `"${placeholder}"`; // Wrap bare variable in quotes to make it a valid JSON string
+      }
+      return match;
+    });
+
+    const edits = format(modifiedJson, undefined, { tabSize: spaces, insertSpaces: true });
+    let result = applyEdits(modifiedJson, edits);
+
+    for (let i = 0; i < placeholders.length; i++) {
+      const placeholder = `__BRUNO_VAR_PLACEHOLDER_${i}__`;
+      result = result.replace(`"${placeholder}"`, placeholders[i]);
+    }
+
+    return result;
   } catch (e) {
     return obj;
   }
@@ -260,4 +279,75 @@ export const sortByNameThenSequence = items => {
 
   // return flattened sortedItems
   return sortedItems.flat();
+};
+
+// Memory threshold to prevent crashes when decoding large buffers
+const LARGE_BUFFER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
+
+const applyJSONPathFilter = (data, filter) => {
+  try {
+    return JSONPath({ path: filter, json: data });
+  } catch (e) {
+    console.warn('Could not apply JSONPath filter:', e.message);
+    return data;
+  }
+};
+
+export const formatResponse = (data, dataBufferString, mode, filter, bufferThreshold = LARGE_BUFFER_THRESHOLD) => {
+  if (data === undefined || !dataBufferString || !mode) {
+    return '';
+  }
+
+  let bufferSize = 0, rawData = '', isVeryLargeResponse = false;
+  try {
+    const dataBuffer = Buffer.from(dataBufferString, 'base64');
+    bufferSize = dataBuffer.length;
+    isVeryLargeResponse = bufferSize > bufferThreshold;
+    if (!isVeryLargeResponse) {
+      rawData = dataBuffer.toString();
+    }
+  } catch (error) {
+    console.warn('Failed to calculate buffer size:', error);
+  }
+
+  if (mode.includes('json')) {
+    try {
+      if (filter) {
+        return safeStringifyJSON(applyJSONPathFilter(data, filter), true);
+      }
+    } catch (error) {}
+
+    if (isVeryLargeResponse) {
+      return safeStringifyJSON(data, false);
+    }
+
+    try {
+      return fastJsonFormat(rawData);
+    } catch (error) {}
+
+    if (typeof data === 'string') {
+      return data;
+    }
+    // Try to stringify the data, fallback to String conversion if needed
+    const stringified = safeStringifyJSON(data, false);
+    return typeof stringified === 'string' ? stringified : String(data);
+  }
+
+  if (mode.includes('xml')) {
+    if (isVeryLargeResponse) {
+      return typeof data === 'string' ? data : safeStringifyJSON(data, false);
+    }
+
+    let parsed = safeParseXML(data, { collapseContent: true });
+    if (typeof parsed === 'string') {
+      return parsed;
+    }
+    return safeStringifyJSON(parsed, true);
+  }
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  return safeStringifyJSON(data, !isVeryLargeResponse);
 };

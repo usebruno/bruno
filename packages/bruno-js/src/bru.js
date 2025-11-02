@@ -1,7 +1,8 @@
 const { cloneDeep } = require('lodash');
+const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest } = require('@usebruno/requests').scripting;
-const { jar: createCookieJar } = require('@usebruno/common').cookies;
+const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -74,6 +75,50 @@ class Bru {
         this.nextRequest = nextRequest;
       }
     };
+
+    this.utils = {
+      minifyJson: (json) => {
+        if (json === null || json === undefined) {
+          throw new Error('Failed to minify');
+        }
+
+        if (typeof json === 'object') {
+          try {
+            return JSON.stringify(json);
+          } catch (err) {
+            throw new Error(`Failed to minify: ${err?.message || err}`);
+          }
+        }
+
+        if (typeof json === 'string') {
+          const trimmed = json.trim();
+          if (trimmed === '') return trimmed;
+          try {
+            return JSON.stringify(JSON.parse(trimmed));
+          } catch (err) {
+            throw new Error(`Failed to minify: ${err?.message || err}`);
+          }
+        }
+
+        throw new TypeError('minifyJson expects a string or object');
+      },
+
+      minifyXml: (xml) => {
+        if (xml === null || xml === undefined) {
+          throw new Error('Failed to minify');
+        }
+
+        if (typeof xml === 'string') {
+          try {
+            return xmlFormat(xml, { collapseContent: false, indentation: '', lineSeparator: '' });
+          } catch (err) {
+            throw new Error(`Failed to minify: ${err?.message || err}`);
+          }
+        }
+
+        throw new TypeError('minifyXml expects a string');
+      }
+    };
   }
 
   interpolate = (strOrObj) => {
@@ -125,6 +170,12 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters! Names must only contain alpha-numeric characters, "-", "_", "."`
+      );
+    }
+
     // When persist is true, only string values are allowed
     if (options?.persist && typeof value !== 'string') {
       throw new Error(`Persistent environment variables must be strings. Received ${typeof value} for key "${key}".`);
@@ -133,7 +184,7 @@ class Bru {
     this.envVariables[key] = value;
 
     if (options?.persist) {
-      this.persistentEnvVariables[key] = value
+      this.persistentEnvVariables[key] = value;
     } else {
       if (this.persistentEnvVariables[key]) {
         delete this.persistentEnvVariables[key];
@@ -177,7 +228,7 @@ class Bru {
       );
     }
 
-    this.runtimeVariables[key] = value;
+    this.runtimeVariables[key] = this.interpolate(value);
   }
 
   getVar(key) {

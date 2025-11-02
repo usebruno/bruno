@@ -116,7 +116,7 @@ export default function RunnerResults({ collection }) {
         displayName: getDisplayName(collection.pathname, info.pathname, info.name),
         tags: [...(info.request?.tags || [])].sort(),
       };
-      if (newItem.status !== 'error' && newItem.status !== 'skipped') {
+      if (newItem.status !== 'error' && newItem.status !== 'skipped' && newItem.status !== 'running') {
         newItem.testStatus = getTestStatus(newItem.testResults);
         newItem.assertionStatus = getTestStatus(newItem.assertionResults);
         newItem.preRequestTestStatus = getTestStatus(newItem.preRequestTestResults);

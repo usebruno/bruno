@@ -14,7 +14,7 @@ import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from './utils/auth-utils';
 
-const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
+const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exampleUid = null }) => {
   const languages = getLanguages();
   const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
@@ -34,20 +34,60 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     }, {});
   }
 
-  const requestUrl =
-    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+  // Function to handle normal request data
+  const getNormalRequestData = () => {
+    const requestUrl = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+    const requestParams = get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params');
 
-  const variables = getAllVariables(collection, item);
+    return {
+      url: requestUrl,
+      params: requestParams,
+      request: get(item, 'draft.request') !== undefined ? get(item, 'draft.request') : get(item, 'request')
+    };
+  };
+
+  // Function to handle request example data
+  const getExampleRequestData = () => {
+    if (!isExample || !exampleUid) {
+      return getNormalRequestData();
+    }
+
+    // Find the specific example - check both draft and non-draft examples
+    const examples = item.draft ? get(item, 'draft.examples', []) : get(item, 'examples', []);
+    const example = examples.find((e) => e.uid === exampleUid);
+
+    if (!example) {
+      return getNormalRequestData();
+    }
+
+    // Use example request data
+    const requestUrl = get(example, 'request.url');
+    const requestParams = get(example, 'request.params');
+    const requestData = get(example, 'request');
+
+    return {
+      url: requestUrl,
+      params: requestParams,
+      request: requestData
+    };
+  };
+
+  // Get the appropriate request data based on mode
+  const requestData = isExample ? getExampleRequestData() : getNormalRequestData();
+
+  const variables = useMemo(() => {
+    return getAllVariables({ ...collection, globalEnvironmentVariables }, item);
+  }, [collection, globalEnvironmentVariables, item]);
 
   const interpolatedUrl = interpolateUrl({
-    url: requestUrl,
+    url: requestData.url,
     variables
   });
 
   // interpolate the path params
   const finalUrl = interpolateUrlPathParams(
     interpolatedUrl,
-    get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
+    requestData.params
   );
 
   // Get the full language object based on current preferences
@@ -62,8 +102,21 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   // Resolve auth inheritance
   const resolvedRequest = resolveInheritedAuth(item, collection);
 
+  // Create the final item for code generation
+  const finalItem = {
+    ...item,
+    request: {
+      ...resolvedRequest,
+      ...requestData.request,
+      url: finalUrl
+    }
+  };
+
+  // Update modal title based on mode
+  const modalTitle = isExample ? `Generate Code - ${get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.name || 'Example'}` : 'Generate Code';
+
   return (
-    <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
+    <Modal size="lg" title={modalTitle} handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
         <div className="code-generator">
           <CodeViewToolbar />
@@ -72,13 +125,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
             {isValidUrl(finalUrl) ? (
               <CodeView
                 language={selectedLanguage}
-                item={{
-                  ...item,
-                  request: {
-                    ...resolvedRequest,
-                    url: finalUrl
-                  }
-                }}
+                item={finalItem}
               />
             ) : (
               <div className="error-message">

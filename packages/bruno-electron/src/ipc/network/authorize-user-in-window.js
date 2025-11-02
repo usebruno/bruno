@@ -5,7 +5,7 @@ const matchesCallbackUrl = (url, callbackUrl) => {
   return url ? url.href.startsWith(callbackUrl.href) : false;
 };
 
-const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, grantType = 'authorization_code' }) => {
+const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalHeaders = {}, grantType = 'authorization_code' }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
     let debugInfo = {
@@ -33,7 +33,12 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, grantType =
     // Ensure the browser window complies with "SSL/TLS Certificate Verification" preference
     window.webContents.on('certificate-error', (event, url, error, certificate, callback) => {
       event.preventDefault();
-      callback(!preferencesUtil.shouldVerifyTls());
+      const shouldAllow = !preferencesUtil.shouldVerifyTls();
+      if (!shouldAllow) {
+        console.error(`Bruno OAuth: SSL Certificate verification failed for ${url}. Error: ${error}`);
+        console.error('Bruno OAuth: Disable "SSL/TLS Certificate Verification" in settings to proceed with OAuth flows that use self-signed certificates.');
+      }
+      callback(shouldAllow);
     });
 
     const { session: webSession } = window.webContents;
@@ -75,6 +80,14 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, grantType =
 
     webSession.webRequest.onBeforeSendHeaders((details, callback) => {
       const { id: requestId, requestHeaders, method, url } = details;
+      
+      if (details.resourceType === 'mainFrame' && Object.keys(additionalHeaders).length > 0) {
+        // Add our custom headers
+        for (const [name, value] of Object.entries(additionalHeaders)) {
+          requestHeaders[name] = value;
+        }
+      }
+      
       if (currentMainRequest?.requestId === requestId) {
         currentMainRequest.request = {
           url,

@@ -7,8 +7,9 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionItem } from 'providers/ReduxStore/slices/collections';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { copyRequest } from 'providers/ReduxStore/slices/app';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -26,11 +27,13 @@ import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
+import ExampleItem from './ExampleItem';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { calculateDraggedItemNewPathname } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
@@ -40,6 +43,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
   
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
+  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
@@ -48,20 +53,25 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
+  const [createExampleModalOpen, setCreateExampleModalOpen] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
+  const [examplesExpanded, setExamplesExpanded] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
+  // Check if request has examples (only for HTTP requests)
+  const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
+
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    type: `collection-item-${collectionUid}`,
-    item,
+    type: 'collection-item',
+    item: { ...item, sourceCollectionUid: collectionUid },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -92,9 +102,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
     const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
-    const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+    const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
 
     if (draggedItemUid === targetItemUid) return false;
+
+    // For cross-collection moves, we allow the drop
+    if (sourceCollectionUid !== collectionUid) {
+      return true;
+    }
 
     const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
     if (!newPathname) return false;
@@ -105,7 +120,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const [{ isOver, canDrop }, drop] = useDrop({
-    accept: `collection-item-${collectionUid}`,
+    accept: 'collection-item',
     hover: (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
@@ -147,6 +162,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const iconClassName = classnames({
     'rotate-90': !itemIsCollapsed
+  });
+
+  const examplesIconClassName = classnames({
+    'rotate-90': examplesExpanded
   });
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
@@ -223,6 +242,18 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     e.preventDefault();
   };
 
+  const handleExamplesCollapse = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setExamplesExpanded(!examplesExpanded);
+  };
+
+  // prevent the parent's double-click handler from firing
+  const handleExamplesDoubleClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
   const handleRightClick = (event) => {
     const _menuDropdown = dropdownTippyRef.current;
     if (_menuDropdown) {
@@ -269,6 +300,44 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
+  const handleCreateExample = (name, description = '') => {
+    // Create example with default values
+    const exampleData = {
+      name: name,
+      description: description,
+      status: '200',
+      statusText: 'OK',
+      headers: [],
+      body: {
+        type: 'text',
+        content: ''
+      }
+    };
+
+    dispatch(addResponseExample({
+      itemUid: item.uid,
+      collectionUid: collectionUid,
+      example: exampleData
+    }));
+
+    dispatch(saveRequest(item.uid, collectionUid));
+    toast.success(`Example "${name}" created successfully`);
+    setCreateExampleModalOpen(false);
+  };
+
+  const getInitialExampleName = () => {
+    const baseName = 'example';
+    const existingExamples = item.draft?.examples || item.examples || [];
+    let maxCounter = 0;
+    existingExamples.forEach((example) => {
+      const exampleName = example.name || '';
+      if (exampleName.startsWith(baseName)) {
+        maxCounter++;
+      }
+    });
+    return `${baseName} (${maxCounter})`;
+  };
+
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
  
@@ -301,6 +370,23 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
+  const handleCopyRequest = () => {
+    dropdownTippyRef.current.hide();
+    dispatch(copyRequest(item));
+    toast.success('Request copied to clipboard');
+  };
+
+  const handlePasteRequest = () => {
+    dropdownTippyRef.current.hide();
+    dispatch(pasteItem(collectionUid, item.uid))
+      .then(() => {
+        toast.success('Request pasted successfully');
+      })
+      .catch((err) => {
+        toast.error(err ? err.message : 'An error occurred while pasting the request');
+      });
+  };
+
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && (
@@ -327,6 +413,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       {itemInfoModalOpen && (
         <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />
       )}
+      <CreateExampleModal
+        isOpen={createExampleModalOpen}
+        onClose={() => setCreateExampleModalOpen(false)}
+        onSave={handleCreateExample}
+        title="Create Response Example"
+        initialName={getInitialExampleName()}
+      />
       <div
         className={itemRowClassName}
         ref={(node) => {
@@ -365,6 +458,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleFolderCollapse}
                   onDoubleClick={handleFolderDoubleClick}
+                  data-testid="folder-chevron"
+                />
+              ) : hasExamples ? (
+                <IconChevronRight
+                  size={16}
+                  strokeWidth={2}
+                  className={examplesIconClassName}
+                  style={{ color: 'rgb(160 160 160)' }}
+                  onClick={handleExamplesCollapse}
+                  onDoubleClick={handleExamplesDoubleClick}
+                  data-testid="request-item-chevron"
                 />
               ) : null}
             </div>
@@ -429,6 +533,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               {!isFolder && (
                 <div
                   className="dropdown-item"
+                  onClick={handleCopyRequest}
+                >
+                  Copy
+                </div>
+              )}
+              {isFolder && hasCopiedItems && (
+                <div
+                  className="dropdown-item"
+                  onClick={handlePasteRequest}
+                >
+                  Paste
+                </div>
+              )}
+              {!isFolder && (
+                <div
+                  className="dropdown-item"
                   onClick={(e) => {
                     dropdownTippyRef.current.hide();
                     handleClick(null);
@@ -446,6 +566,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   }}
                 >
                   Generate Code
+                </div>
+              )}
+              {!isFolder && isItemARequest(item) && item.type === 'http-request' && (
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                    setCreateExampleModalOpen(true);
+                  }}
+                >
+                  Create Example
                 </div>
               )}
               <div
@@ -504,6 +635,23 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
             : null}
         </div>
       ) : null}
+
+      {/* Show examples when expanded (only for HTTP requests) */}
+      {isItemARequest(item) && item.type === 'http-request' && examplesExpanded && hasExamples && (
+        <div>
+          {(item.examples || []).map((example, index) => {
+            return (
+              <ExampleItem
+                key={example.uid || index}
+                example={example}
+                item={item}
+                index={index}
+                collection={collection}
+              />
+            );
+          })}
+        </div>
+      )}
     </StyledWrapper>
   );
 };

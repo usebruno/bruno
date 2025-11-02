@@ -44,13 +44,23 @@ const createCollectionJsonFromPathname = (collectionPath) => {
         if (path.extname(filePath) !== '.bru') continue;
 
         // get the request item
-        const bruContent = fs.readFileSync(filePath, 'utf8');
-        const requestItem = parseRequest(bruContent);
-        currentDirItems.push({
-          name: file,
-          pathname: filePath,
-          ...requestItem
-        });
+        try {
+          const bruContent = fs.readFileSync(filePath, 'utf8');
+          const requestItem = parseRequest(bruContent);
+          currentDirItems.push({
+            name: file,
+            pathname: filePath,
+            ...requestItem
+          });
+        } catch (err) {
+          // Log warning for invalid .bru file but continue processing
+          console.warn(chalk.yellow(`Warning: Skipping invalid file ${filePath}\nError: ${err.message}`));
+          // Track skipped files for later reporting
+          if (!global.brunoSkippedFiles) {
+            global.brunoSkippedFiles = [];
+          }
+          global.brunoSkippedFiles.push({ path: filePath, error: err.message });
+        }
       }
     }
     let currentDirFolderItems = currentDirItems?.filter((iter) => iter.type === 'folder');
@@ -476,29 +486,24 @@ const processCollectionItems = async (items = [], currentPath) => {
       // Convert JSON to BRU format based on the item type
       let type = item.type === 'http-request' ? 'http' : 'graphql';
       const bruJson = {
-        meta: {
-          name: item.name,
-          type: type,
-          seq: typeof item.seq === 'number' ? item.seq : 1
-        },
-        http: {
-          method: (item.request?.method || 'GET').toLowerCase(),
+        type: type,
+        name: item.name,
+        seq: typeof item.seq === 'number' ? item.seq : 1,
+        tags: item.tags || [],
+        settings: {},
+        request: {
+          method: item.request?.method || 'GET',
           url: item.request?.url || '',
-          auth: item.request?.auth?.mode || 'none',
-          body: item.request?.body?.mode || 'none'
-        },
-        params: item.request?.params || [],
-        headers: item.request?.headers || [],
-        auth: item.request?.auth || {},
-        body: item.request?.body || {},
-        script: item.request?.script || {},
-        vars: {
-          req: item.request?.vars?.req || [],
-          res: item.request?.vars?.res || []
-        },
-        assertions: item.request?.assertions || [],
-        tests: item.request?.tests || '',
-        docs: item.request?.docs || ''
+          headers: item.request?.headers || [],
+          params: item.request?.params || [],
+          auth: item.request?.auth || {},
+          body: item.request?.body || {},
+          script: item.request?.script || {},
+          vars: item.request?.vars || { req: [], res: [] },
+          assertions: item.request?.assertions || [],
+          tests: item.request?.tests || '',
+          docs: item.request?.docs || ''
+        }
       };
 
       // Convert to BRU format and write to file

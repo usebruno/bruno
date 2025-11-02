@@ -22,10 +22,85 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
+import * as exampleReducers from './exampleReducers';
+
+// gRPC status code meanings
+const grpcStatusCodes = {
+  0: 'OK',
+  1: 'CANCELLED',
+  2: 'UNKNOWN',
+  3: 'INVALID_ARGUMENT',
+  4: 'DEADLINE_EXCEEDED',
+  5: 'NOT_FOUND',
+  6: 'ALREADY_EXISTS',
+  7: 'PERMISSION_DENIED',
+  8: 'RESOURCE_EXHAUSTED',
+  9: 'FAILED_PRECONDITION',
+  10: 'ABORTED',
+  11: 'OUT_OF_RANGE',
+  12: 'UNIMPLEMENTED',
+  13: 'INTERNAL',
+  14: 'UNAVAILABLE',
+  15: 'DATA_LOSS',
+  16: 'UNAUTHENTICATED'
+};
+
+// WebSocket status code meanings
+const wsStatusCodes = {
+  1000: 'NORMAL_CLOSURE',
+  1001: 'GOING_AWAY',
+  1002: 'PROTOCOL_ERROR',
+  1003: 'UNSUPPORTED_DATA',
+  1004: 'RESERVED',
+  1005: 'NO_STATUS_RECEIVED',
+  1006: 'ABNORMAL_CLOSURE',
+  1007: 'INVALID_FRAME_PAYLOAD_DATA',
+  1008: 'POLICY_VIOLATION',
+  1009: 'MESSAGE_TOO_BIG',
+  1010: 'MANDATORY_EXTENSION',
+  1011: 'INTERNAL_ERROR',
+  1012: 'SERVICE_RESTART',
+  1013: 'TRY_AGAIN_LATER',
+  1014: 'BAD_GATEWAY',
+  1015: 'TLS_HANDSHAKE'
+};
 
 const initialState = {
   collections: [],
-  collectionSortOrder: 'default'
+  collectionSortOrder: 'default',
+  activeConnections: []
+};
+
+const initiatedGrpcResponse = {
+  statusCode: null,
+  statusText: 'STREAMING',
+  statusDescription: null,
+  headers: [],
+  metadata: null,
+  trailers: null,
+  statusDetails: null,
+  error: null,
+  isError: false,
+  duration: 0,
+  responses: [],
+  timestamp: Date.now(),
+}
+
+const initiatedWsResponse = {
+  status: 'PENDING',
+  statusText: 'PENDING',
+  statusCode: 0,
+  headers: [],
+  body: '',
+  size: 0,
+  duration: 0,
+  sortOrder: -1,
+  responses: [],
+  isError: false,
+  error: null,
+  errorDetails: null,
+  metadata: [],
+  trailers: []
 };
 
 export const collectionsSlice = createSlice({
@@ -57,6 +132,13 @@ export const collectionsSlice = createSlice({
       addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
+      }
+    },
+    collapseFullCollection: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collapseAllItemsInCollection(collection);
       }
     },
     updateCollectionMountStatus: (state, action) => {
@@ -235,7 +317,7 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, runtimeVariables } = action.payload;
+      const { collectionUid, envVariables, runtimeVariables, persistentEnvVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -245,9 +327,23 @@ export const collectionsSlice = createSlice({
         if (activeEnvironment) {
           forOwn(envVariables, (value, key) => {
             const variable = find(activeEnvironment.variables, (v) => v.name === key);
+            const isPersistent = persistentEnvVariables && persistentEnvVariables[key] !== undefined;
 
             if (variable) {
-              variable.value = value;
+              // For updates coming from scripts, treat them as ephemeral overlays unless they are persistent.
+              if (variable.value !== value) {
+                /*
+                 Overlay (persist: false): keep new value in Redux for UI and mark ephemeral
+                 so it isn't written to disk. persistedValue stores the previous on-disk value;
+                 save/persist uses that base unless the key is explicitly persisted.
+                */
+                const previousValue = variable.value;
+                variable.value = value;
+                variable.ephemeral = !isPersistent;
+                if (variable.persistedValue === undefined) {
+                  variable.persistedValue = previousValue;
+                }
+              }
             } else {
               // __name__ is a private variable used to store the name of the environment
               // this is not a user defined variable and hence should not be updated
@@ -258,7 +354,8 @@ export const collectionsSlice = createSlice({
                   secret: false,
                   enabled: true,
                   type: 'text',
-                  uid: uuid()
+                  uid: uuid(),
+                  ephemeral: !isPersistent
                 });
               }
             }
@@ -335,6 +432,167 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    runGrpcRequestEvent: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+      const request = item.draft ? item.draft.request : item.request;
+      const isUnary = request.methodType === 'unary';
+
+      if (eventType === 'request') {
+        item.requestSent = eventData;
+        item.requestSent.timestamp = Date.now();
+        item.response = {
+          initiatedGrpcResponse,
+          statusText: isUnary ? 'PENDING' : 'STREAMING'
+        };
+      }
+
+      if (!collection.timeline) {
+        collection.timeline = [];
+      }
+
+      collection.timeline.push({
+        type: "request",
+        eventType: eventType, // Add the specific gRPC event type
+        collectionUid: collection.uid,
+        folderUid: null,
+        itemUid: item.uid,
+        timestamp: Date.now(),
+        data: {
+          request: eventData || item.requestSent || item.request,
+          timestamp: Date.now(),
+          eventData: eventData,
+        }
+      });
+      
+    },
+    grpcResponseReceived: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+    
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+
+      if (!item) return;
+      
+      // Get current response state or create initial state
+      const currentResponse = item.response || initiatedGrpcResponse
+      const timestamp = item?.requestSent?.timestamp;
+      let updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
+
+      
+      // Process based on event type
+      switch (eventType) {
+        case 'response':
+          const { error, res } = eventData;
+          
+          //  Handle error if present
+          if (error) {
+            const errorCode = error.code || 2; // Default to UNKNOWN if no code
+            
+            updatedResponse.error = error.details || 'gRPC error occurred';
+            updatedResponse.statusCode = errorCode;
+            updatedResponse.statusText = grpcStatusCodes[errorCode] || 'UNKNOWN';
+            updatedResponse.errorDetails = error;
+            updatedResponse.isError = true;
+          }
+
+          // Add response to list
+          updatedResponse.responses = res 
+            ? [...(currentResponse?.responses || []), res] 
+            : [...(currentResponse?.responses || [])];
+          break;
+          
+        case 'metadata':
+          updatedResponse.headers = eventData.metadata;
+          updatedResponse.metadata = eventData.metadata;
+          break;
+          
+        case 'status':
+          // Extract status info
+          const statusCode = eventData.status?.code;
+          const statusDetails = eventData.status?.details;
+          const statusMetadata = eventData.status?.metadata;
+          
+          // Set status based on actual code and details
+          updatedResponse.statusCode = statusCode;
+          updatedResponse.statusText = grpcStatusCodes[statusCode] || 'UNKNOWN';
+          updatedResponse.statusDescription = statusDetails;
+          updatedResponse.statusDetails = eventData.status;
+          
+          // Store trailers (status metadata)
+          if (statusMetadata) {
+            updatedResponse.trailers = statusMetadata;
+          }
+          
+          // Handle error status (non-zero code)
+          if (statusCode !== 0) {
+            updatedResponse.isError = true;
+            updatedResponse.error = statusDetails || `gRPC error with code ${statusCode} (${updatedResponse.statusText})`;
+          }
+          
+          break;
+          
+        case 'error':
+          // Extract error details
+          const errorCode = eventData.error?.code || 2; // Default to UNKNOWN if no code
+          const errorDetails = eventData.error?.details || eventData.error?.message;
+          const errorMetadata = eventData.error?.metadata;
+          
+          updatedResponse.isError = true;
+          updatedResponse.error = errorDetails || 'Unknown gRPC error';
+          updatedResponse.statusCode = errorCode;
+          updatedResponse.statusText = grpcStatusCodes[errorCode] || 'UNKNOWN';
+          updatedResponse.statusDescription = errorDetails;
+          
+          // Store error metadata as trailers if present
+          if (errorMetadata) {
+            updatedResponse.trailers = errorMetadata;
+          }
+          
+          break;
+          
+        case 'end':
+          state.activeConnections = state.activeConnections.filter(id => id !== itemUid);
+          break;
+          
+        case 'cancel':
+          updatedResponse.statusCode = 1; // CANCELLED
+          updatedResponse.statusText = 'CANCELLED';
+          updatedResponse.statusDescription = 'Stream cancelled by client or server';
+          state.activeConnections = state.activeConnections.filter(id => id !== itemUid);
+          break;
+      }
+      
+      item.requestState = 'received';
+      item.response = updatedResponse;
+
+      // Update the timeline
+      if (!collection?.timeline) {
+        collection.timeline = [];
+      }
+
+      // Append the new timeline entry with specific gRPC event type
+      collection.timeline.push({
+        type: "request",
+        eventType: eventType, // Add the specific gRPC event type
+        collectionUid: collection.uid,
+        folderUid: null,
+        itemUid: item.uid,
+        timestamp: Date.now(),
+        data: {
+          request: item.requestSent || item.request,
+          response: updatedResponse,
+          eventData: eventData, // Store the original event data
+          timestamp: Date.now(),
+        }
+      });
+    },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -370,6 +628,9 @@ export const collectionsSlice = createSlice({
 
         if (item && item.draft) {
           item.request = item.draft.request;
+          if (item.draft.settings) {
+            item.settings = item.draft.settings;
+          }
           item.draft = null;
         }
       }
@@ -1192,6 +1453,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+          
           switch (item.draft.request.body.mode) {
             case 'json': {
               item.draft.request.body.json = action.payload.content;
@@ -1219,6 +1481,14 @@ export const collectionsSlice = createSlice({
             }
             case 'multipartForm': {
               item.draft.request.body.multipartForm = action.payload.content;
+              break;
+            }
+            case 'grpc': {
+              item.draft.request.body.grpc = action.payload.content;
+              break;
+            }
+            case 'ws': {
+              item.draft.request.body.ws = action.payload.content;
               break;
             }
           }
@@ -1312,6 +1582,21 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.method = action.payload.method;
+          item.draft.request.methodType = action.payload.methodType;
+        }
+      }
+    },
+    updateRequestProtoPath: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);    
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.protoPath = action.payload.protoPath;
         }
       }
     },
@@ -1751,6 +2036,9 @@ export const collectionsSlice = createSlice({
           case 'wsse':
             set(folder, 'root.request.auth.wsse', action.payload.content);
             break;
+          case 'ws':
+            set(folder, 'root.request.auth.ws', action.payload.content);
+            break;
         }
       }
     },
@@ -1920,6 +2208,7 @@ export const collectionsSlice = createSlice({
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.settings = file.data.settings;
+            currentItem.examples = file.data.examples;
             currentItem.draft = null;
             currentItem.partial = file.partial;
             currentItem.loading = file.loading;
@@ -1934,6 +2223,7 @@ export const collectionsSlice = createSlice({
               tags: file.data.tags,
               request: file.data.request,
               settings: file.data.settings,
+              examples: file.data.examples,
               filename: file.meta.name,
               pathname: file.meta.pathname,
               draft: null,
@@ -2025,6 +2315,7 @@ export const collectionsSlice = createSlice({
             item.tags = file.data.tags;
             item.request = file.data.request;
             item.settings = file.data.settings;
+            item.examples = file.data.examples;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.draft = null;
@@ -2066,7 +2357,21 @@ export const collectionsSlice = createSlice({
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
 
         if (existingEnv) {
+          const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.variables = environment.variables;
+          /*
+           Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
+          */
+          prevEphemerals.forEach((ev) => {
+            const target = existingEnv.variables?.find((v) => v.name === ev.name);
+            if (target) {
+              if (target.value !== ev.value) {
+                if (target.persistedValue === undefined) target.persistedValue = target.value;
+                target.value = ev.value;
+              }
+              target.ephemeral = true;
+            }
+          });
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));
@@ -2076,6 +2381,14 @@ export const collectionsSlice = createSlice({
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
+              // Persist the selection to the UI state snapshot
+              const { ipcRenderer } = window;
+              if (ipcRenderer) {
+                ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+                  type: 'COLLECTION_ENVIRONMENT',
+                  data: { collectionPath: collection?.pathname, environmentName: environment.name }
+                });
+              }
             }
           }
         }
@@ -2203,6 +2516,9 @@ export const collectionsSlice = createSlice({
         if (type === 'testrun-ended') {
           const info = collection.runnerResult.info;
           info.status = 'ended';
+          if (action.payload.runCompletionTime) {
+            info.runCompletionTime = action.payload.runCompletionTime;
+          }
           if (action.payload.statusText) {
             info.statusText = action.payload.statusText;
           }
@@ -2470,7 +2786,193 @@ export const collectionsSlice = createSlice({
       if (collection) {
         collection.allTags = getUniqueTagsFromItems(collection.items);
       }
-    }
+    },
+    updateActiveConnections: (state, action) => {
+      state.activeConnections = [...action.payload.activeConnectionIds];
+    },
+    runWsRequestEvent: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+      const request = item.draft ? item.draft.request : item.request;
+
+      if (eventType === 'request') {
+        item.requestSent = eventData;
+        item.requestSent.timestamp = Date.now();
+        item.response = {
+          ...initiatedWsResponse,
+          initiatedWsResponse,
+          statusText: 'CONNECTING'
+        };
+      }
+
+      if (!collection.timeline) {
+        collection.timeline = [];
+      }
+
+      collection.timeline.push({
+        type: 'request',
+        eventType: eventType,
+        collectionUid: collection.uid,
+        folderUid: null,
+        itemUid: item.uid,
+        timestamp: Date.now(),
+        data: {
+          request: eventData || item.requestSent || item.request,
+          timestamp: Date.now(),
+          eventData: eventData
+        }
+      });
+    },
+    wsResponseReceived: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+
+      if (!item) return;
+
+      // Get current response state or create initial state
+      const currentResponse = item.response || initiatedWsResponse;
+      const timestamp = item?.requestSent?.timestamp;
+      let updatedResponse = {
+        ...currentResponse,
+        isError: false,
+        error: '',
+        duration: Date.now() - (timestamp || Date.now())
+      };
+
+      // Process based on event type
+      switch (eventType) {
+        case 'message':
+          // Add message to responses list
+          updatedResponse.responses = (currentResponse?.responses || []).concat(eventData);
+          break;
+
+        case 'redirect':
+          updatedResponse.requestHeaders = eventData.headers;
+          updatedResponse.responses ||= [];
+          updatedResponse.responses.push({
+            message: eventData.message,
+            type: eventData.type,
+            timestamp: eventData.timestamp
+          });
+          break;
+
+        case 'upgrade':
+          updatedResponse.headers = eventData.headers;
+          break;
+
+        case 'open':
+          updatedResponse.status = 'CONNECTED';
+          updatedResponse.statusText = 'CONNECTED';
+          updatedResponse.statusCode = 0;
+          updatedResponse.responses ||= [];
+          updatedResponse.responses.push({
+            message: `Connected to ${eventData.url}`,
+            type: 'info',
+            timestamp: eventData.timestamp
+          });
+          break;
+
+        case 'close':
+          const { code, reason } = eventData;
+          updatedResponse.isError = false;
+          updatedResponse.error = '';
+          updatedResponse.status = 'CLOSED';
+          updatedResponse.statusCode = code;
+          updatedResponse.statusText = wsStatusCodes[code] || 'CLOSED';
+          updatedResponse.statusDescription = reason;
+
+          updatedResponse.responses.push({
+            type: code !== 1000 ? 'info' : 'error',
+            message: reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
+            timestamp
+          });
+          break;
+
+        case 'error':
+          const errorDetails = eventData.error || eventData.message;
+          updatedResponse.isError = true;
+          updatedResponse.error = errorDetails || 'WebSocket error occurred';
+          updatedResponse.status = 'ERROR';
+          updatedResponse.statusCode = wsStatusCodes[1011];
+          updatedResponse.statusText = 'ERROR';
+
+          updatedResponse.responses.push({
+            type: 'error',
+            message: errorDetails || 'WebSocket error occurred',
+            timestamp
+          });
+
+          break;
+
+        case 'connecting':
+          updatedResponse.status = 'CONNECTING';
+          updatedResponse.statusText = 'CONNECTING';
+          break;
+      }
+
+      item.response = updatedResponse;
+    },
+    wsUpdateResponseSortOrder: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item) {
+          item.response.sortOrder = item.response.sortOrder ? -item.response.sortOrder : -1;
+        }
+      }
+    },
+
+    /* Response Example Actions */
+    addResponseExample: exampleReducers.addResponseExample,
+    updateResponseExample: exampleReducers.updateResponseExample,
+    deleteResponseExample: exampleReducers.deleteResponseExample,
+    cancelResponseExampleEdit: exampleReducers.cancelResponseExampleEdit,
+    addResponseExampleHeader: exampleReducers.addResponseExampleHeader,
+    updateResponseExampleHeader: exampleReducers.updateResponseExampleHeader,
+    deleteResponseExampleHeader: exampleReducers.deleteResponseExampleHeader,
+    moveResponseExampleHeader: exampleReducers.moveResponseExampleHeader,
+    setResponseExampleHeaders: exampleReducers.setResponseExampleHeaders,
+    addResponseExampleParam: exampleReducers.addResponseExampleParam,
+    updateResponseExampleParam: exampleReducers.updateResponseExampleParam,
+    deleteResponseExampleParam: exampleReducers.deleteResponseExampleParam,
+    moveResponseExampleParam: exampleReducers.moveResponseExampleParam,
+    updateResponseExampleRequest: exampleReducers.updateResponseExampleRequest,
+    updateResponseExampleMultipartFormParams: exampleReducers.updateResponseExampleMultipartFormParams,
+    updateResponseExampleFileBodyParams: exampleReducers.updateResponseExampleFileBodyParams,
+    updateResponseExampleFormUrlEncodedParams: exampleReducers.updateResponseExampleFormUrlEncodedParams,
+    updateResponseExampleStatusCode: exampleReducers.updateResponseExampleStatusCode,
+    updateResponseExampleStatusText: exampleReducers.updateResponseExampleStatusText,
+    updateResponseExampleRequestUrl: exampleReducers.updateResponseExampleRequestUrl,
+    updateResponseExampleResponse: exampleReducers.updateResponseExampleResponse,
+    updateResponseExampleDetails: exampleReducers.updateResponseExampleDetails,
+    updateResponseExampleName: exampleReducers.updateResponseExampleName,
+    updateResponseExampleDescription: exampleReducers.updateResponseExampleDescription,
+    addResponseExampleRequestHeader: exampleReducers.addResponseExampleRequestHeader,
+    updateResponseExampleRequestHeader: exampleReducers.updateResponseExampleRequestHeader,
+    deleteResponseExampleRequestHeader: exampleReducers.deleteResponseExampleRequestHeader,
+    moveResponseExampleRequestHeader: exampleReducers.moveResponseExampleRequestHeader,
+    setResponseExampleRequestHeaders: exampleReducers.setResponseExampleRequestHeaders,
+    setResponseExampleParams: exampleReducers.setResponseExampleParams,
+    updateResponseExampleBody: exampleReducers.updateResponseExampleBody,
+    addResponseExampleFileParam: exampleReducers.addResponseExampleFileParam,
+    updateResponseExampleFileParam: exampleReducers.updateResponseExampleFileParam,
+    deleteResponseExampleFileParam: exampleReducers.deleteResponseExampleFileParam,
+    addResponseExampleFormUrlEncodedParam: exampleReducers.addResponseExampleFormUrlEncodedParam,
+    updateResponseExampleFormUrlEncodedParam: exampleReducers.updateResponseExampleFormUrlEncodedParam,
+    deleteResponseExampleFormUrlEncodedParam: exampleReducers.deleteResponseExampleFormUrlEncodedParam,
+    addResponseExampleMultipartFormParam: exampleReducers.addResponseExampleMultipartFormParam,
+    updateResponseExampleMultipartFormParam: exampleReducers.updateResponseExampleMultipartFormParam,
+    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam
+    /* End Response Example Actions */
   }
 });
 
@@ -2498,12 +3000,15 @@ export const {
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,
+  runGrpcRequestEvent,
+  grpcResponseReceived,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,
+  collapseFullCollection,
   toggleCollection,
   toggleCollectionItem,
   requestUrlChanged,
@@ -2542,6 +3047,7 @@ export const {
   updateResponseScript,
   updateRequestTests,
   updateRequestMethod,
+  updateRequestProtoPath,
   addAssertion,
   updateAssertion,
   deleteAssertion,
@@ -2595,7 +3101,44 @@ export const {
   updateFolderAuthMode,
   addRequestTag,
   deleteRequestTag,
-  updateCollectionTagsList
+  updateCollectionTagsList,
+  updateActiveConnections,
+  runWsRequestEvent,
+  wsResponseReceived,
+  wsUpdateResponseSortOrder,
+
+  /* Response Example Actions - Start */
+  addResponseExample,
+  updateResponseExample,
+  deleteResponseExample,
+  cancelResponseExampleEdit,
+  addResponseExampleHeader,
+  updateResponseExampleHeader,
+  deleteResponseExampleHeader,
+  moveResponseExampleHeader,
+  setResponseExampleHeaders,
+  addResponseExampleParam,
+  updateResponseExampleParam,
+  deleteResponseExampleParam,
+  moveResponseExampleParam,
+  updateResponseExampleRequest,
+  updateResponseExampleMultipartFormParams,
+  updateResponseExampleFileBodyParams,
+  updateResponseExampleFormUrlEncodedParams,
+  updateResponseExampleStatusCode,
+  updateResponseExampleStatusText,
+  updateResponseExampleRequestUrl,
+  updateResponseExampleResponse,
+  updateResponseExampleDetails,
+  updateResponseExampleName,
+  updateResponseExampleDescription,
+  addResponseExampleRequestHeader,
+  updateResponseExampleRequestHeader,
+  deleteResponseExampleRequestHeader,
+  moveResponseExampleRequestHeader,
+  setResponseExampleRequestHeaders,
+  setResponseExampleParams
+  /* Response Example Actions - End */
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

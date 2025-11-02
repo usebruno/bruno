@@ -41,6 +41,18 @@ class GlobalEnvironmentsStore {
   getGlobalEnvironments() {
     let globalEnvironments = this.store.get('environments', []);
     globalEnvironments = this.decryptGlobalEnvironmentVariables({ globalEnvironments });
+    
+    // Previously, a bug caused environment variables to be saved without a type.
+    // Since that issue is now fixed, this code ensures that anyone who imported
+    // data before the fix will have the missing types added retroactively.
+    globalEnvironments?.forEach(env => {
+      env?.variables?.forEach(v => {
+        if (!v.type) {
+          v.type = 'text';
+        }
+      });
+    });
+    
     return globalEnvironments;
   }
 

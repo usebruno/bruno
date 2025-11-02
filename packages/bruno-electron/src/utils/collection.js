@@ -1,8 +1,9 @@
 const { get, each, find, compact, isString, filter } = require('lodash');
 const fs = require('fs');
-const { getRequestUid } = require('../cache/requestUids');
+const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
+const { preferencesUtil } = require('../store/preferences');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -47,7 +48,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
 };
 
-const mergeVars = (collection, request, requestTreePath) => {
+const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
   let collectionRequestVars = get(collection, 'root.request.vars.req', []);
   let collectionVariables = {};
@@ -292,6 +293,7 @@ const hydrateRequestWithUuid = (request, pathname) => {
   const bodyFormUrlEncoded = get(request, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(request, 'request.body.multipartForm', []);
   const file = get(request, 'request.body.file', []);
+  const examples = get(request, 'examples', []);
 
   params.forEach((param) => (param.uid = uuid()));
   headers.forEach((header) => (header.uid = uuid()));
@@ -301,6 +303,22 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
   file.forEach((param) => (param.uid = uuid()));
+  examples.forEach((example, eIndex) => {
+    example.uid = getExampleUid(pathname, eIndex);
+    example.itemUid = request.uid;
+    const params = get(example, 'request.params', []);
+    const headers = get(example, 'request.headers', []);
+    const responseHeaders = get(example, 'response.headers', []);
+    const bodyMultipartForm = get(example, 'request.body.multipartForm', []);
+    const bodyFormUrlEncoded = get(example, 'request.body.formUrlEncoded', []);
+    const file = get(example, 'request.body.file', []);
+    params.forEach((param) => (param.uid = uuid()));
+    headers.forEach((header) => (header.uid = uuid()));
+    responseHeaders.forEach((header) => (header.uid = uuid()));
+    bodyMultipartForm.forEach((param) => (param.uid = uuid()));
+    bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
+    file.forEach((param) => (param.uid = uuid()));
+  });
 
   return request;
 };
@@ -331,6 +349,8 @@ const transformRequestToSaveToFilesystem = (item) => {
     name: _item.name,
     seq: _item.seq,
     settings: _item.settings,
+    tags: _item.tags,
+    examples: _item.examples || [],
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -346,16 +366,25 @@ const transformRequestToSaveToFilesystem = (item) => {
     }
   };
 
-  each(_item.request.params, (param) => {
-    itemToSave.request.params.push({
-      uid: param.uid,
-      name: param.name,
-      value: param.value,
-      description: param.description,
-      type: param.type,
-      enabled: param.enabled
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    delete itemToSave.request.params
+  }
+
+  // Only process params for non-gRPC requests
+  if (_item.type !== 'grpc-request') {
+    each(_item.request.params, (param) => {
+      itemToSave.request.params.push({
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        type: param.type,
+        enabled: param.enabled
+      });
     });
-  });
+  }
 
   each(_item.request.headers, (header) => {
     itemToSave.request.headers.push({
@@ -371,6 +400,16 @@ const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 
@@ -503,6 +542,32 @@ const mergeAuth = (collection, request, requestTreePath) => {
   }
 };
 
+const resolveInheritedSettings = (settings) => {
+  const resolvedSettings = {};
+
+  // Resolve each setting individually
+  Object.keys(settings).forEach((settingKey) => {
+    const currentValue = settings[settingKey];
+
+    // If setting is inherited, fallback to preferences only for timeout setting
+    if (currentValue === 'inherit' || currentValue === undefined || currentValue === null) {
+      if (settingKey === 'timeout') {
+        resolvedSettings[settingKey] = preferencesUtil.getRequestTimeout();
+      }
+    } else {
+      // Use the current value as-is
+      resolvedSettings[settingKey] = currentValue;
+    }
+  });
+
+  // Handle missing timeout setting - if timeout is not in settings, treat it as inherited
+  if (!settings.hasOwnProperty('timeout')) {
+    resolvedSettings.timeout = preferencesUtil.getRequestTimeout();
+  }
+
+  return resolvedSettings;
+};
+
 const sortByNameThenSequence = items => {
   const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
 
@@ -565,5 +630,6 @@ module.exports = {
   getAllRequestsInFolderRecursively,
   getEnvVars,
   getFormattedCollectionOauth2Credentials,
-  sortByNameThenSequence
+  sortByNameThenSequence,
+  resolveInheritedSettings
 };

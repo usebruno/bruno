@@ -14,6 +14,7 @@ const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
+const { runScriptInNodeVm } = require('../sandbox/node-vm');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -32,7 +33,9 @@ const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const tv4 = require('tv4');
+const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { mixinTypedArrays } = require('../sandbox/mixins/typed-arrays');
 
 class ScriptRuntime {
   constructor(props) {
@@ -92,6 +95,10 @@ class ScriptRuntime {
       __brunoTestResults: __brunoTestResults
     };
 
+    if (this.runtime === 'vm2') {
+      mixinTypedArrays(context);
+    }
+
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
         return (...args) => {
@@ -109,6 +116,27 @@ class ScriptRuntime {
 
     if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (this.runtime === 'nodevm') {
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+
+      return {
+        request,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        persistentEnvVariables: bru.persistentEnvVariables,
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        results: cleanJson(__brunoTestResults.getResults()),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
+      };
     }
 
     if (this.runtime === 'quickjs') {
@@ -163,6 +191,7 @@ class ScriptRuntime {
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           xml2js: xml2js,
+          jsonwebtoken,
           cheerio,
           tv4,
           ...whitelistedModules,
@@ -241,6 +270,10 @@ class ScriptRuntime {
       __brunoTestResults: __brunoTestResults
     };
 
+    if (this.runtime === 'vm2') {
+      mixinTypedArrays(context);
+    }
+
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
         return (...args) => {
@@ -258,6 +291,27 @@ class ScriptRuntime {
 
     if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (this.runtime === 'nodevm') {
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+
+      return {
+        response,
+        envVariables: cleanJson(envVariables),
+        persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        results: cleanJson(__brunoTestResults.getResults()),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
+      };
     }
 
     if (this.runtime === 'quickjs') {
@@ -311,6 +365,7 @@ class ScriptRuntime {
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           'xml2js': xml2js,
+          jsonwebtoken,
           cheerio,
           tv4,
           ...whitelistedModules,

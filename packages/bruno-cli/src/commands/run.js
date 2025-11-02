@@ -6,6 +6,7 @@ const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
+const { parseEnvironmentJson } = require('../utils/environment');
 const { isRequestTagsIncluded } = require("@usebruno/common")
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
@@ -131,7 +132,7 @@ const builder = async (yargs) => {
       type: 'string'
     })
     .option('env-file', {
-      describe: 'Path to environment file (.bru) - can be absolute or relative path',
+      describe: 'Path to environment file (.bru or .json) - absolute or relative',
       type: 'string'
     })
     .option('env-var', {
@@ -209,6 +210,10 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Tags to exclude from the run'
     })
+    .option('verbose', {
+      type: 'boolean',
+      description: 'Allow verbose output for debugging purposes'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
@@ -284,7 +289,8 @@ const handler = async function (argv) {
       noproxy,
       delay,
       tags: includeTags,
-      excludeTags
+      excludeTags,
+      verbose
     } = argv;
     const collectionPath = process.cwd();
 
@@ -306,7 +312,7 @@ const handler = async function (argv) {
           clientCertConfigJson = JSON.parse(clientCertConfigFileContent);
         } catch (err) {
           console.error(chalk.red(`Failed to parse Client Certificate Config JSON: ${err.message}`));
-          process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
         }
 
         if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
@@ -346,10 +352,29 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
 
-      const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
-      const envJson = parseEnvironment(envBruContent);
-      envVars = getEnvVars(envJson);
-      envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
+      const ext = path.extname(envFilePath).toLowerCase();
+      if (ext === '.json') {
+        // Parse Bruno schema JSON environment
+        let envJsonContent;
+        try {
+          envJsonContent = fs.readFileSync(envFilePath, 'utf8');
+          const parsed = JSON.parse(envJsonContent);
+          const normalizedEnv = parseEnvironmentJson(parsed);
+          envVars = getEnvVars(normalizedEnv);
+          const rawName = normalizedEnv?.name;
+          const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
+          envVars.__name__ = trimmedName || path.basename(envFilePath, '.json');
+        } catch (err) {
+          console.error(chalk.red(`Failed to parse Environment JSON: ${err.message}`));
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+        }
+      } else {
+        // Default to .bru parsing
+        const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
+        const envJson = parseEnvironment(envBruContent);
+        envVars = getEnvVars(envJson);
+        envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
+      }
     }
 
     if (envVar) {
@@ -390,6 +415,9 @@ const handler = async function (argv) {
     }
     if (noproxy) {
       options['noproxy'] = true;
+    }
+    if (verbose) {
+      options['verbose'] = true;
     }
     if (cacert && cacert.length) {
       if (insecure) {
@@ -623,6 +651,7 @@ const handler = async function (argv) {
     }
 
     const summary = printRunSummary(results);
+    const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
@@ -636,7 +665,7 @@ const handler = async function (argv) {
       const reporters = {
         'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path),
+        'html': (path) => makeHtmlOutput(outputJson, path, runCompletionTime),
       }
 
       for (const formatter of Object.keys(formats))

@@ -6,12 +6,27 @@ const StyledWrapper = styled.div`
   max-height: 200px;
   overflow: auto;
 
+  &.read-only {
+    .CodeMirror .CodeMirror-lines {
+      cursor: not-allowed !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      -ms-user-select: none !important;
+    }
+
+    .CodeMirror-line {
+      color: ${(props) => props.theme.colors.text.muted} !important;
+    }
+  }
+
   .CodeMirror {
     background: transparent;
     height: fit-content;
     font-size: 14px;
     line-height: 30px;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 200px;
 
     pre.CodeMirror-placeholder {
       color: ${(props) => props.theme.text};
@@ -19,18 +34,10 @@ const StyledWrapper = styled.div`
       opacity: 0.5;
     }
 
-  .CodeMirror-scroll {
-      overflow: visible !important;
-      position: relative;
-      display: block;
-      margin: 0px;
-      padding: 0px;
-    }
-
     .CodeMirror-vscrollbar,
     .CodeMirror-hscrollbar,
     .CodeMirror-scrollbar-filler {
-      display: none;
+      display: none !important;
     }
 
     .CodeMirror-lines {

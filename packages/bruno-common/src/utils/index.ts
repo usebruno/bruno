@@ -5,5 +5,5 @@ export {
 } from './url';
 
 export {
-  isPotentiallyTrustworthyOrigin
-} from './url/validation';
+  buildFormUrlEncodedPayload
+} from './form-data';

@@ -43,6 +43,31 @@ const parseGraphQLRequest = (graphqlSource) => {
   }
 };
 
+/**
+ * Transforms Postman descriptions to handle both legacy and new formats.
+ *
+ * Postman changed their description format:
+ * - Legacy format: description was a simple string
+ * - New format: description is an object with 'content' and 'type' properties
+ *
+ * This function handles both formats to ensure backward compatibility.
+ */
+const transformDescription = (description) => {
+  if (!description) {
+    return '';
+  }
+
+  if (typeof description === 'string') {
+    return description;
+  }
+
+  if (typeof description === 'object' && description.hasOwnProperty('content')) {
+    return description.content;
+  }
+
+  return '';
+};
+
 const isItemAFolder = (item) => {
   return !item.request;
 };
@@ -271,7 +296,6 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
-  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   item.forEach((i, index) => {
     if (isItemAFolder(i)) {
@@ -291,7 +315,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         items: [],
         seq: index + 1,
         root: {
-          docs: i.description || '',
+          docs: transformDescription(i.description),
           meta: {
             name: folderName
           },
@@ -336,8 +360,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       folderMap[folderName] = brunoFolderItem;
 
     } else if (i.request) {
-      if (!requestMethods.includes(i?.request?.method.toUpperCase())) {
-        console.warn('Unexpected request.method', i?.request?.method);
+      const method =  i?.request?.method?.toUpperCase();
+      if (!method || typeof method !== 'string' || !method.trim()) {
+        console.warn('Missing or invalid request.method', method);
         return;
       }
 
@@ -359,7 +384,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         seq: index + 1,
         request: {
           url: url,
-          method: i?.request?.method?.toUpperCase(),
+          method: method,
           auth: {
             mode: 'inherit',
             basic: null,
@@ -379,12 +404,22 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
             formUrlEncoded: [],
             multipartForm: []
           },
-          docs: i.request.description || ''
+          docs: transformDescription(i.request.description)
         }
       };
 
       const settings = {
         encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
+      }
+
+      // Handle followRedirects setting
+      if (i.protocolProfileBehavior?.followRedirects !== undefined) {
+        settings.followRedirects = i.protocolProfileBehavior.followRedirects;
+      }
+
+      // Handle maxRedirects setting
+      if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
+        settings.maxRedirects = i.protocolProfileBehavior.maxRedirects;
       }
 
       brunoRequestItem.settings = settings;
@@ -451,7 +486,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               type: type,
               name: param.key,
               value: value,
-              description: param.description,
+              description: transformDescription(param.description),
               enabled: !param.disabled
             });
           });
@@ -464,7 +499,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               uid: uuid(),
               name: param.key,
               value: param.value,
-              description: param.description,
+              description: transformDescription(param.description),
               enabled: !param.disabled
             });
           });
@@ -499,7 +534,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           uid: uuid(),
           name: header.key,
           value: header.value,
-          description: header.description,
+          description: transformDescription(header.description),
           enabled: !header.disabled
         });
       });
@@ -512,7 +547,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           uid: uuid(),
           name: param.key,
           value: param.value,
-          description: param.description,
+          description: transformDescription(param.description),
           type: 'query',
           enabled: !param.disabled
         });
@@ -528,11 +563,171 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           uid: uuid(),
           name: param.key,
           value: param.value ?? '',
-          description: param.description ?? '',
+          description: transformDescription(param.description),
           type: 'path',
           enabled: true
         });
       });
+
+      // Handle Postman examples (responses)
+      if (i.response && Array.isArray(i.response)) {
+        brunoRequestItem.examples = [];
+
+        i.response.forEach((response, responseIndex) => {
+          const exampleName = response.name || `Example ${responseIndex + 1}`;
+
+          // Convert originalRequest to Bruno request format
+          const originalRequest = response.originalRequest || {};
+          const exampleUrl = constructUrl(originalRequest.url);
+          const exampleMethod = originalRequest.method?.toUpperCase() || method;
+
+          const example = {
+            uid: uuid(),
+            itemUid: brunoRequestItem.uid,
+            name: exampleName,
+            description: '',
+            type: 'http-request',
+            request: {
+              url: exampleUrl,
+              method: exampleMethod,
+              headers: [],
+              params: [],
+              body: {
+                mode: 'none',
+                json: null,
+                text: null,
+                xml: null,
+                formUrlEncoded: [],
+                multipartForm: []
+              }
+            },
+            response: {
+              status: response.status || '',
+              statusText: response.code ? response.code.toString() : '',
+              headers: [],
+              body: {
+                type: getBodyTypeFromContentTypeHeader(response.header),
+                content: response.body || ''
+              }
+            }
+          };
+
+          // Convert original request headers
+          if (originalRequest.header && Array.isArray(originalRequest.header)) {
+            originalRequest.header.forEach((header) => {
+              example.request.headers.push({
+                uid: uuid(),
+                name: header.key,
+                value: header.value,
+                description: transformDescription(header.description),
+                enabled: !header.disabled
+              });
+            });
+          }
+
+          // Convert original request query parameters
+          if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
+            originalRequest.url.query.forEach((param) => {
+              example.request.params.push({
+                uid: uuid(),
+                name: param.key,
+                value: param.value,
+                description: transformDescription(param.description),
+                type: 'query',
+                enabled: !param.disabled
+              });
+            });
+          }
+
+          if (originalRequest.url && originalRequest.url.variable && Array.isArray(originalRequest.url.variable)) {
+            originalRequest.url.variable.forEach((param) => {
+              example.request.params.push({
+                uid: uuid(),
+                name: param.key,
+                value: param.value ?? '',
+                description: transformDescription(param.description),
+                type: 'path',
+                enabled: true
+              });
+            });
+          }
+
+          // Convert original request body
+          if (originalRequest.body) {
+            const bodyMode = originalRequest.body.mode;
+            if (bodyMode === 'formdata') {
+              example.request.body.mode = 'multipartForm';
+              if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
+                originalRequest.body.formdata.forEach((param) => {
+                  const isFile = param.type === 'file';
+                  let value;
+                  let type;
+
+                  if (isFile) {
+                    value = Array.isArray(param.src) ? param.src : typeof param.src === 'string' ? [param.src] : null;
+                    type = 'file';
+                  } else {
+                    value = param.value;
+                    type = 'text';
+                  }
+
+                  example.request.body.multipartForm.push({
+                    uid: uuid(),
+                    type: type,
+                    name: param.key,
+                    value: value,
+                    description: transformDescription(param.description),
+                    enabled: !param.disabled
+                  });
+                });
+              }
+            } else if (bodyMode === 'urlencoded') {
+              example.request.body.mode = 'formUrlEncoded';
+              if (originalRequest.body.urlencoded && Array.isArray(originalRequest.body.urlencoded)) {
+                originalRequest.body.urlencoded.forEach((param) => {
+                  example.request.body.formUrlEncoded.push({
+                    uid: uuid(),
+                    name: param.key,
+                    value: param.value,
+                    description: transformDescription(param.description),
+                    enabled: !param.disabled
+                  });
+                });
+              }
+            } else if (bodyMode === 'raw') {
+              let language = get(originalRequest, 'body.options.raw.language');
+              if (!language) {
+                language = searchLanguageByHeader(originalRequest.header || []);
+              }
+              if (language === 'json') {
+                example.request.body.mode = 'json';
+                example.request.body.json = originalRequest.body.raw;
+              } else if (language === 'xml') {
+                example.request.body.mode = 'xml';
+                example.request.body.xml = originalRequest.body.raw;
+              } else {
+                example.request.body.mode = 'text';
+                example.request.body.text = originalRequest.body.raw;
+              }
+            }
+          }
+
+          // Convert response headers
+          if (response.header && Array.isArray(response.header)) {
+            response.header.forEach((header) => {
+              example.response.headers.push({
+                uid: uuid(),
+                name: header.key,
+                value: header.value,
+                description: transformDescription(header.description),
+                enabled: true
+              });
+            });
+          }
+
+          brunoRequestItem.examples.push(example);
+        });
+      }
 
       requestMap[requestName] = brunoRequestItem;
     }
@@ -555,6 +750,21 @@ const searchLanguageByHeader = (headers) => {
   return contentType;
 };
 
+const getBodyTypeFromContentTypeHeader = (headers) => {
+  const contentTypeHeader = headers.find((header) => header.key.toLowerCase() === 'content-type');
+  if (contentTypeHeader) {
+    const contentType = contentTypeHeader.value?.toLowerCase();
+    if (contentType?.includes('application/json')) {
+      return 'json';
+    } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {
+      return 'xml';
+    } else if (contentType?.includes('text/html')) {
+      return 'html';
+    }
+  }
+  return 'text';
+};
+
 const importPostmanV2Collection = async (collection, { useWorkers = false }) => {
   const brunoCollection = {
     name: collection.info.name || 'Untitled Collection',
@@ -563,7 +773,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
     items: [],
     environments: [],
     root: {
-      docs: collection.info.description || '',
+      docs: transformDescription(collection.info.description),
       meta: {
         name: collection.info.name || 'Untitled Collection'
       },

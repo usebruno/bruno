@@ -1,5 +1,5 @@
 const Store = require('electron-store');
-const { cookies: cookiesModule } = require('@usebruno/common');
+const { cookies: cookiesModule } = require('@usebruno/requests');
 const { cookieJar } = cookiesModule;
 const { Cookie } = require('tough-cookie');
 const { createCookieString } = cookiesModule;
@@ -21,7 +21,6 @@ class CookiesStore {
         cookies: {}
       }
     });
-    this.initializeEncryption();
   }
 
   #generatePasskey() {
@@ -116,6 +115,9 @@ class CookiesStore {
 
   // Initialize cookies from store into cookie jar
   initializeCookies() {
+    if (this.#passkey === null) {
+      this.initializeEncryption();
+    }
     try {
       const storedCookies = this.getCookies();
 

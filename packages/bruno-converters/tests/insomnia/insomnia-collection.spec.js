@@ -65,7 +65,27 @@ const insomniaCollection = {
 };
 
 const expectedOutput = {
-  "environments": [],
+  environments: [
+    {
+      name: 'Environment 1',
+      variables: [
+        {
+          name: 'var1',
+          value: 'value1',
+          type: 'text',
+          enabled: true,
+          secret: false
+        },
+        {
+          name: 'var2',
+          value: 'value2',
+          type: 'text',
+          enabled: true,
+          secret: false
+        }
+      ]
+    }
+  ],
   "items": [
     {
       "items": [

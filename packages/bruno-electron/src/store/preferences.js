@@ -40,6 +40,15 @@ const defaultPreferences = {
   },
   layout: {
     responsePaneOrientation: 'horizontal'
+  },
+  beta: {
+    nodevm: false
+  },
+  onboarding: {
+    hasLaunchedBefore: false
+  },
+  general: {
+    defaultCollectionLocation: ''
   }
 };
 
@@ -75,6 +84,15 @@ const preferencesSchema = Yup.object().shape({
   }),
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
+  }),
+  beta: Yup.object({
+    nodevm: Yup.boolean()
+  }),
+  onboarding: Yup.object({
+    hasLaunchedBefore: Yup.boolean()
+  }),
+  general: Yup.object({
+    defaultCollectionLocation: Yup.string().max(1024).nullable()
   })
 });
 
@@ -165,6 +183,22 @@ const preferencesUtil = {
       https_proxy: https_proxy || HTTPS_PROXY,
       no_proxy: no_proxy || NO_PROXY
     };
+  },
+  isBetaFeatureEnabled: (featureName) => {
+    return get(getPreferences(), `beta.${featureName}`, false);
+  },
+  hasLaunchedBefore: () => {
+    return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
+  },
+  markAsLaunched: async () => {
+    const preferences = getPreferences();
+    preferences.onboarding.hasLaunchedBefore = true;
+
+    try {
+      await savePreferences(preferences);
+    } catch (err) {
+      console.error('Failed to save preferences in markAsLaunched:', err);
+    }
   }
 };
 

@@ -1,0 +1,83 @@
+{
+  "meta": {
+    "name": "Multi-format API",
+    "type": "http",
+    "seq": 1
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com/data"
+  },
+  "headers": [
+    {
+      "name": "content-type",
+      "value": "application/json",
+      "enabled": true
+    }
+  ],
+  "body": {
+    "json": "{\n  \"message\": \"API supports multiple formats\"\n}"
+  },
+  "examples": [
+    {
+      "name": "JSON API Example",
+      "description": "An example using JSON format",
+      "request": {
+        "url": "https://api.example.com/json",
+        "method": "post",
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"format\": \"json\",\n  \"data\": {\n    \"name\": \"JSON Example\",\n    \"value\": 123\n  }\n}"
+        }
+      },
+      "response": {
+        "status": "201",
+        "statusText": "Created",
+        "body": {
+          "type": "json",
+          "content": "{\n  \"id\": 1,\n  \"format\": \"json\",\n  \"created\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "XML API Example",
+      "description": "An example using XML format",
+      "request": {
+        "url": "https://api.example.com/xml",
+        "method": "post",
+        "body": {
+          "mode": "xml",
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<data>\n  <format>xml</format>\n  <name>XML Example</name>\n  <value>456</value>\n</data>"
+        }
+      },
+      "response": {
+        "status": "201",
+        "statusText": "Created",
+        "body": {
+          "type": "xml",
+          "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<response>\n  <id>2</id>\n  <format>xml</format>\n  <created>true</created>\n</response>"
+        }
+      }
+    },
+    {
+      "name": "Text API Example",
+      "description": "An example using text format",
+      "request": {
+        "url": "https://api.example.com/text",
+        "method": "post",
+        "body": {
+          "mode": "text",
+          "text": "Plain text data\nFormat: text\nName: Text Example\nValue: 789"
+        }
+      },
+      "response": {
+        "status": "201",
+        "statusText": "Created",
+        "body": {
+          "type": "text",
+          "content": "Success: true\nFormat: text\nID: 3"
+        }
+      }
+    }
+  ]
+}
