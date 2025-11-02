@@ -6,6 +6,21 @@ jest.mock('@usebruno/common', () => ({
   interpolate: jest.fn()
 }));
 
+// Mock Redux store to avoid import.meta issues
+jest.mock('providers/ReduxStore', () => ({
+  store: {
+    getState: jest.fn(() => ({
+      collections: {
+        collections: []
+      },
+      app: {
+        globalEnvironments: []
+      }
+    })),
+    dispatch: jest.fn()
+  }
+}));
+
 describe('extractVariableInfo', () => {
   let mockVariables;
 
@@ -261,8 +276,8 @@ describe('renderVarInfo', () => {
   function setupRender(variables) {
     const result = renderVarInfo({ string: '{{apiKey}}' }, { variables });
     const contentDiv = result.querySelector('.info-content');
-    const descriptionDiv = contentDiv.querySelector('.info-description');
-    const copyButton = contentDiv.querySelector('.copy-button');
+    const descriptionDiv = result.querySelector('.info-description');
+    const copyButton = result.querySelector('.copy-button');
 
     return { result, contentDiv, descriptionDiv, copyButton };
   }
