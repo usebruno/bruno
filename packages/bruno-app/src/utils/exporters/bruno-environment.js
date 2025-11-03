@@ -6,7 +6,7 @@ export const exportBrunoEnvironment = async ({ environments, environmentType, fi
 
     let cleanEnvironments = environments.map((environment) => ({
       name: environment.name,
-      variables: (environment.variables || []).map(buildEnvVariable)
+      variables: (environment.variables || []).map((envVariable) => buildEnvVariable({ envVariable }))
     }));
 
     await ipcRenderer.invoke('renderer:export-environment', {

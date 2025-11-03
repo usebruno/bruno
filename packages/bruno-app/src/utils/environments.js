@@ -1,3 +1,5 @@
+import { uuid } from './common/index';
+
 const isPersistableEnvVarForMerge = (persistedNames) => (v) => {
   return !v?.ephemeral || v?.persistedValue !== undefined || (v?.name && persistedNames.has(v.name));
 };
@@ -30,12 +32,21 @@ export const buildPersistedEnvVariables = (variables, { mode, persistedNames } =
   return src.map(toPersistedEnvVarForSave);
 };
 
-export const buildEnvVariable = (obj) => {
-  return {
+export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
+  let envVariable = {
     name: obj.name ?? '',
     value: !!obj.secret ? '' : (obj.value ?? ''),
     type: 'text',
     enabled: obj.enabled !== false,
     secret: !!obj.secret
+  };
+
+  if (!withUuid) {
+    return envVariable;
+  }
+
+  return {
+    uid: uuid(),
+    ...envVariable
   };
 };
