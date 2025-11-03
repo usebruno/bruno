@@ -8,9 +8,6 @@
 
 import { interpolate } from '@usebruno/common';
 import { store } from "providers/ReduxStore";
-import { saveGlobalEnvironment } from "providers/ReduxStore/slices/global-environments";
-import { saveEnvironment, saveFolderRoot, saveCollectionRoot } from "providers/ReduxStore/slices/collections/actions";
-import { updateCollectionVar, updateFolderVar, updateRuntimeVariable, updateVar } from "providers/ReduxStore/slices/collections";
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -434,7 +431,7 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
       case 'environment':
         return updateEnvironmentVariable(variableName, newValue, state, store);
       case 'runtime':
-        return editRuntimeVariable(variableName, newValue, options, cm, store);
+        return updateRuntimeVariable(variableName, newValue, options, cm, store);
       case 'collection':
         return updateCollectionVariable(variableName, newValue, options, cm, store);
       case 'folder':
@@ -467,6 +464,7 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
     
     const updatedVariables = updateVariableInArray(activeGlobalEnv.variables, variableName, newValue);
     
+    const { saveGlobalEnvironment } = await import('providers/ReduxStore/slices/global-environments');
     await reduxStore.dispatch(saveGlobalEnvironment({ 
       environmentUid: state.globalEnvironments.activeGlobalEnvironmentUid, 
       variables: updatedVariables 
@@ -487,6 +485,7 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
       if (envVar) {
         const updatedVariables = updateVariableInArray(environment.variables, variableName, newValue);
 
+        const { saveEnvironment } = await import('providers/ReduxStore/slices/collections/actions');
         await reduxStore.dispatch(saveEnvironment(updatedVariables, collection.activeEnvironmentUid, collection.uid));
         return;
       }
@@ -495,7 +494,7 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
     throw new Error(`Environment variable '${variableName}' not found`);
   };
 
-  const editRuntimeVariable = async (variableName, newValue, options, cm, reduxStore) => {
+  const updateRuntimeVariable = async (variableName, newValue, options, cm, reduxStore) => {
     options.variables[variableName] = newValue;
     updateCodeMirrorState(cm, options.variables);
     
@@ -519,7 +518,7 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
       
       if (collectionVar) {
         // Import the action creator and update the variable
-        
+        const { updateCollectionVar } = await import('providers/ReduxStore/slices/collections');        
         await reduxStore.dispatch(updateCollectionVar({
           collectionUid: collection.uid,
           type: 'request',
@@ -530,7 +529,7 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
         }));
         
         // Also save the collection root to persist the change
-        
+        const { saveCollectionRoot } = await import('providers/ReduxStore/slices/collections/actions');
         await reduxStore.dispatch(saveCollectionRoot(collection.uid));
         
         // Update the local options to reflect the change immediately
@@ -558,6 +557,7 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
       const folderInfo = findFolderWithVariable(collection.items, variableName);
       
       if (folderInfo) {
+        const { updateFolderVar } = await import('providers/ReduxStore/slices/collections');
         await reduxStore.dispatch(updateFolderVar({
           collectionUid: collection.uid,
           folderUid: folderInfo.folderUid,
@@ -568,6 +568,7 @@ const appendVariableValue = (container, variableName, variableValue, options, cm
           }
         }));
         
+        const { saveFolderRoot } = await import('providers/ReduxStore/slices/collections/actions');
         await reduxStore.dispatch(saveFolderRoot(collection.uid, folderInfo.folderUid));
         
         if (options.variables) {
@@ -638,6 +639,7 @@ const findFolderWithVariable = (items, variableName) => {
   };
 
   const dispatchRuntimeVariableUpdate = async (reduxStore, collectionUid, variableName, variableValue) => {
+    const { updateRuntimeVariable } = await import('providers/ReduxStore/slices/collections');
     await reduxStore.dispatch(updateRuntimeVariable({
       collectionUid,
       variableName,
