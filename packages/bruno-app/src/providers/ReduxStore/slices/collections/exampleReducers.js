@@ -74,7 +74,7 @@ export const cloneResponseExample = (state, action) => {
     item.draft.examples = item.examples ? cloneDeep(item.examples) : [];
   }
 
-  const originalExample = item.draft.examples.find((e) => e.uid === exampleUid)
+  const originalExample = item.draft.examples.find((e) => e.uid === exampleUid);
 
   if (!originalExample) return;
 
