@@ -22,7 +22,7 @@ const validateBrunoEnvironment = (env) => {
 
   return {
     name: env.name || 'Imported Environment',
-    variables: env.variables.map(buildEnvVariable)
+    variables: env.variables.map((envVariable) => buildEnvVariable({ envVariable, withUuid: true }))
   };
 };
 

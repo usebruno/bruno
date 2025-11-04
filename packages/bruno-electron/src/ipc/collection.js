@@ -412,7 +412,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         fs.mkdirSync(exportPath, { recursive: true });
 
         for (const environment of environments) {
-          const baseFileName = `${environment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}`;
+          const baseFileName = environment.name ? `${environment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}` : 'environment';
           const uniqueFileName = generateUniqueName(baseFileName, (name) => fs.existsSync(path.join(exportPath, `${name}.json`)));
           const fullPath = path.join(exportPath, `${uniqueFileName}.json`);
 
@@ -444,7 +444,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         const environment = environments[0];
-        const baseFileName = `${environment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}`;
+        const baseFileName = environment.name ? `${environment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}` : 'environment';
         const uniqueFileName = generateUniqueName(baseFileName, (name) => fs.existsSync(path.join(filePath, `${name}.json`)));
         const fullPath = path.join(filePath, `${uniqueFileName}.json`);
         const jsonContent = JSON.stringify(environmentWithInfo(environment), null, 2);
