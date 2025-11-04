@@ -79,7 +79,7 @@ const ExampleItem = ({ example, item, collection }) => {
       uid: clonedExampleUid,
       type: 'OPEN_EXAMPLE',
       collectionUid: collection.uid,
-      itemPathname: item.pathname,
+      itemUid: item.uid,
       exampleIndex: clonedExampleIndex
     }));
 

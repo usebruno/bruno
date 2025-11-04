@@ -5,7 +5,7 @@ import { createListenerMiddleware } from '@reduxjs/toolkit';
 import { removeTaskFromQueue, hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { collectionAddFileEvent, collectionChangeFileEvent } from 'providers/ReduxStore/slices/collections';
-import { findCollectionByUid, findItemInCollectionByPathname, getDefaultRequestPaneTab } from 'utils/collections/index';
+import { findCollectionByUid, findItemInCollectionByPathname, getDefaultRequestPaneTab, findItemInCollectionByItemUid } from 'utils/collections/index';
 import { taskTypes } from './utils';
 
 const taskMiddleware = createListenerMiddleware();
@@ -63,14 +63,13 @@ taskMiddleware.startListening({
   effect: (action, listenerApi) => {
     const state = listenerApi.getState();
     const collectionUid = get(action, 'payload.file.meta.collectionUid');
-    const itemPathname = get(action, 'payload.file.meta.pathname');
 
     const openExampleTasks = filter(state.app.taskQueue, { type: taskTypes.OPEN_EXAMPLE });
     each(openExampleTasks, (task) => {
-      if (collectionUid === task.collectionUid && itemPathname === task.itemPathname) {
+      if (collectionUid === task.collectionUid) {
         const collection = findCollectionByUid(state.collections.collections, collectionUid);
         if (collection && collection.mountStatus === 'mounted' && !collection.isLoading) {
-          const item = findItemInCollectionByPathname(collection, task.itemPathname);
+          const item = findItemInCollectionByItemUid(collection, task.itemUid);
           if (item && item.examples && item.examples.length > task.exampleIndex) {
             const example = item.examples[task.exampleIndex];
             if (example) {

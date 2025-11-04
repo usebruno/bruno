@@ -338,7 +338,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       uid: exampleUid,
       type: 'OPEN_EXAMPLE',
       collectionUid: collectionUid,
-      itemPathname: item.pathname,
+      itemUid: item.uid,
       exampleIndex: exampleIndex
     }));
 

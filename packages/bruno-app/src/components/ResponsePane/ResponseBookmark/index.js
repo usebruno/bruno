@@ -110,7 +110,7 @@ const ResponseBookmark = ({ item, collection, disabled = false }) => {
       uid: exampleUid,
       type: 'OPEN_EXAMPLE',
       collectionUid: collection.uid,
-      itemPathname: item.pathname,
+      itemUid: item.uid,
       exampleIndex: exampleIndex
     }));
 
