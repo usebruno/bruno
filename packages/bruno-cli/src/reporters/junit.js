@@ -23,8 +23,31 @@ const makeJUnitOutput = async (results, outputPath) => {
       '@timestamp': new Date().toISOString().split('Z')[0],
       '@hostname': os.hostname(),
       '@time': result.runtime.toFixed(3),
+      'system-out': { '#cdata': `> ${result.request.method} ${result.request.url}\n` },
       testcase: []
     };
+
+    if (result.request.headers) {
+      Object.entries(result.request.headers).forEach((header) => {
+        suite['system-out']['#cdata'] += `> ${header[0]}: ${header[1]}\n`;
+      });
+    }
+    suite['system-out']['#cdata'] += '>\n';
+
+    if (result.response && result.response.status) {
+      suite['system-out']['#cdata'] += `< ${result.response.status} ${result.response.statusText}\n`;
+      if (result.response.headers) {
+        Object.entries(result.response.headers).forEach((header) => {
+          suite['system-out']['#cdata'] += `< ${header[0]}: ${header[1]}\n`;
+        });
+      }
+      suite['system-out']['#cdata'] += '<\n';
+
+      if (result.response.data) {
+        suite['system-out']['#cdata'] +=
+          typeof result.response.data === 'string' ? result.response.data : JSON.stringify(result.response.data);
+      }
+    }
 
     result.assertionResults &&
       result.assertionResults.forEach((assertion) => {
@@ -82,7 +105,7 @@ const makeJUnitOutput = async (results, outputPath) => {
     output.testsuites.testsuite.push(suite);
   });
 
-  fs.writeFileSync(outputPath, xmlbuilder.create(output).end({ pretty: true }));
+  fs.writeFileSync(outputPath, xmlbuilder.create(output, { invalidCharReplacement: ' ' }).end({ pretty: true }));
 };
 
 module.exports = makeJUnitOutput;

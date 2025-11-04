@@ -25,7 +25,18 @@ describe('makeJUnitOutput', () => {
         suitename: 'Tests/Suite A',
         request: {
           method: 'GET',
-          url: 'https://ima.test'
+          url: 'https://ima.test',
+          headers: {
+            Authorization: 'Bearer your_secret_token'
+          }
+        },
+        response: {
+          status: 200,
+          statusText: 'OK',
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8'
+          },
+          data: 'I am the response content'
         },
         assertionResults: [
           {
@@ -73,6 +84,15 @@ describe('makeJUnitOutput', () => {
 
     expect(junit.testsuites).toBeDefined;
     expect(junit.testsuites.testsuite.length).toBe(2);
+    expect(junit.testsuites.testsuite[0]['system-out']['#cdata']).toContain('> GET https://ima.test');
+    expect(junit.testsuites.testsuite[0]['system-out']['#cdata']).toContain(
+      '> Authorization: Bearer your_secret_token'
+    );
+    expect(junit.testsuites.testsuite[0]['system-out']['#cdata']).toContain('< 200 OK');
+    expect(junit.testsuites.testsuite[0]['system-out']['#cdata']).toContain(
+      '< Content-Type: text/plain; charset=utf-8'
+    );
+    expect(junit.testsuites.testsuite[0]['system-out']['#cdata']).toContain('I am the response content');
     expect(junit.testsuites.testsuite[0].testcase.length).toBe(2);
     expect(junit.testsuites.testsuite[1].testcase.length).toBe(2);
 
