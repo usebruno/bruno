@@ -2924,6 +2924,7 @@ export const collectionsSlice = createSlice({
 
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
+    cloneResponseExample: exampleReducers.cloneResponseExample,
     updateResponseExample: exampleReducers.updateResponseExample,
     deleteResponseExample: exampleReducers.deleteResponseExample,
     cancelResponseExampleEdit: exampleReducers.cancelResponseExampleEdit,
@@ -3099,6 +3100,7 @@ export const {
 
   /* Response Example Actions - Start */
   addResponseExample,
+  cloneResponseExample,
   updateResponseExample,
   deleteResponseExample,
   cancelResponseExampleEdit,

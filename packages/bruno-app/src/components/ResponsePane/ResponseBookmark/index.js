@@ -6,9 +6,10 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { getBodyType, processResponseContent } from 'utils/responseBodyProcessor';
+import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
-const ResponseBookmark = ({ item, collection }) => {
+const ResponseBookmark = ({ item, collection, disabled = false }) => {
   const dispatch = useDispatch();
   const [showSaveResponseExampleModal, setShowSaveResponseExampleModal] = useState(false);
   const response = item.response || {};
@@ -48,6 +49,10 @@ const ResponseBookmark = ({ item, collection }) => {
   const handleSaveClick = () => {
     if (!response || response.error) {
       toast.error('No valid response to save as example');
+      return;
+    }
+    if (disabled) {
+      toast.error('Response size exceeds 5MB limit. Cannot save as example.');
       return;
     }
     setShowSaveResponseExampleModal(true);
@@ -95,9 +100,15 @@ const ResponseBookmark = ({ item, collection }) => {
       <StyledWrapper className="ml-2 flex items-center">
         <button
           onClick={handleSaveClick}
-          disabled={!response || response.error}
-          title="Save current response as example"
-          className="p-1"
+          disabled={disabled}
+          title={
+            disabled
+              ? 'Response size exceeds 5MB limit. Cannot save as example.'
+              : 'Save current response as example'
+          }
+          className={classnames('p-1', {
+            'opacity-50 cursor-not-allowed': disabled
+          })}
           data-testid="response-bookmark-btn"
         >
           <IconBookmark size={16} strokeWidth={1.5} />

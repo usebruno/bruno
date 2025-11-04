@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
@@ -51,7 +51,26 @@ const ResponsePane = ({ item, collection }) => {
   };
 
   const response = item.response || {};
-  const responseSize = response.size || 0;
+
+  // Calculate response size similar to QueryResult
+  const responseSize = useMemo(() => {
+    if (typeof response.size === 'number') {
+      return response.size;
+    }
+
+    if (!response.dataBuffer) return 0;
+
+    try {
+      // dataBuffer is base64 encoded, so we need to calculate the actual size
+      const buffer = Buffer.from(response.dataBuffer, 'base64');
+      return buffer.length;
+    } catch (error) {
+      return 0;
+    }
+  }, [response.size, response.dataBuffer]);
+
+  // Disable bookmark for responses >= 5MB
+  const isBookmarkDisabled = responseSize >= 5 * 1024 * 1024; // 5 MB
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -168,7 +187,7 @@ const ResponsePane = ({ item, collection }) => {
               <>
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />
-                <ResponseBookmark item={item} collection={collection} />
+                <ResponseBookmark item={item} collection={collection} disabled={isBookmarkDisabled} />
                 <StatusCode status={response.status} />
                 <ResponseTime duration={response.duration} />
                 <ResponseSize size={responseSize} />

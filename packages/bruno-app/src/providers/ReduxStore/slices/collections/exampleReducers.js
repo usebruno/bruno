@@ -3,6 +3,7 @@ import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@use
 import { uuid } from 'utils/common';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { parsePathParams, splitOnFirst, interpolateUrlPathParams } from 'utils/url';
+import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
 export const addResponseExample = (state, action) => {
   const { itemUid, collectionUid, example } = action.payload;
@@ -41,7 +42,7 @@ export const addResponseExample = (state, action) => {
     },
     response: {
       status: String(example.status ?? ''),
-      statusText: String(example.statusText ?? ''),
+      statusText: String(example.statusText ?? (example.status ? (statusCodePhraseMap[Number(example.status)] ?? '') : '')),
       headers: (example.headers || []).map((header) => ({
         uid: uuid(),
         name: String(header.name),
@@ -54,6 +55,84 @@ export const addResponseExample = (state, action) => {
   };
 
   item.draft.examples.push(newExample);
+};
+
+export const cloneResponseExample = (state, action) => {
+  const { itemUid, collectionUid, exampleUid } = action.payload;
+  const collection = findCollectionByUid(state.collections, collectionUid);
+
+  if (!collection) return;
+
+  const item = findItemInCollection(collection, itemUid);
+  if (!item) return;
+
+  if (!item.draft) {
+    item.draft = cloneDeep(item);
+  }
+
+  if (!item.draft.examples) {
+    item.draft.examples = item.examples ? cloneDeep(item.examples) : [];
+  }
+
+  const originalExample = item.draft.examples.find((e) => e.uid === exampleUid)
+
+  if (!originalExample) return;
+
+  const clonedExample = cloneDeep(originalExample);
+
+  clonedExample.uid = uuid();
+
+  clonedExample.name = `${originalExample.name} (Copy)`;
+
+  if (clonedExample.request && clonedExample.request.body) {
+    if (!clonedExample.request.body.mode) {
+      clonedExample.request.body.mode = 'none';
+    }
+  }
+
+  if (clonedExample.request && clonedExample.request.headers) {
+    clonedExample.request.headers = clonedExample.request.headers.map((header) => ({
+      ...header,
+      uid: uuid()
+    }));
+  }
+
+  if (clonedExample.response && clonedExample.response.headers) {
+    clonedExample.response.headers = clonedExample.response.headers.map((header) => ({
+      ...header,
+      uid: uuid()
+    }));
+  }
+
+  if (clonedExample.request && clonedExample.request.params) {
+    clonedExample.request.params = clonedExample.request.params.map((param) => ({
+      ...param,
+      uid: uuid()
+    }));
+  }
+
+  if (clonedExample.request && clonedExample.request.body) {
+    if (clonedExample.request.body.multipartForm) {
+      clonedExample.request.body.multipartForm = clonedExample.request.body.multipartForm.map((param) => ({
+        ...param,
+        uid: uuid()
+      }));
+    }
+    if (clonedExample.request.body.formUrlEncoded) {
+      clonedExample.request.body.formUrlEncoded = clonedExample.request.body.formUrlEncoded.map((param) => ({
+        ...param,
+        uid: uuid()
+      }));
+    }
+    if (clonedExample.request.body.file) {
+      clonedExample.request.body.file = clonedExample.request.body.file.map((param) => ({
+        ...param,
+        uid: uuid()
+      }));
+    }
+  }
+
+  item.draft.examples.push(clonedExample);
 };
 
 export const updateResponseExample = (state, action) => {
