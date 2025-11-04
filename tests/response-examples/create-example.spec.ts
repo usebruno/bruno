@@ -27,7 +27,7 @@ test.describe.serial('Create and Delete Response Examples', () => {
       await page.getByTestId('create-example-name-input').fill('Test Example from Bookmark');
       await page.getByTestId('create-example-description-input').fill('This is a test example created from response bookmark');
       await page.getByRole('button', { name: 'Create Example' }).click();
-      await expect(page.getByText('Test Example from Bookmark')).toBeVisible();
+      await expect(page.getByTestId('response-example-title')).toHaveText('create-example / Test Example from Bookmark');
     });
   });
 
@@ -61,6 +61,7 @@ test.describe.serial('Create and Delete Response Examples', () => {
 
   test('should close modal when cancelled', async ({ pageWithUserData: page }) => {
     await test.step('Test modal cancellation', async () => {
+      await page.locator('.collection-item-name').getByText('create-example').click();
       await page.getByTestId('send-arrow-icon').click();
       await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
       await page.getByRole('button', { name: 'Cancel' }).click();
