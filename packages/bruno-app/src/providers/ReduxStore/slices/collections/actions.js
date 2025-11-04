@@ -824,11 +824,13 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
         .then(() => {
-          resolve({ parentDirectory: parentDirectoryItem });
+          dispatch(reorderDirectoryItems(parentDirectoryItem, itemUid));
+          resolve();
         })
         .catch((error) => reject(error));
+    } else {
+      return reject(new Error('Unable to locate item'));
     }
-    return;
   });
 };
 

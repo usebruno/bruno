@@ -3,17 +3,16 @@ import Modal from 'components/Modal';
 import { isItemAFolder } from 'utils/tabs';
 import { useDispatch } from 'react-redux';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
-import { deleteItem, reorderDirectoryItems } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { recursivelyGetAllItemUids } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
 
 const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const onConfirm = () => {
-    dispatch(deleteItem(item.uid, collectionUid)).then(({ parentDirectory }) => {
-      dispatch(reorderDirectoryItems(parentDirectory, item.uid));
-
+    dispatch(deleteItem(item.uid, collectionUid)).then(() => {
       if (isFolder) {
         // close all tabs that belong to the folder
         // including the folder itself and its children
@@ -31,6 +30,9 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
           })
         );
       }
+    }).catch((error) => {
+      console.error('Error deleting item', error);
+      toast.error(error?.message || 'Error deleting item');
     });
     onClose();
   };
