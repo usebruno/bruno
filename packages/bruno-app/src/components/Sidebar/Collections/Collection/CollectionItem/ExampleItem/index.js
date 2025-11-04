@@ -6,6 +6,8 @@ import {
   cloneResponseExample
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { uuid } from 'utils/common';
 import { IconDots } from '@tabler/icons';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import range from 'lodash/range';
@@ -55,13 +57,31 @@ const ExampleItem = ({ example, item, collection }) => {
     setEditName(example.name);
   }, [example.name]);
 
-  const handleClone = () => {
+  const handleClone = async () => {
+    // Calculate the index where the cloned example will be saved
+    // It will be at the end of the examples array
+    const existingExamples = item.draft?.examples || item.examples || [];
+    const clonedExampleIndex = existingExamples.length;
+    const clonedExampleUid = uuid();
+
     dispatch(cloneResponseExample({
       itemUid: item.uid,
       collectionUid: collection.uid,
-      exampleUid: example.uid
+      exampleUid: example.uid,
+      clonedUid: clonedExampleUid
     }));
-    dispatch(saveRequest(item.uid, collection.uid));
+
+    // Save the request
+    await dispatch(saveRequest(item.uid, collection.uid));
+
+    // Task middleware will track this and open the example in a new tab once the file is reloaded
+    dispatch(insertTaskIntoQueue({
+      uid: clonedExampleUid,
+      type: 'OPEN_EXAMPLE',
+      collectionUid: collection.uid,
+      itemPathname: item.pathname,
+      exampleIndex: clonedExampleIndex
+    }));
 
     if (dropdownTippyRef.current) {
       dropdownTippyRef.current.hide();

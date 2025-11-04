@@ -3,6 +3,8 @@ import { useDispatch } from 'react-redux';
 import { IconBookmark } from '@tabler/icons';
 import { addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { getBodyType, processResponseContent } from 'utils/responseBodyProcessor';
@@ -58,7 +60,7 @@ const ResponseBookmark = ({ item, collection, disabled = false }) => {
     setShowSaveResponseExampleModal(true);
   };
 
-  const saveAsExample = (name, description = '') => {
+  const saveAsExample = async (name, description = '') => {
     // Convert headers object to array format expected by schema
     const headersArray = response.headers && typeof response.headers === 'object'
       ? Object.entries(response.headers).map(([name, value]) => ({
@@ -85,12 +87,33 @@ const ResponseBookmark = ({ item, collection, disabled = false }) => {
       description: description
     };
 
+    // Calculate the index where the example will be saved
+    // This will be the length of the examples array after adding the new one
+    const existingExamples = item.draft?.examples || item.examples || [];
+    const exampleIndex = existingExamples.length;
+    const exampleUid = uuid();
+
     dispatch(addResponseExample({
       itemUid: item.uid,
       collectionUid: collection.uid,
-      example: exampleData
+      example: {
+        ...exampleData,
+        uid: exampleUid
+      }
     }));
-    dispatch(saveRequest(item.uid, collection.uid));
+
+    // Save the request
+    await dispatch(saveRequest(item.uid, collection.uid));
+
+    // Task middleware will track this and open the example in a new tab once the file is reloaded
+    dispatch(insertTaskIntoQueue({
+      uid: exampleUid,
+      type: 'OPEN_EXAMPLE',
+      collectionUid: collection.uid,
+      itemPathname: item.pathname,
+      exampleIndex: exampleIndex
+    }));
+
     setShowSaveResponseExampleModal(false);
     toast.success(`Example "${name}" created successfully`);
   };

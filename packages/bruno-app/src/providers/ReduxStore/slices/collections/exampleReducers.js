@@ -28,7 +28,7 @@ export const addResponseExample = (state, action) => {
   }
 
   const newExample = {
-    uid: uuid(),
+    uid: example.uid || uuid(),
     itemUid: item.uid,
     name: example.name,
     description: example.description,
@@ -58,7 +58,7 @@ export const addResponseExample = (state, action) => {
 };
 
 export const cloneResponseExample = (state, action) => {
-  const { itemUid, collectionUid, exampleUid } = action.payload;
+  const { itemUid, collectionUid, exampleUid, clonedUid } = action.payload;
   const collection = findCollectionByUid(state.collections, collectionUid);
 
   if (!collection) return;
@@ -80,7 +80,7 @@ export const cloneResponseExample = (state, action) => {
 
   const clonedExample = cloneDeep(originalExample);
 
-  clonedExample.uid = uuid();
+  clonedExample.uid = clonedUid || uuid();
 
   clonedExample.name = `${originalExample.name} (Copy)`;
 
