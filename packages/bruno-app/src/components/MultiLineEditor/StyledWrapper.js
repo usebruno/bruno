@@ -14,6 +14,10 @@ const StyledWrapper = styled.div`
     .CodeMirror-line {
       color: ${(props) => props.theme.colors.text.muted} !important;
     }
+
+    .CodeMirror-cursor {
+      display: none !important;
+    }
   }
 
   .CodeMirror {
