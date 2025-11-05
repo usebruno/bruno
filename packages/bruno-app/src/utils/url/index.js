@@ -156,3 +156,16 @@ export const interpolateUrlPathParams = (url, params) => {
 
   return `${uri.origin}${basePath}${uri?.search || ''}`;
 };
+
+function isEncodedURI(uri) {
+  uri = uri || '';
+  return uri !== decodeURIComponent(uri);
+}
+
+export function fullyDecodeURI(uri) {
+  while (isEncodedURI(uri)) {
+    uri = decodeURIComponent(uri);
+  }
+
+  return uri;
+}

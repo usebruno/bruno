@@ -2,6 +2,7 @@ import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem } from 'utils/collections/index';
 import { interpolateHeaders, interpolateBody } from './interpolation';
+import { fullyDecodeURI } from 'utils/url/index';
 
 // Merge headers from collection, folders, and request
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -68,6 +69,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
         request.body = interpolateBody(request.body, variables);
       }
     }
+    request.url = encodeURI(fullyDecodeURI(request.url))
 
     // Build HAR request
     const harRequest = buildHarRequest({
