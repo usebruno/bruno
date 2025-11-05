@@ -14,10 +14,11 @@ import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from './utils/auth-utils';
 
+const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/g;
+
 const validateURLWithVars = (url) => {
   const isValid = isValidUrl(url);
-  const patternRegex = /\{\{([^}]+)\}\}/g;
-  const hasMissingInterpolations = patternRegex.test(url);
+  const hasMissingInterpolations = TEMPLATE_VAR_PATTERN.test(url);
   return isValid && !hasMissingInterpolations;
 };
 
