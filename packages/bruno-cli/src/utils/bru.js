@@ -77,6 +77,7 @@ const bruToJson = (bru) => {
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
       tags: _.get(json, 'meta.tags', []),
+      examples: _.get(json, 'examples', []),
       request: {
         url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
         headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
@@ -119,8 +120,6 @@ const bruToJson = (bru) => {
       transformedJson.request.body = _.get(json, 'body', {});
       transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     }
-
-
 
     return transformedJson;
   } catch (err) {

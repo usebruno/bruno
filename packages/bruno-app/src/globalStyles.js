@@ -192,6 +192,42 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  // Utility class for scrollbars that are hidden by default and shown on hover
+  .scrollbar-hover {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+
+    &::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 5px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: transparent;
+      border-radius: 14px;
+      border: 3px solid transparent;
+      background-clip: content-box;
+      transition: background-color 0.2s ease;
+    }
+
+    &:hover {
+      scrollbar-color: ${(props) => props.theme.scrollbar.color} transparent;
+      
+      &::-webkit-scrollbar-thumb {
+        background-color: ${(props) => props.theme.scrollbar.color};
+      }
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: ${(props) => props.theme.scrollbar.color};
+      opacity: 0.8;
+    }
+  }
+
 
   // codemirror
   .CodeMirror {

@@ -492,3 +492,104 @@ describe('brunoToPostman null checks and fallbacks', () => {
     });
   });
 });
+
+describe('brunoToPostman event handling', () => {
+  it('should generate events for request scripts (req/res)', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            script: {
+              req: 'console.log("pre");',
+              res: 'console.log("post");'
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    const events = result.item[0].event;
+
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({ listen: 'prerequest', script: { exec: ['console.log("pre");'] } });
+    expect(events[1]).toMatchObject({ listen: 'test', script: { exec: ['console.log("post");'] } });
+  });
+
+  it('should generate events for folder scripts', () => {
+    const simpleCollection = {
+      items: [
+        {
+          type: 'folder',
+          name: 'Test Folder',
+          script: {
+            req: 'console.log("folder pre");',
+            res: 'console.log("folder post");'
+          },
+          items: []
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    const folder = result.item[0];
+
+    expect(folder.name).toBe('Test Folder');
+    expect(folder.event).toHaveLength(2);
+    expect(folder.event[0].listen).toBe('prerequest');
+    expect(folder.event[1].listen).toBe('test');
+  });
+
+  it('should generate collection-level events from root', () => {
+    const simpleCollection = {
+      root: {
+        script: {
+          req: 'console.log("collection pre");',
+          res: 'console.log("collection post");'
+        }
+      },
+      items: []
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.event).toHaveLength(2);
+    expect(result.event[0].listen).toBe('prerequest');
+    expect(result.event[1].listen).toBe('test');
+  });
+
+  it('should handle nested folders and requests with scripts', () => {
+    const simpleCollection = {
+      items: [
+        {
+          type: 'folder',
+          name: 'Parent Folder',
+          items: [
+            {
+              type: 'http-request',
+              name: 'Nested Request',
+              request: {
+                method: 'GET',
+                url: 'https://example.com',
+                script: { req: 'console.log("nested pre");' }
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    const folder = result.item[0];
+    const nestedRequest = folder.item[0];
+
+    expect(folder.name).toBe('Parent Folder');
+    expect(nestedRequest.name).toBe('Nested Request');
+    expect(nestedRequest.event).toHaveLength(1);
+    expect(nestedRequest.event[0].listen).toBe('prerequest');
+    expect(nestedRequest.event[0].script.exec).toEqual(['console.log("nested pre");']);
+  });
+});

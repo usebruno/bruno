@@ -69,7 +69,7 @@ export const transformUrl = (url, params) => {
   postmanUrl.query = params
     .filter((param) => param.type === 'query')
     .map(({ name, value, description }) => ({ key: name, value, description }));
-  
+
   // Construct path params.
   postmanUrl.variable = params
     .filter((param) => param.type === 'path')
@@ -80,10 +80,10 @@ export const transformUrl = (url, params) => {
 
 /**
  * Collapses multiple consecutive slashes (`//`) into a single slash, while skipping the protocol (e.g., `http://` or `https://`).
- * 
+ *
  * @param {String} url - A URL string
  * @returns {String} The sanitized URL
- * 
+ *
  */
 const collapseDuplicateSlashes = (url) => {
   return url.replace(/(?<!:)\/{2,}/g, '/');
@@ -91,7 +91,7 @@ const collapseDuplicateSlashes = (url) => {
 
 /**
  * Replaces all `\\` (backslashes) with `//` (forward slashes) and collapses multiple slashes into one.
- * 
+ *
  * @param {string} url - The URL to sanitize.
  * @returns {string} The sanitized URL.
  *
@@ -146,24 +146,30 @@ export const brunoToPostman = (collection) => {
       type: 'default'
     }));
   };
-
   const generateEventSection = (item) => {
     const eventArray = [];
-    if (item?.request?.tests?.length) {
-      eventArray.push({
-        listen: 'test',
-        script: {
-          exec: item.request.tests.split('\n')
-          // type: 'text/javascript'
-        }
-      });
-    }
-    if (item?.request?.script?.req) {
+    // Request: item.script, Folder: item.root.request.script, Collection: item.request.script
+    const scriptBlock = item?.script || item?.root?.request?.script || item?.request?.script;
+
+    if (scriptBlock?.req) {
       eventArray.push({
         listen: 'prerequest',
         script: {
-          exec: item.request.script.req.split('\n')
-          // type: 'text/javascript'
+          type: 'text/javascript',
+          packages: {},
+          requests: {},
+          exec: scriptBlock.req.split('\n')
+        }
+      });
+    }
+    if (scriptBlock?.res) {
+      eventArray.push({
+        listen: 'test',
+        script: {
+          type: 'text/javascript',
+          packages: {},
+          requests: {},
+          exec: scriptBlock.res.split('\n')
         }
       });
     }
@@ -317,7 +323,7 @@ export const brunoToPostman = (collection) => {
     if (!itemRequest) {
       return {};
     }
-    
+
     const requestObject = {
       method: itemRequest.method || 'GET',
       header: generateHeaders(itemRequest.headers),
@@ -333,11 +339,100 @@ export const brunoToPostman = (collection) => {
     return requestObject;
   };
 
+  const generateResponseExamples = (examples) => {
+    if (!examples || !Array.isArray(examples)) {
+      return [];
+    }
+
+    return map(examples, (example) => {
+      if (!example) {
+        return null;
+      }
+
+      const postmanResponse = {
+        name: example.name || 'Example Response',
+        originalRequest: generateOriginalRequest(example.request),
+        status: example.response?.statusText || 'OK',
+        code: parseInt(example.response?.status) || 200,
+        header: generateResponseHeaders(example.response?.headers),
+        cookie: [],
+        body: example.response?.body?.content || ''
+      };
+
+      // Add preview language based on content type
+      const contentType = getContentTypeFromHeaders(example.response?.headers);
+      if (contentType) {
+        if (contentType.includes('application/json')) {
+          postmanResponse._postman_previewlanguage = 'json';
+        } else if (contentType.includes('application/xml') || contentType.includes('text/xml')) {
+          postmanResponse._postman_previewlanguage = 'xml';
+        } else if (contentType.includes('text/html')) {
+          postmanResponse._postman_previewlanguage = 'html';
+        } else if (contentType.includes('text/plain')) {
+          postmanResponse._postman_previewlanguage = 'text';
+        }
+      }
+
+      return postmanResponse;
+    }).filter(Boolean); // Remove null entries
+  };
+
+  const generateOriginalRequest = (request) => {
+    if (!request) {
+      return {
+        method: 'GET',
+        header: [],
+        url: { raw: '', protocol: 'https', host: [], path: [] }
+      };
+    }
+
+    const originalRequestObject = {
+      method: request.method || 'GET',
+      header: generateHeaders(request.headers),
+      // We sanitize the URL to make sure it's in the right format before passing it to the transformUrl func. This means changing backslashes to forward slashes and reducing multiple slashes to a single one, except in the protocol part.
+      url: transformUrl(sanitizeUrl(request.url || ''), request.params || [])
+    };
+
+    // Add body if it exists and is not 'none' mode
+    if (request.body && request.body.mode !== 'none') {
+      originalRequestObject.body = generateBody(request.body);
+    }
+
+    return originalRequestObject;
+  };
+
+  const generateResponseHeaders = (headers) => {
+    if (!headers || !Array.isArray(headers)) {
+      return [];
+    }
+
+    return map(headers, (header) => {
+      return {
+        key: header.name || '',
+        value: header.value || '',
+        name: header.name || '',
+        description: header.description || '',
+        type: 'text'
+      };
+    });
+  };
+
+  const getContentTypeFromHeaders = (headers) => {
+    if (!headers || !Array.isArray(headers)) {
+      return null;
+    }
+
+    const contentTypeHeader = headers.find((header) =>
+      header.name && header.name.toLowerCase() === 'content-type');
+
+    return contentTypeHeader ? contentTypeHeader.value : null;
+  };
+
   const generateItemSection = (itemsArray) => {
     if (!itemsArray || !Array.isArray(itemsArray)) {
       return [];
     }
-    
+
     return map(itemsArray, (item) => {
       if (!item) {
         return null;
@@ -346,18 +441,28 @@ export const brunoToPostman = (collection) => {
       if (item.type === 'grpc-request') {
         return null;
       }
-      
+
       if (item.type === 'folder') {
+        const folderEvents = generateEventSection(item);
         return {
           name: item.name || 'Untitled Folder',
-          item: item.items && item.items.length ? generateItemSection(item.items) : []
+          item: generateItemSection(item.items),
+          ...(folderEvents.length ? { event: folderEvents } : {})
         };
       } else {
-        return {
+        const requestEvents = generateEventSection(item.request);
+        const postmanItem = {
           name: item.name || 'Untitled Request',
-          event: generateEventSection(item),
-          request: generateRequestSection(item.request)
+          request: generateRequestSection(item.request),
+          ...(requestEvents.length ? { event: requestEvents } : {})
         };
+
+        // Add examples (responses) if they exist
+        if (item.examples && Array.isArray(item.examples) && item.examples.length > 0) {
+          postmanItem.response = generateResponseExamples(item.examples);
+        }
+
+        return postmanItem;
       }
     });
   };
@@ -365,6 +470,10 @@ export const brunoToPostman = (collection) => {
   collectionToExport.info = generateInfoSection();
   collectionToExport.item = generateItemSection(collection.items);
   collectionToExport.variable = generateCollectionVars(collection);
+  const collectionEvents = generateEventSection(collection.root);
+  if (collectionEvents.length) {
+    collectionToExport.event = collectionEvents;
+  }
   return collectionToExport;
 };
 

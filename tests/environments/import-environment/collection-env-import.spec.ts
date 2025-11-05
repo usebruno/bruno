@@ -1,7 +1,12 @@
 import { test, expect } from '../../../playwright';
 import path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Collection Environment Import Tests', () => {
+  test.afterAll(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
   test('should import collection environment from file', async ({ page, createTmpDir }) => {
     const openApiFile = path.join(__dirname, 'fixtures', 'collection.json');
     const envFile = path.join(__dirname, 'fixtures', 'collection-env.json');
@@ -40,7 +45,7 @@ test.describe('Collection Environment Import Tests', () => {
 
     // Import environment file
     const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('button[data-testid="import-postman-environment"]').click();
+    await page.getByTestId('import-environment').click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(envFile);
 
@@ -86,9 +91,9 @@ test.describe('Collection Environment Import Tests', () => {
       .filter({ has: page.locator('#sidebar-collection-name:has-text("Environment Test Collection")') })
       .locator('.collection-actions')
       .click();
+    // Wait for the close collection modal to be hidden
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).waitFor({ state: 'detached' });
     await page.getByRole('button', { name: 'Close' }).click();
-
-    await page.locator('.bruno-logo').click();
   });
 });

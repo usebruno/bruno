@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import groupBy from 'lodash/groupBy';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
-import { findCollectionByUid, flattenItems, isItemARequest } from 'utils/collections';
+import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders } from 'providers/ReduxStore/slices/collections/actions';
@@ -57,6 +57,26 @@ const SaveRequestsModal = ({ onClose }) => {
       });
     }
   });
+  const currentDrafts = useMemo(() => {
+    const drafts = [];
+    const tabsByCollection = groupBy(tabs, (t) => t.collectionUid);
+
+    Object.keys(tabsByCollection).forEach((collectionUid) => {
+      const collection = findCollectionByUid(collections, collectionUid);
+      if (collection) {
+        const items = flattenItems(collection.items);
+        const collectionDrafts = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
+        each(collectionDrafts, (draft) => {
+          drafts.push({
+            ...draft,
+            collectionUid: collectionUid
+          });
+        });
+      }
+    });
+
+    return drafts;
+  }, [collections, tabs]);
 
   const allDrafts = [...collectionDrafts, ...folderDrafts, ...currentDrafts];
   const totalDraftsCount = allDrafts.length;

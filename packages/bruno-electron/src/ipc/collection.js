@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const fs = require('fs');
-const fsPromises = require('fs/promises');
 const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
@@ -14,7 +13,6 @@ const {
   stringifyCollection,
   parseFolder,
   stringifyFolder,
-  parseEnvironment,
   stringifyEnvironment
 } = require('@usebruno/filestore');
 const brunoConverters = require('@usebruno/converters');
@@ -27,8 +25,6 @@ const {
   writeFile,
   hasBruExtension,
   isDirectory,
-  browseDirectory,
-  browseFiles,
   createDirectory,
   searchForBruFiles,
   sanitizeName,
@@ -42,7 +38,8 @@ const {
   safeWriteFileSync,
   copyPath,
   removePath,
-  getPaths
+  getPaths,
+  generateUniqueName
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -263,7 +260,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
-
       const content = await stringifyRequestViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
@@ -298,13 +294,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
-      if (fs.existsSync(envFilePath)) {
-        throw new Error(`environment: ${envFilePath} already exists`);
-      }
+      // Get existing environment files to generate unique name
+      const existingFiles = fs.existsSync(envDirPath) ? fs.readdirSync(envDirPath) : [];
+      const existingEnvNames = existingFiles
+        .filter((file) => file.endsWith('.bru'))
+        .map((file) => path.basename(file, '.bru'));
+
+      // Generate unique name based on existing environment files
+      const sanitizedName = sanitizeName(name);
+      const uniqueName = generateUniqueName(sanitizedName, (name) => existingEnvNames.includes(name));
+
+      const envFilePath = path.join(envDirPath, `${uniqueName}.bru`);
 
       const environment = {
-        name: name,
+        name: uniqueName,
         variables: variables || []
       };
 
@@ -378,6 +381,77 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       fs.unlinkSync(envFilePath);
 
       environmentSecretsStore.deleteEnvironment(collectionPathname, environmentName);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Generic environment export handler
+  ipcMain.handle('renderer:export-environment', async (event, { environments, environmentType, filePath, exportFormat = 'folder' }) => {
+    try {
+      const { app } = require('electron');
+      const appVersion = app?.getVersion() || '2.0.0';
+
+      // For single environments and folder exports, include info in each environment
+      const environmentWithInfo = (environment) => ({
+        name: environment.name,
+        variables: environment.variables,
+        info: {
+          type: 'bruno-environment',
+          exportedAt: new Date().toISOString(),
+          exportedUsing: `Bruno/v${appVersion}`
+        }
+      });
+
+      if (exportFormat === 'folder') {
+        // separate environment json files in folder
+        const baseFolderName = `bruno-${environmentType}-environments`;
+        const uniqueFolderName = generateUniqueName(baseFolderName, (name) => fs.existsSync(path.join(filePath, name)));
+        const exportPath = path.join(filePath, uniqueFolderName);
+
+        fs.mkdirSync(exportPath, { recursive: true });
+
+        for (const environment of environments) {
+          const baseFileName = environment.name ? `${environment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}` : 'environment';
+          const uniqueFileName = generateUniqueName(baseFileName, (name) => fs.existsSync(path.join(exportPath, `${name}.json`)));
+          const fullPath = path.join(exportPath, `${uniqueFileName}.json`);
+
+          const cleanEnv = environmentWithInfo(environment);
+          const jsonContent = JSON.stringify(cleanEnv, null, 2);
+          await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+        }
+      } else if (exportFormat === 'single-file') {
+        // all environments in a single file with top-level info and environments array
+        const baseFileName = `bruno-${environmentType}-environments`;
+        const uniqueFileName = generateUniqueName(baseFileName, (name) => fs.existsSync(path.join(filePath, `${name}.json`)));
+        const fullPath = path.join(filePath, `${uniqueFileName}.json`);
+
+        const exportData = {
+          info: {
+            type: 'bruno-environment',
+            exportedAt: new Date().toISOString(),
+            exportedUsing: `Bruno/v${appVersion}`
+          },
+          environments
+        };
+
+        const jsonContent = JSON.stringify(exportData, null, 2);
+        await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+      } else if (exportFormat === 'single-object') {
+        // single environment json file
+        if (environments.length !== 1) {
+          throw new Error('Single object export requires exactly one environment');
+        }
+
+        const environment = environments[0];
+        const baseFileName = environment.name ? `${environment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}` : 'environment';
+        const uniqueFileName = generateUniqueName(baseFileName, (name) => fs.existsSync(path.join(filePath, `${name}.json`)));
+        const fullPath = path.join(filePath, `${uniqueFileName}.json`);
+        const jsonContent = JSON.stringify(environmentWithInfo(environment), null, 2);
+        await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+      } else {
+        throw new Error(`Unsupported export format: ${exportFormat}`);
+      }
     } catch (error) {
       return Promise.reject(error);
     }

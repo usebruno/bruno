@@ -4,7 +4,7 @@ class SystemMonitor {
   constructor() {
     this.intervalId = null;
     this.isMonitoring = false;
-    this.startTime = Date.now();
+    this.startTime = null;
   }
 
   start(win, intervalMs = 2000) {
@@ -13,7 +13,6 @@ class SystemMonitor {
     }
 
     this.isMonitoring = true;
-    this.startTime = Date.now();
 
     // Emit initial stats
     this.emitSystemStats(win);
@@ -45,7 +44,21 @@ class SystemMonitor {
   emitSystemStats(win) {
     try {
       const metrics = app.getAppMetrics();
-      const currentTime = Date.now();
+      const currentTime = new Date();
+
+      if (metrics.length === 0) {
+        throw new Error('No metrics found');
+      }
+
+      if (this.startTime == null) {
+        let creationTime = metrics[0].creationTime;
+
+        for (const metric of metrics) {
+          creationTime = Math.min(creationTime, metric.creationTime);
+        }
+
+        this.startTime = new Date(creationTime);
+      }
 
       let totalCPU = 0;
       let totalMemory = 0;
@@ -62,7 +75,7 @@ class SystemMonitor {
         memory: totalMemory,
         pid: process.pid,
         uptime: uptime,
-        timestamp: new Date().toISOString()
+        timestamp: currentTime.toISOString()
       };
 
       if (win && !win.isDestroyed()) {
@@ -71,13 +84,18 @@ class SystemMonitor {
     } catch (error) {
       console.error('Error getting system stats:', error);
 
+      const memory = process.memoryUsage();
+      const currentTime = new Date();
+
+      const uptime = !this.startTime ? 0 : (currentTime - this.startTime) / 1000;
+
       // Fallback stats using process.memoryUsage()
       const fallbackStats = {
         cpu: 0,
-        memory: process.memoryUsage().rss,
+        memory: memory.rss,
         pid: process.pid,
-        uptime: (Date.now() - this.startTime) / 1000,
-        timestamp: new Date().toISOString()
+        uptime: uptime,
+        timestamp: currentTime.toISOString()
       };
 
       if (win && !win.isDestroyed()) {

@@ -1,0 +1,27 @@
+meta {
+  name: SayHello
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: grpc://grpcb.in:9000
+  method: /hello.HelloService/SayHello
+  body: grpc
+  auth: inherit
+  methodType: unary
+}
+
+metadata {
+  test-bin: hello
+  test: hello
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "amoveo"
+    }
+  '''
+}
