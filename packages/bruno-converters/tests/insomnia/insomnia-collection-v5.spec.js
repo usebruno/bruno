@@ -128,7 +128,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            url: 'https://testbench-sanity.usebruno.com/ping'
+            "url": "https://testbench-sanity.usebruno.com/ping"
           },
           "seq": 1,
           "type": "http-request",
@@ -164,7 +164,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            url: 'https://testbench-sanity.usebruno.com/ping'
+            "url": "https://testbench-sanity.usebruno.com/ping"
           },
           "seq": 1,
           "type": "http-request",
