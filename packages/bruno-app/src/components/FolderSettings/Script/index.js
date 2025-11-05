@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { IconChevronDown } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor';
 import { updateFolderRequestScript, updateFolderResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
@@ -14,6 +15,10 @@ const Script = ({ collection, folder }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  // State for collapsible sections - start expanded by default
+  const [isPreRequestExpanded, setIsPreRequestExpanded] = useState(true);
+  const [isPostResponseExpanded, setIsPostResponseExpanded] = useState(true);
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -44,33 +49,69 @@ const Script = ({ collection, folder }) => {
       <div className="text-xs mb-4 text-muted">
         Pre and post-request scripts that will run before and after any request inside this folder is sent.
       </div>
-      <div className="flex flex-col flex-1 mt-2 gap-y-2">
-        <div className="title text-xs">Pre Request</div>
-        <CodeEditor
-          collection={collection}
-          value={requestScript || ''}
-          theme={displayedTheme}
-          onEdit={onRequestScriptEdit}
-          mode="javascript"
-          onSave={handleSave}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-          showHintsFor={['req', 'bru']}
-        />
+
+      <div className="flex flex-col flex-1">
+        {/* Pre Request Section */}
+        <div className={`script-section ${isPreRequestExpanded ? 'expanded' : 'collapsed'}`}>
+        <div className="script-header" onClick={() => setIsPreRequestExpanded(!isPreRequestExpanded)}>
+          <div className="title text-xs">Pre Request</div>
+          <IconChevronDown
+            className="w-4 h-4 ml-auto chevron-icon"
+            style={{
+              transform: `rotate(${isPreRequestExpanded ? '180deg' : '0deg'})`,
+              transition: 'transform 0.2s ease-in-out',
+            }}
+          />
+        </div>
+        {isPreRequestExpanded && (
+          <div className="script-content">
+            <div className="script-editor-container">
+              <CodeEditor
+                collection={collection}
+                value={requestScript || ''}
+                theme={displayedTheme}
+                onEdit={onRequestScriptEdit}
+                mode="javascript"
+                onSave={handleSave}
+                font={get(preferences, 'font.codeFont', 'default')}
+                fontSize={get(preferences, 'font.codeFontSize')}
+                showHintsFor={['req', 'bru']}
+              />
+            </div>
+          </div>
+        )}
       </div>
-      <div className="flex flex-col flex-1 mt-2 gap-y-2">
-        <div className="title text-xs">Post Response</div>
-        <CodeEditor
-          collection={collection}
-          value={responseScript || ''}
-          theme={displayedTheme}
-          onEdit={onResponseScriptEdit}
-          mode="javascript"
-          onSave={handleSave}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-          showHintsFor={['req', 'res', 'bru']}
-        />
+
+        {/* Post Response Section */}
+        <div className={`script-section ${isPostResponseExpanded ? 'expanded' : 'collapsed'}`}>
+        <div className="script-header" onClick={() => setIsPostResponseExpanded(!isPostResponseExpanded)}>
+          <div className="title text-xs">Post Response</div>
+          <IconChevronDown
+            className="w-4 h-4 ml-auto chevron-icon"
+            style={{
+              transform: `rotate(${isPostResponseExpanded ? '180deg' : '0deg'})`,
+              transition: 'transform 0.2s ease-in-out',
+            }}
+          />
+        </div>
+        {isPostResponseExpanded && (
+          <div className="script-content">
+            <div className="script-editor-container">
+              <CodeEditor
+                collection={collection}
+                value={responseScript || ''}
+                theme={displayedTheme}
+                onEdit={onResponseScriptEdit}
+                mode="javascript"
+                onSave={handleSave}
+                font={get(preferences, 'font.codeFont', 'default')}
+                fontSize={get(preferences, 'font.codeFontSize')}
+                showHintsFor={['req', 'res', 'bru']}
+              />
+            </div>
+          </div>
+        )}
+        </div>
       </div>
 
       <div className="mt-12">
