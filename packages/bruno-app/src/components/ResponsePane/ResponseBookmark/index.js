@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconBookmark } from '@tabler/icons';
 import { addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -7,14 +7,16 @@ import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
-import { getBodyType, processResponseContent } from 'utils/responseBodyProcessor';
+import { getBodyType } from 'utils/responseBodyProcessor';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
-const ResponseBookmark = ({ item, collection, disabled = false }) => {
+const ResponseBookmark = ({ item, collection, responseSize }) => {
   const dispatch = useDispatch();
   const [showSaveResponseExampleModal, setShowSaveResponseExampleModal] = useState(false);
   const response = item.response || {};
+
+  const isResponseTooLarge = responseSize >= 5 * 1024 * 1024; // 5 MB
 
   // Only show for HTTP requests
   if (item.type !== 'http-request') {
@@ -53,10 +55,12 @@ const ResponseBookmark = ({ item, collection, disabled = false }) => {
       toast.error('No valid response to save as example');
       return;
     }
-    if (disabled) {
+
+    if (isResponseTooLarge) {
       toast.error('Response size exceeds 5MB limit. Cannot save as example.');
       return;
     }
+
     setShowSaveResponseExampleModal(true);
   };
 
@@ -123,14 +127,14 @@ const ResponseBookmark = ({ item, collection, disabled = false }) => {
       <StyledWrapper className="ml-2 flex items-center">
         <button
           onClick={handleSaveClick}
-          disabled={disabled}
+          disabled={isResponseTooLarge}
           title={
-            disabled
+            isResponseTooLarge
               ? 'Response size exceeds 5MB limit. Cannot save as example.'
               : 'Save current response as example'
           }
           className={classnames('p-1', {
-            'opacity-50 cursor-not-allowed': disabled
+            'opacity-50 cursor-not-allowed': isResponseTooLarge
           })}
           data-testid="response-bookmark-btn"
         >

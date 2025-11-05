@@ -52,7 +52,6 @@ const ResponsePane = ({ item, collection }) => {
 
   const response = item.response || {};
 
-  // Calculate response size similar to QueryResult
   const responseSize = useMemo(() => {
     if (typeof response.size === 'number') {
       return response.size;
@@ -68,9 +67,6 @@ const ResponsePane = ({ item, collection }) => {
       return 0;
     }
   }, [response.size, response.dataBuffer]);
-
-  // Disable bookmark for responses >= 5MB
-  const isBookmarkDisabled = responseSize >= 5 * 1024 * 1024; // 5 MB
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -187,7 +183,7 @@ const ResponsePane = ({ item, collection }) => {
               <>
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />
-                <ResponseBookmark item={item} collection={collection} disabled={isBookmarkDisabled} />
+                <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
                 <StatusCode status={response.status} />
                 <ResponseTime duration={response.duration} />
                 <ResponseSize size={responseSize} />
