@@ -124,6 +124,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     }
   }, [item]);
 
+  const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
+
   if (!item) {
     return (
       <StyledWrapper
@@ -144,7 +146,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const isWS = item.type === 'ws-request';
   const method = getMethodText(item);
-  const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
