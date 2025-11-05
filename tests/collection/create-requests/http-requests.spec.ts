@@ -38,7 +38,7 @@ test.describe('Create HTTP Requests', () => {
 
       await page.getByTestId('request-name').fill('Root HTTP Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('https://httpbin.org/get');
+      await page.keyboard.type('https://echo.usebruno.com');
       await locators.modal.button('Create').click();
     });
 
@@ -65,7 +65,7 @@ test.describe('Create HTTP Requests', () => {
 
       await page.getByTestId('request-name').fill('Folder HTTP Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('https://httpbin.org/post');
+      await page.keyboard.type('https://echo.usebruno.com');
       await locators.modal.button('Create').click();
     });
 

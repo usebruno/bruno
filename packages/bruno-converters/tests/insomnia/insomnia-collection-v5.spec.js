@@ -24,7 +24,7 @@ collection:
       modified: 1744194421968
       sortKey: -1744194421968
     children:
-      - url: https://httpbin.org/get
+      - url: https://testbench-sanity.usebruno.com/ping
         name: Request1
         meta:
           id: req_e9fbdc9c88984068a04f442e052d4ff1
@@ -48,7 +48,7 @@ collection:
       modified: 1744194421969
       sortKey: -1744194421969
     children:
-      - url: https://httpbin.org/get
+      - url: https://testbench-sanity.usebruno.com/ping
         name: Request2
         meta:
           id: req_3c572aa26a964f1f800bfa5c53cacb75
@@ -128,7 +128,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 1,
           "type": "http-request",
@@ -164,7 +164,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 1,
           "type": "http-request",

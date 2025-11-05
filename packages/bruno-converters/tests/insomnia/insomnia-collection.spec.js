@@ -21,7 +21,7 @@ const insomniaCollection = {
       "parentId": "fld_1",
       "name": "Request1",
       "method": "GET",
-      "url": "https://httpbin.org/get",
+      url: 'https://testbench-sanity.usebruno.com/ping',
       "settingEncodeUrl": false,
       "parameters": []
     },
@@ -31,7 +31,7 @@ const insomniaCollection = {
       "parentId": "fld_2",
       "name": "Request2",
       "method": "GET",
-      "url": "https://httpbin.org/get",
+      url: 'https://testbench-sanity.usebruno.com/ping',
       "settingEncodeUrl": true,
       "parameters": []
     },
@@ -109,7 +109,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 1,
           "type": "http-request",
@@ -138,7 +138,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 2,
           "type": "http-request",
@@ -174,7 +174,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 1,
           "type": "http-request",
@@ -203,7 +203,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 2,
           "type": "http-request",

@@ -61,4 +61,68 @@ router.post('/multipart-redirect-target', function (req, res) {
   });
 });
 
-module.exports = router; 
+router.get('/anything', function (req, res) {
+  const { body, files } = parseMultipartFormData(req);
+
+  // Parse query parameters
+  const args = req.query;
+
+  // Parse form data if present
+  const form = {};
+  if (req.headers['content-type'] && req.headers['content-type'].includes('application/x-www-form-urlencoded')) {
+    Object.assign(form, req.body);
+  }
+
+  // Get origin IP
+  const origin = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+
+  // Parse JSON body if present
+  let json = null;
+  let data = '';
+  if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+    try {
+      json = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      data = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    } catch (e) {
+      data = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
+  } else if (req.body) {
+    data = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+  }
+
+  res.json({
+    method: req.method,
+    args: args,
+    headers: req.headers,
+    origin: origin,
+    url: req.url,
+    form: form,
+    data: data,
+    json: json,
+    files: files
+  });
+});
+
+router.get('/:count', function (req, res) {
+  const count = parseInt(req.params.count, 10);
+
+  if (count > 1) {
+    // Redirect to the next redirect in the chain
+    const nextCount = count - 1;
+    res.status(302).set('Location', `/api/redirect/${nextCount}`).send(`<!doctype html>
+          <title>Redirecting...</title>
+          <h1>Redirecting...</h1>
+          <p>You should be redirected automatically to target URL: <a href="${nextCount}">${nextCount}</a>.  If not click the link.</p>
+    `);
+  } else {
+    res.status(302)
+      .set('Location', '/api/redirect/anything')
+      .send(`<!doctype html>
+          <title>Redirecting...</title>
+          <h1>Redirecting...</h1>
+          <p>You should be redirected automatically to target URL: <a href="../anything">../anything</a>.  If not click the link.</p>
+    `);
+  }
+});
+
+module.exports = router;
