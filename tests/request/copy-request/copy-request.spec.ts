@@ -16,7 +16,7 @@ test.describe('Copy and Paste Requests', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('original-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'original-request' })).toBeVisible();

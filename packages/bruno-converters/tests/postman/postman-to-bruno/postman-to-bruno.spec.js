@@ -113,9 +113,9 @@ describe('postman-collection', () => {
             method: 'GET',
             header: [],
             url: {
-              raw: 'https://httpbin.org/get',
+              raw: 'https://echo.usebruno.com/get',
               protocol: 'https',
-              host: ['httpbin', 'org'],
+              host: ['echo', 'usebruno', 'com'],
               path: ['get']
             }
           }
@@ -129,9 +129,9 @@ describe('postman-collection', () => {
             method: 'POST',
             header: [],
             url: {
-              raw: 'https://httpbin.org/post',
+              raw: 'https://echo.usebruno.com/post',
               protocol: 'https',
-              host: ['httpbin', 'org'],
+              host: ['echo', 'usebruno', 'com'],
               path: ['post']
             }
           }
@@ -142,9 +142,9 @@ describe('postman-collection', () => {
             method: 'PUT',
             header: [],
             url: {
-              raw: 'https://httpbin.org/put',
+              raw: 'https://echo.usebruno.com/put',
               protocol: 'https',
-              host: ['httpbin', 'org'],
+              host: ['echo', 'usebruno', 'com'],
               path: ['put']
             }
           }

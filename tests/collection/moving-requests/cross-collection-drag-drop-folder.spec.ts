@@ -42,7 +42,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request-in-folder');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created
@@ -162,7 +162,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('http-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
     // Expand the folder to see the request inside
     await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).click();
