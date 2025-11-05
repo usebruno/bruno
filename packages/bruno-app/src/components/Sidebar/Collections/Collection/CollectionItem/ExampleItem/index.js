@@ -1,12 +1,16 @@
 import React, { useState, useRef, forwardRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { deleteResponseExample, updateResponseExample, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import {
+  updateResponseExample,
+  cloneResponseExample
+} from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { uuid } from 'utils/common';
 import { IconDots } from '@tabler/icons';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import range from 'lodash/range';
-import cloneDeep from 'lodash/cloneDeep';
 import classnames from 'classnames';
 import Dropdown from 'components/Dropdown';
 import Modal from 'components/Modal';
@@ -53,23 +57,31 @@ const ExampleItem = ({ example, item, collection }) => {
     setEditName(example.name);
   }, [example.name]);
 
-  const handleClone = () => {
-    // Only pass response-related data - the reducer will automatically capture current request state
-    const clonedExample = {
-      name: `${example.name} (Copy)`,
-      status: example.response?.status || example.status,
-      statusText: example.response?.statusText || example.statusText,
-      headers: cloneDeep(example.response?.headers || example.headers),
-      body: cloneDeep(example.response?.body || example.body),
-      description: example.description
-    };
+  const handleClone = async () => {
+    // Calculate the index where the cloned example will be saved
+    // It will be at the end of the examples array
+    const existingExamples = item.draft?.examples || item.examples || [];
+    const clonedExampleIndex = existingExamples.length;
+    const clonedExampleUid = uuid();
 
-    dispatch(addResponseExample({
+    dispatch(cloneResponseExample({
       itemUid: item.uid,
       collectionUid: collection.uid,
-      example: clonedExample
+      exampleUid: example.uid,
+      clonedUid: clonedExampleUid
     }));
-    dispatch(saveRequest(item.uid, collection.uid));
+
+    // Save the request
+    await dispatch(saveRequest(item.uid, collection.uid));
+
+    // Task middleware will track this and open the example in a new tab once the file is reloaded
+    dispatch(insertTaskIntoQueue({
+      uid: clonedExampleUid,
+      type: 'OPEN_EXAMPLE',
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      exampleIndex: clonedExampleIndex
+    }));
 
     if (dropdownTippyRef.current) {
       dropdownTippyRef.current.hide();
@@ -149,9 +161,7 @@ const ExampleItem = ({ example, item, collection }) => {
       >
         <div style={{ width: 16, minWidth: 16 }}></div>
         <ExampleIcon size={16} color="currentColor" className="mr-2 text-gray-400 flex-shrink-0" />
-        <span className="item-name truncate text-gray-700 dark:text-gray-300 ">
-          {example.name}
-        </span>
+        <span className="item-name truncate text-gray-700 dark:text-gray-300 ">{example.name}</span>
       </div>
       <div className="menu-icon pr-2">
         <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">

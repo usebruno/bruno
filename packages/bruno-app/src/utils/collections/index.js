@@ -101,6 +101,11 @@ export const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
+export const findItemInCollectionByItemUid = (collection, itemUid) => {
+  let flattenedItems = flattenItems(collection.items);
+  return findItem(flattenedItems, itemUid);
+};
+
 export const findParentItemInCollectionByPathname = (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
