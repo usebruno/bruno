@@ -31,7 +31,7 @@ const ResponsePane = ({ item, collection }) => {
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const requestTimeline = ([...(collection.timeline || [])]).filter(obj => {
+  const requestTimeline = [...(collection.timeline || [])].filter((obj) => {
     if (obj.itemUid === item.uid) return true;
   });
 
@@ -64,7 +64,7 @@ const ResponsePane = ({ item, collection }) => {
             dataBuffer={response.dataBuffer}
             headers={response.headers}
             error={response.error}
-            key={item.filename}
+            key={item.uid}
           />
         );
       }
@@ -72,15 +72,17 @@ const ResponsePane = ({ item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item}  />;
+        return <Timeline collection={collection} item={item} />;
       }
       case 'tests': {
-        return <TestResults
-          results={item.testResults}
-          assertionResults={item.assertionResults}
-          preRequestTestResults={item.preRequestTestResults}
-          postResponseTestResults={item.postResponseTestResults}
-        />;
+        return (
+          <TestResults
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
+        );
       }
 
       default: {
@@ -156,15 +158,12 @@ const ResponsePane = ({ item, collection }) => {
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
             {hasScriptError && !showScriptErrorCard && (
-              <ScriptErrorIcon
-                itemUid={item.uid}
-                onClick={() => setShowScriptErrorCard(true)}
-              />
+              <ScriptErrorIcon itemUid={item.uid} onClick={() => setShowScriptErrorCard(true)} />
             )}
             <ResponseLayoutToggle />
-            {focusedTab?.responsePaneTab === "timeline" ? (
+            {focusedTab?.responsePaneTab === 'timeline' ? (
               <ClearTimeline item={item} collection={collection} />
-            ) : (item?.response && !item?.response?.error) ? (
+            ) : item?.response && !item?.response?.error ? (
               <>
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />
@@ -186,18 +185,12 @@ const ResponsePane = ({ item, collection }) => {
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
-          <ScriptError
-            item={item}
-            onClose={() => setShowScriptErrorCard(false)}
-          />
+          <ScriptError item={item} onClose={() => setShowScriptErrorCard(false)} />
         )}
-        <div className='flex-1 overflow-y-auto'>
+        <div className="flex-1 overflow-y-auto">
           {!item?.response ? (
-            focusedTab?.responsePaneTab === "timeline" && requestTimeline?.length ? (
-              <Timeline
-                collection={collection}
-                item={item}
-              />
+            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
+              <Timeline collection={collection} item={item} />
             ) : null
           ) : (
             <>{getTabPanel(focusedTab.responsePaneTab)}</>
