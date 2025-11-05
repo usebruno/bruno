@@ -14,21 +14,22 @@ const Collections = () => {
   const [searchText, setSearchText] = useState('');
   const { collections } = useSelector((state) => state.collections);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   if (!collections || !collections.length) {
     return (
-      <StyledWrapper>
-        <CollectionsBadge />
+      <StyledWrapper onMouseEnter={() => setIsSidebarHovered(true)} onMouseLeave={() => setIsSidebarHovered(false)}>
+        <CollectionsBadge isSidebarHovered={isSidebarHovered} />
         <CreateOrOpenCollection />
       </StyledWrapper>
     );
   }
 
   return (
-    <StyledWrapper>
+    <StyledWrapper onMouseEnter={() => setIsSidebarHovered(true)} onMouseLeave={() => setIsSidebarHovered(false)}>
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
 
-      <CollectionsBadge />
+      <CollectionsBadge isSidebarHovered={isSidebarHovered} />
 
       <div className="mt-4 relative collection-filter px-2">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

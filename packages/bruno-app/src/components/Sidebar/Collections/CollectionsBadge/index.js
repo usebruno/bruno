@@ -10,10 +10,12 @@ import {
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import RemoveCollections from '../RemoveCollections/index';
 
-const CollectionsBadge = () => {
+const CollectionsBadge = ({ isSidebarHovered = false }) => {
   const dispatch = useDispatch();
   const { collections } = useSelector(state => state.collections);
   const { collectionSortOrder } = useSelector(state => state.collections);
+  const [collectionsToClose, setCollectionsToClose] = useState([]);
+
   const sortCollectionOrder = () => {
     let order;
     switch (collectionSortOrder) {
@@ -39,7 +41,6 @@ const CollectionsBadge = () => {
     sortIcon = <IconSortDescendingLetters size={18} strokeWidth={1.5} />;
   }
 
-  const [collectionsToClose, setCollectionsToClose] = useState([]);
   const addAllCollectionsToClose = () => {
     setCollectionsToClose(collections.map(c => c.uid));
   };
@@ -58,15 +59,22 @@ const CollectionsBadge = () => {
         </div>
         {collections.length >= 1 && (
           <div className="flex items-center">
-            <button onClick={() => sortCollectionOrder()}>
+            {isSidebarHovered && (
+              <button
+                className="mr-1"
+                onClick={addAllCollectionsToClose}
+                aria-label="Close all collections"
+                title="Close all collections"
+              >
+                <IconX
+                  size={18}
+                  strokeWidth={1.5}
+                  className="cursor-pointer"
+                />
+              </button>
+            )}
+            <button onClick={() => sortCollectionOrder()} aria-label="Sort collections">
               {sortIcon}
-            </button>
-            <button className="ml-1" onClick={addAllCollectionsToClose}>
-              <IconX
-                size={16}
-                strokeWidth={1.5}
-                className="cursor-pointer"
-              />
             </button>
             {collectionsToClose.length > 0 && (
               <RemoveCollections collectionUids={collectionsToClose} onClose={emptyCollections} />

@@ -1,22 +1,82 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
-import { IconFiles } from '@tabler/icons';
+import filter from 'lodash/filter';
 import Modal from 'components/Modal';
-import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid } from 'utils/collections/index';
+import { removeCollection, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
+import { findCollectionByUid, flattenItems, isItemARequest } from 'utils/collections/index';
+import { pluralizeWord } from 'utils/common';
+import { IconAlertTriangle } from '@tabler/icons';
 
 const RemoveCollections = ({ collectionUids, onClose }) => {
   const dispatch = useDispatch();
   const allCollections = useSelector(state => state.collections.collections || []);
+  const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+
+  const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
 
   const selectedCollections = collectionUids
     .map(uid => findCollectionByUid(allCollections, uid))
     .filter(Boolean);
 
   const collectionsNames = selectedCollections.map(c => c.name).join(', ');
-  const collectionsPathnames = selectedCollections.map(c => c.pathname).join(', ');
+
+  const getUnsavedDrafts = () => {
+    const currentDrafts = [];
+    collectionUids.forEach(collectionUid => {
+      const collection = findCollectionByUid(allCollections, collectionUid);
+      if (collection) {
+        const items = flattenItems(collection.items);
+        const drafts = filter(items, item => isItemARequest(item) && item.draft);
+        drafts.forEach(draft => {
+          currentDrafts.push({
+            ...draft,
+            collectionUid: collectionUid,
+          });
+        });
+      }
+    });
+    return currentDrafts;
+  };
+
+  const hasUnsavedChanges = () => {
+    return getUnsavedDrafts().length > 0;
+  };
+
+  useEffect(() => {
+    if (hasUnsavedChanges()) {
+      setShowUnsavedChangesModal(true);
+    } else {
+      setShowCloseModal(true);
+    }
+  }, []);
+
+  const handleUnsavedChangesDiscard = () => {
+    setShowUnsavedChangesModal(false);
+    setShowCloseModal(true);
+  };
+
+  const handleUnsavedChangesCancel = () => {
+    setShowUnsavedChangesModal(false);
+    if (onClose) onClose();
+  };
+
+  const handleCloseButton = () => {
+    handleUnsavedChangesCancel();
+  };
+
+  const handleUnsavedChangesSave = () => {
+    const currentDrafts = getUnsavedDrafts();
+    dispatch(saveMultipleRequests(currentDrafts))
+      .then(() => {
+        handleUnsavedChangesDiscard();
+      })
+      .catch(() => {
+        handleUnsavedChangesCancel();
+      });
+  };
 
   const onConfirm = () => {
     const removalPromises = selectedCollections.map(collection => {
@@ -25,7 +85,7 @@ const RemoveCollections = ({ collectionUids, onClose }) => {
 
     Promise.all(removalPromises)
       .then(() => {
-        toast.success('Collections are closed');
+        toast.success('Closed all collections');
       })
       .catch(() => {
         toast.error('An error occurred while closing collections');
@@ -50,18 +110,93 @@ const RemoveCollections = ({ collectionUids, onClose }) => {
     );
   };
 
+  const currentDrafts = showUnsavedChangesModal ? getUnsavedDrafts() : [];
+
   return (
-    <Modal size="sm" title="Close Collections" confirmText="Close" handleConfirm={onConfirm} handleCancel={onClose}>
-      <div className="flex items-center">
-        <IconFiles size={18} strokeWidth={1.5} />
-        <span className="ml-2 mr-4 font-semibold">{collectionsNames}</span>
-      </div>
-      <div className="break-words text-xs mt-1">{collectionsPathnames}</div>
-      <div className="mt-4">{getConfirmationText()}</div>
-      <div className="mt-4">
-        It will still be available in the file system at the above locations and can be re-opened later.
-      </div>
-    </Modal>
+    <>
+      {showUnsavedChangesModal && currentDrafts.length > 0 && (
+        <Modal
+          size="md"
+          title="Unsaved changes"
+          confirmText="Save and Close"
+          cancelText="Close without saving"
+          disableEscapeKey={true}
+          disableCloseOnOutsideClick={true}
+          closeModalFadeTimeout={150}
+          handleCancel={handleUnsavedChangesCancel}
+          onClick={e => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          hideFooter={true}
+        >
+          <div className="flex items-center font-normal">
+            <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
+            <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
+          </div>
+          <div className="font-normal mt-4">
+            Do you want to save the changes you made to the following
+            {' '}
+            <span className="font-medium">{currentDrafts.length}</span>
+            {' '}
+            {pluralizeWord('request', currentDrafts.length)}
+            ?
+          </div>
+
+          <div className="mt-4 text-xs">
+            {currentDrafts.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item, index) => (
+              <span key={item.uid}>
+                {item.filename}
+                {index < Math.min(currentDrafts.length, MAX_UNSAVED_REQUESTS_TO_SHOW) - 1 && ', '}
+              </span>
+            ))}
+            {currentDrafts.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
+              <span>
+                {' '}
+                ...
+                {currentDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW}
+                {' '}
+                additional
+                {pluralizeWord('request', currentDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW)}
+                {' '}
+                not shown
+              </span>
+            )}
+          </div>
+
+          <div className="flex justify-between mt-6">
+            <div>
+              <button className="btn btn-sm btn-danger" onClick={handleUnsavedChangesDiscard}>
+                Don't Save
+              </button>
+            </div>
+            <div>
+              <button className="btn btn-close btn-sm mr-2" onClick={handleUnsavedChangesCancel}>
+                Cancel
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleUnsavedChangesSave}>
+                {currentDrafts.length > 1 ? 'Save All' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {showCloseModal && (
+        <Modal
+          size="sm"
+          title={collectionUids.length > 1 ? 'Close all collections?' : 'Close collection?'}
+          confirmText={collectionUids.length > 1 ? 'Close All' : 'Close'}
+          handleConfirm={onConfirm}
+          handleCancel={onClose}
+          hideCancel={true}
+        >
+          <div className="mt-4">{getConfirmationText()}</div>
+          <div className="mt-4 text-xs text-gray-500">
+            Collections will remain available in the file system and can be re-opened later.
+          </div>
+        </Modal>
+      )}
+    </>
   );
 };
 
