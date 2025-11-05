@@ -16,7 +16,94 @@ const StyledWrapper = styled.div`
     width: 100%;
     position: relative;
     display: flex;
+    flex-direction: row;
+  }
+
+  .terminal-sessions-sidebar {
+    width: 200px;
+    min-width: 200px;
+    border-right: 1px solid ${(props) => props.theme.border || 'rgba(255, 255, 255, 0.08)'};
+    background: ${(props) => props.theme.sidebarBackground || props.theme.background};
+    display: flex;
     flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .terminal-sessions-header {
+    padding: 12px;
+    font-weight: 600;
+    font-size: 13px;
+    color: ${(props) => props.theme.text};
+    border-bottom: 1px solid ${(props) => props.theme.border || 'rgba(255, 255, 255, 0.08)'};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .terminal-sessions-list {
+    flex: 1;
+    overflow-y: auto;
+
+    /* Custom scrollbar styling - subtle */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  .terminal-session-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid ${(props) => props.theme.border};
+    transition: background 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &:hover {
+      background: ${(props) => props.theme.sidebarHover || 'rgba(255, 255, 255, 0.05)'};
+    }
+
+    &.active {
+      background: ${(props) => props.theme.sidebarActive || 'rgba(59, 142, 234, 0.15)'};
+      border-left: 3px solid ${(props) => props.theme.brandColor || '#3b8eea'};
+    }
+  }
+
+  .terminal-session-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: ${(props) => props.theme.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .terminal-session-path {
+    font-size: 11px;
+    color: ${(props) => props.theme.textSecondary || '#888'};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .terminal-display-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
   }
 
   .terminal-loading {

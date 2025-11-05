@@ -1,27 +1,28 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { IconTerminal2 } from '@tabler/icons';
+import { IconTerminal2, IconPlus } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
+import SessionList from './SessionList';
 import '@xterm/xterm/css/xterm.css';
 
-// Persistent terminal session state (module-level singleton)
-let persistentSessionId = null;
-let persistentStarted = false;
-let sessionCreatePromise = null;
+// Terminal instances per session - Map<sessionId, { terminal, fitAddon, inputDisposable, resizeDisposable }>
+const terminalInstances = new Map();
 
-// Shared XTerm instance and resources
-let sharedTerminal = null;
-let sharedFitAddon = null;
-let sharedInputDisposable = null;
-let sharedResizeDisposable = null;
+// Data listeners per session - Map<sessionId, { onData, onExit }>
+const sessionListeners = new Map();
 
 // Parking host for terminal DOM when view unmounts
 let parkingHost = null;
-let hasFlushedColdStart = false;
 
-// If data arrives before terminal is created, buffer it once and flush on first open
-let coldStartChunks = [];
+// Export function to get current session ID (for backward compatibility)
+export const getSessionId = () => {
+  // Return the first active session ID if any
+  if (terminalInstances.size > 0) {
+    return Array.from(terminalInstances.keys())[0];
+  }
+  return null;
+};
 
 const ensureParkingHost = () => {
   if (parkingHost && document.body.contains(parkingHost)) return parkingHost;
@@ -32,71 +33,12 @@ const ensureParkingHost = () => {
   return parkingHost;
 };
 
-const moveTerminalElementTo = (container) => {
-  if (!sharedTerminal || !sharedTerminal.element || !container) return;
-  if (sharedTerminal.element.parentElement !== container) {
-    container.appendChild(sharedTerminal.element);
-  }
-};
-
-const ensureTerminalSession = async () => {
-  if (!window.ipcRenderer) {
-    return null;
+const createTerminalForSession = (sessionId) => {
+  if (terminalInstances.has(sessionId)) {
+    return terminalInstances.get(sessionId);
   }
 
-  if (persistentStarted && persistentSessionId) {
-    return persistentSessionId;
-  }
-
-  if (!sessionCreatePromise) {
-    sessionCreatePromise = (async () => {
-      const newSessionId = await window.ipcRenderer.invoke('terminal:create');
-      if (!newSessionId) {
-        return null;
-      }
-
-      persistentSessionId = newSessionId;
-      persistentStarted = true;
-
-      const onData = (data) => {
-        if (!data) return;
-        if (sharedTerminal) {
-          try {
-            sharedTerminal.write(data);
-          } catch (err) {
-            console.warn('Failed to write terminal data:', err);
-          }
-        } else {
-          coldStartChunks.push(data);
-        }
-      };
-      window.ipcRenderer.on(`terminal:data:${newSessionId}`, onData);
-
-      const onExit = ({ exitCode, signal } = {}) => {
-        const msg = `\r\n[Process exited with code ${exitCode ?? ''} ${signal ? `(signal ${signal})` : ''}]\r\n`;
-        if (sharedTerminal) {
-          try {
-            sharedTerminal.write(msg);
-          } catch (err) {
-            console.warn('Failed to write terminal exit message:', err);
-          }
-        } else {
-          coldStartChunks.push(msg);
-        }
-      };
-      window.ipcRenderer.on(`terminal:exit:${newSessionId}`, onExit);
-
-      return newSessionId;
-    })();
-  }
-
-  return sessionCreatePromise;
-};
-
-const createSharedTerminalIfNeeded = () => {
-  if (sharedTerminal) return;
-
-  sharedTerminal = new Terminal({
+  const terminal = new Terminal({
     cursorBlink: true,
     fontSize: 14,
     fontFamily: 'Menlo, Monaco, "Courier New", monospace',
@@ -125,123 +67,368 @@ const createSharedTerminalIfNeeded = () => {
     allowProposedApi: true
   });
 
-  sharedFitAddon = new FitAddon();
-  sharedTerminal.loadAddon(sharedFitAddon);
+  const fitAddon = new FitAddon();
+  terminal.loadAddon(fitAddon);
+
+  const inputDisposable = terminal.onData((data) => {
+    if (data && sessionId && window.ipcRenderer) {
+      window.ipcRenderer.send('terminal:input', sessionId, data);
+    }
+  });
+
+  const resizeDisposable = terminal.onResize(({ cols, rows }) => {
+    if (sessionId && window.ipcRenderer) {
+      window.ipcRenderer.send('terminal:resize', sessionId, { cols, rows });
+    }
+  });
+
+  const instance = {
+    terminal,
+    fitAddon,
+    inputDisposable,
+    resizeDisposable
+  };
+
+  terminalInstances.set(sessionId, instance);
+
+  // Setup IPC listeners for this session
+  if (window.ipcRenderer && !sessionListeners.has(sessionId)) {
+    const onData = (data) => {
+      if (!data) return;
+      const instance = terminalInstances.get(sessionId);
+      if (instance && instance.terminal) {
+        try {
+          instance.terminal.write(data);
+        } catch (err) {
+          console.warn('Failed to write terminal data:', err);
+        }
+      }
+    };
+
+    const onExit = ({ exitCode, signal } = {}) => {
+      const msg = `\r\n[Process exited with code ${exitCode ?? ''} ${signal ? `(signal ${signal})` : ''}]\r\n`;
+      const instance = terminalInstances.get(sessionId);
+      if (instance && instance.terminal) {
+        try {
+          instance.terminal.write(msg);
+      } catch (err) {
+          console.warn('Failed to write terminal exit message:', err);
+        }
+      }
+      // Cleanup on exit
+      cleanupTerminalInstance(sessionId);
+    };
+
+    window.ipcRenderer.on(`terminal:data:${sessionId}`, onData);
+    window.ipcRenderer.on(`terminal:exit:${sessionId}`, onExit);
+
+    sessionListeners.set(sessionId, { onData, onExit });
+  }
+
+  return instance;
 };
 
-const openSharedTerminalInto = async (container) => {
-  if (!container) return;
-  createSharedTerminalIfNeeded();
-
-  if (!sharedTerminal.element) {
-    sharedTerminal.open(container);
-
-    if (!hasFlushedColdStart && coldStartChunks.length > 0) {
-      try {
-        for (const chunk of coldStartChunks) {
-          sharedTerminal.write(chunk);
-        }
-      } catch (err) {
-        console.warn('Failed to flush cold-start chunks:', err);
-      } finally {
-        coldStartChunks = [];
-        hasFlushedColdStart = true;
+const cleanupTerminalInstance = (sessionId) => {
+  const instance = terminalInstances.get(sessionId);
+  if (instance) {
+    try {
+      if (instance.inputDisposable) instance.inputDisposable.dispose();
+      if (instance.resizeDisposable) instance.resizeDisposable.dispose();
+      if (instance.terminal) {
+        instance.terminal.dispose();
       }
+    } catch (err) {
+      console.warn('Error disposing terminal instance:', err);
     }
+    terminalInstances.delete(sessionId);
+  }
+
+  // Remove IPC listeners
+  const listeners = sessionListeners.get(sessionId);
+  if (listeners && window.ipcRenderer) {
+    try {
+      window.ipcRenderer.removeAllListeners(`terminal:data:${sessionId}`);
+      window.ipcRenderer.removeAllListeners(`terminal:exit:${sessionId}`);
+    } catch (err) {
+      console.warn('Error removing IPC listeners:', err);
+    }
+    sessionListeners.delete(sessionId);
+  }
+};
+
+const openTerminalIntoContainer = async (container, sessionId) => {
+  if (!container || !sessionId) return;
+
+  const instance = createTerminalForSession(sessionId);
+  const { terminal, fitAddon } = instance;
+
+  if (!terminal.element) {
+    terminal.open(container);
   } else {
-    moveTerminalElementTo(container);
+    // Move terminal element to new container
+    if (terminal.element.parentElement !== container) {
+      container.appendChild(terminal.element);
+    }
   }
 
   await new Promise((resolve) => setTimeout(resolve, 50));
   try {
-    sharedFitAddon.fit();
-  } catch (e) {}
+    fitAddon.fit();
+    const { cols, rows } = terminal;
+    if (cols && rows && window.ipcRenderer) {
+      window.ipcRenderer.send('terminal:resize', sessionId, { cols, rows });
+    }
+  } catch (e) {
+    console.warn('Error fitting terminal:', e);
+  }
 };
 
 const TerminalTab = () => {
   const terminalRef = useRef(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Load sessions list
+  const loadSessions = useCallback(async (currentActiveSessionId = null) => {
+    if (!window.ipcRenderer) return [];
+
+    try {
+      const sessionList = await window.ipcRenderer.invoke('terminal:list-sessions');
+      setSessions(sessionList);
+      
+      // Use functional state updates to get the current activeSessionId
+      setActiveSessionId((prevActiveSessionId) => {
+        const activeId = currentActiveSessionId !== null ? currentActiveSessionId : prevActiveSessionId;
+        
+        // Auto-select first session if none selected
+        if (!activeId && sessionList.length > 0) {
+          return sessionList[0].sessionId;
+        }
+        
+        // If active session no longer exists, select first available
+        if (activeId && !sessionList.find(s => s.sessionId === activeId)) {
+          return sessionList.length > 0 ? sessionList[0].sessionId : null;
+        }
+        
+        // Keep current selection if it still exists
+        return activeId;
+      });
+
+      return sessionList;
+    } catch (err) {
+      console.error('Failed to load sessions:', err);
+      return [];
+    }
+  }, []);
+
+  // Create new terminal session
+  const createNewSession = useCallback(async (cwd = null) => {
+    if (!window.ipcRenderer) return null;
+
+    try {
+      const options = cwd ? { cwd } : {};
+      const newSessionId = await window.ipcRenderer.invoke('terminal:create', options);
+      if (newSessionId) {
+        await loadSessions(newSessionId);
+        setActiveSessionId(newSessionId);
+        return newSessionId;
+      }
+    } catch (err) {
+      console.error('Failed to create terminal session:', err);
+    }
+    return null;
+  }, [loadSessions]);
+
+  // Listen for requests to open terminal at specific CWD
   useEffect(() => {
-    let isMounted = true;
+    const normalizePath = (path) => {
+      if (!path) return '';
+      // Normalize path separators and remove trailing separators for comparison
+      return path.replace(/\\/g, '/').replace(/\/$/, '') || '/';
+    };
 
-    const setup = async () => {
-      try {
-        if (!terminalRef.current) return;
+    const handleOpenTerminalAtCwd = async (event) => {
+      const { cwd } = event.detail;
+      if (!cwd) return;
 
-        const sid = await ensureTerminalSession();
+      const normalizedCwd = normalizePath(cwd);
 
-        await openSharedTerminalInto(terminalRef.current);
+      // Check if session already exists at this CWD
+      const sessionList = await window.ipcRenderer.invoke('terminal:list-sessions');
+      const existingSession = sessionList.find(s => normalizePath(s.cwd) === normalizedCwd);
 
-        if (!isMounted) return;
-        setIsConnected(!!sid);
+      if (existingSession) {
+        // Switch to existing session
+        await loadSessions(existingSession.sessionId);
+        setActiveSessionId(existingSession.sessionId);
+      } else {
+        // Create new session at this CWD
+        await createNewSession(cwd);
+      }
+    };
 
-        if (!sharedInputDisposable) {
-          sharedInputDisposable = sharedTerminal.onData((data) => {
-            if (data && persistentSessionId) {
-              window.ipcRenderer?.send('terminal:input', persistentSessionId, data);
-            }
-          });
-        }
+    window.addEventListener('terminal:open-at-cwd', handleOpenTerminalAtCwd);
 
-        if (!sharedResizeDisposable) {
-          sharedResizeDisposable = sharedTerminal.onResize(({ cols, rows }) => {
-            if (persistentSessionId) {
-              window.ipcRenderer?.send('terminal:resize', persistentSessionId, { cols, rows });
-            }
-          });
-        }
+    return () => {
+      window.removeEventListener('terminal:open-at-cwd', handleOpenTerminalAtCwd);
+    };
+  }, [loadSessions, createNewSession]);
 
+  // Close terminal session
+  const closeSession = async (sessionId) => {
+    if (!window.ipcRenderer) return;
+
+    try {
+      window.ipcRenderer.send('terminal:kill', sessionId);
+      cleanupTerminalInstance(sessionId);
+      
+      // Load updated sessions (this will also handle active session switching)
+      const updatedSessions = await loadSessions();
+      
+      // If we closed the active session and there are no sessions left, clear selection
+      if (activeSessionId === sessionId && updatedSessions.length === 0) {
+        setActiveSessionId(null);
+      }
+    } catch (err) {
+      console.error('Failed to close terminal session:', err);
+    }
+  };
+
+  // Load sessions on mount and set up polling
+  useEffect(() => {
+    if (!window.ipcRenderer) {
+      setIsLoading(false);
+      return;
+    }
+
+    let mounted = true;
+
+    const initialLoad = async () => {
+      const sessionList = await loadSessions();
+      if (mounted) {
+        setIsLoading(false);
+      }
+    };
+
+    initialLoad();
+
+    // Poll for session updates every 2 seconds
+    // Note: We don't pass currentActiveSessionId here to avoid stale closures
+    // The functional update inside loadSessions will use the current state
+    const pollInterval = setInterval(() => {
+      if (mounted) {
+        loadSessions();
+      }
+    }, 2000);
+
+    return () => {
+      mounted = false;
+      clearInterval(pollInterval);
+    };
+  }, []);
+
+  // Handle terminal display for active session
+  useEffect(() => {
+    if (!activeSessionId || !terminalRef.current) return;
+
+    let mounted = true;
+
+    const setupTerminal = async () => {
+      await openTerminalIntoContainer(terminalRef.current, activeSessionId);
+
+      if (mounted) {
+        const instance = terminalInstances.get(activeSessionId);
+        if (instance && instance.fitAddon) {
+          const onResize = () => {
+            try {
+              instance.fitAddon.fit();
+            } catch (e) {}
+          };
+
+          window.addEventListener('resize', onResize);
+
+          // Initial resize
         setTimeout(() => {
           try {
-            if (!persistentSessionId) return;
-            sharedFitAddon.fit();
-            const { cols, rows } = sharedTerminal;
-            if (cols && rows) {
-              window.ipcRenderer?.send('terminal:resize', persistentSessionId, { cols, rows });
+              instance.fitAddon.fit();
+              const { cols, rows } = instance.terminal;
+              if (cols && rows && window.ipcRenderer) {
+                window.ipcRenderer.send('terminal:resize', activeSessionId, { cols, rows });
             }
           } catch (err) {
             console.warn('Failed to perform initial resize:', err);
           }
         }, 100);
 
-        const onWindowResize = () => {
-          try {
-            sharedFitAddon.fit();
-          } catch (e) {}
-        };
-        window.addEventListener('resize', onWindowResize);
-
         return () => {
-          window.removeEventListener('resize', onWindowResize);
+            window.removeEventListener('resize', onResize);
 
-          if (sharedTerminal && sharedTerminal.element) {
+            // Park terminal element when switching sessions
+            if (instance.terminal && instance.terminal.element) {
             const host = ensureParkingHost();
-            moveTerminalElementTo(host);
+              if (instance.terminal.element.parentElement !== host) {
+                host.appendChild(instance.terminal.element);
+              }
           }
         };
-      } catch (err) {
-        console.error('Failed to initialize terminal view:', err);
+        }
       }
     };
 
-    const cleanup = setup();
+    const cleanup = setupTerminal();
 
     return () => {
-      isMounted = false;
+      mounted = false;
       Promise.resolve(cleanup).then((fn) => {
         if (typeof fn === 'function') fn();
       });
     };
-  }, []);
+  }, [activeSessionId]);
 
   return (
     <StyledWrapper>
       <div className="terminal-content">
-        {!isConnected && window.ipcRenderer && (
+        {/* Left Sidebar */}
+        <div className="terminal-sessions-sidebar">
+          <div className="terminal-sessions-header">
+            <span>Sessions</span>
+            <IconPlus
+              size={16}
+              style={{ cursor: 'pointer', color: '#888' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                createNewSession();
+              }}
+              title="New Terminal Session"
+            />
+          </div>
+          <div className="terminal-sessions-list">
+            {isLoading ? (
+              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>
+                Loading sessions...
+              </div>
+            ) : sessions.length === 0 ? (
+              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>
+                No active sessions
+              </div>
+            ) : (
+              <SessionList
+                sessions={sessions}
+                activeSessionId={activeSessionId}
+                onSelectSession={setActiveSessionId}
+                onCloseSession={closeSession}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Right Terminal Display */}
+        <div className="terminal-display-container">
+          {!activeSessionId && window.ipcRenderer && (
           <div className="terminal-loading">
             <IconTerminal2 size={24} strokeWidth={1.5} />
-            <span>Connecting to terminal...</span>
+              <span>No terminal session selected</span>
           </div>
         )}
         <div
@@ -250,9 +437,10 @@ const TerminalTab = () => {
           style={{
             height: '100%',
             width: '100%',
-            display: isConnected || !window.ipcRenderer ? 'block' : 'none'
+              display: activeSessionId ? 'block' : 'none'
           }}
         />
+        </div>
       </div>
     </StyledWrapper>
   );

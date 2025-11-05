@@ -28,6 +28,7 @@ import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -361,6 +362,17 @@ const Collection = ({ collection, searchText }) => {
               }}
             >
               Settings
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={async (_e) => {
+                menuDropdownTippyRef.current.hide();
+                // Get collection pathname (directory path)
+                const collectionCwd = collection.pathname;
+                await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
+              }}
+            >
+              Open in Terminal
             </div>
           </Dropdown>
         </div>

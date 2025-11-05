@@ -12,14 +12,15 @@ class TerminalManager {
 
   setupIpcHandlers() {
     // Create a new terminal session
-    ipcMain.handle('terminal:create', (event) => {
+    ipcMain.handle('terminal:create', (event, options = {}) => {
       try {
         const sessionId = this.generateSessionId();
         const shell = this.getDefaultShell();
-        const cwd = this.getDefaultCwd();
+        // Use provided cwd or default to home directory
+        const cwd = options.cwd || this.getDefaultCwd();
 
         if (isDev) {
-          console.log(`Creating new terminal session: ${sessionId}`);
+          console.log(`Creating new terminal session: ${sessionId} at ${cwd}`);
         }
 
         const ptyProcess = pty.spawn(shell, [], {
@@ -33,7 +34,8 @@ class TerminalManager {
         // Store terminal session
         this.terminals.set(sessionId, {
           pty: ptyProcess,
-          webContents: event.sender
+          webContents: event.sender,
+          cwd: cwd // Store initial cwd
         });
 
         // Handle terminal output
@@ -100,6 +102,34 @@ class TerminalManager {
         } catch (error) {
           console.error('Failed to kill terminal:', error);
         }
+      }
+    });
+
+    // Get list of all active terminal sessions
+    ipcMain.handle('terminal:list-sessions', (event) => {
+      try {
+        const sessions = [];
+        for (const [sessionId, terminal] of this.terminals.entries()) {
+          if (terminal && terminal.pty) {
+            // Check if process is still alive
+            try {
+              const pid = terminal.pty.pid;
+              process.kill(pid, 0); // Signal 0 just checks if process exists
+              sessions.push({
+                sessionId,
+                cwd: terminal.cwd || '', // Use stored cwd
+                pid: pid
+              });
+            } catch (error) {
+              // Process doesn't exist, remove it
+              this.terminals.delete(sessionId);
+            }
+          }
+        }
+        return sessions;
+      } catch (error) {
+        console.error('Failed to list terminal sessions:', error);
+        return [];
       }
     });
   }
