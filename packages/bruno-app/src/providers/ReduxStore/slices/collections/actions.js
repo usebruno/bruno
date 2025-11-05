@@ -151,6 +151,80 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
   });
 };
 
+export const saveAllRequestsInCollection = (collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    // Find all items with drafts in this collection
+    const { flattenItems } = require('utils/collections');
+    const items = flattenItems(collection.items);
+    const drafts = filter(items, (item) => isItemARequest(item) && item.draft);
+
+    if (drafts.length === 0) {
+      toast.info('No unsaved requests found');
+      return resolve();
+    }
+
+    // Add collectionUid to each draft for saveMultipleRequests
+    const draftsWithCollectionUid = drafts.map((draft) => ({
+      ...draft,
+      collectionUid: collectionUid
+    }));
+
+    // Use existing saveMultipleRequests function
+    dispatch(saveMultipleRequests(draftsWithCollectionUid))
+      .then(() => {
+        // Clear draft state for each successfully saved item
+        each(drafts, (draft) => {
+          dispatch(_saveRequest({
+            itemUid: draft.uid,
+            collectionUid: collectionUid
+          }));
+        });
+
+        toast.success(`Successfully saved ${drafts.length} request${drafts.length > 1 ? 's' : ''}`);
+        resolve();
+      })
+      .catch((err) => {
+        toast.error(`Failed to save ${drafts.length} request${drafts.length > 1 ? 's' : ''}!`);
+        reject(err);
+      });
+  });
+};
+
+export const saveSelectedRequests = (requestsToSave) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    if (!requestsToSave || requestsToSave.length === 0) {
+      toast.info('No requests selected to save');
+      return resolve();
+    }
+
+    // Use existing saveMultipleRequests function
+    dispatch(saveMultipleRequests(requestsToSave))
+      .then(() => {
+        // Clear draft state for each successfully saved item
+        each(requestsToSave, (request) => {
+          dispatch(_saveRequest({
+            itemUid: request.uid,
+            collectionUid: request.collectionUid
+          }));
+        });
+
+        toast.success(`Successfully saved ${requestsToSave.length} request${requestsToSave.length > 1 ? 's' : ''}`);
+        resolve();
+      })
+      .catch((err) => {
+        toast.error(`Failed to save ${requestsToSave.length} request${requestsToSave.length > 1 ? 's' : ''}!`);
+        reject(err);
+      });
+  });
+};
+
 export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1143,9 +1217,10 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
       }
     };
 
+    const resolvedFilename = resolveRequestFilename(filename);
+
     // itemUid is null when we are creating a new request at the root level
     const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
-    const resolvedFilename = resolveRequestFilename(filename);
 
     if (!parentItem) {
       return reject(new Error('Parent item not found'));
@@ -1162,6 +1237,7 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
     item.seq = items.length + 1;
     const fullName = path.join(parentItem.pathname, resolvedFilename);
     const { ipcRenderer } = window;
+
     ipcRenderer
       .invoke('renderer:new-request', fullName, item)
       .then(() => {
@@ -1213,9 +1289,10 @@ export const newWsRequest = (params) => (dispatch, getState) => {
       }
     };
 
+    const resolvedFilename = resolveRequestFilename(filename);
+
     // itemUid is null when we are creating a new request at the root level
     const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
-    const resolvedFilename = resolveRequestFilename(filename);
 
     if (!parentItem) {
       return reject(new Error('Parent item not found'));
@@ -1232,6 +1309,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
     item.seq = items.length + 1;
     const fullName = path.join(parentItem.pathname, resolvedFilename);
     const { ipcRenderer } = window;
+
     ipcRenderer
       .invoke('renderer:new-request', fullName, item)
       .then(() => {
