@@ -1402,25 +1402,18 @@ export const transformExampleToDraft = (example, newExample) => {
 export const getInitialExampleName = (item) => {
   const baseName = 'example';
   const existingExamples = item.draft?.examples || item.examples || [];
+  const existingNames = new Set(existingExamples.map((example) => example.name || '').filter(Boolean));
 
-  // Check if any existing example has the same base name
-  const hasSameBaseName = existingExamples.some((example) => {
-    const exampleName = example.name || '';
-    return exampleName === baseName || exampleName.startsWith(baseName);
-  });
-
-  if (!hasSameBaseName) {
+  if (!existingNames.has(baseName)) {
     return baseName;
   }
 
-  // Find the highest existing counter
-  let maxCounter = 0;
-  existingExamples.forEach((example) => {
-    const exampleName = example.name || '';
-    if (exampleName.startsWith(baseName)) {
-      maxCounter++;
+  let counter = 1;
+  while (true) {
+    const candidateName = `${baseName} (${counter})`;
+    if (!existingNames.has(candidateName)) {
+      return candidateName;
     }
-  });
-
-  return `${baseName} (${maxCounter})`;
+    counter++;
+  }
 };
