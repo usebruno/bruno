@@ -46,10 +46,7 @@ const jsonToExampleBru = (json) => {
 
   bru += `  url: ${url}\n`;
 
-  // Add method field right after url
-  if (method) {
-    bru += `  method: ${method}\n`;
-  }
+  bru += `  method: ${method}\n`;
 
   // Add mode field inside request block, right after method
   if (request && request.body && request.body.mode) {
