@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { cancelRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
-import { IconDeviceFloppy, IconArrowRight, IconCode } from '@tabler/icons';
+import { IconDeviceFloppy, IconArrowRight, IconCode, IconPlayerStop } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
@@ -22,6 +22,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
   const isGrpc = item.type === 'grpc-request';
+  const isLoading = ['queued', 'sending'].includes(item.requestState);
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
@@ -78,6 +79,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     } else {
       toast.error('URL is required');
     }
+  };
+
+  const handleCancelRequest = () => {
+    dispatch(cancelRequest(item.cancelTokenUid, item, collection));
   };
 
   return (
@@ -149,7 +154,23 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} data-testid="send-arrow-icon" />
+
+          {isLoading ? (
+            <IconPlayerStop
+              color={theme.requestTabPanel.url.icon}
+              strokeWidth={1.5}
+              size={22}
+              data-testid="cancel-request-icon"
+              onClick={handleCancelRequest}
+            />
+          ) : (
+            <IconArrowRight
+              color={theme.requestTabPanel.url.icon}
+              strokeWidth={1.5}
+              size={22}
+              data-testid="send-arrow-icon"
+            />
+          )}
         </div>
       </div>
       {generateCodeItemModalOpen && (
