@@ -1393,3 +1393,34 @@ export const transformExampleToDraft = (example, newExample) => {
 
   return exampleToDraft;
 };
+
+/**
+ * Generate an initial name for a new response example
+ * @param {Object} item - The request item that will contain the example
+ * @returns {string} - The suggested name for the new example
+ */
+export const getInitialExampleName = (item) => {
+  const baseName = 'example';
+  const existingExamples = item.draft?.examples || item.examples || [];
+
+  // Check if any existing example has the same base name
+  const hasSameBaseName = existingExamples.some((example) => {
+    const exampleName = example.name || '';
+    return exampleName === baseName || exampleName.startsWith(baseName);
+  });
+
+  if (!hasSameBaseName) {
+    return baseName;
+  }
+
+  // Find the highest existing counter
+  let maxCounter = 0;
+  existingExamples.forEach((example) => {
+    const exampleName = example.name || '';
+    if (exampleName.startsWith(baseName)) {
+      maxCounter++;
+    }
+  });
+
+  return `${baseName} (${maxCounter})`;
+};

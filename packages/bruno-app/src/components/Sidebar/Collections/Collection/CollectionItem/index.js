@@ -33,7 +33,7 @@ import ExampleItem from './ExampleItem';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
-import { calculateDraggedItemNewPathname } from 'utils/collections/index';
+import { calculateDraggedItemNewPathname, getInitialExampleName } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 
@@ -346,19 +346,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setCreateExampleModalOpen(false);
   };
 
-  const getInitialExampleName = () => {
-    const baseName = 'example';
-    const existingExamples = item.draft?.examples || item.examples || [];
-    let maxCounter = 0;
-    existingExamples.forEach((example) => {
-      const exampleName = example.name || '';
-      if (exampleName.startsWith(baseName)) {
-        maxCounter++;
-      }
-    });
-    return `${baseName} (${maxCounter})`;
-  };
-
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
  
@@ -439,7 +426,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onClose={() => setCreateExampleModalOpen(false)}
         onSave={handleCreateExample}
         title="Create Response Example"
-        initialName={getInitialExampleName()}
+        initialName={getInitialExampleName(item)}
       />
       <div
         className={itemRowClassName}
