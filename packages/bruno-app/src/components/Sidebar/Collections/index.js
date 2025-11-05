@@ -1,12 +1,12 @@
 import {
   IconSearch,
-  IconX,
+  IconX
 } from '@tabler/icons';
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import CreateCollection from '../CreateCollection';
 import Collection from './Collection';
-import CollectionsBadge from './CollectionsBadge/index';
+import CollectionsHeader from './CollectionsHeader';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import StyledWrapper from './StyledWrapper';
 
@@ -17,18 +17,18 @@ const Collections = () => {
 
   if (!collections || !collections.length) {
     return (
-      <StyledWrapper>
-        <CollectionsBadge />
+      <StyledWrapper data-testid="collections">
+        <CollectionsHeader />
         <CreateOrOpenCollection />
       </StyledWrapper>
     );
   }
 
   return (
-    <StyledWrapper>
+    <StyledWrapper data-testid="collections">
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
 
-      <CollectionsBadge />
+      <CollectionsHeader />
 
       <div className="mt-4 relative collection-filter px-2">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
