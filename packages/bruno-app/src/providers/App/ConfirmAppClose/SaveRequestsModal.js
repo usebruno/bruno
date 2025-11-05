@@ -13,72 +13,57 @@ import Modal from 'components/Modal';
 
 const SaveRequestsModal = ({ onClose }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
-  const currentDrafts = [];
-  const collectionDrafts = [];
-  const folderDrafts = [];
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
 
-  const tabsByCollection = groupBy(tabs, (t) => t.collectionUid);
-  Object.keys(tabsByCollection).forEach((collectionUid) => {
-    const collection = findCollectionByUid(collections, collectionUid);
-    if (collection) {
-      // Check for collection draft
-      if (collection.draft) {
-        collectionDrafts.push({
-          type: 'collection',
-          name: collection.name,
-          collectionUid: collectionUid
-        });
-      }
-
-      // Check for request drafts
-      const items = flattenItems(collection.items);
-      const requestDrafts = filter(items, (item) => isItemARequest(item) && item.draft);
-      each(requestDrafts, (draft) => {
-        currentDrafts.push({
-          type: 'request',
-          name: draft.name,
-          ...draft,
-          collectionUid: collectionUid
-        });
-      });
-
-      // Check for folder drafts
-      const folders = filter(items, (item) => item.type === 'folder' && item.draft);
-      each(folders, (folder) => {
-        folderDrafts.push({
-          type: 'folder',
-          name: folder.name,
-          folderUid: folder.uid,
-          collectionUid: collectionUid
-        });
-      });
-    }
-  });
-  const currentDrafts = useMemo(() => {
-    const drafts = [];
+  const allDrafts = useMemo(() => {
+    const requestDrafts = [];
+    const collectionDrafts = [];
+    const folderDrafts = [];
     const tabsByCollection = groupBy(tabs, (t) => t.collectionUid);
 
     Object.keys(tabsByCollection).forEach((collectionUid) => {
       const collection = findCollectionByUid(collections, collectionUid);
       if (collection) {
+        // Check for collection draft
+        if (collection.draft) {
+          collectionDrafts.push({
+            type: 'collection',
+            name: collection.name,
+            collectionUid: collectionUid
+          });
+        }
+
+        // Check for request and folder drafts
         const items = flattenItems(collection.items);
-        const collectionDrafts = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
-        each(collectionDrafts, (draft) => {
-          drafts.push({
+
+        // Request drafts
+        const requests = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
+        each(requests, (draft) => {
+          requestDrafts.push({
+            type: 'request',
             ...draft,
+            collectionUid: collectionUid
+          });
+        });
+
+        // Folder drafts
+        const folders = filter(items, (item) => item.type === 'folder' && item.draft);
+        each(folders, (folder) => {
+          folderDrafts.push({
+            type: 'folder',
+            name: folder.name,
+            folderUid: folder.uid,
             collectionUid: collectionUid
           });
         });
       }
     });
 
-    return drafts;
+    return [...collectionDrafts, ...folderDrafts, ...requestDrafts];
   }, [collections, tabs]);
 
-  const allDrafts = [...collectionDrafts, ...folderDrafts, ...currentDrafts];
   const totalDraftsCount = allDrafts.length;
 
   useEffect(() => {
@@ -94,6 +79,11 @@ const SaveRequestsModal = ({ onClose }) => {
 
   const closeWithSave = async () => {
     try {
+      // Separate drafts by type
+      const collectionDrafts = allDrafts.filter((d) => d.type === 'collection');
+      const folderDrafts = allDrafts.filter((d) => d.type === 'folder');
+      const requestDrafts = allDrafts.filter((d) => d.type === 'request');
+
       // Save all collection drafts
       if (collectionDrafts.length > 0) {
         await dispatch(saveMultipleCollections(collectionDrafts));
@@ -105,8 +95,8 @@ const SaveRequestsModal = ({ onClose }) => {
       }
 
       // Save all request drafts
-      if (currentDrafts.length > 0) {
-        await dispatch(saveMultipleRequests(currentDrafts));
+      if (requestDrafts.length > 0) {
+        await dispatch(saveMultipleRequests(requestDrafts));
       }
 
       dispatch(completeQuitFlow());
@@ -144,12 +134,15 @@ const SaveRequestsModal = ({ onClose }) => {
       <ul className="mt-4">
         {allDrafts.slice(0, MAX_UNSAVED_ITEMS_TO_SHOW).map((item, index) => {
           const prefix
-            = item.type === 'collection' ? 'Collection: '
-              : item.type === 'folder' ? 'Folder: '
+            = item.type === 'collection'
+              ? 'Collection: '
+              : item.type === 'folder'
+                ? 'Folder: '
                 : 'Request: ';
           return (
             <li key={`${item.type}-${item.collectionUid || item.uid}-${index}`} className="mt-1 text-xs">
-              {prefix}{item.name || item.filename}
+              {prefix}
+              {item.name || item.filename}
             </li>
           );
         })}
