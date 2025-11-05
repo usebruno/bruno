@@ -1,0 +1,17 @@
+meta {
+  name: no-redirects-test
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8081/api/redirect/2
+  body: none
+  auth: inherit
+}
+
+settings {
+  followRedirects: false
+  maxRedirects: 5
+  timeout: 0
+}

@@ -131,6 +131,10 @@
   --px-12: 2px !important;
 }
 
+.CodeMirror-hints {
+  z-index: 20 !important;
+}
+
 .graphiql-container {
   background: transparent !important;
 }
@@ -145,7 +149,7 @@ body {
   font-kerning: none;
   text-rendering: optimizeSpeed;
   letter-spacing: normal;
-  font-family: Inter, sans-serif !important;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   overflow-x: hidden;
 }
 

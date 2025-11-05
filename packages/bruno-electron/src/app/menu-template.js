@@ -1,7 +1,8 @@
 const { ipcMain } = require('electron');
 const os = require('os');
-const openAboutWindow = require('about-window').default;
-const { join } = require('path');
+const { BrowserWindow } = require('electron');
+const { version } = require('../../package.json');
+const aboutBruno = require('./about-bruno');
 
 const template = [
   {
@@ -77,14 +78,17 @@ const template = [
     submenu: [
       {
         label: 'About Bruno',
-        click: () =>
-          openAboutWindow({
-            product_name: 'Bruno',
-            icon_path: join(__dirname, '../about/256x256.png'),
-            css_path: join(__dirname, '../about/about.css'),
-            homepage: 'https://www.usebruno.com/',
-            package_json_dir: join(__dirname, '../..')
-          })
+        click: () => {
+          const aboutWindow = new BrowserWindow({
+            width: 350,
+            height: 250,
+            webPreferences: {
+              nodeIntegration: true,
+            },
+          });
+          aboutWindow.removeMenu();
+          aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({version}))}`);
+        }
       },
       { label: 'Documentation', click: () => ipcMain.emit('main:open-docs') }
     ]

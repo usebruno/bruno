@@ -1,0 +1,60 @@
+import styled from 'styled-components';
+
+const StyledWrapper = styled.div`
+  .title {
+    color: ${(props) => props.theme.text};
+  }
+  
+  .btn-action {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+    color: ${(props) => props.theme.colors.text.muted};
+    
+    &:hover {
+      opacity: 0.8;
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  tr {
+    position: relative;
+    
+    &:hover .delete-button {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  .delete-button {
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    margin-left: 8px;
+    
+    &:hover {
+      color: ${(props) => props.theme.colors.text.red};
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+      color: ${(props) => props.theme.text};
+    }
+  }
+`;
+
+export default StyledWrapper;

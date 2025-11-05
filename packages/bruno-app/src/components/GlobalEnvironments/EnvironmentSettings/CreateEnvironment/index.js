@@ -6,8 +6,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { validateName, validateNameError } from 'utils/common/regex';
 
-const CreateEnvironment = ({ onClose }) => {
+const CreateEnvironment = ({ onClose, onEnvironmentCreated }) => {
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
 
   const validateEnvironmentName = (name) => {
@@ -25,7 +26,11 @@ const CreateEnvironment = ({ onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'Must be at least 1 character')
-        .max(50, 'Must be 50 characters or less')
+        .max(255, 'Must be 255 characters or less')
+        .test('is-valid-filename', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
         .required('Name is required')
         .test('duplicate-name', 'Global Environment already exists', validateEnvironmentName)
     }),
@@ -34,6 +39,10 @@ const CreateEnvironment = ({ onClose }) => {
         .then(() => {
           toast.success('Global environment created!');
           onClose();
+          // Call the callback if provided
+          if (onEnvironmentCreated) {
+            onEnvironmentCreated();
+          }
         })
         .catch(() => toast.error('An error occurred while creating the environment'));
     }

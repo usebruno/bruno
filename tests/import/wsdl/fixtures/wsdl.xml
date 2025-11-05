@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions 
+  name="TestWSDLServiceXML" 
+  targetNamespace="http://example.com/testservice" 
+  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:tns="http://example.com/testservice"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <wsdl:documentation>Test WSDL for Bruno import testing</wsdl:documentation>
+
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/testservice" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+      <xsd:element name="GetUserRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="userId" type="xsd:string"/>
+            <xsd:element name="includeDetails" type="xsd:boolean" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <xsd:element name="GetUserResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="user" type="tns:User"/>
+            <xsd:element name="status" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <xsd:complexType name="User">
+        <xsd:sequence>
+          <xsd:element name="id" type="xsd:string"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="email" type="xsd:string"/>
+          <xsd:element name="active" type="xsd:boolean"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      
+      <xsd:element name="CreateUserRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="name" type="xsd:string"/>
+            <xsd:element name="email" type="xsd:string"/>
+            <xsd:element name="password" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <xsd:element name="CreateUserResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="userId" type="xsd:string"/>
+            <xsd:element name="status" type="xsd:string"/>
+            <xsd:element name="message" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+
+  <wsdl:message name="GetUserRequestMessage">
+    <wsdl:part name="parameters" element="tns:GetUserRequest"/>
+  </wsdl:message>
+  
+  <wsdl:message name="GetUserResponseMessage">
+    <wsdl:part name="parameters" element="tns:GetUserResponse"/>
+  </wsdl:message>
+  
+  <wsdl:message name="CreateUserRequestMessage">
+    <wsdl:part name="parameters" element="tns:CreateUserRequest"/>
+  </wsdl:message>
+  
+  <wsdl:message name="CreateUserResponseMessage">
+    <wsdl:part name="parameters" element="tns:CreateUserResponse"/>
+  </wsdl:message>
+
+  <wsdl:portType name="UserServicePortType">
+    <wsdl:documentation>User management service port type</wsdl:documentation>
+    
+    <wsdl:operation name="GetUser">
+      <wsdl:documentation>Retrieve user information by ID</wsdl:documentation>
+      <wsdl:input message="tns:GetUserRequestMessage"/>
+      <wsdl:output message="tns:GetUserResponseMessage"/>
+    </wsdl:operation>
+    
+    <wsdl:operation name="CreateUser">
+      <wsdl:documentation>Create a new user</wsdl:documentation>
+      <wsdl:input message="tns:CreateUserRequestMessage"/>
+      <wsdl:output message="tns:CreateUserResponseMessage"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="UserServiceBinding" type="tns:UserServicePortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    
+    <wsdl:operation name="GetUser">
+      <soap:operation soapAction="http://example.com/testservice/GetUser"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    
+    <wsdl:operation name="CreateUser">
+      <soap:operation soapAction="http://example.com/testservice/CreateUser"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="UserService">
+    <wsdl:documentation>User management web service</wsdl:documentation>
+    <wsdl:port name="UserServicePort" binding="tns:UserServiceBinding">
+      <soap:address location="http://example.com/soap/userservice"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

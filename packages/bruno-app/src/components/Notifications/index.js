@@ -2,7 +2,9 @@ import { IconBell } from '@tabler/icons';
 import { useState } from 'react';
 import StyledWrapper from './StyleWrapper';
 import Modal from 'components/Modal/index';
+import Portal from 'components/Portal';
 import { useEffect } from 'react';
+import { useApp } from 'providers/App';
 import {
   fetchNotifications,
   markAllNotificationsAsRead,
@@ -11,18 +13,18 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { humanizeDate, relativeDate } from 'utils/common';
 import ToolHint from 'components/ToolHint';
-import { useTheme } from 'providers/Theme';
+import DOMPurify from 'dompurify';
 
 const PAGE_SIZE = 5;
 
 const Notifications = () => {
   const dispatch = useDispatch();
+  const { version } = useApp();
   const notifications = useSelector((state) => state.notifications.notifications);
 
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const { storedTheme } = useTheme();
 
   const notificationsStartIndex = (pageNumber - 1) * PAGE_SIZE;
   const notificationsEndIndex = pageNumber * PAGE_SIZE;
@@ -30,7 +32,9 @@ const Notifications = () => {
   const unreadNotifications = notifications.filter((notification) => !notification.read);
 
   useEffect(() => {
-    dispatch(fetchNotifications());
+    dispatch(fetchNotifications({
+      currentVersion: version
+    }));
   }, []);
 
   useEffect(() => {
@@ -66,9 +70,16 @@ const Notifications = () => {
     dispatch(markNotificationAsRead({ notificationId: notification?.id }));
   };
 
+  const getSanitizedDescription = (description) => {
+    return DOMPurify.sanitize(encodeURIComponent(description), {
+      ALLOWED_TAGS: ['a', 'ul', 'img', 'li', 'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+      ALLOWED_ATTR: ['href', 'style', 'target', 'src', 'alt']
+    });
+  };
+
   const modalCustomHeader = (
     <div className="flex flex-row gap-8">
-      <div>NOTIFICATIONS</div>
+      <div className="bruno-modal-header-title">NOTIFICATIONS</div>
       {unreadNotifications.length > 0 && (
         <>
           <div className="normal-case font-normal">
@@ -90,14 +101,16 @@ const Notifications = () => {
       <a
         className="relative cursor-pointer"
         onClick={() => {
-          dispatch(fetchNotifications());
+          dispatch(fetchNotifications({
+            currentVersion: version
+          }));
           setShowNotificationsModal(true);
         }}
         aria-label="Check all Notifications"
       >
         <ToolHint text="Notifications" toolhintId="Notifications" offset={8}>
           <IconBell
-            size={18}
+            size={16}
             aria-hidden
             strokeWidth={1.5}
             className={`mr-2 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
@@ -109,6 +122,7 @@ const Notifications = () => {
       </a>
 
       {showNotificationsModal && (
+        <Portal>
         <Modal
           size="lg"
           title="Notifications"
@@ -179,17 +193,19 @@ const Notifications = () => {
                   <div className="w-full notification-date text-xs mb-4">
                     {humanizeDate(selectedNotification?.date)}
                   </div>
-                  <div
-                    className="flex w-full flex-col flex-wrap h-fit"
-                    dangerouslySetInnerHTML={{ __html: selectedNotification?.description }}
-                  ></div>
+                  <iframe
+                    src={`data:text/html,${getSanitizedDescription(selectedNotification?.description)}`}
+                    sandbox="allow-popups"
+                    style={{ width: '100%', height: '100%' }}
+                  ></iframe>
                 </div>
               </div>
             ) : (
-              <div className="opacity-50 italic text-xs p-12 flex justify-center">No Notifications</div>
+              <div className="opacity-50 italic text-xs p-12 flex justify-center">You are all caught up!</div>
             )}
           </div>
         </Modal>
+        </Portal>
       )}
     </StyledWrapper>
   );

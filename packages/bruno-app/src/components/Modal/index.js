@@ -9,14 +9,15 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
     {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
     {handleCancel && !hideClose ? (
-      <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null}>
+      // TODO: Remove data-test-id and use data-testid instead across the codebase.
+      <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null} data-test-id="modal-close-button" data-testid="modal-close-button">
         ×
       </div>
     ) : null}
   </div>
 );
 
-const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-6">{children}</div>;
+const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-4">{children}</div>;
 
 const ModalFooter = ({
   confirmText,
@@ -25,7 +26,8 @@ const ModalFooter = ({
   handleCancel,
   confirmDisabled,
   hideCancel,
-  hideFooter
+  hideFooter,
+  confirmButtonClass = 'btn-secondary'
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -44,7 +46,7 @@ const ModalFooter = ({
       <span>
         <button
           type="submit"
-          className="submit btn btn-md btn-secondary"
+          className={`submit btn btn-md ${confirmButtonClass}`}
           disabled={confirmDisabled}
           onClick={handleSubmit}
         >
@@ -62,7 +64,7 @@ const Modal = ({
   confirmText,
   cancelText,
   handleCancel,
-  handleConfirm,
+  handleConfirm = () => {},
   children,
   confirmDisabled,
   hideCancel,
@@ -71,7 +73,9 @@ const Modal = ({
   disableCloseOnOutsideClick,
   disableEscapeKey,
   onClick,
-  closeModalFadeTimeout = 500
+  closeModalFadeTimeout = 500,
+  dataTestId,
+  confirmButtonClass
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -92,7 +96,7 @@ const Modal = ({
   };
 
   useFocusTrap(modalRef);
-  
+
   const closeModal = (args) => {
     setIsClosing(true);
     setTimeout(() => handleCancel(args), closeModalFadeTimeout);
@@ -103,7 +107,7 @@ const Modal = ({
     return () => {
       document.removeEventListener('keydown', handleKeydown);
     };
-  }, [disableEscapeKey, document]);
+  }, [disableEscapeKey, document, handleConfirm]);
 
   let classes = 'bruno-modal';
   if (isClosing) {
@@ -120,6 +124,7 @@ const Modal = ({
         role="dialog"
         aria-labelledby="modal-title"
         aria-describedby="modal-description"
+        data-testid={dataTestId}
       >
         <ModalHeader
           title={title}
@@ -136,6 +141,7 @@ const Modal = ({
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
+          confirmButtonClass={confirmButtonClass}
         />
       </div>
 

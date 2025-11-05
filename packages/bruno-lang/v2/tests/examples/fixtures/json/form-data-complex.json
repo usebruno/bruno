@@ -1,0 +1,198 @@
+{
+  "meta": {
+    "name": "Form Data Complex",
+    "type": "http",
+    "seq": "1"
+  },
+  "http": {
+    "method": "post",
+    "url": "https://api.example.com/upload",
+    "body": "multipart-form",
+    "auth": "bearer"
+  },
+  "headers": [
+    {
+      "name": "content-type",
+      "value": "multipart/form-data",
+      "enabled": true
+    },
+    {
+      "name": "x-upload-version",
+      "value": "v2",
+      "enabled": true
+    }
+  ],
+  "auth": {
+    "basic": {
+      "username": "uploader",
+      "password": "upload-secure-pass"
+    },
+    "bearer": {
+      "token": "upload-token-abc123xyz"
+    }
+  },
+  "body": {
+    "multipartForm": [
+      {
+        "name": "document",
+        "value": [
+          "/path/to/file.pdf"
+        ],
+        "enabled": true,
+        "type": "file",
+        "contentType": ""
+      },
+      {
+        "name": "title",
+        "value": "Quarterly Report 2024",
+        "enabled": true,
+        "type": "text",
+        "contentType": ""
+      },
+      {
+        "name": "description",
+        "value": "Detailed quarterly financial analysis",
+        "enabled": true,
+        "type": "text",
+        "contentType": ""
+      },
+      {
+        "name": "tags",
+        "value": "finance,q4,2024",
+        "enabled": true,
+        "type": "text",
+        "contentType": ""
+      }
+    ]
+  },
+  "script": {
+    "req": "const file = bru.readFile(\"/path/to/file.pdf\");\nbru.setVar(\"file_size\", file.length);\nbru.setVar(\"file_name\", \"document.pdf\");"
+  },
+  "examples": [
+    {
+      "name": "File Upload with Metadata",
+      "description": "Upload a file with comprehensive metadata",
+      "request": {
+        "url": "https://api.example.com/upload",
+        "method": "post",
+        "body": {
+          "mode": "multipartForm",
+          "multipartForm": [
+            {
+              "name": "document",
+              "value": [
+                "examples/sample.pdf"
+              ],
+              "enabled": true,
+              "type": "file",
+              "contentType": ""
+            },
+            {
+              "name": "title",
+              "value": "Sample Document",
+              "enabled": true,
+              "type": "text",
+              "contentType": ""
+            },
+            {
+              "name": "description",
+              "value": "This is a sample document for testing",
+              "enabled": true,
+              "type": "text",
+              "contentType": ""
+            },
+            {
+              "name": "category",
+              "value": "documents",
+              "enabled": true,
+              "type": "text",
+              "contentType": ""
+            },
+            {
+              "name": "tags",
+              "value": "sample,test,documents",
+              "enabled": true,
+              "type": "text",
+              "contentType": ""
+            },
+            {
+              "name": "metadata",
+              "value": "{\"author\":\"John Doe\",\"version\":\"1.0\",\"date\":\"2024-01-15\"}",
+              "enabled": true,
+              "type": "text",
+              "contentType": ""
+            }
+          ]
+        },
+        "headers": [
+          {
+            "name": "authorization",
+            "value": "\"Bearer upload-token-abc123xyz\",",
+            "enabled": true
+          },
+          {
+            "name": "x-upload-client",
+            "value": "\"bruno\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": {
+          "type": "json",
+          "content": "{\n  \"id\": \"file-12345\",\n  \"filename\": \"sample.pdf\",\n  \"size\": 245760,\n  \"uploaded_at\": \"2024-01-15T14:30:00Z\",\n  \"status\": \"completed\",\n  \"url\": \"https://cdn.example.com/files/sample.pdf\",\n  \"metadata\": {\n    \"title\": \"Sample Document\",\n    \"description\": \"This is a sample document for testing\",\n    \"category\": \"documents\",\n    \"tags\": [\"sample\", \"test\", \"documents\"]\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Form URL Encoded Data",
+      "description": "Example with form-urlencoded body type",
+      "request": {
+        "url": "https://api.example.com/submit",
+        "method": "post",
+        "body": {
+          "mode": "formUrlEncoded",
+          "formUrlEncoded": [
+            {
+              "name": "username",
+              "value": "testuser",
+              "enabled": true
+            },
+            {
+              "name": "password",
+              "value": "testpass123",
+              "enabled": true
+            },
+            {
+              "name": "remember",
+              "value": "true",
+              "enabled": true
+            }
+          ]
+        },
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "\"application/x-www-form-urlencoded\",",
+            "enabled": true
+          },
+          {
+            "name": "authorization",
+            "value": "\"Basic dGVzdDp0ZXN0\"",
+            "enabled": true
+          }
+        ]
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": {
+          "type": "json",
+          "content": "{\n  \"success\": true,\n  \"message\": \"Form submitted successfully\",\n  \"session_id\": \"sess-abc123def456\",\n  \"user\": {\n    \"username\": \"testuser\",\n    \"authenticated\": true\n  }\n}"
+        }
+      }
+    }
+  ]
+}

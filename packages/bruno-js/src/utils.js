@@ -85,6 +85,14 @@ const evaluateJsTemplateLiteral = (templateLiteral, context) => {
     return undefined;
   }
 
+  if (templateLiteral.startsWith('"') && templateLiteral.endsWith('"')) {
+    return templateLiteral.slice(1, -1);
+  }
+
+  if (templateLiteral.startsWith("'") && templateLiteral.endsWith("'")) {
+    return templateLiteral.slice(1, -1);
+  }
+
   if (!isNaN(templateLiteral)) {
     const number = Number(templateLiteral);
     // Check if the number is too high. Too high number might get altered, see #1000
@@ -109,6 +117,7 @@ const createResponseParser = (response = {}) => {
   res.headers = response.headers;
   res.body = response.data;
   res.responseTime = response.responseTime;
+  res.url = response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null;
 
   res.jq = (expr) => {
     const output = jsonQuery(expr, { data: response.data });
@@ -127,10 +136,84 @@ const createResponseParser = (response = {}) => {
  *    Remove the cleanJson fix and execute the below post response script
  *    bru.setVar("a", {b:3});
  * Todo: Find a better fix
+ *
+ * serializes typedArrays by using Buffer to handle most binary cases
+ * // TODO: reaper, replace with `devalue` after evaluating all cases, current setup is
+ * more of a hotfix
  */
 const cleanJson = (data) => {
+  const typedArrays = [
+    // Baseline typed arrays
+    Int8Array,
+    Uint8Array,
+    Uint8ClampedArray,
+    Int16Array,
+    Uint16Array,
+    Int32Array,
+    Uint32Array,
+    Float32Array,
+    Float64Array,
+    BigInt64Array,
+    BigUint64Array,
+
+    // Baseline 2025 Newly available
+    'Float16Array' in globalThis ? Float16Array : null
+  ].filter(Boolean);
+  const binaryNames = typedArrays.map((d) => d.name);
+
+  const replacer = (key, value) => {
+    const isBinary = typedArrays.find((d) => value instanceof d);
+    if (isBinary) {
+      return {
+        __cleanJSONType: isBinary.name,
+        __cleanJSONValue: Buffer.from(value.buffer).toJSON()
+      };
+    }
+    return value;
+  };
+
+  const reviver = (key, value) => {
+    if (typeof value !== 'object' || value === null) {
+      return value;
+    }
+    if ('__cleanJSONType' in value && '__cleanJSONValue' in value) {
+      const matchedName = binaryNames.find((d) => value.__cleanJSONType === d);
+      if (!matchedName) return value;
+      const binConstructor = typedArrays.find((d) => d.name === matchedName);
+
+      return binConstructor.from(Buffer.from(value.__cleanJSONValue));
+    }
+    return value;
+  };
+
   try {
-    return JSON.parse(JSON.stringify(data));
+    return JSON.parse(JSON.stringify(data, replacer), reviver);
+  } catch (e) {
+    return data;
+  }
+};
+
+const cleanCircularJson = (data) => {
+  try {
+    // Handle circular references by keeping track of seen objects
+    const seen = new WeakSet();
+    
+    const replacer = (key, value) => {
+      // Skip non-objects and null
+      if (typeof value !== 'object' || value === null) {
+        return value;
+      }
+      
+      // Detect circular reference
+      if (seen.has(value)) {
+        return '[Circular Reference]';
+      }
+      
+      seen.add(value);
+      return value;
+    };
+
+    return JSON.parse(JSON.stringify(data, replacer));
   } catch (e) {
     return data;
   }
@@ -141,5 +224,6 @@ module.exports = {
   evaluateJsTemplateLiteral,
   createResponseParser,
   internalExpressionCache,
-  cleanJson
+  cleanJson,
+  cleanCircularJson
 };

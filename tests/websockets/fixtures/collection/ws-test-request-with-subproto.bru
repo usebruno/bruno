@@ -1,0 +1,23 @@
+meta {
+  name: ws-test-request-with-subproto
+  type: ws
+  seq: 3
+}
+
+ws {
+  url: ws://localhost:8081/ws/sub-proto
+  body: ws
+  auth: inherit
+}
+
+headers {
+  Sec-WebSocket-Protocol: soap
+  Sec-WebSocket-Protocol: mqtt
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {}
+  '''
+}
