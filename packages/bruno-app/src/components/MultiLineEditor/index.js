@@ -18,6 +18,7 @@ class MultiLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
+    this.readOnly = props.readOnly || false;
 
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
@@ -35,6 +36,7 @@ class MultiLineEditor extends Component {
       brunoVarInfo: {
         variables
       },
+      readOnly: this.props.readOnly ? 'nocursor' : false,
       tabindex: 0,
       extraKeys: {
         'Ctrl-Enter': () => {
@@ -107,8 +109,11 @@ class MultiLineEditor extends Component {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
       this.maskedEditor.enable();
     } else {
-      this.maskedEditor?.disable();
-      this.maskedEditor = null;
+      if (this.maskedEditor) {
+        this.maskedEditor.disable();
+        this.maskedEditor.destroy();
+        this.maskedEditor = null;
+      }
     }
   };
 
@@ -126,6 +131,9 @@ class MultiLineEditor extends Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly ? 'nocursor' : false);
+    }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
@@ -135,6 +143,9 @@ class MultiLineEditor extends Component {
       this._enableMaskedEditor(this.props.isSecret);
       // also set the maskInput flag to the new value
       this.setState({ maskInput: this.props.isSecret });
+    }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly || false);
     }
     this.ignoreChangeEvent = false;
   }
@@ -182,9 +193,10 @@ class MultiLineEditor extends Component {
   };
 
   render() {
+    const wrapperClass = `multi-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`;
     return (
       <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
-        <StyledWrapper ref={this.editorRef} className="multi-line-editor grow" />
+        <StyledWrapper ref={this.editorRef} className={wrapperClass} />
         {this.secretEye(this.props.isSecret)}
       </div>
     );

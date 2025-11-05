@@ -1,6 +1,7 @@
 const _ = require('lodash');
 
 const { indentString, getValueString } = require('./utils');
+const jsonToExampleBru = require('./example/jsonToBru');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
@@ -17,8 +18,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
-
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
 
   let bru = '';
 
@@ -90,6 +90,31 @@ const jsonToBru = (json) => {
     if (grpc.methodType && grpc.methodType.length) {
       bru += `
   methodType: ${grpc.methodType}`;
+    }
+
+    bru += `
+}
+
+`;
+  }
+
+  if (ws && ws.url) {
+    bru += `ws {
+  url: ${ws.url}`;
+
+    if (ws.body && ws.body.length) {
+      bru += `
+  body: ${ws.body}`;
+    }
+
+    if (ws.auth && ws.auth.length) {
+      bru += `
+  auth: ${ws.auth}`;
+    }
+
+    if (ws.methodType && ws.methodType.length) {
+      bru += `
+  methodType: ${ws.methodType}`;
     }
 
     bru += `
@@ -585,6 +610,29 @@ ${indentString(body.sparql)}
     }
   }
 
+  if (body && body.ws) {
+    // Convert each ws message to a separate body:ws block
+    if (Array.isArray(body.ws)) {
+      body.ws.forEach((message) => {
+        const { name, content, type = '' } = message;
+
+        bru += `body:ws {\n`;
+
+        bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
+        if (type.length) {
+          bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
+        }
+
+        // Convert content to JSON string if it's an object
+        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+
+        // Wrap content with triple quotes for multiline support, without extra indentation
+        bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
+        bru += '}\n\n';
+      });
+    }
+  }
+
   let reqvars = _.get(vars, 'req');
   let resvars = _.get(vars, 'res');
   if (reqvars && reqvars.length) {
@@ -702,9 +750,17 @@ ${indentString(docs)}
 `;
   }
 
+  if (examples && examples.length) {
+    examples.forEach((example) => {
+      const bruExample = jsonToExampleBru(example);
+      bru += `example {\n${indentString(bruExample)}\n}\n\n`;
+    });
+  }
+
   return stripLastLine(bru);
 };
 
 module.exports = jsonToBru;
+module.exports.jsonToExampleBru = jsonToExampleBru;
 
 // alternative to writing the below code to avoid undefined

@@ -2,12 +2,12 @@ import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 
 test.describe('Tag persistence', () => {
-  test.afterAll(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
   });
 
-  test('Verify tag persistence while moving requests within a collection', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('Verify tag persistence while moving requests within a collection', async ({ page, createTmpDir }) => {
     // Create first collection - click dropdown menu first
     await page.getByLabel('Create Collection').click();
     await page.getByLabel('Name').fill('test-collection');
@@ -65,13 +65,14 @@ test.describe('Tag persistence', () => {
 
     // Click on r3 to verify the tag persisted after the move
     await page.locator('.collection-item-name').filter({ hasText: 'r3' }).click();
+    await page.locator('.request-tab.active', { hasText: 'r3' }).waitFor({ state: 'visible' });
     await page.getByRole('tab', { name: 'Settings' }).click();
     
     // Verify the tag is still present after the move
     await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
   });
 
-  test('verify tag persistence while moving requests between folders', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
     // Create first collection - click dropdown menu first
     await page.getByLabel('Create Collection').click();
     await page.getByLabel('Name').fill('test-collection');
@@ -87,7 +88,7 @@ test.describe('Tag persistence', () => {
     });
     await page.waitForTimeout(200);
     await page.getByText('New Folder').click();
-    await page.locator('#collection-name').fill('f1');
+    await page.locator('#folder-name').fill('f1');
     await page.getByRole('button', { name: 'Create' }).click();
     await page.waitForTimeout(200);
 
@@ -125,7 +126,7 @@ test.describe('Tag persistence', () => {
       button: 'right'
     });
     await page.locator('.dropdown-item').getByText('New Folder').click();
-    await page.locator('#collection-name').fill('f2');
+    await page.locator('#folder-name').fill('f2');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // open f2 folder
@@ -149,6 +150,7 @@ test.describe('Tag persistence', () => {
 
     // Click on r2 to verify the tag persisted after the move
     await page.locator('.collection-item-name').filter({ hasText: 'r2' }).click();
+    await page.locator('.request-tab.active', { hasText: 'r2' }).waitFor({ state: 'visible' });
     await page.getByRole('tab', { name: 'Settings' }).click();
     await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
   });

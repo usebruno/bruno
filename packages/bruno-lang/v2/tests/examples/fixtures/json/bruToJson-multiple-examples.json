@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "name": "Test API",
+    "type": "http",
+    "seq": 1
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com/test"
+  },
+  "examples": [
+    {
+      "name": "Example 1",
+      "description": "First example",
+      "request": {
+        "url": "https://api.example.com/example1",
+        "method": "get",
+        "body": {
+          "mode": "none"
+        }
+      }
+    },
+    {
+      "name": "Example 2",
+      "description": "Second example with JSON body",
+      "request": {
+        "url": "https://api.example.com/example2",
+        "method": "get",
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"data\": \"test\"\n}"
+        }
+      }
+    }
+  ]
+}

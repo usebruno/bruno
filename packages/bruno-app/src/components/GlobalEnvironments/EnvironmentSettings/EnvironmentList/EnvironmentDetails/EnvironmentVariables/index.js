@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash, IconAlertCircle } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import MultiLineEditor from 'components/MultiLineEditor/index';
@@ -18,7 +18,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
-  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector(state => state.globalEnvironments);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   let _collection = cloneDeep(collection);
 
@@ -41,7 +41,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.string().trim().nullable()
+        value: Yup.mixed().nullable()
       })
     ),
     onSubmit: (values) => {
@@ -125,7 +125,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
           </thead>
           <tbody>
             {formik.values.map((variable, index) => (
-              <tr key={variable.uid}>
+              <tr key={variable.uid} data-testid={`env-var-row-${variable.name}`}>
                 <td className="text-center">
                   <input
                     type="checkbox"
@@ -136,7 +136,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                   />
                 </td>
                 <td>
-                  <div className="flex items-center">
+                  <div className="flex items-center" data-testid={`env-var-name-${index}`}>
                     <input
                       type="text"
                       autoComplete="off"
@@ -153,16 +153,31 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                   </div>
                 </td>
                 <td className="flex flex-row flex-nowrap items-center">
-                  <div className="overflow-hidden grow w-full relative">
+                  <div className="overflow-hidden grow w-full relative" data-testid={`env-var-value-${index}`}>
                     <MultiLineEditor
                       theme={storedTheme}
                       collection={_collection}
                       name={`${index}.value`}
                       value={variable.value}
                       isSecret={variable.secret}
+                      readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
                   </div>
+                  {typeof variable.value !== 'string' && (
+                    <span className="ml-2 flex items-center">
+                      <IconInfoCircle
+                        id={`${variable.name}-disabled-info-icon`}
+                        className="text-muted"
+                        size={16}
+                      />
+                      <Tooltip
+                        anchorId={`${variable.name}-disabled-info-icon`}
+                        content="Non-string values set via scripts are read-only and can only be updated through scripts."
+                        place="top"
+                      />
+                    </span>
+                  )}
                 </td>
                 <td className="text-center">
                   <input

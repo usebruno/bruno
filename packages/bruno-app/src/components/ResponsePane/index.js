@@ -18,6 +18,7 @@ import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import ResponseBookmark from 'src/components/ResponsePane/ResponseBookmark';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
 import ResponseLayoutToggle from './ResponseLayoutToggle';
@@ -167,6 +168,7 @@ const ResponsePane = ({ item, collection }) => {
               <>
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />
+                <ResponseBookmark item={item} collection={collection} />
                 <StatusCode status={response.status} />
                 <ResponseTime duration={response.duration} />
                 <ResponseSize size={responseSize} />

@@ -1,11 +1,81 @@
-const closeAllCollections = async (page) => {
-  const numberOfCollections = await page.locator('.collection-name').count();
+import { test, expect } from '../../../playwright';
 
-  for (let i = 0; i < numberOfCollections; i++) {
-    await page.locator('.collection-name').first().locator('.collection-actions').click();
-    await page.locator('.dropdown-item').getByText('Close').click();
-    await page.getByRole('button', { name: 'Close' }).click();
-  }
+/**
+ * Close all collections
+ * @param page - The page object
+ * @returns void
+ */
+const closeAllCollections = async (page) => {
+  await test.step('Close all collections', async () => {
+    const numberOfCollections = await page.locator('.collection-name').count();
+
+    for (let i = 0; i < numberOfCollections; i++) {
+      await page.locator('.collection-name').first().locator('.collection-actions').click();
+      await page.locator('.dropdown-item').getByText('Close').click();
+      // Wait for the close collection modal to be visible
+      await page.locator('.bruno-modal-header-title', { hasText: 'Close Collection' }).waitFor({ state: 'visible' });
+      await page.locator('.bruno-modal-footer .submit').click();
+      // Wait for the close collection modal to be hidden
+      await page.locator('.bruno-modal-header-title', { hasText: 'Close Collection' }).waitFor({ state: 'hidden' });
+    }
+
+    // Wait until no collections are left open
+    await expect(page.locator('.collection-name')).toHaveCount(0);
+  });
 };
 
-export { closeAllCollections };
+/**
+ * Open a collection from the sidebar and accept the JavaScript Sandbox modal
+ * @param page - The page object
+ * @param collectionName - The name of the collection to open
+ * @param sandboxMode - The mode to accept the sandbox modal
+ * @returns void
+ */
+const openCollectionAndAcceptSandbox = async (page, collectionName: string, sandboxMode: 'safe' | 'developer' = 'safe') => {
+  await test.step(`Open collection "${collectionName}" and accept sandbox "${sandboxMode}" mode`, async () => {
+    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
+
+    const sandboxModal = page
+      .locator('.bruno-modal-card')
+      .filter({ has: page.locator('.bruno-modal-header-title', { hasText: 'JavaScript Sandbox' }) });
+
+    const modeLabel = sandboxMode === 'safe' ? 'Safe Mode' : 'Developer Mode';
+    await sandboxModal.getByLabel(modeLabel).check();
+    await sandboxModal.locator('.bruno-modal-footer .submit').click();
+    await sandboxModal.waitFor({ state: 'detached' });
+  });
+};
+
+type CreateCollectionOptions = {
+  openWithSandboxMode?: 'safe' | 'developer';
+};
+
+/**
+ * Create a collection
+ * @param page - The page object
+ * @param collectionName - The name of the collection to create
+ * @param collectionLocation - The location of the collection to create (eg)
+ * @param options - The options for creating the collection
+ *
+ * @returns void
+ */
+const createCollection = async (page, collectionName: string, collectionLocation: string, options: CreateCollectionOptions = {}) => {
+  await test.step(`Create collection "${collectionName}"`, async () => {
+    await page.locator('.collection-dropdown .dropdown-icon').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create Collection' }).click();
+
+    const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
+
+    await createCollectionModal.getByLabel('Name').fill(collectionName);
+    await createCollectionModal.getByLabel('Location').fill(collectionLocation);
+    await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
+
+    await createCollectionModal.waitFor({ state: 'detached' });
+
+    if (options.openWithSandboxMode != undefined) {
+      await openCollectionAndAcceptSandbox(page, collectionName, options.openWithSandboxMode);
+    }
+  });
+};
+
+export { closeAllCollections, openCollectionAndAcceptSandbox, createCollection };

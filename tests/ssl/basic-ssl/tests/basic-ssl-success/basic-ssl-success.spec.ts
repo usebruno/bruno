@@ -30,7 +30,7 @@ test.describe.serial('basic ssl success', () => {
   });
 
   test('safe mode', async ({ pageWithUserData: page }) => {
-    
+
     // init safe mode
     await page.getByText('Developer Mode').click();
     await page.getByLabel('Safe Mode').check();

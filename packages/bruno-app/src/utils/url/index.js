@@ -33,23 +33,39 @@ export const parsePathParams = (url) => {
   }
 
   // Enhanced: also match :param inside parentheses and/or quotes
-  const paramRegex = /[:](\w+)/g;
   const foundParams = new Set();
-  paths.forEach(segment => {
+  paths.forEach((segment) => {
+    // traditional path parameters
+    if (segment.startsWith(':')) {
+      const name = segment.slice(1);
+      if (name && !foundParams.has(name)) {
+        foundParams.add(name);
+      }
+      return;
+    }
+
+    // for OData-style parameters (parameters inside parentheses)
+    // Check if segment matches valid OData syntax:
+    // 1. EntitySet('key') or EntitySet(key)
+    // 2. EntitySet(Key1=value1,Key2=value2)
+    // 3. Function(param=value)
+    if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+      return;
+    }
+
+    const paramRegex = /[:](\w+)/g;
     let match;
     while ((match = paramRegex.exec(segment))) {
-      if (match[1]) {
-        // Clean up: remove trailing quotes/parentheses if present
-        let name = match[1].replace(/[')"`]+$/, '');
-        // Remove leading quotes/parentheses if present
-        name = name.replace(/^[('"`]+/, '');
-        if (name && !foundParams.has(name)) {
-          foundParams.add(name);
-        }
+      if (!match[1]) continue;
+
+      let name = match[1].replace(/[')"`]+$/, '');
+      name = name.replace(/^[('"`]+/, '');
+      if (name && !foundParams.has(name)) {
+        foundParams.add(name);
       }
     }
   });
-  return Array.from(foundParams).map(name => ({ name, value: '' }));
+  return Array.from(foundParams).map((name) => ({ name, value: '' }));
 };
 
 export const splitOnFirst = (str, char) => {
@@ -84,27 +100,41 @@ export const interpolateUrl = ({ url, variables }) => {
 
 export const interpolateUrlPathParams = (url, params) => {
   const getInterpolatedBasePath = (pathname, params) => {
-    const regex = /[:](\w+)/g;
     return pathname
       .split('/')
       .map((segment) => {
+        // traditional path parameters
+        if (segment.startsWith(':')) {
+          const name = segment.slice(1);
+          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+          return pathParam ? pathParam.value : segment;
+        }
 
-        if (!segment.startsWith(':')) return segment;
+        // for OData-style parameters (parameters inside parentheses)
+        // Check if segment matches valid OData syntax:
+        // 1. EntitySet('key') or EntitySet(key)
+        // 2. EntitySet(Key1=value1,Key2=value2)
+        // 3. Function(param=value)
+        if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+          return segment;
+        }
 
+        const regex = /[:](\w+)/g;
         let match;
+        let result = segment;
         while ((match = regex.exec(segment))) {
-          if (match[1]) {
-            // Clean up: remove trailing quotes/parentheses if present
-            let name = match[1].replace(/[')"`]+$/, '');
-            // Remove leading quotes/parentheses if present
-            name = name.replace(/^[('"`]+/, '');
-            if (name) {
-              const pathParam = params.find(p => p?.name === name && p?.type === 'path');
-              return pathParam ? pathParam.value : segment;
-            }
+          if (!match[1]) continue;
+
+          let name = match[1].replace(/[')"`]+$/, '');
+          name = name.replace(/^[('"`]+/, '');
+          if (!name) continue;
+
+          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+          if (pathParam) {
+            result = result.replace(':' + match[1], pathParam.value);
           }
         }
-        return segment;
+        return result;
       })
       .join('/');
   };

@@ -20,12 +20,12 @@ const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
-const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const { getCACertificates } = require('@usebruno/requests');
-const { encodeUrl } = require('@usebruno/common').utils;
+const { getOAuth2Token } = require('../utils/oauth2');
+const { encodeUrl, buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -332,8 +332,14 @@ const runSingleRequest = async function (
     const contentTypeHeader = Object.keys(request.headers).find(
       name => name.toLowerCase() === 'content-type'
     );
+
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      if (Array.isArray(request.data)) {
+        request.data = buildFormUrlEncodedPayload(request.data);
+      } else if (typeof request.data !== 'string') {
+        request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      }
+      // if `data` is of string type - return as-is (assumes already encoded)
     }
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
@@ -346,13 +352,23 @@ const runSingleRequest = async function (
       }
     }
 
-    let requestMaxRedirects = request.maxRedirects
-    request.maxRedirects = 0
-    
-    // Set default value for requestMaxRedirects if not explicitly set
-    if (requestMaxRedirects === undefined) {
+    // Get followRedirects setting, default to true for backward compatibility
+    const followRedirects = request.settings?.followRedirects ?? true;
+
+    // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
+    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+
+    // Ensure it's a valid number
+    if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
       requestMaxRedirects = 5; // Default to 5 redirects
     }
+
+    // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
+    if (!followRedirects) {
+      requestMaxRedirects = 0;
+    }
+
+    request.maxRedirects = 0;
 
     // Handle OAuth2 authentication
     if (request.oauth2) {
@@ -384,12 +400,22 @@ const runSingleRequest = async function (
     let response, responseTime;
     try {
       
-      let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
+      // Set timeout from request settings, default to 0 (no timeout)
+      const requestTimeout = request.settings?.timeout || 0;
+      if (requestTimeout > 0) {
+        request.timeout = requestTimeout;
+      }
+
+      let axiosInstance = makeAxiosInstance({
+        requestMaxRedirects: requestMaxRedirects,
+        disableCookies: options.disableCookies
+      });
+
       if (request.ntlmConfig) {
-        axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
         delete request.ntlmConfig;
       }
-    
+
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js

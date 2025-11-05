@@ -1,0 +1,66 @@
+meta {
+  name: decode
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jwt = require('jsonwebtoken');
+  
+  const testPayload = {
+    userId: 456,
+    username: 'decodeuser',
+    role: 'user',
+    iat: Math.floor(Date.now() / 1000)
+  };
+  
+  const secret = bru.getEnvVar('secret') || 'test-secret-key';
+  const testToken = jwt.sign(testPayload, secret, { algorithm: 'HS256', expiresIn: '1h' });
+  
+  try {
+    console.log('Testing JWT decoding...');
+    console.log('Test token:', testToken);
+    
+    const decoded = jwt.decode(testToken);
+    
+    bru.setEnvVar('decoded_payload', JSON.stringify(decoded));
+    
+  } catch (error) {
+    console.error('JWT decoding failed:', error.message);
+    throw error; 
+  }
+}
+
+tests {
+  test("Decoded payload should exist", function() {
+    const decodedPayload = bru.getEnvVar('decoded_payload');
+    expect(decodedPayload).to.exist;
+  });
+  
+  test("Decoded payload should contain correct user data", function() {
+    const decodedPayload = JSON.parse(bru.getEnvVar('decoded_payload'));
+    
+    expect(decodedPayload.userId).to.equal(456);
+    expect(decodedPayload.username).to.equal('decodeuser');
+    expect(decodedPayload.role).to.equal('user');
+  });
+  
+  test("Decoded payload should have timestamp fields", function() {
+    const decodedPayload = JSON.parse(bru.getEnvVar('decoded_payload'));
+    
+    expect(decodedPayload.iat).to.exist;
+    expect(decodedPayload.exp).to.exist;
+    expect(typeof decodedPayload.iat).to.equal('number');
+    expect(typeof decodedPayload.exp).to.equal('number');
+  });
+}
+
+settings {
+  encodeUrl: true
+}

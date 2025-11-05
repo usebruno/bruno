@@ -17,6 +17,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
+  const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
   // we clone envVars because we don't want to modify the original object
   envVariables = cloneDeep(envVariables);
 
@@ -43,6 +44,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       ...envVariables,
       ...folderVariables,
       ...requestVariables,
+      ...oauth2CredentialVariables,
       ...runtimeVariables,
       process: {
         env: {
@@ -78,12 +80,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     }
   } else if (contentType === 'application/x-www-form-urlencoded') {
-    if (typeof request.data === 'object') {
-      try {
-        forOwn(request?.data, (value, key) => {
-          request.data[key] = _interpolate(value);
-        });
-      } catch (err) {}
+    if (request.data && Array.isArray(request.data)) {
+      request.data = request.data.map((d) => ({
+        ...d,
+        value: _interpolate(d?.value)
+      }));
     }
   } else if (contentType === 'multipart/form-data') {
     if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
@@ -115,22 +116,44 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
-    const paramRegex = /[:](\w+)/g;
     const interpolatedUrlPath = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        const matches = path.match(paramRegex);
-        if (matches) {
-          const paramName = matches[0].slice(1); // Remove the : prefix
-          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+        // traditional path parameters
+        if (path.startsWith(':')) {
+          const paramName = path.slice(1);
+          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
           if (!existingPathParam) {
             return '/' + path;
           }
-          return '/' + path.replace(':' + paramName, existingPathParam.value);
-        } else {
-          return '/' + path;
+          return '/' + existingPathParam.value;
         }
+
+        // for OData-style parameters (parameters inside parentheses)
+        // Check if path matches valid OData syntax:
+        // 1. EntitySet('key') or EntitySet(key)
+        // 2. EntitySet(Key1=value1,Key2=value2)
+        // 3. Function(param=value)
+        if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
+          const paramRegex = /[:](\w+)/g;
+          let match;
+          let result = path;
+          while ((match = paramRegex.exec(path))) {
+            if (match[1]) {
+              let name = match[1].replace(/[')"`]+$/, '');
+              name = name.replace(/^[('"`]+/, '');
+              if (name) {
+                const existingPathParam = request.pathParams.find((param) => param.name === name);
+                if (existingPathParam) {
+                  result = result.replace(':' + match[1], existingPathParam.value);
+                }
+              }
+            }
+          }
+          return '/' + result;
+        }
+        return '/' + path;
       })
       .join('');
 
@@ -172,6 +195,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
@@ -183,12 +207,46 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         break;
       default:
         break;
+    }
+
+    // Interpolate additional parameters for all OAuth2 grant types
+    if (request.oauth2.additionalParameters) {
+      // Interpolate authorization parameters
+      if (Array.isArray(request.oauth2.additionalParameters.authorization)) {
+        request.oauth2.additionalParameters.authorization.forEach((param) => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate token parameters
+      if (Array.isArray(request.oauth2.additionalParameters.token)) {
+        request.oauth2.additionalParameters.token.forEach((param) => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate refresh parameters
+      if (Array.isArray(request.oauth2.additionalParameters.refresh)) {
+        request.oauth2.additionalParameters.refresh.forEach((param) => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
     }
   }
 

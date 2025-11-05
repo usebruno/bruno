@@ -63,6 +63,9 @@ const bruToJson = (bru) => {
       case 'grpc':
         requestType = 'grpc-request';
         break;
+      case 'ws':
+        requestType = 'ws-request';
+        break;
       default:
         requestType = 'http-request';
     }
@@ -74,6 +77,7 @@ const bruToJson = (bru) => {
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
       tags: _.get(json, 'meta.tags', []),
+      examples: _.get(json, 'examples', []),
       request: {
         url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
         headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
@@ -103,14 +107,19 @@ const bruToJson = (bru) => {
           content: '{}'
         }]
       });
+    } else if (requestType === 'ws-request') {
+      transformedJson.request.auth.mode = _.get(json, 'ws.auth', 'none');
+      const bodyFromBru = _.get(json, 'body') || {};
+      transformedJson.request.body = {
+        mode: 'ws',
+        ws: [bodyFromBru]
+      };
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
       transformedJson.request.body = _.get(json, 'body', {});
       transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     }
-
-
 
     return transformedJson;
   } catch (err) {

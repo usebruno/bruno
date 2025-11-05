@@ -7,34 +7,27 @@ const safeParseJson = (json) => {
   }
 };
 
-const normalizeNewlines = (str) => {
-  if (!str || typeof str !== 'string') {
-    return str || '';
-  }
-
-  // "\r\n" is windows, "\r" is old mac, "\n" is linux
-  return str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-};
 
 const indentString = (str) => {
   if (!str || !str.length) {
     return str || '';
   }
 
-  return normalizeNewlines(str)
-    .split('\n')
+  return str
+    .split(/\r\n|\r|\n/)
     .map((line) => '  ' + line)
     .join('\n');
 };
 
-const outdentString = (str) => {
+const outdentString = (str, spaces = 2) => {
   if (!str || !str.length) {
     return str || '';
   }
 
-  return normalizeNewlines(str)
-    .split('\n')
-    .map((line) => line.replace(/^  /, ''))
+  const spacesRegex = new RegExp(`^ {${spaces}}`);
+  return str
+    .split(/\r\n|\r|\n/)
+    .map((line) => line.replace(spacesRegex, ''))
     .join('\n');
 };
 
@@ -56,7 +49,6 @@ const getValueString = (value) => {
 
 module.exports = {
   safeParseJson,
-  normalizeNewlines,
   indentString,
   outdentString,
   getValueString

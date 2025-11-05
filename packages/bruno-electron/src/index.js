@@ -37,6 +37,7 @@ const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
+const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const collectionWatcher = require('./app/collection-watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
@@ -47,6 +48,7 @@ const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
+const { getIsRunningInRosetta } = require('./utils/arch');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
@@ -209,10 +211,9 @@ app.on('ready', async () => {
       console.error('Failed to load cookies for renderer', err);
     }
 
-    mainWindow.webContents.send('main:app-loaded');
-
-    // Start system monitoring for FileSync
-    systemMonitor.start(mainWindow);
+    mainWindow.webContents.send('main:app-loaded', {
+      isRunningInRosetta: getIsRunningInRosetta()
+    });
   });
 
   // register all ipc handlers
@@ -222,6 +223,7 @@ app.on('ready', async () => {
   registerPreferencesIpc(mainWindow, collectionWatcher, lastOpenedCollections);
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);
+  registerSystemMonitorIpc(mainWindow, systemMonitor);
 });
 
 // Quit the app once all windows are closed

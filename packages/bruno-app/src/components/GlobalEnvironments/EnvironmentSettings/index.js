@@ -4,7 +4,8 @@ import CreateEnvironment from './CreateEnvironment';
 import EnvironmentList from './EnvironmentList';
 import StyledWrapper from './StyledWrapper';
 import { IconFileAlert } from '@tabler/icons';
-import ImportEnvironment from './ImportEnvironment/index';
+import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
+import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
 
 export const SharedButton = ({ children, className, onClick }) => {
   return (
@@ -39,11 +40,12 @@ const DefaultTab = ({ setTab }) => {
   );
 };
 
-const EnvironmentSettings = ({ globalEnvironments, collection, onClose }) => {
+const EnvironmentSettings = ({ globalEnvironments, collection, activeGlobalEnvironmentUid, onClose }) => {
   const [isModified, setIsModified] = useState(false);
   const environments = globalEnvironments;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [tab, setTab] = useState('default');
+  const [showExportModal, setShowExportModal] = useState(false);
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
@@ -51,7 +53,7 @@ const EnvironmentSettings = ({ globalEnvironments, collection, onClose }) => {
           {tab === 'create' ? (
             <CreateEnvironment onClose={() => setTab('default')} />
           ) : tab === 'import' ? (
-            <ImportEnvironment onClose={() => setTab('default')} />
+            <ImportEnvironmentModal type="global" onClose={() => setTab('default')} />
           ) : (
             <DefaultTab setTab={setTab} />
           )}
@@ -61,16 +63,27 @@ const EnvironmentSettings = ({ globalEnvironments, collection, onClose }) => {
   }
 
   return (
-    <Modal size="lg" title="Global Environments" handleCancel={onClose} hideFooter={true}>
-      <EnvironmentList
-        environments={globalEnvironments}
-        selectedEnvironment={selectedEnvironment}
-        setSelectedEnvironment={setSelectedEnvironment}
-        isModified={isModified}
-        setIsModified={setIsModified}
-        collection={collection}
-      />
-    </Modal>
+    <StyledWrapper>
+      <Modal size="lg" title="Global Environments" handleCancel={onClose} hideFooter={true}>
+        <EnvironmentList
+          environments={globalEnvironments}
+          activeEnvironmentUid={activeGlobalEnvironmentUid}
+          selectedEnvironment={selectedEnvironment}
+          setSelectedEnvironment={setSelectedEnvironment}
+          isModified={isModified}
+          setIsModified={setIsModified}
+          collection={collection}
+          setShowExportModal={setShowExportModal}
+        />
+      </Modal>
+      {showExportModal && (
+        <ExportEnvironmentModal
+          onClose={() => setShowExportModal(false)}
+          environments={globalEnvironments}
+          environmentType="global"
+        />
+      )}
+    </StyledWrapper>
   );
 };
 

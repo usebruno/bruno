@@ -1,7 +1,13 @@
 import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop for folder', () => {
-  test('Verify cross-collection folder drag and drop', async ({ pageWithUserData: page, createTmpDir }) => {
+  test.afterEach(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('Verify cross-collection folder drag and drop', async ({ page, createTmpDir }) => {
     // Create first collection - click dropdown menu first
     await page.locator('.dropdown-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
@@ -23,8 +29,8 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
     // Fill folder name in the modal
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('test-folder');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('test-folder');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the folder to be created and appear in the sidebar
@@ -115,7 +121,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
   });
 
   test('Verify cross-collection folder drag and drop, a duplicate folder exist. expected to throw error toast', async ({
-    pageWithUserData: page,
+    page,
     createTmpDir
   }) => {
     // Create first collection (source) - use unique names for this test
@@ -145,8 +151,8 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       .locator('.collection-actions .icon')
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('folder-1');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('folder-1');
     await page.getByRole('button', { name: 'Create' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'folder-1' })).toBeVisible();
@@ -189,8 +195,8 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       .locator('.collection-actions .icon')
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('folder-1');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('folder-1');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Go back to source collection to drag the folder

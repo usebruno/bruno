@@ -3,7 +3,7 @@ import path from 'path';
 
 test.describe('Collection Environment Create Tests', () => {
   test('should import collection and create environment for request usage', async ({
-    pageWithUserData: page,
+    page,
     createTmpDir
   }) => {
     const openApiFile = path.join(__dirname, 'fixtures', 'bruno-collection.json');
@@ -120,7 +120,10 @@ test.describe('Collection Environment Create Tests', () => {
       .locator('.collection-actions')
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
-    await page.getByRole('button', { name: 'Close' }).click();
+    // Scope the Close button to the confirmation modal to avoid matching the dropdown close button
+    // Wait for the confirmation modal with "Close Collection" title to appear
+    const closeModal = page.getByRole('dialog').filter({ has: page.getByText('Close Collection') });
+    await closeModal.getByRole('button', { name: 'Close' }).click();
 
     await page.locator('.bruno-logo').click();
   });

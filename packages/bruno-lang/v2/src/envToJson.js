@@ -153,7 +153,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   multilinetextblock(_1, content, _2) {
     return content.ast
-      .split('\n')
+      .split(/\r\n|\r|\n/)
       .map((line) => line.slice(indentLevel)) // Remove 4-space indentation
       .join('\n')
       .trim();
