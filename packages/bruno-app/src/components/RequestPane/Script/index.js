@@ -47,7 +47,7 @@ const Script = ({ item, collection }) => {
           <TabsTrigger value="post-response">Post Response</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pre-request" className="mt-2">
+        <TabsContent value="pre-request" className="mt-2" dataTestId="pre-request-script-editor">
           <CodeEditor
             collection={collection}
             value={requestScript || ''}
@@ -62,7 +62,7 @@ const Script = ({ item, collection }) => {
           />
         </TabsContent>
 
-        <TabsContent value="post-response" className="mt-2">
+        <TabsContent value="post-response" className="mt-2" dataTestId="post-response-script-editor">
           <CodeEditor
             collection={collection}
             value={responseScript || ''}

@@ -43,11 +43,17 @@ export const TabsTrigger = ({ value: triggerValue, children, className = '' }) =
   );
 };
 
-export const TabsContent = ({ value: contentValue, children, className = '' }) => {
+export const TabsContent = ({ value: contentValue, children, className = '', dataTestId = '' }) => {
   const { value } = useContext(TabsContext);
   const isActive = value === contentValue;
 
-  if (!isActive) return null;
-
-  return <div className={`outline-none flex flex-col h-full flex-1 ${className}`}>{children}</div>;
+  return (
+    <div
+      className={`outline-none flex flex-col h-full flex-1 ${className}`}
+      data-testid={dataTestId}
+      style={{ display: isActive ? 'flex' : 'none' }}
+    >
+      {children}
+    </div>
+  );
 };
