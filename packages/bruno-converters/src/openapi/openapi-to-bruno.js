@@ -186,7 +186,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
       brunoRequestItem.request.params.push({
         uid: uuid(),
         name: param.name,
-        value: '',
+        value: param?.schema?.default != null ? param?.schema?.default : '',
         description: param.description || '',
         enabled: param.required,
         type: 'query'
@@ -195,7 +195,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
       brunoRequestItem.request.params.push({
         uid: uuid(),
         name: param.name,
-        value: '',
+        value: param?.schema?.default != null ? param?.schema?.default : '',
         description: param.description || '',
         enabled: param.required,
         type: 'path'
@@ -204,7 +204,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
       brunoRequestItem.request.headers.push({
         uid: uuid(),
         name: param.name,
-        value: '',
+        value: param?.schema?.default != null ? param?.schema?.default : '',
         description: param.description || '',
         enabled: param.required
       });
