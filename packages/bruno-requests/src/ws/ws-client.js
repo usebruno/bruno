@@ -67,7 +67,11 @@ class WsClient {
       };
 
       if (protocolVersion) {
-        wsOptions.protocolVersion = protocolVersion;
+        // Force convert to number since `ws` doesn't do it for you
+        const asNumber = Number(protocolVersion);
+        if (!isNaN(asNumber)) {
+          wsOptions.protocolVersion = asNumber;
+        }
       }
 
       const wsConnection = new ws.WebSocket(parsedUrl.fullUrl, protocols, wsOptions);
