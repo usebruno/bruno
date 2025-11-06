@@ -9,6 +9,7 @@ const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollect
 const path = require('node:path');
 const { isLargeFile } = require('../utils/filesystem');
 const { getFormattedOauth2Credentials } = require('../utils/oauth2');
+const { getFormattedOauth1Credentials } = require('../utils/oauth1');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
@@ -126,6 +127,23 @@ const prepareRequest = async (item = {}, collection = {}) => {
           additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
         };
       }
+    }
+    if (collectionAuth.mode === 'oauth1') {
+      axiosRequest.oauth1 = {
+        consumerKey: get(collectionAuth, 'oauth1.consumerKey'),
+        consumerSecret: get(collectionAuth, 'oauth1.consumerSecret'),
+        signatureMethod: get(collectionAuth, 'oauth1.signatureMethod'),
+        parameterTransmission: get(collectionAuth, 'oauth1.parameterTransmission'),
+        requestTokenUrl: get(collectionAuth, 'oauth1.requestTokenUrl'),
+        authorizeUrl: get(collectionAuth, 'oauth1.authorizeUrl'),
+        accessTokenUrl: get(collectionAuth, 'oauth1.accessTokenUrl'),
+        callbackUrl: get(collectionAuth, 'oauth1.callbackUrl'),
+        verifier: get(collectionAuth, 'oauth1.verifier'),
+        accessToken: get(collectionAuth, 'oauth1.accessToken'),
+        accessTokenSecret: get(collectionAuth, 'oauth1.accessTokenSecret'),
+        rsaPrivateKey: get(collectionAuth, 'oauth1.rsaPrivateKey'),
+        credentialsId: get(collectionAuth, 'oauth1.credentialsId')
+      };
     }
     if (collectionAuth.mode === 'awsv4') {
       axiosRequest.awsv4config = {
@@ -264,7 +282,25 @@ const prepareRequest = async (item = {}, collection = {}) => {
         };
       }
     }
-    
+
+    if (request.auth.mode === 'oauth1') {
+      axiosRequest.oauth1 = {
+        consumerKey: get(request, 'auth.oauth1.consumerKey'),
+        consumerSecret: get(request, 'auth.oauth1.consumerSecret'),
+        signatureMethod: get(request, 'auth.oauth1.signatureMethod'),
+        parameterTransmission: get(request, 'auth.oauth1.parameterTransmission'),
+        requestTokenUrl: get(request, 'auth.oauth1.requestTokenUrl'),
+        authorizeUrl: get(request, 'auth.oauth1.authorizeUrl'),
+        accessTokenUrl: get(request, 'auth.oauth1.accessTokenUrl'),
+        callbackUrl: get(request, 'auth.oauth1.callbackUrl'),
+        verifier: get(request, 'auth.oauth1.verifier'),
+        accessToken: get(request, 'auth.oauth1.accessToken'),
+        accessTokenSecret: get(request, 'auth.oauth1.accessTokenSecret'),
+        rsaPrivateKey: get(request, 'auth.oauth1.rsaPrivateKey'),
+        credentialsId: get(request, 'auth.oauth1.credentialsId')
+      };
+    }
+
     if (request.auth.mode === 'apikey') {
       if (request.auth.apikey?.placement === 'header') {
         axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
@@ -388,6 +424,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.oauth2CredentialVariables = getFormattedOauth2Credentials();
+  axiosRequest.oauth1CredentialVariables = getFormattedOauth1Credentials();
 
   return axiosRequest;
 };

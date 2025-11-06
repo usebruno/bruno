@@ -31,7 +31,7 @@ const parseExample = require('./example/bruToJson');
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authOAuth1 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
@@ -120,6 +120,7 @@ const grammar = ohm.grammar(`Bru {
   authdigest = "auth:digest" dictionary
   authNTLM = "auth:ntlm" dictionary
   authOAuth2 = "auth:oauth2" dictionary
+  authOAuth1 = "auth:oauth1" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
 
@@ -811,6 +812,42 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
               }
             : {}
+      }
+    };
+  },
+  authOAuth1(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const consumerKeyKey = _.find(auth, { name: 'consumer_key' });
+    const consumerSecretKey = _.find(auth, { name: 'consumer_secret' });
+    const signatureMethodKey = _.find(auth, { name: 'signature_method' });
+    const parameterTransmissionKey = _.find(auth, { name: 'parameter_transmission' });
+    const requestTokenUrlKey = _.find(auth, { name: 'request_token_url' });
+    const authorizeUrlKey = _.find(auth, { name: 'authorize_url' });
+    const accessTokenUrlKey = _.find(auth, { name: 'access_token_url' });
+    const callbackUrlKey = _.find(auth, { name: 'callback_url' });
+    const verifierKey = _.find(auth, { name: 'verifier' });
+    const accessTokenKey = _.find(auth, { name: 'access_token' });
+    const accessTokenSecretKey = _.find(auth, { name: 'access_token_secret' });
+    const rsaPrivateKeyKey = _.find(auth, { name: 'rsa_private_key' });
+    const credentialsIdKey = _.find(auth, { name: 'credentials_id' });
+
+    return {
+      auth: {
+        oauth1: {
+          consumerKey: consumerKeyKey ? consumerKeyKey.value : '',
+          consumerSecret: consumerSecretKey ? consumerSecretKey.value : '',
+          signatureMethod: signatureMethodKey ? signatureMethodKey.value : 'HMAC-SHA1',
+          parameterTransmission: parameterTransmissionKey ? parameterTransmissionKey.value : 'authorization_header',
+          requestTokenUrl: requestTokenUrlKey ? requestTokenUrlKey.value : '',
+          authorizeUrl: authorizeUrlKey ? authorizeUrlKey.value : '',
+          accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+          callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+          verifier: verifierKey ? verifierKey.value : '',
+          accessToken: accessTokenKey ? accessTokenKey.value : '',
+          accessTokenSecret: accessTokenSecretKey ? accessTokenSecretKey.value : '',
+          rsaPrivateKey: rsaPrivateKeyKey ? rsaPrivateKeyKey.value : '',
+          credentialsId: credentialsIdKey ? credentialsIdKey.value : 'credentials'
+        }
       }
     };
   },

@@ -25,6 +25,7 @@ const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const { getCACertificates } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
+const { getOAuth1Token, signOAuth1Request } = require('../utils/oauth1');
 const { encodeUrl, buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
@@ -395,6 +396,42 @@ const runSingleRequest = async function (
       
       // Remove oauth2 config from request to prevent it from being sent
       delete request.oauth2;
+    }
+
+    // Handle OAuth1 authentication
+    if (request.oauth1) {
+      try {
+        // Get OAuth 1.0 credentials if needed (for 3-legged flow)
+        if (request.oauth1.credentialsId && !request.oauth1.accessToken) {
+          await getOAuth1Token(request.oauth1);
+        }
+
+        // Sign the OAuth 1.0 request
+        const signedRequest = signOAuth1Request({
+          request,
+          oauth1Config: request.oauth1,
+          requestUrl: request.url,
+          requestMethod: request.method,
+          requestHeaders: request.headers,
+          requestBody: request.data
+        });
+
+        // Apply signed request changes
+        if (signedRequest.requestHeaders) {
+          request.headers = { ...request.headers, ...signedRequest.requestHeaders };
+        }
+        if (signedRequest.requestUrl) {
+          request.url = signedRequest.requestUrl;
+        }
+        if (signedRequest.requestBody !== undefined) {
+          request.data = signedRequest.requestBody;
+        }
+      } catch (error) {
+        console.error('OAuth1 signing error:', error.message);
+      }
+
+      // Remove oauth1 config from request to prevent it from being sent
+      delete request.oauth1;
     }
 
     let response, responseTime;

@@ -152,6 +152,23 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             break;
         }
         break;
+      case 'oauth1':
+        axiosRequest.oauth1 = {
+          consumerKey: get(collectionAuth, 'oauth1.consumerKey'),
+          consumerSecret: get(collectionAuth, 'oauth1.consumerSecret'),
+          signatureMethod: get(collectionAuth, 'oauth1.signatureMethod'),
+          parameterTransmission: get(collectionAuth, 'oauth1.parameterTransmission'),
+          requestTokenUrl: get(collectionAuth, 'oauth1.requestTokenUrl'),
+          authorizeUrl: get(collectionAuth, 'oauth1.authorizeUrl'),
+          accessTokenUrl: get(collectionAuth, 'oauth1.accessTokenUrl'),
+          callbackUrl: get(collectionAuth, 'oauth1.callbackUrl'),
+          verifier: get(collectionAuth, 'oauth1.verifier'),
+          accessToken: get(collectionAuth, 'oauth1.accessToken'),
+          accessTokenSecret: get(collectionAuth, 'oauth1.accessTokenSecret'),
+          rsaPrivateKey: get(collectionAuth, 'oauth1.rsaPrivateKey'),
+          credentialsId: get(collectionAuth, 'oauth1.credentialsId')
+        };
+        break;
     }
   }
 
@@ -268,6 +285,23 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             };
             break;
         }
+        break;
+      case 'oauth1':
+        axiosRequest.oauth1 = {
+          consumerKey: get(request, 'auth.oauth1.consumerKey'),
+          consumerSecret: get(request, 'auth.oauth1.consumerSecret'),
+          signatureMethod: get(request, 'auth.oauth1.signatureMethod'),
+          parameterTransmission: get(request, 'auth.oauth1.parameterTransmission'),
+          requestTokenUrl: get(request, 'auth.oauth1.requestTokenUrl'),
+          authorizeUrl: get(request, 'auth.oauth1.authorizeUrl'),
+          accessTokenUrl: get(request, 'auth.oauth1.accessTokenUrl'),
+          callbackUrl: get(request, 'auth.oauth1.callbackUrl'),
+          verifier: get(request, 'auth.oauth1.verifier'),
+          accessToken: get(request, 'auth.oauth1.accessToken'),
+          accessTokenSecret: get(request, 'auth.oauth1.accessTokenSecret'),
+          rsaPrivateKey: get(request, 'auth.oauth1.rsaPrivateKey'),
+          credentialsId: get(request, 'auth.oauth1.credentialsId')
+        };
         break;
       case 'wsse':
         const username = get(request, 'auth.wsse.username', '');

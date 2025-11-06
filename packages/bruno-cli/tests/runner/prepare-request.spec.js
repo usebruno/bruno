@@ -220,6 +220,88 @@ describe('prepare-request: prepareRequest', () => {
       });
     });
 
+    describe('OAuth1 Authentication', () => {
+      it('If collection auth is OAuth1 with HMAC-SHA1', async () => {
+        collection.root.request.auth = {
+          mode: 'oauth1',
+          oauth1: {
+            consumerKey: 'test-consumer-key',
+            consumerSecret: 'test-consumer-secret',
+            signatureMethod: 'HMAC-SHA1',
+            parameterTransmission: 'authorization_header',
+            accessToken: 'test-access-token',
+            accessTokenSecret: 'test-access-token-secret',
+            credentialsId: 'test-credentials'
+          }
+        };
+
+        const result = await prepareRequest(item, collection);
+
+        expect(result.oauth1).toBeDefined();
+        expect(result.oauth1.consumerKey).toBe('test-consumer-key');
+        expect(result.oauth1.consumerSecret).toBe('test-consumer-secret');
+        expect(result.oauth1.signatureMethod).toBe('HMAC-SHA1');
+        expect(result.oauth1.parameterTransmission).toBe('authorization_header');
+        expect(result.oauth1.accessToken).toBe('test-access-token');
+        expect(result.oauth1.accessTokenSecret).toBe('test-access-token-secret');
+        expect(result.oauth1.credentialsId).toBe('test-credentials');
+      });
+
+      it('If collection auth is OAuth1 with RSA-SHA256', async () => {
+        collection.root.request.auth = {
+          mode: 'oauth1',
+          oauth1: {
+            consumerKey: 'rsa-consumer-key',
+            consumerSecret: 'rsa-consumer-secret',
+            signatureMethod: 'RSA-SHA256',
+            parameterTransmission: 'query_param',
+            rsaPrivateKey: '-----BEGIN PRIVATE KEY-----\ntest-rsa-key\n-----END PRIVATE KEY-----',
+            requestTokenUrl: 'https://api.example.com/request_token',
+            authorizeUrl: 'https://api.example.com/authorize',
+            accessTokenUrl: 'https://api.example.com/access_token',
+            callbackUrl: 'https://example.com/callback',
+            accessToken: 'rsa-access-token',
+            accessTokenSecret: 'rsa-access-token-secret',
+            credentialsId: 'rsa-credentials'
+          }
+        };
+
+        const result = await prepareRequest(item, collection);
+
+        expect(result.oauth1).toBeDefined();
+        expect(result.oauth1.signatureMethod).toBe('RSA-SHA256');
+        expect(result.oauth1.parameterTransmission).toBe('query_param');
+        expect(result.oauth1.rsaPrivateKey).toBe('-----BEGIN PRIVATE KEY-----\ntest-rsa-key\n-----END PRIVATE KEY-----');
+        expect(result.oauth1.requestTokenUrl).toBe('https://api.example.com/request_token');
+        expect(result.oauth1.authorizeUrl).toBe('https://api.example.com/authorize');
+        expect(result.oauth1.accessTokenUrl).toBe('https://api.example.com/access_token');
+        expect(result.oauth1.callbackUrl).toBe('https://example.com/callback');
+      });
+
+      it('If collection auth is OAuth1 with PLAINTEXT', async () => {
+        collection.root.request.auth = {
+          mode: 'oauth1',
+          oauth1: {
+            consumerKey: 'plaintext-key',
+            consumerSecret: 'plaintext-secret',
+            signatureMethod: 'PLAINTEXT',
+            parameterTransmission: 'request_body',
+            accessToken: 'plaintext-token',
+            accessTokenSecret: 'plaintext-secret',
+            credentialsId: 'plaintext-creds'
+          }
+        };
+
+        const result = await prepareRequest(item, collection);
+
+        expect(result.oauth1).toBeDefined();
+        expect(result.oauth1.signatureMethod).toBe('PLAINTEXT');
+        expect(result.oauth1.parameterTransmission).toBe('request_body');
+        expect(result.oauth1.consumerKey).toBe('plaintext-key');
+        expect(result.oauth1.consumerSecret).toBe('plaintext-secret');
+      });
+    });
+
     describe('AWS v4 Authentication', () => {
       it('If collection auth is AWS v4', async () => {
         collection.root.request.auth = {

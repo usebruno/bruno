@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "name": "OAuth 1.0 Tests",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "presets": {
+    "requestType": "http",
+    "requestUrl": "http://localhost:8081"
+  }
+}

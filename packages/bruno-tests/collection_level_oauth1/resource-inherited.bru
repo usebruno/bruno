@@ -1,0 +1,26 @@
+meta {
+  name: Resource with Inherited OAuth 1.0
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{oauth1_base_url}}/api/auth/oauth1/two_legged/resource
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body.message: eq OAuth 1.0 2-legged authorization successful
+}
+
+tests {
+  test("should inherit OAuth 1.0 from collection", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().message).to.equal('OAuth 1.0 2-legged authorization successful');
+    expect(res.getBody().oauth_params).to.be.an('object');
+    expect(res.getBody().oauth_params.consumer_key).to.equal('oauth1_consumer_key');
+    expect(res.getBody().oauth_params.signature_method).to.equal('HMAC-SHA1');
+  });
+}

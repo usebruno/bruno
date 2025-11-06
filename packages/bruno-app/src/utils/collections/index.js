@@ -846,6 +846,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'OAuth 2.0';
       break;
     }
+    case 'oauth1': {
+      label = 'OAuth 1.0';
+      break;
+    }
     case 'wsse': {
       label = 'WSSE Auth';
       break;

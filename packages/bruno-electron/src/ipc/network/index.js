@@ -26,10 +26,12 @@ const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
+const { getOAuth1Token, signOAuth1Request, updateCollectionOauth1Credentials } = require('../../utils/oauth1');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
+const Oauth1Store = require('../../store/oauth1');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
@@ -194,6 +196,55 @@ const configureRequest = async (
           catch(error) {}
         }
         break;
+    }
+  }
+
+  if (request.oauth1) {
+    let requestCopy = cloneDeep(request);
+    interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+    const { oauth1 } = requestCopy || {};
+
+    // Try to get/fetch OAuth 1.0 tokens
+    const { credentials, credentialsId, debugInfo, error } = await getOAuth1Token({
+      request: requestCopy,
+      collectionUid,
+      certsAndProxyConfig
+    });
+
+    if (error) {
+      console.error('OAuth 1.0 error:', error);
+    }
+
+    // Store credentials for UI updates
+    request.oauth1Credentials = { credentials, collectionUid, credentialsId, debugInfo, folderUid: request.oauth1Credentials?.folderUid };
+
+    // Apply OAuth 1.0 signature to the request
+    if (credentials || (oauth1.consumerKey && oauth1.consumerSecret)) {
+      const oauth1Config = {
+        consumerKey: credentials?.consumerKey || oauth1.consumerKey,
+        consumerSecret: credentials?.consumerSecret || oauth1.consumerSecret,
+        accessToken: credentials?.accessToken || oauth1.accessToken,
+        accessTokenSecret: credentials?.accessTokenSecret || oauth1.accessTokenSecret,
+        signatureMethod: credentials?.signatureMethod || oauth1.signatureMethod || 'HMAC-SHA1',
+        parameterTransmission: credentials?.parameterTransmission || oauth1.parameterTransmission || 'authorization_header',
+        rsaPrivateKey: credentials?.rsaPrivateKey || oauth1.rsaPrivateKey,
+        callbackUrl: oauth1.callbackUrl // Add callback URL for 3-legged flow
+      };
+
+      const { requestHeaders, requestUrl, requestBody } = signOAuth1Request({
+        request: requestCopy,
+        oauth1Config,
+        requestUrl: request.url,
+        requestMethod: request.method,
+        requestHeaders: request.headers,
+        requestBody: request.data
+      });
+
+      request.headers = requestHeaders;
+      request.url = requestUrl;
+      if (requestBody !== undefined) {
+        request.data = requestBody;
+      }
     }
   }
 
@@ -687,6 +738,16 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
+      if (request?.oauth1Credentials) {
+        mainWindow.webContents.send('main:oauth1-credentials-update', {
+          credentials: request?.oauth1Credentials?.credentials,
+          collectionUid,
+          credentialsId: request?.oauth1Credentials?.credentialsId,
+          ...(request?.oauth1Credentials?.folderUid ? { folderUid: request.oauth1Credentials.folderUid } : { itemUid: item.uid }),
+          debugInfo: request?.oauth1Credentials?.debugInfo
+        });
+      }
+
       let response, responseTime;
       try {
         /** @type {import('axios').AxiosResponse} */
@@ -924,6 +985,18 @@ const registerNetworkIpc = (mainWindow) => {
         resolve();
       } catch (err) {
         reject(new Error('Could not clear oauth2 cache'));
+      }
+    });
+  });
+
+  ipcMain.handle('clear-oauth1-cache', async (event, uid, credentialsId) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const oauth1Store = new Oauth1Store();
+        oauth1Store.clearSessionIdOfCollection({ collectionUid: uid });
+        resolve();
+      } catch (err) {
+        reject(new Error('Could not clear oauth1 cache'));
       }
     });
   });

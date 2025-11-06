@@ -15,6 +15,7 @@ import ApiKeyAuth from './ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import OAuth2 from './OAuth2/index';
+import OAuth1 from './OAuth1/index';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
 
 const getTreePathFromCollectionToItem = (collection, _item) => {
@@ -89,6 +90,9 @@ const Auth = ({ item, collection }) => {
       }      
       case 'oauth2': {
         return <OAuth2 collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
+      }
+      case 'oauth1': {
+        return <OAuth1 collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'wsse': {
         return <WsseAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
