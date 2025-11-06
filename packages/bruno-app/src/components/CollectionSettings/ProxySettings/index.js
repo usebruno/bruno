@@ -6,15 +6,15 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateCollectionProxy } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { get } from 'lodash';
 
 const ProxySettings = ({ collection }) => {
-  console.log('collection', collection);
   const dispatch = useDispatch();
 
   // Get proxy from draft.brunoConfig if it exists, otherwise from brunoConfig
-  const currentProxyConfig = collection.draft?.brunoConfig?.proxy
-    ? collection.draft.brunoConfig.proxy
-    : (collection.brunoConfig?.proxy || {});
+  const currentProxyConfig = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.proxy', {})
+    : get(collection, 'brunoConfig.proxy', {});
 
   const [passwordVisible, setPasswordVisible] = useState(false);
 

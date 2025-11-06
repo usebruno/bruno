@@ -60,6 +60,9 @@ test.describe('manage protofile', () => {
 
     await expect(page.getByRole('cell', { name: '../protos/invalid-import-path', exact: true })).not.toBeVisible();
     await expect(invalidImportPathsMessage).not.toBeVisible();
+
+    // Save the changes to persist them to bruno.json
+    await page.getByRole('button', { name: 'Save' }).click();
   });
 
   test('order.proto loads methods successfully when selected', async ({ pageWithUserData: page }) => {
@@ -127,6 +130,9 @@ test.describe('manage protofile', () => {
     // Use test ID for checkbox
     const checkbox = page.getByRole('row', { name: 'Enable this import path types' }).getByTestId('protobuf-import-path-checkbox');
     await checkbox.click();
+
+    // Save the changes to persist them to bruno.json
+    await page.getByRole('button', { name: 'Save' }).click();
 
     // Now test that product.proto can load methods successfully
     await page.getByText('HelloService').click();

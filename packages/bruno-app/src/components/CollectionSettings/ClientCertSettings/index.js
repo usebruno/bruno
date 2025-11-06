@@ -372,18 +372,16 @@ const ClientCertSettings = ({ collection }) => {
             <div className="ml-1 text-red-500">{formik.errors.passphrase}</div>
           ) : null}
         </div>
-        <div className="mt-6">
+        <div className="mt-6 flex flex-row gap-2 items-center">
           <button type="submit" className="submit btn btn-sm btn-secondary">
             Add
           </button>
+          <div className="h-4 border-l border-gray-600"></div>
+          <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+            Save
+          </button>
         </div>
       </form>
-
-      <div className="mt-6">
-        <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
-          Save
-        </button>
-      </div>
     </StyledWrapper>
   );
 };

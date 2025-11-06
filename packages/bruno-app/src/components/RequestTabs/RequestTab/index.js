@@ -10,6 +10,7 @@ import lightTheme from 'themes/light';
 import { findItemInCollection, hasRequestChanges } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
+import ConfirmFolderClose from './ConfirmFolderClose';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
@@ -28,6 +29,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
+  const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -98,7 +100,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
     event.stopPropagation();
     event.preventDefault();
-    setShowConfirmCollectionClose(true);
+    setShowConfirmFolderClose(true);
   };
 
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;
@@ -136,10 +138,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
           />
         )}
-        {showConfirmCollectionClose && tab.type === 'folder-settings' && (
-          <ConfirmCollectionClose
-            collection={collection}
-            onCancel={() => setShowConfirmCollectionClose(false)}
+        {showConfirmFolderClose && tab.type === 'folder-settings' && (
+          <ConfirmFolderClose
+            folder={folder}
+            onCancel={() => setShowConfirmFolderClose(false)}
             onCloseWithoutSave={() => {
               dispatch(deleteFolderDraft({
                 collectionUid: collection.uid,
@@ -148,7 +150,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
               dispatch(closeTabs({
                 tabUids: [tab.uid]
               }));
-              setShowConfirmCollectionClose(false);
+              setShowConfirmFolderClose(false);
             }}
             onSaveAndClose={() => {
               dispatch(saveFolderRoot(collection.uid, folder.uid))
@@ -156,7 +158,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                   dispatch(closeTabs({
                     tabUids: [tab.uid]
                   }));
-                  setShowConfirmCollectionClose(false);
+                  setShowConfirmFolderClose(false);
                 })
                 .catch((err) => {
                   console.log('err', err);

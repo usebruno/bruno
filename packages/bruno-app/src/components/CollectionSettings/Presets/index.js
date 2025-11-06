@@ -3,14 +3,15 @@ import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { get } from 'lodash';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
 
   // Get presets from draft.brunoConfig if it exists, otherwise from brunoConfig
   const currentPresets = collection.draft?.brunoConfig?.presets
-    ? collection.draft.brunoConfig.presets
-    : (collection.brunoConfig?.presets || {});
+    ? get(collection, 'draft.brunoConfig.presets', [])
+    : get(collection, 'brunoConfig.presets', []);
 
   // Helper to update presets config
   const updatePresets = (updates) => {
