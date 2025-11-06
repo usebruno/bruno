@@ -7,11 +7,12 @@ import { get } from 'lodash';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
+  const initialPresets = { requestType: 'http', requestUrl: '' };
 
   // Get presets from draft.brunoConfig if it exists, otherwise from brunoConfig
-  const currentPresets = collection.draft?.brunoConfig?.presets
-    ? get(collection, 'draft.brunoConfig.presets', [])
-    : get(collection, 'brunoConfig.presets', []);
+  const currentPresets = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.presets', initialPresets)
+    : get(collection, 'brunoConfig.presets', initialPresets);
 
   // Helper to update presets config
   const updatePresets = (updates) => {

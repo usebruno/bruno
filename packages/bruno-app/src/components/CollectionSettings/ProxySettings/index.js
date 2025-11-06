@@ -10,11 +10,12 @@ import { get } from 'lodash';
 
 const ProxySettings = ({ collection }) => {
   const dispatch = useDispatch();
+  const initialProxyConfig = { enabled: 'global', protocol: 'http', hostname: '', port: '', auth: { enabled: false, username: '', password: '' }, bypassProxy: '' };
 
   // Get proxy from draft.brunoConfig if it exists, otherwise from brunoConfig
   const currentProxyConfig = collection.draft?.brunoConfig
-    ? get(collection, 'draft.brunoConfig.proxy', {})
-    : get(collection, 'brunoConfig.proxy', {});
+    ? get(collection, 'draft.brunoConfig.proxy', initialProxyConfig)
+    : get(collection, 'brunoConfig.proxy', initialProxyConfig);
 
   const [passwordVisible, setPasswordVisible] = useState(false);
 

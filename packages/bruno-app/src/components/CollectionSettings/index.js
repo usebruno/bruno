@@ -46,8 +46,8 @@ const CollectionSettings = ({ collection }) => {
 
   const proxyConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.proxy', {}) : get(collection, 'brunoConfig.proxy', {});
   const proxyEnabled = proxyConfig.hostname ? true : false;
-  const clientCertConfig = collection.draft?.brunoConfig?.clientCertificates?.certs ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
-  const protobufConfig = collection.draft?.brunoConfig?.protobuf ? get(collection, 'draft.brunoConfig.protobuf', {}) : get(collection, 'brunoConfig.protobuf', {});
+  const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
+  const protobufConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.protobuf', {}) : get(collection, 'brunoConfig.protobuf', {});
 
   const getTabPanel = (tab) => {
     switch (tab) {
