@@ -169,7 +169,6 @@ const AssertionRow = ({
           <SingleLineEditor
             value={value}
             theme={storedTheme}
-            readOnly={true}
             onSave={onSave}
             onChange={(newValue) => {
               handleAssertionChange(
