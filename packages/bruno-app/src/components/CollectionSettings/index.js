@@ -41,51 +41,13 @@ const CollectionSettings = ({ collection }) => {
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
   const authMode = (collection.draft?.root ? get(collection, 'draft.root.request.auth', {}) : get(collection, 'root.request.auth', {})).mode || 'none';
 
-  const presets = get(collection, 'brunoConfig.presets', []);
+  const presets = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.presets', []) : get(collection, 'brunoConfig.presets', []);
   const hasPresets = presets && presets.requestUrl !== '';
 
-  const proxyConfig = get(collection, 'brunoConfig.proxy', {});
+  const proxyConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.proxy', {}) : get(collection, 'brunoConfig.proxy', {});
   const proxyEnabled = proxyConfig.hostname ? true : false;
-  const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
-  const protobufConfig = get(collection, 'brunoConfig.protobuf', {});
-  const onProxySettingsUpdate = (config) => {
-    const brunoConfig = cloneDeep(collection.brunoConfig);
-    brunoConfig.proxy = config;
-    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
-      .then(() => {
-        toast.success('Collection settings updated successfully.');
-      })
-      .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
-  };
-
-  const onClientCertSettingsUpdate = (config) => {
-    const brunoConfig = cloneDeep(collection.brunoConfig);
-    if (!brunoConfig.clientCertificates) {
-      brunoConfig.clientCertificates = {
-        enabled: true,
-        certs: [config]
-      };
-    } else {
-      brunoConfig.clientCertificates.certs.push(config);
-    }
-    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
-      .then(() => {
-        toast.success('Collection settings updated successfully');
-      })
-      .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
-  };
-
-  const onClientCertSettingsRemove = (config) => {
-    const brunoConfig = cloneDeep(collection.brunoConfig);
-    brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.filter(
-      (item) => item.domain != config.domain
-    );
-    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
-      .then(() => {
-        toast.success('Collection settings updated successfully');
-      })
-      .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
-  };
+  const clientCertConfig = collection.draft?.brunoConfig?.clientCertificates?.certs ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
+  const protobufConfig = collection.draft?.brunoConfig?.protobuf ? get(collection, 'draft.brunoConfig.protobuf', {}) : get(collection, 'brunoConfig.protobuf', {});
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -117,9 +79,6 @@ const CollectionSettings = ({ collection }) => {
         return (
           <ClientCertSettings
             collection={collection}
-            clientCertConfig={clientCertConfig}
-            onUpdate={onClientCertSettingsUpdate}
-            onRemove={onClientCertSettingsRemove}
           />
         );
       }

@@ -9,8 +9,18 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
 import { useTheme } from 'styled-components';
+import { useDispatch } from 'react-redux';
+import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import get from 'lodash/get';
 
-const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }) => {
+const ClientCertSettings = ({ collection }) => {
+  const dispatch = useDispatch();
+
+  // Get client certs from draft if exists, otherwise from brunoConfig
+  const clientCertConfig = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.clientCertificates.certs', [])
+    : get(collection, 'brunoConfig.clientCertificates.certs', []);
   const certFilePathInputRef = useRef();
   const keyFilePathInputRef = useRef();
   const pfxFilePathInputRef = useRef();
@@ -63,7 +73,19 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
           passphrase: values.passphrase
         };
       }
-      onUpdate(relevantValues);
+
+      // Add the new cert to the existing certs in draft
+      const updatedCerts = [...clientCertConfig, relevantValues];
+      const clientCertificates = {
+        enabled: true,
+        certs: updatedCerts
+      };
+
+      dispatch(updateCollectionClientCertificates({
+        collectionUid: collection.uid,
+        clientCertificates
+      }));
+
       formik.resetForm();
       resetFileInputFields();
     }
@@ -81,9 +103,15 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
   };
 
   const resetFileInputFields = () => {
-    certFilePathInputRef.current.value = '';
-    keyFilePathInputRef.current.value = '';
-    pfxFilePathInputRef.current.value = '';
+    if (certFilePathInputRef.current) {
+      certFilePathInputRef.current.value = '';
+    }
+    if (keyFilePathInputRef.current) {
+      keyFilePathInputRef.current.value = '';
+    }
+    if (pfxFilePathInputRef.current) {
+      pfxFilePathInputRef.current.value = '';
+    }
   };
 
   const handleTypeChange = (e) => {
@@ -98,6 +126,21 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
       keyFilePathInputRef.current.value = '';
     }
   };
+
+  const handleRemove = (indexToRemove) => {
+    const updatedCerts = clientCertConfig.filter((cert, index) => index !== indexToRemove);
+    const clientCertificates = {
+      enabled: true,
+      certs: updatedCerts
+    };
+
+    dispatch(updateCollectionClientCertificates({
+      collectionUid: collection.uid,
+      clientCertificates
+    }));
+  };
+
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   return (
     <StyledWrapper className="w-full h-full">
@@ -118,9 +161,9 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
                   <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
                   {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
                 </div>
-                <button onClick={() => onRemove(clientCert)} className="remove-certificate ml-2">
+                  <button onClick={() => handleRemove(index)} className="remove-certificate ml-2">
                   <IconTrash size={18} strokeWidth={1.5} />
-                </button>
+                  </button>
               </div>
             </li>
           ))}
@@ -335,6 +378,12 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
           </button>
         </div>
       </form>
+
+      <div className="mt-6">
+        <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          Save
+        </button>
+      </div>
     </StyledWrapper>
   );
 };

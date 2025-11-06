@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import {
   IconTrash,
@@ -10,8 +11,10 @@ import {
 import { getBasename } from 'utils/common/path';
 import { Tooltip } from 'react-tooltip';
 import useProtoFileManagement from '../../../hooks/useProtoFileManagement';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 
 const ProtobufSettings = ({ collection }) => {
+  const dispatch = useDispatch();
   const {
     protoFiles,
     importPaths,
@@ -26,6 +29,8 @@ const ProtobufSettings = ({ collection }) => {
     replaceProtoFileInCollection
   } = useProtoFileManagement(collection);
   const fileInputRef = useRef(null);
+
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   // Get file path using the ipcRenderer
   const getProtoFile = async (event) => {
@@ -327,6 +332,12 @@ const ProtobufSettings = ({ collection }) => {
             + Add Import Path
           </button>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          Save
+        </button>
       </div>
 
     </StyledWrapper>

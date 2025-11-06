@@ -67,7 +67,10 @@ const actionsToIntercept = [
   'collections/updateCollectionRequestScript',
   'collections/updateCollectionResponseScript',
   'collections/updateCollectionTests',
-  'collections/updateCollectionDocs'
+  'collections/updateCollectionDocs',
+  'collections/updateCollectionClientCertificates',
+  'collections/updateCollectionProtobuf',
+  'collections/updateCollectionProxy'
 ];
 
 export const draftDetectMiddleware = ({ dispatch, getState }) => (next) => (action) => {

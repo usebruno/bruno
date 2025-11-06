@@ -27,7 +27,7 @@ const { setAuthHeaders } = require('./prepare-request');
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
-  const brunoConfig = get(collection, 'brunoConfig', {});
+  const brunoConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig', {}) : get(collection, 'brunoConfig', {});
   const rawHeaders = cloneDeep(request.headers ?? []);
   const headers = {};
 

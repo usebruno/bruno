@@ -288,7 +288,7 @@ const registerGrpcEventHandlers = (window) => {
         caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
       }
 
-      const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+      const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
 
       for (let clientCert of clientCertConfig) {
         const domain = interpolateString(clientCert?.domain, interpolationOptions);

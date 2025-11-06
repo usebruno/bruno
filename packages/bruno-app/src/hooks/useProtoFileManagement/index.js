@@ -1,11 +1,13 @@
 import { useState, useRef, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { browseFiles, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
+import { updateCollectionProtobuf } from 'providers/ReduxStore/slices/collections';
 import { getRelativePath, getAbsoluteFilePath } from 'utils/common/path';
 import { browseDirectory } from 'utils/filesystem';
 import { loadGrpcMethodsFromProtoFile } from 'utils/network/index';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 import { cloneDeep } from 'lodash';
+import get from 'lodash/get';
 
 /**
  * Custom hook for managing protofile data and collection configuration
@@ -18,8 +20,13 @@ export default function useProtoFileManagement(collection) {
   const [protofileCache, setProtofileCache] = useLocalStorage('bruno.grpc.protofileCache', {});
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
 
-  const collectionProtoFiles = useMemo(() => collection?.brunoConfig?.protobuf?.protoFiles || [], [collection?.brunoConfig?.protobuf?.protoFiles]);
-  const collectionImportPaths = useMemo(() => collection?.brunoConfig?.protobuf?.importPaths || [], [collection?.brunoConfig?.protobuf?.importPaths]);
+  // Get protobuf config from draft if exists, otherwise from brunoConfig
+  const protobufConfig = collection?.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.protobuf', {})
+    : get(collection, 'brunoConfig.protobuf', {});
+
+  const collectionProtoFiles = useMemo(() => protobufConfig?.protoFiles || [], [protobufConfig?.protoFiles]);
+  const collectionImportPaths = useMemo(() => protobufConfig?.importPaths || [], [protobufConfig?.importPaths]);
 
   const protoFilesWithExistence = useMemo(() =>
     collectionProtoFiles.map((protoFile) => ({
@@ -81,20 +88,19 @@ export default function useProtoFileManagement(collection) {
     try {
       const protoFileObj = {
         path: relativePath,
-        type: 'file'
+        type: 'file',
+        exists: true
       };
 
-      const brunoConfig = cloneDeep(collection.brunoConfig);
-      if (!brunoConfig.protobuf) {
-        brunoConfig.protobuf = {};
-      }
-      if (!brunoConfig.protobuf.protoFiles) {
-        brunoConfig.protobuf.protoFiles = [];
-      }
+      const updatedProtobuf = {
+        ...protobufConfig,
+        protoFiles: [...collectionProtoFiles, protoFileObj]
+      };
 
-      brunoConfig.protobuf.protoFiles = [...collectionProtoFiles, protoFileObj];
-
-      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+      dispatch(updateCollectionProtobuf({
+        collectionUid: collection.uid,
+        protobuf: updatedProtobuf
+      }));
 
       return { success: true, relativePath };
     } catch (error) {
@@ -107,7 +113,8 @@ export default function useProtoFileManagement(collection) {
     const relativePath = getRelativePath(collection.pathname, directoryPath, true);
     const importPathObj = {
       path: relativePath,
-      enabled: true
+      enabled: true,
+      exists: true
     };
 
     const exists = collectionImportPaths.some((ip) => ip.path === importPathObj.path);
@@ -117,17 +124,15 @@ export default function useProtoFileManagement(collection) {
     }
 
     try {
-      const brunoConfig = cloneDeep(collection.brunoConfig);
-      if (!brunoConfig.protobuf) {
-        brunoConfig.protobuf = {};
-      }
-      if (!brunoConfig.protobuf.importPaths) {
-        brunoConfig.protobuf.importPaths = [];
-      }
+      const updatedProtobuf = {
+        ...protobufConfig,
+        importPaths: [...collectionImportPaths, importPathObj]
+      };
 
-      brunoConfig.protobuf.importPaths = [...collectionImportPaths, importPathObj];
-
-      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+      dispatch(updateCollectionProtobuf({
+        collectionUid: collection.uid,
+        protobuf: updatedProtobuf
+      }));
 
       return { success: true, relativePath };
     } catch (error) {
@@ -144,13 +149,15 @@ export default function useProtoFileManagement(collection) {
         enabled: !updatedImportPaths[index].enabled
       };
 
-      const brunoConfig = cloneDeep(collection.brunoConfig);
-      if (!brunoConfig.protobuf) {
-        brunoConfig.protobuf = {};
-      }
-      brunoConfig.protobuf.importPaths = updatedImportPaths;
+      const updatedProtobuf = {
+        ...protobufConfig,
+        importPaths: updatedImportPaths
+      };
 
-      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+      dispatch(updateCollectionProtobuf({
+        collectionUid: collection.uid,
+        protobuf: updatedProtobuf
+      }));
 
       return {
         success: true,
@@ -195,13 +202,15 @@ export default function useProtoFileManagement(collection) {
       const updatedProtoFiles = [...collectionProtoFiles];
       updatedProtoFiles.splice(index, 1);
 
-      const brunoConfig = cloneDeep(collection.brunoConfig);
-      if (!brunoConfig.protobuf) {
-        brunoConfig.protobuf = {};
-      }
-      brunoConfig.protobuf.protoFiles = updatedProtoFiles;
+      const updatedProtobuf = {
+        ...protobufConfig,
+        protoFiles: updatedProtoFiles
+      };
 
-      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+      dispatch(updateCollectionProtobuf({
+        collectionUid: collection.uid,
+        protobuf: updatedProtobuf
+      }));
 
       return { success: true };
     } catch (error) {
@@ -215,13 +224,15 @@ export default function useProtoFileManagement(collection) {
       const updatedImportPaths = [...collectionImportPaths];
       updatedImportPaths.splice(index, 1);
 
-      const brunoConfig = cloneDeep(collection.brunoConfig);
-      if (!brunoConfig.protobuf) {
-        brunoConfig.protobuf = {};
-      }
-      brunoConfig.protobuf.importPaths = updatedImportPaths;
+      const updatedProtobuf = {
+        ...protobufConfig,
+        importPaths: updatedImportPaths
+      };
 
-      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+      dispatch(updateCollectionProtobuf({
+        collectionUid: collection.uid,
+        protobuf: updatedProtobuf
+      }));
 
       return { success: true };
     } catch (error) {
@@ -236,16 +247,19 @@ export default function useProtoFileManagement(collection) {
       const updatedImportPaths = [...collectionImportPaths];
       updatedImportPaths[index] = {
         ...updatedImportPaths[index],
-        path: relativePath
+        path: relativePath,
+        exists: true
       };
 
-      const brunoConfig = cloneDeep(collection.brunoConfig);
-      if (!brunoConfig.protobuf) {
-        brunoConfig.protobuf = {};
-      }
-      brunoConfig.protobuf.importPaths = updatedImportPaths;
+      const updatedProtobuf = {
+        ...protobufConfig,
+        importPaths: updatedImportPaths
+      };
 
-      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+      dispatch(updateCollectionProtobuf({
+        collectionUid: collection.uid,
+        protobuf: updatedProtobuf
+      }));
 
       return { success: true };
     } catch (error) {
@@ -261,16 +275,19 @@ export default function useProtoFileManagement(collection) {
       updatedProtoFiles[index] = {
         ...updatedProtoFiles[index],
         path: relativePath,
-        type: 'file'
+        type: 'file',
+        exists: true
       };
 
-      const brunoConfig = cloneDeep(collection.brunoConfig);
-      if (!brunoConfig.protobuf) {
-        brunoConfig.protobuf = {};
-      }
-      brunoConfig.protobuf.protoFiles = updatedProtoFiles;
+      const updatedProtobuf = {
+        ...protobufConfig,
+        protoFiles: updatedProtoFiles
+      };
 
-      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+      dispatch(updateCollectionProtobuf({
+        collectionUid: collection.uid,
+        protobuf: updatedProtobuf
+      }));
 
       return { success: true };
     } catch (error) {

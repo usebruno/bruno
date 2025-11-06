@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection } from '../../utils/page';
+import { closeAllCollections, createCollection, openCollectionAndAcceptSandbox } from '../../utils/page';
 
 test.describe('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {
@@ -11,10 +11,10 @@ test.describe('Draft indicator in collection and folder settings', () => {
     const collectionName = 'test-draft';
 
     // Create a new collection
-    await createCollection(page, collectionName, createTmpDir);
+    await createCollection(page, collectionName, await createTmpDir());
 
     // Open collection settings by clicking on the collection name
-    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
+    await openCollectionAndAcceptSandbox(page, collectionName);
 
     // Verify the collection settings tab is open
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Collection' })).toBeVisible();

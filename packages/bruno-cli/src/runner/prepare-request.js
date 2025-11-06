@@ -14,7 +14,7 @@ const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
-  const brunoConfig = get(collection, 'brunoConfig', {});
+  const brunoConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig', {}) : get(collection, 'brunoConfig', {});
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;

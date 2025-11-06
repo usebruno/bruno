@@ -242,13 +242,22 @@ export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState
         const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
         const { ipcRenderer } = window;
 
-        const savePromise = ipcRenderer
-          .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave)
+        let savePromises = [];
+
+        savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave));
+
+        if (collectionCopy.draft?.brunoConfig) {
+          savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', collectionCopy.draft.brunoConfig, collectionCopy.pathname, collectionDraft.collectionUid));
+        }
+
+        Promise.all(savePromises)
           .then(() => {
             dispatch(_saveCollectionDraft({ collectionUid: collectionDraft.collectionUid }));
+          })
+          .catch((err) => {
+            toast.error('Failed to save collection settings!');
+            reject(err);
           });
-
-        savePromises.push(savePromise);
       }
     });
 
