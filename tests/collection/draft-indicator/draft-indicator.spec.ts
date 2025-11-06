@@ -85,6 +85,111 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
   });
 
+  test('Verify draft indicator appears when changing collection settings - Protobuf', async ({ page }) => {
+    const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+    await expect(collectionTab).toBeVisible();
+
+    // Verify initially there is NO draft indicator
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+
+    // Click on Protobuf tab
+    await page.locator('.tab.protobuf').click();
+
+    // Add a new proto file - handle file picker dialog
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await page.getByTestId('protobuf-add-file-button').click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles('./tests/collection/draft-indicator/fixtures/grpcbin.proto');
+
+    // Wait for the file to be processed and added to the table
+    // The file goes through IPC to get the path, then Redux to update state
+    const protoFilesTable = page.getByTestId('protobuf-proto-file-name');
+    await expect(protoFilesTable.getByText('grpcbin.proto')).toBeVisible();
+
+    // Verify draft indicator appears
+    await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone after saving
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing client certificate settings', async ({ page }) => {
+    const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+    await expect(collectionTab).toBeVisible();
+
+    // Verify initially there is NO draft indicator
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+
+    // Click on Client Certificates tab
+    await page.locator('.tab.clientCert').click();
+
+    // Fill domain
+    await page.locator('#domain').fill('test.com');
+
+    // Select cert file using file picker (using grpcbin.proto as a dummy file)
+    const certFileChooserPromise = page.waitForEvent('filechooser');
+    await page.locator('input#certFilePath[type="file"]').click();
+    const certFileChooser = await certFileChooserPromise;
+    await certFileChooser.setFiles('./tests/collection/draft-indicator/fixtures/grpcbin.proto');
+
+    // Select key file using file picker (using grpcbin.proto as a dummy file)
+    const keyFileChooserPromise = page.waitForEvent('filechooser');
+    await page.locator('input#keyFilePath[type="file"]').click();
+    const keyFileChooser = await keyFileChooserPromise;
+    await keyFileChooser.setFiles('./tests/collection/draft-indicator/fixtures/grpcbin.proto');
+
+    // Click Add button
+    await page.getByRole('button', { name: 'Add' }).click();
+
+    // Verify draft indicator appears
+    await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone after saving
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing proxy settings', async ({ page }) => {
+    const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+    await expect(collectionTab).toBeVisible();
+
+    // Verify initially there is NO draft indicator
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+
+    // Click on Proxy tab
+    await page.locator('.tab.proxy').click();
+
+    // Enable proxy - select "enabled" radio button
+    await page.locator('input[name="enabled"][value="true"]').check();
+
+    // Fill in hostname and port
+    await page.locator('#hostname').fill('localhost');
+    await page.locator('#port').fill('8080');
+
+    // Verify draft indicator appears
+    await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone after saving
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
   test('Verify draft indicator appears when changing collection settings - Vars', async ({ page }) => {
     const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
 
