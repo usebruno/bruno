@@ -1,11 +1,11 @@
 {
   "environments": [
     {
-      "uid": "local-env-export-test",
+      "uid": "FfmX1qYW2EaOpLWeNPLKM",
       "name": "local",
       "variables": [
         {
-          "uid": "local-env-export-test-host",
+          "uid": "rfrIqlfmuyFD4560ciK04",
           "name": "host",
           "value": "http://localhost:3000",
           "type": "text",
@@ -13,7 +13,7 @@
           "secret": false
         },
         {
-          "uid": "local-env-export-test-secret-token",
+          "uid": "3WEAWueN0Ov99uOX0uuuM",
           "name": "secretToken",
           "value": "",
           "type": "text",
@@ -23,11 +23,11 @@
       ]
     },
     {
-      "uid": "prod-env-export-test",
+      "uid": "PYtEmbl0WSSE7NQcYeGx7",
       "name": "prod",
       "variables": [
         {
-          "uid": "prod-env-export-test-host",
+          "uid": "tdqX6Yln9DYQYNievEJR1",
           "name": "host",
           "value": "https://echo.usebruno.com",
           "type": "text",
@@ -35,7 +35,7 @@
           "secret": false
         },
         {
-          "uid": "prod-env-export-test-secret-token",
+          "uid": "fSxTRpngl8fxkhrl3z7hA",
           "name": "secretToken",
           "value": "",
           "type": "text",
@@ -45,5 +45,5 @@
       ]
     }
   ],
-  "activeGlobalEnvironmentUid": "local-env-export-test"
+  "activeGlobalEnvironmentUid": "FfmX1qYW2EaOpLWeNPLKM"
 }
