@@ -5,7 +5,7 @@ import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconLoader2 } from '@tabler/icons';
+import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconLoader2, IconDownload, IconExternalLink } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
@@ -52,17 +52,25 @@ export default function RunnerResults({ collection }) {
 
   const getActiveFilterPredicate = () => {
     switch (activeFilter) {
-      case 'passing_requests':
-        return (item) => item.status !== 'error' && item.testStatus === 'pass' && item.assertionStatus === 'pass';
-      case 'failing_requests':
-        return (item) => (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
-      case 'passing_tests':
-        return (item) => item.testResults?.some((result) => result.status === 'pass');
-      case 'failing_tests':
-        return (item) => item.testResults?.some((result) => result.status === 'fail' || result.status === 'error');
+      case 'passed':
+        return (item) => allTestsPassed(item);
+      case 'failed':
+        return (item) => anyTestFailed(item);
+      case 'skipped':
+        return (item) => item.status === 'skipped';
+      case 'all':
       default:
         return () => true
     }
+  }
+
+  const filterTestResults = (results) => {
+    if (!results || !Array.isArray(results)) return [];
+    if (activeFilter === 'all') return results;
+    if (activeFilter === 'passed') return results.filter(r => r.status === 'pass');
+    if (activeFilter === 'failed') return results.filter(r => r.status === 'fail' || r.status === 'error');
+    if (activeFilter === 'skipped') return results;
+    return results;
   }
 
   // ref for the runner output body
@@ -217,42 +225,13 @@ export default function RunnerResults({ collection }) {
   });
   let isCollectionLoading = areItemsLoading(collection);
 
-  const displayCollectionResults = () => {
-    let passedRequestsCount = 0;
-    let failedRequestsCount = 0;
-    let totalTestsInCollection = 0;
-    let passedTests = 0;
-    let failedTests = 0;
-    items.forEach(item => {
-      const isPassedRequest = item.status !== 'error' && item.testStatus === 'pass' && item.assertionStatus === 'pass';
-      const isFailedRequest = (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
-
-      if (isPassedRequest) passedRequestsCount++;
-      if (isFailedRequest) failedRequestsCount++;
-
-      const testResults = Array.isArray(item?.testResults) ? item.testResults : [];
-      totalTestsInCollection += testResults.length;
-      testResults.forEach(result => {
-        if (result.status === 'pass') passedTests++;
-        if (result.status === 'fail' || result.status === 'error') failedTests++;
-      });
-    });
-
-    return (
-      <div className="pb-2 font-medium test-summary flex flex-col items-start justify-center mx-2">
-        <div>
-          <span onClick={() => setActiveFilter('all')} className={`cursor-pointer ${activeFilter === 'all' ? 'underline font-semibold' : ''} hover:font-semibold`}>Total Requests: {items.length}, </span>
-          <span onClick={() => setActiveFilter('passing_requests')} className={`cursor-pointer ${activeFilter === 'passing_requests' ? 'underline font-semibold' : ''} hover:font-semibold`}>Passed: {passedRequestsCount}, </span>
-          <span onClick={() => setActiveFilter('failing_requests') } className={`cursor-pointer ${activeFilter === 'failing_requests' ? 'underline font-semibold' : ''} hover:font-semibold`}>Failed: {failedRequestsCount}</span>
-        </div>
-        <div>
-          <span onClick={() => setActiveFilter('all')} className={`cursor-pointer ${activeFilter === 'all' ? 'underline font-semibold' : ''} hover:font-semibold`}>Total Tests: {totalTestsInCollection}, </span>
-          <span onClick={() => setActiveFilter('passing_tests')} className={`cursor-pointer ${activeFilter === 'passing_tests' ? 'underline font-semibold' : ''} hover:font-semibold`}>Passed: {passedTests}, </span>
-          <span onClick={() => setActiveFilter('failing_tests')} className={`cursor-pointer ${activeFilter === 'failing_tests' ? 'underline font-semibold' : ''} hover:font-semibold`}>Failed: {failedTests}</span>
-        </div>
-      </div>
-    )
-  }
+  // Calculate filter counts for unified filter
+  const filterCounts = {
+    all: items.length,
+    passed: passedRequests.length,
+    failed: failedRequests.length,
+    skipped: skippedRequests.length
+  };
 
   if (!items || !items.length) {
     return (
@@ -339,28 +318,140 @@ export default function RunnerResults({ collection }) {
 
   return (
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
-      <div className="flex items-center my-6 flex-row">
-        <div className="font-medium title flex items-center">
-          Runner
-          <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+      {/* Filter Bar and Action Buttons */}
+      <div className="flex items-center justify-between mb-4 pt-[14px] gap-4">
+        {/* Filter Bar */}
+        <div className="flex items-stretch rounded-lg border border-[#EFEFEF] dark:border-[#92929233] max-h-[35px] flex-shrink-0" style={{ borderWidth: '1px' }}>
+          {/* Filter by text container - left border radius only */}
+          <div className="flex items-center px-3 py-2 rounded-l-lg bg-[#F3F3F3] dark:bg-[#2B2D2F]">
+            <span 
+              className="text-gray-600 dark:text-gray-400"
+              style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%' }}
+            >
+              Filter by:
+            </span>
+          </div>
+          {/* Filter buttons container - right border radius only */}
+          <div className="flex items-center gap-5 px-3 pt-2 pb-0 rounded-r-lg bg-transparent dark:bg-transparent">
+            <button
+              onClick={() => setActiveFilter('all')}
+              className={`font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 pb-2 ${
+                activeFilter === 'all'
+                  ? 'text-[#343434] dark:text-[#CCCCCC] border-[#F59E0B]'
+                  : 'text-[#989898] dark:text-[#CCCCCC80] border-transparent'
+              }`}
+              style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+            >
+              All
+              <span 
+                className="px-[4.5px] py-[2px] rounded-[2px] bg-[#F7F7F7] dark:bg-[#242424] border border-[#EFEFEF] dark:border-[#92929233] text-[#989898] dark:text-inherit" 
+                style={{ borderWidth: '1px', fontFamily: 'Inter', fontSize: '10px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+              >
+                {filterCounts.all}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveFilter('passed')}
+              className={`font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 pb-2 ${
+                activeFilter === 'passed'
+                  ? 'text-[#343434] dark:text-[#CCCCCC] border-[#F59E0B]'
+                  : 'text-[#989898] dark:text-[#CCCCCC80] border-transparent'
+              }`}
+              style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+            >
+              Passed
+              <span 
+                className="px-[4.5px] py-[2px] rounded-[2px] bg-[#F7F7F7] dark:bg-[#242424] border border-[#EFEFEF] dark:border-[#92929233] text-[#989898] dark:text-inherit" 
+                style={{ borderWidth: '1px', fontFamily: 'Inter', fontSize: '10px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+              >
+                {filterCounts.passed}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveFilter('failed')}
+              className={`font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 pb-2 ${
+                activeFilter === 'failed'
+                  ? 'text-[#343434] dark:text-[#CCCCCC] border-[#F59E0B]'
+                  : 'text-[#989898] dark:text-[#CCCCCC80] border-transparent'
+              }`}
+              style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+            >
+              Failed
+              <span 
+                className="px-[4.5px] py-[2px] rounded-[2px] bg-[#F7F7F7] dark:bg-[#242424] border border-[#EFEFEF] dark:border-[#92929233] text-[#989898] dark:text-inherit" 
+                style={{ borderWidth: '1px', fontFamily: 'Inter', fontSize: '10px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+              >
+                {filterCounts.failed}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveFilter('skipped')}
+              className={`font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 pb-2 ${
+                activeFilter === 'skipped'
+                  ? 'text-[#343434] dark:text-[#CCCCCC] border-[#F59E0B]'
+                  : 'text-[#989898] dark:text-[#CCCCCC80] border-transparent'
+              }`}
+              style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+            >
+              Skipped
+              <span 
+                className="px-[4.5px] py-[2px] rounded-[2px] bg-[#F7F7F7] dark:bg-[#242424] border border-[#EFEFEF] dark:border-[#92929233] text-[#989898] dark:text-inherit" 
+                style={{ borderWidth: '1px', fontFamily: 'Inter', fontSize: '10px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+              >
+                {filterCounts.skipped}
+              </span>
+            </button>
+          </div>
         </div>
-        {displayCollectionResults()}
-        {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid && (
-          <button className="btn btn-sm btn-danger" onClick={cancelExecution}>
-            Cancel Execution
-          </button>
-        )}
+
+        {/* Action Buttons or Cancel Execution */}
+        {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid ? (
+          <div className="flex items-center flex-shrink-0">
+            <button className="btn btn-sm btn-danger" onClick={cancelExecution}>
+              Cancel Execution
+            </button>
+          </div>
+        ) : runnerInfo.status === 'ended' ? (
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors"
+              style={{
+                fontFamily: 'Inter',
+                fontSize: '12px',
+                fontWeight: 500,
+                lineHeight: '18px',
+                letterSpacing: '0%',
+                borderWidth: '1px'
+              }}
+              onClick={runAgain}
+            >
+              Run Again
+            </button>
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors"
+              style={{
+                fontFamily: 'Inter',
+                fontSize: '12px',
+                fontWeight: 500,
+                lineHeight: '18px',
+                letterSpacing: '0%',
+                borderWidth: '1px'
+              }}
+              onClick={resetRunner}
+            >
+              Reset
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex gap-4 h-[calc(100vh_-_10rem)] overflow-hidden">
         <div
-          className={`flex flex-col overflow-y-auto ${selectedItem || (configureMode && !selectedItem && !runnerInfo.status === 'running') ? 'w-1/2' : 'w-full'}`}
+          className={`flex flex-col overflow-y-auto ${selectedItem || (configureMode && !selectedItem && !runnerInfo.status === 'running') || items.length > 0 ? 'w-1/2' : 'w-full'}`}
           ref={runnerBodyRef}
         >
-          <div className="pb-2 font-medium test-summary">
-            Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped:{' '}
-            {skippedRequests.length}
-          </div>
           {tagsEnabled && areTagsAdded && (
             <div className="pb-2 text-xs flex flex-row gap-1">
               Tags:
@@ -425,67 +516,61 @@ export default function RunnerResults({ collection }) {
                     {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
 
                     <ul className="pl-8">
-                      {item.preRequestTestResults
-                        ? item.preRequestTestResults.map((result) => (
-                          <li key={result.uid}>
-                            {result.status === 'pass' ? (
-                              <span className="test-success flex items-center">
-                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                      {filterTestResults(item.preRequestTestResults).map((result) => (
+                        <li key={result.uid}>
+                          {result.status === 'pass' ? (
+                            <span className="test-success flex items-center">
+                              <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                              {result.description}
+                            </span>
+                          ) : (
+                            <>
+                              <span className="test-failure flex items-center">
+                                <IconX size={18} strokeWidth={2} className="mr-2" />
                                 {result.description}
                               </span>
-                            ) : (
-                              <>
-                                <span className="test-failure flex items-center">
-                                  <IconX size={18} strokeWidth={2} className="mr-2" />
-                                  {result.description}
-                                </span>
-                                <span className="error-message pl-8 text-xs">{result.error}</span>
-                              </>
-                            )}
-                          </li>
-                        ))
-                        : null}
-                      {item.postResponseTestResults
-                        ? item.postResponseTestResults.map((result) => (
-                          <li key={result.uid}>
-                            {result.status === 'pass' ? (
-                              <span className="test-success flex items-center">
-                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                              <span className="error-message pl-8 text-xs">{result.error}</span>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                      {filterTestResults(item.postResponseTestResults).map((result) => (
+                        <li key={result.uid}>
+                          {result.status === 'pass' ? (
+                            <span className="test-success flex items-center">
+                              <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                              {result.description}
+                            </span>
+                          ) : (
+                            <>
+                              <span className="test-failure flex items-center">
+                                <IconX size={18} strokeWidth={2} className="mr-2" />
                                 {result.description}
                               </span>
-                            ) : (
-                              <>
-                                <span className="test-failure flex items-center">
-                                  <IconX size={18} strokeWidth={2} className="mr-2" />
-                                  {result.description}
-                                </span>
-                                <span className="error-message pl-8 text-xs">{result.error}</span>
-                              </>
-                            )}
-                          </li>
-                        ))
-                        : null}
-                      {item.testResults
-                        ? item.testResults.map((result) => (
-                          <li key={result.uid}>
-                            {result.status === 'pass' ? (
-                              <span className="test-success flex items-center">
-                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                              <span className="error-message pl-8 text-xs">{result.error}</span>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                      {filterTestResults(item.testResults).map((result) => (
+                        <li key={result.uid}>
+                          {result.status === 'pass' ? (
+                            <span className="test-success flex items-center">
+                              <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                              {result.description}
+                            </span>
+                          ) : (
+                            <>
+                              <span className="test-failure flex items-center">
+                                <IconX size={18} strokeWidth={2} className="mr-2" />
                                 {result.description}
                               </span>
-                            ) : (
-                              <>
-                                <span className="test-failure flex items-center">
-                                  <IconX size={18} strokeWidth={2} className="mr-2" />
-                                  {result.description}
-                                </span>
-                                <span className="error-message pl-8 text-xs">{result.error}</span>
-                              </>
-                            )}
-                          </li>
-                        ))
-                        : null}
-                      {item.assertionResults?.map((result) => (
+                              <span className="error-message pl-8 text-xs">{result.error}</span>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                      {filterTestResults(item.assertionResults).map((result) => (
                         <li key={result.uid}>
                           {result.status === 'pass' ? (
                             <span className="test-success flex items-center">
@@ -510,41 +595,51 @@ export default function RunnerResults({ collection }) {
             })}
           </div>
 
-          {runnerInfo.status === 'ended' ? (
-            <div className="mt-2 mb-4">
-              <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runAgain}>
-                Run Again
-              </button>
-              <button type="submit" className="submit btn btn-sm btn-secondary mt-6 ml-3" disabled={shouldDisableCollectionRun} onClick={runCollection}>
-                Run Collection
-              </button>
-              <button className="btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
-                Reset
-              </button>
-            </div>
-          ) : null}
         </div>
         {selectedItem ? (
           <div className="flex flex-1 w-[50%] overflow-y-auto">
             <div className="flex flex-col w-full overflow-hidden">
-              <div className="flex items-center mb-4 font-medium">
-                <span className="mr-2">{selectedItem.displayName}</span>
-                <span>
-                  {allTestsPassed(selectedItem) ?
-                    <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
-                    : null}
-                  {anyTestFailed(selectedItem) ?
-                    <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
-                    : null}
-                  {selectedItem.status === 'skipped' ?
-                    <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
-                    : null}
-                </span>
+              <div className="flex items-center justify-between mb-4 font-medium">
+                <div className="flex items-center">
+                  <span className="mr-2">{selectedItem.displayName}</span>
+                  <span>
+                    {allTestsPassed(selectedItem) ?
+                      <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
+                      : null}
+                    {anyTestFailed(selectedItem) ?
+                      <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
+                      : null}
+                    {selectedItem.status === 'skipped' ?
+                      <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
+                      : null}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedItem(null)}
+                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer flex items-center justify-center"
+                  title="Close"
+                  aria-label="Close response view"
+                >
+                  <IconX size={16} strokeWidth={1.5} />
+                </button>
               </div>
               <ResponsePane item={selectedItem} collection={collection} />
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex flex-1 w-[50%] overflow-y-auto">
+            <div className="flex flex-col w-full h-full items-center justify-center">
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="mb-4 text-gray-400 dark:text-gray-500">
+                  <IconExternalLink size={64} strokeWidth={1.5} />
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Click on the status code to view the response
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </StyledWrapper>
   );
