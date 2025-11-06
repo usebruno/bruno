@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
+import { browseFiles, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { updateCollectionProtobuf } from 'providers/ReduxStore/slices/collections';
 import { getRelativePath, getAbsoluteFilePath } from 'utils/common/path';
 import { browseDirectory } from 'utils/filesystem';
@@ -109,6 +109,40 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
+  const addProtoFileFromRequest = async (filePath) => {
+    const relativePath = getRelativePath(collection.pathname, filePath, true);
+
+    const exists = collectionProtoFiles.some((pf) => pf.path === relativePath);
+
+    if (exists) {
+      return { success: true, relativePath, alreadyExists: true };
+    }
+
+    try {
+      const protoFileObj = {
+        path: relativePath,
+        type: 'file'
+      };
+
+      const brunoConfig = cloneDeep(collection.brunoConfig);
+      if (!brunoConfig.protobuf) {
+        brunoConfig.protobuf = {};
+      }
+      if (!brunoConfig.protobuf.protoFiles) {
+        brunoConfig.protobuf.protoFiles = [];
+      }
+
+      brunoConfig.protobuf.protoFiles = [...collectionProtoFiles, protoFileObj];
+
+      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+
+      return { success: true, relativePath };
+    } catch (error) {
+      console.error('Error adding proto file to collection:', error);
+      return { success: false, error };
+    }
+  };
+
   const addImportPathToCollection = async (directoryPath) => {
     const relativePath = getRelativePath(collection.pathname, directoryPath, true);
     const importPathObj = {
@@ -141,6 +175,39 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
+  const addImportPathFromRequest = async (directoryPath) => {
+    const relativePath = getRelativePath(collection.pathname, directoryPath, true);
+    const importPathObj = {
+      path: relativePath,
+      enabled: true
+    };
+
+    const exists = collectionImportPaths.some((ip) => ip.path === importPathObj.path);
+
+    if (exists) {
+      return { success: false, error: new Error('Import path already exists') };
+    }
+
+    try {
+      const brunoConfig = cloneDeep(collection.brunoConfig);
+      if (!brunoConfig.protobuf) {
+        brunoConfig.protobuf = {};
+      }
+      if (!brunoConfig.protobuf.importPaths) {
+        brunoConfig.protobuf.importPaths = [];
+      }
+
+      brunoConfig.protobuf.importPaths = [...collectionImportPaths, importPathObj];
+
+      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+
+      return { success: true, relativePath };
+    } catch (error) {
+      console.error('Error adding import path:', error);
+      return { success: false, error };
+    }
+  };
+
   const toggleImportPath = async (index) => {
     try {
       const updatedImportPaths = [...collectionImportPaths];
@@ -158,6 +225,32 @@ export default function useProtoFileManagement(collection) {
         collectionUid: collection.uid,
         protobuf: updatedProtobuf
       }));
+
+      return {
+        success: true,
+        enabled: updatedImportPaths[index].enabled
+      };
+    } catch (error) {
+      console.error('Error toggling import path:', error);
+      return { success: false, error };
+    }
+  };
+
+  const toggleImportPathFromRequest = async (index) => {
+    try {
+      const updatedImportPaths = [...collectionImportPaths];
+      updatedImportPaths[index] = {
+        ...updatedImportPaths[index],
+        enabled: !updatedImportPaths[index].enabled
+      };
+
+      const brunoConfig = cloneDeep(collection.brunoConfig);
+      if (!brunoConfig.protobuf) {
+        brunoConfig.protobuf = {};
+      }
+      brunoConfig.protobuf.importPaths = updatedImportPaths;
+
+      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
 
       return {
         success: true,
@@ -303,12 +396,15 @@ export default function useProtoFileManagement(collection) {
     loadMethodsFromProtoFile,
     addProtoFileToCollection,
     addImportPathToCollection,
+    addImportPathFromRequest,
     toggleImportPath,
+    toggleImportPathFromRequest,
     browseForProtoFile,
     browseForImportDirectory,
     removeProtoFileFromCollection,
     removeImportPathFromCollection,
     replaceImportPathInCollection,
-    replaceProtoFileInCollection
+    replaceProtoFileInCollection,
+    addProtoFileFromRequest
   };
 }
