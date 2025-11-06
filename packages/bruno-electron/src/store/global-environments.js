@@ -1,12 +1,35 @@
 const _ = require('lodash');
 const Store = require('electron-store');
 const { encryptStringSafe, decryptStringSafe } = require('../utils/encryption');
+const { environmentSchema } = require('@usebruno/schema');
 
 class GlobalEnvironmentsStore {
   constructor() {
     this.store = new Store({
       name: 'global-environments',
       clearInvalidConfig: true
+    });
+  }
+
+  /**
+   * Validates and filters environments array, removing invalid entries
+   * @param {Array} environments - Array of environment objects to validate
+   * @returns {Array} - Array of valid environments
+   */
+  filterValidEnvironments(environments) {
+    if (!Array.isArray(environments)) {
+      return [];
+    }
+
+    return environments.filter((env) => {
+      try {
+        environmentSchema.validateSync(env);
+        return true;
+      } catch (error) {
+        console.error('Invalid environment:', env);
+        console.error(error);
+        return false;
+      }
     });
   }
 
@@ -40,8 +63,7 @@ class GlobalEnvironmentsStore {
   
   getGlobalEnvironments() {
     let globalEnvironments = this.store.get('environments', []);
-    globalEnvironments = this.decryptGlobalEnvironmentVariables({ globalEnvironments });
-    
+
     // Previously, a bug caused environment variables to be saved without a type.
     // Since that issue is now fixed, this code ensures that anyone who imported
     // data before the fix will have the missing types added retroactively.
@@ -52,7 +74,11 @@ class GlobalEnvironmentsStore {
         }
       });
     });
-    
+
+    globalEnvironments = this.filterValidEnvironments(globalEnvironments);
+
+    globalEnvironments = this.decryptGlobalEnvironmentVariables({ globalEnvironments });
+
     return globalEnvironments;
   }
 
@@ -61,6 +87,8 @@ class GlobalEnvironmentsStore {
   }
 
   setGlobalEnvironments(globalEnvironments) {
+    globalEnvironments = this.filterValidEnvironments(globalEnvironments);
+
     globalEnvironments = this.encryptGlobalEnvironmentVariables({ globalEnvironments });
     return this.store.set('environments', globalEnvironments);
   }
