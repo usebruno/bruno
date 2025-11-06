@@ -47,7 +47,7 @@ test.describe('Move tabs', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created
@@ -135,7 +135,7 @@ test.describe('Move tabs', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created

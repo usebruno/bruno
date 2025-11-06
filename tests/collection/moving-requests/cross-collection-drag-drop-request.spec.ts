@@ -24,7 +24,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await page.locator('#create-new-tab').getByRole('img').click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
@@ -99,7 +99,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await page.locator('#create-new-tab').getByRole('img').click();
     await page.getByPlaceholder('Request Name').fill('request-1');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // check if request-1 is created and visible in sidebar
@@ -122,7 +122,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await page.locator('#create-new-tab').getByRole('img').click();
     await page.getByPlaceholder('Request Name').fill('request-1');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/post');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Go back to source collection to drag the request

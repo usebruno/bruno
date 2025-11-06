@@ -101,6 +101,11 @@ export const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
+export const findItemInCollectionByItemUid = (collection, itemUid) => {
+  let flattenedItems = flattenItems(collection.items);
+  return findItem(flattenedItems, itemUid);
+};
+
 export const findParentItemInCollectionByPathname = (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
@@ -1387,4 +1392,28 @@ export const transformExampleToDraft = (example, newExample) => {
   }
 
   return exampleToDraft;
+};
+
+/**
+ * Generate an initial name for a new response example
+ * @param {Object} item - The request item that will contain the example
+ * @returns {string} - The suggested name for the new example
+ */
+export const getInitialExampleName = (item) => {
+  const baseName = 'example';
+  const existingExamples = item.draft?.examples || item.examples || [];
+  const existingNames = new Set(existingExamples.map((example) => example.name || '').filter(Boolean));
+
+  if (!existingNames.has(baseName)) {
+    return baseName;
+  }
+
+  let counter = 1;
+  while (true) {
+    const candidateName = `${baseName} (${counter})`;
+    if (!existingNames.has(candidateName)) {
+      return candidateName;
+    }
+    counter++;
+  }
 };

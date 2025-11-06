@@ -53,7 +53,7 @@ class SingleLineEditor extends Component {
       },
       scrollbarStyle: null,
       tabindex: 0,
-      readOnly: this.props.readOnly ? 'nocursor' : false,
+      readOnly: this.props.readOnly,
       extraKeys: {
         Enter: runHandler,
         'Ctrl-Enter': runHandler,
@@ -153,7 +153,7 @@ class SingleLineEditor extends Component {
       this.setState({ maskInput: this.props.isSecret });
     }
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
-      this.editor.setOption('readOnly', this.props.readOnly ? 'nocursor' : false);
+      this.editor.setOption('readOnly', this.props.readOnly);
     }
     this.ignoreChangeEvent = false;
   }
