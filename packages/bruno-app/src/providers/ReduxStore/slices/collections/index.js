@@ -641,7 +641,12 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection && collection.draft) {
-        collection.root = collection.draft;
+        if (collection.draft.root) {
+          collection.root = collection.draft.root;
+        }
+        if (collection.draft.brunoConfig) {
+          collection.brunoConfig = collection.draft.brunoConfig;
+        }
         collection.draft = null;
       }
     },
@@ -1175,10 +1180,12 @@ export const collectionsSlice = createSlice({
       }
 
       if (!collection.draft) {
-        collection.draft = cloneDeep(collection.root);
+        collection.draft = {
+          root: cloneDeep(collection.root)
+        };
       }
 
-      collection.draft.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
+      collection.draft.root.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
         uid: uuid(),
         name: name,
         value: value,
@@ -1834,10 +1841,12 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        set(collection, 'draft.request.auth', {});
-        set(collection, 'draft.request.auth.mode', action.payload.mode);
+        set(collection, 'draft.root.request.auth', {});
+        set(collection, 'draft.root.request.auth.mode', action.payload.mode);
       }
     },
     updateCollectionAuth: (state, action) => {
@@ -1845,34 +1854,36 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        set(collection, 'draft.request.auth', {});
-        set(collection, 'draft.request.auth.mode', action.payload.mode);
+        set(collection, 'draft.root.request.auth', {});
+        set(collection, 'draft.root.request.auth.mode', action.payload.mode);
         switch (action.payload.mode) {
           case 'awsv4':
-            set(collection, 'draft.request.auth.awsv4', action.payload.content);
+            set(collection, 'draft.root.request.auth.awsv4', action.payload.content);
             break;
           case 'bearer':
-            set(collection, 'draft.request.auth.bearer', action.payload.content);
+            set(collection, 'draft.root.request.auth.bearer', action.payload.content);
             break;
           case 'basic':
-            set(collection, 'draft.request.auth.basic', action.payload.content);
+            set(collection, 'draft.root.request.auth.basic', action.payload.content);
             break;
           case 'digest':
-            set(collection, 'draft.request.auth.digest', action.payload.content);
+            set(collection, 'draft.root.request.auth.digest', action.payload.content);
             break;
           case 'ntlm':
-            set(collection, 'draft.request.auth.ntlm', action.payload.content);
+            set(collection, 'draft.root.request.auth.ntlm', action.payload.content);
             break;            
           case 'oauth2':
-            set(collection, 'draft.request.auth.oauth2', action.payload.content);
+            set(collection, 'draft.root.request.auth.oauth2', action.payload.content);
             break;
           case 'wsse':
-            set(collection, 'draft.request.auth.wsse', action.payload.content);
+            set(collection, 'draft.root.request.auth.wsse', action.payload.content);
             break;
           case 'apikey':
-            set(collection, 'draft.request.auth.apikey', action.payload.content);
+            set(collection, 'draft.root.request.auth.apikey', action.payload.content);
             break;
         }
       }
@@ -1882,9 +1893,11 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        set(collection, 'draft.request.script.req', action.payload.script);
+        set(collection, 'draft.root.request.script.req', action.payload.script);
       }
     },
     updateCollectionResponseScript: (state, action) => {
@@ -1892,9 +1905,11 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        set(collection, 'draft.request.script.res', action.payload.script);
+        set(collection, 'draft.root.request.script.res', action.payload.script);
       }
     },
     updateCollectionTests: (state, action) => {
@@ -1902,9 +1917,11 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        set(collection, 'draft.request.tests', action.payload.tests);
+        set(collection, 'draft.root.request.tests', action.payload.tests);
       }
     },
     updateCollectionDocs: (state, action) => {
@@ -1912,9 +1929,43 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        set(collection, 'draft.docs', action.payload.docs);
+        set(collection, 'draft.root.docs', action.payload.docs);
+      }
+    },
+    updateCollectionProxy: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.proxy', action.payload.proxy);
+      }
+    },
+    updateCollectionPresets: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.presets', action.payload.presets);
       }
     },
     addFolderHeader: (state, action) => {
@@ -2122,9 +2173,11 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        const headers = get(collection, 'draft.request.headers', []);
+        const headers = get(collection, 'draft.root.request.headers', []);
         headers.push({
           uid: uuid(),
           name: '',
@@ -2132,7 +2185,7 @@ export const collectionsSlice = createSlice({
           description: '',
           enabled: true
         });
-        set(collection, 'draft.request.headers', headers);
+        set(collection, 'draft.root.request.headers', headers);
       }
     },
     updateCollectionHeader: (state, action) => {
@@ -2140,9 +2193,11 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        const headers = get(collection, 'draft.request.headers', []);
+        const headers = get(collection, 'draft.root.request.headers', []);
         const header = find(headers, (h) => h.uid === action.payload.header.uid);
         if (header) {
           header.name = action.payload.header.name;
@@ -2157,11 +2212,13 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        let headers = get(collection, 'draft.request.headers', []);
+        let headers = get(collection, 'draft.root.request.headers', []);
         headers = filter(headers, (h) => h.uid !== action.payload.headerUid);
-        set(collection, 'draft.request.headers', headers);
+        set(collection, 'draft.root.request.headers', headers);
       }
     },
     addCollectionVar: (state, action) => {
@@ -2169,26 +2226,28 @@ export const collectionsSlice = createSlice({
       const type = action.payload.type;
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
         if (type === 'request') {
-          const vars = get(collection, 'draft.request.vars.req', []);
+          const vars = get(collection, 'draft.root.request.vars.req', []);
           vars.push({
             uid: uuid(),
             name: '',
             value: '',
             enabled: true
           });
-          set(collection, 'draft.request.vars.req', vars);
+          set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
-          const vars = get(collection, 'draft.request.vars.res', []);
+          const vars = get(collection, 'draft.root.request.vars.res', []);
           vars.push({
             uid: uuid(),
             name: '',
             value: '',
             enabled: true
           });
-          set(collection, 'draft.request.vars.res', vars);
+          set(collection, 'draft.root.request.vars.res', vars);
         }
       }
     },
@@ -2197,10 +2256,12 @@ export const collectionsSlice = createSlice({
       const type = action.payload.type;
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
         if (type === 'request') {
-          let vars = get(collection, 'draft.request.vars.req', []);
+          let vars = get(collection, 'draft.root.request.vars.req', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2208,9 +2269,9 @@ export const collectionsSlice = createSlice({
             _var.description = action.payload.var.description;
             _var.enabled = action.payload.var.enabled;
           }
-          set(collection, 'draft.request.vars.req', vars);
+          set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(collection, 'draft.request.vars.res', []);
+          let vars = get(collection, 'draft.root.request.vars.res', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2218,7 +2279,7 @@ export const collectionsSlice = createSlice({
             _var.description = action.payload.var.description;
             _var.enabled = action.payload.var.enabled;
           }
-          set(collection, 'draft.request.vars.res', vars);
+          set(collection, 'draft.root.request.vars.res', vars);
         }
       }
     },
@@ -2227,16 +2288,18 @@ export const collectionsSlice = createSlice({
       const type = action.payload.type;
       if (collection) {
         if (!collection.draft) {
-          collection.draft = cloneDeep(collection.root);
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
         if (type === 'request') {
-          let vars = get(collection, 'draft.request.vars.req', []);
+          let vars = get(collection, 'draft.root.request.vars.req', []);
           vars = filter(vars, (h) => h.uid !== action.payload.varUid);
-          set(collection, 'draft.request.vars.req', vars);
+          set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(collection, 'draft.request.vars.res', []);
+          let vars = get(collection, 'draft.root.request.vars.res', []);
           vars = filter(vars, (h) => h.uid !== action.payload.varUid);
-          set(collection, 'draft.request.vars.res', vars);
+          set(collection, 'draft.root.request.vars.res', vars);
         }
       }
     },
@@ -3181,6 +3244,9 @@ export const {
   updateCollectionResponseScript,
   updateCollectionTests,
   updateCollectionDocs,
+  updateCollectionProxy,
+  updateCollectionClientCertificates,
+  updateCollectionPresets,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,

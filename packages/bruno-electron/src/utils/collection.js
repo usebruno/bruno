@@ -8,7 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
 
-  const collectionRoot = collection?.draft || collection?.root || {};
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionHeaders = get(collectionRoot, 'request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
@@ -52,7 +52,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
 const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
-  const collectionRoot = collection?.draft || collection?.root || {};
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
@@ -134,7 +134,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
-  const collectionRoot = collection?.draft || collection?.root || {};
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
   let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
   let collectionTests = get(collectionRoot, 'request.tests', '');
@@ -506,7 +506,7 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
 
 const mergeAuth = (collection, request, requestTreePath) => {
   // Start with collection level auth (always consider collection auth as base)
-  const collectionRoot = collection?.draft || collection?.root || {};
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
   let lastFolderWithAuth = null;

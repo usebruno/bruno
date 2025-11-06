@@ -48,7 +48,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     responseType: 'arraybuffer'
   };
 
-  const collectionRoot = collection?.draft || collection?.root || {};
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
   const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth?.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {

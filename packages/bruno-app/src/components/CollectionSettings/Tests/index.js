@@ -3,13 +3,13 @@ import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateCollectionTests } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
 const Tests = ({ collection }) => {
   const dispatch = useDispatch();
-  const tests = collection.draft ? get(collection, 'draft.request.tests', '') : get(collection, 'root.request.tests', '');
+  const tests = collection.draft?.root ? get(collection, 'draft.root.request.tests', '') : get(collection, 'root.request.tests', '');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
@@ -23,7 +23,7 @@ const Tests = ({ collection }) => {
     );
   };
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">

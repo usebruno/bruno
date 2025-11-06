@@ -1,37 +1,42 @@
 import React from 'react';
-import { useFormik } from 'formik';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import toast from 'react-hot-toast';
-import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
-import cloneDeep from 'lodash/cloneDeep';
+import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
-  const {
-    brunoConfig: { presets: presets = {} }
-  } = collection;
 
-  const formik = useFormik({
-    enableReinitialize: true,
-    initialValues: {
-      requestType: presets.requestType || 'http',
-      requestUrl: presets.requestUrl || ''
-    },
-    onSubmit: (newPresets) => {
-      const brunoConfig = cloneDeep(collection.brunoConfig);
-      brunoConfig.presets = newPresets;
-      dispatch(updateBrunoConfig(brunoConfig, collection.uid));
-      toast.success('Collection presets updated');
-    }
-  });
+  // Get presets from draft.brunoConfig if it exists, otherwise from brunoConfig
+  const currentPresets = collection.draft?.brunoConfig?.presets
+    ? collection.draft.brunoConfig.presets
+    : (collection.brunoConfig?.presets || {});
+
+  // Helper to update presets config
+  const updatePresets = (updates) => {
+    const updatedPresets = { ...currentPresets, ...updates };
+    dispatch(updateCollectionPresets({
+      collectionUid: collection.uid,
+      presets: updatedPresets
+    }));
+  };
+
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
+
+  const handleRequestTypeChange = (e) => {
+    updatePresets({ requestType: e.target.value });
+  };
+
+  const handleRequestUrlChange = (e) => {
+    updatePresets({ requestUrl: e.target.value });
+  };
 
   return (
     <StyledWrapper className="h-full w-full">
       <div className="text-xs mb-4 text-muted">
         These presets will be used as the default values for new requests in this collection.
       </div>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <div className="bruno-form">
         <div className="mb-3 flex items-center">
           <label className="settings-label flex  items-center" htmlFor="enabled">
             Request Type
@@ -42,9 +47,9 @@ const PresetsSettings = ({ collection }) => {
               className="cursor-pointer"
               type="radio"
               name="requestType"
-              onChange={formik.handleChange}
+              onChange={handleRequestTypeChange}
               value="http"
-              checked={formik.values.requestType === 'http'}
+              checked={(currentPresets.requestType || 'http') === 'http'}
             />
             <label htmlFor="http" className="ml-1 cursor-pointer select-none">
               HTTP
@@ -55,9 +60,9 @@ const PresetsSettings = ({ collection }) => {
               className="ml-4 cursor-pointer"
               type="radio"
               name="requestType"
-              onChange={formik.handleChange}
+              onChange={handleRequestTypeChange}
               value="graphql"
-              checked={formik.values.requestType === 'graphql'}
+              checked={(currentPresets.requestType || 'http') === 'graphql'}
             />
             <label htmlFor="graphql" className="ml-1 cursor-pointer select-none">
               GraphQL
@@ -68,9 +73,9 @@ const PresetsSettings = ({ collection }) => {
               className="ml-4 cursor-pointer"
               type="radio"
               name="requestType"
-              onChange={formik.handleChange}
+              onChange={handleRequestTypeChange}
               value="grpc"
-              checked={formik.values.requestType === 'grpc'}
+              checked={(currentPresets.requestType || 'http') === 'grpc'}
             />
             <label htmlFor="grpc" className="ml-1 cursor-pointer select-none">
               gRPC
@@ -93,8 +98,8 @@ const PresetsSettings = ({ collection }) => {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
-                onChange={formik.handleChange}
-                value={formik.values.requestUrl || ''}
+                onChange={handleRequestUrlChange}
+                value={currentPresets.requestUrl || ''}
                 style={{ width: '100%' }}
               />
             </div>
@@ -102,11 +107,11 @@ const PresetsSettings = ({ collection }) => {
         </div>
 
         <div className="mt-6">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
+          <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
             Save
           </button>
         </div>
-      </form>
+      </div>
     </StyledWrapper>
   );
 };

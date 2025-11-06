@@ -6,18 +6,18 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const WsseAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const wsseAuth = collection.draft ? get(collection, 'draft.request.auth.wsse', {}) : get(collection, 'root.request.auth.wsse', {});
+  const wsseAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.wsse', {}) : get(collection, 'root.request.auth.wsse', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(wsseAuth?.password);
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   const handleUserChange = (username) => {
     dispatch(

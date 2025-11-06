@@ -4,7 +4,7 @@ import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStor
 import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
@@ -14,7 +14,7 @@ const Docs = ({ collection }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
-  const docs = collection.draft ? get(collection, 'draft.docs', '') : get(collection, 'root.docs', '');
+  const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
 
   const toggleViewMode = () => {
@@ -41,7 +41,7 @@ const Docs = ({ collection }) => {
   }
 
   const onSave = () => {
-    dispatch(saveCollectionRoot(collection.uid));
+    dispatch(saveCollectionSettings(collection.uid));
     toggleViewMode();
   }
 

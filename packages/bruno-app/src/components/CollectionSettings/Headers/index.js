@@ -10,7 +10,7 @@ import {
   deleteCollectionHeader,
   setCollectionHeaders
 } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
@@ -21,7 +21,7 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const Headers = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const headers = collection.draft ? get(collection, 'draft.request.headers', []) : get(collection, 'root.request.headers', []);
+  const headers = collection.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const toggleBulkEditMode = () => {
@@ -40,7 +40,7 @@ const Headers = ({ collection }) => {
     );
   };
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
     switch (type) {

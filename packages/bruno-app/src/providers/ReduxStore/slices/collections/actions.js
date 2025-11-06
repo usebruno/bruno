@@ -1738,6 +1738,45 @@ export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   });
 };
 
+export const saveCollectionSettings = (collectionUid, brunoConfig = null) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+
+    // Transform collection root (uses draft if exists)
+    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
+    const { ipcRenderer } = window;
+
+    const savePromises = [];
+
+    // Save collection.bru file
+    savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave));
+
+    // Save bruno.json if brunoConfig is provided or if there's a brunoConfig draft
+    const brunoConfigToSave = brunoConfig || (collectionCopy.draft && collectionCopy.draft.brunoConfig);
+    if (brunoConfigToSave) {
+      savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', brunoConfigToSave, collectionCopy.pathname, collectionUid));
+    }
+
+    Promise.all(savePromises)
+      .then(() => {
+        toast.success('Collection Settings saved successfully');
+        dispatch(_saveCollectionDraft({ collectionUid }));
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save collection settings!');
+        reject(err);
+      });
+  });
+};
+
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();
 

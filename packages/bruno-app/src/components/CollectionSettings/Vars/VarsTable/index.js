@@ -3,7 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
@@ -28,7 +28,7 @@ const VarsTable = ({ collection, vars, varType }) => {
     );
   };
 
-  const onSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const onSave = () => dispatch(saveCollectionSettings(collection.uid));
   const handleVarChange = (e, v, type) => {
     const _var = cloneDeep(v);
     switch (type) {

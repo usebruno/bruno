@@ -744,7 +744,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
 };
 
 export const transformCollectionRootToSave = (collection) => {
-  const _collection = collection.draft ? collection.draft : collection.root;
+  const _collection = collection.draft?.root ? collection.draft.root : collection.root;
 
   const collectionRootToSave = {
     docs: _collection?.docs,

@@ -297,7 +297,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       }
     );
 
-    const collectionRoot = collection?.draft || collection?.root || {};
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
     const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, _request, collectionRoot);
 
     // Get timeout from request settings, resolve inheritance if needed

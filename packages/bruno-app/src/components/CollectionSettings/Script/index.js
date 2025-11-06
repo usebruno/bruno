@@ -3,14 +3,14 @@ import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
-  const requestScript = collection.draft ? get(collection, 'draft.request.script.req', '') : get(collection, 'root.request.script.req', '');
-  const responseScript = collection.draft ? get(collection, 'draft.request.script.res', '') : get(collection, 'root.request.script.res', '');
+  const requestScript = collection.draft?.root ? get(collection, 'draft.root.request.script.req', '') : get(collection, 'root.request.script.req', '');
+  const responseScript = collection.draft?.root ? get(collection, 'draft.root.request.script.res', '') : get(collection, 'root.request.script.res', '');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
@@ -34,7 +34,7 @@ const Script = ({ collection }) => {
   };
 
   const handleSave = () => {
-    dispatch(saveCollectionRoot(collection.uid));
+    dispatch(saveCollectionSettings(collection.uid));
   };
 
   return (

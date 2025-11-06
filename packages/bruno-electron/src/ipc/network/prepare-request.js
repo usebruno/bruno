@@ -305,7 +305,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
   const settings = item.draft?.settings ?? item.settings;
-  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
+  const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
