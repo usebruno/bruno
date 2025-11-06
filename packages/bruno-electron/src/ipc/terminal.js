@@ -136,7 +136,8 @@ class TerminalManager {
 
   getDefaultShell() {
     if (process.platform === 'win32') {
-      return process.env.COMSPEC || 'cmd.exe';
+      // Try PowerShell Core first (pwsh.exe), then fall back to Windows PowerShell (powershell.exe)
+      return process.env.PWSH || 'powershell.exe';
     } else {
       return process.env.SHELL || '/bin/bash';
     }
