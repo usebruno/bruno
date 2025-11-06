@@ -1226,7 +1226,7 @@ const mergeVars = (collection, requestTreePath = []) => {
   let collectionVariables = {};
   let folderVariables = {};
   let requestVariables = {};
-  const collectionRoot = collection?.draft || collection?.root || {};
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {

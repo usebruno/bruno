@@ -21,7 +21,7 @@ export const resolveInheritedAuth = (item, collection) => {
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
   // Default to collection auth
-  const collectionRoot = collection?.draft || collection?.root || {};
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
   const collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
 

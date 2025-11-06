@@ -9,7 +9,7 @@ const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   if (authMode !== 'inherit') return null;
 
-  const collectionRoot = collection?.draft || collection?.root || {};
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
   const collectionAuth = get(collectionRoot, 'request.auth');
   let effectiveSource = {
     type: 'collection',
