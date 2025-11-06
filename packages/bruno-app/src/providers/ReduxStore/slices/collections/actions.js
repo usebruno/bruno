@@ -45,7 +45,7 @@ import {
   updateActiveConnections,
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
-  saveCollectionDraft as _saveCollectionDraft,
+  saveCollectionDraft,
   saveFolderDraft
 } from './index';
 
@@ -176,7 +176,7 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
       .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave)
       .then(() => {
         toast.success('Collection Settings saved successfully');
-        dispatch(_saveCollectionDraft({ collectionUid }));
+        dispatch(saveCollectionDraft({ collectionUid }));
       })
       .then(resolve)
       .catch((err) => {
@@ -252,7 +252,7 @@ export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState
 
         Promise.all(savePromises)
           .then(() => {
-            dispatch(_saveCollectionDraft({ collectionUid: collectionDraft.collectionUid }));
+            dispatch(saveCollectionDraft({ collectionUid: collectionDraft.collectionUid }));
           })
           .catch((err) => {
             toast.error('Failed to save collection settings!');
@@ -1776,7 +1776,7 @@ export const saveCollectionSettings = (collectionUid, brunoConfig = null) => (di
     Promise.all(savePromises)
       .then(() => {
         toast.success('Collection Settings saved successfully');
-        dispatch(_saveCollectionDraft({ collectionUid }));
+        dispatch(saveCollectionDraft({ collectionUid }));
       })
       .then(resolve)
       .catch((err) => {
