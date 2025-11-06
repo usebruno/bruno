@@ -503,7 +503,11 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                         />
                       </div>
                     ) : null}
-                    <div id="new-request-url" data-testid="new-request-url" className="flex px-2 items-center flex-grow input-container h-full">
+                    <div
+                      id="new-request-url"
+                      data-testid="new-request-url"
+                      className="flex px-2 items-center flex-grow input-container h-full min-w-0"
+                    >
                       <SingleLineEditor
                         onPaste={handlePaste}
                         placeholder="Request URL"
