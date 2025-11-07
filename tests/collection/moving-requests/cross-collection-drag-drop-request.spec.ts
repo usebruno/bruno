@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createCollection } from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop', () => {
   test.afterEach(async ({ page }) => {
@@ -8,17 +8,8 @@ test.describe('Cross-Collection Drag and Drop', () => {
   });
 
   test('Verify request drag and drop', async ({ page, createTmpDir }) => {
-    // Create first collection - click dropdown menu first
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('source-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    // Create first collection - open with sandbox mode
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a request in the first collection
     await page.locator('#create-new-tab').getByRole('img').click();
@@ -29,17 +20,8 @@ test.describe('Cross-Collection Drag and Drop', () => {
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
 
-    // Create second collection - click dropdown menu first
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('target-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('target-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    // Create second collection - open with sandbox mode
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
@@ -83,17 +65,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     createTmpDir
   }) => {
     // Create first collection (source-collection)
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('source-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    // Open collection
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a request in the first collection (request-1)
     await page.locator('#create-new-tab').getByRole('img').click();
@@ -106,17 +78,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(page.locator('.collection-item-name').filter({ hasText: 'request-1' })).toBeVisible();
 
     // Create second collection (target-collection)
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('target-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('target-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    // Open collection
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a request in the target collection with the same name (request-1)
     await page.locator('#create-new-tab').getByRole('img').click();

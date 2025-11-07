@@ -1,9 +1,13 @@
+import { execSync } from 'child_process';
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
+import path from 'path';
 
 test.describe('manage protofile', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
+    // Reset the collection request file to the original state
+    execSync(`git checkout -- ${path.join(__dirname, 'collection', 'bruno.json')}`);
   });
 
   test('protofiles, import paths from bruno.json are visible in the protobuf settings', async ({ pageWithUserData: page }) => {

@@ -13,12 +13,14 @@ test.describe('Create WebSocket Requests', () => {
     const locators = buildCommonLocators(page);
 
     // Clean up Folder WebSocket Request
-    await locators.sidebar.request('Folder WebSocket Request').click({ button: 'right' });
+    await locators.sidebar.request('Folder WebSocket Request').hover();
+    await locators.actions.collectionItemActions('Folder WebSocket Request').click();
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
 
     // Clean up Root WebSocket Request
-    await locators.sidebar.request('Root WebSocket Request').click({ button: 'right' });
+    await locators.sidebar.request('Root WebSocket Request').hover();
+    await locators.actions.collectionItemActions('Root WebSocket Request').click();
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
 
@@ -60,8 +62,8 @@ test.describe('Create WebSocket Requests', () => {
     });
 
     await test.step('Create WebSocket request via folder1 three dots menu', async () => {
-      const folderItem = locators.sidebar.folder('folder1');
-      await folderItem.click({ button: 'right' });
+      await locators.sidebar.folder('folder1').hover();
+      await locators.actions.collectionItemActions('folder1').click();
       await locators.dropdown.item('New Request').click();
 
       await page.getByTestId('ws-request').click();

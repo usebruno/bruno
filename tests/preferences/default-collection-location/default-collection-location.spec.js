@@ -28,7 +28,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     // verify success message
-    await expect(page.locator('text=Preferences saved successfully')).toBeVisible();
+    await expect(page.locator('text=Preferences saved successfully').first()).toBeVisible();
 
     // wait for 2 seconds
     await page.waitForTimeout(2000);
@@ -48,7 +48,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     // verify success message
-    await expect(page.locator('text=Preferences saved successfully')).toBeVisible();
+    await expect(page.locator('text=Preferences saved successfully').first()).toBeVisible();
 
     // wait for 2 seconds
     await page.waitForTimeout(2000);
