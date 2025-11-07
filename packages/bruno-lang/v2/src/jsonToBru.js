@@ -690,7 +690,7 @@ ${indentString(body.sparql)}
     if (enabled(assertions).length) {
       bru += `\n${indentString(
         enabled(assertions)
-          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${item.name}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
