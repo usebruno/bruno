@@ -71,6 +71,7 @@ const getJsSandboxRuntime = (collection) => {
 
 const configureRequest = async (
   collectionUid,
+  collection,
   request,
   envVars,
   runtimeVariables,
@@ -85,6 +86,7 @@ const configureRequest = async (
 
   const certsAndProxyConfig = await getCertsAndProxyConfig({
     collectionUid,
+    collection,
     request,
     envVars,
     runtimeVariables,
@@ -314,6 +316,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
 
     const axiosInstance = await configureRequest(
       collection.uid,
+      collection,
       request,
       envVars,
       collection.runtimeVariables,
@@ -592,7 +595,7 @@ const registerNetworkIpc = (mainWindow) => {
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
-    const brunoConfig = getBrunoConfig(collectionUid);
+    const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
@@ -641,6 +644,7 @@ const registerNetworkIpc = (mainWindow) => {
       }
       const axiosInstance = await configureRequest(
         collectionUid,
+        collection,
         request,
         envVars,
         runtimeVariables,
@@ -950,7 +954,7 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
       const cancelTokenUid = uuid();
-      const brunoConfig = getBrunoConfig(collectionUid);
+      const brunoConfig = getBrunoConfig(collectionUid, collection);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const envVars = getEnvVars(environment);
@@ -1165,6 +1169,7 @@ const registerNetworkIpc = (mainWindow) => {
             request.signal = abortController.signal;
             const axiosInstance = await configureRequest(
               collectionUid,
+              collection,
               request,
               envVars,
               runtimeVariables,

@@ -42,6 +42,7 @@ const registerGrpcEventHandlers = (window) => {
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
+        collection,
         request: requestCopy.request,
         envVars: preparedRequest.envVars,
         runtimeVariables,
@@ -174,6 +175,7 @@ const registerGrpcEventHandlers = (window) => {
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
+        collection,
         request: requestCopy.request,
         envVars: preparedRequest.envVars,
         runtimeVariables,
