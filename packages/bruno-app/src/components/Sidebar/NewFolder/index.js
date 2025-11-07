@@ -137,7 +137,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
                   )}
                 </div>
                 {isEditing ? (
-                  <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <div className="relative flex flex-row gap-1 items-center justify-between min-w-0">
                     <input
                       id="file-name"
                       type="text"
@@ -153,11 +153,15 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
                     />
                   </div>
                 ) : (
-                  <div className='relative flex flex-row gap-1 items-center justify-between'>
-                    <PathDisplay
-                      iconType="folder"
-                      baseName={formik.values.directoryName}
-                    />
+                  <div className="relative flex items-center justify-between gap-1 min-w-0">
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <div className="truncate" title={formik.values.directoryName || ''}>
+                        <PathDisplay
+                          iconType="folder"
+                          baseName={formik.values.directoryName}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
                 {formik.touched.directoryName && formik.errors.directoryName ? (
