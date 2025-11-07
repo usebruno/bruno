@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
@@ -11,11 +11,26 @@ import StyledWrapper from './StyledWrapper';
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('pre-request');
+  const preRequestEditorRef = useRef(null);
+  const postResponseEditorRef = useRef(null);
   const requestScript = get(collection, 'root.request.script.req', '');
   const responseScript = get(collection, 'root.request.script.res', '');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  // Refresh CodeMirror when tab becomes visible
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (activeTab === 'pre-request' && preRequestEditorRef.current?.editor) {
+        preRequestEditorRef.current.editor.refresh();
+      } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
+        postResponseEditorRef.current.editor.refresh();
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [activeTab]);
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -53,6 +68,7 @@ const Script = ({ collection }) => {
 
         <TabsContent value="pre-request" className="mt-2">
           <CodeEditor
+            ref={preRequestEditorRef}
             collection={collection}
             value={requestScript || ''}
             theme={displayedTheme}
@@ -67,6 +83,7 @@ const Script = ({ collection }) => {
 
         <TabsContent value="post-response" className="mt-2">
           <CodeEditor
+            ref={postResponseEditorRef}
             collection={collection}
             value={responseScript || ''}
             theme={displayedTheme}
