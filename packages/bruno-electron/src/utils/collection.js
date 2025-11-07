@@ -8,8 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
 
-  const collectionRoot = collection?.draft?.root || collection?.root || {};
-  let collectionHeaders = get(collectionRoot, 'request.headers', []);
+  let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       if (header?.name?.toLowerCase?.() === 'content-type') {

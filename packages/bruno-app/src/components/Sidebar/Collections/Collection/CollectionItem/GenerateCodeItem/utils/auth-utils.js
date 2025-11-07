@@ -28,7 +28,7 @@ export const resolveInheritedAuth = (item, collection) => {
   // Check folders in reverse to find the closest auth configuration
   for (let i of [...requestTreePath].reverse()) {
     if (i.type === 'folder') {
-      const folderAuth = get(i, 'root.request.auth');
+      const folderAuth = i?.draft ? get(i, 'draft.request.auth') : get(i, 'root.request.auth');
       if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         break;

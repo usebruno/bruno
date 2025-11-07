@@ -170,8 +170,6 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
     const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
     const { ipcRenderer } = window;
 
-    // Note: We don't have a specific schema for collection root, but we can validate the structure
-    // The structure should match what's expected in bruno.json (collection.bru)
     ipcRenderer
       .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave)
       .then(() => {
