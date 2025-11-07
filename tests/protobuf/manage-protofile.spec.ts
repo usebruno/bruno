@@ -1,9 +1,28 @@
+import path from 'path';
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
+import fs from 'fs';
+
+const COLLECTION_PATH = path.join(__dirname, 'collection', 'bruno.json');
+const BACKUP_PATH = path.join(__dirname, 'collection', 'bruno.json.backup');
 
 test.describe('manage protofile', () => {
+  test.beforeAll(async () => {
+    // Backup original file
+    if (fs.existsSync(COLLECTION_PATH)) {
+      fs.copyFileSync(COLLECTION_PATH, BACKUP_PATH);
+    }
+  });
+
   test.afterAll(async ({ pageWithUserData: page }) => {
+    // Close all collections
     await closeAllCollections(page);
+
+    // Restore original file
+    if (fs.existsSync(BACKUP_PATH)) {
+      fs.copyFileSync(BACKUP_PATH, COLLECTION_PATH);
+      fs.unlinkSync(BACKUP_PATH);
+    }
   });
 
   test('protofiles, import paths from bruno.json are visible in the protobuf settings', async ({ pageWithUserData: page }) => {
