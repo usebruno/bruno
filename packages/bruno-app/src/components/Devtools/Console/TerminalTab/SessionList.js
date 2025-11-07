@@ -1,6 +1,7 @@
 import React from 'react';
 import { IconTerminal, IconPlus, IconX } from '@tabler/icons';
 import styled from 'styled-components';
+import ToolHint from 'components/ToolHint/index';
 
 const StyledSessionList = styled.div`
   .session-list-item {
@@ -103,17 +104,6 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
     return { name: `Terminal ${shortId}` };
   };
 
-  const getSessionPath = (session) => {
-    if (session.cwd) {
-      const pathParts = session.cwd.split(/[/\\]/);
-      if (pathParts.length > 3) {
-        return `.../${pathParts.slice(-2).join('/')}`;
-      }
-      return session.cwd;
-    }
-    return '~';
-  };
-
   const getFullPath = (session) => {
     if (session.cwd) {
       return session.cwd;
@@ -126,17 +116,21 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
       {sessions.map((session) => {
         const { name } = getSessionDisplayInfo(session);
         return (
+          <ToolHint
+            text={getFullPath(session)}
+            toolhintId={`session-path-${session.sessionId}`}
+            place="bottom-start"
+            delayShow={100}
+          >
           <div
             key={session.sessionId}
             className={`session-list-item ${activeSessionId === session.sessionId ? 'active' : ''}`}
             onClick={() => onSelectSession(session.sessionId)}
-            title={getFullPath(session)}
           >
             <div className="session-name">
               <IconTerminal className="session-icon" size={14} />
               <span>{name}</span>
             </div>
-            <div className="session-path">{getSessionPath(session)}</div>
             <div
               className="session-close-btn"
               onClick={(e) => {
@@ -147,6 +141,7 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
               <IconX size={14} />
             </div>
           </div>
+          </ToolHint>
         );
       })}
     </StyledSessionList>
