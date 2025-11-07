@@ -2,6 +2,7 @@ import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
 import { JSONPath } from 'jsonpath-plus';
 import fastJsonFormat from 'fast-json-format';
+import { patternHasher } from '@usebruno/common/utils';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -293,7 +294,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
     }
 
     try {
-      return fastJsonFormat(rawData);
+      return prettifyJsonString(rawData);
     } catch (error) {}
 
     if (typeof data === 'string') {
@@ -321,4 +322,18 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
   }
 
   return safeStringifyJSON(data, !isVeryLargeResponse);
+};
+
+export const prettifyJsonString = (jsonDataString) => {
+  if (typeof jsonDataString !== 'string') return jsonDataString;
+  try {
+    const { hashed, restore } = patternHasher(jsonDataString);
+    const formattedJsonDataStringHashed = fastJsonFormat(hashed);
+    const formattedJsonDataString = restore(formattedJsonDataStringHashed);
+    return formattedJsonDataString;
+  } catch (error) {
+    console.log('error formatting json data!');
+    console.error(error);
+  }
+  return jsonDataString;
 };

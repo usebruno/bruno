@@ -6,7 +6,8 @@ import {
   humanizeDate,
   relativeDate,
   getContentType,
-  formatSize
+  formatSize,
+  prettifyJsonString
 } from './index';
 
 describe('common utils', () => {
@@ -189,6 +190,99 @@ describe('common utils', () => {
       expect(formatSize(null)).toBe('0B');
       expect(formatSize(undefined)).toBe('0B');
       expect(formatSize(NaN)).toBe('0B');
+    });
+  });
+
+  describe('prettifyJsonString', () => {
+    test('should return non-string inputs unchanged', () => {
+      expect(prettifyJsonString(null)).toBe(null);
+      expect(prettifyJsonString(undefined)).toBe(undefined);
+      expect(prettifyJsonString(123)).toBe(123);
+      expect(prettifyJsonString([])).toEqual([]);
+      expect(prettifyJsonString({})).toEqual({});
+      expect(prettifyJsonString(true)).toBe(true);
+    });
+
+    test('should format valid JSON without Bruno variables', () => {
+      const input = '{"name":"John","age":30}';
+      const expected = `{\n  "name": "John",\n  "age": 30\n}`;
+      console.log(prettifyJsonString(input));
+      expect(prettifyJsonString(input)).toBe(expected);
+    });
+
+    test('should format valid JSON with Bruno variables', () => {
+      const input = '{"name": {{userName}}}';
+      const expected = `{\n  "name": {{userName}}\n}`;
+      console.log(prettifyJsonString(input));
+      expect(prettifyJsonString(input)).toBe(expected);
+    });
+
+    test('should format complex json string', () => {
+      const input = `{"id": 123456789123456789123456789,"name": "Test 'JSON' Data with "quotes" — Pretty Print ","active": true,"price": 199.9999999,"decimals": 1.00,"nullValue": null,"unicodeText": "こんにちは世界 ","escapedCharacters": "Line1\nLine2\tTabbed\"Quoted\" and 'single quoted' with 'code' style","nestedObject": {  "level1": {    "level2": {      "emptyArray": [],      "specialChars": "@#$%^&*()_+-=[]{}|;':,./<>?~",      "booleanValues": [        true,        false,        true      ],      "numbers": [        0,        -1,        1.23e10,        3.1415926535      ]    }  }},"mixedArray": [  "string with 'apostrophe'",  42,  false,  null,  {    "innerObj": {      "keyWithQuotes": "value containing \`backticks\` and 'single quotes'",      "nestedArray": [        {          "a": "O'Reilly"        }{          "b": "'inline code'"        },        [          "deep",          "array",          {            "c": "contains 'quotes'"          }        ]      ]    }  }],"nonStringVariable": {{nonStringVar}},"withBrunoVariable": "{{string}} '{{with}}' "{{variety}}" of '{{variables}}'","dateExample": "2025-11-07T12:34:56Z","regexExample": "^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$","urls": {  "website": "https://example.com?param='value'&flag='true'",  "escapedURL": "https:\/\/escaped-url.com\/path\?q='search'\&debug='on'"},"multiLineString": "This is a long text\nthat spans multiple\nlines with \`backticks\` 'quotes' and 'code' snippets "}`;
+      const expectedOutput = `{
+  "id": 123456789123456789123456789,
+  "name": "Test 'JSON' Data with "quotes" — Pretty Print ",
+  "active": true,
+  "price": 199.9999999,
+  "decimals": 1.00,
+  "nullValue": null,
+  "unicodeText": "こんにちは世界 ",
+  "escapedCharacters": "Line1\nLine2\tTabbed\"Quoted\" and 'single quoted' with 'code' style",
+  "nestedObject": {
+    "level1": {
+      "level2": {
+        "emptyArray": [],
+        "specialChars": "@#$%^&*()_+-=[]{}|;':,./<>?~",
+        "booleanValues": [
+          true,
+          false,
+          true
+        ],
+        "numbers": [
+          0,
+          -1,
+          1.23e10,
+          3.1415926535
+        ]
+      }
+    }
+  },
+  "mixedArray": [
+    "string with 'apostrophe'",
+    42,
+    false,
+    null,
+    {
+      "innerObj": {
+        "keyWithQuotes": "value containing \`backticks\` and 'single quotes'",
+        "nestedArray": [
+          {
+            "a": "O'Reilly"
+          }{
+            "b": "'inline code'"
+          },
+          [
+            "deep",
+            "array",
+            {
+              "c": "contains 'quotes'"
+            }
+          ]
+        ]
+      }
+    }
+  ],
+  "nonStringVariable": {{nonStringVar}},
+  "withBrunoVariable": "{{string}} '{{with}}' "{{variety}}" of '{{variables}}'",
+  "dateExample": "2025-11-07T12:34:56Z",
+  "regexExample": "^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$",
+  "urls": {
+    "website": "https://example.com?param='value'&flag='true'",
+    "escapedURL": "https:\/\/escaped-url.com\/path\?q='search'\&debug='on'"
+  },
+  "multiLineString": "This is a long text\nthat spans multiple\nlines with \`backticks\` 'quotes' and 'code' snippets "
+}`;
+      expect(prettifyJsonString(input)).toBe(expectedOutput);
     });
   });
 });
