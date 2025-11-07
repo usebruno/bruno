@@ -461,7 +461,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   )}
                 </div>
                 {isEditing ? (
-                  <div className="relative flex flex-row gap-1 items-center justify-between">
+                  <div className="relative flex flex-row gap-1 items-center justify-between min-w-0">
                     <input
                       id="file-name"
                       type="text"
@@ -479,8 +479,12 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.bru</span>
                   </div>
                 ) : (
-                  <div className="relative flex flex-row gap-1 items-center justify-between">
-                    <PathDisplay baseName={formik.values.filename ? `${formik.values.filename}.bru` : ''} />
+                  <div className="relative flex items-center justify-between gap-1 min-w-0">
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <div className="truncate" title={formik.values.filename ? `${formik.values.filename}.bru` : ''}>
+                        <PathDisplay baseName={formik.values.filename ? `${formik.values.filename}.bru` : ''} />
+                      </div>
+                    </div>
                   </div>
                 )}
                 {formik.touched.filename && formik.errors.filename ? (
