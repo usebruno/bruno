@@ -1417,3 +1417,45 @@ export const getInitialExampleName = (item) => {
     counter++;
   }
 };
+
+/**
+ * Generate a unique request name by checking existing filenames in the collection
+ * @param {Object} collection - The collection object
+ * @param {string} baseName - The base name (default: 'Untitled')
+ * @returns {string} - A unique request name (Untitled, Untitled1, Untitled2, etc.)
+ */
+export const generateUniqueRequestName = (collection, baseName = 'Untitled') => {
+  if (!collection || !collection.items) {
+    return baseName;
+  }
+
+  const trim = require('lodash/trim');
+  const { resolveRequestFilename } = require('utils/common/platform');
+
+  // Check if baseName exists
+  const resolvedBaseFilename = resolveRequestFilename(baseName);
+  const baseNameExists = find(
+    collection.items,
+    (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedBaseFilename)
+  );
+
+  if (!baseNameExists) {
+    return baseName;
+  }
+
+  // Try Untitled1, Untitled2, etc.
+  let counter = 1;
+  while (true) {
+    const candidateName = `${baseName}${counter}`;
+    const resolvedCandidateFilename = resolveRequestFilename(candidateName);
+    const candidateExists = find(
+      collection.items,
+      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedCandidateFilename)
+    );
+
+    if (!candidateExists) {
+      return candidateName;
+    }
+    counter++;
+  }
+};
