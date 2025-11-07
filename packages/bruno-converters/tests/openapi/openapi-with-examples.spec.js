@@ -53,7 +53,7 @@ describe('OpenAPI with Examples', () => {
     const createUserRequest = brunoCollection.items.find((item) => item.name === 'Create a new user');
     expect(createUserRequest).toBeDefined();
     expect(createUserRequest.examples).toBeDefined();
-    expect(createUserRequest.examples).toHaveLength(2);
+    expect(createUserRequest.examples).toHaveLength(4); // 2 response + 2 request body examples
 
     // Check response examples
     const createdExample = createUserRequest.examples.find((ex) => ex.name === 'User Created');
@@ -65,6 +65,25 @@ describe('OpenAPI with Examples', () => {
       name: 'John Doe',
       email: 'john@example.com',
       created_at: '2023-01-01T00:00:00Z'
+    });
+
+    // Check request body examples
+    const validUserExample = createUserRequest.examples.find((ex) => ex.name === 'Valid User');
+    expect(validUserExample).toBeDefined();
+    expect(validUserExample.request).toBeDefined();
+    expect(validUserExample.request.body.mode).toBe('json');
+    expect(JSON.parse(validUserExample.request.body.json)).toEqual({
+      name: 'John Doe',
+      email: 'john@example.com'
+    });
+
+    const invalidUserExample = createUserRequest.examples.find((ex) => ex.name === 'Invalid User');
+    expect(invalidUserExample).toBeDefined();
+    expect(invalidUserExample.request).toBeDefined();
+    expect(invalidUserExample.request.body.mode).toBe('json');
+    expect(JSON.parse(invalidUserExample.request.body.json)).toEqual({
+      name: '',
+      email: 'invalid-email'
     });
   });
 
