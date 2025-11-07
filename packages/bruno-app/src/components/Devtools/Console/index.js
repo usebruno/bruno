@@ -68,50 +68,78 @@ const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
   // Helper function to transform Bruno special types back to readable format
-  const transformBrunoTypes = obj => {
+  // Returns { data, metadata } where metadata contains type information
+  const transformBrunoTypes = (obj, returnMetadata = false) => {
     if (typeof obj !== 'object' || obj === null) {
-      return obj;
+      return returnMetadata ? { data: obj, metadata: {} } : obj;
     }
 
     // Handle Bruno special types
     if (obj.__brunoType) {
       switch (obj.__brunoType) {
         case 'Set':
-          return {
-            '[[Set]]': obj.__brunoValue,
-            'size': obj.__brunoValue.length,
-          };
+          // Transform Set to display values at top level with numeric indices
+          // Convert array of values to object with numeric keys (0, 1, 2, ...)
+          const setEntries = {};
+          if (Array.isArray(obj.__brunoValue)) {
+            obj.__brunoValue.forEach((value, index) => {
+              setEntries[index] = transformBrunoTypes(value, false);
+            });
+          }
+          return returnMetadata ? { data: setEntries, metadata: { type: 'Set' } } : setEntries;
         case 'Map':
-          return {
-            '[[Map]]': obj.__brunoValue,
-            'size': obj.__brunoValue.length,
-          };
+          // Transform Map to display entries at top level with => notation
+          // Convert array of [key, value] pairs to object with "key => value" format
+          const mapEntries = {};
+          if (Array.isArray(obj.__brunoValue)) {
+            obj.__brunoValue.forEach(([key, value]) => {
+              // Use => notation to clearly indicate Map entries
+              const displayKey = `${String(key)} =>`;
+              mapEntries[displayKey] = transformBrunoTypes(value, false);
+            });
+          }
+          return returnMetadata ? { data: mapEntries, metadata: { type: 'Map' } } : mapEntries;
         case 'Function':
-          return `[Function: ${obj.__brunoValue.split('\n')[0].substring(0, 50)}...]`;
+          const funcData = `[Function: ${obj.__brunoValue.split('\n')[0].substring(0, 50)}...]`;
+          return returnMetadata ? { data: funcData, metadata: {} } : funcData;
         case 'undefined':
-          return 'undefined';
+          return returnMetadata ? { data: 'undefined', metadata: {} } : 'undefined';
         default:
-          return obj;
+          return returnMetadata ? { data: obj, metadata: {} } : obj;
       }
     }
 
     // Recursively transform nested objects
     if (Array.isArray(obj)) {
-      return obj.map(transformBrunoTypes);
+      const transformed = obj.map((item) => transformBrunoTypes(item, false));
+      return returnMetadata ? { data: transformed, metadata: {} } : transformed;
     }
 
     const transformed = {};
     for (const [key, value] of Object.entries(obj)) {
-      transformed[key] = transformBrunoTypes(value);
+      transformed[key] = transformBrunoTypes(value, false);
     }
-    return transformed;
+    return returnMetadata ? { data: transformed, metadata: {} } : transformed;
   };
 
   const formatMessage = (msg, originalArgs) => {
     if (originalArgs && originalArgs.length > 0) {
       return originalArgs.map((arg, index) => {
         if (typeof arg === 'object' && arg !== null) {
-          const transformedArg = transformBrunoTypes(arg);
+          const { data: transformedArg, metadata } = transformBrunoTypes(arg, true);
+
+          // Determine the name to display based on the type
+          let displayName = false;
+          let shouldCollapse = 1; // Default: collapse at depth 1 for regular objects
+
+          if (metadata.type === 'Map') {
+            displayName = 'Map';
+            shouldCollapse = true; // Fully collapse Maps by default
+          } else if (metadata.type === 'Set') {
+            displayName = 'Set';
+            shouldCollapse = true; // Fully collapse Sets by default
+          }
+
           return (
             <div key={index} className="log-object">
               <ReactJson
@@ -119,11 +147,11 @@ const LogMessage = ({ message, args }) => {
                 theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
                 iconStyle="triangle"
                 indentWidth={2}
-                collapsed={1}
+                collapsed={shouldCollapse}
                 displayDataTypes={false}
                 displayObjectSize={false}
                 enableClipboard={false}
-                name={false}
+                name={displayName}
                 style={{
                   backgroundColor: 'transparent',
                   fontSize: '${(props) => props.theme.font.size.sm}',
