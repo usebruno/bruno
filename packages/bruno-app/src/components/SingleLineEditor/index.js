@@ -205,7 +205,11 @@ class SingleLineEditor extends Component {
   render() {
     return (
       <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
-        <StyledWrapper ref={this.editorRef} className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`} />
+        <StyledWrapper
+          ref={this.editorRef}
+          className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
+          {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
+        />
         {this.secretEye(this.props.isSecret)}
       </div>
     );

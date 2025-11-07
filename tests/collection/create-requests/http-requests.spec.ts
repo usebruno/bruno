@@ -13,12 +13,14 @@ test.describe('Create HTTP Requests', () => {
     const locators = buildCommonLocators(page);
 
     // Clean up Root HTTP Request
-    await locators.sidebar.request('Root HTTP Request').click({ button: 'right' });
+    await locators.sidebar.request('Root HTTP Request').hover();
+    await locators.actions.collectionItemActions('Root HTTP Request').click();
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
 
     // Clean up Folder HTTP Request
-    await locators.sidebar.request('Folder HTTP Request').click({ button: 'right' });
+    await locators.sidebar.request('Folder HTTP Request').hover();
+    await locators.actions.collectionItemActions('Folder HTTP Request').click();
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
 
@@ -59,8 +61,8 @@ test.describe('Create HTTP Requests', () => {
     });
 
     await test.step('Create HTTP request via folder1 three dots menu', async () => {
-      const folderItem = locators.sidebar.folder('folder1');
-      await folderItem.click({ button: 'right' });
+      await locators.sidebar.folder('folder1').hover();
+      await locators.actions.collectionItemActions('folder1').click();
       await locators.dropdown.item('New Request').click();
 
       await page.getByTestId('request-name').fill('Folder HTTP Request');
