@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import { createCollection, openCollectionAndAcceptSandbox, closeAllCollections } from '../../utils/page';
 
 test.describe('Draft values are used in requests', () => {
-  test.afterAll(async ({ page }) => {
+  test.afterEach(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
   });

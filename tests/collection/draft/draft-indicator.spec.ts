@@ -100,7 +100,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     const fileChooserPromise = page.waitForEvent('filechooser');
     await page.getByTestId('protobuf-add-file-button').click();
     const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles('./tests/collection/draft-indicator/fixtures/grpcbin.proto');
+    await fileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
 
     // Wait for the file to be processed and added to the table
     // The file goes through IPC to get the path, then Redux to update state
@@ -137,13 +137,13 @@ test.describe('Draft indicator in collection and folder settings', () => {
     const certFileChooserPromise = page.waitForEvent('filechooser');
     await page.locator('input#certFilePath[type="file"]').click();
     const certFileChooser = await certFileChooserPromise;
-    await certFileChooser.setFiles('./tests/collection/draft-indicator/fixtures/grpcbin.proto');
+    await certFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
 
     // Select key file using file picker (using grpcbin.proto as a dummy file)
     const keyFileChooserPromise = page.waitForEvent('filechooser');
     await page.locator('input#keyFilePath[type="file"]').click();
     const keyFileChooser = await keyFileChooserPromise;
-    await keyFileChooser.setFiles('./tests/collection/draft-indicator/fixtures/grpcbin.proto');
+    await keyFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
 
     // Click Add button
     await page.getByRole('button', { name: 'Add' }).click();
