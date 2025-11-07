@@ -15,7 +15,7 @@ export function patternHasher(input: string, pattern: string | RegExp = VARIABLE
     let c;
     for (let i = 0; i < toHash.length; i++) {
       c = toHash.charCodeAt(i);
-      hash = (hash << 5) + hash + c;
+      hash = ((hash << 5) + hash + c) | 0;
     }
     return '' + hash;
   }
