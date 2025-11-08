@@ -2,6 +2,7 @@ import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem } from 'utils/collections/index';
 import { interpolateHeaders, interpolateBody } from './interpolation';
+import { cloneDeep } from 'lodash';
 
 // Merge headers from collection, folders, and request
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -48,7 +49,8 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     const variables = getAllVariables(collection, item);
 
-    const request = item.request;
+    // Clone the request to avoid mutating the original
+    const request = cloneDeep(item.request);
 
     // Get the request tree path and merge headers
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
@@ -57,8 +59,39 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // Add auth headers if needed
     if (request.auth && request.auth.mode !== 'none') {
       const collectionAuth = collection?.root?.request?.auth || null;
-      const authHeaders = getAuthHeaders(collectionAuth, request.auth);
+      const authHeaders = getAuthHeaders(collectionAuth, request.auth, collection, shouldInterpolate);
       headers = [...headers, ...authHeaders];
+
+      // Handle OAuth2 token in URL (query params)
+      const auth = collectionAuth && ['inherit'].includes(request.auth?.mode) ? collectionAuth : request.auth;
+      if (auth?.mode === 'oauth2' && auth?.oauth2?.tokenPlacement === 'url') {
+        const oauth2Config = auth.oauth2;
+        const credentialsId = oauth2Config?.credentialsId || 'credentials';
+        const tokenQueryKey = oauth2Config?.tokenQueryKey || 'access_token';
+
+        let tokenValue;
+        if (shouldInterpolate) {
+          // Try to find the access token
+          const oauth2Credentials = collection?.oauth2Credentials || [];
+          const collectionUid = collection?.uid;
+          const credentialEntry = oauth2Credentials.find((cred) => cred.credentialsId === credentialsId && cred.collectionUid === collectionUid);
+          const accessToken = credentialEntry?.credentials?.access_token;
+          tokenValue = accessToken || `{{$oauth2.${credentialsId}.access_token}}`;
+        } else {
+          tokenValue = `{{$oauth2.${credentialsId}.access_token}}`;
+        }
+
+        // Add token to query params
+        if (!request.params) {
+          request.params = [];
+        }
+        request.params.push({
+          name: tokenQueryKey,
+          value: tokenValue,
+          enabled: true,
+          type: 'query'
+        });
+      }
     }
 
     // Interpolate headers and body if needed
