@@ -333,6 +333,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       value="http-request"
                       checked={formik.values.requestType === 'http-request'}
                       onChange={formik.handleChange}
+                      data-testid="http-request"
                     />
                     <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
                       HTTP
@@ -346,6 +347,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       value="graphql-request"
                       checked={formik.values.requestType === 'graphql-request'}
                       onChange={formik.handleChange}
+                      data-testid="graphql-request"
                     />
                     <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
                       GraphQL
@@ -362,6 +364,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       value="grpc-request"
                       checked={formik.values.requestType === 'grpc-request'}
                       onChange={formik.handleChange}
+                      data-testid="grpc-request"
                     />
                     <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
                       gRPC
@@ -376,6 +379,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       value="ws-request"
                       checked={formik.values.requestType === 'ws-request'}
                       onChange={formik.handleChange}
+                      data-testid="ws-request"
                     />
                     <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
                       WebSocket
@@ -392,6 +396,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       value="from-curl"
                       checked={formik.values.requestType === 'from-curl'}
                       onChange={formik.handleChange}
+                      data-testid="from-curl"
                     />
                     <label htmlFor="from-curl" className="ml-1 cursor-pointer select-none">
                       From cURL
@@ -420,6 +425,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   !isEditing && formik.setFieldValue('filename', sanitizeName(e.target.value));
                 }}
                 value={formik.values.requestName || ''}
+                data-testid="request-name"
               />
               {formik.touched.requestName && formik.errors.requestName ? (
                 <div className="text-red-500">{formik.errors.requestName}</div>
@@ -468,6 +474,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       spellCheck="false"
                       onChange={formik.handleChange}
                       value={formik.values.filename || ''}
+                      data-testid="file-name"
                     />
                     <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.bru</span>
                   </div>
@@ -496,7 +503,11 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                         />
                       </div>
                     ) : null}
-                    <div id="new-request-url" className="flex px-2 items-center flex-grow input-container h-full">
+                    <div
+                      id="new-request-url"
+                      data-testid="new-request-url"
+                      className="flex px-2 items-center flex-grow input-container h-full min-w-0"
+                    >
                       <SingleLineEditor
                         onPaste={handlePaste}
                         placeholder="Request URL"
@@ -553,6 +564,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   className="block textbox w-full mt-4 curl-command"
                   value={formik.values.curlCommand}
                   onChange={handleCurlCommandChange}
+                  data-testid="curl-command"
                 ></textarea>
                 {formik.touched.curlCommand && formik.errors.curlCommand ? (
                   <div className="text-red-500">{formik.errors.curlCommand}</div>

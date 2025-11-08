@@ -17,7 +17,7 @@ import NTLMAuth from 'components/RequestPane/Auth/NTLMAuth';
 import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
-  import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
 
 const GrantTypeComponentMap = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -47,8 +47,6 @@ const Auth = ({ collection, folder }) => {
   const dispatch = useDispatch();
   let request = get(folder, 'root.request', {});
   const authMode = get(folder, 'root.request.auth.mode');
-
-
 
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;

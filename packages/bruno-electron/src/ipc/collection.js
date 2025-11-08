@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const fs = require('fs');
-const fsPromises = require('fs/promises');
 const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
@@ -14,7 +13,6 @@ const {
   stringifyCollection,
   parseFolder,
   stringifyFolder,
-  parseEnvironment,
   stringifyEnvironment
 } = require('@usebruno/filestore');
 const brunoConverters = require('@usebruno/converters');
@@ -27,8 +25,6 @@ const {
   writeFile,
   hasBruExtension,
   isDirectory,
-  browseDirectory,
-  browseFiles,
   createDirectory,
   searchForBruFiles,
   sanitizeName,
@@ -42,7 +38,8 @@ const {
   safeWriteFileSync,
   copyPath,
   removePath,
-  getPaths
+  getPaths,
+  generateUniqueName
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -263,7 +260,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
-
       const content = await stringifyRequestViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
@@ -298,13 +294,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
-      if (fs.existsSync(envFilePath)) {
-        throw new Error(`environment: ${envFilePath} already exists`);
-      }
+      // Get existing environment files to generate unique name
+      const existingFiles = fs.existsSync(envDirPath) ? fs.readdirSync(envDirPath) : [];
+      const existingEnvNames = existingFiles
+        .filter((file) => file.endsWith('.bru'))
+        .map((file) => path.basename(file, '.bru'));
+
+      // Generate unique name based on existing environment files
+      const sanitizedName = sanitizeName(name);
+      const uniqueName = generateUniqueName(sanitizedName, (name) => existingEnvNames.includes(name));
+
+      const envFilePath = path.join(envDirPath, `${uniqueName}.bru`);
 
       const environment = {
-        name: name,
+        name: uniqueName,
         variables: variables || []
       };
 
@@ -378,6 +381,77 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       fs.unlinkSync(envFilePath);
 
       environmentSecretsStore.deleteEnvironment(collectionPathname, environmentName);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Generic environment export handler
+  ipcMain.handle('renderer:export-environment', async (event, { environments, environmentType, filePath, exportFormat = 'folder' }) => {
+    try {
+      const { app } = require('electron');
+      const appVersion = app?.getVersion() || '2.0.0';
+
+      // For single environments and folder exports, include info in each environment
+      const environmentWithInfo = (environment) => ({
+        name: environment.name,
+        variables: environment.variables,
+        info: {
+          type: 'bruno-environment',
+          exportedAt: new Date().toISOString(),
+          exportedUsing: `Bruno/v${appVersion}`
+        }
+      });
+
+      if (exportFormat === 'folder') {
+        // separate environment json files in folder
+        const baseFolderName = `bruno-${environmentType}-environments`;
+        const uniqueFolderName = generateUniqueName(baseFolderName, (name) => fs.existsSync(path.join(filePath, name)));
+        const exportPath = path.join(filePath, uniqueFolderName);
+
+        fs.mkdirSync(exportPath, { recursive: true });
+
+        for (const environment of environments) {
+          const baseFileName = environment.name ? `${environment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}` : 'environment';
+          const uniqueFileName = generateUniqueName(baseFileName, (name) => fs.existsSync(path.join(exportPath, `${name}.json`)));
+          const fullPath = path.join(exportPath, `${uniqueFileName}.json`);
+
+          const cleanEnv = environmentWithInfo(environment);
+          const jsonContent = JSON.stringify(cleanEnv, null, 2);
+          await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+        }
+      } else if (exportFormat === 'single-file') {
+        // all environments in a single file with top-level info and environments array
+        const baseFileName = `bruno-${environmentType}-environments`;
+        const uniqueFileName = generateUniqueName(baseFileName, (name) => fs.existsSync(path.join(filePath, `${name}.json`)));
+        const fullPath = path.join(filePath, `${uniqueFileName}.json`);
+
+        const exportData = {
+          info: {
+            type: 'bruno-environment',
+            exportedAt: new Date().toISOString(),
+            exportedUsing: `Bruno/v${appVersion}`
+          },
+          environments
+        };
+
+        const jsonContent = JSON.stringify(exportData, null, 2);
+        await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+      } else if (exportFormat === 'single-object') {
+        // single environment json file
+        if (environments.length !== 1) {
+          throw new Error('Single object export requires exactly one environment');
+        }
+
+        const environment = environments[0];
+        const baseFileName = environment.name ? `${environment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}` : 'environment';
+        const uniqueFileName = generateUniqueName(baseFileName, (name) => fs.existsSync(path.join(filePath, `${name}.json`)));
+        const fullPath = path.join(filePath, `${uniqueFileName}.json`);
+        const jsonContent = JSON.stringify(environmentWithInfo(environment), null, 2);
+        await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+      } else {
+        throw new Error(`Unsupported export format: ${exportFormat}`);
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -974,80 +1048,82 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
-        if (request.oauth2) {
-          let requestCopy = _.cloneDeep(request);
-          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
-          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
-          const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
-          const partialItem = { uid: itemUid };
-          const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
-          mergeVars(collection, requestCopy, requestTreePath);
+      if (request.oauth2) {
+        let requestCopy = _.cloneDeep(request);
+        const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+        const envVars = getEnvVars(environment);
+        const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
+        const partialItem = { uid: itemUid };
+        const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+        mergeVars(collection, requestCopy, requestTreePath);
+        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
 
-          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-          const certsAndProxyConfig = await getCertsAndProxyConfig({
-            collectionUid,
-            request: requestCopy,
-            envVars,
-            runtimeVariables,
-            processEnvVars,
-            collectionPath
-          });
-          const { oauth2: { grantType }} = requestCopy || {};
-          
-          const handleOAuth2Response = (response) => {
-            if (response.error && !response.debugInfo) {
-              throw new Error(response.error);
-            }
-            return response;
-          };
-          
-          switch (grantType) {
-            case 'authorization_code':
-              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingAuthorizationCode({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true, 
-                certsAndProxyConfig 
-              }).then(handleOAuth2Response);
-              
-            case 'client_credentials':
-              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingClientCredentials({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true, 
-                certsAndProxyConfig 
-              }).then(handleOAuth2Response);
-              
-            case 'password':
-              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingPasswordCredentials({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true, 
-                certsAndProxyConfig 
-              }).then(handleOAuth2Response);
-              
-            case 'implicit':
-              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingImplicitGrant({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true 
-              }).then(handleOAuth2Response);
-              
-            default:
-              return {
-                error: `Unsupported grant type: ${grantType}`,
-                credentials: null,
-                url: null,
-                collectionUid,
-                credentialsId: null
-              };
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        const certsAndProxyConfig = await getCertsAndProxyConfig({
+          collectionUid,
+          request: requestCopy,
+          envVars,
+          runtimeVariables,
+          processEnvVars,
+          collectionPath,
+          globalEnvironmentVariables
+        });
+        const { oauth2: { grantType } } = requestCopy || {};
+
+        const handleOAuth2Response = (response) => {
+          if (response.error && !response.debugInfo) {
+            throw new Error(response.error);
           }
+          return response;
+        };
+
+        switch (grantType) {
+          case 'authorization_code':
+            interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+            return await getOAuth2TokenUsingAuthorizationCode({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfig
+            }).then(handleOAuth2Response);
+
+          case 'client_credentials':
+            interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+            return await getOAuth2TokenUsingClientCredentials({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfig
+            }).then(handleOAuth2Response);
+
+          case 'password':
+            interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+            return await getOAuth2TokenUsingPasswordCredentials({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfig
+            }).then(handleOAuth2Response);
+
+          case 'implicit':
+            interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+            return await getOAuth2TokenUsingImplicitGrant({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true
+            }).then(handleOAuth2Response);
+
+          default:
+            return {
+              error: `Unsupported grant type: ${grantType}`,
+              credentials: null,
+              url: null,
+              collectionUid,
+              credentialsId: null
+            };
         }
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1105,29 +1181,31 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
-        if (request.oauth2) {
-          let requestCopy = _.cloneDeep(request);
-          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
-          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
-          const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
-          const partialItem = { uid: itemUid };
-          const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
-          mergeVars(collection, requestCopy, requestTreePath);
-          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+      if (request.oauth2) {
+        let requestCopy = _.cloneDeep(request);
+        const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+        const envVars = getEnvVars(environment);
+        const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
+        const partialItem = { uid: itemUid };
+        const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+        mergeVars(collection, requestCopy, requestTreePath);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
 
-          const certsAndProxyConfig = await getCertsAndProxyConfig({
-            collectionUid,
-            request: requestCopy,
-            envVars,
-            runtimeVariables,
-            processEnvVars,
-            collectionPath
-          });
-          
-          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
-          return { credentials, url, collectionUid, credentialsId, debugInfo };
-        }
+        const certsAndProxyConfig = await getCertsAndProxyConfig({
+          collectionUid,
+          request: requestCopy,
+          envVars,
+          runtimeVariables,
+          processEnvVars,
+          collectionPath,
+          globalEnvironmentVariables
+        });
+
+        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+        return { credentials, url, collectionUid, credentialsId, debugInfo };
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1264,8 +1342,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
     try {
       // Convert Postman collection to Bruno format
-      const brunoCollection = await postmanToBruno(postmanCollection, { useWorkers: true});
-      
+      const brunoCollection = await postmanToBruno(postmanCollection, { useWorkers: true });
+
       return brunoCollection;
     } catch (error) {
       console.error('Error converting Postman to Bruno:', error);

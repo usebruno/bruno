@@ -8,6 +8,86 @@ const ensureUrl = (url) => {
   return url.replace(/([^:])\/{2,}/g, '$1/');
 };
 
+const getStatusText = (statusCode) => {
+  const statusTexts = {
+    100: 'Continue',
+    101: 'Switching Protocols',
+    102: 'Processing',
+    103: 'Early Hints',
+    200: 'OK',
+    201: 'Created',
+    202: 'Accepted',
+    203: 'Non-Authoritative Information',
+    204: 'No Content',
+    205: 'Reset Content',
+    206: 'Partial Content',
+    207: 'Multi-Status',
+    208: 'Already Reported',
+    226: 'IM Used',
+    300: 'Multiple Choice',
+    301: 'Moved Permanently',
+    302: 'Found',
+    303: 'See Other',
+    304: 'Not Modified',
+    305: 'Use Proxy',
+    306: 'unused',
+    307: 'Temporary Redirect',
+    308: 'Permanent Redirect',
+    400: 'Bad Request',
+    401: 'Unauthorized',
+    402: 'Payment Required',
+    403: 'Forbidden',
+    404: 'Not Found',
+    405: 'Method Not Allowed',
+    406: 'Not Acceptable',
+    407: 'Proxy Authentication Required',
+    408: 'Request Timeout',
+    409: 'Conflict',
+    410: 'Gone',
+    411: 'Length Required',
+    412: 'Precondition Failed',
+    413: 'Payload Too Large',
+    414: 'URI Too Long',
+    415: 'Unsupported Media Type',
+    416: 'Range Not Satisfiable',
+    417: 'Expectation Failed',
+    418: 'I\'m a teapot',
+    421: 'Misdirected Request',
+    422: 'Unprocessable Entity',
+    423: 'Locked',
+    424: 'Failed Dependency',
+    425: 'Too Early',
+    426: 'Upgrade Required',
+    428: 'Precondition Required',
+    429: 'Too Many Requests',
+    431: 'Request Header Fields Too Large',
+    451: 'Unavailable For Legal Reasons',
+    500: 'Internal Server Error',
+    501: 'Not Implemented',
+    502: 'Bad Gateway',
+    503: 'Service Unavailable',
+    504: 'Gateway Timeout',
+    505: 'HTTP Version Not Supported',
+    506: 'Variant Also Negotiates',
+    507: 'Insufficient Storage',
+    508: 'Loop Detected',
+    510: 'Not Extended',
+    511: 'Network Authentication Required'
+  };
+  return statusTexts[statusCode] || 'Unknown';
+};
+
+const getBodyTypeFromContentType = (contentType) => {
+  if (contentType?.includes('application/json')) {
+    return 'json';
+  } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {
+    return 'xml';
+  } else if (contentType?.includes('text/html')) {
+    return 'html';
+  }
+  return 'text';
+};
+
 const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
   // Check for circular references
   if (visited.has(bodySchema)) {
@@ -308,6 +388,67 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   });
   if (script.length > 0) {
     brunoRequestItem.request.script.res = script.join('\n');
+  }
+
+  // Handle OpenAPI examples from responses and request body
+  if (_operationObject.responses || _operationObject.requestBody) {
+    const examples = [];
+
+    // Handle response examples
+    if (_operationObject.responses) {
+      Object.entries(_operationObject.responses).forEach(([statusCode, response]) => {
+        if (response.content) {
+          Object.entries(response.content).forEach(([contentType, content]) => {
+            if (content.examples) {
+              Object.entries(content.examples).forEach(([exampleKey, example]) => {
+                const exampleName = example.summary || exampleKey || `${statusCode} Response`;
+                const exampleDescription = example.description || '';
+
+                // Create Bruno example
+                const brunoExample = {
+                  uid: uuid(),
+                  itemUid: brunoRequestItem.uid,
+                  name: exampleName,
+                  description: exampleDescription,
+                  type: 'http-request',
+                  request: {
+                    url: brunoRequestItem.request.url,
+                    method: brunoRequestItem.request.method,
+                    headers: [...brunoRequestItem.request.headers],
+                    params: [...brunoRequestItem.request.params],
+                    body: { ...brunoRequestItem.request.body }
+                  },
+                  response: {
+                    status: String(statusCode),
+                    statusText: getStatusText(statusCode),
+                    headers: [
+                      {
+                        uid: uuid(),
+                        name: 'Content-Type',
+                        value: contentType,
+                        description: '',
+                        enabled: true
+                      }
+                    ],
+                    body: {
+                      type: getBodyTypeFromContentType(contentType),
+                      content: typeof example.value === 'object' ? JSON.stringify(example.value, null, 2) : example.value
+                    }
+                  }
+                };
+
+                examples.push(brunoExample);
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // Only add examples array if there are examples
+    if (examples.length > 0) {
+      brunoRequestItem.examples = examples;
+    }
   }
 
   return brunoRequestItem;

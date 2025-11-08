@@ -101,6 +101,11 @@ export const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
+export const findItemInCollectionByItemUid = (collection, itemUid) => {
+  let flattenedItems = flattenItems(collection.items);
+  return findItem(flattenedItems, itemUid);
+};
+
 export const findParentItemInCollectionByPathname = (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
@@ -227,6 +232,54 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   }
 
+  const copyExamples = (examples = []) => {
+    return map(examples, (example) => {
+      const copiedExample = {
+        uid: example.uid,
+        itemUid: example.itemUid,
+        name: example.name,
+        description: example.description,
+        type: example.type,
+        request: {
+          url: example.request.url,
+          method: example.request.method,
+          headers: copyHeaders(example.request.headers),
+          params: copyParams(example.request.params),
+          body: {
+            mode: example.request.body.mode,
+            json: example.request.body.json,
+            text: example.request.body.text,
+            xml: example.request.body.xml,
+            graphql: example.request.body.graphql,
+            sparql: example.request.body.sparql,
+            formUrlEncoded: copyFormUrlEncodedParams(example.request.body.formUrlEncoded),
+            multipartForm: copyMultipartFormParams(example.request.body.multipartForm),
+            file: copyFileParams(example.request.body.file),
+            grpc: example.request.body.grpc,
+            ws: example.request.body.ws
+          },
+          auth: example.request.auth
+        },
+        response: {
+          status: example.response.status,
+          statusText: example.response.statusText,
+          headers: copyHeaders(example.response.headers),
+          body: example.response.body
+        }
+      };
+
+      // Handle gRPC-specific fields if present
+      if (example.request.methodType) {
+        copiedExample.request.methodType = example.request.methodType;
+      }
+      if (example.request.protoPath) {
+        copiedExample.request.protoPath = example.request.protoPath;
+      }
+
+      return copiedExample;
+    });
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
@@ -242,7 +295,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         filename: si.filename,
         seq: si.seq,
         settings: si.settings,
-        tags: si.tags
+        tags: si.tags,
+        examples: copyExamples(si.examples || [])
       };
 
       if (si.request) {
@@ -611,6 +665,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
+    examples: _item.examples || [],
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -847,6 +902,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.assertions'), (assertion) => (assertion.uid = uuid()));
 
   return item;
 };
@@ -858,12 +914,14 @@ export const deleteUidsInItem = (item) => {
   const bodyFormUrlEncoded = get(item, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(item, 'request.body.multipartForm', []);
   const file = get(item, 'request.body.file', []);
+  const assertions = get(item, 'request.assertions', []);
 
   params.forEach((param) => delete param.uid);
   headers.forEach((header) => delete header.uid);
   bodyFormUrlEncoded.forEach((param) => delete param.uid);
   bodyMultipartForm.forEach((param) => delete param.uid);
   file.forEach((param) => delete param.uid);
+  assertions.forEach((assertion) => delete assertion.uid);
 
   return item;
 };
@@ -889,6 +947,57 @@ export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
   deleteUidsInItem(item2);
 
   return isEqual(item1, item2);
+};
+
+/**
+ * Check if a request has actual changes (excluding examples)
+ * This function compares the request data between the original item and its draft,
+ * but excludes examples from the comparison to determine if the save dot should be shown
+ */
+export const hasRequestChanges = (item) => {
+  if (!item || !item.draft) {
+    return false;
+  }
+
+  // Create copies of the item and draft without examples for comparison
+  const originalItem = cloneDeep(item);
+  const draftItem = cloneDeep(item.draft);
+
+  // Remove examples from both items for comparison
+  delete originalItem.examples;
+  delete originalItem.draft;
+  delete draftItem.examples;
+  delete draftItem.draft;
+
+  return !isEqual(originalItem, draftItem);
+};
+
+/**
+ * Check if a specific example has unsaved changes
+ * This function compares the example data between the original item and its draft
+ */
+export const hasExampleChanges = (_item, exampleUid) => {
+  if (!_item || !_item.draft || !exampleUid) {
+    return false;
+  }
+
+  const item = cloneDeep(_item);
+  deleteUidsInItem(item);
+
+  // Get the original example from the saved item
+  const originalExample = item.examples?.find((ex) => ex.uid === exampleUid);
+  if (!originalExample) {
+    return false;
+  }
+
+  // Get the draft example from the draft item
+  const draftExample = item.draft.examples?.find((ex) => ex.uid === exampleUid);
+  if (!draftExample) {
+    return false;
+  }
+
+  // Compare the examples (excluding any internal metadata)
+  return !isEqual(originalExample, draftExample);
 };
 
 export const getDefaultRequestPaneTab = (item) => {
@@ -1276,4 +1385,59 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
 
 export const getPropertyFromDraftOrRequest = (item, propertyKey, defaultValue = null) => {
   return item.draft ? get(item, `draft.${propertyKey}`, defaultValue) : get(item, propertyKey, defaultValue);
+};
+
+export const transformExampleToDraft = (example, newExample) => {
+  const exampleToDraft = cloneDeep(example);
+
+  if (newExample.name) {
+    exampleToDraft.name = newExample.name;
+  }
+  if (newExample.description) {
+    exampleToDraft.description = newExample.description;
+  }
+  if (newExample.status) {
+    exampleToDraft.response.status = String(newExample.status);
+  }
+  if (newExample.statusText) {
+    exampleToDraft.response.statusText = newExample.statusText;
+  }
+  if (newExample.headers && newExample.headers.length) {
+    exampleToDraft.response.headers = newExample.headers.map((header) => ({
+      uid: uuid(),
+      name: String(header.name),
+      value: String(header.value),
+      description: String(header.description),
+      enabled: header.enabled
+    }));
+  }
+  if (newExample.body) {
+    exampleToDraft.response.body = newExample.body;
+  }
+
+  return exampleToDraft;
+};
+
+/**
+ * Generate an initial name for a new response example
+ * @param {Object} item - The request item that will contain the example
+ * @returns {string} - The suggested name for the new example
+ */
+export const getInitialExampleName = (item) => {
+  const baseName = 'example';
+  const existingExamples = item.draft?.examples || item.examples || [];
+  const existingNames = new Set(existingExamples.map((example) => example.name || '').filter(Boolean));
+
+  if (!existingNames.has(baseName)) {
+    return baseName;
+  }
+
+  let counter = 1;
+  while (true) {
+    const candidateName = `${baseName} (${counter})`;
+    if (!existingNames.has(candidateName)) {
+      return candidateName;
+    }
+    counter++;
+  }
 };

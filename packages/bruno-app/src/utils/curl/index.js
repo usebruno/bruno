@@ -1,6 +1,6 @@
 import { forOwn } from 'lodash';
-import { prettifyJSON } from 'utils/common';
 import curlToJson from './curl-to-json';
+import { prettifyJsonString } from 'utils/common/index';
 
 export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
   const parseFormData = (parsedBody) => {
@@ -67,7 +67,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.file = parsedBody;
       }else if (contentType.includes('application/json')) {
         body.mode = 'json';
-        body.json = prettifyJSON(parsedBody);
+        body.json = prettifyJsonString(parsedBody);
       } else if (contentType.includes('xml')) {
         body.mode = 'xml';
         body.xml = parsedBody;

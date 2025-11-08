@@ -22,6 +22,7 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
+import * as exampleReducers from './exampleReducers';
 
 // gRPC status code meanings
 const grpcStatusCodes = {
@@ -316,7 +317,7 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, runtimeVariables } = action.payload;
+      const { collectionUid, envVariables, runtimeVariables, persistentEnvVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -326,9 +327,10 @@ export const collectionsSlice = createSlice({
         if (activeEnvironment) {
           forOwn(envVariables, (value, key) => {
             const variable = find(activeEnvironment.variables, (v) => v.name === key);
+            const isPersistent = persistentEnvVariables && persistentEnvVariables[key] !== undefined;
 
             if (variable) {
-              // For updates coming from scripts, treat them as ephemeral overlays.
+              // For updates coming from scripts, treat them as ephemeral overlays unless they are persistent.
               if (variable.value !== value) {
                 /*
                  Overlay (persist: false): keep new value in Redux for UI and mark ephemeral
@@ -337,7 +339,7 @@ export const collectionsSlice = createSlice({
                 */
                 const previousValue = variable.value;
                 variable.value = value;
-                variable.ephemeral = true;
+                variable.ephemeral = !isPersistent;
                 if (variable.persistedValue === undefined) {
                   variable.persistedValue = previousValue;
                 }
@@ -353,7 +355,7 @@ export const collectionsSlice = createSlice({
                   enabled: true,
                   type: 'text',
                   uid: uuid(),
-                  ephemeral: true,
+                  ephemeral: !isPersistent
                 });
               }
             }
@@ -2197,6 +2199,7 @@ export const collectionsSlice = createSlice({
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.settings = file.data.settings;
+            currentItem.examples = file.data.examples;
             currentItem.draft = null;
             currentItem.partial = file.partial;
             currentItem.loading = file.loading;
@@ -2211,6 +2214,7 @@ export const collectionsSlice = createSlice({
               tags: file.data.tags,
               request: file.data.request,
               settings: file.data.settings,
+              examples: file.data.examples,
               filename: file.meta.name,
               pathname: file.meta.pathname,
               draft: null,
@@ -2302,6 +2306,7 @@ export const collectionsSlice = createSlice({
             item.tags = file.data.tags;
             item.request = file.data.request;
             item.settings = file.data.settings;
+            item.examples = file.data.examples;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.draft = null;
@@ -2915,7 +2920,51 @@ export const collectionsSlice = createSlice({
           item.response.sortOrder = item.response.sortOrder ? -item.response.sortOrder : -1;
         }
       }
-    }
+    },
+
+    /* Response Example Actions */
+    addResponseExample: exampleReducers.addResponseExample,
+    cloneResponseExample: exampleReducers.cloneResponseExample,
+    updateResponseExample: exampleReducers.updateResponseExample,
+    deleteResponseExample: exampleReducers.deleteResponseExample,
+    cancelResponseExampleEdit: exampleReducers.cancelResponseExampleEdit,
+    addResponseExampleHeader: exampleReducers.addResponseExampleHeader,
+    updateResponseExampleHeader: exampleReducers.updateResponseExampleHeader,
+    deleteResponseExampleHeader: exampleReducers.deleteResponseExampleHeader,
+    moveResponseExampleHeader: exampleReducers.moveResponseExampleHeader,
+    setResponseExampleHeaders: exampleReducers.setResponseExampleHeaders,
+    addResponseExampleParam: exampleReducers.addResponseExampleParam,
+    updateResponseExampleParam: exampleReducers.updateResponseExampleParam,
+    deleteResponseExampleParam: exampleReducers.deleteResponseExampleParam,
+    moveResponseExampleParam: exampleReducers.moveResponseExampleParam,
+    updateResponseExampleRequest: exampleReducers.updateResponseExampleRequest,
+    updateResponseExampleMultipartFormParams: exampleReducers.updateResponseExampleMultipartFormParams,
+    updateResponseExampleFileBodyParams: exampleReducers.updateResponseExampleFileBodyParams,
+    updateResponseExampleFormUrlEncodedParams: exampleReducers.updateResponseExampleFormUrlEncodedParams,
+    updateResponseExampleStatusCode: exampleReducers.updateResponseExampleStatusCode,
+    updateResponseExampleStatusText: exampleReducers.updateResponseExampleStatusText,
+    updateResponseExampleRequestUrl: exampleReducers.updateResponseExampleRequestUrl,
+    updateResponseExampleResponse: exampleReducers.updateResponseExampleResponse,
+    updateResponseExampleDetails: exampleReducers.updateResponseExampleDetails,
+    updateResponseExampleName: exampleReducers.updateResponseExampleName,
+    updateResponseExampleDescription: exampleReducers.updateResponseExampleDescription,
+    addResponseExampleRequestHeader: exampleReducers.addResponseExampleRequestHeader,
+    updateResponseExampleRequestHeader: exampleReducers.updateResponseExampleRequestHeader,
+    deleteResponseExampleRequestHeader: exampleReducers.deleteResponseExampleRequestHeader,
+    moveResponseExampleRequestHeader: exampleReducers.moveResponseExampleRequestHeader,
+    setResponseExampleRequestHeaders: exampleReducers.setResponseExampleRequestHeaders,
+    setResponseExampleParams: exampleReducers.setResponseExampleParams,
+    updateResponseExampleBody: exampleReducers.updateResponseExampleBody,
+    addResponseExampleFileParam: exampleReducers.addResponseExampleFileParam,
+    updateResponseExampleFileParam: exampleReducers.updateResponseExampleFileParam,
+    deleteResponseExampleFileParam: exampleReducers.deleteResponseExampleFileParam,
+    addResponseExampleFormUrlEncodedParam: exampleReducers.addResponseExampleFormUrlEncodedParam,
+    updateResponseExampleFormUrlEncodedParam: exampleReducers.updateResponseExampleFormUrlEncodedParam,
+    deleteResponseExampleFormUrlEncodedParam: exampleReducers.deleteResponseExampleFormUrlEncodedParam,
+    addResponseExampleMultipartFormParam: exampleReducers.addResponseExampleMultipartFormParam,
+    updateResponseExampleMultipartFormParam: exampleReducers.updateResponseExampleMultipartFormParam,
+    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam
+    /* End Response Example Actions */
   }
 });
 
@@ -3047,7 +3096,41 @@ export const {
   updateActiveConnections,
   runWsRequestEvent,
   wsResponseReceived,
-  wsUpdateResponseSortOrder
+  wsUpdateResponseSortOrder,
+
+  /* Response Example Actions - Start */
+  addResponseExample,
+  cloneResponseExample,
+  updateResponseExample,
+  deleteResponseExample,
+  cancelResponseExampleEdit,
+  addResponseExampleHeader,
+  updateResponseExampleHeader,
+  deleteResponseExampleHeader,
+  moveResponseExampleHeader,
+  setResponseExampleHeaders,
+  addResponseExampleParam,
+  updateResponseExampleParam,
+  deleteResponseExampleParam,
+  moveResponseExampleParam,
+  updateResponseExampleRequest,
+  updateResponseExampleMultipartFormParams,
+  updateResponseExampleFileBodyParams,
+  updateResponseExampleFormUrlEncodedParams,
+  updateResponseExampleStatusCode,
+  updateResponseExampleStatusText,
+  updateResponseExampleRequestUrl,
+  updateResponseExampleResponse,
+  updateResponseExampleDetails,
+  updateResponseExampleName,
+  updateResponseExampleDescription,
+  addResponseExampleRequestHeader,
+  updateResponseExampleRequestHeader,
+  deleteResponseExampleRequestHeader,
+  moveResponseExampleRequestHeader,
+  setResponseExampleRequestHeaders,
+  setResponseExampleParams
+  /* Response Example Actions - End */
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

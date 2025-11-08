@@ -22,6 +22,7 @@ import {
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
+import brunoClipboard from 'utils/bruno-clipboard';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
@@ -723,6 +724,89 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
   });
 };
 
+export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatch, getState) => {
+  const state = getState();
+
+  const clipboardResult = brunoClipboard.read();
+
+  if (!clipboardResult.hasData) {
+    return Promise.reject(new Error('No item in clipboard'));
+  }
+
+  const targetCollection = findCollectionByUid(state.collections.collections, targetCollectionUid);
+
+  if (!targetCollection) {
+    return Promise.reject(new Error('Target collection not found'));
+  }
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      for (const clipboardItem of clipboardResult.items) {
+        const copiedItem = cloneDeep(clipboardItem);
+
+        // Only allow pasting requests (not folders)
+        if (isItemAFolder(copiedItem)) {
+          return reject(new Error('Pasting folders is not supported'));
+        }
+
+        const targetCollectionCopy = cloneDeep(targetCollection);
+        let targetItem = null;
+        let targetParentPathname = targetCollection.pathname;
+
+        // If targetItemUid is provided, we're pasting into a folder
+        if (targetItemUid) {
+          targetItem = findItemInCollection(targetCollectionCopy, targetItemUid);
+          if (!targetItem) {
+            return reject(new Error('Target folder not found'));
+          }
+          if (!isItemAFolder(targetItem)) {
+            return reject(new Error('Target must be a folder or collection'));
+          }
+          targetParentPathname = targetItem.pathname;
+        }
+
+        // Generate a unique filename for the pasted item
+        let newName = copiedItem.name;
+        let newFilename = sanitizeName(copiedItem.name);
+        let counter = 1;
+
+        const existingItems = targetItem ? targetItem.items : targetCollection.items;
+
+        // Check for duplicate names and append counter if needed
+        while (find(existingItems, (i) => i.type !== 'folder' && trim(i.filename) === trim(resolveRequestFilename(newFilename)))) {
+          newName = `${copiedItem.name} (${counter})`;
+          newFilename = `${sanitizeName(copiedItem.name)} (${counter})`;
+          counter++;
+        }
+
+        const filename = resolveRequestFilename(newFilename);
+        const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+        set(itemToSave, 'name', trim(newName));
+        set(itemToSave, 'filename', trim(filename));
+
+        const fullPathname = path.join(targetParentPathname, filename);
+        const { ipcRenderer } = window;
+        const requestItems = filter(existingItems, (i) => i.type !== 'folder');
+        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
+
+        await itemSchema.validate(itemToSave);
+        await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave);
+
+        dispatch(insertTaskIntoQueue({
+          uid: uuid(),
+          type: 'OPEN_REQUEST',
+          collectionUid: targetCollectionUid,
+          itemPathname: fullPathname
+        }));
+      }
+
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1255,7 +1339,7 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const importEnvironment = (name, variables, collectionUid) => (dispatch, getState) => {
+export const importEnvironment = ({ name, variables, collectionUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1467,8 +1551,16 @@ export const mergeAndPersistEnvironment =
         }
       });
 
-      // Save only non-ephemeral vars, or ephemerals explicitly persisted this run
+        // Save all non-ephemeral vars and all variables that were previously persisted
       const persistedNames = new Set(Object.keys(persistentEnvVariables));
+
+        // Add all existing non-ephemeral variables to persistedNames so they are preserved
+        existingVars.forEach((v) => {
+          if (!v.ephemeral) {
+            persistedNames.add(v.name);
+          }
+        });
+
       const environmentToSave = cloneDeep(environment);
       environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
 

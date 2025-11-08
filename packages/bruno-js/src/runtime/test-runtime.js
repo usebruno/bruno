@@ -35,7 +35,9 @@ const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const tv4 = require('tv4');
+const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { mixinTypedArrays } = require('../sandbox/mixins/typed-arrays');
 
 class TestRuntime {
   constructor(props) {
@@ -103,8 +105,13 @@ class TestRuntime {
       res,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      jwt: jsonwebtoken
     };
+
+    if (this.runtime === 'vm2') {
+      mixinTypedArrays(context);
+    }
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
@@ -176,6 +183,7 @@ class TestRuntime {
               'xml2js': xml2js,
               cheerio,
               tv4,
+              'jsonwebtoken': jsonwebtoken,
               ...whitelistedModules,
               fs: allowScriptFilesystemAccess ? fs : undefined,
               'node-vault': NodeVault

@@ -237,7 +237,7 @@ describe('renderVarInfo', () => {
     clipboardText = '';
     Object.defineProperty(navigator, 'clipboard', {
       value: {
-        writeText: jest.fn(text => {
+        writeText: jest.fn((text) => {
           if (text === 'cause-clipboard-error') {
             return Promise.reject(new Error('Clipboard error'));
           }
@@ -245,9 +245,9 @@ describe('renderVarInfo', () => {
           clipboardText = text;
 
           return Promise.resolve();
-        }),
+        })
       },
-      configurable: true,
+      configurable: true
     });
 
     // mock console.error
@@ -283,7 +283,7 @@ describe('renderVarInfo', () => {
     it('should correctly mask the variable value in the popup', () => {
       const { descriptionDiv } = setupRender({
         apiKey: 'test-value',
-        maskedEnvVariables: ['apiKey'],
+        maskedEnvVariables: ['apiKey']
       });
 
       expect(descriptionDiv.textContent).toBe('*****');

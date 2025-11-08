@@ -26,7 +26,6 @@ function getSystemCerts(): string[] {
 
     return systemCertsCache;
   } catch (error) {
-    console.error(error);
     return [];
   }
 }

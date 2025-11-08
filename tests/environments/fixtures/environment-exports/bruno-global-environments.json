@@ -1,0 +1,47 @@
+{
+  "info": {
+    "type": "bruno-environment",
+    "exportedAt": "2024-01-01T00:00:00.000Z",
+    "exportedUsing": "Bruno/v1.0.0"
+  },
+  "environments": [
+    {
+      "name": "local",
+      "variables": [
+        {
+          "name": "host",
+          "value": "http://localhost:3000",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "name": "secretToken",
+          "value": "",
+          "type": "text",
+          "enabled": true,
+          "secret": true
+        }
+      ]
+    },
+    {
+      "name": "prod",
+      "variables": [
+        {
+          "name": "host",
+          "value": "https://echo.usebruno.com",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "name": "secretToken",
+          "value": "",
+          "type": "text",
+          "enabled": true,
+          "secret": true
+        }
+      ]
+    }
+  ]
+}

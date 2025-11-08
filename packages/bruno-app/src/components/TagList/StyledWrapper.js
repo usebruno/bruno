@@ -23,12 +23,17 @@ const StyledWrapper = styled.div`
     max-width: 200px;
     transition: all 0.2s ease;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    cursor: default;
 
-    &:hover {
+    &:has(.tag-remove:hover) {
       background-color: ${(props) => props.theme.requestTabs.active.bg};
       border-color: ${(props) => props.theme.requestTabs.active.border || props.theme.requestTabs.bottomBorder};
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transform: translateY(-1px);
+    }
+
+    .tag-remove {
+      cursor: pointer;
     }
   }
 

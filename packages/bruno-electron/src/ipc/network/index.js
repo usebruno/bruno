@@ -75,7 +75,8 @@ const configureRequest = async (
   envVars,
   runtimeVariables,
   processEnvVars,
-  collectionPath
+  collectionPath,
+  globalEnvironmentVariables
 ) => {
   const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
   if (!protocolRegex.test(request.url)) {
@@ -88,7 +89,8 @@ const configureRequest = async (
     envVars,
     runtimeVariables,
     processEnvVars,
-    collectionPath
+    collectionPath,
+    globalEnvironmentVariables
   });
 
   // Get followRedirects setting, default to true for backward compatibility
@@ -316,7 +318,8 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       envVars,
       collection.runtimeVariables,
       processEnvVars,
-      collectionPath
+      collectionPath,
+      collection.globalEnvironmentVariables
     );
 
     const response = await axiosInstance(request);
@@ -398,6 +401,7 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
         runtimeVariables: scriptResult.runtimeVariables,
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
         requestUid,
         collectionUid
       });
@@ -486,6 +490,7 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
           runtimeVariables: result.runtimeVariables,
+          persistentEnvVariables: result.persistentEnvVariables,
           requestUid,
           collectionUid
         });
@@ -532,6 +537,7 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
         runtimeVariables: scriptResult.runtimeVariables,
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
         requestUid,
         collectionUid
       });
@@ -639,7 +645,8 @@ const registerNetworkIpc = (mainWindow) => {
         envVars,
         runtimeVariables,
         processEnvVars,
-        collectionPath
+        collectionPath,
+        collection.globalEnvironmentVariables
       );
 
       const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
@@ -1162,7 +1169,8 @@ const registerNetworkIpc = (mainWindow) => {
               envVars,
               runtimeVariables,
               processEnvVars,
-              collectionPath
+              collectionPath,
+              collection.globalEnvironmentVariables
             );
 
             if (request?.oauth2Credentials) {

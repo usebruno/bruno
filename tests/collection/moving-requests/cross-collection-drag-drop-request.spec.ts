@@ -1,45 +1,27 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createCollection } from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
   });
 
-  test('Verify request drag and drop', async ({ pageWithUserData: page, createTmpDir }) => {
-    // Create first collection - click dropdown menu first
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('source-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+  test('Verify request drag and drop', async ({ page, createTmpDir }) => {
+    // Create first collection - open with sandbox mode
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a request in the first collection
     await page.locator('#create-new-tab').getByRole('img').click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
 
-    // Create second collection - click dropdown menu first
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('target-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('target-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    // Create second collection - open with sandbox mode
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
@@ -79,50 +61,30 @@ test.describe('Cross-Collection Drag and Drop', () => {
   });
 
   test('Expected to show error toast message, when duplicate request found in drop location', async ({
-    pageWithUserData: page,
+    page,
     createTmpDir
   }) => {
     // Create first collection (source-collection)
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('source-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    // Open collection
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a request in the first collection (request-1)
     await page.locator('#create-new-tab').getByRole('img').click();
     await page.getByPlaceholder('Request Name').fill('request-1');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // check if request-1 is created and visible in sidebar
     await expect(page.locator('.collection-item-name').filter({ hasText: 'request-1' })).toBeVisible();
 
     // Create second collection (target-collection)
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('target-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('target-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    // Open collection
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a request in the target collection with the same name (request-1)
     await page.locator('#create-new-tab').getByRole('img').click();
     await page.getByPlaceholder('Request Name').fill('request-1');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/post');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Go back to source collection to drag the request

@@ -49,7 +49,7 @@ const EventTypeColors = {
   cancel: "border-amber-500/20"
 };
 
-const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, item, collection, width }) => {
+const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, item }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const toggleCollapse = () => setIsCollapsed(prev => !prev);
   
@@ -83,7 +83,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                   {Object.entries(effectiveRequest.headers).map(([key, value], idx) => (
                     <div key={idx} className="contents">
                       <div className="text-xs font-medium overflow-hidden text-ellipsis">{key}:</div>
-                      <div className="text-xs overflow-hidden text-ellipsis">{value}</div>
+                      <div className="text-xs overflow-hidden text-ellipsis">{typeof value === 'string' ? value : '[Buffer Buffer]'}</div>
                     </div>
                   ))}
                 </div>
@@ -148,9 +148,9 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         return (
           <div className="mt-2 bg-green-50 dark:bg-green-900/10 rounded p-2">
             <div className="font-semibold mb-1 text-green-700 dark:text-green-400">
-              Response Message #{(response.responses.length || 0)}
+              Response Message #{(response?.responses?.length) || 0}
             </div>
-            {response.responses && response.responses.length > 0 ? (
+            {response?.responses && response.responses.length > 0 ? (
               <pre className="text-xs bg-white dark:bg-gray-800 p-2 rounded overflow-auto max-h-[200px]">
                 {JSON.stringify(response.responses[response.responses.length - 1], null, 2)}
               </pre>
@@ -221,7 +221,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
           <div className="mt-2 bg-gray-50 dark:bg-gray-700/30 rounded p-2">
             <div className="font-semibold mb-1">Stream Ended</div>
             <div className="text-sm">
-              Total messages: {response.responses.length || 0}
+              Total messages: {(response?.responses?.length) || 0}
             </div>
           </div>
         );

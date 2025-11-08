@@ -1,0 +1,49 @@
+{
+  "environments": [
+    {
+      "uid": "FfmX1qYW2EaOpLWeNPLKM",
+      "name": "local",
+      "variables": [
+        {
+          "uid": "rfrIqlfmuyFD4560ciK04",
+          "name": "host",
+          "value": "http://localhost:3000",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "uid": "3WEAWueN0Ov99uOX0uuuM",
+          "name": "secretToken",
+          "value": "",
+          "type": "text",
+          "enabled": true,
+          "secret": true
+        }
+      ]
+    },
+    {
+      "uid": "PYtEmbl0WSSE7NQcYeGx7",
+      "name": "prod",
+      "variables": [
+        {
+          "uid": "tdqX6Yln9DYQYNievEJR1",
+          "name": "host",
+          "value": "https://echo.usebruno.com",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "uid": "fSxTRpngl8fxkhrl3z7hA",
+          "name": "secretToken",
+          "value": "",
+          "type": "text",
+          "enabled": true,
+          "secret": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "FfmX1qYW2EaOpLWeNPLKM"
+}

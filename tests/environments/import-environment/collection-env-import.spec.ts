@@ -1,8 +1,13 @@
 import { test, expect } from '../../../playwright';
 import path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Collection Environment Import Tests', () => {
-  test('should import collection environment from file', async ({ pageWithUserData: page, createTmpDir }) => {
+  test.afterAll(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
+  test('should import collection environment from file', async ({ page, createTmpDir }) => {
     const openApiFile = path.join(__dirname, 'fixtures', 'collection.json');
     const envFile = path.join(__dirname, 'fixtures', 'collection-env.json');
 
@@ -40,7 +45,7 @@ test.describe('Collection Environment Import Tests', () => {
 
     // Import environment file
     const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('button[data-testid="import-postman-environment"]').click();
+    await page.getByTestId('import-environment').click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(envFile);
 
@@ -78,17 +83,5 @@ test.describe('Collection Environment Import Tests', () => {
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('201');
-
-    // Cleanup
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
-    await page
-      .locator('.collection-name')
-      .filter({ has: page.locator('#sidebar-collection-name:has-text("Environment Test Collection")') })
-      .locator('.collection-actions')
-      .click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
-    await page.getByRole('button', { name: 'Close' }).click();
-
-    await page.locator('.bruno-logo').click();
   });
 });

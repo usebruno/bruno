@@ -18,7 +18,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
-  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector(state => state.globalEnvironments);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   let _collection = cloneDeep(collection);
 
@@ -125,7 +125,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
           </thead>
           <tbody>
             {formik.values.map((variable, index) => (
-              <tr key={variable.uid}>
+              <tr key={variable.uid} data-testid={`env-var-row-${variable.name}`}>
                 <td className="text-center">
                   <input
                     type="checkbox"
