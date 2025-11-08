@@ -3,12 +3,13 @@ const KeyMapping = {
   sendRequest: { mac: 'command+enter', windows: 'ctrl+enter', name: 'Send Request' },
   editEnvironment: { mac: 'command+e', windows: 'ctrl+e', name: 'Edit Environment' },
   newRequest: { mac: 'command+b', windows: 'ctrl+b', name: 'New Request' },
+  globalSearch: { mac: 'command+k', windows: 'ctrl+k', name: 'Global Search' },
   closeTab: { mac: 'command+w', windows: 'ctrl+w', name: 'Close Tab' },
   openPreferences: { mac: 'command+,', windows: 'ctrl+,', name: 'Open Preferences' },
-  minimizeWindow: {
-    mac: 'command+Shift+Q',
-    windows: 'control+Shift+Q',
-    name: 'Minimize Window'
+  closeBruno: {
+    mac: 'command+Q',
+    windows: 'ctrl+shift+q',
+    name: 'Close Bruno'
   },
   switchToPreviousTab: {
     mac: 'command+pageup',
@@ -20,7 +21,18 @@ const KeyMapping = {
     windows: 'ctrl+pagedown',
     name: 'Switch to Next Tab'
   },
-  closeAllTabs: { mac: 'command+shift+w', windows: 'ctrl+shift+w', name: 'Close All Tabs' }
+  moveTabLeft: {
+    mac: 'command+shift+pageup',
+    windows: 'ctrl+shift+pageup',
+    name: 'Move Tab Left'
+  },
+  moveTabRight: {
+    mac: 'command+shift+pagedown',
+    windows: 'ctrl+shift+pagedown',
+    name: 'Move Tab Right'
+  },
+  closeAllTabs: { mac: 'command+shift+w', windows: 'ctrl+shift+w', name: 'Close All Tabs' },
+  collapseSidebar: { mac: 'command+\\', windows: 'ctrl+\\', name: 'Collapse Sidebar' }
 };
 
 /**

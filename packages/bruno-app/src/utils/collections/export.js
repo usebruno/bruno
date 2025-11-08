@@ -6,7 +6,7 @@ export const deleteUidsInItems = (items) => {
   each(items, (item) => {
     delete item.uid;
 
-    if (['http-request', 'graphql-request'].includes(item.type)) {
+    if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
       each(get(item, 'request.headers'), (header) => delete header.uid);
       each(get(item, 'request.params'), (param) => delete param.uid);
       each(get(item, 'request.vars.req'), (v) => delete v.uid);
@@ -14,6 +14,18 @@ export const deleteUidsInItems = (items) => {
       each(get(item, 'request.vars.assertions'), (a) => delete a.uid);
       each(get(item, 'request.body.multipartForm'), (param) => delete param.uid);
       each(get(item, 'request.body.formUrlEncoded'), (param) => delete param.uid);
+      each(get(item, 'request.body.file'), (param) => delete param.uid);
+
+      each(get(item, 'examples'), (example) => {
+        delete example.uid;
+        delete example.itemUid;
+        each(get(example, 'request.headers'), (header) => delete header.uid);
+        each(get(example, 'request.params'), (param) => delete param.uid);
+        each(get(example, 'request.body.multipartForm'), (param) => delete param.uid);
+        each(get(example, 'request.body.formUrlEncoded'), (param) => delete param.uid);
+        each(get(example, 'request.body.file'), (param) => delete param.uid);
+        each(get(example, 'response.headers'), (header) => delete header.uid);
+      });
     }
 
     if (item.items && item.items.length) {
@@ -28,7 +40,7 @@ export const deleteUidsInItems = (items) => {
  */
 export const transformItem = (items = []) => {
   each(items, (item) => {
-    if (['http-request', 'graphql-request'].includes(item.type)) {
+    if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
       if (item.type === 'graphql-request') {
         item.type = 'graphql';
       }
@@ -36,7 +48,27 @@ export const transformItem = (items = []) => {
       if (item.type === 'http-request') {
         item.type = 'http';
       }
+
+      if (item.type === 'grpc-request') {
+        item.type = 'grpc';
+      }
+
+      if (item.type === 'ws-request') {
+        item.type = 'ws';
+      }
     }
+
+    each(get(item, 'examples'), (example) => {
+      if (example.type === 'graphql-request') {
+        example.type = 'graphql';
+      } else if (example.type === 'http-request') {
+        example.type = 'http';
+      } else if (example.type === 'grpc-request') {
+        example.type = 'grpc';
+      } else if (example.type === 'ws-request') {
+        example.type = 'ws';
+      }
+    });
 
     if (item.items && item.items.length) {
       transformItem(item.items);

@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { stringifyIfNot, uuid } from 'utils/common/index';
+import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, has } from 'lodash';
 
 const initialState = {
   globalEnvironments: [],
@@ -87,14 +87,19 @@ export const {
   _deleteGlobalEnvironment
 } = globalEnvironmentsSlice.actions;
 
-export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch, getState) => {
+export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch) => {
   return new Promise((resolve, reject) => {
     const uid = uuid();
-    ipcRenderer
-      .invoke('renderer:create-global-environment', { name, uid, variables })
-      .then(
-        dispatch(_addGlobalEnvironment({ name, uid, variables }))
-      )
+    let environment = { name, uid, variables };
+    const { ipcRenderer } = window;
+    environmentSchema
+      .validate(environment)
+      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { name, uid, variables }))
+      .then((result) => {
+        const finalName = result?.name || name;
+        dispatch(_addGlobalEnvironment({ name: finalName, uid, variables }));
+      })
+      .then(() => dispatch(selectGlobalEnvironment({ environmentUid: uid })))
       .then(resolve)
       .catch(reject);
   });
@@ -106,10 +111,14 @@ export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (
     const globalEnvironments = state.globalEnvironments.globalEnvironments;
     const baseEnv = globalEnvironments?.find(env => env?.uid == baseEnvUid)
     const uid = uuid();
-    ipcRenderer
-      .invoke('renderer:create-global-environment', { uid, name, variables: baseEnv.variables })
-      .then(() => {
-        dispatch(_copyGlobalEnvironment({ name, uid, variables: baseEnv.variables }))
+    let environment = { uid, name, variables: baseEnv.variables };
+    const { ipcRenderer } = window;
+    environmentSchema
+      .validate(environment)
+      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { uid, name, variables: baseEnv.variables }))
+      .then((result) => {
+        const finalName = result?.name || name;
+        dispatch(_copyGlobalEnvironment({ name: finalName, uid, variables: baseEnv.variables }));
       })
       .then(resolve)
       .catch(reject);
@@ -118,6 +127,7 @@ export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (
 
 export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     const state = getState();
     const globalEnvironments = state.globalEnvironments.globalEnvironments;
     const environment = globalEnvironments?.find(env => env?.uid == environmentUid)
@@ -127,9 +137,7 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
     environmentSchema
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:rename-global-environment', { name: newName, environmentUid }))
-      .then(
-        dispatch(_renameGlobalEnvironment({ name: newName, environmentUid }))
-      )
+      .then(() => dispatch(_renameGlobalEnvironment({ name: newName, environmentUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -145,15 +153,16 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
       return reject(new Error('Environment not found'));
     }
 
+    let environmentToSave = { ...environment, variables };
+
+    const { ipcRenderer } = window;
     environmentSchema
-      .validate(environment)
+      .validate(environmentToSave)
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables
       }))
-      .then(
-        dispatch(_saveGlobalEnvironment({ environmentUid, variables }))
-      )
+      .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
       .then(resolve)
       .catch((error) => {
         reject(error);
@@ -163,11 +172,10 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
 
 export const selectGlobalEnvironment = ({ environmentUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     ipcRenderer
       .invoke('renderer:select-global-environment', { environmentUid })
-      .then(
-        dispatch(_selectGlobalEnvironment({ environmentUid }))
-      )
+      .then(() => dispatch(_selectGlobalEnvironment({ environmentUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -175,11 +183,10 @@ export const selectGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
 
 export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     ipcRenderer
       .invoke('renderer:delete-global-environment', { environmentUid })
-      .then(
-        dispatch(_deleteGlobalEnvironment({ environmentUid }))
-      )
+      .then(() => dispatch(_deleteGlobalEnvironment({ environmentUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -187,6 +194,7 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
 
 export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     if (!globalEnvironmentVariables) resolve();
 
     const state = getState();
@@ -195,16 +203,18 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     const environment = globalEnvironments?.find(env => env?.uid == environmentUid);
 
     if (!environment || !environmentUid) {
-      console.error('Global Environment not found');
       return resolve();
     }
 
     let variables = cloneDeep(environment?.variables);
 
-    // update existing values
+    // "globalEnvironmentVariables" will include only the enabled variables and newly added variables created using the script.
+    // Update the value of each variable if it's present in "globalEnvironmentVariables", otherwise keep the existing value.
     variables = variables?.map?.(variable => ({
       ...variable,
-      value: stringifyIfNot(globalEnvironmentVariables?.[variable?.name])
+      value: has(globalEnvironmentVariables, variable?.name)
+        ? globalEnvironmentVariables[variable?.name]
+        : variable?.value
     }));
 
     // add new env values
@@ -214,7 +224,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
         variables.push({
           uid: uuid(),
           name: key,
-          value: stringifyIfNot(value),
+          value,
           type: 'text',
           secret: false,
           enabled: true
@@ -222,15 +232,15 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
       }
     });
 
+    let environmentToSave = { ...environment, variables };
+
     environmentSchema
-      .validate(environment)
+      .validate(environmentToSave)
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables
       }))
-      .then(
-        dispatch(_saveGlobalEnvironment({ environmentUid, variables }))
-      )
+      .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
       .then(resolve)
       .catch((error) => {
         reject(error);

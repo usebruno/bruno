@@ -7,107 +7,20 @@
 
 import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
-import { getEnvironmentVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
+import { getAllVariables } from 'utils/collections';
+import CodeMirrorSearch from 'components/CodeMirrorSearch';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const CodeMirror = require('codemirror');
+window.jsonlint = jsonlint;
+window.JSHINT = JSHINT;
+
 const TAB_SIZE = 2;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-  window.jsonlint = jsonlint;
-  window.JSHINT = JSHINT;
-  //This should be done dynamically if possible
-  const hintWords = [
-    'res',
-    'res.status',
-    'res.statusText',
-    'res.headers',
-    'res.body',
-    'res.responseTime',
-    'res.getStatus()',
-    'res.getHeader(name)',
-    'res.getHeaders()',
-    'res.getBody()',
-    'res.getResponseTime()',
-    'req',
-    'req.url',
-    'req.method',
-    'req.headers',
-    'req.body',
-    'req.timeout',
-    'req.getUrl()',
-    'req.setUrl(url)',
-    'req.getMethod()',
-    'req.getAuthMode()',
-    'req.setMethod(method)',
-    'req.getHeader(name)',
-    'req.getHeaders()',
-    'req.setHeader(name, value)',
-    'req.setHeaders(data)',
-    'req.getBody()',
-    'req.setBody(data)',
-    'req.setMaxRedirects(maxRedirects)',
-    'req.getTimeout()',
-    'req.setTimeout(timeout)',
-    'req.getExecutionMode()',
-    'bru',
-    'bru.cwd()',
-    'bru.getEnvName(key)',
-    'bru.getProcessEnv(key)',
-    'bru.hasEnvVar(key)',
-    'bru.getEnvVar(key)',
-    'bru.getFolderVar(key)',
-    'bru.getCollectionVar(key)',
-    'bru.setEnvVar(key,value)',
-    'bru.hasVar(key)',
-    'bru.getVar(key)',
-    'bru.setVar(key,value)',
-    'bru.deleteVar(key)',
-    'bru.deleteAllVars()',
-    'bru.setNextRequest(requestName)',
-    'req.disableParsingResponseJson()',
-    'bru.getRequestVar(key)',
-    'bru.sleep(ms)',
-    'bru.getGlobalEnvVar(key)',
-    'bru.setGlobalEnvVar(key, value)'
-  ];
-  CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
-    const cursor = editor.getCursor();
-    const currentLine = editor.getLine(cursor.line);
-    let startBru = cursor.ch;
-    let endBru = startBru;
-    while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
-    while (startBru && /[\w.]/.test(currentLine.charAt(startBru - 1))) --startBru;
-    let curWordBru = startBru != endBru && currentLine.slice(startBru, endBru);
-
-    let start = cursor.ch;
-    let end = start;
-    while (end < currentLine.length && /[\w]/.test(currentLine.charAt(end))) ++end;
-    while (start && /[\w]/.test(currentLine.charAt(start - 1))) --start;
-    const jsHinter = CodeMirror.hint.javascript;
-    let result = jsHinter(editor) || { list: [] };
-    result.to = CodeMirror.Pos(cursor.line, end);
-    result.from = CodeMirror.Pos(cursor.line, start);
-    if (curWordBru) {
-      hintWords.forEach((h) => {
-        if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
-          result.list.push(curWordBru.includes('.') ? h.split('.')[1] : h);
-        }
-      });
-      result.list?.sort();
-    }
-    return result;
-  });
-  CodeMirror.commands.autocomplete = (cm, hint, options) => {
-    cm.showHint({ hint, ...options });
-  };
-}
 
 export default class CodeEditor extends React.Component {
   constructor(props) {
@@ -125,15 +38,24 @@ export default class CodeEditor extends React.Component {
       expr: true,
       asi: true
     };
+
+    this.state = {
+      searchBarVisible: false
+    };
   }
 
   componentDidMount() {
+    const variables = getAllVariables(this.props.collection, this.props.item);
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
-      lineWrapping: true,
+      lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
+      brunoVarInfo: {
+        variables
+      },
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
@@ -166,14 +88,14 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
-          cm.execCommand('findPersistent');
-          this._bindSearchHandler();
-          this._appendSearchResultsCount();
+          if (!this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: true });
+          }
         },
         'Ctrl-F': (cm) => {
-          cm.execCommand('findPersistent');
-          this._bindSearchHandler();
-          this._appendSearchResultsCount();
+          if (!this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: true });
+          }
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
@@ -189,31 +111,24 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        'Cmd-/': (cm) => {
-          // comment/uncomment every selected line(s)
-          const selections = cm.listSelections();
-          selections.forEach((range) => {
-            for (let i = range.from().line; i <= range.to().line; i++) {
-              const selectedLine = cm.getLine(i);
-              // if commented line, remove comment
-              if (selectedLine.trim().startsWith('//')) {
-                cm.replaceRange(
-                  selectedLine.replace(/^(\s*)\/\/\s?/, '$1'),
-                  { line: i, ch: 0 },
-                  { line: i, ch: selectedLine.length }
-                );
-                continue;
-              }
-              // otherwise add comment
-              cm.replaceRange(
-                selectedLine.search(/\S|$/) >= TAB_SIZE
-                  ? ' '.repeat(TAB_SIZE) + '// ' + selectedLine.trim()
-                  : '// ' + selectedLine,
-                { line: i, ch: 0 },
-                { line: i, ch: selectedLine.length }
-              );
-            }
-          });
+        'Ctrl-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        },
+        'Cmd-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        },
+        'Esc': () => {
+          if (this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: false });
+          }
         }
       },
       foldOptions: {
@@ -267,30 +182,26 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
+    
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+      editor.on('scroll', this.onScroll);
+      editor.scrollTo(null, this.props.initialScroll);
       this.addOverlay();
-    }
-    if (this.props.mode == 'javascript') {
-      editor.on('keyup', function (cm, event) {
-        const cursor = editor.getCursor();
-        const currentLine = editor.getLine(cursor.line);
-        let start = cursor.ch;
-        let end = start;
-        while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
-        while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
-        let curWord = start != end && currentLine.slice(start, end);
-        //Qualify if autocomplete will be shown
-        if (
-          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
-          curWord.length > 0 &&
-          !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
-          /(?<!\d)[a-zA-Z\._]$/.test(curWord)
-        ) {
-          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
-        }
-      });
+
+      const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+      
+      // Setup AutoComplete Helper for all modes
+      const autoCompleteOptions = {
+        showHintsFor: this.props.showHintsFor,
+        getAllVariables: getAllVariablesHandler
+      };
+
+      this.brunoAutoCompleteCleanup = setupAutoComplete(
+        editor,
+        autoCompleteOptions
+      );
     }
   }
 
@@ -312,7 +223,7 @@ export default class CodeEditor extends React.Component {
     }
 
     if (this.editor) {
-      let variables = getEnvironmentVariables(this.props.collection);
+      let variables = getAllVariables(this.props.collection, this.props.item);
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
@@ -321,16 +232,32 @@ export default class CodeEditor extends React.Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
+
+    if (this.props.initialScroll !== prevProps.initialScroll) {
+      this.editor.scrollTo(null, this.props.initialScroll);
+    }
+
+    if (this.props.enableLineWrapping !== prevProps.enableLineWrapping) {
+      this.editor.setOption('lineWrapping', this.props.enableLineWrapping);
+    }
+
+    if (this.props.mode !== prevProps.mode) {
+      this.editor.setOption('mode', this.props.mode);
+    }
+
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly);
+    }
+
     this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
+      this.editor.off('scroll', this.onScroll);
       this.editor = null;
     }
-
-    this._unbindSearchHandler();
   }
 
   render() {
@@ -339,25 +266,35 @@ export default class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className="h-full w-full flex flex-col relative"
+        className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
         aria-label="Code Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
-        ref={(node) => {
-          this._node = node;
-        }}
-      />
+      >
+        <CodeMirrorSearch
+          visible={this.state.searchBarVisible}
+          editor={this.editor}
+          onClose={() => this.setState({ searchBarVisible: false })}
+        />
+        <div
+          className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
+          ref={(node) => { this._node = node; }}
+          style={{ height: '100%', width: '100%' }}
+        />
+      </StyledWrapper>
     );
   }
 
   addOverlay = () => {
     const mode = this.props.mode || 'application/ld+json';
-    let variables = getEnvironmentVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, mode);
+    defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
+
+  onScroll = (event) => this.props.onScroll?.(event);
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
@@ -366,65 +303,6 @@ export default class CodeEditor extends React.Component {
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);
       }
-    }
-  };
-
-  /**
-   * Bind handler to search input to count number of search results
-   */
-  _bindSearchHandler = () => {
-    const searchInput = document.querySelector('.CodeMirror-search-field');
-
-    if (searchInput) {
-      searchInput.addEventListener('input', this._countSearchResults);
-    }
-  };
-
-  /**
-   * Unbind handler to search input to count number of search results
-   */
-  _unbindSearchHandler = () => {
-    const searchInput = document.querySelector('.CodeMirror-search-field');
-
-    if (searchInput) {
-      searchInput.removeEventListener('input', this._countSearchResults);
-    }
-  };
-
-  /**
-   * Append search results count to search dialog
-   */
-  _appendSearchResultsCount = () => {
-    const dialog = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
-
-    if (dialog) {
-      const searchResultsCount = document.createElement('span');
-      searchResultsCount.id = this.searchResultsCountElementId;
-      dialog.appendChild(searchResultsCount);
-
-      this._countSearchResults();
-    }
-  };
-
-  /**
-   * Count search results and update state
-   */
-  _countSearchResults = () => {
-    let count = 0;
-
-    const searchInput = document.querySelector('.CodeMirror-search-field');
-
-    if (searchInput && searchInput.value.length > 0) {
-      // Escape special characters in search input to prevent RegExp crashes. Fixes #3051
-      const text = new RegExp(escapeRegExp(searchInput.value), 'gi');
-      const matches = this.editor.getValue().match(text);
-      count = matches ? matches.length : 0;
-    }
-
-    const searchResultsCountElement = document.querySelector(`#${this.searchResultsCountElementId}`);
-
-    if (searchResultsCountElement) {
-      searchResultsCountElement.innerText = `${count} results`;
     }
   };
 }

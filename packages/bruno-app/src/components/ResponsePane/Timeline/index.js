@@ -1,57 +1,144 @@
 import React from 'react';
-import forOwn from 'lodash/forOwn';
-import { safeStringifyJSON } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
+import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
+import { get } from 'lodash';
+import TimelineItem from './TimelineItem/index';
+import GrpcTimelineItem from './GrpcTimelineItem/index';
 
-const Timeline = ({ request, response }) => {
-  const requestHeaders = [];
-  const responseHeaders = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
+const getEffectiveAuthSource = (collection, item) => {
+  const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
+  if (authMode !== 'inherit') return null;
 
-  request = request || {};
-  response = response || {};
+  const collectionAuth = get(collection, 'root.request.auth');
+  let effectiveSource = {
+    type: 'collection',
+    uid: collection.uid,
+    auth: collectionAuth
+  };
 
-  forOwn(request.headers, (value, key) => {
-    requestHeaders.push({
-      name: key,
-      value
-    });
-  });
+  // Get path from collection to item
+  let path = [];
+  let currentItem = findItemInCollection(collection, item?.uid);
+  while (currentItem) {
+    path.unshift(currentItem);
+    currentItem = findParentItemInCollection(collection, currentItem?.uid);
+  }
 
-  let requestData = typeof request?.data === "string" ? request?.data : safeStringifyJSON(request?.data, true);
+  // Check folders in reverse to find the closest auth configuration
+  for (let i of [...path].reverse()) {
+    if (i.type === 'folder') {
+      const folderAuth = get(i, 'root.request.auth');
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        effectiveSource = {
+          type: 'folder',
+          uid: i.uid,
+          auth: folderAuth
+        };
+        break;
+      }
+    }
+  }
+
+  return effectiveSource;
+};
+
+const Timeline = ({ collection, item }) => {
+  // Get the effective auth source if auth mode is inherit
+  const authSource = getEffectiveAuthSource(collection, item);
+  const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
+  
+  // Filter timeline entries based on new rules
+  const  combinedTimeline = ([...(collection?.timeline || [])]).filter(obj => {
+    // Always show entries for this item
+    if (obj.itemUid === item.uid) return true;
+
+    // For OAuth2 entries, also show if auth is inherited
+    if (obj.type === 'oauth2' && authSource) {
+      if (authSource.type === 'folder' && obj.folderUid === authSource.uid) return true;
+      if (authSource.type === 'collection' && !obj.folderUid) return true;
+    }
+
+    return false;
+  }).sort((a, b) => b.timestamp - a.timestamp)
 
   return (
-    <StyledWrapper className="pb-4 w-full">
-      <div>
-        <pre className="line request font-bold">
-          <span className="arrow">{'>'}</span> {request.method} {request.url}
-        </pre>
-        {requestHeaders.map((h) => {
-          return (
-            <pre className="line request" key={h.name}>
-              <span className="arrow">{'>'}</span> {h.name}: {h.value}
-            </pre>
-          );
-        })}
+    <StyledWrapper
+      className="pb-4 w-full flex flex-grow flex-col"
+    >
+      {/* Timeline container with scrollbar */}
+      <div 
+        className="timeline-container"
+      >
+        {combinedTimeline.map((event, index) => {
+          // Handle regular requests
+          if (event.type === 'request') {
 
-        {requestData ? (
-          <pre className="line request">
-            <span className="arrow">{'>'}</span> data{' '}
-            <pre className="text-sm flex flex-wrap whitespace-break-spaces">{requestData}</pre>
-          </pre>
-        ) : null}
-      </div>
-
-      <div className="mt-4">
-        <pre className="line response font-bold">
-          <span className="arrow">{'<'}</span> {response.status} {response.statusText}
-        </pre>
-
-        {responseHeaders.map((h) => {
-          return (
-            <pre className="line response" key={h[0]}>
-              <span className="arrow">{'<'}</span> {h[0]}: {h[1]}
-            </pre>
-          );
+            const { data, timestamp, eventType } = event;
+            const { request, response,  eventData = {}, timestamp: eventTimestamp = timestamp } = data;
+            
+            if (isGrpcRequest) {
+              return (
+                <div key={index} className="timeline-event mb-2">
+                  <GrpcTimelineItem
+                    timestamp={eventTimestamp} 
+                    request={request}
+                    response={response}
+                    eventType={eventType}
+                    eventData={eventData}
+                    item={item}
+                    collection={collection}
+                  />
+                </div>
+              );
+            }
+            
+            // Regular HTTP request
+            return (
+              <div key={index} className="timeline-event mb-2">
+                <TimelineItem
+                  timestamp={timestamp}
+                  request={request}
+                  response={response}
+                  item={item}
+                  collection={collection}
+                />
+              </div>
+            );
+          }
+          // Handle OAuth2 events
+          else if (event.type === 'oauth2') {
+            const { data, timestamp } = event;
+            const { debugInfo } = data;
+            return (
+              <div key={index} className="timeline-event">
+                <div className="timeline-event-header cursor-pointer flex items-center">
+                  <div className="flex items-center">
+                    <span className="font-bold">OAuth2.0 Calls</span>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  {debugInfo && debugInfo.length > 0 ? (
+                    debugInfo.map((data, idx) => (
+                      <div className='ml-4' key={idx}>
+                        <TimelineItem
+                          timestamp={timestamp}
+                          request={data?.request}
+                          response={data?.response}
+                          item={item}
+                          collection={collection}
+                          isOauth2={true}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div>No debug information available.</div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+          
+          return null;
         })}
       </div>
     </StyledWrapper>

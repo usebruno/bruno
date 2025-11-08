@@ -6,10 +6,16 @@ import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
+import { validateName, validateNameError } from 'utils/common/regex';
 
-const CreateEnvironment = ({ collection, onClose }) => {
+const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+
+ const validateEnvironmentName = (name) => {
+   return !collection?.environments?.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
+ };
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -17,15 +23,24 @@ const CreateEnvironment = ({ collection, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
-        .required('name is required')
+        .min(1, 'Must be at least 1 character')
+        .max(255, 'Must be 255 characters or less')
+        .test('is-valid-filename', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
+        .required('Name is required')
+        .test('duplicate-name', 'Environment already exists', validateEnvironmentName)
     }),
     onSubmit: (values) => {
       dispatch(addEnvironment(values.name, collection.uid))
         .then(() => {
           toast.success('Environment created in collection');
           onClose();
+          // Call the callback if provided
+          if (onEnvironmentCreated) {
+            onEnvironmentCreated();
+          }
         })
         .catch(() => toast.error('An error occurred while creating the environment'));
     }

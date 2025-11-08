@@ -1,6 +1,14 @@
 const { describe, it, expect } = require('@jest/globals');
 
-import { normalizeFileName, startsWith, humanizeDate, relativeDate } from './index';
+import {
+  normalizeFileName,
+  startsWith,
+  humanizeDate,
+  relativeDate,
+  getContentType,
+  formatSize,
+  prettifyJsonString
+} from './index';
 
 describe('common utils', () => {
   describe('normalizeFileName', () => {
@@ -58,6 +66,18 @@ describe('common utils', () => {
     it('should return invalid date if the date is invalid', () => {
       expect(humanizeDate('9999-99-99')).toBe('Invalid Date');
     });
+
+    it('should return "Invalid Date" if the date is null', () => {
+      expect(humanizeDate(null)).toBe('Invalid Date');
+    });
+
+    it('should return a humanized date for a valid date in ISO format', () => {
+      expect(humanizeDate('2024-11-28T00:00:00Z')).toBe('November 28, 2024');
+    });
+
+    it('should return "Invalid Date" for a non-date string', () => {
+      expect(humanizeDate('some random text')).toBe('Invalid Date');
+    });
   });
 
   describe('relativeDate', () => {
@@ -93,6 +113,176 @@ describe('common utils', () => {
       let date = new Date();
       date.setDate(date.getDate() - 60);
       expect(relativeDate(date)).toBe('2 months ago');
+    });
+  });
+
+  describe('getContentType', () => {
+    it('should handle JSON content types correctly', () => {
+      expect(getContentType({ 'content-type': 'application/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'content-type': 'application/ld+json' })).toBe('application/ld+json');
+    });
+
+    it('should handle XML content types correctly', () => {
+      expect(getContentType({ 'content-type': 'text/xml' })).toBe('application/xml');
+      expect(getContentType({ 'content-type': 'application/xml' })).toBe('application/xml');
+      expect(getContentType({ 'content-type': 'application/atom+xml' })).toBe('application/xml');
+    });
+
+    it('should handle image content types correctly', () => {
+      expect(getContentType({ 'content-type': 'image/svg+xml;charset=utf-8' })).toBe('image/svg+xml');
+      expect(getContentType({ 'content-type': 'IMAGE/SVG+xml' })).toBe('image/svg+xml');
+    });
+
+    it('should return original content type when no pattern matches', () => {
+      expect(getContentType({ 'content-type': 'image/jpeg' })).toBe('image/jpeg');
+      expect(getContentType({ 'content-type': 'application/pdf' })).toBe('application/pdf');
+    });
+
+    it('should not be case sensitive', () => {
+      expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'Content-Type': 'text/json' })).toBe('application/ld+json');
+    });
+
+    it('should handle empty content type', () => {
+      expect(getContentType({ 'content-type': '' })).toBe('');
+      expect(getContentType({ 'content-type': null })).toBe('');
+      expect(getContentType({ 'content-type': undefined })).toBe('');
+    });
+
+    it('should handle empty or invalid inputs', () => {
+      expect(getContentType({})).toBe('');
+      expect(getContentType(null)).toBe('');
+      expect(getContentType(undefined)).toBe('');
+    });
+  });
+
+  describe('formatSize', () => {
+    it('should format bytes', () => {
+      expect(formatSize(0)).toBe('0B');
+      expect(formatSize(1023)).toBe('1023B');
+    });
+
+    it('should format kilobytes', () => {
+      expect(formatSize(1024)).toBe('1.0KB');
+      expect(formatSize(1048575)).toBe('1024.0KB');
+    });
+
+    it('should format megabytes', () => {
+      expect(formatSize(1048576)).toBe('1.0MB');
+      expect(formatSize(1073741823)).toBe('1024.0MB');
+    });
+
+    it('should format gigabytes', () => {
+      expect(formatSize(1073741824)).toBe('1.0GB');
+      expect(formatSize(1099511627776)).toBe('1024.0GB');
+    });
+
+    it('should format decimal values', () => {
+      expect(formatSize(1126.5)).toBe('1.1KB');
+      expect(formatSize(1153433.6)).toBe('1.1MB');
+      expect(formatSize(1153433600)).toBe('1.1GB');
+      expect(formatSize(1024.1)).toBe('1.0KB');
+      expect(formatSize(1048576.1)).toBe('1.0MB');
+    });
+
+    it('should format invalid inputs', () => {
+      expect(formatSize(null)).toBe('0B');
+      expect(formatSize(undefined)).toBe('0B');
+      expect(formatSize(NaN)).toBe('0B');
+    });
+  });
+
+  describe('prettifyJsonString', () => {
+    test('should return non-string inputs unchanged', () => {
+      expect(prettifyJsonString(null)).toBe(null);
+      expect(prettifyJsonString(undefined)).toBe(undefined);
+      expect(prettifyJsonString(123)).toBe(123);
+      expect(prettifyJsonString([])).toEqual([]);
+      expect(prettifyJsonString({})).toEqual({});
+      expect(prettifyJsonString(true)).toBe(true);
+    });
+
+    test('should format valid JSON without Bruno variables', () => {
+      const input = '{"name":"John","age":30}';
+      const expected = `{\n  "name": "John",\n  "age": 30\n}`;
+      console.log(prettifyJsonString(input));
+      expect(prettifyJsonString(input)).toBe(expected);
+    });
+
+    test('should format valid JSON with Bruno variables', () => {
+      const input = '{"name": {{userName}}}';
+      const expected = `{\n  "name": {{userName}}\n}`;
+      console.log(prettifyJsonString(input));
+      expect(prettifyJsonString(input)).toBe(expected);
+    });
+
+    test('should format complex json string', () => {
+      const input = `{"id": 123456789123456789123456789,"name": "Test 'JSON' Data with "quotes" — Pretty Print ","active": true,"price": 199.9999999,"decimals": 1.00,"nullValue": null,"unicodeText": "こんにちは世界 ","escapedCharacters": "Line1\nLine2\tTabbed\"Quoted\" and 'single quoted' with 'code' style","nestedObject": {  "level1": {    "level2": {      "emptyArray": [],      "specialChars": "@#$%^&*()_+-=[]{}|;':,./<>?~",      "booleanValues": [        true,        false,        true      ],      "numbers": [        0,        -1,        1.23e10,        3.1415926535      ]    }  }},"mixedArray": [  "string with 'apostrophe'",  42,  false,  null,  {    "innerObj": {      "keyWithQuotes": "value containing \`backticks\` and 'single quotes'",      "nestedArray": [        {          "a": "O'Reilly"        }{          "b": "'inline code'"        },        [          "deep",          "array",          {            "c": "contains 'quotes'"          }        ]      ]    }  }],"nonStringVariable": {{nonStringVar}},"withBrunoVariable": "{{string}} '{{with}}' "{{variety}}" of '{{variables}}'","dateExample": "2025-11-07T12:34:56Z","regexExample": "^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$","urls": {  "website": "https://example.com?param='value'&flag='true'",  "escapedURL": "https:\/\/escaped-url.com\/path\?q='search'\&debug='on'"},"multiLineString": "This is a long text\nthat spans multiple\nlines with \`backticks\` 'quotes' and 'code' snippets "}`;
+      const expectedOutput = `{
+  "id": 123456789123456789123456789,
+  "name": "Test 'JSON' Data with "quotes" — Pretty Print ",
+  "active": true,
+  "price": 199.9999999,
+  "decimals": 1.00,
+  "nullValue": null,
+  "unicodeText": "こんにちは世界 ",
+  "escapedCharacters": "Line1\nLine2\tTabbed\"Quoted\" and 'single quoted' with 'code' style",
+  "nestedObject": {
+    "level1": {
+      "level2": {
+        "emptyArray": [],
+        "specialChars": "@#$%^&*()_+-=[]{}|;':,./<>?~",
+        "booleanValues": [
+          true,
+          false,
+          true
+        ],
+        "numbers": [
+          0,
+          -1,
+          1.23e10,
+          3.1415926535
+        ]
+      }
+    }
+  },
+  "mixedArray": [
+    "string with 'apostrophe'",
+    42,
+    false,
+    null,
+    {
+      "innerObj": {
+        "keyWithQuotes": "value containing \`backticks\` and 'single quotes'",
+        "nestedArray": [
+          {
+            "a": "O'Reilly"
+          }{
+            "b": "'inline code'"
+          },
+          [
+            "deep",
+            "array",
+            {
+              "c": "contains 'quotes'"
+            }
+          ]
+        ]
+      }
+    }
+  ],
+  "nonStringVariable": {{nonStringVar}},
+  "withBrunoVariable": "{{string}} '{{with}}' "{{variety}}" of '{{variables}}'",
+  "dateExample": "2025-11-07T12:34:56Z",
+  "regexExample": "^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$",
+  "urls": {
+    "website": "https://example.com?param='value'&flag='true'",
+    "escapedURL": "https:\/\/escaped-url.com\/path\?q='search'\&debug='on'"
+  },
+  "multiLineString": "This is a long text\nthat spans multiple\nlines with \`backticks\` 'quotes' and 'code' snippets "
+}`;
+      expect(prettifyJsonString(input)).toBe(expectedOutput);
     });
   });
 });

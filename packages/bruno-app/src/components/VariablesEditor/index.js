@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import get from 'lodash/get';
 import filter from 'lodash/filter';
-import { Inspector } from 'react-inspector';
+import { Inspector, chromeDark, chromeLight } from 'react-inspector';
 import { useTheme } from 'providers/Theme';
 import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
@@ -15,7 +15,7 @@ const KeyValueExplorer = ({ data = [], theme }) => {
       <SecretToggle showSecret={showSecret} onClick={() => setShowSecret(!showSecret)} />
       <table className="border-collapse">
         <tbody>
-          {data.map((envVar) => (
+          {data.toSorted((a, b) => a.name.localeCompare(b.name)).map((envVar) => (
             <tr key={envVar.name}>
               <td className="px-2 py-1">{envVar.name}</td>
               <td className="px-2 py-1">
@@ -84,19 +84,21 @@ const RuntimeVariables = ({ collection, theme }) => {
 };
 
 const VariablesEditor = ({ collection }) => {
-  const { storedTheme } = useTheme();
+  const { displayedTheme, theme } = useTheme();
 
-  const reactInspectorTheme = storedTheme === 'light' ? 'chromeLight' : 'chromeDark';
+  const reactInspectorTheme
+    = displayedTheme === 'light'
+      ? { ...chromeLight, OBJECT_VALUE_STRING_COLOR: theme.variables.runtime.color }
+      : { ...chromeDark, OBJECT_VALUE_STRING_COLOR: theme.variables.runtime.color };
 
   return (
-    <StyledWrapper className="px-4 py-4">
+    <StyledWrapper className="px-4 py-4 overflow-auto">
       <RuntimeVariables collection={collection} theme={reactInspectorTheme} />
       <EnvVariables collection={collection} theme={reactInspectorTheme} />
 
       <div className="mt-8 muted text-xs">
         Note: As of today, runtime variables can only be set via the API - <span className="font-medium">getVar()</span>{' '}
         and <span className="font-medium">setVar()</span>. <br />
-        In the next release, we will add a UI to set and modify runtime variables.
       </div>
     </StyledWrapper>
   );

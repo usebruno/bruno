@@ -6,9 +6,16 @@ import { useSelector, useDispatch } from 'react-redux';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
-import { sendRequest, saveRequest, saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import GlobalSearchModal from 'components/GlobalSearchModal';
+import {
+  sendRequest,
+  saveRequest,
+  saveCollectionRoot,
+  saveFolderRoot
+} from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -21,6 +28,7 @@ export const HotkeysProvider = (props) => {
   const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false);
 
   const getCurrentCollection = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -43,7 +51,11 @@ export const HotkeysProvider = (props) => {
           if (collection) {
             const item = findItemInCollection(collection, activeTab.uid);
             if (item && item.uid) {
-              dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
+              if (activeTab.type === 'folder-settings') {
+                dispatch(saveFolderRoot(collection.uid, item.uid));
+              } else {
+                dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
+              }
             } else if (activeTab.type === 'collection-settings') {
               dispatch(saveCollectionRoot(collection.uid));
             }
@@ -69,6 +81,19 @@ export const HotkeysProvider = (props) => {
         if (collection) {
           const item = findItemInCollection(collection, activeTab.uid);
           if (item) {
+
+            if(item.type === 'grpc-request') {
+              const request = item.draft ? item.draft.request : item.request;
+              if(!request.url) {
+                toast.error('Please enter a valid gRPC server URL');
+                return;
+              }
+              if(!request.method) {
+                toast.error('Please select a gRPC method');
+                return;
+              }
+            }
+            
             dispatch(sendRequest(item, collection.uid)).catch((err) =>
               toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
                 duration: 5000
@@ -125,6 +150,19 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('newRequest')]);
     };
   }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
+
+  // global search (ctrl/cmd + k)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('globalSearch')], (e) => {
+      setShowGlobalSearchModal(true);
+
+      return false; // stop bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('globalSearch')]);
+    };
+  }, []);
 
   // close tab hotkey
   useEffect(() => {
@@ -202,13 +240,54 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid, tabs, collections, dispatch]);
 
+  // Collapse sidebar (ctrl/cmd + \)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('collapseSidebar')], (e) => {
+      dispatch(toggleSidebarCollapse());
+      return false;
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('collapseSidebar')]);
+    };
+  }, [dispatch]);
+
+  // Move tab left
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('moveTabLeft')], (e) => {
+      dispatch(reorderTabs({ direction: -1 }));
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('moveTabLeft')]);
+    };
+  }, [dispatch]);
+
+  // Move tab right
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('moveTabRight')], (e) => {
+      dispatch(reorderTabs({ direction: 1 }));
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('moveTabRight')]);
+    };
+  }, [dispatch]);
+
+  const currentCollection = getCurrentCollection();
+
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
       {showEnvSettingsModal && (
-        <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)} />
+        <EnvironmentSettings collection={currentCollection} onClose={() => setShowEnvSettingsModal(false)} />
       )}
       {showNewRequestModal && (
-        <NewRequest collection={getCurrentCollection()} onClose={() => setShowNewRequestModal(false)} />
+        <NewRequest collectionUid={currentCollection?.uid} onClose={() => setShowNewRequestModal(false)} />
+      )}
+      {showGlobalSearchModal && (
+        <GlobalSearchModal isOpen={showGlobalSearchModal} onClose={() => setShowGlobalSearchModal(false)} />
       )}
       <div>{props.children}</div>
     </HotkeysContext.Provider>

@@ -1,0 +1,17 @@
+meta {
+  name: timeout-test
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://testbench-sanity.usebruno.com/redirect-to-ping
+  body: none
+  auth: inherit
+}
+
+settings {
+  followRedirects: false
+  maxRedirects: 0
+  timeout: 5
+}

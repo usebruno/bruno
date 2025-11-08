@@ -83,10 +83,19 @@ const AuthMode = ({ collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('ntlm');
+            }}
+          >
+            NTLM Auth
+          </div>          
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('oauth2');
             }}
           >
-            Oauth2
+            OAuth 2.0
           </div>
           <div
             className="dropdown-item"

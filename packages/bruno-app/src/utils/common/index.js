@@ -1,5 +1,8 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
+import { JSONPath } from 'jsonpath-plus';
+import fastJsonFormat from 'fast-json-format';
+import { patternHasher } from '@usebruno/common/utils';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -51,14 +54,6 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
-export const convertToCodeMirrorJson = (obj) => {
-  try {
-    return JSON5.stringify(obj).slice(1, -1);
-  } catch (e) {
-    return obj;
-  }
-};
-
 export const safeParseXML = (str, options) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
@@ -83,27 +78,40 @@ export const normalizeFileName = (name) => {
 };
 
 export const getContentType = (headers) => {
-  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
 
-  if (headersArray.length > 0) {
-    let contentType = headersArray
-      .filter((header) => header[0].toLowerCase() === 'content-type')
-      .map((header) => {
-        return header[1];
-      });
-    if (contentType && contentType.length) {
-      if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
-        return 'application/ld+json';
-      } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
-        return 'application/xml';
-      }
-
-      return contentType[0];
-    }
+  // Return empty string for invalid headers
+  if (!headers || typeof headers !== 'object' || Object.keys(headers).length === 0) {
+    return '';
   }
 
-  return '';
-};
+  // Get content-type header value
+  const contentTypeHeader = Object.entries(headers)
+    .find(([key]) => key.toLowerCase() === 'content-type');
+
+  const contentType = contentTypeHeader && contentTypeHeader[1];
+
+  // Return empty string if no content-type or not a string
+  if (!contentType || typeof contentType !== 'string') {
+    return '';
+  }
+  // This pattern matches content types like application/json, application/ld+json, text/json, etc.
+  const JSON_PATTERN = /^[\w\-]+\/([\w\-]+\+)?json/;
+  // This pattern matches content types like image/svg.
+  const SVG_PATTERN = /^image\/svg/i;
+  // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
+  const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
+
+  if (JSON_PATTERN.test(contentType)) {
+    return 'application/ld+json';
+  } else if (SVG_PATTERN.test(contentType)) {
+    return 'image/svg+xml';
+  } else if (XML_PATTERN.test(contentType)) {
+    return 'application/xml';
+  }
+
+  return contentType;
+}
+
 
 export const startsWith = (str, search) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -151,7 +159,15 @@ export const relativeDate = (dateString) => {
 export const humanizeDate = (dateString) => {
   // See this discussion for why .split is necessary
   // https://stackoverflow.com/questions/7556591/is-the-javascript-date-object-always-one-day-off
-  const date = new Date(dateString.split('-'));
+
+  if (!dateString || typeof dateString !== 'string') {
+    return 'Invalid Date';
+  }
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -166,3 +182,158 @@ export const generateUidBasedOnHash = (str) => {
 };
 
 export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);
+
+export const getEncoding = (headers) => {
+  // Parse the charset from content type: https://stackoverflow.com/a/33192813
+  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
+  return charsetMatch?.[1];
+}
+
+export const multiLineMsg = (...messages) => {
+  return messages.filter(m => m !== undefined && m !== null && m !== '').join('\n');
+}
+
+export const formatSize = (bytes) => {
+  // Handle invalid inputs
+  if (isNaN(bytes) || typeof bytes !== 'number') {
+    return '0B';
+  }
+
+  if (bytes < 1024) {
+    return bytes + 'B';
+  }
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(1) + 'KB';
+  }
+  if (bytes < 1024 * 1024 * 1024) {
+    return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+  }
+
+  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + 'GB';
+}
+
+export const sortByNameThenSequence = items => {
+  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+
+  // Sort folders alphabetically by name
+  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
+
+  // Extract folders without 'seq'
+  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+
+  // Extract folders with 'seq' and sort them by 'seq'
+  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+
+  const sortedItems = withoutSeq;
+
+  // Insert folders with 'seq' at their specified positions
+  withSeq.forEach((item) => {
+    const position = item.seq - 1;
+    const existingItem = withoutSeq[position];
+
+    // Check if there's already an item with the same sequence number
+    const hasItemWithSameSeq = Array.isArray(existingItem)
+      ? existingItem?.[0]?.seq === item.seq
+      : existingItem?.seq === item.seq;
+
+    if (hasItemWithSameSeq) {
+      // If there's a conflict, group items with same sequence together
+      const newGroup = Array.isArray(existingItem)
+        ? [...existingItem, item]
+        : [existingItem, item];
+      
+      withoutSeq.splice(position, 1, newGroup);
+    } else {
+      // Insert item at the specified position
+      withoutSeq.splice(position, 0, item);
+    }
+  });
+
+  // return flattened sortedItems
+  return sortedItems.flat();
+};
+
+// Memory threshold to prevent crashes when decoding large buffers
+const LARGE_BUFFER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
+
+const applyJSONPathFilter = (data, filter) => {
+  try {
+    return JSONPath({ path: filter, json: data });
+  } catch (e) {
+    console.warn('Could not apply JSONPath filter:', e.message);
+    return data;
+  }
+};
+
+export const formatResponse = (data, dataBufferString, mode, filter, bufferThreshold = LARGE_BUFFER_THRESHOLD) => {
+  if (data === undefined || !dataBufferString || !mode) {
+    return '';
+  }
+
+  let bufferSize = 0, rawData = '', isVeryLargeResponse = false;
+  try {
+    const dataBuffer = Buffer.from(dataBufferString, 'base64');
+    bufferSize = dataBuffer.length;
+    isVeryLargeResponse = bufferSize > bufferThreshold;
+    if (!isVeryLargeResponse) {
+      rawData = dataBuffer.toString();
+    }
+  } catch (error) {
+    console.warn('Failed to calculate buffer size:', error);
+  }
+
+  if (mode.includes('json')) {
+    try {
+      if (filter) {
+        return safeStringifyJSON(applyJSONPathFilter(data, filter), true);
+      }
+    } catch (error) {}
+
+    if (isVeryLargeResponse) {
+      return safeStringifyJSON(data, false);
+    }
+
+    try {
+      return prettifyJsonString(rawData);
+    } catch (error) {}
+
+    if (typeof data === 'string') {
+      return data;
+    }
+    // Try to stringify the data, fallback to String conversion if needed
+    const stringified = safeStringifyJSON(data, false);
+    return typeof stringified === 'string' ? stringified : String(data);
+  }
+
+  if (mode.includes('xml')) {
+    if (isVeryLargeResponse) {
+      return typeof data === 'string' ? data : safeStringifyJSON(data, false);
+    }
+
+    let parsed = safeParseXML(data, { collapseContent: true });
+    if (typeof parsed === 'string') {
+      return parsed;
+    }
+    return safeStringifyJSON(parsed, true);
+  }
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  return safeStringifyJSON(data, !isVeryLargeResponse);
+};
+
+export const prettifyJsonString = (jsonDataString) => {
+  if (typeof jsonDataString !== 'string') return jsonDataString;
+  try {
+    const { hashed, restore } = patternHasher(jsonDataString);
+    const formattedJsonDataStringHashed = fastJsonFormat(hashed);
+    const formattedJsonDataString = restore(formattedJsonDataStringHashed);
+    return formattedJsonDataString;
+  } catch (error) {
+    console.log('error formatting json data!');
+    console.error(error);
+  }
+  return jsonDataString;
+};

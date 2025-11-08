@@ -2,13 +2,15 @@ import React, { useRef, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { renameCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { findCollectionByUid } from 'utils/collections/index';
 
-const RenameCollection = ({ collection, onClose }) => {
+const RenameCollection = ({ collectionUid, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+  const collection = useSelector(state => findCollectionByUid(state.collections.collections, collectionUid));
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -17,7 +19,6 @@ const RenameCollection = ({ collection, onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
         .required('name is required')
     }),
     onSubmit: (values) => {

@@ -6,26 +6,39 @@ const StyledWrapper = styled.div`
   max-height: 200px;
   overflow: auto;
 
+  &.read-only {
+    .CodeMirror .CodeMirror-lines {
+      cursor: not-allowed !important;
+    }
+
+    .CodeMirror-line {
+      color: ${(props) => props.theme.colors.text.muted} !important;
+    }
+
+    .CodeMirror-cursor {
+      display: none !important;
+    }
+  }
+
   .CodeMirror {
     background: transparent;
     height: fit-content;
     font-size: 14px;
     line-height: 30px;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 200px;
 
-    .CodeMirror-scroll {
-      overflow: hidden !important;
-      ${'' /* padding-bottom: 50px !important; */}
-      position: relative;
-      display: block;
-      margin: 0px;
-      padding: 0px;
+    pre.CodeMirror-placeholder {
+      color: ${(props) => props.theme.text};
+      padding-left: 0;
+      opacity: 0.5;
     }
 
     .CodeMirror-vscrollbar,
     .CodeMirror-hscrollbar,
     .CodeMirror-scrollbar-filler {
-      display: none;
+      display: none !important;
     }
 
     .CodeMirror-lines {
