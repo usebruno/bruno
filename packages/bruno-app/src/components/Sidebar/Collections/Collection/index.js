@@ -274,7 +274,6 @@ const Collection = ({ collection, searchText }) => {
               collectionUid={collection.uid}
               onRequestCreated={() => {
                 menuDropdownTippyRef.current.hide();
-                setShowNewRequestModal(true);
               }}
               icon={<div className="dropdown-item">New Request</div>}
               placement="right-start"

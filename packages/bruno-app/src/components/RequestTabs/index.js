@@ -157,7 +157,7 @@ const RequestTabs = () => {
                     collectionUid={activeCollection.uid}
                     itemUid={null}
                     icon={<PlusIcon />}
-                    placement="right-start"
+                    placement="bottom-start"
                   />
                 )}
               </div>
