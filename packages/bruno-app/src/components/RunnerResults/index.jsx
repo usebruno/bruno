@@ -400,7 +400,7 @@ export default function RunnerResults({ collection }) {
 
       <div className="flex gap-4 h-[calc(100vh_-_10rem)] overflow-hidden">
         <div
-          className={`flex flex-col ${selectedItem ? 'w-1/2' : 'w-full'}`}
+          className={`flex flex-col w-1/2`}
         >
           {tagsEnabled && areTagsAdded && (
             <div className="pb-2 text-xs flex flex-row gap-1">
@@ -422,7 +422,7 @@ export default function RunnerResults({ collection }) {
             : null}
 
           {/* Items list */}
-          <div className="overflow-y-auto flex-1" ref={runnerBodyRef}>
+          <div className="overflow-y-auto flex-1 " ref={runnerBodyRef}>
             {filteredItems.map((item) => {
               return (
                 <div key={item.uid}>
