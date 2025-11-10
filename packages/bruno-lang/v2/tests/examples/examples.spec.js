@@ -204,15 +204,16 @@ get {
           type: 'http'
         },
         http: {
-          method: 'get',
-          url: 'https://api.example.com/test'
+          url: 'https://api.example.com/test',
+          method: 'get'
         },
         examples: [
           {
             name: 'Example Request',
             description: 'A simple example',
             request: {
-              url: 'https://api.example.com/example'
+              url: 'https://api.example.com/example',
+              method: 'get'
             }
           }
         ]
@@ -233,6 +234,7 @@ example {
   
   request: {
     url: https://api.example.com/example
+    method: get
   }
 }
 `;

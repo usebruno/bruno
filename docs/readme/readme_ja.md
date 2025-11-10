@@ -43,13 +43,6 @@ Bruno はオフラインのみで利用できます。Bruno にクラウド同�
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
-### ゴールデンエディション ✨
-
-機能のほとんどが無料で使用でき、オープンソースとなっています。
-私たちは[オープンソースの原則と長期的な維持](https://github.com/usebruno/bruno/discussions/269)の間でうまくバランスを取ろうと努力しています。
-
-[ゴールデンエディション](https://www.usebruno.com/pricing)を **19 ドル** (買い切り)で購入できます！
-
 ### インストール方法
 
 Bruno は[私たちのウェブサイト](https://www.usebruno.com/downloads)からバイナリをダウンロードできます。Mac, Windows, Linux に対応しています。

@@ -14,6 +14,14 @@ import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from './utils/auth-utils';
 
+const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/g;
+
+const validateURLWithVars = (url) => {
+  const isValid = isValidUrl(url);
+  const hasMissingInterpolations = TEMPLATE_VAR_PATTERN.test(url);
+  return isValid && !hasMissingInterpolations;
+};
+
 const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exampleUid = null }) => {
   const languages = getLanguages();
   const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
@@ -122,7 +130,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
           <CodeViewToolbar />
 
           <div className="editor-container">
-            {isValidUrl(finalUrl) ? (
+            {validateURLWithVars(finalUrl) ? (
               <CodeView
                 language={selectedLanguage}
                 item={finalItem}

@@ -9,6 +9,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { uuid } from 'utils/common';
 import { copyRequest } from 'providers/ReduxStore/slices/app';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -31,7 +33,7 @@ import ExampleItem from './ExampleItem';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
-import { calculateDraggedItemNewPathname } from 'utils/collections/index';
+import { calculateDraggedItemNewPathname, getInitialExampleName } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 
@@ -300,7 +302,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
-  const handleCreateExample = (name, description = '') => {
+  const handleCreateExample = async (name, description = '') => {
     // Create example with default values
     const exampleData = {
       name: name,
@@ -314,28 +316,34 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       }
     };
 
+    // Calculate the index where the example will be saved
+    const existingExamples = item.draft?.examples || item.examples || [];
+    const exampleIndex = existingExamples.length;
+    const exampleUid = uuid();
+
     dispatch(addResponseExample({
       itemUid: item.uid,
       collectionUid: collectionUid,
-      example: exampleData
+      example: {
+        ...exampleData,
+        uid: exampleUid
+      }
     }));
 
-    dispatch(saveRequest(item.uid, collectionUid));
+    // Save the request
+    await dispatch(saveRequest(item.uid, collectionUid));
+
+    // Task middleware will track this and open the example in a new tab once the file is reloaded
+    dispatch(insertTaskIntoQueue({
+      uid: exampleUid,
+      type: 'OPEN_EXAMPLE',
+      collectionUid: collectionUid,
+      itemUid: item.uid,
+      exampleIndex: exampleIndex
+    }));
+
     toast.success(`Example "${name}" created successfully`);
     setCreateExampleModalOpen(false);
-  };
-
-  const getInitialExampleName = () => {
-    const baseName = 'example';
-    const existingExamples = item.draft?.examples || item.examples || [];
-    let maxCounter = 0;
-    existingExamples.forEach((example) => {
-      const exampleName = example.name || '';
-      if (exampleName.startsWith(baseName)) {
-        maxCounter++;
-      }
-    });
-    return `${baseName} (${maxCounter})`;
   };
 
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
@@ -418,7 +426,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onClose={() => setCreateExampleModalOpen(false)}
         onSave={handleCreateExample}
         title="Create Response Example"
-        initialName={getInitialExampleName()}
+        initialName={getInitialExampleName(item)}
       />
       <div
         className={itemRowClassName}

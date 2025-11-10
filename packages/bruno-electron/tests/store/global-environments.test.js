@@ -12,11 +12,11 @@ describe('global environment variable type backward compatibility', () => {
     // Mock global environments without type field
     const mockGlobalEnvironments = [
       {
-        uid: "env-1",
+        uid: 'yDlwWe3qgimPG20G7AbF7',
         name: "Test Environment",
         variables: [
           {
-            uid: "var-1",
+            uid: 'b6BIHGaCrm4m97YA2dIdx',
             name: "regular_var",
             value: "regular_value",
             enabled: true,
@@ -24,7 +24,7 @@ describe('global environment variable type backward compatibility', () => {
             // Missing: type field
           },
           {
-            uid: "var-2", 
+            uid: 'yQTqanPoMdRjKnHyIOZNc',
             name: "secret_var",
             value: "secret_value",
             enabled: true,

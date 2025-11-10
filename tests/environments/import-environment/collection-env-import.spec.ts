@@ -83,17 +83,5 @@ test.describe('Collection Environment Import Tests', () => {
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('201');
-
-    // Cleanup
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
-    await page
-      .locator('.collection-name')
-      .filter({ has: page.locator('#sidebar-collection-name:has-text("Environment Test Collection")') })
-      .locator('.collection-actions')
-      .click();
-    // Wait for the close collection modal to be hidden
-    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).waitFor({ state: 'detached' });
-    await page.getByRole('button', { name: 'Close' }).click();
   });
 });

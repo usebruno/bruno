@@ -4,14 +4,20 @@ meta {
   seq: 2
 }
 
-get {
-  url: https://httpbin.org/uuid
-  body: none
+post {
+  url: https://echo.usebruno.com
+  body: json
   auth: none
 }
 
 headers {
   Accept: application/json
+}
+
+body:json {
+  {
+    "uuid": "49889366-72d2-4ba6-a0b7-94de29a04dc4"
+  }
 }
 
 tests {

@@ -87,11 +87,13 @@ test.describe('Onboarding', () => {
     const page = await app.firstWindow();
     
     // First launch - sample collection should be created
-    const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
+    const sampleCollection = page.locator('.collection-name').filter({ hasText: 'Sample API Collection' });
     await expect(sampleCollection).toBeVisible();
     
-    // User closes the sample collection (right-click to open context menu)
-    await sampleCollection.click({ button: 'right' });
+    // User closes the sample collection (hover on the collection and open context menu)
+    await sampleCollection.hover();
+    await sampleCollection.locator('.collection-actions .icon').click();
+
     
     // Close the sample collection
     const closeOption = page.locator('.dropdown-item').getByText('Close');

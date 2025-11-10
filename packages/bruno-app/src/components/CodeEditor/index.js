@@ -63,7 +63,7 @@ export default class CodeEditor extends React.Component {
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
       lint: this.lintOptions,
-      readOnly: this.props.readOnly ? 'nocursor' : false,
+      readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
@@ -246,7 +246,7 @@ export default class CodeEditor extends React.Component {
     }
 
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
-      this.editor.setOption('readOnly', this.props.readOnly ? 'nocursor' : false);
+      this.editor.setOption('readOnly', this.props.readOnly);
     }
 
     this.ignoreChangeEvent = false;

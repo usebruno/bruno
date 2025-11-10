@@ -10,7 +10,9 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       if (page && !page.isClosed()) {
         await page.locator('#sidebar-collection-name').click();
         await page.getByTestId('environment-selector-trigger').click();
+        await page.waitForTimeout(200);
         await page.locator('#configure-env').click();
+        await page.waitForTimeout(200);
 
         // Remove the test environment variables
         const key1Row = page.getByRole('row', { name: 'multiple-persist-vars-key1' });
@@ -40,6 +42,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
 
     await test.step('Select stage environment', async () => {
       await page.getByTestId('environment-selector-trigger').click();
+      await page.waitForTimeout(200);
       await expect(page.locator('.environment-list .dropdown-item', { hasText: 'Stage' })).toBeVisible();
       await page.locator('.environment-list .dropdown-item', { hasText: 'Stage' }).click();
       await expect(page.locator('.current-environment', { hasText: 'Stage' })).toBeVisible();
@@ -49,8 +52,9 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       // Ensure we're in the correct collection context before selecting the folder
       await expect(page.locator('#sidebar-collection-name', { hasText: 'collection' })).toBeVisible();
 
-      // Right-click on the folder to open context menu
-      await page.getByText('multiple-persist-vars-folder', { exact: true }).click({ button: 'right' });
+      // Hover on the folder and open context menu
+      await page.getByText('multiple-persist-vars-folder', { exact: true }).hover();
+      await page.locator('.collection-item-name').filter({ hasText: 'multiple-persist-vars-folder' }).locator('.menu-icon').click();
 
       // Click on Run option
       await page.getByText('Run', { exact: true }).click();
@@ -67,7 +71,9 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       await expect(page.locator('#sidebar-collection-name', { hasText: 'collection' })).toBeVisible();
 
       await page.getByTestId('environment-selector-trigger').click();
+      await page.waitForTimeout(200);
       await page.locator('#configure-env').click();
+      await page.waitForTimeout(200);
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key1' }).getByRole('cell').nth(1)).toBeVisible();
       await expect(page.getByRole('row', { name: 'value1' }).getByRole('cell').nth(2)).toBeVisible();
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key2' }).getByRole('cell').nth(1)).toBeVisible();

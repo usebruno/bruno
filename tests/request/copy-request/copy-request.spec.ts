@@ -16,7 +16,7 @@ test.describe('Copy and Paste Requests', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('original-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'original-request' })).toBeVisible();
@@ -27,7 +27,8 @@ test.describe('Copy and Paste Requests', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'Copy' }).click();
 
     // Paste into the collection root
-    await collection.click({ button: 'right' });
+    await collection.hover();
+    await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Paste' }).click();
 
     // Verify the pasted request appears with the same name
@@ -45,7 +46,8 @@ test.describe('Copy and Paste Requests', () => {
     // Paste into the folder
     const folder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });
     await folder.click();
-    await folder.click({ button: 'right' });
+    await folder.hover();
+    await folder.locator('.menu-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Paste' }).click();
 
     await page.waitForTimeout(2000);
@@ -57,7 +59,8 @@ test.describe('Copy and Paste Requests', () => {
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection-2' });
 
     // Paste into the collection root
-    await collection.click({ button: 'right' });
+    await collection.hover();
+    await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Paste' }).click();
 
     // Verify the pasted request appears with the same name

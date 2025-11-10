@@ -36,7 +36,7 @@ class MultiLineEditor extends Component {
       brunoVarInfo: {
         variables
       },
-      readOnly: this.props.readOnly ? 'nocursor' : false,
+      readOnly: this.props.readOnly,
       tabindex: 0,
       extraKeys: {
         'Ctrl-Enter': () => {
@@ -132,7 +132,7 @@ class MultiLineEditor extends Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
-      this.editor.setOption('readOnly', this.props.readOnly ? 'nocursor' : false);
+      this.editor.setOption('readOnly', this.props.readOnly);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);

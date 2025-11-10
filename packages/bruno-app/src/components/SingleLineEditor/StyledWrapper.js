@@ -7,12 +7,6 @@ const StyledWrapper = styled.div`
   overflow-x: hidden;
 
   &.read-only {
-    .CodeMirror .CodeMirror-lines {
-      user-select: none !important;
-      -webkit-user-select: none !important;
-      -ms-user-select: none !important;
-    }
-
     .CodeMirror-cursor {
       display: none !important;
     }

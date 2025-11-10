@@ -5,6 +5,7 @@ import fs from 'fs';
 
 const COLLECTION_PATH = path.join(__dirname, 'collection', 'bruno.json');
 const BACKUP_PATH = path.join(__dirname, 'collection', 'bruno.json.backup');
+import { execSync } from 'child_process';
 
 test.describe('manage protofile', () => {
   test.beforeAll(async () => {
@@ -17,12 +18,8 @@ test.describe('manage protofile', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {
     // Close all collections
     await closeAllCollections(page);
-
-    // Restore original file
-    if (fs.existsSync(BACKUP_PATH)) {
-      fs.copyFileSync(BACKUP_PATH, COLLECTION_PATH);
-      fs.unlinkSync(BACKUP_PATH);
-    }
+    // Reset the collection request file to the original state
+    execSync(`git checkout -- ${path.join(__dirname, 'collection', 'bruno.json')}`);
   });
 
   test('protofiles, import paths from bruno.json are visible in the protobuf settings', async ({ pageWithUserData: page }) => {

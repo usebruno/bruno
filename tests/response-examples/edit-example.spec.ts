@@ -27,7 +27,7 @@ test.describe.serial('Edit Response Examples', () => {
 
     await test.step('Open existing example', async () => {
       await page.locator('.collection-item-name', { hasText: 'edit-example' }).getByTestId('request-item-chevron').click();
-      const exampleItem = page.locator('.collection-item-name').getByText('Test Example', { exact: true });
+      const exampleItem = page.locator('.collection-item-name').filter({ hasText: 'Test Example' });
       await expect(exampleItem).toBeVisible();
       await exampleItem.click();
     });

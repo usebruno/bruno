@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 
 test.describe.serial('Response Example Menu Operations', () => {
+  test.setTimeout(1 * 60 * 1000); // 1 minute for all tests in this describe block, default is 30 seconds.
   test.afterAll(async () => {
     // Reset the collection request file to the original state
     execSync(`git checkout -- ${path.join(__dirname, 'fixtures', 'collection', 'menu-operations.bru')}`);
@@ -15,7 +16,7 @@ test.describe.serial('Response Example Menu Operations', () => {
     });
 
     await test.step('Create example', async () => {
-      await page.locator('#send-request').getByRole('img').nth(2).click();
+      await page.getByTestId('send-arrow-icon').click();
       await page.getByTestId('response-bookmark-btn').click();
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Clone');
