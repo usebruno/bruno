@@ -139,9 +139,16 @@ const getCertsAndProxyConfig = async ({
     const globalProxyConfigData = get(globalProxy, 'config', globalProxy);
 
     if (!globalDisabled && !globalInherit) {
-      // Use global custom proxy
-      proxyConfig = globalProxyConfigData;
-      proxyMode = 'on';
+      const pacUrl = get(globalProxy, 'pacUrl');
+      if (pacUrl) {
+        // Use PAC-based proxy
+        proxyMode = 'pac';
+        proxyConfig = { pacUrl };
+      } else {
+        // Use global custom proxy
+        proxyConfig = globalProxyConfigData;
+        proxyMode = 'on';
+      }
     } else if (!globalDisabled && globalInherit) {
       // Use system proxy (cached at app startup)
       proxyMode = 'system';

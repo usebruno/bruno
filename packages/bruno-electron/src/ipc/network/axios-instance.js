@@ -200,8 +200,8 @@ function makeAxiosInstance({
     };
 
     try {
-      // Now call setupProxyAgents and pass the timeline
-      setupProxyAgents({
+      // Now call setupProxyAgents and pass the timeline (async - may perform PAC resolution)
+      await setupProxyAgents({
         requestConfig: config,
         proxyMode: proxyMode, // 'on', 'off', or 'system', depending on your settings
         proxyConfig: proxyConfig,
@@ -268,7 +268,7 @@ function makeAxiosInstance({
       response.timeline = timeline;
       return response;
     },
-    (error) => {
+    async (error) => {
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
       timeline?.push({
@@ -415,7 +415,7 @@ function makeAxiosInstance({
           }
 
           try {
-            setupProxyAgents({
+            await setupProxyAgents({
               requestConfig,
               proxyMode,
               proxyConfig,

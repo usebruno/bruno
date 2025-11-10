@@ -31,6 +31,7 @@ const defaultPreferences = {
   },
   proxy: {
     inherit: true,
+    pacUrl: '',
     config: {
       protocol: 'http',
       hostname: '',
@@ -94,6 +95,7 @@ const preferencesSchema = Yup.object().shape({
   proxy: Yup.object({
     disabled: Yup.boolean().optional(),
     inherit: Yup.boolean().required(),
+    pacUrl: Yup.string().optional().max(2048).nullable(),
     config: Yup.object({
       protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),

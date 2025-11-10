@@ -8,6 +8,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
 const { getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
+const { getPacResolver } = require('../../../bruno-common/src/net/pac-resolver');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -103,7 +104,7 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 }
 
-function setupProxyAgents({
+async function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
   proxyConfig,
@@ -216,6 +217,31 @@ function setupProxyAgents({
         }
       } catch (error) {
         throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
+      }
+    }
+  } else if (proxyMode === 'pac') {
+    const pacUrl = get(proxyConfig, 'pacUrl');
+    if (pacUrl) {
+      try {
+        const resolver = await getPacResolver({ pacUrl });
+        const directives = await resolver.resolve(requestConfig.url);
+        if (directives && directives.length) {
+          const first = directives[0];
+          timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` });
+          if (/^(PROXY|HTTP)\s+/i.test(first)) {
+            const hostPort = first.split(/\s+/)[1];
+            const proxyUri = `http://${hostPort}`;
+            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
+            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
+          } else if (/^SOCKS/i.test(first)) {
+            const hostPort = first.split(/\s+/)[1];
+            const proxyUri = `socks5://${hostPort}`;
+            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
+            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
+          }
+        }
+      } catch (err) {
+        timeline.push({ timestamp: new Date(), type: 'error', message: `PAC resolution failed: ${err.message}` });
       }
     }
   }
