@@ -7,14 +7,14 @@ jest.mock('@usebruno/common', () => ({
 }));
 
 const fakeVariables = {
-      apiKey: 'test-api-key-123',
-      baseUrl: 'https://api.example.com',
-      userId: 12345,
-      pathParams: {
-        id: 'user-123',
-        slug: 'test-post'
-      }
-    };
+  apiKey: 'test-api-key-123',
+  baseUrl: 'https://api.example.com',
+  userId: 12345,
+  pathParams: {
+    id: 'user-123',
+    slug: 'test-post'
+  }
+};
 
 // Mock Redux store to avoid import.meta issues
 jest.mock('providers/ReduxStore', () => ({
@@ -25,7 +25,7 @@ jest.mock('providers/ReduxStore', () => ({
           {
             activeEnvironmentUid: '111',
             environments: [
-              { uid: '111', name: 'Development', variables: 
+              { uid: '111', name: 'Development', variables:
                 Object.entries(fakeVariables)
                   .filter(([key]) => key !== 'pathParams')
                   .map(([name, value]) => ({ name, value }))
