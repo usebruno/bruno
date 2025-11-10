@@ -284,6 +284,7 @@ const lightTheme = {
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
         border: '#EFEFEF',
         nameBackground: '#D977061A',
+        variableNameColor: '#343434',
         textareaFocusBorder: '#989898',
         textareaFocusShadow: 'none',
         textareaBackground: '#F7F7F7',

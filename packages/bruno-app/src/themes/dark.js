@@ -283,6 +283,7 @@ const darkTheme = {
         boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
         border: '#4F4F4F',
         nameBackground: '#D977061A',
+        variableNameColor: '#D4D4D4',
         textareaFocusBorder: '#CCCCCC',
         textareaFocusShadow: 'none',
         textareaBackground: '#292929',

@@ -282,14 +282,7 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .info-variable-name {
     font-size: 14px;
-  }
-
-  .light .CodeMirror-brunoVarInfo .info-variable-name {
-    color: #343434;
-  }
-
-  .dark .CodeMirror-brunoVarInfo .info-variable-name {
-    color: #D4D4D4;
+    color: ${(props) => props.theme.codemirror.variable.info.variableNameColor};
   }
 
   .CodeMirror-brunoVarInfo .value-container {
