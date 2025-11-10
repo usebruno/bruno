@@ -247,15 +247,8 @@ class GrpcClient {
    * @param {VerifyOptions} verifyOptions - Additional options for verifying the server certificate
    * @returns {import('@grpc/grpc-js').ChannelCredentials} The gRPC channel credentials
    */
-  #getChannelCredentials({ url, headers, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions }) {
+  #getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions }) {
     const securedProtocols = ['grpcs', 'https'];
-    const metadata = new Metadata();
-    Object.entries(headers).forEach(([name, value]) => {
-      metadata.set(name, value);
-    });
-    const callCredentials = credentials.createFromMetadataGenerator((options, callback) => {
-      callback(null, metadata);
-    });
     try {
       const { protocol } = getParsedGrpcUrlObject(url);
       const isSecureConnection = securedProtocols.some((sp) => protocol === sp);
@@ -285,15 +278,13 @@ class GrpcClient {
           pfx: pfxBuffer,
           passphrase: passphrase
         });
-        const channelCredentials = ChannelCredentials.createFromSecureContext(secureContext, sslOptions);
-        return credentials.combineChannelCredentials(channelCredentials, callCredentials);
+        return ChannelCredentials.createFromSecureContext(secureContext, sslOptions);
       }
 
-      const channelCredentials = ChannelCredentials.createSsl(rootCertBuffer, privateKeyBuffer, clientCertBuffer, sslOptions);
-      return credentials.combineChannelCredentials(channelCredentials, callCredentials);
+      return ChannelCredentials.createSsl(rootCertBuffer, privateKeyBuffer, clientCertBuffer, sslOptions);
     } catch (error) {
       console.error('Error creating channel credentials:', error);
-      // Default to insecure as fallback, you cannot combine credentials with insecure credentials
+      // Default to insecure as fallback
       return ChannelCredentials.createInsecure();
     }
   }
@@ -479,7 +470,6 @@ class GrpcClient {
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
-      headers: request.headers,
       rootCertificate,
       privateKey,
       certificateChain,
@@ -550,7 +540,7 @@ class GrpcClient {
     const collectionUid = collection.uid;
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
-      metadata.set(name, value);
+      metadata.add(name, value);
     });
 
     this.#handleConnection({
@@ -617,11 +607,10 @@ class GrpcClient {
     const { host, path } = getParsedGrpcUrlObject(request.url);
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
-      metadata.set(name, value);
+      metadata.add(name, value);
     });
     const credentials = this.#getChannelCredentials({
       url: request.url,
-      headers: request.headers,
       rootCertificate,
       privateKey,
       certificateChain,
