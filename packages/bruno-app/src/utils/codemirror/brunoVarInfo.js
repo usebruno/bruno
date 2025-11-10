@@ -144,14 +144,26 @@ const appendVariableHeader = (container, variableName, options) => {
 
 const appendVariableValue = (container, variableName, variableValue, options, cm) => {
   const variableType = getVariableType(variableName, options);
-  const isEditable = isVariableEditable(variableType);
+  const isEditableByType = isVariableEditable(variableType);
   const isMasked = isVariableMasked(variableName, options);
+  const isValueReference = isVariableValueReference(variableName, options);
+
+  // Variable is editable only if it's editable by type AND its value is not a variable reference AND it's not masked
+  const isEditable = isEditableByType && !isValueReference && !isMasked;
 
   const valueContainer = createValueContainer(variableName, variableValue, isMasked, isEditable, options, cm);
   container.appendChild(valueContainer);
 
   if (!isEditable) {
-    container.appendChild(createReadOnlyInfo());
+    let reason;
+    if (isMasked) {
+      reason = 'This variable cannot be edited because it is a secret variable.';
+    } else if (isValueReference) {
+      reason = 'This variable cannot be edited because its value references another variable.';
+    } else {
+      reason = 'This type of variable cannot be edited from tooltips.';
+    }
+    container.appendChild(createReadOnlyInfo(reason));
   }
 };
 
@@ -161,6 +173,86 @@ const isVariableEditable = (variableType) => {
 
 const isVariableMasked = (variableName, options) => {
   return options?.variables?.maskedEnvVariables?.includes(variableName);
+};
+
+// Check if a variable's value is a variable reference (e.g., {{host}})
+const isVariableValueReference = (variableName, options) => {
+  const reduxStore = store;
+  if (!reduxStore) {
+    return false;
+  }
+
+  const state = reduxStore.getState();
+  const globalEnvironments = state?.globalEnvironments?.globalEnvironments;
+  const activeGlobalEnvironmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
+  const collections = state?.collections?.collections;
+  const DOUBLE_BRACE_PATTERN = /\{\{([^}]+)\}\}/;
+
+  // Check global environment
+  const activeGlobalEnv = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
+  const globalVar = activeGlobalEnv?.variables?.find((v) => v.name === variableName);
+  if (globalVar && DOUBLE_BRACE_PATTERN.test(globalVar.value)) {
+    return true;
+  }
+
+  // Check collection environments
+  if (collections) {
+    for (const collection of collections) {
+      if (collection.activeEnvironmentUid && collection.environments) {
+        const environment = collection.environments.find((env) => env.uid === collection.activeEnvironmentUid);
+        const envVar = environment?.variables?.find((v) => v.name === variableName);
+        if (envVar && DOUBLE_BRACE_PATTERN.test(envVar.value)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // Check collection variables
+  if (collections) {
+    for (const collection of collections) {
+      const collectionVar = collection.root?.request?.vars?.req?.find((v) => v.name === variableName);
+      if (collectionVar && DOUBLE_BRACE_PATTERN.test(collectionVar.value)) {
+        return true;
+      }
+    }
+  }
+
+  // Check folder variables
+  if (collections) {
+    for (const collection of collections) {
+      const folderVar = findFolderVariableValue(collection.items, variableName);
+      if (folderVar && DOUBLE_BRACE_PATTERN.test(folderVar.value)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+const findFolderVariableValue = (items, variableName) => {
+  if (!items || !Array.isArray(items)) {
+    return null;
+  }
+
+  for (const item of items) {
+    if (item.type === 'folder') {
+      const folderVars = item.root?.request?.vars?.req || [];
+      const variable = folderVars.find((v) => v.name === variableName && v.enabled);
+      if (variable) {
+        return variable;
+      }
+
+      // Recursively check nested folders
+      const nestedResult = findFolderVariableValue(item.items, variableName);
+      if (nestedResult) {
+        return nestedResult;
+      }
+    }
+  }
+
+  return null;
 };
 
 const createValueContainer = (variableName, variableValue, isMasked, isEditable, options, cm) => {
@@ -269,10 +361,10 @@ const createEditTextarea = (variableName, variableValue, options, cm, valueConta
   return editTextarea;
 };
 
-const createReadOnlyInfo = () => {
+const createReadOnlyInfo = (message) => {
   const infoDiv = document.createElement('div');
   infoDiv.className = 'read-only-info';
-  infoDiv.textContent = 'This type of variable cannot be edited from tooltips.';
+  infoDiv.textContent = message;
   return infoDiv;
 };
 

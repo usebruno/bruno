@@ -248,7 +248,7 @@ const GlobalStyle = createGlobalStyle`
     line-height: 16px;
     margin: 8px -8px;
     margin-left: 2px;
-    max-width: 400px;
+    max-width: 291px;
     min-width: 291px;
     opacity: 0;
     overflow: hidden;
@@ -357,6 +357,8 @@ const GlobalStyle = createGlobalStyle`
     color: #666;
     margin-top: 4px;
     font-style: italic;
+    max-width: 100%;
+    line-height: 1.4;
   }
 
   .CodeMirror-brunoVarInfo :first-child {
