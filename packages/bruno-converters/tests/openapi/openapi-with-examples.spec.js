@@ -53,10 +53,10 @@ describe('OpenAPI with Examples', () => {
     const createUserRequest = brunoCollection.items.find((item) => item.name === 'Create a new user');
     expect(createUserRequest).toBeDefined();
     expect(createUserRequest.examples).toBeDefined();
-    expect(createUserRequest.examples).toHaveLength(2);
+    expect(createUserRequest.examples).toHaveLength(4);
 
     // Check response examples
-    const createdExample = createUserRequest.examples.find((ex) => ex.name === 'User Created');
+    const createdExample = createUserRequest.examples.find((ex) => ex.name === 'User Created (Valid User)');
     expect(createdExample).toBeDefined();
     expect(createdExample.response.status).toBe('201');
     expect(createdExample.response.statusText).toBe('Created');
@@ -149,7 +149,7 @@ servers:
     expect(JSON.parse(example.response.body.content)).toEqual({ message: 'test' });
   });
 
-  it('should not create examples array if no examples are present', () => {
+  it('should create examples without specified request body, when response is present', () => {
     const openApiWithoutExamples = `
 openapi: '3.0.0'
 info:
@@ -174,7 +174,11 @@ servers:
     const brunoCollection = openApiToBruno(openApiWithoutExamples);
     const request = brunoCollection.items[0];
 
-    expect(request.examples).toBeUndefined();
+    expect(request.examples).toHaveLength(1);
+    const example = request.examples[0];
+    expect(example.name).toBe('200 Response');
+    expect(example.description).toBe('OK');
+    expect(example.response.body.type).toBe('json');
   });
 
   it('should support path-based grouping when specified', () => {
@@ -300,5 +304,508 @@ servers:
     expect(productsFolder).toBeDefined();
     expect(productsFolder.type).toBe('folder');
     expect(productsFolder.items).toHaveLength(1); // GET /products
+  });
+
+  describe('Request Body Examples', () => {
+    it('should match request body examples by key when response example key matches', () => {
+      const openApiWithMatchingKeys = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with Matching Keys'
+paths:
+  /users:
+    post:
+      summary: 'Create user'
+      operationId: 'createUser'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            examples:
+              valid_user:
+                summary: 'Valid User'
+                value:
+                  name: 'John Doe'
+                  email: 'john@example.com'
+              invalid_user:
+                summary: 'Invalid User'
+                value:
+                  name: ''
+                  email: 'invalid'
+      responses:
+        '201':
+          description: 'Created'
+          content:
+            application/json:
+              examples:
+                valid_user:
+                  summary: 'User Created'
+                  value:
+                    id: 123
+                    name: 'John Doe'
+                invalid_user:
+                  summary: 'Validation Error'
+                  value:
+                    error: 'Invalid input'
+servers:
+  - url: 'https://api.example.com'
+`;
+
+      const brunoCollection = openApiToBruno(openApiWithMatchingKeys);
+      const request = brunoCollection.items[0];
+
+      expect(request.examples).toBeDefined();
+      expect(request.examples).toHaveLength(2);
+
+      // Check that matching keys are used
+      const validUserExample = request.examples.find((ex) => ex.name === 'User Created');
+      expect(validUserExample).toBeDefined();
+      expect(validUserExample.request.body.mode).toBe('json');
+      expect(JSON.parse(validUserExample.request.body.json)).toEqual({
+        name: 'John Doe',
+        email: 'john@example.com'
+      });
+      expect(JSON.parse(validUserExample.response.body.content)).toEqual({
+        id: 123,
+        name: 'John Doe'
+      });
+
+      const invalidUserExample = request.examples.find((ex) => ex.name === 'Validation Error');
+      expect(invalidUserExample).toBeDefined();
+      expect(JSON.parse(invalidUserExample.request.body.json)).toEqual({
+        name: '',
+        email: 'invalid'
+      });
+      expect(JSON.parse(invalidUserExample.response.body.content)).toEqual({
+        error: 'Invalid input'
+      });
+    });
+
+    it('should create all combinations when response example keys do not match request body examples', () => {
+      const openApiWithNonMatchingKeys = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with Non-Matching Keys'
+paths:
+  /users:
+    post:
+      summary: 'Create user'
+      operationId: 'createUser'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            examples:
+              valid_user:
+                summary: 'Valid User'
+                value:
+                  name: 'John Doe'
+                  email: 'john@example.com'
+              invalid_user:
+                summary: 'Invalid User'
+                value:
+                  name: ''
+                  email: 'invalid'
+      responses:
+        '201':
+          description: 'Created'
+          content:
+            application/json:
+              examples:
+                created:
+                  summary: 'User Created'
+                  value:
+                    id: 123
+        '400':
+          description: 'Bad Request'
+          content:
+            application/json:
+              examples:
+                error:
+                  summary: 'Validation Error'
+                  value:
+                    error: 'Invalid input'
+servers:
+  - url: 'https://api.example.com'
+`;
+
+      const brunoCollection = openApiToBruno(openApiWithNonMatchingKeys);
+      const request = brunoCollection.items[0];
+
+      expect(request.examples).toBeDefined();
+      // Should have 4 examples: 2 response examples × 2 request body examples
+      expect(request.examples).toHaveLength(4);
+
+      // Check combinations for 201 response
+      const createdWithValid = request.examples.find((ex) => ex.name === 'User Created (Valid User)');
+      expect(createdWithValid).toBeDefined();
+      expect(createdWithValid.response.status).toBe('201');
+      expect(JSON.parse(createdWithValid.request.body.json)).toEqual({
+        name: 'John Doe',
+        email: 'john@example.com'
+      });
+
+      const createdWithInvalid = request.examples.find((ex) => ex.name === 'User Created (Invalid User)');
+      expect(createdWithInvalid).toBeDefined();
+      expect(createdWithInvalid.response.status).toBe('201');
+      expect(JSON.parse(createdWithInvalid.request.body.json)).toEqual({
+        name: '',
+        email: 'invalid'
+      });
+
+      // Check combinations for 400 response
+      const errorWithValid = request.examples.find((ex) => ex.name === 'Validation Error (Valid User)');
+      expect(errorWithValid).toBeDefined();
+      expect(errorWithValid.response.status).toBe('400');
+
+      const errorWithInvalid = request.examples.find((ex) => ex.name === 'Validation Error (Invalid User)');
+      expect(errorWithInvalid).toBeDefined();
+      expect(errorWithInvalid.response.status).toBe('400');
+    });
+
+    it('should use single request body example for all response examples', () => {
+      const openApiWithSingleRequestBody = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with Single Request Body'
+paths:
+  /users:
+    post:
+      summary: 'Create user'
+      operationId: 'createUser'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              name: 'John Doe'
+              email: 'john@example.com'
+      responses:
+        '201':
+          description: 'Created'
+          content:
+            application/json:
+              examples:
+                created:
+                  summary: 'User Created'
+                  value:
+                    id: 123
+                duplicate:
+                  summary: 'Duplicate User'
+                  value:
+                    error: 'User already exists'
+servers:
+  - url: 'https://api.example.com'
+`;
+
+      const brunoCollection = openApiToBruno(openApiWithSingleRequestBody);
+      const request = brunoCollection.items[0];
+
+      expect(request.examples).toBeDefined();
+      expect(request.examples).toHaveLength(2);
+
+      // Both examples should have the same request body
+      const createdExample = request.examples.find((ex) => ex.name === 'User Created');
+      expect(createdExample).toBeDefined();
+      expect(createdExample.request.body.mode).toBe('json');
+      expect(JSON.parse(createdExample.request.body.json)).toEqual({
+        name: 'John Doe',
+        email: 'john@example.com'
+      });
+
+      const duplicateExample = request.examples.find((ex) => ex.name === 'Duplicate User');
+      expect(duplicateExample).toBeDefined();
+      expect(JSON.parse(duplicateExample.request.body.json)).toEqual({
+        name: 'John Doe',
+        email: 'john@example.com'
+      });
+    });
+
+    it('should use schema-based request body for all response examples', () => {
+      const openApiWithSchemaRequestBody = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with Schema Request Body'
+paths:
+  /users:
+    post:
+      summary: 'Create user'
+      operationId: 'createUser'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  example: 'John Doe'
+                email:
+                  type: string
+                  format: email
+                  example: 'john@example.com'
+      responses:
+        '201':
+          description: 'Created'
+          content:
+            application/json:
+              examples:
+                created:
+                  summary: 'User Created'
+                  value:
+                    id: 123
+                error:
+                  summary: 'Error Response'
+                  value:
+                    error: 'Something went wrong'
+servers:
+  - url: 'https://api.example.com'
+`;
+
+      const brunoCollection = openApiToBruno(openApiWithSchemaRequestBody);
+      const request = brunoCollection.items[0];
+
+      expect(request.examples).toBeDefined();
+      expect(request.examples).toHaveLength(2);
+
+      // Both examples should have request body generated from schema
+      const createdExample = request.examples.find((ex) => ex.name === 'User Created');
+      expect(createdExample).toBeDefined();
+      expect(createdExample.request.body.mode).toBe('json');
+      const requestBody = JSON.parse(createdExample.request.body.json);
+      expect(requestBody).toHaveProperty('name');
+      expect(requestBody).toHaveProperty('email');
+
+      const errorExample = request.examples.find((ex) => ex.name === 'Error Response');
+      expect(errorExample).toBeDefined();
+      expect(JSON.parse(errorExample.request.body.json)).toEqual(requestBody);
+    });
+
+    it('should handle request body examples with different content types', () => {
+      const openApiWithDifferentRequestBodyTypes = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with Different Request Body Types'
+paths:
+  /data:
+    post:
+      summary: 'Post data'
+      operationId: 'postData'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            examples:
+              json_data:
+                summary: 'JSON Data'
+                value:
+                  message: 'Hello'
+          text/plain:
+            examples:
+              text_data:
+                summary: 'Text Data'
+                value: 'Hello World'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              examples:
+                success:
+                  summary: 'Success'
+                  value:
+                    status: 'ok'
+servers:
+  - url: 'https://api.example.com'
+`;
+
+      const brunoCollection = openApiToBruno(openApiWithDifferentRequestBodyTypes);
+      const request = brunoCollection.items[0];
+
+      expect(request.examples).toBeDefined();
+      // Should create combinations: 1 response × 2 request body examples = 2 examples
+      expect(request.examples).toHaveLength(2);
+
+      const jsonExample = request.examples.find((ex) => ex.name === 'Success (JSON Data)');
+      expect(jsonExample).toBeDefined();
+      expect(jsonExample.request.body.mode).toBe('json');
+      expect(JSON.parse(jsonExample.request.body.json)).toEqual({ message: 'Hello' });
+
+      const textExample = request.examples.find((ex) => ex.name === 'Success (Text Data)');
+      expect(textExample).toBeDefined();
+      expect(textExample.request.body.mode).toBe('text');
+      expect(textExample.request.body.text).toBe('Hello World');
+    });
+
+    it('should handle mixed matching and non-matching request body examples', () => {
+      const openApiWithMixedMatching = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with Mixed Matching'
+paths:
+  /users:
+    post:
+      summary: 'Create user'
+      operationId: 'createUser'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            examples:
+              valid_user:
+                summary: 'Valid User'
+                value:
+                  name: 'John Doe'
+                  email: 'john@example.com'
+              invalid_user:
+                summary: 'Invalid User'
+                value:
+                  name: ''
+                  email: 'invalid'
+      responses:
+        '201':
+          description: 'Created'
+          content:
+            application/json:
+              examples:
+                valid_user:
+                  summary: 'User Created'
+                  value:
+                    id: 123
+                unmatched:
+                  summary: 'Unmatched Response'
+                  value:
+                    id: 456
+servers:
+  - url: 'https://api.example.com'
+`;
+
+      const brunoCollection = openApiToBruno(openApiWithMixedMatching);
+      const request = brunoCollection.items[0];
+
+      expect(request.examples).toBeDefined();
+      // Should have: 1 matched (valid_user) + 2 combinations for unmatched (unmatched × 2 request body examples) = 3
+      expect(request.examples).toHaveLength(3);
+
+      // Matched example
+      const matchedExample = request.examples.find((ex) => ex.name === 'User Created');
+      expect(matchedExample).toBeDefined();
+      expect(JSON.parse(matchedExample.request.body.json)).toEqual({
+        name: 'John Doe',
+        email: 'john@example.com'
+      });
+
+      // Unmatched combinations
+      const unmatchedWithValid = request.examples.find((ex) => ex.name === 'Unmatched Response (Valid User)');
+      expect(unmatchedWithValid).toBeDefined();
+
+      const unmatchedWithInvalid = request.examples.find((ex) => ex.name === 'Unmatched Response (Invalid User)');
+      expect(unmatchedWithInvalid).toBeDefined();
+    });
+
+    it('should not create request body when no request body is defined', () => {
+      const openApiWithoutRequestBody = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API without Request Body'
+paths:
+  /users:
+    get:
+      summary: 'Get users'
+      operationId: 'getUsers'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              examples:
+                success:
+                  summary: 'Success'
+                  value:
+                    users: []
+servers:
+  - url: 'https://api.example.com'
+`;
+
+      const brunoCollection = openApiToBruno(openApiWithoutRequestBody);
+      const request = brunoCollection.items[0];
+
+      expect(request.examples).toBeDefined();
+      expect(request.examples).toHaveLength(1);
+
+      const example = request.examples[0];
+      expect(example.request.body.mode).toBe('none');
+      expect(example.request.body.json).toBeNull();
+    });
+
+    it('should handle request body with singular example and multiple response examples', () => {
+      const openApiWithSingularExample = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with Singular Example'
+paths:
+  /users:
+    post:
+      summary: 'Create user'
+      operationId: 'createUser'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              name: 'Jane Doe'
+              email: 'jane@example.com'
+      responses:
+        '201':
+          description: 'Created'
+          content:
+            application/json:
+              examples:
+                created:
+                  summary: 'User Created'
+                  value:
+                    id: 1
+                duplicate:
+                  summary: 'Duplicate'
+                  value:
+                    id: 2
+        '400':
+          description: 'Bad Request'
+          content:
+            application/json:
+              examples:
+                error:
+                  summary: 'Error'
+                  value:
+                    error: 'Bad request'
+servers:
+  - url: 'https://api.example.com'
+`;
+
+      const brunoCollection = openApiToBruno(openApiWithSingularExample);
+      const request = brunoCollection.items[0];
+
+      expect(request.examples).toBeDefined();
+      expect(request.examples).toHaveLength(3);
+
+      // All examples should have the same request body
+      const requestBodyValue = { name: 'Jane Doe', email: 'jane@example.com' };
+      request.examples.forEach((example) => {
+        expect(example.request.body.mode).toBe('json');
+        expect(JSON.parse(example.request.body.json)).toEqual(requestBodyValue);
+      });
+    });
   });
 });

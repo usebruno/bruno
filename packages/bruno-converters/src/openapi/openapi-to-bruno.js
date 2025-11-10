@@ -162,6 +162,33 @@ const getExampleFromSchema = (schema) => {
 };
 
 /**
+ * Populates request body in Bruno example from a value
+ * @param {Object} body - The Bruno request body object to populate
+ * @param {*} requestBodyValue - The request body value to set
+ * @param {string} contentType - Content type (e.g., 'application/json')
+ */
+const populateRequestBody = (body, requestBodyValue, contentType) => {
+  if (!requestBodyValue) return;
+
+  if (contentType?.includes('application/json')) {
+    body.mode = 'json';
+    body.json = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue, null, 2) : requestBodyValue;
+  } else if (contentType?.includes('application/x-www-form-urlencoded')) {
+    body.mode = 'formUrlEncoded';
+    // Handle form data if needed
+  } else if (contentType?.includes('multipart/form-data')) {
+    body.mode = 'multipartForm';
+    // Handle multipart form data if needed
+  } else if (contentType?.includes('text/plain')) {
+    body.mode = 'text';
+    body.text = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
+  } else if (contentType?.includes('text/xml') || contentType?.includes('application/xml')) {
+    body.mode = 'xml';
+    body.xml = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
+  }
+};
+
+/**
  * Creates a Bruno example from OpenAPI example data
  * @param {Object} brunoRequestItem - The base Bruno request item
  * @param {*} exampleValue - The example value (object, array, or primitive)
@@ -169,11 +196,11 @@ const getExampleFromSchema = (schema) => {
  * @param {string} exampleDescription - Description of the example
  * @param {string|number} statusCode - HTTP status code (for response examples)
  * @param {string} contentType - Content type (e.g., 'application/json')
- * @param {Object} options - Optional configuration
- * @param {boolean} options.isRequestBodyExample - If true, populate request body instead of response
+ * @param {*} requestBodyValue - Optional request body value to populate in the example
+ * @param {string} requestBodyContentType - Optional request body content type
  * @returns {Object} Bruno example object
  */
-const createBrunoExample = (brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType) => {
+const createBrunoExample = (brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodyValue = null, requestBodyContentType = null) => {
   const brunoExample = {
     uid: uuid(),
     itemUid: brunoRequestItem.uid,
@@ -205,6 +232,11 @@ const createBrunoExample = (brunoRequestItem, exampleValue, exampleName, example
       }
     }
   };
+
+  // Populate request body if provided
+  if (requestBodyValue !== null) {
+    populateRequestBody(brunoExample.request.body, requestBodyValue, requestBodyContentType);
+  }
 
   return brunoExample;
 };
@@ -482,8 +514,86 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   }
 
   // Handle OpenAPI examples from responses and request body
-  if (_operationObject.responses || _operationObject.requestBody) {
+  if (_operationObject.responses) {
     const examples = [];
+
+    // Extract request body examples if they exist
+    // Unified structure: all request body data is stored as examples with contentType
+    const requestBodyExamples = [];
+
+    /**
+     * Helper function to create examples with appropriate request body handling
+     * @param {*} responseExampleValue - The response example value
+     * @param {string} exampleName - Name of the example
+     * @param {string} exampleDescription - Description of the example
+     * @param {string|number} statusCode - HTTP status code
+     * @param {string} responseContentType - Response content type
+     * @param {string} [responseExampleKey] - Optional response example key for matching
+     */
+    const createExamplesWithRequestBody = (responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, responseExampleKey = null) => {
+      const requestBodyExamplesWithKeys = requestBodyExamples.filter((rb) => rb.key !== null);
+      const requestBodyExamplesWithoutKeys = requestBodyExamples.filter((rb) => rb.key === null);
+
+      // Check if there's a matching request body example by key
+      const matchingRequestBodyExample = responseExampleKey
+        ? requestBodyExamplesWithKeys.find((rb) => rb.key === responseExampleKey)
+        : null;
+
+      if (matchingRequestBodyExample) {
+        // Use the matching request body example
+        examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, matchingRequestBodyExample.value, matchingRequestBodyExample.contentType));
+      } else if (requestBodyExamplesWithKeys.length > 0) {
+        // No match found, create all combinations with request body examples that have keys
+        requestBodyExamplesWithKeys.forEach((rbExample) => {
+          const combinedExampleName = `${exampleName} (${rbExample.summary || rbExample.key})`;
+          const combinedExampleDescription = exampleDescription || rbExample.description || '';
+          examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, combinedExampleName, combinedExampleDescription, statusCode, responseContentType, rbExample.value, rbExample.contentType));
+        });
+      } else if (requestBodyExamplesWithoutKeys.length > 0) {
+        // Single example or schema - use the first one for all response examples
+        const rbExample = requestBodyExamplesWithoutKeys[0];
+        examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, rbExample.value, rbExample.contentType));
+      } else {
+        // No request body, create example without request body
+        examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType));
+      }
+    };
+
+    if (_operationObject.requestBody && _operationObject.requestBody.content) {
+      Object.entries(_operationObject.requestBody.content).forEach(([contentType, content]) => {
+        if (content.examples) {
+          // Multiple request body examples
+          Object.entries(content.examples).forEach(([exampleKey, example]) => {
+            requestBodyExamples.push({
+              key: exampleKey,
+              value: example.value !== undefined ? example.value : example,
+              summary: example.summary,
+              description: example.description,
+              contentType: contentType
+            });
+          });
+        } else if (content.example !== undefined) {
+          // Single request body example - convert to unified structure
+          requestBodyExamples.push({
+            key: null, // No key for single example
+            value: content.example,
+            summary: null,
+            description: null,
+            contentType: contentType
+          });
+        } else if (content.schema) {
+          // Schema-based request body - convert to unified structure
+          requestBodyExamples.push({
+            key: null, // No key for schema
+            value: getExampleFromSchema(content.schema),
+            summary: null,
+            description: null,
+            contentType: contentType,
+            isSchema: true
+          });
+        }
+      });
+    }
 
     // Handle response examples
     if (_operationObject.responses) {
@@ -497,51 +607,23 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
                 const exampleDescription = example.description || '';
                 const exampleValue = example.value !== undefined ? example.value : example;
 
-                examples.push(createBrunoExample(brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType));
+                createExamplesWithRequestBody(exampleValue, exampleName, exampleDescription, statusCode, contentType, exampleKey);
               });
             } else if (content.example !== undefined) {
               // Handle example (singular) at content level
               const exampleName = `${statusCode} Response`;
               const exampleDescription = response.description || '';
-              examples.push(createBrunoExample(brunoRequestItem, content.example, exampleName, exampleDescription, statusCode, contentType));
+
+              createExamplesWithRequestBody(content.example, exampleName, exampleDescription, statusCode, contentType);
             } else if (content.schema) {
               // Handle schema - extract or generate example from schema
               const exampleValue = getExampleFromSchema(content.schema);
               const exampleName = `${statusCode} Response`;
               const exampleDescription = response.description || '';
-              examples.push(createBrunoExample(brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType));
+
+              createExamplesWithRequestBody(exampleValue, exampleName, exampleDescription, statusCode, contentType);
             }
           });
-        } else {
-          // Create empty response example when no content is defined
-          examples.push(createBrunoExample(brunoRequestItem, '', `${statusCode} Response`, response.description || '', statusCode, ''));
-        }
-      });
-    }
-
-    // Handle request body examples
-    if (_operationObject.requestBody && _operationObject.requestBody.content) {
-      Object.entries(_operationObject.requestBody.content).forEach(([contentType, content]) => {
-        // Handle examples (plural) in request body
-        if (content.examples) {
-          Object.entries(content.examples).forEach(([exampleKey, example]) => {
-            const exampleName = example.summary || exampleKey || 'Request Example';
-            const exampleDescription = example.description || '';
-            const exampleValue = example.value !== undefined ? example.value : example;
-
-            examples.push(createBrunoExample(brunoRequestItem, exampleValue, exampleName, exampleDescription, 200, contentType));
-          });
-        } else if (content.example !== undefined) {
-          // Handle example (singular) at content level in request body
-          const exampleName = 'Request Example';
-          const exampleDescription = '';
-          examples.push(createBrunoExample(brunoRequestItem, content.example, exampleName, exampleDescription, 200, contentType));
-        } else if (content.schema) {
-          // Handle schema in request body - extract or generate example from schema
-          const exampleValue = getExampleFromSchema(content.schema);
-          const exampleName = 'Request Example';
-          const exampleDescription = '';
-          examples.push(createBrunoExample(brunoRequestItem, exampleValue, exampleName, exampleDescription, 200, contentType));
         }
       });
     }
