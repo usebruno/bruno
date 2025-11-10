@@ -263,15 +263,33 @@ const GlobalStyle = createGlobalStyle`
     width: 100%;
   }
 
+  .CodeMirror-brunoVarInfo .info-header-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
   .CodeMirror-brunoVarInfo .info-name {
     font-size: 14px;
-    margin-bottom: 6px;
     color: ${(props) => props.theme.colors.text.yellow};
     opacity: 1;
     padding: 2px 6px;
     background: ${(props) => props.theme.codemirror.variable.info.nameBackground};
     border-radius: 4px;
     display: inline-block;
+  }
+
+  .CodeMirror-brunoVarInfo .info-variable-name {
+    font-size: 14px;
+  }
+
+  .light .CodeMirror-brunoVarInfo .info-variable-name {
+    color: #343434;
+  }
+
+  .dark .CodeMirror-brunoVarInfo .info-variable-name {
+    color: #D4D4D4;
   }
 
   .CodeMirror-brunoVarInfo .value-container {
