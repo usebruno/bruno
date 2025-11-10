@@ -10,7 +10,7 @@ const darkTheme = {
       danger: '#f06f57',
       muted: '#9d9d9d',
       purple: '#cd56d6',
-      yellow: '#f59e0b'
+      yellow: '#D97706'
     },
     bg: {
       danger: '#d03544'
@@ -280,7 +280,13 @@ const darkTheme = {
       info: {
         color: '#ce9178',
         bg: 'rgb(48,48,49)',
-        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px'
+        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
+        border: '#4F4F4F',
+        nameBackground: '#D977061A',
+        textareaFocusBorder: '#CCCCCC',
+        textareaFocusShadow: 'none',
+        textareaBackground: '#292929',
+        textareaColor: '#D4D4D4'
       }
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.18)',

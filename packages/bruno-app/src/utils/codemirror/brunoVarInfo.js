@@ -7,7 +7,7 @@
  */
 
 import { interpolate } from '@usebruno/common';
-import { store } from "providers/ReduxStore";
+import { store } from 'providers/ReduxStore';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -36,7 +36,7 @@ const getCopyButton = (variableValue) => {
   copyButton.className = 'copy-button';
   copyButton.style.backgroundColor = 'transparent';
   copyButton.style.border = 'none';
-  copyButton.style.color = 'inherit';
+  copyButton.style.color = '#989898';
   copyButton.style.cursor = 'pointer';
   copyButton.style.padding = '2px';
   copyButton.style.opacity = '0.7';
@@ -87,7 +87,7 @@ const getCopyButton = (variableValue) => {
           isCopied = false;
           copyButton.innerHTML = COPY_ICON_SVG_TEXT;
           copyButton.style.opacity = '0.7';
-          copyButton.style.color = 'inherit';
+          copyButton.style.color = '#989898';
           copyButton.style.cursor = 'pointer';
           copyButton.classList.remove('copy-success');
         }, COPY_SUCCESS_TIMEOUT);
@@ -155,7 +155,8 @@ if (!SERVER_RENDERED) {
 
   function createState(options) {
     return {
-      options: options instanceof Function ? { render: options } : options === true ? {} : options
+      options: options instanceof Function ? { render: options } : options === true ? {} : options,
+      currentPopup: null
     };
   }
 
@@ -168,13 +169,37 @@ if (!SERVER_RENDERED) {
     const state = cm.state.brunoVarInfo;
     const target = e.target || e.srcElement;
 
-    if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
+    if (target.nodeName !== 'SPAN') {
       return;
     }
     if (!target.classList.contains('cm-variable-valid')) {
       return;
     }
 
+    // If we're already showing a popup for a different variable, recreate it
+    if (state.currentPopup && state.currentVariableElement !== target) {
+      const freshBox = target.getBoundingClientRect();
+      const pos = cm.coordsChar({
+        left: (freshBox.left + freshBox.right) / 2,
+        top: (freshBox.top + freshBox.bottom) / 2
+      });
+      const token = cm.getTokenAt(pos, true);
+      if (token) {
+        const brunoVarInfo = renderVarInfo(token, state.options, cm, pos);
+        if (brunoVarInfo) {
+          // Recreate popup for the new variable (this will remove old one and create new)
+          showPopup(cm, freshBox, brunoVarInfo);
+        }
+      }
+      return;
+    }
+
+    if (state.hoverTimeout !== undefined) {
+      return;
+    }
+
+    // Store reference to the target element for position updates
+    state.currentVariableElement = target;
     const box = target.getBoundingClientRect();
 
     const onMouseMove = function () {
@@ -187,19 +212,23 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = undefined;
+      state.currentVariableElement = null;
     };
 
     const onHover = function () {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
-      onMouseHover(cm, box);
+      // Get fresh box position from the stored element
+      const freshBox = state.currentVariableElement ? state.currentVariableElement.getBoundingClientRect() : box;
+      onMouseHover(cm, freshBox);
     };
 
     const hoverTime = getHoverTime(cm);
     state.hoverTimeout = setTimeout(onHover, hoverTime);
 
     CodeMirror.on(document, 'mousemove', onMouseMove);
+    // TEMPORARILY DISABLED FOR STYLE TESTING - prevents popup from disappearing
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
 
@@ -215,28 +244,55 @@ if (!SERVER_RENDERED) {
     if (token) {
       const brunoVarInfo = renderVarInfo(token, options, cm, pos);
       if (brunoVarInfo) {
-        showPopup(cm, box, brunoVarInfo);
+        // Get fresh box position from the current variable element
+        const freshBox = state.currentVariableElement ? state.currentVariableElement.getBoundingClientRect() : box;
+        showPopup(cm, freshBox, brunoVarInfo);
       }
     }
   }
 
   function showPopup(cm, box, brunoVarInfo) {
+    const state = cm.state.brunoVarInfo;
+
+    // Remove existing popup if any
+    if (state.currentPopup && state.currentPopup.parentNode) {
+      state.currentPopup.parentNode.removeChild(state.currentPopup);
+    }
+
     const popup = document.createElement('div');
     popup.className = 'CodeMirror-brunoVarInfo';
     popup.appendChild(brunoVarInfo);
     document.body.appendChild(popup);
 
+    // Store reference to current popup
+    state.currentPopup = popup;
+
+    // Function to update popup position
+    const updatePosition = (useBox = null) => {
+      // Use provided box, or get from current variable element, or fallback to original box
+      let targetBox = useBox;
+      if (!targetBox && state.currentVariableElement) {
+        targetBox = state.currentVariableElement.getBoundingClientRect();
+      }
+      if (!targetBox) {
+        targetBox = box;
+      }
+
+      if (!popup.parentNode) {
+        return;
+      }
+
     const popupBox = popup.getBoundingClientRect();
     const popupStyle = popup.currentStyle || window.getComputedStyle(popup);
-    const popupWidth =
-      popupBox.right - popupBox.left + parseFloat(popupStyle.marginLeft) + parseFloat(popupStyle.marginRight);
-    const popupHeight =
-      popupBox.bottom - popupBox.top + parseFloat(popupStyle.marginTop) + parseFloat(popupStyle.marginBottom);
+      const popupWidth
+        = popupBox.right - popupBox.left + parseFloat(popupStyle.marginLeft) + parseFloat(popupStyle.marginRight);
+      const popupHeight
+        = popupBox.bottom - popupBox.top + parseFloat(popupStyle.marginTop) + parseFloat(popupStyle.marginBottom);
 
     // Smart positioning: try below first, then above if no space
-    let topPos = box.bottom + 5;
-    if (popupHeight > window.innerHeight - box.bottom - 15 && box.top > window.innerHeight - box.bottom) {
-      topPos = box.top - popupHeight - 5;
+      let topPos = targetBox.bottom + 5;
+      if (popupHeight > window.innerHeight - targetBox.bottom - 15 && targetBox.top > window.innerHeight - targetBox.bottom) {
+        topPos = targetBox.top - popupHeight - 5;
     }
 
     // If still doesn't fit, position at top of viewport
@@ -248,8 +304,9 @@ if (!SERVER_RENDERED) {
     let leftPos = box.left + (box.width / 2) - (popupWidth / 2);
 
     // Ensure it doesn't go off the left edge
-    if (leftPos < 10) {
-      leftPos = 10;
+      const minLeftMargin = 50;
+      if (leftPos < minLeftMargin) {
+        leftPos = minLeftMargin;
     }
 
     // Ensure it doesn't go off the right edge
@@ -257,9 +314,40 @@ if (!SERVER_RENDERED) {
       leftPos = window.innerWidth - popupWidth - 10;
     }
 
-    popup.style.opacity = 1;
     popup.style.top = topPos + 'px';
     popup.style.left = leftPos + 'px';
+    };
+
+    // Store updatePosition function on popup for external updates
+    popup._updatePosition = updatePosition;
+
+    // Initial position using the provided box
+    updatePosition(box);
+
+    // Update position on scroll
+    const onScroll = () => {
+      if (state.currentVariableElement && popup.parentNode) {
+        updatePosition();
+      }
+    };
+
+    // Update position on window resize
+    const onResize = () => {
+      if (state.currentVariableElement && popup.parentNode) {
+        updatePosition();
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onResize);
+
+    // Store cleanup functions
+    popup._cleanup = () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onResize);
+    };
+
+    popup.style.opacity = 1;
 
     let popupTimeout;
 
@@ -273,9 +361,26 @@ if (!SERVER_RENDERED) {
     };
 
     const hidePopup = function () {
+      // Auto-save any editable textareas before closing
+      const textareas = popup.querySelectorAll('.edit-textarea');
+      textareas.forEach((textarea) => {
+        if (textarea._saveFunction) {
+          textarea._saveFunction();
+        }
+      });
+
+      // Clean up event listeners
+      if (popup._cleanup) {
+        popup._cleanup();
+      }
+
       CodeMirror.off(popup, 'mouseover', onMouseOverPopup);
       CodeMirror.off(popup, 'mouseout', onMouseOut);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
+
+      // Clear state references
+      state.currentPopup = null;
+      state.currentVariableElement = null;
 
       if (popup.style.opacity) {
         popup.style.opacity = 0;
@@ -290,6 +395,7 @@ if (!SERVER_RENDERED) {
     };
 
     CodeMirror.on(popup, 'mouseover', onMouseOverPopup);
+    // TEMPORARILY DISABLED FOR STYLE TESTING - prevents popup from disappearing
     CodeMirror.on(popup, 'mouseout', onMouseOut);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }

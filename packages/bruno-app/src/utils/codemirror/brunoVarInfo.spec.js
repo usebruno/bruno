@@ -288,7 +288,6 @@ describe('renderVarInfo', () => {
 
   function setupRender(variables) {
     const result = renderVarInfo({ string: '{{apiKey}}' }, { variables });
-    const contentDiv = result.querySelector('.info-content');
     const descriptionDiv = result.querySelector('.info-description');
     const copyButton = result.querySelector('.copy-button');
     const editButton = result.querySelector('.button-container .edit-btn');
@@ -296,7 +295,7 @@ describe('renderVarInfo', () => {
     const cancelButton = result.querySelector('.button-container .cancel-btn.hidden');
     const editInput = result.querySelector('.value-container .edit-input.hidden');
 
-    return { result, contentDiv, descriptionDiv, copyButton, editButton, saveButton, cancelButton, editInput };
+    return { result, descriptionDiv, copyButton, editButton, saveButton, cancelButton, editInput };
   }
 
   describe('popup functionality', () => {

@@ -10,7 +10,7 @@ const lightTheme = {
       danger: '#B91C1C',
       muted: '#838383',
       purple: '#8e44ad',
-      yellow: '#d97706'
+      yellow: '#D97706'
     },
     bg: {
       danger: '#dc3545'
@@ -281,7 +281,13 @@ const lightTheme = {
       info: {
         color: 'rgb(52, 52, 52)',
         bg: 'white',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)'
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
+        border: '#EFEFEF',
+        nameBackground: '#D977061A',
+        textareaFocusBorder: '#989898',
+        textareaFocusShadow: 'none',
+        textareaBackground: '#F7F7F7',
+        textareaColor: 'rgb(52, 52, 52)'
       }
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',

@@ -244,18 +244,19 @@ const GlobalStyle = createGlobalStyle`
     border-radius: 6px;
     box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
     box-sizing: border-box;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 16px;
     margin: 8px -8px;
-    max-width: 320px;
-    min-width: 220px;
+    margin-left: 2px;
+    max-width: 400px;
+    min-width: 291px;
     opacity: 0;
     overflow: hidden;
-    padding: 12px;
+    padding: 8px;
     position: fixed;
     transition: opacity 0.15s;
     z-index: 50;
-    border: 1px solid ${(props) => props.theme.codemirror.border || 'rgba(0,0,0,0.1)'};
+    border: 1px solid ${(props) => props.theme.codemirror.variable.info.border || 'rgba(0,0,0,0.1)'};
   }
 
   .CodeMirror-brunoVarInfo .bruno-var-info-container {
@@ -263,21 +264,31 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .info-name {
-    font-weight: bold;
-    font-size: 12px;
+    font-size: 14px;
     margin-bottom: 6px;
-    color: ${(props) => props.theme.codemirror.variable.info.color};
-    opacity: 0.8;
+    color: ${(props) => props.theme.colors.text.yellow};
+    opacity: 1;
     padding: 2px 6px;
-    background: rgba(0, 122, 204, 0.1);
-    border-radius: 3px;
+    background: ${(props) => props.theme.codemirror.variable.info.nameBackground};
+    border-radius: 4px;
     display: inline-block;
   }
 
   .CodeMirror-brunoVarInfo .value-container {
-    margin-bottom: 8px;
     display: flex;
-    justify-content: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    width: 100%;
+  }
+
+  .CodeMirror-brunoVarInfo .value-container .copy-button {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 1;
+    background: transparent;
+    color: #989898;
   }
 
   .CodeMirror-brunoVarInfo .info-description {
@@ -291,100 +302,44 @@ const GlobalStyle = createGlobalStyle`
     font-family: monospace;
   }
 
-  .CodeMirror-brunoVarInfo .edit-input {
+  .CodeMirror-brunoVarInfo .edit-textarea {
     font-family: monospace;
     font-size: 13px;
     line-height: 16px;
-    background: ${(props) => props.theme.codemirror.bg || '#fff'};
-    color: ${(props) => props.theme.codemirror.variable.info.color};
+    background: ${(props) => props.theme.codemirror.variable.info.textareaBackground};
+    color: ${(props) => props.theme.codemirror.variable.info.textareaColor};
     border: 1px solid ${(props) => props.theme.codemirror.border || '#ccc'};
-    padding: 6px;
-    border-radius: 3px;
-  }
-
-  .CodeMirror-brunoVarInfo .edit-input:focus {
-    outline: none;
-    border-color: #007acc;
-    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
-  }
-
-  .CodeMirror-brunoVarInfo .button-container {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-start;
-    margin-top: 8px;
-  }
-
-  .CodeMirror-brunoVarInfo button {
-    transition: all 0.2s ease;
-    font-size: 11px;
-    padding: 5px 10px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .CodeMirror-brunoVarInfo button:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .CodeMirror-brunoVarInfo button:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  }
-
-  .CodeMirror-brunoVarInfo .edit-btn {
-    background: #007acc;
-    color: white;
-  }
-
-  .CodeMirror-brunoVarInfo .save-btn {
-    background: #28a745;
-    color: white;
-  }
-
-  .CodeMirror-brunoVarInfo .cancel-btn {
-    background: #6c757d;
-    color: white;
-  }
-
-  .CodeMirror-brunoVarInfo .edit-input {
-    width: 100%;
-  }
-
-  .CodeMirror-brunoVarInfo .edit-input.hidden {
-    display: none;
-  }
-
-  .CodeMirror-brunoVarInfo .info-description.hidden {
-    display: none;
-  }
-
-  .CodeMirror-brunoVarInfo button.hidden {
-    display: none;
-  }
-
-  .CodeMirror-brunoVarInfo button.visible {
-    display: inline-block;
-  }
-
-  .CodeMirror-brunoVarInfo .feedback-message {
-    font-size: 12px;
-    margin-top: 4px;
-  }
-
-  .CodeMirror-brunoVarInfo .feedback-message.success {
-    color: #28a745;
-  }
-
-  .CodeMirror-brunoVarInfo .feedback-message.error {
-    color: #dc3545;
-    white-space: normal;
+    padding: 8px 28px 8px 8px;
+    border-radius: 6px;
+    width: 275px;
+    min-height: 24px;
+    max-height: 137px;
+    resize: none;
+    overflow-y: auto;
+    white-space: pre-wrap;
     word-wrap: break-word;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    box-sizing: border-box;
   }
+
+  .CodeMirror-brunoVarInfo .edit-textarea:focus {
+    outline: none;
+    border-color: ${(props) => props.theme.codemirror.variable.info.textareaFocusBorder};
+    box-shadow: ${(props) => props.theme.codemirror.variable.info.textareaFocusShadow};
+  }
+
+  .CodeMirror-brunoVarInfo .read-only-textarea {
+    cursor: default;
+    user-select: text;
+  }
+
+  .CodeMirror-brunoVarInfo .read-only-textarea:focus {
+    outline: none;
+    border-color: ${(props) => props.theme.codemirror.border || '#ccc'};
+    box-shadow: none;
+  }
+
 
   .CodeMirror-brunoVarInfo .read-only-info {
     font-size: 11px;
