@@ -19,7 +19,6 @@ const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/;
 const validateURLWithVars = (url) => {
   const isValid = isValidUrl(url);
   const hasMissingInterpolations = TEMPLATE_VAR_PATTERN.test(url);
-  TEMPLATE_VAR_PATTERN.lastIndex = 0;
   return isValid && !hasMissingInterpolations;
 };
 
