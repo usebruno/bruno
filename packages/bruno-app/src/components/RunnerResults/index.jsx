@@ -145,8 +145,16 @@ export default function RunnerResults({ collection }) {
 
   const autoScrollRunnerBody = () => {
     if (runnerBodyRef?.current) {
-      // mimics the native terminal scroll style
-      runnerBodyRef.current.scrollTo(0, 100000);
+      const element = runnerBodyRef.current;
+      const scrollThreshold = 100; // pixels from bottom to consider "at bottom"
+      const isNearBottom = 
+        element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
+      
+      // Only auto-scroll if user is already near the bottom
+      if (isNearBottom) {
+        // mimics the native terminal scroll style
+        element.scrollTo(0, 100000);
+      }
     }
   };
 
@@ -156,6 +164,14 @@ export default function RunnerResults({ collection }) {
     }
     autoScrollRunnerBody();
   }, [collection, setSelectedItem]);
+
+  useEffect(() => {
+    // Auto-scroll when items are added or updated during execution
+    // Only scrolls if user is already at/near the bottom
+    if (filteredItems.length > 0) {
+      autoScrollRunnerBody();
+    }
+  }, [filteredItems]);
 
   useEffect(() => {
     const runnerInfo = get(collection, 'runnerResult.info', {});
@@ -384,8 +400,7 @@ export default function RunnerResults({ collection }) {
 
       <div className="flex gap-4 h-[calc(100vh_-_10rem)] overflow-hidden">
         <div
-          className={`flex flex-col overflow-y-auto ${selectedItem ? 'w-1/2' : 'w-full'}`}
-          ref={runnerBodyRef}
+          className={`flex flex-col ${selectedItem ? 'w-1/2' : 'w-full'}`}
         >
           {tagsEnabled && areTagsAdded && (
             <div className="pb-2 text-xs flex flex-row gap-1">
@@ -407,7 +422,7 @@ export default function RunnerResults({ collection }) {
             : null}
 
           {/* Items list */}
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-y-auto flex-1" ref={runnerBodyRef}>
             {filteredItems.map((item) => {
               return (
                 <div key={item.uid}>
