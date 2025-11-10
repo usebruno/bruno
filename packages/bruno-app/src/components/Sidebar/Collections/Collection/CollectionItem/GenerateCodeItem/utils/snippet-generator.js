@@ -1,5 +1,5 @@
 import { buildHarRequest } from 'utils/codegenerator/har';
-import { getAuthHeaders } from 'utils/codegenerator/auth';
+import { getAuthHeaders, resolveEffectiveAuth, resolveOAuth2Token } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem } from 'utils/collections/index';
 import { interpolateHeaders, interpolateBody } from './interpolation';
 import { cloneDeep } from 'lodash';
@@ -63,23 +63,13 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       headers = [...headers, ...authHeaders];
 
       // Handle OAuth2 token in URL (query params)
-      const auth = collectionAuth && ['inherit'].includes(request.auth?.mode) ? collectionAuth : request.auth;
+      const auth = resolveEffectiveAuth(collectionAuth, request.auth);
       if (auth?.mode === 'oauth2' && auth?.oauth2?.tokenPlacement === 'url') {
         const oauth2Config = auth.oauth2;
         const credentialsId = oauth2Config?.credentialsId || 'credentials';
         const tokenQueryKey = oauth2Config?.tokenQueryKey || 'access_token';
 
-        let tokenValue;
-        if (shouldInterpolate) {
-          // Try to find the access token
-          const oauth2Credentials = collection?.oauth2Credentials || [];
-          const collectionUid = collection?.uid;
-          const credentialEntry = oauth2Credentials.find((cred) => cred.credentialsId === credentialsId && cred.collectionUid === collectionUid);
-          const accessToken = credentialEntry?.credentials?.access_token;
-          tokenValue = accessToken || `{{$oauth2.${credentialsId}.access_token}}`;
-        } else {
-          tokenValue = `{{$oauth2.${credentialsId}.access_token}}`;
-        }
+        const tokenValue = resolveOAuth2Token(collection, credentialsId, shouldInterpolate);
 
         // Add token to query params
         if (!request.params) {
