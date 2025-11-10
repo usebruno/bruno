@@ -289,15 +289,15 @@ if (!SERVER_RENDERED) {
       const popupHeight
         = popupBox.bottom - popupBox.top + parseFloat(popupStyle.marginTop) + parseFloat(popupStyle.marginBottom);
 
-    // Smart positioning: try below first, then above if no space
+      // Smart positioning: try below first, then above if no space
       let topPos = targetBox.bottom + 5;
       if (popupHeight > window.innerHeight - targetBox.bottom - 15 && targetBox.top > window.innerHeight - targetBox.bottom) {
         topPos = targetBox.top - popupHeight - 5;
     }
 
-    // If still doesn't fit, position at top of viewport
+      // If still doesn't fit, position at top of viewport
     if (topPos < 0) {
-      topPos = 10;
+        topPos = 10;
     }
 
     // Horizontal positioning: try to center on the variable, but stay within viewport

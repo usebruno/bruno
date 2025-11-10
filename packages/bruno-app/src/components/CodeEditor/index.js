@@ -292,7 +292,7 @@ export default class CodeEditor extends React.Component {
 
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
-    
+
     // Update brunoVarInfo options with new variables and ensure collectionUid is preserved
     this.editor.setOption('brunoVarInfo', {
       variables
