@@ -175,26 +175,33 @@ class GrpcClient {
   }
 
   /**
+   * Creates call options from metadata for gRPC calls
+   * @param {grpc.Metadata} metadata - metadata to be sent with calls
+   * @returns {Object} callOptions object with credentials if metadata is provided
+   */
+  #createCallOptions(metadata) {
+    if (metadata && Object.keys(metadata.getMap()).length > 0) {
+      // Create CallCredentials from metadata generator
+      const callCredentials = CallCredentials.createFromMetadataGenerator((options, callback) => {
+        callback(null, metadata);
+      });
+      return { credentials: callCredentials };
+    }
+    return {};
+  }
+
+  /**
    * Creates a reflection client that works for v1, v1alpha, or both.
    *
    * @param {string} host - host:port of the gRPC server
    * @param {grpc.ChannelCredentials} credentials - defaults to insecure
    * @param {grpc.Metadata} metadata - metadata to be sent with reflection calls (used for insecure connections where credentials can't include metadata)
    * @param {grpc.ChannelOptions} options - channel options
-   * @returns {Promise<{ client: GrpcReflection, version: 'v1' | 'v1alpha' }>}
+   * @returns {Promise<{ client: GrpcReflection, services: string[], callOptions: Object }>}
    */
   async #getReflectionClient(host, credentials = ChannelCredentials.createInsecure(), metadata = null, options = {}) {
     const makeClient = (version) => new GrpcReflection(host, credentials, options, version);
-    // For insecure connections, we can't combine CallCredentials with insecure ChannelCredentials,
-    // but we CAN pass CallCredentials in CallOptions.credentials for individual calls
-    let callOptions = {};
-    if (metadata && Object.keys(metadata.getMap()).length > 0) {
-      // Create CallCredentials from metadata generator
-      const callCredentials = CallCredentials.createFromMetadataGenerator((options, callback) => {
-        callback(null, metadata);
-      });
-      callOptions = { credentials: callCredentials };
-    }
+    const callOptions = this.#createCallOptions(metadata);
 
     let client;
     let services;
@@ -202,14 +209,14 @@ class GrpcClient {
     try {
       client = makeClient('v1');
       services = await client.listServices('*', callOptions);
-      return { client, services };
+      return { client, services, callOptions };
     } catch (e) {
       console.warn(`gRPC reflection v1 failed:`, e);
     }
 
     client = makeClient('v1alpha');
     services = await client.listServices('*', callOptions);
-    return { client, services };
+    return { client, services, callOptions };
   }
 
   /**
@@ -620,19 +627,9 @@ class GrpcClient {
     });
 
     try {
-      const { client, services } = await this.#getReflectionClient(host, credentials, metadata, {});
-      const methods = [];
-      // For insecure connections, we can't combine CallCredentials with insecure ChannelCredentials,
-      // but we CAN pass CallCredentials in CallOptions.credentials for individual calls
-      let callOptions = {};
-      if (metadata && Object.keys(metadata.getMap()).length > 0) {
-        // Create CallCredentials from metadata generator
-        const callCredentials = CallCredentials.createFromMetadataGenerator((options, callback) => {
-          callback(null, metadata);
-        });
-        callOptions = { credentials: callCredentials };
-      }
+      const { client, services, callOptions } = await this.#getReflectionClient(host, credentials, metadata, {});
 
+      const methods = [];
       for (const service of services) {
         if (reflectionServices.includes(service)) {
           continue;
