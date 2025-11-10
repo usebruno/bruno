@@ -77,19 +77,22 @@ const simpleTranslations = {
   'pm.info.requestName': 'req.getName()',
 
   // Request properties
-  'pm.request.url': 'req.getUrl()',
   'pm.request.method': 'req.getMethod()',
   'pm.request.headers': 'req.getHeaders()',
   'pm.request.body': 'req.getBody()',
  
   // Response properties
-  'pm.response.json': 'res.getBody',
+  'pm.response.json()': 'res.getBody()',
   'pm.response.code': 'res.getStatus()',
   'pm.response.status': 'res.statusText',
+  'pm.response.statusCode': 'res.getStatus()',
   'pm.response.responseTime': 'res.getResponseTime()',
   'pm.response.statusText': 'res.statusText',
   'pm.response.headers': 'res.getHeaders()',
-  'pm.response.size': 'res.getSize',
+  'pm.response.cookies': 'res.getCookies()',
+  'pm.response.body': 'res.getBody()',
+  // Note: pm.response.text() is handled as a complex transformation below
+  'pm.response.size()': 'res.getSize()',
   'pm.response.responseSize': 'res.getSize().body',
   'pm.response.size().body': 'res.getSize().body',
   'pm.response.size().header': 'res.getSize().header',
@@ -130,9 +133,9 @@ const complexTransformations = [
     pattern: 'pm.environment.has',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-      
+
       const args = callExpr.arguments;
-      
+
       // Create: bru.getEnvVar(arg) !== undefined && bru.getEnvVar(arg) !== null
       return j.logicalExpression(
         '&&',
@@ -150,12 +153,50 @@ const complexTransformations = [
     }
   },
 
+  // pm.request.url - Transform to req.getUrl()
+  // This is processed AFTER more specific patterns like pm.request.url.path
+  // because we sort transformations by specificity (longest first)
   {
-    pattern: 'pm.response.text',
-    transform: (_, j) => {
-      return j.callExpression(j.identifier('JSON.stringify'), [j.identifier('res.getBody()')]);
+    pattern: 'pm.request.url',
+    transform: (_path, j) => {
+      return j.callExpression(j.identifier('req.getUrl'), []);
     }
   },
+
+  // pm.request.url.getHost() - Extract hostname from URL
+  {
+    pattern: 'pm.request.url.getHost',
+    transform: (_path, j) => {
+      // Transform to: req.getUrl().host
+      // This uses the enhanced getUrl() return value
+      return j.memberExpression(j.callExpression(j.identifier('req.getUrl'), []),
+        j.identifier('host'));
+    },
+  },
+
+  // pm.request.url.path - Extract path segments as array
+  {
+    pattern: 'pm.request.url.path',
+    transform: (_path, j) => {
+      // Transform to: req.getUrl().path
+      // This uses the enhanced getUrl() return value
+      // This works for both pm.request.url.path and pm.request.url.path[index]
+      // because the index access will be applied to the result of this transformation
+      return j.memberExpression(j.callExpression(j.identifier('req.getUrl'), []),
+        j.identifier('path'));
+    },
+  },
+
+  // pm.response.text() - Get response body as string
+  {
+    pattern: 'pm.response.text',
+    transform: (_path, j) => {
+      // Transform to: JSON.stringify(res.getBody())
+      const getBodyCall = j.callExpression(j.identifier('res.getBody'), []);
+      return j.callExpression(j.identifier('JSON.stringify'), [getBodyCall]);
+    },
+  },
+
   {
     pattern: 'pm.response.headers.get',
     transform: (path, j) => {
@@ -288,42 +329,104 @@ const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 
  * @param {Set} transformedNodes - Set of already transformed nodes
  */
 function processTransformations(ast, transformedNodes) {
-  ast.find(j.MemberExpression).forEach(path => {
-    if (transformedNodes.has(path.node)) return;
-    
-    // Get string representation using our utility function
-    const memberExprStr = getMemberExpressionString(path.value);
-    
-    // First check for simple transformations (O(1))
-    if (simpleTranslations.hasOwnProperty(memberExprStr)) {
-      const replacement = simpleTranslations[memberExprStr];
-      j(path).replaceWith(j.identifier(replacement));
-      transformedNodes.add(path.node);
+  // Keep processing until no more transformations are made
+  // This handles cases where transforming one node invalidates other nodes in the iteration
+  let madeChanges = true;
+  while (madeChanges) {
+    madeChanges = false;
+
+    ast.find(j.MemberExpression).forEach(path => {
+      if (transformedNodes.has(path.node)) return;
+      if (madeChanges) return; // Stop processing this iteration if we've made a change
+
+      // Get string representation using our utility function
+      let memberExprStr = getMemberExpressionString(path.value);
+
+      // Check if this node is the object of a more specific MemberExpression
+      // For example, if we're processing pm.request.url and it's the object of pm.request.url.path,
+      // we should skip it and let pm.request.url.path be processed instead
+      if (path.parent.value.type === 'MemberExpression' && path.parent.value.object === path.value) {
+        const parentStr = getMemberExpressionString(path.parent.value);
+        // If the parent pattern exists in our transformations, skip this node
+        if (complexTransformationsMap.hasOwnProperty(parentStr)
+          || simpleTranslations.hasOwnProperty(parentStr)
+          || simpleTranslations.hasOwnProperty(parentStr + '()')) {
+          return;
+        }
+      }
+
+      // Check if this member expression is the callee of a CallExpression
+      // If so, we might need to append () to match patterns like 'pm.response.json()'
+      const isCallee = path.parent.value.type === 'CallExpression'
+        && path.parent.value.callee === path.value;
+
+      // Try with () appended first (for call expression patterns)
+      let memberExprStrWithCall = isCallee ? memberExprStr + '()' : null;
+
+      // First check for simple transformations with () (O(1))
+      if (memberExprStrWithCall && simpleTranslations.hasOwnProperty(memberExprStrWithCall)) {
+        const replacement = simpleTranslations[memberExprStrWithCall];
+        j(path.parent).replaceWith(j.identifier(replacement));
+        transformedNodes.add(path.parent.node);
+        return; // Skip other checks if simple transformation applied
+      }
+
+      // Then check for simple transformations without () (O(1))
+      if (simpleTranslations.hasOwnProperty(memberExprStr)) {
+        const replacement = simpleTranslations[memberExprStr];
+        j(path).replaceWith(j.identifier(replacement));
+        transformedNodes.add(path.node);
       return; // Skip complex transformation check if simple transformation applied
     }
-    
+
     // Then check for complex transformations (O(1))
-    if (complexTransformationsMap.hasOwnProperty(memberExprStr) && 
-        path.parent.value.type === 'CallExpression') {
+      if (complexTransformationsMap.hasOwnProperty(memberExprStr)) {
       const transform = complexTransformationsMap[memberExprStr];
-      const replacement = transform.transform(path, j);
-      if (Array.isArray(replacement)) {
-        replacement.forEach((nodePath, index) => {
-          if(index === 0) {
-            j(path.parent).replaceWith(nodePath);
+        const replacement = transform.transform(path, j);
+
+        // If the transformation returns null, skip it
+        if (replacement === null) {
+          return;
+        }
+
+        if (Array.isArray(replacement)) {
+          replacement.forEach((nodePath, index) => {
+            if (index === 0) {
+              j(path.parent).replaceWith(nodePath);
           } else {
             j(path.parent.parent).insertAfter(nodePath);
           }
           transformedNodes.add(nodePath.node);
           transformedNodes.add(path.parent.node);
         });
-      } else {
-        j(path.parent).replaceWith(replacement);
-        transformedNodes.add(path.node);
-        transformedNodes.add(path.parent.node);
+        } else if (path.parent.value.type === 'CallExpression') {
+        // If the parent is a CallExpression, replace the whole call
+          j(path.parent).replaceWith(replacement);
+          transformedNodes.add(path.node);
+          transformedNodes.add(path.parent.node);
+        } else {
+        // Otherwise, just replace the member expression
+          j(path).replaceWith(replacement);
+          transformedNodes.add(path.node);
+        }
+
+        // Mark the object as transformed if it's a MemberExpression
+        // This prevents transforming pm.request.url when pm.request.url.path has been transformed
+        if (path.value.object && path.value.object.type === 'MemberExpression') {
+          transformedNodes.add(path.value.object);
+          // Recursively mark all nested objects
+          let obj = path.value.object.object;
+          while (obj && obj.type === 'MemberExpression') {
+            transformedNodes.add(obj);
+            obj = obj.object;
+          }
+        }
+
+        // Mark that we made a change so we'll do another pass
+        madeChanges = true;
       }
-    }
-  });
+    });
+  } // end while loop
 }
 
 /**

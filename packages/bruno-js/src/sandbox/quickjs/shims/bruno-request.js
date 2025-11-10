@@ -25,7 +25,44 @@ const addBrunoRequestShimToContext = (vm, req) => {
   name.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
-    return marshallToVm(req.getUrl(), vm);
+    // Get the enhanced URL string with properties
+    const urlWithProps = req.getUrl();
+    const urlStr = urlWithProps.toString();
+
+    // In QuickJS, we can't attach properties to primitive strings
+    // So we create an object that acts like a string but has properties
+    const urlObject = vm.newObject();
+
+    // Add toString and valueOf methods so it behaves like a string
+    const toStringFn = vm.newFunction('toString', function () {
+      return vm.newString(urlStr);
+    });
+    vm.setProp(urlObject, 'toString', toStringFn);
+    toStringFn.dispose();
+
+    const valueOfFn = vm.newFunction('valueOf', function () {
+      return vm.newString(urlStr);
+    });
+    vm.setProp(urlObject, 'valueOf', valueOfFn);
+    valueOfFn.dispose();
+
+    // Add the .host property
+    const hostProp = vm.newString(urlWithProps.host || '');
+    vm.setProp(urlObject, 'host', hostProp);
+    hostProp.dispose();
+
+    // Add the .path property (array)
+    const pathArray = vm.newArray();
+    const pathSegments = urlWithProps.path || [];
+    for (let i = 0; i < pathSegments.length; i++) {
+      const segment = vm.newString(pathSegments[i]);
+      vm.setProp(pathArray, i, segment);
+      segment.dispose();
+    }
+    vm.setProp(urlObject, 'path', pathArray);
+    pathArray.dispose();
+
+    return urlObject;
   });
   vm.setProp(reqObject, 'getUrl', getUrl);
   getUrl.dispose();

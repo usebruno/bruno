@@ -31,8 +31,44 @@ class BrunoRequest {
     }
   }
 
+  /**
+   * Get the request URL with enhanced properties
+   *
+   * Returns a String object that can be used as a regular string (backward compatible)
+   * but also has additional properties for convenience:
+   * - .host: The hostname (e.g., "api.example.com")
+   * - .path: Array of path segments (e.g., ["users", "123"])
+   *
+   * Examples:
+   *   const url = req.getUrl(); // "https://api.example.com/users/123"
+   *   const host = req.getUrl().host; // "api.example.com"
+   *   const segments = req.getUrl().path; // ["users", "123"]
+   *   const firstSegment = req.getUrl().path[0]; // "users"
+   *
+   * @returns {String} URL string with additional properties
+   */
   getUrl() {
-    return this.req.url;
+    const url = this.req.url || '';
+
+    // Create a String object (not primitive) so we can attach properties
+    const urlString = new String(url);
+
+    try {
+      // Add .host property
+      const parts = url.split('/');
+      urlString.host = parts[2] || '';
+
+      // Add .path property (array of path segments)
+      const cleanUrl = url.split('?')[0].split('#')[0];
+      const pathParts = cleanUrl.split('/').slice(3);
+      urlString.path = pathParts.filter(Boolean);
+    } catch (e) {
+      // If parsing fails, set safe defaults
+      urlString.host = '';
+      urlString.path = [];
+    }
+
+    return urlString;
   }
 
   setUrl(url) {
