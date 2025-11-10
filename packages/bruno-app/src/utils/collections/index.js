@@ -1419,27 +1419,66 @@ export const getInitialExampleName = (item) => {
 };
 
 /**
- * Generate a unique request name by checking existing filenames in the collection
+ * Generate a unique request name by checking existing filenames in the collection and filesystem
  * @param {Object} collection - The collection object
  * @param {string} baseName - The base name (default: 'Untitled')
- * @returns {string} - A unique request name (Untitled, Untitled1, Untitled2, etc.)
+ * @param {string} itemUid - The parent item UID (null for root level, folder UID for folder level)
+ * @returns {Promise<string>} - A unique request name (Untitled, Untitled1, Untitled2, etc.)
  */
-export const generateUniqueRequestName = (collection, baseName = 'Untitled') => {
-  if (!collection || !collection.items) {
+export const generateUniqueRequestName = async (collection, baseName = 'Untitled', itemUid = null) => {
+  if (!collection) {
     return baseName;
   }
 
   const trim = require('lodash/trim');
   const { resolveRequestFilename } = require('utils/common/platform');
+  const { existsSync } = require('utils/filesystem');
 
-  // Check if baseName exists
+  // Determine the parent item and pathname
+  const parentItem = itemUid ? findItemInCollection(collection, itemUid) : null;
+  const targetPathname = parentItem ? parentItem.pathname : collection.pathname;
+  const parentItems = parentItem ? (parentItem.items || []) : (collection.items || []);
+
+  if (!targetPathname) {
+    // Fallback to in-memory check only if no pathname available
+    const resolvedBaseFilename = resolveRequestFilename(baseName);
+    const baseNameExists = find(
+      parentItems,
+      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedBaseFilename)
+    );
+    if (!baseNameExists) {
+      return baseName;
+    }
+    // Try numbered variants
+    let counter = 1;
+    while (true) {
+      const candidateName = `${baseName}${counter}`;
+      const resolvedCandidateFilename = resolveRequestFilename(candidateName);
+      const candidateExists = find(
+        parentItems,
+        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedCandidateFilename)
+      );
+      if (!candidateExists) {
+        return candidateName;
+      }
+      counter++;
+    }
+  }
+
+  // Check if baseName exists (both in-memory and filesystem)
   const resolvedBaseFilename = resolveRequestFilename(baseName);
-  const baseNameExists = find(
-    collection.items,
+  const fullBasePath = path.join(targetPathname, resolvedBaseFilename);
+  
+  // Check in-memory items
+  const baseNameExistsInMemory = find(
+    parentItems,
     (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedBaseFilename)
   );
+  
+  // Check filesystem
+  const baseNameExistsInFs = await existsSync(fullBasePath);
 
-  if (!baseNameExists) {
+  if (!baseNameExistsInMemory && !baseNameExistsInFs) {
     return baseName;
   }
 
@@ -1448,12 +1487,16 @@ export const generateUniqueRequestName = (collection, baseName = 'Untitled') => 
   while (true) {
     const candidateName = `${baseName}${counter}`;
     const resolvedCandidateFilename = resolveRequestFilename(candidateName);
-    const candidateExists = find(
-      collection.items,
+    const fullCandidatePath = path.join(targetPathname, resolvedCandidateFilename);
+    
+    // Check both in-memory and filesystem
+    const candidateExistsInMemory = find(
+      parentItems,
       (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedCandidateFilename)
     );
-
-    if (!candidateExists) {
+    const candidateExistsInFs = await existsSync(fullCandidatePath);
+    
+    if (!candidateExistsInMemory && !candidateExistsInFs) {
       return candidateName;
     }
     counter++;

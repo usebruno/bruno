@@ -18,9 +18,9 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, icon = null, onR
     return null;
   }
 
-  const handleCreateHttpRequest = () => {
+  const handleCreateHttpRequest = async () => {
     dropdownTippyRef.current?.hide();
-    const uniqueName = generateUniqueRequestName(collection, 'Untitled');
+    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -41,9 +41,9 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, icon = null, onR
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   };
 
-  const handleCreateGraphQLRequest = () => {
+  const handleCreateGraphQLRequest = async () => {
     dropdownTippyRef.current?.hide();
-    const uniqueName = generateUniqueRequestName(collection, 'Untitled');
+    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -71,9 +71,9 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, icon = null, onR
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   };
 
-  const handleCreateWebSocketRequest = () => {
+  const handleCreateWebSocketRequest = async () => {
     dropdownTippyRef.current?.hide();
-    const uniqueName = generateUniqueRequestName(collection, 'Untitled');
+    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -93,9 +93,9 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, icon = null, onR
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   };
 
-  const handleCreateGrpcRequest = () => {
+  const handleCreateGrpcRequest = async () => {
     dropdownTippyRef.current?.hide();
-    const uniqueName = generateUniqueRequestName(collection, 'Untitled');
+    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
