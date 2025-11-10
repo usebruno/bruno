@@ -28,7 +28,7 @@ import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
-
+import CreateUntitledRequest from 'components/CreateUntitledRequest';
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -270,15 +270,16 @@ const Collection = ({ collection, searchText }) => {
         </div>
         <div className="collection-actions" data-testid="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
+            <CreateUntitledRequest
+              collectionUid={collection.uid}
+              onRequestCreated={() => {
                 menuDropdownTippyRef.current.hide();
                 setShowNewRequestModal(true);
               }}
-            >
-              New Request
-            </div>
+              icon={<div className="dropdown-item">New Request</div>}
+              placement="right-start"
+            />
+
             <div
               className="dropdown-item"
               onClick={(_e) => {

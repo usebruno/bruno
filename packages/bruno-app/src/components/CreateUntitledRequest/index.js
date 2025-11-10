@@ -6,7 +6,7 @@ import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 
-const CreateUntitledRequest = ({ collectionUid, itemUid = null, TriggerComponent, onRequestCreated }) => {
+const CreateUntitledRequest = ({ collectionUid, itemUid = null, icon = null, onRequestCreated, placement = 'bottom' }) => {
   const dispatch = useDispatch();
   const collections = useSelector((state) => state.collections.collections);
   const collection = collections?.find((c) => c.uid === collectionUid);
@@ -114,28 +114,9 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, TriggerComponent
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   };
 
-  const DefaultTrigger = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center cursor-pointer">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="22"
-          height="22"
-          fill="currentColor"
-          viewBox="0 0 16 16"
-        >
-          <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-        </svg>
-      </div>
-    );
-  });
-
-  DefaultTrigger.displayName = 'DefaultTrigger';
-
-  const Trigger = TriggerComponent ? TriggerComponent : DefaultTrigger;
 
   return (
-    <Dropdown onCreate={onDropdownCreate} icon={<Trigger />} placement="bottom">
+    <Dropdown onCreate={onDropdownCreate} icon={icon} placement={placement}>
       <button className="dropdown-item w-full" onClick={handleCreateHttpRequest}>
         HTTP
       </button>

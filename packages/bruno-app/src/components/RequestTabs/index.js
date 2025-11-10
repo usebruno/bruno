@@ -151,11 +151,13 @@ const RequestTabs = () => {
                 </li>
               ) : null}
               <div className="flex items-center short-tab">
+
                 {activeCollection && (
                   <CreateUntitledRequest
                     collectionUid={activeCollection.uid}
                     itemUid={null}
-                    TriggerComponent={PlusIcon}
+                    icon={<PlusIcon />}
+                    placement="right-start"
                   />
                 )}
               </div>
