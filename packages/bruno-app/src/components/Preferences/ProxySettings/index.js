@@ -18,6 +18,7 @@ const ProxySettings = ({ close }) => {
   const proxySchema = Yup.object({
     disabled: Yup.boolean().optional(),
     inherit: Yup.boolean().required(),
+    pacUrl: Yup.string().optional().url('Specify a valid PAC URL').max(2048).nullable(),
     config: Yup.object({
       protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),
@@ -40,6 +41,7 @@ const ProxySettings = ({ close }) => {
     initialValues: {
       disabled: preferences.proxy.disabled || false,
       inherit: preferences.proxy.inherit || false,
+      pacUrl: preferences.proxy.pacUrl || '',
       config: {
         protocol: preferences.proxy.config?.protocol || 'http',
         hostname: preferences.proxy.config?.hostname || '',
@@ -86,6 +88,12 @@ const ProxySettings = ({ close }) => {
   );
 
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [proxyMode, setProxyMode] = useState(() => {
+    if (preferences.proxy.disabled) return 'off';
+    if (preferences.proxy.inherit) return 'system';
+    if (preferences.proxy.pacUrl) return 'pac';
+    return 'on';
+  });
 
   useEffect(() => {
     if (formik.dirty && formik.isValid) {
@@ -110,10 +118,12 @@ const ProxySettings = ({ close }) => {
                 type="radio"
                 name="mode"
                 value="off"
-                checked={formik.values.disabled === true}
+                checked={proxyMode === 'off'}
                 onChange={(e) => {
+                  setProxyMode('off');
                   formik.setFieldValue('disabled', true);
                   formik.setFieldValue('inherit', false);
+                  formik.setFieldValue('pacUrl', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -124,10 +134,12 @@ const ProxySettings = ({ close }) => {
                 type="radio"
                 name="mode"
                 value="on"
-                checked={formik.values.disabled === false && formik.values.inherit === false}
+                checked={proxyMode === 'on'}
                 onChange={(e) => {
+                  setProxyMode('on');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('inherit', false);
+                  formik.setFieldValue('pacUrl', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -138,23 +150,40 @@ const ProxySettings = ({ close }) => {
                 type="radio"
                 name="mode"
                 value="system"
-                checked={formik.values.disabled === false && formik.values.inherit === true}
+                checked={proxyMode === 'system'}
                 onChange={(e) => {
+                  setProxyMode('system');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('inherit', true);
+                  formik.setFieldValue('pacUrl', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
               System Proxy
             </label>
+            <label className="flex items-center ml-4 cursor-pointer">
+              <input
+                type="radio"
+                name="mode"
+                value="pac"
+                checked={proxyMode === 'pac'}
+                onChange={(e) => {
+                  setProxyMode('pac');
+                  formik.setFieldValue('disabled', false);
+                  formik.setFieldValue('inherit', false);
+                }}
+                className="mr-1 cursor-pointer"
+              />
+              PAC
+            </label>
           </div>
         </div>
-        {formik.values.disabled === false && formik.values.inherit === true ? (
+        {proxyMode === 'system' ? (
           <div className="mb-3 pt-1 text-muted system-proxy-settings">
             <SystemProxy />
           </div>
         ) : null}
-        {formik.values.disabled === false && formik.values.inherit === false ? (
+        {proxyMode === 'on' ? (
           <>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="protocol">
@@ -331,6 +360,31 @@ const ProxySettings = ({ close }) => {
               />
               {formik.touched.config?.bypassProxy && formik.errors.config?.bypassProxy ? (
                 <div className="ml-3 text-red-500">{formik.errors.config.bypassProxy}</div>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+        {proxyMode === 'pac' ? (
+          <>
+            <div className="mb-3 flex items-center">
+              <label className="settings-label" htmlFor="pacUrl">
+                PAC URL
+              </label>
+              <input
+                id="pacUrl"
+                type="text"
+                name="pacUrl"
+                className="block textbox"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                onChange={formik.handleChange}
+                value={formik.values.pacUrl || ''}
+                placeholder="https://example.com/proxy.pac"
+              />
+              {formik.touched.pacUrl && formik.errors.pacUrl ? (
+                <div className="ml-3 text-red-500">{formik.errors.pacUrl}</div>
               ) : null}
             </div>
           </>
