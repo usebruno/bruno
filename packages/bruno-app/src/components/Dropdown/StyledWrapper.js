@@ -8,6 +8,8 @@ const Wrapper = styled.div`
   }
 
   .tippy-box {
+    position: absolute !important;
+    z-index: 9999;
     min-width: 135px;
     font-size: 0.8125rem;
     color: ${(props) => props.theme.dropdown.color};

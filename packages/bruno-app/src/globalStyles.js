@@ -272,6 +272,69 @@ const GlobalStyle = createGlobalStyle`
     background: #08f !important;
     color: #fff !important;
   }
+
+  /* Dropdown styles when appended to body */
+  .tippy-box {
+    position: absolute !important;
+    z-index: 9999 !important;
+    opacity: 1 !important;
+    min-width: 135px !important;
+    font-size: 0.8125rem !important;
+    background-color: ${(props) => props.theme.dropdown.bg} !important;
+    color: ${(props) => props.theme.dropdown.color} !important;
+    box-shadow: ${(props) => props.theme.dropdown.shadow} !important;
+    border-radius: 3px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    max-width: unset !important;
+  }
+
+  .tippy-box .tippy-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  .tippy-box .tippy-content .dropdown-item {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.35rem 0.6rem !important;
+    cursor: pointer !important;
+    color: ${(props) => props.theme.dropdown.color} !important;
+  }
+
+  .tippy-box .tippy-content .dropdown-item:hover:not(:disabled) {
+    background-color: ${(props) => props.theme.dropdown.hoverBg} !important;
+  }
+
+  .tippy-box .tippy-content .dropdown-item.active {
+    color: ${(props) => props.theme.colors.text.yellow} !important;
+  }
+
+  .tippy-box .tippy-content .dropdown-item.active .icon {
+    color: ${(props) => props.theme.colors.text.yellow} !important;
+  }
+
+  .tippy-box .tippy-content .dropdown-item .icon {
+    color: ${(props) => props.theme.dropdown.iconColor} !important;
+  }
+
+  .tippy-box .tippy-content .dropdown-item:disabled {
+    cursor: not-allowed !important;
+    color: gray !important;
+  }
+
+  .tippy-box .tippy-content .dropdown-item.border-top {
+    border-top: solid 1px ${(props) => props.theme.dropdown.separator} !important;
+  }
+
+  .tippy-box .tippy-content .label-item {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.35rem 0.6rem !important;
+    background-color: ${(props) => props.theme.dropdown.labelBg} !important;
+  }
 `;
 
 export default GlobalStyle;
