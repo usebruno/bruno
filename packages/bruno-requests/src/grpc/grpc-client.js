@@ -251,7 +251,7 @@ class GrpcClient {
     const securedProtocols = ['grpcs', 'https'];
     const metadata = new Metadata();
     Object.entries(headers).forEach(([name, value]) => {
-      metadata.add(name, value);
+      metadata.set(name, value);
     });
     const callCredentials = credentials.createFromMetadataGenerator((options, callback) => {
       callback(null, metadata);
@@ -550,7 +550,7 @@ class GrpcClient {
     const collectionUid = collection.uid;
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
-      metadata.add(name, value);
+      metadata.set(name, value);
     });
 
     this.#handleConnection({
@@ -617,7 +617,7 @@ class GrpcClient {
     const { host, path } = getParsedGrpcUrlObject(request.url);
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
-      metadata.add(name, value);
+      metadata.set(name, value);
     });
     const credentials = this.#getChannelCredentials({
       url: request.url,
