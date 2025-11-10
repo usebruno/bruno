@@ -280,13 +280,28 @@ class SingleLineEditor extends Component {
     const errorIconId = `validation-error-${Math.random().toString(36).substr(2, 9)}`;
 
     return (
-      <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
+      <div className={`flex flex-row items-center w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper
           ref={this.editorRef}
           className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
           {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
         />
-        {this.secretEye(this.props.isSecret)}
+        <div className="flex items-center">
+          {this.secretEye(this.props.isSecret)}
+          {this.props.validationError && (
+            <ToolHint
+              text={this.props.validationError}
+              toolhintId={errorIconId}
+              place="right"
+              delayShow={50}
+              style={{
+                maxWidth: '200px'
+              }}
+            >
+              <IconAlertCircle size={18} strokeWidth={2} color="#ef4444" className="ml-2" />
+            </ToolHint>
+          )}
+        </div>
       </div>
     );
   }
