@@ -41,13 +41,6 @@ Bruno é totalmente offline. Não há planos de adicionar sincronização em nuv
 
 ![bruno](../../assets/images/landing-2.png) <br /><br />
 
-### Golden Edition ✨
-
-A grande maioria dos nossos recursos são gratuitos e de código aberto.
-Nós nos esforçamos para encontrar um equilíbrio harmônico entre [princípios de código aberto e sustentabilidade](https://github.com/usebruno/bruno/discussions/269)
-
-Você pode pré encomendar o plano [Golden Edition](https://www.usebruno.com/pricing) por ~~USD $19~~ **USD $9**! <br/>
-
 ### Instalação
 
 Bruno está disponível para download como binário [em nosso site](https://www.usebruno.com/downloads) para Mac, Windows e Linux.

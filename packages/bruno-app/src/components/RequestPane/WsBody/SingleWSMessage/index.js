@@ -10,7 +10,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { autoDetectLang } from 'utils/codemirror/lang-detect';
 import { toastError } from 'utils/common/error';
-import { prettifyJSON } from 'utils/common/index';
+import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
 import WSRequestBodyMode from '../BodyMode/index';
 
@@ -105,7 +105,7 @@ export const SingleWSMessage = ({
   const onPrettify = () => {
     if (codeType === 'json') {
       try {
-        const prettyBodyJson = prettifyJSON(content);
+        const prettyBodyJson = prettifyJsonString(content);
         const currentMessages = [...(body.ws || [])];
         currentMessages[index] = {
           ...currentMessages[index],
