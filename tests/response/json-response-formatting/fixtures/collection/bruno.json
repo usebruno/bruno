@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "name": "bigint-test",
+  "name": "collection",
   "type": "collection",
   "ignore": [
     "node_modules",
