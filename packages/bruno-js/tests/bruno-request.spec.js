@@ -29,7 +29,7 @@ describe('BrunoRequest', () => {
       expect(url + '/123').toBe('https://api.example.com/users/123');
     });
 
-    it('should have .host property with hostname', () => {
+    it('should have .host property as array of hostname parts (matching Postman)', () => {
       const req = new BrunoRequest({
         url: 'https://api.example.com/users/123',
         method: 'GET',
@@ -37,10 +37,10 @@ describe('BrunoRequest', () => {
         data: undefined,
       });
 
-      expect(req.getUrl().host).toBe('api.example.com');
+      expect(req.getUrl().host).toEqual(['api', 'example', 'com']);
     });
 
-    it('should extract hostname from http URL', () => {
+    it('should extract hostname parts from http URL with port', () => {
       const req = new BrunoRequest({
         url: 'http://localhost:3000/api/test',
         method: 'GET',
@@ -48,10 +48,10 @@ describe('BrunoRequest', () => {
         data: undefined,
       });
 
-      expect(req.getUrl().host).toBe('localhost:3000');
+      expect(req.getUrl().host).toEqual(['localhost:3000']);
     });
 
-    it('should extract hostname from URL with query parameters', () => {
+    it('should extract hostname parts from URL with query parameters', () => {
       const req = new BrunoRequest({
         url: 'https://httpbin.org/anything?foo=bar&baz=qux',
         method: 'GET',
@@ -59,10 +59,10 @@ describe('BrunoRequest', () => {
         data: undefined,
       });
 
-      expect(req.getUrl().host).toBe('httpbin.org');
+      expect(req.getUrl().host).toEqual(['httpbin', 'org']);
     });
 
-    it('should extract hostname from URL with hash', () => {
+    it('should extract hostname parts from URL with hash', () => {
       const req = new BrunoRequest({
         url: 'https://example.com/path#section',
         method: 'GET',
@@ -70,10 +70,10 @@ describe('BrunoRequest', () => {
         data: undefined,
       });
 
-      expect(req.getUrl().host).toBe('example.com');
+      expect(req.getUrl().host).toEqual(['example', 'com']);
     });
 
-    it('should return empty string for .host on invalid URL', () => {
+    it('should return empty array for .host on invalid URL', () => {
       const req = new BrunoRequest({
         url: '',
         method: 'GET',
@@ -81,10 +81,10 @@ describe('BrunoRequest', () => {
         data: undefined,
       });
 
-      expect(req.getUrl().host).toBe('');
+      expect(req.getUrl().host).toEqual([]);
     });
 
-    it('should return empty string for .host on null URL', () => {
+    it('should return empty array for .host on null URL', () => {
       const req = new BrunoRequest({
         url: null,
         method: 'GET',
@@ -92,7 +92,63 @@ describe('BrunoRequest', () => {
         data: undefined,
       });
 
-      expect(req.getUrl().host).toBe('');
+      expect(req.getUrl().host).toEqual([]);
+    });
+  });
+
+  describe('getUrl().getHost() - hostname as string', () => {
+    it('should have .getHost() method that returns hostname as string', () => {
+      const req = new BrunoRequest({
+        url: 'https://api.example.com/users/123',
+        method: 'GET',
+        headers: {},
+        data: undefined,
+      });
+
+      expect(typeof req.getUrl().getHost).toBe('function');
+      expect(req.getUrl().getHost()).toBe('api.example.com');
+    });
+
+    it('should return joined hostname from .host array', () => {
+      const req = new BrunoRequest({
+        url: 'https://postman-echo.com/get',
+        method: 'GET',
+        headers: {},
+        data: undefined,
+      });
+
+      const url = req.getUrl();
+      expect(url.host).toEqual(['postman-echo', 'com']);
+      expect(url.getHost()).toBe('postman-echo.com');
+    });
+
+    it('should return empty string for URL without hostname', () => {
+      const req = new BrunoRequest({
+        url: '',
+        method: 'GET',
+        headers: {},
+        data: undefined,
+      });
+
+      expect(req.getUrl().getHost()).toBe('');
+    });
+
+    it('should match Postman API behavior: .host is array, .getHost() is string', () => {
+      const req = new BrunoRequest({
+        url: 'https://httpbin.org/anything',
+        method: 'GET',
+        headers: {},
+        data: undefined,
+      });
+
+      const url = req.getUrl();
+      // pm.request.url.host returns array
+      expect(Array.isArray(url.host)).toBe(true);
+      expect(url.host).toEqual(['httpbin', 'org']);
+
+      // pm.request.url.getHost() returns string
+      expect(typeof url.getHost()).toBe('string');
+      expect(url.getHost()).toBe('httpbin.org');
     });
   });
 

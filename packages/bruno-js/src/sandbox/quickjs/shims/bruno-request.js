@@ -3,7 +3,9 @@ const { marshallToVm } = require('../utils');
 const addBrunoRequestShimToContext = (vm, req) => {
   const reqObject = vm.newObject();
 
-  const url = marshallToVm(req.getUrl(), vm);
+  // Convert String object to primitive string to avoid marshalling issues
+  const urlValue = req.getUrl();
+  const url = marshallToVm(urlValue.toString(), vm);
   const method = marshallToVm(req.getMethod(), vm);
   const headers = marshallToVm(req.getHeaders(), vm);
   const body = marshallToVm(req.getBody(), vm);
@@ -46,10 +48,16 @@ const addBrunoRequestShimToContext = (vm, req) => {
     vm.setProp(urlObject, 'valueOf', valueOfFn);
     valueOfFn.dispose();
 
-    // Add the .host property
-    const hostProp = vm.newString(urlWithProps.host || '');
-    vm.setProp(urlObject, 'host', hostProp);
-    hostProp.dispose();
+    // Add the .host property (array of hostname parts, matching Postman's behavior)
+    const hostArray = vm.newArray();
+    const hostParts = urlWithProps.host || [];
+    for (let i = 0; i < hostParts.length; i++) {
+      const part = vm.newString(hostParts[i]);
+      vm.setProp(hostArray, i, part);
+      part.dispose();
+    }
+    vm.setProp(urlObject, 'host', hostArray);
+    // Don't dispose hostArray - it's now owned by urlObject
 
     // Add the .path property (array)
     const pathArray = vm.newArray();
@@ -60,7 +68,16 @@ const addBrunoRequestShimToContext = (vm, req) => {
       segment.dispose();
     }
     vm.setProp(urlObject, 'path', pathArray);
-    pathArray.dispose();
+    // Don't dispose pathArray - it's now owned by urlObject
+
+    // Add the .getHost() method (returns hostname as string, matching Postman's behavior)
+    const getHostFn = vm.newFunction('getHost', function () {
+      // Join the host array parts with '.'
+      const hostname = hostParts.join('.');
+      return vm.newString(hostname);
+    });
+    vm.setProp(urlObject, 'getHost', getHostFn);
+    getHostFn.dispose();
 
     return urlObject;
   });

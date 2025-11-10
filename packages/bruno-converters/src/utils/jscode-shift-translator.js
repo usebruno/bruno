@@ -163,14 +163,17 @@ const complexTransformations = [
     }
   },
 
-  // pm.request.url.getHost() - Extract hostname from URL
+  // pm.request.url.getHost() - Extract hostname from URL as string
   {
     pattern: 'pm.request.url.getHost',
     transform: (_path, j) => {
-      // Transform to: req.getUrl().host
-      // This uses the enhanced getUrl() return value
-      return j.memberExpression(j.callExpression(j.identifier('req.getUrl'), []),
-        j.identifier('host'));
+      // Transform to: req.getUrl().host.join('.')
+      // pm.request.url.getHost() returns a string (e.g., "api.example.com")
+      // req.getUrl().host is an array (e.g., ["api", "example", "com"])
+      // So we need to join it to match Postman's behavior
+      const getUrlCall = j.callExpression(j.identifier('req.getUrl'), []);
+      const hostAccess = j.memberExpression(getUrlCall, j.identifier('host'));
+      return j.callExpression(j.memberExpression(hostAccess, j.identifier('join')), [j.literal('.')]);
     },
   },
 
