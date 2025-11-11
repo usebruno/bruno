@@ -249,14 +249,25 @@ export const sendWsRequest = (item, collection, environment, runtimeVariables) =
         await connectWS(item, collection, environment, runtimeVariables, { connectOnly: true });
       }
     };
-    const { request } = item.draft ? item.draft : item;
-    queueWsMessage(item, collection.uid, request.body.ws[0].content)
-      .then((initialState) => {
-        // Return an initial state object to update the UI
-        // The real response data will be handled by event listeners
-        resolve({
-          ...initialState
-        });
+    
+    // Use main process to prepare and queue messages with proper variable interpolation
+    // This centralizes all interpolation logic in the main process (like HTTP requests)
+    // and removes code duplication between renderer and main process
+    const { ipcRenderer } = window;
+    
+    ipcRenderer
+      .invoke('renderer:ws:prepare-and-queue-messages', {
+        item,
+        collection,
+        environment,
+        runtimeVariables
+      })
+      .then((result) => {
+        if (result.success) {
+          resolve({});
+        } else {
+          reject(new Error(result.error || 'Failed to prepare and queue messages'));
+        }
       })
       .catch((err) => reject(err));
     await ensureConnection();

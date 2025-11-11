@@ -38,6 +38,8 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
+    request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
+    request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
   }
 
   each(get(collectionRoot, 'request.headers', []), (h) => {
@@ -65,6 +67,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
 
   let wsRequest = {
     uid: item.uid,
+    mode: request.body.mode,
     url: request.url,
     headers,
     processEnvVars,
@@ -285,6 +288,29 @@ const registerWsEventHandlers = (window) => {
       return { success: false, error: error.message };
     }
   });
+
+  // Prepare and queue WebSocket messages with proper variable interpolation
+  ipcMain.handle('renderer:ws:prepare-and-queue-messages',
+    async (event, { item, collection, environment, runtimeVariables }) => {
+      try {
+        const itemCopy = cloneDeep(item);
+        const preparedRequest = await prepareWsRequest(itemCopy, collection, environment, runtimeVariables, {});
+        
+        // Queue all messages (they are already interpolated by prepareWsRequest -> interpolateVars)
+        if (preparedRequest.body && preparedRequest.body.ws && Array.isArray(preparedRequest.body.ws)) {
+          preparedRequest.body.ws
+            .filter((message) => message && message.content)
+            .forEach((message) => {
+              wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content);
+            });
+        }
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error preparing and queuing WebSocket messages:', error);
+        return { success: false, error: error.message };
+      }
+    });
 
   // Send a message to an existing WebSocket connection
   ipcMain.handle('renderer:ws:send-message', (event, requestId, collectionUid, message) => {
