@@ -6,6 +6,21 @@ jest.mock('@usebruno/common', () => ({
   interpolate: jest.fn()
 }));
 
+// Mock MaskedEditor
+jest.mock('utils/common/masked-editor', () => ({
+  MaskedEditor: jest.fn().mockImplementation(() => ({
+    enable: jest.fn(),
+    disable: jest.fn(),
+    destroy: jest.fn(),
+    update: jest.fn()
+  }))
+}));
+
+// Mock defineCodeMirrorBrunoVariablesMode
+jest.mock('utils/common/codemirror', () => ({
+  defineCodeMirrorBrunoVariablesMode: jest.fn()
+}));
+
 const fakeVariables = {
   apiKey: 'test-api-key-123',
   baseUrl: 'https://api.example.com',
@@ -16,30 +31,57 @@ const fakeVariables = {
   }
 };
 
-// Mock Redux store to avoid import.meta issues
+// Mock Redux store and actions
 jest.mock('providers/ReduxStore', () => ({
   store: {
     getState: jest.fn(() => ({
       collections: {
         collections: [
           {
+            uid: 'collection-1',
             activeEnvironmentUid: '111',
             environments: [
               { uid: '111', name: 'Development', variables:
                 Object.entries(fakeVariables)
                   .filter(([key]) => key !== 'pathParams')
-                  .map(([name, value]) => ({ name, value }))
+                  .map(([name, value]) => ({ name, value, enabled: true }))
               }
-            ]
+            ],
+            root: {
+              request: {
+                vars: {
+                  req: []
+                }
+              }
+            },
+            items: []
           }
         ]
       },
-      app: {
-        globalEnvironments: []
+      globalEnvironments: {
+        globalEnvironments: [],
+        activeGlobalEnvironmentUid: null
       }
     })),
     dispatch: jest.fn()
   }
+}));
+
+// Mock Redux actions
+jest.mock('providers/ReduxStore/slices/global-environments', () => ({
+  saveGlobalEnvironment: jest.fn()
+}));
+
+jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
+  saveEnvironment: jest.fn(),
+  saveCollectionRoot: jest.fn(),
+  saveFolderRoot: jest.fn()
+}));
+
+jest.mock('providers/ReduxStore/slices/collections', () => ({
+  updateCollectionVar: jest.fn(),
+  updateFolderVar: jest.fn(),
+  updateRuntimeVariable: jest.fn()
 }));
 
 describe('extractVariableInfo', () => {
@@ -286,16 +328,14 @@ describe('renderVarInfo', () => {
     jest.useRealTimers();
   });
 
-  function setupRender(variables) {
-    const result = renderVarInfo({ string: '{{apiKey}}' }, { variables });
-    const descriptionDiv = result.querySelector('.info-description');
+  function setupRender(variables, cm = null, pos = null) {
+    const result = renderVarInfo({ string: '{{apiKey}}' }, { variables }, cm, pos);
     const copyButton = result.querySelector('.copy-button');
-    const editButton = result.querySelector('.button-container .edit-btn');
-    const saveButton = result.querySelector('.button-container .save-btn.hidden');
-    const cancelButton = result.querySelector('.button-container .cancel-btn.hidden');
-    const editInput = result.querySelector('.value-container .edit-input.hidden');
+    const eyeButton = result.querySelector('.eye-button');
+    const editorWrapper = result.querySelector('.codemirror-wrapper');
+    const readOnlyTextarea = result.querySelector('.read-only-textarea');
 
-    return { result, descriptionDiv, copyButton, editButton, saveButton, cancelButton, editInput };
+    return { result, copyButton, eyeButton, editorWrapper, readOnlyTextarea };
   }
 
   describe('popup functionality', () => {
@@ -305,19 +345,27 @@ describe('renderVarInfo', () => {
       expect(result).toBeDefined();
     });
 
-    it('should create a popup with the correct variable name and value', () => {
-      const { descriptionDiv } = setupRender({ apiKey: 'test-value' });
+    it('should create a popup with an editable editor for environment variables', () => {
+      const { editorWrapper } = setupRender({ apiKey: 'test-value' });
 
-      expect(descriptionDiv.textContent).toBe('test-value');
+      expect(editorWrapper).toBeDefined();
+      expect(editorWrapper).not.toBeNull();
     });
 
-    it('should correctly mask the variable value in the popup', () => {
-      const { descriptionDiv } = setupRender({
+    it('should show eye button for masked variables', () => {
+      const { eyeButton } = setupRender({
         apiKey: 'test-value',
         maskedEnvVariables: ['apiKey']
       });
 
-      expect(descriptionDiv.textContent).toBe('*****');
+      expect(eyeButton).toBeDefined();
+      expect(eyeButton).not.toBeNull();
+    });
+
+    it('should not show eye button for non-masked variables', () => {
+      const { eyeButton } = setupRender({ apiKey: 'test-value' });
+
+      expect(eyeButton).toBeNull();
     });
   });
 
@@ -373,45 +421,35 @@ describe('renderVarInfo', () => {
     });
   });
 
-  describe('edit button functionality', () => {
-    it('should create an edit button', () => {
-      const { editButton } = setupRender({ apiKey: 'test-value' });
+  describe('inline editor functionality', () => {
+    it('should create an inline editor for editable variables', () => {
+      const { editorWrapper } = setupRender({ apiKey: 'test-value' });
 
-      expect(editButton).toBeDefined();
+      expect(editorWrapper).toBeDefined();
+      expect(editorWrapper).not.toBeNull();
     });
 
-    it('should create an hidden save button', () => {
-      const { saveButton } = setupRender({ apiKey: 'test-value' });
+    it('should have data attributes for variable information', () => {
+      const { editorWrapper } = setupRender({ apiKey: 'test-value' });
 
-      expect(saveButton).toBeDefined();
+      expect(editorWrapper.getAttribute('data-variable-name')).toBe('apiKey');
+      expect(editorWrapper.getAttribute('data-raw-value')).toBe('test-value');
     });
 
-    it('should create an hidden cancel button', () => {
-      const { cancelButton } = setupRender({ apiKey: 'test-value' });
+    it('should mark masked variables correctly', () => {
+      const { editorWrapper } = setupRender({
+        apiKey: 'test-value',
+        maskedEnvVariables: ['apiKey']
+      });
 
-      expect(cancelButton).toBeDefined();
+      expect(editorWrapper.getAttribute('data-is-masked')).toBe('true');
     });
 
-    it('should create an hidden edit input', () => {
-      const { editInput } = setupRender({ apiKey: 'test-value' });
+    it('should not mark non-masked variables as masked', () => {
+      const { editorWrapper } = setupRender({ apiKey: 'test-value' });
 
-      expect(editInput).toBeDefined();
-    });
-
-    it('should should show save button, cancel button and edit input when clicked', async () => {
-      const { editButton, saveButton, cancelButton, editInput } = setupRender({ apiKey: 'test-value' });
-
-      await editButton.click();
-      expect(saveButton).not.toHaveClass('hidden');
-      expect(cancelButton).not.toHaveClass('hidden');
-      expect(editInput).not.toHaveClass('hidden');
-    });
-
-    it('should should hide edit button', async () => {
-      const { editButton, saveButton, cancelButton, editInput } = setupRender({ apiKey: 'test-value' });
-
-      await editButton.click();
-      expect(editButton).toHaveClass('hidden');
+      const isMasked = editorWrapper.getAttribute('data-is-masked');
+      expect(isMasked === 'false' || isMasked === 'undefined').toBe(true);
     });
   });
 });

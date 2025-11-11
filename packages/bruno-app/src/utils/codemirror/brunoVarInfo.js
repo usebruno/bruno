@@ -12,6 +12,7 @@ import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-enviro
 import { saveEnvironment, saveCollectionRoot, saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { updateCollectionVar, updateFolderVar, updateRuntimeVariable as updateRuntimeVariableAction } from 'providers/ReduxStore/slices/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { MaskedEditor } from 'utils/common/masked-editor';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -27,6 +28,20 @@ const COPY_ICON_SVG_TEXT = `
 const CHECKMARK_ICON_SVG_TEXT = `
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="20,6 9,17 4,12"></polyline>
+</svg>
+`;
+
+const EYE_ICON_SVG_TEXT = `
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+  <circle cx="12" cy="12" r="3"></circle>
+</svg>
+`;
+
+const EYE_OFF_ICON_SVG_TEXT = `
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+  <line x1="1" y1="1" x2="23" y2="23"></line>
 </svg>
 `;
 
@@ -144,56 +159,39 @@ const appendVariableHeader = (container, variableName, options) => {
 };
 
 const appendVariableValue = (container, variableName, variableValue, options, cm) => {
-  const variableType = getVariableType(variableName, options);
-  const isEditableByType = isVariableEditable(variableType);
   const isMasked = isVariableMasked(variableName, options);
   const isValueReference = isVariableValueReference(variableName, options);
 
-  // Variable is editable only if it's editable by type AND its value is not a variable reference AND it's not masked
-  const isEditable = isEditableByType && !isValueReference && !isMasked;
+  // Get raw value for editing (important for variables that reference other variables or masked variables)
+  const rawValue = (isValueReference || isMasked) ? getRawVariableValue(variableName, options) : null;
+  const editValue = rawValue || variableValue;
 
-  const valueContainer = createValueContainer(variableName, variableValue, isMasked, isEditable, options, cm);
+  // All variables are now editable
+  const valueContainer = createValueContainer(variableName, editValue, variableValue, isMasked, true, isValueReference, options, cm);
   container.appendChild(valueContainer);
-
-  if (!isEditable) {
-    let reason;
-    if (isMasked) {
-      reason = 'This variable cannot be edited because it is a secret variable.';
-    } else if (isValueReference) {
-      reason = 'This variable cannot be edited because its value references another variable.';
-    } else {
-      reason = 'This type of variable cannot be edited from tooltips.';
-    }
-    container.appendChild(createReadOnlyInfo(reason));
-  }
-};
-
-const isVariableEditable = (variableType) => {
-  return ['global', 'environment', 'collection', 'folder'].includes(variableType);
 };
 
 const isVariableMasked = (variableName, options) => {
   return options?.variables?.maskedEnvVariables?.includes(variableName);
 };
 
-// Check if a variable's value is a variable reference (e.g., {{host}})
-const isVariableValueReference = (variableName, options) => {
+// Get the raw (non-interpolated) value of a variable from the store
+const getRawVariableValue = (variableName, options) => {
   const reduxStore = store;
   if (!reduxStore) {
-    return false;
+    return null;
   }
 
   const state = reduxStore.getState();
   const globalEnvironments = state?.globalEnvironments?.globalEnvironments;
   const activeGlobalEnvironmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
   const collections = state?.collections?.collections;
-  const DOUBLE_BRACE_PATTERN = /\{\{([^}]+)\}\}/;
 
   // Check global environment
   const activeGlobalEnv = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
   const globalVar = activeGlobalEnv?.variables?.find((v) => v.name === variableName);
-  if (globalVar && DOUBLE_BRACE_PATTERN.test(globalVar.value)) {
-    return true;
+  if (globalVar) {
+    return globalVar.value;
   }
 
   // Check collection environments
@@ -202,8 +200,8 @@ const isVariableValueReference = (variableName, options) => {
       if (collection.activeEnvironmentUid && collection.environments) {
         const environment = collection.environments.find((env) => env.uid === collection.activeEnvironmentUid);
         const envVar = environment?.variables?.find((v) => v.name === variableName);
-        if (envVar && DOUBLE_BRACE_PATTERN.test(envVar.value)) {
-          return true;
+        if (envVar) {
+          return envVar.value;
         }
       }
     }
@@ -213,8 +211,8 @@ const isVariableValueReference = (variableName, options) => {
   if (collections) {
     for (const collection of collections) {
       const collectionVar = collection.root?.request?.vars?.req?.find((v) => v.name === variableName);
-      if (collectionVar && DOUBLE_BRACE_PATTERN.test(collectionVar.value)) {
-        return true;
+      if (collectionVar) {
+        return collectionVar.value;
       }
     }
   }
@@ -223,13 +221,24 @@ const isVariableValueReference = (variableName, options) => {
   if (collections) {
     for (const collection of collections) {
       const folderVar = findFolderVariableValue(collection.items, variableName);
-      if (folderVar && DOUBLE_BRACE_PATTERN.test(folderVar.value)) {
-        return true;
+      if (folderVar) {
+        return folderVar.value;
       }
     }
   }
 
-  return false;
+  return null;
+};
+
+// Check if a variable's value is a variable reference (e.g., {{host}})
+const isVariableValueReference = (variableName, options) => {
+  const rawValue = getRawVariableValue(variableName, options);
+  if (!rawValue) {
+    return false;
+  }
+
+  const DOUBLE_BRACE_PATTERN = /\{\{([^}]+)\}\}/;
+  return DOUBLE_BRACE_PATTERN.test(rawValue);
 };
 
 const findFolderVariableValue = (items, variableName) => {
@@ -256,33 +265,35 @@ const findFolderVariableValue = (items, variableName) => {
   return null;
 };
 
-const createValueContainer = (variableName, variableValue, isMasked, isEditable, options, cm) => {
+const createValueContainer = (variableName, editValue, interpolatedValue, isMasked, isEditable, isValueReference, options, cm) => {
   const valueContainer = document.createElement('div');
   valueContainer.className = 'value-container';
+  valueContainer.style.position = 'relative'; // For absolute positioning of buttons
 
-  const displayValue = isMasked ? '*****' : variableValue;
+  const displayValue = isMasked ? '*****' : interpolatedValue;
 
   // For editable variables, show multiline editor
-  if (isEditable && !isMasked) {
-    const editCodeMirror = createEditCodeMirror(variableName, variableValue, options, cm);
+  if (isEditable) {
+    // Pass all necessary values to the editor, including mask status
+    const editCodeMirror = createEditCodeMirror(variableName, editValue, interpolatedValue, isValueReference, isMasked, options, cm);
     valueContainer.appendChild(editCodeMirror);
+
+    // Add eye icon button for masked variables
+    if (isMasked) {
+      const eyeButton = createEyeButton(editCodeMirror);
+      valueContainer.appendChild(eyeButton);
+    }
   } else {
-    // For masked or read-only variables, show a read-only textarea that looks like the editable one
+    // For read-only variables, show a read-only textarea
     const readOnlyTextarea = createReadOnlyTextarea(displayValue);
     valueContainer.appendChild(readOnlyTextarea);
   }
 
-  const copyButton = getCopyButton(variableValue);
+  // Copy button should copy the interpolated value
+  const copyButton = getCopyButton(interpolatedValue);
   valueContainer.appendChild(copyButton);
 
   return valueContainer;
-};
-
-const createValueDisplay = (displayValue) => {
-  const descriptionDiv = document.createElement('div');
-  descriptionDiv.className = 'info-description';
-  descriptionDiv.appendChild(document.createTextNode(displayValue));
-  return descriptionDiv;
 };
 
 const createReadOnlyTextarea = (displayValue) => {
@@ -311,7 +322,66 @@ const createReadOnlyTextarea = (displayValue) => {
   return readOnlyTextarea;
 };
 
-const createEditCodeMirror = (variableName, variableValue, options, cm) => {
+const createEyeButton = (editorWrapper) => {
+  const eyeButton = document.createElement('button');
+  eyeButton.className = 'eye-button';
+  eyeButton.type = 'button';
+  eyeButton.style.backgroundColor = 'transparent';
+  eyeButton.style.border = 'none';
+  eyeButton.style.color = '#989898';
+  eyeButton.style.cursor = 'pointer';
+  eyeButton.style.padding = '2px';
+  eyeButton.style.opacity = '0.7';
+  eyeButton.style.transition = 'opacity 0.2s ease';
+  eyeButton.style.display = 'flex';
+  eyeButton.style.alignItems = 'center';
+  eyeButton.style.justifyContent = 'center';
+  eyeButton.style.position = 'absolute';
+  eyeButton.style.top = '6px';
+  eyeButton.style.right = '30px'; // Position to the left of the copy button
+
+  // Start with eye-off icon (masked)
+  eyeButton.innerHTML = EYE_OFF_ICON_SVG_TEXT;
+  eyeButton.setAttribute('data-is-masked', 'true');
+
+  eyeButton.addEventListener('mouseenter', () => {
+    eyeButton.style.opacity = '1';
+  });
+
+  eyeButton.addEventListener('mouseleave', () => {
+    eyeButton.style.opacity = '0.7';
+  });
+
+  eyeButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+
+    const isMasked = eyeButton.getAttribute('data-is-masked') === 'true';
+    const editor = editorWrapper._editor;
+    const maskedEditor = editorWrapper._maskedEditor;
+
+    if (!editor) return;
+
+    if (isMasked) {
+      // Show the actual value
+      if (maskedEditor) {
+        maskedEditor.disable();
+      }
+      eyeButton.innerHTML = EYE_ICON_SVG_TEXT;
+      eyeButton.setAttribute('data-is-masked', 'false');
+    } else {
+      // Hide the value (show stars)
+      if (maskedEditor) {
+        maskedEditor.enable();
+      }
+      eyeButton.innerHTML = EYE_OFF_ICON_SVG_TEXT;
+      eyeButton.setAttribute('data-is-masked', 'true');
+    }
+  });
+
+  return eyeButton;
+};
+
+const createEditCodeMirror = (variableName, rawValue, interpolatedValue, isValueReference, isMasked, options, cm) => {
   // Ensure CodeMirror is available
   if (!CodeMirror && !SERVER_RENDERED) {
     CodeMirror = require('codemirror');
@@ -321,17 +391,23 @@ const createEditCodeMirror = (variableName, variableValue, options, cm) => {
   const wrapper = document.createElement('div');
   wrapper.className = 'edit-textarea codemirror-wrapper';
   wrapper.setAttribute('data-variable-name', variableName);
-  wrapper.setAttribute('data-original-value', variableValue);
+  wrapper.setAttribute('data-raw-value', rawValue);
+  wrapper.setAttribute('data-interpolated-value', interpolatedValue);
+  wrapper.setAttribute('data-is-reference', isValueReference);
+  wrapper.setAttribute('data-is-masked', isMasked);
 
   // Set up brunovariables mode
   defineCodeMirrorBrunoVariablesMode(options.variables, 'text/plain', false, true);
 
+  // For variables with references, show interpolated value by default, raw value on focus
+  const initialValue = isValueReference ? interpolatedValue : rawValue;
+
   // Initialize CodeMirror
   const editor = CodeMirror(wrapper, {
-    value: variableValue || '',
+    value: initialValue || '',
     lineWrapping: true,
     lineNumbers: false,
-    mode: 'brunovariables',
+    mode: isValueReference ? 'text/plain' : 'brunovariables', // Show plain text when showing interpolated value
     brunoVarInfo: {
       variables: options.variables
     },
@@ -342,6 +418,19 @@ const createEditCodeMirror = (variableName, variableValue, options, cm) => {
       'Shift-Tab': false
     }
   });
+
+  // Initialize masking for secret variables
+  let maskedEditor = null;
+  if (isMasked) {
+    maskedEditor = new MaskedEditor(editor, '*');
+    // Enable masking after a short delay to ensure editor is fully initialized
+    setTimeout(() => {
+      if (maskedEditor) {
+        maskedEditor.enable();
+      }
+    }, 10);
+    wrapper._maskedEditor = maskedEditor;
+  }
 
   // Auto-resize CodeMirror based on content (including wrapped lines)
   const autoResize = () => {
@@ -396,20 +485,87 @@ const createEditCodeMirror = (variableName, variableValue, options, cm) => {
   };
   editor.on('update', updateHandler);
 
+  // Handle focus/blur for variables with references
+  if (isValueReference) {
+    // On focus: switch to raw value for editing
+    const focusHandler = () => {
+      const currentValue = editor.getValue();
+      const storedInterpolatedValue = wrapper.getAttribute('data-interpolated-value');
+
+      // Only switch if we're currently showing the interpolated value
+      if (currentValue === storedInterpolatedValue) {
+        const storedRawValue = wrapper.getAttribute('data-raw-value');
+        editor.setValue(storedRawValue);
+        editor.setOption('mode', 'brunovariables'); // Enable syntax highlighting for variables
+
+        // Re-apply masking if this is a masked variable
+        if (isMasked && maskedEditor) {
+          setTimeout(() => {
+            maskedEditor.update();
+          }, 0);
+        }
+
+        setTimeout(autoResize, 0);
+      }
+    };
+
+    // On blur: switch back to interpolated value for display
+    const blurHandler = () => {
+      const currentValue = editor.getValue();
+      const storedRawValue = wrapper.getAttribute('data-raw-value');
+
+      // Update the stored raw value if it changed
+      if (currentValue !== storedRawValue) {
+        wrapper.setAttribute('data-raw-value', currentValue);
+      }
+
+      // Get the current interpolated value (may have changed if raw value changed)
+      // For now, we'll use the stored interpolated value, but ideally we'd re-interpolate
+      const storedInterpolatedValue = wrapper.getAttribute('data-interpolated-value');
+      editor.setValue(storedInterpolatedValue);
+      editor.setOption('mode', 'text/plain'); // Disable syntax highlighting when showing interpolated value
+
+      // Re-apply masking if this is a masked variable
+      if (isMasked && maskedEditor) {
+        setTimeout(() => {
+          maskedEditor.update();
+        }, 0);
+      }
+
+      setTimeout(autoResize, 0);
+    };
+
+    editor.on('focus', focusHandler);
+    editor.on('blur', blurHandler);
+
+    // Store handlers for cleanup
+    wrapper._focusHandler = focusHandler;
+    wrapper._blurHandler = blurHandler;
+  }
+
   // Store save function on wrapper for auto-save on popup close
   wrapper._saveFunction = async () => {
-    const newValue = editor.getValue();
-    const originalValue = wrapper.getAttribute('data-original-value');
+    const storedRawValue = wrapper.getAttribute('data-raw-value');
+    const currentValue = editor.getValue();
+
+    // Determine what value to save
+    let valueToSave = currentValue;
+
+    // If this is a reference variable and editor is showing interpolated value (not focused),
+    // save the raw value instead
+    if (isValueReference && !editor.hasFocus()) {
+      valueToSave = storedRawValue;
+    }
 
     // Only save if value changed
-    if (newValue !== originalValue) {
+    if (valueToSave !== rawValue) {
       try {
-        await updateVariableValue(variableName, newValue, options, cm);
-        wrapper.setAttribute('data-original-value', newValue);
+        await updateVariableValue(variableName, valueToSave, options, cm);
+        wrapper.setAttribute('data-raw-value', valueToSave);
       } catch (error) {
         console.error('Failed to auto-save variable:', error);
         // Revert to original value on error
-        editor.setValue(originalValue);
+        editor.setValue(rawValue);
       }
     }
   };
@@ -424,17 +580,21 @@ const createEditCodeMirror = (variableName, variableValue, options, cm) => {
       if (updateHandler) {
         editor.off('update', updateHandler);
       }
+      if (wrapper._focusHandler) {
+        editor.off('focus', wrapper._focusHandler);
+      }
+      if (wrapper._blurHandler) {
+        editor.off('blur', wrapper._blurHandler);
+      }
+    }
+    // Cleanup masked editor if it exists
+    if (wrapper._maskedEditor) {
+      wrapper._maskedEditor.destroy();
+      wrapper._maskedEditor = null;
     }
   };
 
   return wrapper;
-};
-
-const createReadOnlyInfo = (message) => {
-  const infoDiv = document.createElement('div');
-  infoDiv.className = 'read-only-info';
-  infoDiv.textContent = message;
-  return infoDiv;
 };
 
 // Helper function to determine variable type
