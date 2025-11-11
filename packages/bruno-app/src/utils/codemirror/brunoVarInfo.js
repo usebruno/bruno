@@ -11,6 +11,7 @@ import { store } from 'providers/ReduxStore';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { saveEnvironment, saveCollectionRoot, saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { updateCollectionVar, updateFolderVar, updateRuntimeVariable as updateRuntimeVariableAction } from 'providers/ReduxStore/slices/collections';
+import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -263,8 +264,8 @@ const createValueContainer = (variableName, variableValue, isMasked, isEditable,
 
   // For editable variables, show multiline editor
   if (isEditable && !isMasked) {
-    const editTextarea = createEditTextarea(variableName, variableValue, options, cm, valueContainer);
-    valueContainer.appendChild(editTextarea);
+    const editCodeMirror = createEditCodeMirror(variableName, variableValue, options, cm);
+    valueContainer.appendChild(editCodeMirror);
   } else {
     // For masked or read-only variables, show a read-only textarea that looks like the editable one
     const readOnlyTextarea = createReadOnlyTextarea(displayValue);
@@ -310,21 +311,72 @@ const createReadOnlyTextarea = (displayValue) => {
   return readOnlyTextarea;
 };
 
-const createEditTextarea = (variableName, variableValue, options, cm, valueContainer) => {
-  const editTextarea = document.createElement('textarea');
-  editTextarea.className = 'edit-textarea';
-  editTextarea.value = variableValue;
-  editTextarea.rows = 1;
-  editTextarea.setAttribute('data-variable-name', variableName);
-  editTextarea.setAttribute('data-original-value', variableValue);
+const createEditCodeMirror = (variableName, variableValue, options, cm) => {
+  // Ensure CodeMirror is available
+  if (!CodeMirror && !SERVER_RENDERED) {
+    CodeMirror = require('codemirror');
+  }
 
-  // Auto-resize textarea based on content
+  // Create wrapper div for CodeMirror
+  const wrapper = document.createElement('div');
+  wrapper.className = 'edit-textarea codemirror-wrapper';
+  wrapper.setAttribute('data-variable-name', variableName);
+  wrapper.setAttribute('data-original-value', variableValue);
+
+  // Set up brunovariables mode
+  defineCodeMirrorBrunoVariablesMode(options.variables, 'text/plain', false, true);
+
+  // Initialize CodeMirror
+  const editor = CodeMirror(wrapper, {
+    value: variableValue || '',
+    lineWrapping: true,
+    lineNumbers: false,
+    mode: 'brunovariables',
+    brunoVarInfo: {
+      variables: options.variables
+    },
+    scrollbarStyle: null,
+    readOnly: false,
+    extraKeys: {
+      'Tab': false,
+      'Shift-Tab': false
+    }
+  });
+
+  // Auto-resize CodeMirror based on content (including wrapped lines)
   const autoResize = () => {
-    editTextarea.style.height = 'auto';
-    const scrollHeight = editTextarea.scrollHeight;
-    const maxHeight = 300; // Increased max height to allow more content
-    editTextarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
-    editTextarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+    editor.refresh();
+
+    // Get the actual content height including wrapped lines
+    // heightAtLine returns the pixel position at the start of a line
+    // Getting height at line after the last line gives us the total content height
+    const lastLine = editor.lastLine();
+    let contentHeight;
+
+    if (lastLine >= 0) {
+      // Get height at the position after the last line (accounts for all wrapped content)
+      contentHeight = editor.heightAtLine(lastLine + 1, 'local');
+    } else {
+      // Empty editor - use default line height
+      const lineHeight = editor.defaultTextHeight() || 16;
+      contentHeight = lineHeight;
+    }
+
+    const padding = 16; // 8px top + 8px bottom
+    const minHeight = 24;
+    const maxHeight = 300;
+    const totalHeight = contentHeight + padding;
+    const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, totalHeight));
+
+    wrapper.style.height = calculatedHeight + 'px';
+    editor.setSize(null, calculatedHeight);
+
+    // Show scrollbar if content exceeds max height
+    if (totalHeight > maxHeight) {
+      wrapper.style.overflowY = 'auto';
+    } else {
+      wrapper.style.overflowY = 'hidden';
+    }
   };
 
   // Initial resize - use setTimeout to ensure DOM is fully rendered
@@ -332,33 +384,50 @@ const createEditTextarea = (variableName, variableValue, options, cm, valueConta
     autoResize();
   }, 0);
 
-  // Resize on input
-  editTextarea.addEventListener('input', autoResize);
-
-  // Also resize on paste
-  editTextarea.addEventListener('paste', () => {
+  // Resize on change
+  const changeHandler = () => {
     setTimeout(autoResize, 0);
-  });
+  };
+  editor.on('change', changeHandler);
 
-  // Store save function on textarea for auto-save on popup close
-  editTextarea._saveFunction = async () => {
-    const newValue = editTextarea.value;
-    const originalValue = editTextarea.getAttribute('data-original-value');
+  // Resize on update (handles wrapping changes when width changes)
+  const updateHandler = () => {
+    setTimeout(autoResize, 0);
+  };
+  editor.on('update', updateHandler);
+
+  // Store save function on wrapper for auto-save on popup close
+  wrapper._saveFunction = async () => {
+    const newValue = editor.getValue();
+    const originalValue = wrapper.getAttribute('data-original-value');
 
     // Only save if value changed
     if (newValue !== originalValue) {
       try {
         await updateVariableValue(variableName, newValue, options, cm);
-        editTextarea.setAttribute('data-original-value', newValue);
+        wrapper.setAttribute('data-original-value', newValue);
       } catch (error) {
         console.error('Failed to auto-save variable:', error);
         // Revert to original value on error
-        editTextarea.value = originalValue;
+        editor.setValue(originalValue);
       }
     }
   };
 
-  return editTextarea;
+  // Store editor reference and cleanup function for cleanup if needed
+  wrapper._editor = editor;
+  wrapper._cleanup = () => {
+    if (editor) {
+      if (changeHandler) {
+        editor.off('change', changeHandler);
+      }
+      if (updateHandler) {
+        editor.off('update', updateHandler);
+      }
+    }
+  };
+
+  return wrapper;
 };
 
 const createReadOnlyInfo = (message) => {
@@ -752,11 +821,32 @@ if (!SERVER_RENDERED) {
       state.hoverTimeout = setTimeout(onHover, hoverTime);
     };
 
-    const onMouseOut = function () {
+    const onMouseOut = function (e) {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = undefined;
+
+      // Check if mouse is moving to the popup
+      const relatedTarget = e.relatedTarget || e.toElement;
+      if (relatedTarget && state.currentPopup && state.currentPopup.contains(relatedTarget)) {
+        // Mouse is moving to popup, don't hide it
+        state.currentVariableElement = null;
+        return;
+      }
+
+      // Mouse is leaving the variable element and not going to popup
+      // Hide popup if it exists
+      if (state.currentPopup && state.currentPopup.parentNode) {
+        const hidePopup = state.currentPopup._hidePopup;
+        if (hidePopup) {
+          hidePopup();
+        } else {
+          // Fallback: remove popup directly
+          state.currentPopup.parentNode.removeChild(state.currentPopup);
+          state.currentPopup = null;
+        }
+      }
       state.currentVariableElement = null;
     };
 
@@ -844,18 +934,18 @@ if (!SERVER_RENDERED) {
         topPos = 10;
     }
 
-    // Horizontal positioning: try to center on the variable, but stay within viewport
+      // Horizontal positioning: try to center on the variable, but stay within viewport
       let leftPos = targetBox.left + (targetBox.width / 2) - (popupWidth / 2);
 
-    // Ensure it doesn't go off the left edge
+      // Ensure it doesn't go off the left edge
       const minLeftMargin = 50;
       if (leftPos < minLeftMargin) {
         leftPos = minLeftMargin;
     }
 
-    // Ensure it doesn't go off the right edge
-    if (leftPos + popupWidth > window.innerWidth - 10) {
-      leftPos = window.innerWidth - popupWidth - 10;
+      // Ensure it doesn't go off the right edge
+      if (leftPos + popupWidth > window.innerWidth - 10) {
+        leftPos = window.innerWidth - popupWidth - 10;
     }
 
     popup.style.top = topPos + 'px';
@@ -899,17 +989,50 @@ if (!SERVER_RENDERED) {
       clearTimeout(popupTimeout);
     };
 
-    const onMouseOut = function () {
+    const onMouseOut = function (e) {
       clearTimeout(popupTimeout);
-      popupTimeout = setTimeout(hidePopup, 200);
+      // Check if mouse is moving to a child element within the popup
+      const relatedTarget = e.relatedTarget || e.toElement;
+      if (relatedTarget && popup.contains(relatedTarget)) {
+        return; // Mouse is still within popup, don't hide
+      }
+      // Mouse has left the popup, hide immediately
+      popupTimeout = setTimeout(hidePopup, 10);
+    };
+
+    // Use mouseleave for more reliable detection when mouse leaves popup
+    const onMouseLeavePopup = function () {
+      clearTimeout(popupTimeout);
+      popupTimeout = setTimeout(hidePopup, 50);
+    };
+
+    // Handle focus leaving the popup area
+    // We don't auto-hide on focus out - let mouse position control the visibility
+    const onFocusOut = function (e) {
+      // Do nothing - popup should stay open based on mouse position, not focus
+    };
+
+    // Handle clicks outside the popup
+    const onClickOutside = function (e) {
+      // Check if click is outside both popup and variable element
+      if (!popup.contains(e.target) && !cm.getWrapperElement().contains(e.target)) {
+        hidePopup();
+      }
     };
 
     const hidePopup = function () {
-      // Auto-save any editable textareas before closing
-      const textareas = popup.querySelectorAll('.edit-textarea');
-      textareas.forEach((textarea) => {
-        if (textarea._saveFunction) {
-          textarea._saveFunction();
+      // Clear any pending timeout
+      clearTimeout(popupTimeout);
+
+      // Auto-save any editable CodeMirror editors before closing
+      const editors = popup.querySelectorAll('.edit-textarea');
+      editors.forEach((editorWrapper) => {
+        if (editorWrapper._saveFunction) {
+          editorWrapper._saveFunction();
+        }
+        // Cleanup CodeMirror instance if it exists
+        if (editorWrapper._cleanup) {
+          editorWrapper._cleanup();
         }
       });
 
@@ -920,27 +1043,70 @@ if (!SERVER_RENDERED) {
 
       CodeMirror.off(popup, 'mouseover', onMouseOverPopup);
       CodeMirror.off(popup, 'mouseout', onMouseOut);
+      popup.removeEventListener('mouseleave', onMouseLeavePopup);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
+      popup.removeEventListener('focusout', onFocusOut);
+      document.removeEventListener('click', onClickOutside, true);
+      document.removeEventListener('mousemove', onDocumentMouseMove);
 
       // Clear state references
       state.currentPopup = null;
       state.currentVariableElement = null;
 
-      if (popup.style.opacity) {
-        popup.style.opacity = 0;
-        setTimeout(function () {
-          if (popup.parentNode) {
-            popup.parentNode.removeChild(popup);
-          }
-        }, 600);
-      } else if (popup.parentNode) {
+      // Remove popup immediately without fade animation
+      if (popup.parentNode) {
         popup.parentNode.removeChild(popup);
+      }
+    };
+
+    // Store hidePopup function on popup for external access
+    popup._hidePopup = hidePopup;
+
+    // Document-level mousemove handler to detect when mouse is away from both variable and popup
+    const onDocumentMouseMove = function (e) {
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      // Check if mouse is over the variable element
+      let mouseOverVariable = false;
+      if (state.currentVariableElement) {
+        const varBox = state.currentVariableElement.getBoundingClientRect();
+        mouseOverVariable = (
+          mouseX >= varBox.left
+          && mouseX <= varBox.right
+          && mouseY >= varBox.top
+          && mouseY <= varBox.bottom
+        );
+      }
+
+      // Check if mouse is over the popup
+      let mouseOverPopup = false;
+      if (popup.parentNode) {
+        const popupBox = popup.getBoundingClientRect();
+        mouseOverPopup = (
+          mouseX >= popupBox.left
+          && mouseX <= popupBox.right
+          && mouseY >= popupBox.top
+          && mouseY <= popupBox.bottom
+        );
+      }
+
+      // If mouse is not over either element, hide the popup after a short delay
+      if (!mouseOverVariable && !mouseOverPopup) {
+        clearTimeout(popupTimeout);
+        popupTimeout = setTimeout(hidePopup, 50);
+      } else {
+        clearTimeout(popupTimeout);
       }
     };
 
     CodeMirror.on(popup, 'mouseover', onMouseOverPopup);
     CodeMirror.on(popup, 'mouseout', onMouseOut);
+    popup.addEventListener('mouseleave', onMouseLeavePopup);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
+    popup.addEventListener('focusout', onFocusOut);
+    document.addEventListener('click', onClickOutside, true);
+    document.addEventListener('mousemove', onDocumentMouseMove);
   }
 }
 

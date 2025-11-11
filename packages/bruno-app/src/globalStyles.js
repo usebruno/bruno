@@ -324,7 +324,7 @@ const GlobalStyle = createGlobalStyle`
     border-radius: 6px;
     width: 275px;
     min-height: 24px;
-    max-height: 137px;
+    max-height: 300px;
     resize: none;
     overflow-y: auto;
     white-space: pre-wrap;
@@ -332,6 +332,59 @@ const GlobalStyle = createGlobalStyle`
     word-break: break-all;
     overflow-wrap: anywhere;
     box-sizing: border-box;
+    position: relative;
+  }
+
+  .CodeMirror-brunoVarInfo .edit-textarea.codemirror-wrapper {
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid ${(props) => props.theme.codemirror.border || '#ccc'};
+  }
+
+  .CodeMirror-brunoVarInfo .edit-textarea.codemirror-wrapper .CodeMirror {
+    height: 100%;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 16px;
+    background: ${(props) => props.theme.codemirror.variable.info.textareaBackground};
+    color: ${(props) => props.theme.codemirror.variable.info.textareaColor};
+    border: none;
+    border-radius: 6px;
+    padding: 8px 28px 8px 8px;
+    box-sizing: border-box;
+  }
+
+  .CodeMirror-brunoVarInfo .edit-textarea.codemirror-wrapper .CodeMirror-scroll {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    min-height: 24px;
+    max-height: 300px;
+  }
+
+  .CodeMirror-brunoVarInfo .edit-textarea.codemirror-wrapper .CodeMirror-lines {
+    padding: 0;
+  }
+
+  .CodeMirror-brunoVarInfo .edit-textarea.codemirror-wrapper .CodeMirror-line {
+    padding: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+  }
+
+  .CodeMirror-brunoVarInfo .edit-textarea.codemirror-wrapper .CodeMirror-cursor {
+    border-left: 1px solid ${(props) => props.theme.codemirror.variable.info.textareaColor};
+  }
+
+  .CodeMirror-brunoVarInfo .edit-textarea.codemirror-wrapper:focus-within {
+    outline: none;
+    border-color: ${(props) => props.theme.codemirror.variable.info.textareaFocusBorder};
+    box-shadow: ${(props) => props.theme.codemirror.variable.info.textareaFocusShadow};
+  }
+
+  .CodeMirror-brunoVarInfo .edit-textarea.codemirror-wrapper:focus-within .CodeMirror {
+    outline: none;
   }
 
   .CodeMirror-brunoVarInfo .edit-textarea:focus {
