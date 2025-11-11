@@ -1,27 +1,28 @@
 import React, { useMemo, useState, useRef, forwardRef } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
-import { IconWorld, IconDatabase, IconCaretDown, IconSettings, IconPlus, IconDownload } from '@tabler/icons';
+import { IconWorld, IconDatabase, IconCaretDown } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import toast from 'react-hot-toast';
 import EnvironmentListContent from './EnvironmentListContent/index';
-import EnvironmentSettings from '../EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
 import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
 import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import CreateGlobalEnvironment from 'components/GlobalEnvironments/EnvironmentSettings/CreateEnvironment';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { uuid } from 'utils/common';
 
 const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const [activeTab, setActiveTab] = useState('collection');
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
-  const [showCollectionSettings, setShowCollectionSettings] = useState(false);
+  const [setShowCollectionSettings] = useState(false);
   const [showCreateGlobalModal, setShowCreateGlobalModal] = useState(false);
   const [showImportGlobalModal, setShowImportGlobalModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
@@ -77,12 +78,11 @@ const EnvironmentSelector = ({ collection }) => {
 
   // Settings handler
   const handleSettingsClick = () => {
-    if (activeTab === 'collection') {
-      dispatch(updateEnvironmentSettingsModalVisibility(true));
-      setShowCollectionSettings(true);
-    } else {
-      setShowGlobalSettings(true);
-    }
+    dispatch(addTab({
+      uid: uuid(),
+      collectionUid: collection.uid,
+      type: 'environment-settings'
+    }));
     dropdownTippyRef.current.hide();
   };
 
@@ -228,8 +228,6 @@ const EnvironmentSelector = ({ collection }) => {
           onClose={handleCloseSettings}
         />
       )}
-
-      {showCollectionSettings && <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />}
 
       {showCreateGlobalModal && (
         <CreateGlobalEnvironment

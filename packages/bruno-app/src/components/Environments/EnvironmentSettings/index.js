@@ -1,4 +1,3 @@
-import Modal from 'components/Modal/index';
 import React, { useState } from 'react';
 import CreateEnvironment from './CreateEnvironment';
 import EnvironmentList from './EnvironmentList';
@@ -52,7 +51,6 @@ const EnvironmentSettings = ({ collection, onClose }) => {
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
-        <Modal size="md" title="Environments" handleCancel={onClose} hideCancel={true} hideFooter={true}>
           {tab === 'create' ? (
             <CreateEnvironment collection={collection} onClose={() => setTab('default')} />
           ) : tab === 'import' ? (
@@ -60,14 +58,12 @@ const EnvironmentSettings = ({ collection, onClose }) => {
           ) : (
             <DefaultTab setTab={setTab} />
           )}
-        </Modal>
       </StyledWrapper>
     );
   }
 
   return (
     <StyledWrapper>
-      <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
         <EnvironmentList
           selectedEnvironment={selectedEnvironment}
           setSelectedEnvironment={setSelectedEnvironment}
@@ -77,7 +73,6 @@ const EnvironmentSettings = ({ collection, onClose }) => {
           onClose={onClose}
           setShowExportModal={setShowExportModal}
         />
-      </Modal>
       {showExportModal && (
         <ExportEnvironmentModal
           onClose={() => setShowExportModal(false)}
