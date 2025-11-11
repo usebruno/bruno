@@ -1,0 +1,74 @@
+meta {
+  name: sign with callback err
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo
+  body: none
+  auth: inherit
+}
+
+tests {
+  const jwt = require('jsonwebtoken');
+  
+  const HS_SECRET = 'supersecret';
+  
+  /**
+   * Helper that calls jwt.sign **with a callback** and resolves/rejects
+   * based on the callback's (err, token) — so tests can `await` it.
+   */
+  function signViaCallback(payload, secret, options = {}) {
+    return new Promise((resolve, reject) => {
+      jwt.sign(payload, secret, options, (err, token) => {
+        if (err) return reject(err);       
+        resolve(token);                   
+      });
+    });
+  }
+  
+  /* ============================================================
+     ERROR TESTS — jwt.sign should call callback with `err`
+     ============================================================ */
+  
+  test('ERROR (callback) — missing secret for HS256', async function () {
+    try {
+      await signViaCallback({ sub: 'no_secret' }, undefined, { algorithm: 'HS256' });
+      throw new Error('Expected jwt.sign to error via callback');
+    } catch (err) {
+      expect(err).to.be.instanceOf(Error);
+      expect(String(err.message)).to.match(/secret|private key must have a value/i);
+    }
+  });
+  
+  test('ERROR (callback) — invalid expiresIn format', async function () {
+    try {
+      await signViaCallback({ sub: 'bad_exp' }, HS_SECRET, { expiresIn: 'not-a-time' });
+      throw new Error('Expected jwt.sign to error via callback');
+    } catch (err) {
+      expect(err).to.be.instanceOf(Error);
+      expect(String(err.message)).to.match(/expiresIn/i);
+    }
+  });
+  
+  test('ERROR (callback) — unsupported/invalid algorithm', async function () {
+    try {
+      await signViaCallback({ sub: 'bad_alg' }, HS_SECRET, { algorithm: 'FOO256' });
+      throw new Error('Expected jwt.sign to error via callback');
+    } catch (err) {
+      expect(err).to.be.instanceOf(Error);
+      expect(String(err.message)).to.match(/algorithm/i);
+    }
+  });
+  
+  test('CONTROL (callback) — succeeds when options are valid', async function () {
+    const token = await jwt.sign({ sub: 'ok' }, HS_SECRET, { algorithm: 'HS256', expiresIn: '10m' });
+    expect(token).to.be.a('string');
+  });
+  
+}
+
+settings {
+  encodeUrl: true
+}

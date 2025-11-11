@@ -1,0 +1,9 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+      "{{projectRoot}}/tests/grpc/method-search/fixtures/grpc-collection"
+  ],
+  "beta": {
+      "grpc": true
+  }
+}

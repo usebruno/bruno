@@ -346,6 +346,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               strokeWidth={1.5}
               size={22}
               className={`${(isReflectionMode ? reflectionManagement.isLoadingMethods : protoFileManagement.isLoadingMethods) ? 'animate-spin' : 'cursor-pointer'}`}
+              data-testid="refresh-methods-icon"
             />
             <span className="infotip-text text-xs">
               {isReflectionMode ? 'Refresh server reflection' : 'Refresh proto file methods'}
@@ -407,6 +408,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           {(!isConnectionActive || !isStreamingMethod) && (
             <div
               className="cursor-pointer"
+              data-testid="grpc-send-request-button"
               onClick={(e) => {
                 e.stopPropagation();
                 handleRun(e);

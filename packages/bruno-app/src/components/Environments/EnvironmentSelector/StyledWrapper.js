@@ -23,6 +23,7 @@ const Wrapper = styled.div`
     .env-text {
       color: ${(props) => props.theme.dropdown.selectedColor};
       font-size: 0.875rem;
+      display: block;
     }
 
     .env-separator {
@@ -45,8 +46,10 @@ const Wrapper = styled.div`
   }
 
   .tippy-box {
-    min-width: 11.875rem;
-    min-height: 15.0625rem;
+    width: ${(props) => props.width}px;
+    min-width: 12rem;
+    max-width: 650px !important;
+    min-height: 15.5rem;
     max-height: 75vh;
     font-size: 0.8125rem;
     position: relative;

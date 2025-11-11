@@ -32,6 +32,10 @@ const darkTheme = {
 
     name: {
       color: '#569cd6'
+    },
+
+    runtime: {
+      color: 'rgb(255, 255, 255)'
     }
   },
 
@@ -103,7 +107,8 @@ const darkTheme = {
       head: '#d69956'
     },
     grpc: '#6366f1',
-    ws: '#f59e0b'
+    ws: '#f59e0b',
+    gql: '#e535ab'
   },
 
   requestTabPanel: {
@@ -447,6 +452,26 @@ const darkTheme = {
         border: '#185387',
         hoverBorder: '#696969'
       }
+    }
+  },
+  examples: {
+    buttonBg: '#F59E0B1A',
+    buttonColor: '#F59E0B',
+    buttonText: '#fff',
+    buttonIconColor: '#fff',
+    border: '#444',
+    urlBar: {
+      border: '#3D3D3D',
+      bg: '#292929'
+    },
+    table: {
+      thead: {
+        bg: '#292929',
+        color: '#969696'
+      }
+    },
+    checkbox: {
+      color: '#000'
     }
   }
 };

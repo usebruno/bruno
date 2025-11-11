@@ -15,7 +15,8 @@ const getCertsAndProxyConfig = async ({
   envVars,
   runtimeVariables,
   processEnvVars,
-  collectionPath
+  collectionPath,
+  globalEnvironmentVariables
 }) => {
   /**
    * @see https://github.com/usebruno/bruno/issues/211 set keepAlive to true, this should fix socket hang up errors
@@ -41,6 +42,7 @@ const getCertsAndProxyConfig = async ({
 
   const brunoConfig = getBrunoConfig(collectionUid);
   const interpolationOptions = {
+    globalEnvironmentVariables,
     envVars,
     runtimeVariables,
     processEnvVars

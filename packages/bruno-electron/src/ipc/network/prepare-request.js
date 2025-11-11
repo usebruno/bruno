@@ -3,7 +3,6 @@ const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
-const { buildFormUrlEncodedPayload } = require('../../utils/form-data');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
 

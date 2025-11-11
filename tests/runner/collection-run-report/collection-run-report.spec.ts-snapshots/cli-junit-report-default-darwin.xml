@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<testsuites>
+  <testsuite name="/test/path/collection" errors="0" failures="0" skipped="0" tests="4" timestamp="2024-01-01T00:00:00.000" hostname="test-host" time="0.100">
+    <testcase name="Status code is 200" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Response is an object" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Response has slideshow property" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Slideshow has title" status="pass" classname="/test/path/collection" time="0.100"/>
+  </testsuite>
+  <testsuite name="/test/path/collection" errors="0" failures="1" skipped="0" tests="5" timestamp="2024-01-01T00:00:00.000" hostname="test-host" time="0.100">
+    <testcase name="This test will fail" status="fail" classname="/test/path/collection" time="0.100">
+      <failure type="failure" message="expected 200 to equal 404"/>
+    </testcase>
+    <testcase name="Status code is 200" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Response is an object" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Response has uuid property" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="UUID is a string" status="pass" classname="/test/path/collection" time="0.100"/>
+  </testsuite>
+  <testsuite name="/test/path/collection" errors="0" failures="0" skipped="0" tests="3" timestamp="2024-01-01T00:00:00.000" hostname="test-host" time="0.100">
+    <testcase name="Status code is 200" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Response has json field" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Response json has username" status="pass" classname="/test/path/collection" time="0.100"/>
+  </testsuite>
+  <testsuite name="/test/path/collection" errors="0" failures="1" skipped="0" tests="2" timestamp="2024-01-01T00:00:00.000" hostname="test-host" time="0.100">
+    <testcase name="This test will also fail" status="fail" classname="/test/path/collection" time="0.100">
+      <failure type="failure" message="expected 200 to equal 500"/>
+    </testcase>
+    <testcase name="Status code is 200" status="pass" classname="/test/path/collection" time="0.100"/>
+  </testsuite>
+</testsuites>

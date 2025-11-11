@@ -34,11 +34,12 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth) => {
         }
       ];
     case 'apikey':
-      const key = get(auth, 'apikey.key', '');
-      const value = get(auth, 'apikey.value', '');
-      const addTo = get(auth, 'apikey.addTo', 'header');
-      
-      if (addTo === 'header') {
+      const apiKeyAuth = get(auth, 'apikey', {});
+      const key = get(apiKeyAuth, 'key', '');
+      const value = get(apiKeyAuth, 'value', '');
+      const placement = get(apiKeyAuth, 'placement', 'header');
+
+      if (placement === 'header') {
         return [
           {
             enabled: true,

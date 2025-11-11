@@ -36,6 +36,10 @@ const lightTheme = {
 
     name: {
       color: '#546de5'
+    },
+
+    runtime: {
+      color: 'rgb(0, 0, 0)'
     }
   },
 
@@ -103,7 +107,8 @@ const lightTheme = {
       head: '#ca7811'
     },
     grpc: '#6366f1',
-    ws: '#f59e0b'
+    ws: '#f59e0b',
+    gql: '#e535ab'
   },
 
   requestTabPanel: {
@@ -454,6 +459,26 @@ const lightTheme = {
         border: '#dae0e5',
         hoverBorder: '#696969'
       }
+    }
+  },
+  examples: {
+    buttonBg: '#D977061A',
+    buttonColor: '#D97706',
+    buttonText: '#fff',
+    buttonIconColor: '#000',
+    border: '#efefef',
+    urlBar: {
+      border: '#efefef',
+      bg: '#F5F5F5'
+    },
+    table: {
+      thead: {
+        bg: '#f8f9fa',
+        color: '#212529'
+      }
+    },
+    checkbox: {
+      color: '#fff'
     }
   }
 };

@@ -146,7 +146,7 @@ const useIpcEvents = () => {
       }));
     });
 
-    const removeSystemResourcesListener = ipcRenderer.on('main:filesync-system-resources', resourceData => {
+    const removeSystemResourcesListener = ipcRenderer.on('main:filesync-system-resources', (resourceData) => {
       dispatch(updateSystemResources(resourceData));
     });
 

@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import path from 'path';
 
 test.describe('Global Environment Import Tests', () => {
-  test('should import global environment from file', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('should import global environment from file', async ({ newPage: page, createTmpDir }) => {
     const openApiFile = path.join(__dirname, 'fixtures', 'collection.json');
     const globalEnvFile = path.join(__dirname, 'fixtures', 'global-env.json');
 
@@ -32,16 +32,15 @@ test.describe('Global Environment Import Tests', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Import global environment
-    await page.locator('[data-testid="environment-selector-trigger"]').click();
-    await page.locator('[data-testid="env-tab-global"]').click();
-    await expect(page.locator('[data-testid="env-tab-global"]')).toHaveClass(/active/);
-    await page.locator('button[id="import-env"]').click();
+    await page.getByTestId('environment-selector-trigger').click();
+    await page.getByTestId('env-tab-global').click();
+    await page.getByText('Import', { exact: true }).click();
     const importGlobalEnvModal = page.locator('[data-testid="import-global-environment-modal"]');
     await expect(importGlobalEnvModal).toBeVisible();
 
     // Import environment file
     const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('button[data-testid="import-postman-global-environment"]').click();
+    await page.locator('[data-testid="import-global-environment"]').click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(globalEnvFile);
 
@@ -88,6 +87,7 @@ test.describe('Global Environment Import Tests', () => {
       .locator('.collection-actions')
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).waitFor({ state: 'detached' });
     await page.getByRole('button', { name: 'Close' }).click();
   });
 });

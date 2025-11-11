@@ -14,7 +14,7 @@ import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
-import CustomSearch from './CustomSearch';
+import CodeMirrorSearch from 'components/CodeMirrorSearch';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -245,6 +245,10 @@ export default class CodeEditor extends React.Component {
       this.editor.setOption('mode', this.props.mode);
     }
 
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly);
+    }
+
     this.ignoreChangeEvent = false;
   }
 
@@ -262,12 +266,12 @@ export default class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className="h-full w-full flex flex-col relative graphiql-container"
+        className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
         aria-label="Code Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
-        <CustomSearch
+        <CodeMirrorSearch
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}

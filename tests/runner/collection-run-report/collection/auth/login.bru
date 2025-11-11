@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: https://httpbin.org/post
+  url: https://echo.usebruno.com
   body: json
   auth: none
 }
@@ -16,8 +16,26 @@ headers {
 
 body:json {
   {
-    "username": "testuser",
-    "password": "testpass"
+    "args": {},
+    "data": "{\n  \"username\": \"testuser\",\n  \"password\": \"testpass\"\n}",
+    "files": {},
+    "form": {},
+    "headers": {
+      "Accept": "application/json, text/plain, */*",
+      "Accept-Encoding": "gzip, compress, deflate, br",
+      "Content-Length": "54",
+      "Content-Type": "application/json",
+      "Host": "echo.usebruno.com",
+      "Request-Start-Time": "1762260235887",
+      "User-Agent": "bruno-runtime/1.99.3",
+      "X-Amzn-Trace-Id": "Root=1-6909f50d-3468da337d4402452b3503f4"
+    },
+    "json": {
+      "password": "testpass",
+      "username": "testuser"
+    },
+    "origin": "180.151.198.14",
+    "url": "https://echo.usebruno.com"
   }
 }
 
