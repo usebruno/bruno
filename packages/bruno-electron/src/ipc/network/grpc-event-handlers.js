@@ -42,6 +42,7 @@ const registerGrpcEventHandlers = (window) => {
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
+        collection,
         request: requestCopy.request,
         envVars: preparedRequest.envVars,
         runtimeVariables,
@@ -174,6 +175,7 @@ const registerGrpcEventHandlers = (window) => {
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
+        collection,
         request: requestCopy.request,
         envVars: preparedRequest.envVars,
         runtimeVariables,
@@ -288,7 +290,7 @@ const registerGrpcEventHandlers = (window) => {
         caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
       }
 
-      const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+      const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
 
       for (let clientCert of clientCertConfig) {
         const domain = interpolateString(clientCert?.domain, interpolationOptions);

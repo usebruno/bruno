@@ -8,7 +8,7 @@ import { humanizeRequestBodyMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { toastError } from 'utils/common/error';
-import { prettifyJSON } from 'utils/common';
+import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
 
 const RequestBodyMode = ({ item, collection }) => {
@@ -39,7 +39,7 @@ const RequestBodyMode = ({ item, collection }) => {
   const onPrettify = () => {
     if (body?.json && bodyMode === 'json') {
       try {
-        const prettyBodyJson = prettifyJSON(body.json);
+        const prettyBodyJson = prettifyJsonString(body.json);
         dispatch(
           updateRequestBody({
             content: prettyBodyJson,
