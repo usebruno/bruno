@@ -1,8 +1,14 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Import Insomnia Collection v5', () => {
-  test('Import Insomnia Collection v5 successfully', async ({ page }) => {
+  test.afterEach(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('Import Insomnia Collection v5 successfully', async ({ page, createTmpDir }) => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
@@ -21,10 +27,9 @@ test.describe('Import Insomnia Collection v5', () => {
     const locationModal = page.getByRole('dialog');
     await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
-    // Wait for collection to appear in the location modal
-    await expect(locationModal.getByText('Test API Collection v5')).toBeVisible();
+    await page.locator('#collection-location').fill(await createTmpDir('insomnia-v5-test'));
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
 
-    // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await expect(page.locator('#sidebar-collection-name').getByText('Test API Collection v5')).toBeVisible();
   });
 });
