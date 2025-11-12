@@ -70,7 +70,8 @@ const getJsSandboxRuntime = (collection) => {
 };
 
 const isStream = (headers) => {
-  return headers.get('content-type') === 'text/event-stream';
+  const headerSplit = (headers.get('content-type') ?? '').split(';').map((d) => d.trim());
+  return headerSplit.indexOf('text/event-stream') > -1;
 };
 
 const promisifyStream = async (stream, abortController, closeOnFirst) => {
@@ -760,7 +761,6 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
-
       if (request.isStream) {
         response.stream = response.data;
       }
@@ -770,6 +770,7 @@ const registerNetworkIpc = (mainWindow) => {
         : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
 
       response.data = data;
+      response.dataBuffer = dataBuffer;
       response.responseTime = responseTime;
 
       // save cookies

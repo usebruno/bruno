@@ -2,6 +2,7 @@ import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@use
 import { uuid } from 'utils/common';
 import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
+import { hexy as hexdump } from 'hexy';
 import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
@@ -385,6 +386,7 @@ export const collectionsSlice = createSlice({
 
             const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
+            item.response.data = [{ type: 'info', timestamp: Date.now(), message: 'Connection Closed' }].concat(item.response.data);
           } else {
             item.response = null;
           }
@@ -2952,7 +2954,16 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
-        item.response.data = data.data + (item.response.data || '');
+        if (data.data) {
+          item.response.data ||= [];
+          item.response.data = [{
+            type: 'incoming',
+            message: data.data,
+            messageHexdump: hexdump(data.data),
+            timestamp: Date.now()
+          }].concat(item.response.data);
+        }
+        item.response.dataBuffer = Buffer.from(data.dataBuffer);
         item.response.size = data.data?.length + (item.response.size || 0);
       }
     },

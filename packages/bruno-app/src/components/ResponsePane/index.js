@@ -25,6 +25,7 @@ import StopWatch from 'components/StopWatch';
 import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import ResponseLayoutToggle from './ResponseLayoutToggle';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import WSMessagesList from './WsResponsePane/WSMessagesList';
 
 const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -73,6 +74,10 @@ const ResponsePane = ({ item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
+        const isStream = response.headers['content-type'].includes('text/event-stream');
+        if (isStream) {
+          return <WSMessagesList order={-1} messages={item.response.data} />;
+        }
         return (
           <QueryResult
             item={item}
@@ -192,7 +197,6 @@ const ResponsePane = ({ item, collection }) => {
                 {item.response?.hasStreamRunning ? (
                     <ResponseStopWatch startMillis={response.duration} />
                 ) : <ResponseTime duration={response.duration} />}
-                <ResponseTime duration={response.duration} />
                 <ResponseSize size={responseSize} />
               </>
             ) : null}
