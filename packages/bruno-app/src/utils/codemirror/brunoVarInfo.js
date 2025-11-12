@@ -311,6 +311,21 @@ export const renderVarInfo = (token, options) => {
     let originalValue = rawValue;
     let isEditing = false;
 
+    // Dynamically adjust editor height as content changes
+    cmEditor.on('change', () => {
+      if (isEditing) {
+        // Use requestAnimationFrame for smoother updates after DOM changes
+        requestAnimationFrame(() => {
+          cmEditor.refresh();
+          // Get height from the actual rendered sizer element (more accurate)
+          const sizer = cmEditor.getWrapperElement().querySelector('.CodeMirror-sizer');
+          const contentHeight = sizer ? sizer.clientHeight : cmEditor.getScrollInfo().height;
+          const newHeight = calculateEditorHeight(contentHeight);
+          editorContainer.style.height = `${newHeight}px`;
+        });
+      }
+    });
+
     // Icons container (top-right)
     const iconsContainer = document.createElement('div');
     iconsContainer.className = 'var-icons';
