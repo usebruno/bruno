@@ -76,6 +76,46 @@ const getScopeLabel = (scopeType) => {
   return labels[scopeType] || scopeType;
 };
 
+// Get the masked display text based on the value length
+const getMaskedDisplay = (value) => {
+  const contentLength = (value || '').length;
+  return contentLength > 0 ? '*'.repeat(contentLength) : '';
+};
+
+// Update the value display based on the secret and masked state
+const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed) => {
+  if ((isSecret || isMasked) && !isRevealed) {
+    valueDisplay.textContent = getMaskedDisplay(value);
+  } else {
+    valueDisplay.textContent = value || '';
+  }
+};
+
+// Check if the raw value contains references to secret variables
+const containsSecretVariableReferences = (rawValue, collection, item) => {
+  if (!rawValue || typeof rawValue !== 'string') {
+    return false;
+  }
+
+  // Match all variable references like {{varName}}
+  const variableReferencePattern = /\{\{([^}]+)\}\}/g;
+  const matches = rawValue.matchAll(variableReferencePattern);
+
+  for (const match of matches) {
+    const referencedVarName = match[1].trim();
+
+    // Get scope info for the referenced variable
+    const referencedScopeInfo = getVariableScope(referencedVarName, collection, item);
+
+    // Check if the referenced variable is a secret
+    if (referencedScopeInfo && isVariableSecret(referencedScopeInfo)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const getCopyButton = (variableValue, onCopyCallback) => {
   const copyButton = document.createElement('button');
 
@@ -174,7 +214,15 @@ export const renderVarInfo = (token, options) => {
 
   // Check if variable is read-only (process.env, runtime, and undefined variables cannot be edited)
   const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'undefined';
+
+  // Get raw value from scope
+  const rawValue = scopeInfo?.value || '';
+
+  // Check if variable should be masked:
   const isSecret = scopeInfo.type !== 'undefined' ? isVariableSecret(scopeInfo) : false;
+  const hasSecretReferences = containsSecretVariableReferences(rawValue, collection, item);
+  const shouldMaskValue = isSecret || hasSecretReferences;
+
   const isMasked = options?.variables?.maskedEnvVariables?.includes(variableName);
 
   const into = document.createElement('div');
@@ -194,7 +242,7 @@ export const renderVarInfo = (token, options) => {
   // Show scope label with indication if it's a new variable
   const scopeLabel = scopeInfo ? getScopeLabel(scopeInfo.type) : 'Unknown';
   const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
-  scopeBadge.textContent = isNewVariable ? `${scopeLabel} (new)` : scopeLabel;
+  scopeBadge.textContent = isNewVariable ? `${scopeLabel}` : scopeLabel;
 
   header.appendChild(varName);
   header.appendChild(scopeBadge);
@@ -204,9 +252,6 @@ export const renderVarInfo = (token, options) => {
   const valueContainer = document.createElement('div');
   valueContainer.className = 'var-value-container';
 
-  // Get raw value from scope
-  const rawValue = scopeInfo?.value || '';
-
   // Create editable value display/editor (if editable)
   if (!isReadOnly && scopeInfo) {
     // Handle secret/masked variables state
@@ -215,13 +260,8 @@ export const renderVarInfo = (token, options) => {
     // Create display element (shows interpolated value by default)
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-editable-display';
-    // For masked values, show dots matching actual content length
-    if (isSecret || isMasked) {
-      const contentLength = (variableValue || '').length;
-      valueDisplay.textContent = contentLength > 0 ? '•'.repeat(contentLength) : '';
-    } else {
-      valueDisplay.textContent = variableValue || '';
-    }
+    // Mask the displayed value if it contains secrets or references to secrets
+    updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
     // Create container for CodeMirror (hidden by default)
     const editorContainer = document.createElement('div');
@@ -262,8 +302,8 @@ export const renderVarInfo = (token, options) => {
     // Handle secret/masked variables
     let maskedEditor = null;
 
-    if (isSecret || isMasked) {
-      maskedEditor = new MaskedEditor(cmEditor, '•');
+    if (shouldMaskValue || isMasked) {
+      maskedEditor = new MaskedEditor(cmEditor);
       maskedEditor.enable();
     }
 
@@ -275,8 +315,8 @@ export const renderVarInfo = (token, options) => {
     const iconsContainer = document.createElement('div');
     iconsContainer.className = 'var-icons';
 
-    // Eye toggle button (for secrets)
-    if (isSecret || isMasked) {
+    // Eye toggle button (show if the displayed value is masked)
+    if (shouldMaskValue || isMasked) {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
       toggleButton.innerHTML = EYE_ICON_SVG;
@@ -291,29 +331,15 @@ export const renderVarInfo = (token, options) => {
         e.preventDefault();
         isRevealed = !isRevealed;
 
-        if (isRevealed) {
-          // Reveal actual value
-          toggleButton.innerHTML = EYE_OFF_ICON_SVG;
+        // Update icon
+        toggleButton.innerHTML = isRevealed ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
 
-          // Update display mode
-          valueDisplay.textContent = variableValue || '';
+        // Update display mode
+        updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
 
-          // Update editor mode
-          if (maskedEditor) {
-            maskedEditor.disable();
-          }
-        } else {
-          // Mask value
-          toggleButton.innerHTML = EYE_ICON_SVG;
-
-          // Update display mode with correct length
-          const contentLength = (variableValue || '').length;
-          valueDisplay.textContent = contentLength > 0 ? '•'.repeat(contentLength) : '';
-
-          // Update editor mode
-          if (maskedEditor) {
-            maskedEditor.enable();
-          }
+        // Update editor mode
+        if (maskedEditor) {
+          isRevealed ? maskedEditor.disable() : maskedEditor.enable();
         }
 
         // Refocus the editor if it's currently in edit mode
@@ -384,33 +410,16 @@ export const renderVarInfo = (token, options) => {
             originalValue = newValue;
             // Re-interpolate the new value to show the resolved value in display
             const interpolatedValue = interpolate(newValue, allVariables);
-            // Maintain the revealed/masked state
-            if (isSecret || isMasked) {
-              if (isRevealed) {
-                valueDisplay.textContent = interpolatedValue || '';
-              } else {
-                const contentLength = (interpolatedValue || '').length;
-                valueDisplay.textContent = contentLength > 0 ? '•'.repeat(contentLength) : '';
-              }
-            } else {
-              valueDisplay.textContent = interpolatedValue || '';
-            }
+            // Check if the NEW value contains secret references
+            const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
+            const newShouldMask = isSecret || newHasSecretRefs;
+            updateValueDisplay(valueDisplay, interpolatedValue, newShouldMask, isMasked, isRevealed);
           })
           .catch((err) => {
             console.error('Failed to update variable:', err);
             // Revert on error
             cmEditor.setValue(originalValue);
-            // Maintain the revealed/masked state on error
-            if (isSecret || isMasked) {
-              if (isRevealed) {
-                valueDisplay.textContent = variableValue || '';
-              } else {
-                const contentLength = (variableValue || '').length;
-                valueDisplay.textContent = contentLength > 0 ? '•'.repeat(contentLength) : '';
-              }
-            } else {
-              valueDisplay.textContent = variableValue || '';
-            }
+            updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
           });
       }
     });
@@ -420,20 +429,39 @@ export const renderVarInfo = (token, options) => {
     valueContainer._maskedEditor = maskedEditor;
     valueContainer._autoCompleteCleanup = autoCompleteCleanup;
   } else {
-    // Read-only display
+    // Read-only display (for runtime, process.env, undefined variables)
+    let isRevealed = false;
+
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-display';
-    // For masked values, show dots matching actual content length
-    if (isMasked) {
-      const contentLength = (variableValue || '').length;
-      valueDisplay.textContent = contentLength > 0 ? '•'.repeat(contentLength) : '';
-    } else {
-      valueDisplay.textContent = variableValue || '';
-    }
+    // For read-only variables, still check if they reference secrets
+    updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
     // Icons container
     const iconsContainer = document.createElement('div');
     iconsContainer.className = 'var-icons';
+
+    // Eye toggle button (for read-only variables that reference secrets or are masked)
+    if (shouldMaskValue || isMasked) {
+      const toggleButton = document.createElement('button');
+      toggleButton.className = 'secret-toggle-button';
+      toggleButton.innerHTML = EYE_ICON_SVG;
+
+      toggleButton.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+      });
+
+      toggleButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        isRevealed = !isRevealed;
+
+        toggleButton.innerHTML = isRevealed ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
+        updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
+      });
+
+      iconsContainer.appendChild(toggleButton);
+    }
 
     // Copy button (always copy actual value, not masked)
     const copyButton = getCopyButton(variableValue || '');

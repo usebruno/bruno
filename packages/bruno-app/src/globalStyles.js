@@ -279,7 +279,7 @@ const GlobalStyle = createGlobalStyle`
     display: flex;
     align-items: center;
     margin-bottom: 6px;
-    gap: 4px;
+    gap: 6px;
   }
 
   .CodeMirror-brunoVarInfo .var-name {
