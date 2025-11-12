@@ -327,8 +327,6 @@ const GlobalStyle = createGlobalStyle`
     width: 100%;
     min-width: 275px;
     max-width: 275px;
-    height: 60px;
-    min-height: 60px;
     max-height: 178px;
     position: relative;
   }
@@ -338,9 +336,11 @@ const GlobalStyle = createGlobalStyle`
     min-height: 60px;
     max-height: 178px;
     font-size: 14px;
+    line-height: 1.4;
     border: 1px solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
     border-radius: 6px;
     background: ${(props) => props.theme.codemirror.variable.info.editorBg};
+    color: ${(props) => props.theme.codemirror.variable.info.color};
     transition: border-color 0.15s;
   }
 
@@ -357,13 +357,33 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-lines {
-    padding: 6px 8px;
+    padding: 6px 40px 6px 8px;
     max-width: 211px;
+    line-height: 1.4;
+    word-break: break-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror pre {
+    font-size: 14px;
+    line-height: 1.4;
+    word-break: break-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    color: ${(props) => props.theme.codemirror.variable.info.color};
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-line {
     padding: 0;
     max-width: 211px;
+    line-height: 1.4;
+    font-size: 14px;
+    word-break: break-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    color: ${(props) => props.theme.codemirror.variable.info.color};
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-sizer {
