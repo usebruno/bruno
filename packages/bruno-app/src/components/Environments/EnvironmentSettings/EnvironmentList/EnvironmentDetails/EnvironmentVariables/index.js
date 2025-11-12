@@ -108,6 +108,18 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     }
   });
 
+  // Add keyboard shortcut for Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    const handleKeyDown = e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        formik.handleSubmit();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [formik]);
+
   const hasSensitiveUsage = (name) => !!nonSecretSensitiveVarUsageMap[name];
 
   // Effect to track modifications.
