@@ -369,7 +369,7 @@ describe('renderVarInfo', () => {
         maskedEnvVariables: ['apiKey']
       });
 
-      expect(valueDisplay.textContent).toBe('••••••••••');
+      expect(valueDisplay.textContent).toBe('**********');
     });
   });
 
