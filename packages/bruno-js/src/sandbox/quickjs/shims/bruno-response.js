@@ -1,6 +1,6 @@
 const { marshallToVm } = require('../utils');
 
-const addBrunoResponseShimToContext = (vm, res) => {
+const createBrunoResponseShim = (vm, res) => {
   let resFn = vm.newFunction('res', function (exprStr) {
     return marshallToVm(res(vm.dump(exprStr)), vm);
   });
@@ -80,8 +80,14 @@ const addBrunoResponseShimToContext = (vm, res) => {
   vm.setProp(resFn, 'getSize', getSize);
   getSize.dispose();
 
+  return resFn;
+};
+
+const addBrunoResponseShimToContext = (vm, res) => {
+  const resFn = createBrunoResponseShim(vm, res);
   vm.setProp(vm.global, 'res', resFn);
   resFn.dispose();
 };
 
 module.exports = addBrunoResponseShimToContext;
+module.exports.createBrunoResponseShim = createBrunoResponseShim;
