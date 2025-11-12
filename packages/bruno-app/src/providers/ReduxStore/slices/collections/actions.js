@@ -1607,34 +1607,33 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
 /**
  * Update a variable value directly in the file without affecting draft state
  * @param {string} pathname - File path
- * @param {string} variableName - Variable name
- * @param {string} newValue - New value
+ * @param {Object} variable - Variable object with uid, name, value, type, enabled
  * @param {string} scopeType - Type of scope ('request', 'folder', 'collection')
  * @param {string} collectionUid - Collection UID
  * @param {string} itemUid - Item/Folder UID (for request/folder)
  */
-const updateVariableInFile = (pathname, variableName, newValue, scopeType, collectionUid, itemUid) => (dispatch) => {
+const updateVariableInFile = (pathname, variable, scopeType, collectionUid, itemUid) => (dispatch) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('renderer:update-variable-in-file', pathname, variableName, newValue, scopeType)
+      .invoke('renderer:update-variable-in-file', pathname, variable, scopeType)
       .then(() => {
         // Update Redux state to reflect the change
         if (scopeType === 'request') {
           dispatch({
             type: 'collections/updateRequestVarValue',
-            payload: { collectionUid, itemUid, variableName, value: newValue }
+            payload: { collectionUid, itemUid, variable }
           });
         } else if (scopeType === 'folder') {
           dispatch({
             type: 'collections/updateFolderVarValue',
-            payload: { collectionUid, folderUid: itemUid, variableName, value: newValue }
+            payload: { collectionUid, folderUid: itemUid, variable }
           });
         } else if (scopeType === 'collection') {
           dispatch({
             type: 'collections/updateCollectionVarValue',
-            payload: { collectionUid, variableName, value: newValue }
+            payload: { collectionUid, variable }
           });
         }
 
@@ -1708,21 +1707,36 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
         }
 
         case 'collection': {
-          updatePromise = updateVariableInFile(collection.pathname, variableName, newValue, 'collection', collectionUid, null);
-          successMessage = `Variable "${variableName}" updated`;
+          const { collection: scopeCollection, variable } = data;
+          const variableToSave = variable
+            ? { ...variable, value: newValue }
+            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+
+          const collectionFilePath = path.join(scopeCollection.pathname, 'collection.bru');
+          updatePromise = updateVariableInFile(collectionFilePath, variableToSave, 'collection', collectionUid, null);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
           break;
         }
 
         case 'folder': {
-          const { folder } = data;
-          updatePromise = updateVariableInFile(folder.pathname, variableName, newValue, 'folder', collectionUid, folder.uid);
-          successMessage = `Variable "${variableName}" updated`;
+          const { folder, variable } = data;
+          const variableToSave = variable
+            ? { ...variable, value: newValue }
+            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+
+          const folderFilePath = path.join(folder.pathname, 'folder.bru');
+          updatePromise = updateVariableInFile(folderFilePath, variableToSave, 'folder', collectionUid, folder.uid);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
           break;
         }
 
         case 'request': {
           const { item, variable } = data;
-          updatePromise = updateVariableInFile(item.pathname, variableName, newValue, 'request', collectionUid, item.uid);
+          const variableToSave = variable
+            ? { ...variable, value: newValue }
+            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+
+          updatePromise = updateVariableInFile(item.pathname, variableToSave, 'request', collectionUid, item.uid);
           successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
           break;
         }
