@@ -1485,9 +1485,9 @@ export const getVariableScope = (variableName, collection, item) => {
     return null;
   }
 
-  // Priority order: Request > Folder > Environment > Collection > Global
+  // Priority order: Request > Folder > Environment > Collection > Global > Runtime
   // Note: Process.env variables are only accessible with explicit "process.env." prefix
-  // Note: Runtime variables and OAuth2 credentials are not editable, so we skip them
+  // Note: Runtime variables and OAuth2 credentials are read-only (cannot be edited inline)
 
   // 1. Check Request Variables (highest priority)
   if (item && item.request && item.request.vars && item.request.vars.req) {
@@ -1553,6 +1553,16 @@ export const getVariableScope = (variableName, collection, item) => {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
       data: { variableName, value: globalEnvironmentVariables[variableName] }
+    };
+  }
+
+  // 6. Check Runtime Variables (set during request execution via scripts)
+  const { runtimeVariables = {} } = collection;
+  if (runtimeVariables && runtimeVariables[variableName]) {
+    return {
+      type: 'runtime',
+      value: runtimeVariables[variableName],
+      data: { variableName, value: runtimeVariables[variableName], readonly: true }
     };
   }
 

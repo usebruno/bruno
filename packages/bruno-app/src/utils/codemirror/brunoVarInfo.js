@@ -69,6 +69,7 @@ const getScopeLabel = (scopeType) => {
     'collection': 'Collection',
     'folder': 'Folder',
     'request': 'Request',
+    'runtime': 'Runtime',
     'process.env': 'Process Env',
     'undefined': 'Undefined'
   };
@@ -131,8 +132,8 @@ export const renderVarInfo = (token, options) => {
   // Extract variable name and value based on token
   const { variableName, variableValue } = extractVariableInfo(token.string, options.variables);
 
-  // Don't show popover if we can't extract a variable name
-  if (!variableName) {
+  // Don't show popover if we can't extract a variable name or if it's empty/whitespace
+  if (!variableName || !variableName.trim()) {
     return;
   }
 
@@ -171,8 +172,8 @@ export const renderVarInfo = (token, options) => {
     }
   }
 
-  // Check if variable is read-only (process.env and undefined variables cannot be edited)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'undefined';
+  // Check if variable is read-only (process.env, runtime, and undefined variables cannot be edited)
+  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'undefined';
   const isSecret = scopeInfo.type !== 'undefined' ? isVariableSecret(scopeInfo) : false;
   const isMasked = options?.variables?.maskedEnvVariables?.includes(variableName);
 
@@ -447,6 +448,11 @@ export const renderVarInfo = (token, options) => {
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
+    } else if (scopeInfo?.type === 'runtime') {
+      const readOnlyNote = document.createElement('div');
+      readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.textContent = 'Set by scripts (read-only)';
+      into.appendChild(readOnlyNote);
     } else if (scopeInfo?.type === 'undefined') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
@@ -658,10 +664,22 @@ export const extractVariableInfo = (str, variables) => {
 
   if (DOUBLE_BRACE_PATTERN.test(str)) {
     variableName = str.replace('{{', '').replace('}}', '').trim();
+    // Don't return empty variable names
+    if (!variableName) {
+      return { variableName: undefined, variableValue: undefined };
+    }
     variableValue = interpolate(get(variables, variableName), variables);
   } else if (str.startsWith('/:')) {
     variableName = str.replace('/:', '').trim();
+    // Don't return empty variable names
+    if (!variableName) {
+      return { variableName: undefined, variableValue: undefined };
+    }
     variableValue = variables?.pathParams?.[variableName];
+  } else if (str.startsWith('{{') && str.endsWith('}}')) {
+    // Handle cases like {{}} or {{   }} (empty or whitespace only)
+    // These don't match the pattern but look like variables
+    return { variableName: undefined, variableValue: undefined };
   } else {
     // direct variable reference (e.g., for numeric values in JSON mode or plain variable names)
     variableName = str;
