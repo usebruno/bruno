@@ -1,0 +1,53 @@
+meta {
+  name: body
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "original": "value",
+    "count": 1
+  }
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    const body = req.getBody();
+    bru.setVar('original-field', body.original);
+    
+    // Modify body
+    req.setBody({
+      ...body,
+      modified: true,
+      count: body.count + 1,
+      added: 'new-field'
+    });
+  });
+}
+
+tests {
+  test("req.getBody - reads original body", function() {
+    expect(bru.getVar('original-field')).to.equal('value');
+  });
+  
+  test("req.setBody - preserves original fields", function() {
+    expect(res.getBody().original).to.equal('value');
+  });
+  
+  test("req.setBody - adds new fields", function() {
+    expect(res.getBody().modified).to.equal(true);
+    expect(res.getBody().added).to.equal('new-field');
+  });
+  
+  test("req.setBody - modifies existing fields", function() {
+    expect(res.getBody().count).to.equal(2);
+  });
+}
+

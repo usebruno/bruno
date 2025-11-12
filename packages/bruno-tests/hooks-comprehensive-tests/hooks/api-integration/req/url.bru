@@ -1,0 +1,30 @@
+meta {
+  name: url
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/headers
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    bru.setVar('original-url', req.getUrl());
+    req.setUrl(req.getUrl().replace('/headers', '/ping'));
+  });
+}
+
+tests {
+  test("req.getUrl - returns original URL", function() {
+    expect(bru.getVar('original-url')).to.include('/headers');
+  });
+  
+  test("req.setUrl - changes request endpoint", function() {
+    // Response should be 'pong' from /ping endpoint
+    expect(res.getBody()).to.equal('pong');
+  });
+}
+

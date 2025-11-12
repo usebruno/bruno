@@ -1,0 +1,30 @@
+meta {
+  name: set-next-null-should-not-run
+  type: http
+  seq: 901
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] ERROR: This request should NOT have run after setNextRequest(null)!');
+    
+    // If this request runs, set an error marker
+    bru.setVar('set-next-null-error', 'Request ran when setNextRequest(null) should have stopped the runner');
+    
+    console.log('[beforeRequest] Setting error marker - setNextRequest(null) failed');
+  });
+}
+
+tests {
+  test("this request should not run - setNextRequest(null) should have stopped the runner", function() {
+    // If we get here, the request ran when it should have been stopped
+    const error = bru.getVar('set-next-null-error');
+    expect(error).to.be.undefined;
+  });
+}

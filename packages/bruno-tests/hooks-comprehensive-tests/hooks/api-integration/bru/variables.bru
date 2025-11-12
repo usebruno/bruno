@@ -1,0 +1,39 @@
+meta {
+  name: variables
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    bru.setVar('hook-string', 'hello');
+    bru.setVar('hook-number', 42);
+    bru.setVar('hook-object', { key: 'value' });
+    bru.setVar('hook-array', [1, 2, 3]);
+  });
+}
+
+tests {
+  test("bru.setVar/getVar - string", function() {
+    expect(bru.getVar('hook-string')).to.equal('hello');
+  });
+  
+  test("bru.setVar/getVar - number", function() {
+    expect(bru.getVar('hook-number')).to.equal(42);
+  });
+  
+  test("bru.setVar/getVar - object", function() {
+    expect(bru.getVar('hook-object')).to.deep.equal({ key: 'value' });
+  });
+  
+  test("bru.setVar/getVar - array", function() {
+    expect(bru.getVar('hook-array')).to.deep.equal([1, 2, 3]);
+  });
+}
+

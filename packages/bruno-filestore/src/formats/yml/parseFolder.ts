@@ -30,7 +30,8 @@ const parseFolder = (ymlString: string): FolderRoot => {
         auth: null,
         script: {
           req: null,
-          res: null
+          res: null,
+          hooks: null
         },
         vars: {
           req: [],
@@ -67,6 +68,9 @@ const parseFolder = (ymlString: string): FolderRoot => {
         }
         if (scripts.script.res) {
           folderRoot.request.script.res = scripts.script.res;
+        }
+        if (scripts.script.hooks) {
+          folderRoot.request.script.hooks = scripts.script.hooks;
         }
       }
       if (scripts?.tests) {

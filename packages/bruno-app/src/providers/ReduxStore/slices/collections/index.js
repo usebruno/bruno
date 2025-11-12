@@ -24,6 +24,7 @@ import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import * as exampleReducers from './exampleReducers';
+import * as hooksReducers from './hooksReducers';
 
 // gRPC status code meanings
 const grpcStatusCodes = {
@@ -155,6 +156,7 @@ export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
   reducers: {
+    ...hooksReducers,
     createCollection: (state, action) => {
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
@@ -2938,6 +2940,7 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorMessage = null;
       item.postResponseScriptErrorMessage = null;
       item.testScriptErrorMessage = null;
+      item.hookScriptErrorMessage = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -2959,6 +2962,10 @@ export const collectionsSlice = createSlice({
 
           if (type === 'test-script-execution') {
             item.testScriptErrorMessage = action.payload.errorMessage;
+          }
+
+          if (type === 'hooks-script-execution') {
+            item.hookScriptErrorMessage = action.payload.errorMessage;
           }
 
           if (type === 'request-queued') {
@@ -3099,6 +3106,11 @@ export const collectionsSlice = createSlice({
         if (type === 'pre-request-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'hooks-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.hookScriptErrorMessage = action.payload.errorMessage;
         }
       }
     },
@@ -3621,6 +3633,7 @@ export const {
   updateRequestScript,
   updateResponseScript,
   updateRequestTests,
+  updateRequestHooksScript,
   updateRequestMethod,
   updateRequestProtoPath,
   addAssertion,
@@ -3643,6 +3656,7 @@ export const {
   updateFolderRequestScript,
   updateFolderResponseScript,
   updateFolderTests,
+  updateFolderHooksScript,
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
@@ -3655,6 +3669,7 @@ export const {
   updateCollectionRequestScript,
   updateCollectionResponseScript,
   updateCollectionTests,
+  updateCollectionHooksScript,
   updateCollectionDocs,
   updateCollectionProxy,
   updateCollectionClientCertificates,

@@ -38,12 +38,19 @@ jobs:
       - name: Run CLI Tests
         uses: ./.github/actions/tests/run-cli-tests
 
+      - name: Run comprehensive hooks tests
+        run: |
+          cd packages/bruno-tests/hooks-comprehensive-tests
+          node ../../bruno-cli/bin/bru.js run --env Prod --output junit-hooks.xml --format junit
+
       - name: Publish Test Report
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           check_name: CLI Test Results
-          files: packages/bruno-tests/collection/junit.xml
+          files: |
+            packages/bruno-tests/collection/junit.xml
+            packages/bruno-tests/hooks-comprehensive-tests/junit-hooks.xml
           comment_mode: always
 
   e2e-test:

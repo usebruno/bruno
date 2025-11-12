@@ -1,0 +1,88 @@
+meta {
+  name: after-response-read-response
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    // Test: Read status code
+    const status = res.getStatus();
+    bru.setVar('response-status', status.toString());
+    
+    // Test: Read status text
+    const statusText = res.getStatusText();
+    bru.setVar('response-status-text', statusText);
+    
+    // Test: Read headers
+    const headers = res.getHeaders();
+    bru.setVar('response-has-headers', (Object.keys(headers).length > 0).toString());
+    
+    // Test: Read specific header
+    const contentType = res.getHeader('content-type');
+    if (contentType) {
+      bru.setVar('response-content-type', contentType);
+    }
+    
+    // Test: Read body
+    const body = res.getBody();
+    bru.setVar('response-body', body);
+    
+    // Test: Read response time
+    const responseTime = res.getResponseTime();
+    bru.setVar('response-time', responseTime.toString());
+    
+    // Test: Read URL
+    const url = res.getUrl();
+    bru.setVar('response-url', url);
+    
+    // Test: Read size
+    const size = res.getSize();
+    bru.setVar('response-size', size.body.toString());
+    
+    console.log('[afterResponse] Read all response properties');
+  });
+}
+
+tests {
+  test("should have read status code", function() {
+    const status = bru.getVar('response-status');
+    expect(status).to.equal('200');
+  });
+  
+  test("should have read status text", function() {
+    const statusText = bru.getVar('response-status-text');
+    expect(statusText).to.equal('OK');
+  });
+  
+  test("should have read headers", function() {
+    const hasHeaders = bru.getVar('response-has-headers');
+    expect(hasHeaders).to.equal('true');
+  });
+  
+  test("should have read body", function() {
+    const body = bru.getVar('response-body');
+    expect(body).to.equal('pong');
+  });
+  
+  test("should have read response time", function() {
+    const responseTime = bru.getVar('response-time');
+    expect(parseInt(responseTime)).to.be.above(0);
+  });
+  
+  test("should have read URL", function() {
+    const url = bru.getVar('response-url');
+    expect(url).to.include('/ping');
+  });
+  
+  test("should have read size", function() {
+    const size = bru.getVar('response-size');
+    expect(parseInt(size)).to.be.at.least(0);
+  });
+}

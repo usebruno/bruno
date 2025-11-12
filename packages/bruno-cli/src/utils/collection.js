@@ -232,10 +232,12 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
   let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
   let collectionTests = get(collectionRoot, 'request.tests', '');
+  let collectionHooks = get(collectionRoot, 'request.script.hooks', '');
 
   let combinedPreReqScript = [];
   let combinedPostResScript = [];
   let combinedTests = [];
+  let combinedHooks = [];
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
@@ -252,6 +254,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
+      }
+
+      let hooks = get(folderRoot, 'request.script.hooks', '');
+      if (hooks && hooks.trim() !== '') {
+        combinedHooks.push(hooks);
       }
     }
   }
@@ -301,6 +308,25 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionTests
     ];
     request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+  }
+
+  // Handle hooks based on scriptFlow
+  let requestHooks = request?.script?.hooks || '';
+  if (scriptFlow === 'sequential') {
+    const hooksScripts = [
+      collectionHooks,
+      ...combinedHooks,
+      requestHooks
+    ];
+    request.script.hooks = compact(hooksScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+  } else {
+    // Reverse order for non-sequential flow
+    const hooksScripts = [
+      requestHooks,
+      ...[...combinedHooks].reverse(),
+      collectionHooks
+    ];
+    request.script.hooks = compact(hooksScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
 };
 

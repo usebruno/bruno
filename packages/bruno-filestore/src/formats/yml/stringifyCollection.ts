@@ -56,6 +56,7 @@ const hasRequestScripts = (collectionRoot: any): boolean => {
 
   return (collectionRoot.request.script?.req)
     || (collectionRoot.request.script?.res)
+    || (collectionRoot.request?.script?.hooks)
     || (collectionRoot.request.tests);
 };
 

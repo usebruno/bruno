@@ -1,6 +1,6 @@
 const { marshallToVm } = require('../utils');
 
-const addBrunoRequestShimToContext = (vm, req) => {
+const createBrunoRequestShim = (vm, req) => {
   const reqObject = vm.newObject();
 
   const url = marshallToVm(req.getUrl(), vm);
@@ -175,8 +175,14 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'getTags', getTags);
   getTags.dispose();
 
+  return reqObject;
+};
+
+const addBrunoRequestShimToContext = (vm, req) => {
+  const reqObject = createBrunoRequestShim(vm, req);
   vm.setProp(vm.global, 'req', reqObject);
   reqObject.dispose();
 };
 
 module.exports = addBrunoRequestShimToContext;
+module.exports.createBrunoRequestShim = createBrunoRequestShim;

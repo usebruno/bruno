@@ -1,5 +1,7 @@
 const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
+const { createBrunoRequestShim } = require('./bruno-request');
+const { createBrunoResponseShim } = require('./bruno-response');
 
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
@@ -465,6 +467,232 @@ const addBruShimToContext = (vm, bru) => {
 
   vm.setProp(bruObject, 'cookies', bruCookiesObject);
   bruCookiesObject.dispose();
+
+  // Add hooks shim if bru.hooks exists
+  if (bru.hooks) {
+    // Execute handler using the original function handle from the VM
+    // Returns a Promise that resolves when the handler completes (supports async handlers)
+    const executeHandler = async (handlerHandle, vmInstance, data) => {
+      if (!handlerHandle) {
+        return Promise.resolve();
+      }
+      if (!vmInstance) {
+        return Promise.resolve();
+      }
+
+      try {
+        // Verify handler is still a function in the VM
+        const handlerType = vmInstance.typeof(handlerHandle);
+        if (handlerType !== 'function') {
+          return Promise.resolve();
+        }
+
+        // Prepare data (clean circular refs) - use try-catch to prevent stack overflow
+        let cleanedData;
+        try {
+          cleanedData = { ...cleanCircularJson(data) };
+        } catch (e) {
+          // If cleaning fails due to circular refs or stack overflow, use minimal data
+          console.warn('Error cleaning hook data, using minimal data:', e.message);
+          cleanedData = {};
+        }
+
+        // Create data object in VM
+        const dataHandle = vmInstance.newObject();
+
+        // Add all cleaned data properties
+        Object.keys(cleanedData).forEach((key) => {
+          if (key !== 'req' && key !== 'res') {
+            const value = marshallToVm(cleanedData[key], vmInstance);
+            vmInstance.setProp(dataHandle, key, value);
+            value.dispose();
+          }
+        });
+
+        // Add req/res shim objects to data if provided
+        // In QuickJS, when you setProp, the parent object takes ownership
+        // We dispose them after setting to avoid keeping extra references
+        // but dataHandle will maintain the reference until it's disposed
+        if (data.req) {
+          const reqShim = createBrunoRequestShim(vmInstance, data.req);
+          vmInstance.setProp(dataHandle, 'req', reqShim);
+          // Dispose the original handle - dataHandle now owns the reference
+          reqShim.dispose();
+        }
+
+        if (data.res) {
+          const resShim = createBrunoResponseShim(vmInstance, data.res);
+          vmInstance.setProp(dataHandle, 'res', resShim);
+          // Dispose the original handle - dataHandle now owns the reference
+          resShim.dispose();
+        }
+
+        // Call the original handler function
+        // Use vmInstance.global as context to ensure proper scope access
+        const result = vmInstance.callFunction(handlerHandle, vmInstance.global, dataHandle);
+        // Dispose dataHandle - this will clean up all child references
+        dataHandle.dispose();
+
+        if (result.error) {
+          const error = vmInstance.dump(result.error);
+          result.error.dispose();
+          const errorMsg = error?.message || error?.toString() || String(error);
+          if (!errorMsg.includes('UseAfterFree') && !errorMsg.includes('Lifetime not alive')) {
+            console.error('Error in hook handler:', error);
+          }
+          return;
+        }
+
+        // Check if the result is a Promise (async handler) and await it
+        // This is crucial for handlers that need to complete before the request proceeds
+        const resultType = vmInstance.typeof(result.value);
+
+        // Only try to resolve as Promise if it's an object (Promises are objects in JS)
+        // For non-object values (undefined, null, primitives), just dispose and return
+        if (resultType !== 'object') {
+          result.value.dispose();
+          return;
+        }
+
+        // Check if the object has a .then property (duck-typing for Promise)
+        let isPromise = false;
+        try {
+          const thenProp = vmInstance.getProp(result.value, 'then');
+          isPromise = vmInstance.typeof(thenProp) === 'function';
+          thenProp.dispose();
+        } catch (e) {
+          // If we can't check for .then, assume it's not a promise
+          isPromise = false;
+        }
+
+        if (!isPromise) {
+          // Not a promise, just dispose and return
+          result.value.dispose();
+          return;
+        }
+
+        // It's a Promise - await it using resolvePromise
+        try {
+          const resolvedResult = await vmInstance.resolvePromise(result.value);
+          result.value.dispose();
+
+          if (resolvedResult.error) {
+            const error = vmInstance.dump(resolvedResult.error);
+            resolvedResult.error.dispose();
+            const errorMsg = error?.message || error?.toString() || String(error);
+            if (!errorMsg.includes('UseAfterFree') && !errorMsg.includes('Lifetime not alive')) {
+              console.error('Error in async hook handler:', error);
+            }
+          } else {
+            resolvedResult.value.dispose();
+          }
+        } catch (promiseError) {
+          // If resolvePromise fails, just dispose the value
+          try {
+            result.value.dispose();
+          } catch (e) {
+            // Ignore disposal errors
+          }
+        }
+      } catch (error) {
+        const errorMsg = error?.message || error?.toString() || String(error);
+        if (!errorMsg.includes('UseAfterFree') && !errorMsg.includes('Lifetime not alive')) {
+          console.error('Error executing hook handler:', error);
+        }
+      }
+    };
+
+    /**
+     * Creates a hook function that registers a handler with the native hook system.
+     * This helper eliminates code duplication across different hook types.
+     *
+     * @param {string} handlerIdPrefix - Prefix for logging/debugging (not used for lookup)
+     * @param {Function} nativeHookRegister - Function to register with native hooks (e.g., bru.hooks.http.onBeforeRequest)
+     * @param {boolean} validateHandler - Whether to validate handler is a function (default: true)
+     * @returns {Function} VM function that can be registered as a hook
+     */
+    const createHookFunction = (handlerIdPrefix, nativeHookRegister, validateHandler = true) => {
+      return vm.newFunction(handlerIdPrefix, function (handler) {
+        // Validate handler if required
+        if (validateHandler && vm.typeof(handler) !== 'function') {
+          throw new Error('Handler must be a function');
+        }
+
+        // Try to duplicate the handle to own a reference
+        let handlerHandle;
+        try {
+          handlerHandle = handler.dup ? handler.dup() : handler;
+        } catch (e) {
+          handlerHandle = handler;
+        }
+
+        // Create native handler that executes the stored handle
+        // Returns a Promise so HookManager can await async handlers
+        // Capture handlerHandle directly in closure - no lookup needed
+        const nativeHandler = (data) => {
+          if (!handlerHandle || !vm) {
+            return Promise.resolve();
+          }
+          // Return the Promise from executeHandler so HookManager awaits it
+          return executeHandler(handlerHandle, vm, data);
+        };
+
+        // Register with native hook system
+        const unhook = nativeHookRegister(nativeHandler);
+
+        // Create unhook function (just calls native unhook - no handle cleanup needed)
+        const unhookFn = vm.newFunction('unhook', () => {
+          unhook();
+        });
+
+        return unhookFn;
+      });
+    };
+
+    // Add namespaced hooks structure
+    if (bru.hooks) {
+      const hooksNamespacedObject = vm.newObject();
+
+      // HTTP hooks namespace
+      if (bru.hooks.http) {
+        const httpHooksObject = vm.newObject();
+
+        if (typeof bru.hooks.http.onBeforeRequest === 'function') {
+          const onBeforeRequest = createHookFunction('onBeforeRequest', (nativeHandler) => bru.hooks.http.onBeforeRequest(nativeHandler), false);
+          onBeforeRequest.consume((handle) => vm.setProp(httpHooksObject, 'onBeforeRequest', handle));
+        }
+
+        if (typeof bru.hooks.http.onAfterResponse === 'function') {
+          const onAfterResponse = createHookFunction('onAfterResponse', (nativeHandler) => bru.hooks.http.onAfterResponse(nativeHandler), false);
+          onAfterResponse.consume((handle) => vm.setProp(httpHooksObject, 'onAfterResponse', handle));
+        }
+
+        vm.setProp(hooksNamespacedObject, 'http', httpHooksObject);
+        httpHooksObject.dispose();
+      }
+
+      // Runner hooks namespace
+      if (bru.hooks.runner) {
+        const runnerHooksObject = vm.newObject();
+
+        if (typeof bru.hooks.runner.onBeforeCollectionRun === 'function') {
+          const onBeforeCollectionRun = createHookFunction('onBeforeCollectionRun', (nativeHandler) => bru.hooks.runner.onBeforeCollectionRun(nativeHandler), true);
+          onBeforeCollectionRun.consume((handle) => vm.setProp(runnerHooksObject, 'onBeforeCollectionRun', handle));
+        }
+
+        if (typeof bru.hooks.runner.onAfterCollectionRun === 'function') {
+          const onAfterCollectionRun = createHookFunction('onAfterCollectionRun', (nativeHandler) => bru.hooks.runner.onAfterCollectionRun(nativeHandler), true);
+          onAfterCollectionRun.consume((handle) => vm.setProp(runnerHooksObject, 'onAfterCollectionRun', handle));
+        }
+
+        vm.setProp(hooksNamespacedObject, 'runner', runnerHooksObject);
+        runnerHooksObject.dispose();
+      }
+
+      vm.setProp(bruObject, 'hooks', hooksNamespacedObject);
+      hooksNamespacedObject.dispose();
+    }
+  }
 
   vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);

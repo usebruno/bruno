@@ -1,0 +1,40 @@
+meta {
+  name: auth-injection
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/headers
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    req.setHeader('Authorization', 'Bearer mock-token-12345');
+    req.setHeader('X-API-Key', 'api-key-67890');
+    req.setHeader('X-Request-ID', 'req-' + Date.now());
+  });
+  
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    const body = res.getBody();
+    bru.setVar('auth-header-echoed', body['authorization']);
+    bru.setVar('api-key-echoed', body['x-api-key']);
+  });
+}
+
+tests {
+  test("Authorization header is injected", function() {
+    expect(bru.getVar('auth-header-echoed')).to.equal('Bearer mock-token-12345');
+  });
+  
+  test("API key header is injected", function() {
+    expect(bru.getVar('api-key-echoed')).to.equal('api-key-67890');
+  });
+  
+  test("Request succeeds with injected auth", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
