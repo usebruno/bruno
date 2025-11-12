@@ -289,9 +289,14 @@ const lightTheme = {
       valid: '#047857',
       invalid: 'rgb(185, 28, 28)',
       info: {
-        color: 'rgb(52, 52, 52)',
-        bg: 'white',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)'
+        color: '#343434',
+        bg: '#FFFFFF',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
+        editorBg: '#F7F7F7',
+        iconColor: '#989898',
+        editorBorder: '#EFEFEF',
+        editorFocusBorder: '#989898',
+        editableDisplayHoverBg: 'rgba(0,0,0,0.02)'
       }
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',

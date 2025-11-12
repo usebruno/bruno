@@ -241,19 +241,25 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo {
     color: ${(props) => props.theme.codemirror.variable.info.color};
     background: ${(props) => props.theme.codemirror.variable.info.bg};
-    border-radius: 2px;
+    border: 1px solid ${(props) => props.theme.codemirror.border};
+    border-radius: 6px;
     box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
     box-sizing: border-box;
-    font-size: 13px;
-    line-height: 16px;
-    margin: 8px -8px;
-    max-width: 800px;
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0;
+    min-width: 291px;
+    max-width: 291px;
     opacity: 0;
-    overflow: hidden;
-    padding: 8px 8px;
+    overflow: visible;
+    padding: 8px;
     position: fixed;
     transition: opacity 0.15s;
-    z-index: 50;
+    z-index: 10;
+  }
+
+  .CodeMirror-hints {
+    z-index: 50 !important;
   }
 
   .CodeMirror-brunoVarInfo :first-child {
@@ -266,6 +272,159 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo p {
     margin: 1em 0;
+  }
+
+  /* Header */
+  .CodeMirror-brunoVarInfo .var-info-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 4px;
+  }
+
+  .CodeMirror-brunoVarInfo .var-name {
+    font-size: 14px;
+    color: ${(props) => props.theme.codemirror.variable.info.color};
+  }
+
+  /* Scope Badge */
+  .CodeMirror-brunoVarInfo .var-scope-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #D977061A;
+    border-radius: 3px;
+    font-size: 14px;
+    color: #D97706;
+    letter-spacing: 0.5px;
+  }
+
+  /* Value Container */
+  .CodeMirror-brunoVarInfo .var-value-container {
+    position: relative;
+    border: 1px solid ${(props) => props.theme.codemirror.border};
+    border-radius: 6px;
+    background: ${(props) => props.theme.codemirror.variable.info.editorBg};
+  }
+
+  /* Value Display (Read-only) */
+  .CodeMirror-brunoVarInfo .var-value-display {
+    padding: 6px 40px 6px 8px;
+    font-size: 14px;
+    font-family: monospace;
+    word-break: break-word;
+    line-height: 1.4;
+    color: ${(props) => props.theme.codemirror.variable.info.color};
+    min-height: 28px;
+    max-width: 211px;
+  }
+
+  /* Value Editor (CodeMirror) */
+  .CodeMirror-brunoVarInfo .var-value-editor {
+    width: 100%;
+    min-width: 275px;
+    max-width: 275px;
+    height: 60px;
+    min-height: 60px;
+    max-height: 178px;
+    position: relative;
+  }
+
+  .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror {
+    height: 100%;
+    min-height: 60px;
+    max-height: 178px;
+    font-size: 14px;
+    border: 1px solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
+    border-radius: 6px;
+    background: ${(props) => props.theme.codemirror.variable.info.editorBg};
+    transition: border-color 0.15s;
+  }
+
+  .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-scroll {
+    min-height: 60px;
+    max-height: 178px;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-focused {
+    background: ${(props) => props.theme.codemirror.variable.info.editorBg};
+    border-color: ${(props) => props.theme.codemirror.variable.info.editorFocusBorder};
+  }
+
+  .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-lines {
+    padding: 6px 8px;
+    max-width: 211px;
+  }
+
+  .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-line {
+    padding: 0;
+    max-width: 211px;
+  }
+
+  .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-sizer {
+    margin-left: 0 !important;
+    margin-bottom: 0 !important;
+    max-width: 211px !important;
+  }
+
+  /* Editable value display (shows interpolated value, click to edit) */
+  .CodeMirror-brunoVarInfo .var-value-editable-display {
+    width: 275px;
+    max-width: 211px;
+    padding: 6px 40px 6px 8px;
+    font-size: 14px;
+    font-family: monospace;
+    word-break: break-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    line-height: 1.4;
+    color: ${(props) => props.theme.codemirror.variable.info.color};
+    min-height: 28px;
+    cursor: text;
+    border-radius: 6px;
+  }
+
+  /* Icons Container */
+  .CodeMirror-brunoVarInfo .var-icons {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+  }
+
+  .CodeMirror-brunoVarInfo .secret-toggle-button,
+  .CodeMirror-brunoVarInfo .copy-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    opacity: 1;
+    transition: opacity 0.2s;
+    color: ${(props) => props.theme.codemirror.variable.info.iconColor};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .CodeMirror-brunoVarInfo .secret-toggle-button:hover,
+  .CodeMirror-brunoVarInfo .copy-button:hover {
+    opacity: 0.7;
+  }
+
+  .CodeMirror-brunoVarInfo .copy-success {
+    color: #22c55e !important;
+  }
+
+  /* Read-only Note */
+  .CodeMirror-brunoVarInfo .var-readonly-note {
+    font-size: 10px;
+    color: ${(props) => props.theme.colors.text.muted};
+    opacity: 0.6;
+    margin-top: 4px;
   }
 
   .CodeMirror-hint-active {

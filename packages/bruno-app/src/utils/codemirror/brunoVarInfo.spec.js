@@ -6,6 +6,51 @@ jest.mock('@usebruno/common', () => ({
   interpolate: jest.fn()
 }));
 
+jest.mock('providers/ReduxStore', () => ({
+  default: {
+    dispatch: jest.fn(),
+    getState: jest.fn()
+  }
+}));
+
+jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
+  updateVariableInScope: jest.fn()
+}));
+
+jest.mock('utils/collections', () => ({
+  getVariableScope: jest.fn(),
+  isVariableSecret: jest.fn(),
+  getAllVariables: jest.fn(),
+  findEnvironmentInCollection: jest.fn()
+}));
+
+jest.mock('utils/common/codemirror', () => ({
+  defineCodeMirrorBrunoVariablesMode: jest.fn()
+}));
+
+jest.mock('utils/common/masked-editor', () => ({
+  MaskedEditor: jest.fn()
+}));
+
+jest.mock('utils/codemirror/autocomplete', () => ({
+  setupAutoComplete: jest.fn(() => jest.fn())
+}));
+
+// Mock CodeMirror
+global.CodeMirror = jest.fn((element, options) => {
+  const mockEditor = {
+    getValue: jest.fn(() => options.value || ''),
+    setValue: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+    refresh: jest.fn(),
+    focus: jest.fn(),
+    options: options || {},
+    getWrapperElement: jest.fn(() => element)
+  };
+  return mockEditor;
+});
+
 describe('extractVariableInfo', () => {
   let mockVariables;
 
@@ -258,13 +303,15 @@ describe('renderVarInfo', () => {
     jest.useRealTimers();
   });
 
-  function setupRender(variables) {
-    const result = renderVarInfo({ string: '{{apiKey}}' }, { variables });
-    const contentDiv = result.querySelector('.info-content');
-    const descriptionDiv = contentDiv.querySelector('.info-description');
-    const copyButton = contentDiv.querySelector('.copy-button');
+  function setupRender(variables, collection = null, item = null) {
+    const result = renderVarInfo({ string: '{{apiKey}}' }, { variables, collection, item });
+    if (!result) return { result: null, containerDiv: null, valueDisplay: null, copyButton: null };
 
-    return { result, contentDiv, descriptionDiv, copyButton };
+    const containerDiv = result;
+    const valueDisplay = containerDiv.querySelector('.var-value-editable-display') || containerDiv.querySelector('.var-value-display');
+    const copyButton = containerDiv.querySelector('.copy-button');
+
+    return { result, containerDiv, valueDisplay, copyButton };
   }
 
   describe('popup functionality', () => {
@@ -275,18 +322,18 @@ describe('renderVarInfo', () => {
     });
 
     it('should create a popup with the correct variable name and value', () => {
-      const { descriptionDiv } = setupRender({ apiKey: 'test-value' });
+      const { valueDisplay } = setupRender({ apiKey: 'test-value' });
 
-      expect(descriptionDiv.textContent).toBe('test-value');
+      expect(valueDisplay.textContent).toBe('test-value');
     });
 
     it('should correctly mask the variable value in the popup', () => {
-      const { descriptionDiv } = setupRender({
+      const { valueDisplay } = setupRender({
         apiKey: 'test-value',
         maskedEnvVariables: ['apiKey']
       });
 
-      expect(descriptionDiv.textContent).toBe('*****');
+      expect(valueDisplay.textContent).toBe('••••••••••');
     });
   });
 
@@ -300,7 +347,8 @@ describe('renderVarInfo', () => {
     it('should copy the variable value to the clipboard', async () => {
       const { copyButton } = setupRender({ apiKey: 'test-value' });
 
-      await copyButton.click();
+      copyButton.click();
+      await Promise.resolve();
 
       expect(clipboardText).toBe('test-value');
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-value');
@@ -309,7 +357,8 @@ describe('renderVarInfo', () => {
     it('should copy the variable value of masked variables to the clipboard', async () => {
       const { copyButton } = setupRender({ apiKey: 'test-value', maskedEnvVariables: ['apiKey'] });
 
-      await copyButton.click();
+      copyButton.click();
+      await Promise.resolve();
 
       expect(clipboardText).toBe('test-value');
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-value');
@@ -320,7 +369,8 @@ describe('renderVarInfo', () => {
 
       expect(copyButton.classList.contains('copy-success')).toBe(false);
 
-      await copyButton.click();
+      copyButton.click();
+      await Promise.resolve();
 
       expect(copyButton.classList.contains('copy-success')).toBe(true);
 
@@ -332,10 +382,10 @@ describe('renderVarInfo', () => {
     it('should log to the console when the variable value is not copied', async () => {
       const { copyButton } = setupRender({ apiKey: 'cause-clipboard-error' });
 
-      await copyButton.click();
+      copyButton.click();
 
       // wait for .catch() microtask to run
-      await Promise.resolve();
+      await jest.runAllTimersAsync();
 
       expect(clipboardText).toBe('');
       expect(console.error).toHaveBeenCalledWith('Failed to copy to clipboard:', 'Clipboard error');

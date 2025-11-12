@@ -53,9 +53,11 @@ export default class CodeEditor extends React.Component {
       lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
-      brunoVarInfo: {
-        variables
-      },
+      brunoVarInfo: this.props.enableBrunoVarInfo !== false ? {
+        variables,
+        collection: this.props.collection,
+        item: this.props.item
+      } : false,
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
@@ -289,6 +291,13 @@ export default class CodeEditor extends React.Component {
     const mode = this.props.mode || 'application/ld+json';
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
+
+    // Update brunoVarInfo with latest collection and item references
+    if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+      this.editor.options.brunoVarInfo.variables = variables;
+      this.editor.options.brunoVarInfo.collection = this.props.collection;
+      this.editor.options.brunoVarInfo.item = this.props.item;
+    }
 
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');

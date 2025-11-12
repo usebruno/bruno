@@ -48,9 +48,11 @@ class SingleLineEditor extends Component {
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       mode: 'brunovariables',
-      brunoVarInfo: {
-        variables
-      },
+      brunoVarInfo: this.props.enableBrunoVarInfo !== false ? {
+        variables,
+        collection: this.props.collection,
+        item: this.props.item
+      } : false,
       scrollbarStyle: null,
       tabindex: 0,
       readOnly: this.props.readOnly,
@@ -146,7 +148,11 @@ class SingleLineEditor extends Component {
 
     let variables = getAllVariables(this.props.collection, this.props.item);
     if (!isEqual(variables, this.variables)) {
-      this.editor.options.brunoVarInfo.variables = variables;
+      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+        this.editor.options.brunoVarInfo.variables = variables;
+        this.editor.options.brunoVarInfo.collection = this.props.collection;
+        this.editor.options.brunoVarInfo.item = this.props.item;
+      }
       this.addOverlay(variables);
     }
     if (this.props.theme !== prevProps.theme && this.editor) {

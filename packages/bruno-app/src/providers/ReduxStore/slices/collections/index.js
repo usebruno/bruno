@@ -24,6 +24,28 @@ import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import * as exampleReducers from './exampleReducers';
 
+// Helper: Update or create variable in variables array
+const updateOrCreateVariable = (vars, variableName, value) => {
+  const existingVar = vars.find((v) => v.name === variableName);
+
+  if (existingVar) {
+    // Update existing variable
+    return vars.map((v) => (v.name === variableName ? { ...v, value } : v));
+  }
+
+  // Create new variable
+  return [
+    ...vars,
+    {
+      uid: uuid(),
+      name: variableName,
+      value,
+      type: 'text',
+      enabled: true
+    }
+  ];
+};
+
 // gRPC status code meanings
 const grpcStatusCodes = {
   0: 'OK',
@@ -3168,8 +3190,44 @@ export const collectionsSlice = createSlice({
     deleteResponseExampleFormUrlEncodedParam: exampleReducers.deleteResponseExampleFormUrlEncodedParam,
     addResponseExampleMultipartFormParam: exampleReducers.addResponseExampleMultipartFormParam,
     updateResponseExampleMultipartFormParam: exampleReducers.updateResponseExampleMultipartFormParam,
-    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam
+    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam,
     /* End Response Example Actions */
+
+    /* Variable Update Actions - Start */
+    updateRequestVarValue: (state, action) => {
+      const { collectionUid, itemUid, variableName, value } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (item) {
+        const vars = get(item, 'request.vars.req', []);
+        const updatedVars = updateOrCreateVariable(vars, variableName, value);
+        set(item, 'request.vars.req', updatedVars);
+      }
+    },
+    updateFolderVarValue: (state, action) => {
+      const { collectionUid, folderUid, variableName, value } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const folder = findItemInCollection(collection, folderUid);
+      if (folder) {
+        const vars = get(folder, 'root.request.vars.req', []);
+        const updatedVars = updateOrCreateVariable(vars, variableName, value);
+        set(folder, 'root.request.vars.req', updatedVars);
+      }
+    },
+    updateCollectionVarValue: (state, action) => {
+      const { collectionUid, variableName, value } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const vars = get(collection, 'root.request.vars.req', []);
+      const updatedVars = updateOrCreateVariable(vars, variableName, value);
+      set(collection, 'root.request.vars.req', updatedVars);
+    }
+    /* Variable Update Actions - End */
   }
 });
 
@@ -3342,8 +3400,14 @@ export const {
   deleteResponseExampleRequestHeader,
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
-  setResponseExampleParams
+  setResponseExampleParams,
   /* Response Example Actions - End */
+
+  /* Variable Update Actions - Start */
+  updateRequestVarValue,
+  updateFolderVarValue,
+  updateCollectionVarValue
+  /* Variable Update Actions - End */
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
