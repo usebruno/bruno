@@ -1473,21 +1473,11 @@ export const getInitialExampleName = (item) => {
   }
 };
 
-/**
- * Get the scope and raw value of a variable by checking all scopes in priority order (highest to lowest)
- * @param {string} variableName - Name of the variable to find
- * @param {Object} collection - The collection object
- * @param {Object} item - The current item (request/folder)
- * @returns {Object|null} - Object with { type, value, data } or null if not found
- */
+// Get the scope and raw value of a variable by checking all scopes in priority order
 export const getVariableScope = (variableName, collection, item) => {
   if (!variableName || !collection) {
     return null;
   }
-
-  // Priority order: Request > Folder > Environment > Collection > Global > Runtime
-  // Note: Process.env variables are only accessible with explicit "process.env." prefix
-  // Note: Runtime variables and OAuth2 credentials are read-only (cannot be edited inline)
 
   // 1. Check Request Variables (highest priority)
   if (item && item.request && item.request.vars && item.request.vars.req) {
@@ -1547,8 +1537,6 @@ export const getVariableScope = (variableName, collection, item) => {
   // 5. Check Global Environment Variables
   const { globalEnvironmentVariables = {} } = collection;
   if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
-    // We need to find the actual variable object for secret detection
-    // Global environment variables come from a separate store, but we have the value
     return {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
@@ -1566,32 +1554,24 @@ export const getVariableScope = (variableName, collection, item) => {
     };
   }
 
-  // Note: Process.env variables are NOT checked here.
-  // They should only be accessible when explicitly prefixed with "process.env."
-  // This is handled in brunoVarInfo.js by checking if variableName.startsWith('process.env.')
+  // Process.env variables are not checked here
 
   return null;
 };
 
-/**
- * Check if a variable is marked as secret
- * @param {Object} scopeInfo - The scope info returned by getVariableScope
- * @returns {boolean} - True if the variable is secret
- */
+// Check if a variable is marked as secret
 export const isVariableSecret = (scopeInfo) => {
   if (!scopeInfo) {
     return false;
   }
 
-  // Only environment and global environment variables can be marked as secret
+  // Only environment variables can be marked as secret
   if (scopeInfo.type === 'environment') {
     return !!scopeInfo.data.variable?.secret;
   }
 
-  // For global variables, we need to check in the global environments
-  // This will be handled by the component that has access to globalEnvironments
+  // Global variables are not checked here
   if (scopeInfo.type === 'global') {
-    // The caller needs to check this separately as we don't have access to globalEnvironments here
     return false;
   }
 

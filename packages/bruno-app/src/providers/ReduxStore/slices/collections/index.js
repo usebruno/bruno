@@ -3193,7 +3193,6 @@ export const collectionsSlice = createSlice({
     deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam,
     /* End Response Example Actions */
 
-    /* Variable Update Actions - Start */
     updateRequestVarValue: (state, action) => {
       const { collectionUid, itemUid, variableName, value } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -3227,7 +3226,6 @@ export const collectionsSlice = createSlice({
       const updatedVars = updateOrCreateVariable(vars, variableName, value);
       set(collection, 'root.request.vars.req', updatedVars);
     }
-    /* Variable Update Actions - End */
   }
 });
 
@@ -3403,11 +3401,9 @@ export const {
   setResponseExampleParams,
   /* Response Example Actions - End */
 
-  /* Variable Update Actions - Start */
   updateRequestVarValue,
   updateFolderVarValue,
   updateCollectionVarValue
-  /* Variable Update Actions - End */
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
