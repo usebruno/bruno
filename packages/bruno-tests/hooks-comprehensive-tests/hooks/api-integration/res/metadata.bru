@@ -1,0 +1,45 @@
+meta {
+  name: metadata
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    bru.setVar('res-time', res.getResponseTime());
+    bru.setVar('res-url', res.getUrl());
+    bru.setVar('res-size', res.getSize());
+  });
+}
+
+tests {
+  test("res.getResponseTime - returns response time", function() {
+    const time = bru.getVar('res-time');
+    expect(time).to.be.a('number');
+    expect(time).to.be.greaterThan(0);
+  });
+  
+  test("res.getUrl - returns request URL", function() {
+    const url = bru.getVar('res-url');
+    expect(url).to.include('/ping');
+  });
+  
+  test("res.getSize - returns size object", function() {
+    const size = bru.getVar('res-size');
+    expect(size).to.have.property('header');
+    expect(size).to.have.property('body');
+    expect(size).to.have.property('total');
+  });
+  
+  test("res.getSize - total equals header + body", function() {
+    const size = bru.getVar('res-size');
+    expect(size.total).to.equal(size.header + size.body);
+  });
+}
+

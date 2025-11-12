@@ -1,0 +1,30 @@
+meta {
+  name: async-collection-run-start
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("async onBeforeCollectionRun hook should have executed", function() {
+    const started = bru.getVar('async-collection-run-started');
+    expect(started).to.equal('true');
+  });
+  
+  test("collection run should wait for async setup", function() {
+    // If we get here, the collection run waited for the async hook
+    const setupComplete = bru.getEnvVar('async-setup-complete');
+    expect(setupComplete).to.equal('true');
+  });
+  
+  test("request should execute after async setup", function() {
+    // Verify request executed after async hook completed
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
