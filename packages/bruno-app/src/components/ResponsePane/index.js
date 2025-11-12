@@ -21,6 +21,8 @@ import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 import ResponseBookmark from 'src/components/ResponsePane/ResponseBookmark';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
+import StopWatch from 'components/StopWatch';
+import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import ResponseLayoutToggle from './ResponseLayoutToggle';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 
@@ -87,15 +89,17 @@ const ResponsePane = ({ item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item}  />;
+        return <Timeline collection={collection} item={item} />;
       }
       case 'tests': {
-        return <TestResults
-          results={item.testResults}
-          assertionResults={item.assertionResults}
-          preRequestTestResults={item.preRequestTestResults}
-          postResponseTestResults={item.postResponseTestResults}
-        />;
+        return (
+          <TestResults
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
+        );
       }
 
       default: {
@@ -184,7 +188,10 @@ const ResponsePane = ({ item, collection }) => {
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />
                 <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
-                <StatusCode status={response.status} />
+                <StatusCode status={response.status} isStreaming={item.response?.hasStreamRunning} />
+                {item.response?.hasStreamRunning ? (
+                    <ResponseStopWatch startMillis={response.duration} />
+                ) : <ResponseTime duration={response.duration} />}
                 <ResponseTime duration={response.duration} />
                 <ResponseSize size={responseSize} />
               </>
@@ -193,7 +200,7 @@ const ResponsePane = ({ item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col min-h-0 relative px-4 auto overflow-auto`}
+        className="flex flex-col min-h-0 relative px-4 auto overflow-auto"
         style={{
           flex: '1 1 0',
           height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'
@@ -206,9 +213,9 @@ const ResponsePane = ({ item, collection }) => {
             onClose={() => setShowScriptErrorCard(false)}
           />
         )}
-        <div className='flex-1 overflow-y-auto'>
+        <div className="flex-1 overflow-y-auto">
           {!item?.response ? (
-            focusedTab?.responsePaneTab === "timeline" && requestTimeline?.length ? (
+            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline
                 collection={collection}
                 item={item}
