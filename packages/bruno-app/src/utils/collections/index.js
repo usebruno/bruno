@@ -1472,3 +1472,118 @@ export const getInitialExampleName = (item) => {
     counter++;
   }
 };
+
+/**
+ * Get the scope and raw value of a variable by checking all scopes in priority order (highest to lowest)
+ * @param {string} variableName - Name of the variable to find
+ * @param {Object} collection - The collection object
+ * @param {Object} item - The current item (request/folder)
+ * @returns {Object|null} - Object with { type, value, data } or null if not found
+ */
+export const getVariableScope = (variableName, collection, item) => {
+  if (!variableName || !collection) {
+    return null;
+  }
+
+  // Priority order: Request > Folder > Environment > Collection > Global
+  // Note: Process.env variables are only accessible with explicit "process.env." prefix
+  // Note: Runtime variables and OAuth2 credentials are not editable, so we skip them
+
+  // 1. Check Request Variables (highest priority)
+  if (item && item.request && item.request.vars && item.request.vars.req) {
+    const requestVar = item.request.vars.req.find((v) => v.name === variableName && v.enabled);
+    if (requestVar) {
+      return {
+        type: 'request',
+        value: requestVar.value,
+        data: { item, variable: requestVar }
+      };
+    }
+  }
+
+  // 2. Check Folder Variables
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  for (let i = requestTreePath.length - 1; i >= 0; i--) {
+    const pathItem = requestTreePath[i];
+    if (pathItem.type === 'folder') {
+      const folderVars = get(pathItem, 'root.request.vars.req', []);
+      const folderVar = folderVars.find((v) => v.name === variableName && v.enabled);
+      if (folderVar) {
+        return {
+          type: 'folder',
+          value: folderVar.value,
+          data: { folder: pathItem, variable: folderVar }
+        };
+      }
+    }
+  }
+
+  // 3. Check Environment Variables
+  if (collection.activeEnvironmentUid) {
+    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    if (environment && environment.variables) {
+      const envVar = environment.variables.find((v) => v.name === variableName && v.enabled);
+      if (envVar) {
+        return {
+          type: 'environment',
+          value: envVar.value,
+          data: { environment, variable: envVar }
+        };
+      }
+    }
+  }
+
+  // 4. Check Collection Variables
+  const collectionVars = get(collection, 'root.request.vars.req', []);
+  const collectionVar = collectionVars.find((v) => v.name === variableName && v.enabled);
+  if (collectionVar) {
+    return {
+      type: 'collection',
+      value: collectionVar.value,
+      data: { collection, variable: collectionVar }
+    };
+  }
+
+  // 5. Check Global Environment Variables
+  const { globalEnvironmentVariables = {} } = collection;
+  if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
+    // We need to find the actual variable object for secret detection
+    // Global environment variables come from a separate store, but we have the value
+    return {
+      type: 'global',
+      value: globalEnvironmentVariables[variableName],
+      data: { variableName, value: globalEnvironmentVariables[variableName] }
+    };
+  }
+
+  // Note: Process.env variables are NOT checked here.
+  // They should only be accessible when explicitly prefixed with "process.env."
+  // This is handled in brunoVarInfo.js by checking if variableName.startsWith('process.env.')
+
+  return null;
+};
+
+/**
+ * Check if a variable is marked as secret
+ * @param {Object} scopeInfo - The scope info returned by getVariableScope
+ * @returns {boolean} - True if the variable is secret
+ */
+export const isVariableSecret = (scopeInfo) => {
+  if (!scopeInfo) {
+    return false;
+  }
+
+  // Only environment and global environment variables can be marked as secret
+  if (scopeInfo.type === 'environment') {
+    return !!scopeInfo.data.variable?.secret;
+  }
+
+  // For global variables, we need to check in the global environments
+  // This will be handled by the component that has access to globalEnvironments
+  if (scopeInfo.type === 'global') {
+    // The caller needs to check this separately as we don't have access to globalEnvironments here
+    return false;
+  }
+
+  return false;
+};

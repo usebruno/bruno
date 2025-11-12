@@ -162,6 +162,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       isSecret={variable.secret}
                       readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                      enableBrunoVarInfo={false}
                     />
                   </div>
                   {typeof variable.value !== 'string' && (

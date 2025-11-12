@@ -42,7 +42,7 @@ const {
   generateUniqueName
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
-const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
+const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON, uuid } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
@@ -281,6 +281,82 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         const content = await stringifyRequestViaWorker(request);
         await writeFile(pathname, content);
       }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Helper: Parse file content based on scope type
+  const parseFileByType = async (fileContent, scopeType) => {
+    switch (scopeType) {
+      case 'request':
+        return await parseRequestViaWorker(fileContent);
+      case 'folder':
+        return parseFolder(fileContent);
+      case 'collection':
+        return parseCollection(fileContent);
+      default:
+        throw new Error(`Invalid scope type: ${scopeType}`);
+    }
+  };
+
+  // Helper: Stringify data based on scope type
+  const stringifyByType = async (data, scopeType) => {
+    switch (scopeType) {
+      case 'request':
+        return await stringifyRequestViaWorker(data);
+      case 'folder':
+        return stringifyFolder(data);
+      case 'collection':
+        return stringifyCollection(data);
+      default:
+        throw new Error(`Invalid scope type: ${scopeType}`);
+    }
+  };
+
+  // Helper: Update or create variable in array
+  const updateOrCreateVariable = (variables, variableName, newValue) => {
+    const existingVar = variables.find((v) => v.name === variableName);
+
+    if (existingVar) {
+      // Update existing variable
+      return variables.map((v) => (v.name === variableName ? { ...v, value: newValue } : v));
+    }
+
+    // Create new variable
+    return [
+      ...variables,
+      {
+        uid: uuid(),
+        name: variableName,
+        value: newValue,
+        type: 'text',
+        enabled: true
+      }
+    ];
+  };
+
+  // update variable in request/folder/collection file
+  ipcMain.handle('renderer:update-variable-in-file', async (event, pathname, variableName, newValue, scopeType) => {
+    try {
+      if (!fs.existsSync(pathname)) {
+        throw new Error(`path: ${pathname} does not exist`);
+      }
+
+      // Read and parse the file
+      const fileContent = fs.readFileSync(pathname, 'utf8');
+      const parsedData = await parseFileByType(fileContent, scopeType);
+
+      // Update the specific variable or create it if it doesn't exist
+      const varsPath = scopeType === 'request' ? 'request.vars.req' : 'root.request.vars.req';
+      const variables = _.get(parsedData, varsPath, []);
+      const updatedVariables = updateOrCreateVariable(variables, variableName, newValue);
+
+      _.set(parsedData, varsPath, updatedVariables);
+
+      // Stringify and write back
+      const content = await stringifyByType(parsedData, scopeType);
+      await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
     }
