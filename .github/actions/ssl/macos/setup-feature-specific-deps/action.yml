@@ -1,0 +1,9 @@
+name: 'Setup Custom CA Certs Feature Dependencies - macOS'
+description: 'Setup feature-specific dependencies for custom CA certs tests on macOS'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install additional OS dependencies for custom CA certs
+      shell: bash
+      run: |
+        brew install libxml2

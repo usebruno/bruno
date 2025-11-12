@@ -1,6 +1,5 @@
 import * as FileSaver from 'file-saver';
-import brunoConverters from '@usebruno/converters';
-const { brunoToPostman } = brunoConverters;
+import { brunoToPostman } from '@usebruno/converters';
 
 export const exportCollection = (collection) => {
 

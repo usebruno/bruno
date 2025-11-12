@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
 
 const Font = ({ close }) => {
   const dispatch = useDispatch();
@@ -31,7 +32,10 @@ const Font = ({ close }) => {
         }
       })
     ).then(() => {
+      toast.success('Preferences saved successfully')
       close();
+    }).catch(() => {
+      toast.error('Failed to save preferences')
     });
   };
 

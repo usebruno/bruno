@@ -1,19 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StyledWrapper from './StyledWrapper';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
-  const requestScript = get(collection, 'root.request.script.req', '');
-  const responseScript = get(collection, 'root.request.script.res', '');
+  const [activeTab, setActiveTab] = useState('pre-request');
+  const preRequestEditorRef = useRef(null);
+  const postResponseEditorRef = useRef(null);
+  const requestScript = collection.draft?.root ? get(collection, 'draft.root.request.script.req', '') : get(collection, 'root.request.script.req', '');
+  const responseScript = collection.draft?.root ? get(collection, 'draft.root.request.script.res', '') : get(collection, 'root.request.script.res', '');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  // Refresh CodeMirror when tab becomes visible
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (activeTab === 'pre-request' && preRequestEditorRef.current?.editor) {
+        preRequestEditorRef.current.editor.refresh();
+      } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
+        postResponseEditorRef.current.editor.refresh();
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [activeTab]);
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -34,40 +51,51 @@ const Script = ({ collection }) => {
   };
 
   const handleSave = () => {
-    dispatch(saveCollectionRoot(collection.uid));
+    dispatch(saveCollectionSettings(collection.uid));
   };
 
   return (
-    <StyledWrapper className="w-full flex flex-col h-full">
+    <StyledWrapper className="w-full flex flex-col h-full pt-4">
       <div className="text-xs mb-4 text-muted">
         Write pre and post-request scripts that will run before and after any request in this collection is sent.
       </div>
-      <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
-        <CodeEditor
-          collection={collection}
-          value={requestScript || ''}
-          theme={displayedTheme}
-          onEdit={onRequestScriptEdit}
-          mode="javascript"
-          onSave={handleSave}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-        />
-      </div>
-      <div className="flex-1 mt-6">
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <CodeEditor
-          collection={collection}
-          value={responseScript || ''}
-          theme={displayedTheme}
-          onEdit={onResponseScriptEdit}
-          mode="javascript"
-          onSave={handleSave}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-        />
-      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="pre-request">Pre Request</TabsTrigger>
+          <TabsTrigger value="post-response">Post Response</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pre-request" className="mt-2">
+          <CodeEditor
+            ref={preRequestEditorRef}
+            collection={collection}
+            value={requestScript || ''}
+            theme={displayedTheme}
+            onEdit={onRequestScriptEdit}
+            mode="javascript"
+            onSave={handleSave}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            showHintsFor={['req', 'bru']}
+          />
+        </TabsContent>
+
+        <TabsContent value="post-response" className="mt-2">
+          <CodeEditor
+            ref={postResponseEditorRef}
+            collection={collection}
+            value={responseScript || ''}
+            theme={displayedTheme}
+            onEdit={onResponseScriptEdit}
+            mode="javascript"
+            onSave={handleSave}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            showHintsFor={['req', 'res', 'bru']}
+          />
+        </TabsContent>
+      </Tabs>
 
       <div className="mt-12">
         <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>

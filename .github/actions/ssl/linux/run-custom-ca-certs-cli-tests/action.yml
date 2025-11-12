@@ -1,0 +1,33 @@
+name: 'Run Custom CA Certs CLI Tests - Linux'
+description: 'Run custom CA certs CLI tests on Linux'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run CLI tests
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        # navigate to CA certificates test collection directory
+        cd tests/ssl/custom-ca-certs/collection
+
+        echo "custom valid ca cert"
+        # should pass
+        node ../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit1.xml --cacert ../server/certs/ca-cert.pem --ignore-truststore --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0"])' junit1.xml | grep -q "^1$" || exit 1
+
+        echo "custom valid ca cert with defaults"
+        # should pass
+        node ../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit2.xml --cacert ../server/certs/ca-cert.pem --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0"])' junit2.xml | grep -q "^1$" || exit 1
+
+        echo "custom invalid ca cert"
+        echo "request will error"
+        # should fail
+        node ../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit3.xml --cacert ../server/certs/ca-key.pem --ignore-truststore --format junit 2>/dev/null || true
+        xmllint --xpath 'count(//testsuite[@errors="1"])' junit3.xml | grep -q "^1$" || exit 1
+
+        echo "custom invalid ca cert with defaults"
+        # should pass
+        node ../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit4.xml --cacert ../server/certs/ca-key.pem --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0"])' junit4.xml | grep -q "^1$" || exit 1

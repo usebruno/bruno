@@ -8,7 +8,7 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { validateName, validateNameError } from 'utils/common/regex';
 
-const CreateEnvironment = ({ collection, onClose }) => {
+const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
@@ -37,6 +37,10 @@ const CreateEnvironment = ({ collection, onClose }) => {
         .then(() => {
           toast.success('Environment created in collection');
           onClose();
+          // Call the callback if provided
+          if (onEnvironmentCreated) {
+            onEnvironmentCreated();
+          }
         })
         .catch(() => toast.error('An error occurred while creating the environment'));
     }

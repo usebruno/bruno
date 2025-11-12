@@ -22,8 +22,11 @@ const Wrapper = styled.div`
       }
   }
 
-  .btn-add-header {
+  .btn-action {
     font-size: 0.8125rem;
+    &:hover span {
+      text-decoration: underline;
+    }
   }
 
   input[type='text'] {

@@ -1,6 +1,15 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  position: relative;
+  overflow-y: auto;
+  height: 100%;
+  flex: 1;
+
+  .timeline-container {
+    flex: 1;
+  }
+
   .timeline-event {
     padding: 8px 0 0 0;
     cursor: pointer;

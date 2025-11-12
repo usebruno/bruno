@@ -4,6 +4,7 @@ import StyledWrapper from './StyledWrapper';
 import GrantTypeSelector from './GrantTypeSelector/index';
 import OAuth2PasswordCredentials from './PasswordCredentials/index';
 import OAuth2AuthorizationCode from './AuthorizationCode/index';
+import OAuth2Implicit from './Implicit/index';
 import OAuth2ClientCredentials from './ClientCredentials/index';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -30,6 +31,9 @@ const GrantTypeComponentMap = ({ item, collection }) => {
       break;
     case 'authorization_code':
       return <OAuth2AuthorizationCode item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuth} collection={collection} />;
+      break;
+    case 'implicit':
+      return <OAuth2Implicit item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuth} collection={collection} />;
       break;
     case 'client_credentials':
       return <OAuth2ClientCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuth} collection={collection} />;

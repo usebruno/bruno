@@ -1,60 +1,44 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  margin-inline: -1rem;
-  margin-block: -1.5rem;
+  margin: -1.5rem -1rem;
+  height: 50vh;
+  display: flex;
+  flex-direction: column;
   background-color: ${(props) => props.theme.collection.environment.settings.bg};
 
-  .generate-code-sidebar {
-    background-color: ${(props) => props.theme.collection.environment.settings.sidebar.bg};
-    border-right: solid 1px ${(props) => props.theme.collection.environment.settings.sidebar.borderRight};
-    max-height: 80vh;
+  .code-generator {
+    display: flex;
+    flex-direction: column;
     height: 100%;
-    overflow-y: auto;
   }
 
-  .generate-code-item {
-    min-width: 150px;
-    display: block;
+  .editor-container {
+    flex: 1;
+    overflow: hidden;
     position: relative;
-    cursor: pointer;
-    padding: 8px 10px;
-    border-left: solid 2px transparent;
-    text-decoration: none;
+    background: ${props => props.theme.bg};
+  }
 
-    &:hover {
-      text-decoration: none;
-      background-color: ${(props) => props.theme.collection.environment.settings.item.hoverBg};
+  .error-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: ${props => props.theme.colors.text.muted};
+    text-align: center;
+    padding: 20px;
+
+    h1 {
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: ${props => props.theme.text};
     }
-  }
 
-  .active {
-    background-color: ${(props) => props.theme.collection.environment.settings.item.active.bg} !important;
-    border-left: solid 2px ${(props) => props.theme.collection.environment.settings.item.border};
-    &:hover {
-      background-color: ${(props) => props.theme.collection.environment.settings.item.active.hoverBg} !important;
-    }
-  }
-
-  .flexible-container {
-    width: 100%;
-  }
-
-  @media (max-width: 600px) {
-    .flexible-container {
-      width: 500px;
-    }
-  }
-
-  @media (min-width: 601px) and (max-width: 1200px) {
-    .flexible-container {
-      width: 800px;
-    }
-  }
-
-  @media (min-width: 1201px) {
-    .flexible-container {
-      width: 900px;
+    p {
+      font-size: 12px;
+      opacity: 0.8;
     }
   }
 `;

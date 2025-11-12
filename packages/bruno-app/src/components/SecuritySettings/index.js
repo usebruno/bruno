@@ -47,7 +47,6 @@ const SecuritySettings = ({ collection }) => {
             <span className={jsSandboxMode === 'safe' ? 'font-medium' : 'font-normal'}>
               Safe Mode
             </span>
-            <span className='beta-tag'>BETA</span>
           </label>
           <p className='text-sm text-muted mt-1'>
             JavaScript code is executed in a secure sandbox and cannot access your filesystem or execute system commands.
@@ -65,7 +64,7 @@ const SecuritySettings = ({ collection }) => {
             />
             <span className={jsSandboxMode === 'developer' ? 'font-medium' : 'font-normal'}>
               Developer Mode
-              <span className='ml-1 developer-mode-warning'>(use only if you trust the collections authors)</span>
+              <span className='ml-1 developer-mode-warning'>(use only if you trust the authors of the collection)</span>
             </span>
           </label>
           <p className='text-sm text-muted mt-1'>
@@ -75,9 +74,6 @@ const SecuritySettings = ({ collection }) => {
         <button onClick={handleSave} className="submit btn btn-sm btn-secondary w-fit mt-6">
           Save
         </button>
-        <small className='text-muted mt-6'>
-          * SAFE mode has been introduced v1.26 onwards and is in beta. Please report any issues on github.
-        </small>
       </div>
     </StyledWrapper>
   );

@@ -62,7 +62,7 @@ describe('curlToJson', () => {
 
   it('should accept escaped curl string', () => {
     const curlCommand = `curl https://www.usebruno.com
-    -H $'cookie: val_1=\'\'; val_2=\\^373:0\\^373:0; val_3=\u0068\u0065\u006C\u006C\u006F'
+    -H $'cookie: val_1=\\'\\'; val_2=\\^373:0\\^373:0; val_3=\u0068\u0065\u006C\u006C\u006F'
     `;
     const result = curlToJson(curlCommand);
 

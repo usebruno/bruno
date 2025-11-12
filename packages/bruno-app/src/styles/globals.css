@@ -131,6 +131,10 @@
   --px-12: 2px !important;
 }
 
+.CodeMirror-hints {
+  z-index: 20 !important;
+}
+
 .graphiql-container {
   background: transparent !important;
 }

@@ -58,6 +58,44 @@ If you need to limit the trusted CA to a specified set when validating the reque
 bru run request.bru --cacert myCustomCA.pem --ignore-truststore
 ```
 
+## Importing Collections
+
+You can import collections from other formats, such as OpenAPI, using the import command:
+
+```bash
+bru import openapi --source api.yml --output ~/Desktop/my-collection --collection-name "My API"
+```
+
+You can also use the shorter form with aliases:
+
+```bash
+bru import openapi -s api.yml -o ~/Desktop/my-collection -n "My API"
+```
+
+This creates a Bruno collection directory that can be opened in Bruno.
+
+You can also import directly from a URL:
+
+```bash
+bru import openapi --source https://example.com/api-spec.json --output ~/Desktop --collection-name "Remote API"
+```
+
+You can also export the collection as a JSON file:
+
+```bash
+bru import openapi --source api.yml --output-file ~/Desktop/my-collection.json --collection-name "My API"
+```
+
+Import Options:
+
+| Option                    | Details                                            |
+| ------------------------- | -------------------------------------------------- |
+| --source, -s              | Path to the source file or URL (required)          |
+| --output, -o              | Path to the output directory                       |
+| --output-file, -f         | Path to the output JSON file                       |
+| --collection-name, -n     | Name for the imported collection                   |
+| --insecure                | Skip SSL certificate validation when fetching from URLs |
+
 ## Command Line Options
 
 | Option                       | Details                                                                       |

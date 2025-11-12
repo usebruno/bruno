@@ -193,6 +193,25 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
 
 `;
         break;
+      case 'implicit':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: implicit`)}
+${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
+${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`state: ${auth?.oauth2?.state || ''}`)}
+${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
+  auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
+}${
+  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
+}
+
+`;
+        break;
       case 'client_credentials':
         bru += `auth:oauth2 {
 ${indentString(`grant_type: client_credentials`)}
@@ -214,6 +233,114 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
 
 `;
         break;
+    }
+
+    if (auth?.oauth2?.additionalParameters) {
+      const { authorization: authorizationParams, token: tokenParams, refresh: refreshParams } = auth?.oauth2?.additionalParameters;
+      const authorizationHeaders = authorizationParams?.filter(p => p?.sendIn == 'headers');
+      if (authorizationHeaders?.length) {
+        bru += `auth:oauth2:additional_params:auth_req:headers {
+${indentString(
+  authorizationHeaders
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const authorizationQueryParams = authorizationParams?.filter(p => p?.sendIn == 'queryparams');
+      if (authorizationQueryParams?.length) {
+        bru += `auth:oauth2:additional_params:auth_req:queryparams {
+${indentString(
+  authorizationQueryParams
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const tokenHeaders = tokenParams?.filter(p => p?.sendIn == 'headers');
+      if (tokenHeaders?.length) {
+        bru += `auth:oauth2:additional_params:access_token_req:headers {
+${indentString(
+  tokenHeaders
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const tokenQueryParams = tokenParams?.filter(p => p?.sendIn == 'queryparams');
+      if (tokenQueryParams?.length) {
+        bru += `auth:oauth2:additional_params:access_token_req:queryparams {
+${indentString(
+  tokenQueryParams
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const tokenBodyValues = tokenParams?.filter(p => p?.sendIn == 'body');
+      if (tokenBodyValues?.length) {
+        bru += `auth:oauth2:additional_params:access_token_req:body {
+${indentString(
+  tokenBodyValues
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const refreshHeaders = refreshParams?.filter(p => p?.sendIn == 'headers');
+      if (refreshHeaders?.length) {
+        bru += `auth:oauth2:additional_params:refresh_token_req:headers {
+${indentString(
+  refreshHeaders
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const refreshQueryParams = refreshParams?.filter(p => p?.sendIn == 'queryparams');
+      if (refreshQueryParams?.length) {
+        bru += `auth:oauth2:additional_params:refresh_token_req:queryparams {
+${indentString(
+  refreshQueryParams
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const refreshBodyValues = refreshParams?.filter(p => p?.sendIn == 'body');
+      if (refreshBodyValues?.length) {
+        bru += `auth:oauth2:additional_params:refresh_token_req:body {
+${indentString(
+  refreshBodyValues
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
     }
   }
 

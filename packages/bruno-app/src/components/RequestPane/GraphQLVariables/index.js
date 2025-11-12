@@ -64,9 +64,11 @@ const GraphQLVariables = ({ variables, item, collection }) => {
         font={get(preferences, 'font.codeFont', 'default')}
         fontSize={get(preferences, 'font.codeFontSize')}
         onEdit={onEdit}
-        mode="javascript"
+        mode="application/json"
         onRun={onRun}
         onSave={onSave}
+        enableVariableHighlighting={true}
+        showHintsFor={['variables']}
       />
     </>
   );

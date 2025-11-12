@@ -15,7 +15,7 @@ import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 
-const CloneCollectionItem = ({ collection, item, onClose }) => {
+const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
@@ -49,7 +49,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
         .test('not-reserved', `The file names "collection" and "folder" are reserved in bruno`, value => !['collection', 'folder'].includes(value))
     }),
     onSubmit: (values) => {
-      dispatch(cloneItem(values.name, values.filename, item.uid, collection.uid))
+      dispatch(cloneItem(values.name, values.filename, item.uid, collectionUid))
         .then(() => {
           toast.success('Request cloned!');
           onClose();
@@ -172,8 +172,6 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
                 ) : (
                   <div className='relative flex flex-row gap-1 items-center justify-between'>
                     <PathDisplay
-                      collection={collection}
-                      dirName={path.relative(collection?.pathname, path.dirname(item?.pathname))}
                       baseName={formik.values.filename}
                     />
                   </div>

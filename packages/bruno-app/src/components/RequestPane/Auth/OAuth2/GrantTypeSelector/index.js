@@ -105,6 +105,15 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onGrantTypeChange('implicit');
+            }}
+          >
+            Implicit
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onGrantTypeChange('client_credentials');
             }}
           >

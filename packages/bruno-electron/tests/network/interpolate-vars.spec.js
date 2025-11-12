@@ -54,6 +54,135 @@ describe('interpolate-vars: interpolateVars', () => {
       });
     });
 
+    describe('With path params', () => {
+      it('keeps the original url search params as is', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/:param/?search=hello world',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/foobar/?search=hello world');
+      });
+
+      it('keeps the original url search params as is even when url might not have protocl ', async () => {
+        const request = {
+          method: 'GET',
+          url: 'example.com/:param/?search=hello world',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/foobar/?search=hello world');
+      });
+
+      it('keeps the original url search params as is even when encoded', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/:param?search=hello%20world',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/foobar?search=hello%20world');
+      });
+
+      it('keeps the original url search params as is with edge cases', async () => {
+        const requestOne = {
+          method: 'GET',
+          url: 'https://example.com/:param?x=1#section',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const requestTwo = {
+          method: 'GET',
+          url: 'https://example.com/:param?x?y=2',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const resultOne = interpolateVars(requestOne, null, null, null);
+        expect(resultOne.url).toBe('https://example.com/foobar?x=1#section');
+
+        const resultTwo = interpolateVars(requestTwo, null, null, null);
+        expect(resultTwo.url).toBe('https://example.com/foobar?x?y=2');
+      });
+
+      it('keeps the original url even without search', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/:param',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/foobar');
+      });
+
+      it('updates the path with odata style params | smoke', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/Category(\':CategoryID\')/Item(:ItemId)/:xpath/Tags("tag test")',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'CategoryID',
+              value: 'foobar'
+            },
+            {
+              type: 'path',
+              name: 'ItemId',
+              value: 1
+            },
+            {
+              type: 'path',
+              name: 'xpath',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/Category(\'foobar\')/Item(1)/foobar/Tags(%22tag%20test%22)');
+      });
+    });
+
     describe('With process environment variables', () => {
       /*
        * It should NOT turn process env vars into literal segments.
@@ -64,6 +193,62 @@ describe('interpolate-vars: interpolateVars', () => {
 
         const result = interpolateVars(request, null, null, { TEST_VAR: 'test.com' });
         expect(result.url).toEqual('test.com');
+      });
+    });
+
+    describe('With gRPC requests and all variable types', () => {
+      it('Should interpolate collection variables, global environment variables, etc. in gRPC requests', async () => {
+        const request = {
+          method: '/random.Service/randomMethod',
+          url: '{{baseUrl}}/{{service}}/{{method}}',
+          mode: 'grpc',
+          body: {
+            json: '{"message": "{{message}}", "id": {{id}}}'
+          },
+          // Set variable properties on the request object
+          globalEnvironmentVariables: {},
+          collectionVariables: { service: 'greeter' },
+          folderVariables: { method: 'SayHello' },
+          requestVariables: { message: 'Hello World' },
+          oauth2CredentialVariables: {}
+        };
+
+        const result = interpolateVars(
+          request,
+          { baseUrl: 'grpc://localhost:50051' }, // envVars
+          { id: 123 }, // runtimeVariables
+          {} // processEnvVars
+        );
+
+        expect(result.url).toEqual('grpc://localhost:50051/greeter/SayHello');
+        expect(result.body.json).toEqual('{"message": "Hello World", "id": 123}');
+      });
+
+      it('Should handle gRPC requests with global environment variables', async () => {
+        const request = {
+          method: '/random.Service/randomMethod',
+          url: '{{globalBaseUrl}}/{{service}}',
+          mode: 'grpc',
+          body: {
+            json: '{"token": "{{globalToken}}"}'
+          },
+          // Set variable properties on the request object
+          globalEnvironmentVariables: { globalBaseUrl: 'grpcs://api.example.com', globalToken: 'abc123' },
+          collectionVariables: { service: 'auth' },
+          folderVariables: {},
+          requestVariables: {},
+          oauth2CredentialVariables: {}
+        };
+
+        const result = interpolateVars(
+          request,
+          {}, // envVars
+          {}, // runtimeVariables
+          {} // processEnvVars
+        );
+
+        expect(result.url).toEqual('grpcs://api.example.com/auth');
+        expect(result.body.json).toEqual('{"token": "abc123"}');
       });
     });
   });
@@ -98,6 +283,15 @@ describe('interpolate-vars: interpolateVars', () => {
         const result = interpolateVars(request, { 'should-not-get-interpolated': 'ERROR' }, null, null);
         expect(result.data).toEqual(gqlBody);
       });
+    });
+  });
+
+  describe('Handles content-type header set to false', () => {
+    it('Should result empty data', async () => {
+      const request = { method: 'POST', url: 'test', data: undefined, headers: { 'content-type': false } };
+
+      const result = interpolateVars(request, { 'test.url': 'test.com' }, null, null);
+      expect(result.data).toEqual(undefined);
     });
   });
 });

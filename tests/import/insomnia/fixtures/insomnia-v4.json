@@ -1,0 +1,113 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-01-01T12:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v10.3.1",
+  "resources": [
+    {
+      "_id": "req_fdedb34f7d5541d0aa7a917ce37ec067",
+      "parentId": "wrk_398c634c4fbc4774bcff39cbff44b31b",
+      "modified": 1689952276171,
+      "created": 1689951240510,
+      "url": "{{baseUrl}}/api/users",
+      "name": "Get Users",
+      "description": "Fetch all users from the API",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1689951414329,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_c920d219404144e8bc6b6bd36f442974",
+      "parentId": "fld_ab2a1533f2be48c194883bf07d693292",
+      "modified": 1689952281595,
+      "created": 1689951281897,
+      "url": "{{baseUrl}}/api/auth/login",
+      "name": "Login User",
+      "description": "User authentication endpoint",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"admin\",\n  \"password\": \"password123\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1689951404530.5625,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_ab2a1533f2be48c194883bf07d693292",
+      "parentId": "wrk_398c634c4fbc4774bcff39cbff44b31b",
+      "modified": 1743683080329,
+      "created": 1743683080329,
+      "name": "Authentication",
+      "description": "Authentication related endpoints",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1743683080329,
+      "_type": "request_group"
+    },
+    {
+      "_id": "wrk_398c634c4fbc4774bcff39cbff44b31b",
+      "parentId": null,
+      "modified": 1743678539806,
+      "created": 1743678539806,
+      "name": "Test API Collection v4",
+      "description": "Test collection for Insomnia v4 format",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_93781eb62f074459bb67692112b76da0",
+      "parentId": "wrk_398c634c4fbc4774bcff39cbff44b31b",
+      "modified": 1743681240772,
+      "created": 1689951235312,
+      "name": "Base Environment",
+      "data": {
+        "baseUrl": "https://api.example.com"
+      },
+      "dataPropertyOrder": null,
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1689951235312,
+      "_type": "environment"
+    },
+    {
+      "_id": "jar_09963a0322c24b698ecd2f866ae9a6ab",
+      "parentId": "wrk_398c634c4fbc4774bcff39cbff44b31b",
+      "modified": 1689951235313,
+      "created": 1689951235313,
+      "name": "Default Jar",
+      "cookies": [],
+      "_type": "cookie_jar"
+    }
+  ]
+}

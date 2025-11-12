@@ -1,0 +1,67 @@
+meta {
+  name: clear
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+  
+  await jar.setCookies('https://testbench-sanity.usebruno.com', [
+    {
+      key: 'test_cookie_1',
+      value: 'value1',
+      path: '/',
+      secure: true
+    },
+    {
+      key: 'test_cookie_2', 
+      value: 'value2',
+      path: '/',
+      secure: true
+    }
+  ]);
+  
+  console.log("Test cookies set up for clear test");
+}
+
+script:post-response {
+  const jar = bru.cookies.jar()
+  
+  const cookiesBeforeClear = await jar.getCookies('https://testbench-sanity.usebruno.com');
+  console.log(`Found ${cookiesBeforeClear.length} cookies before clearing`);
+  
+  test("cookies should exist before clearing", function() {
+    expect(cookiesBeforeClear).to.be.an('array');
+    expect(cookiesBeforeClear.length).to.be.greaterThan(0);
+  });
+  
+  await jar.clear();
+  console.log("Cookie jar cleared");
+}
+
+tests {
+  const jar = bru.cookies.jar()
+  
+  test("should have no cookies after clearing", async function() {
+    const cookiesAfterClear = await jar.getCookies('https://testbench-sanity.usebruno.com');
+    expect(cookiesAfterClear).to.be.an('array');
+    expect(cookiesAfterClear.length).to.equal(0);
+  });
+  
+  jar.clear(function(error) {
+    test("should successfully clear with callback", function() {
+      expect(error).to.be.null;
+    });
+  });
+}
+
+settings {
+  encodeUrl: true
+}

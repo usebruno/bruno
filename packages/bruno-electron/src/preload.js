@@ -11,8 +11,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
       ipcRenderer.removeListener(channel, subscription);
     };
   },
-  getFilePath (file) {
-    const path = webUtils.getPathForFile(file)
+  getFilePath(file) {
+    const path = webUtils.getPathForFile(file);
     return path;
   }
 });

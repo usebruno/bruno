@@ -1,0 +1,10 @@
+{
+    "collections": [
+      {
+        "path": "{{projectRoot}}/tests/request/collections/custom-search",
+        "securityConfig": {
+          "jsSandboxMode": "safe"
+        }
+      }
+    ]
+}

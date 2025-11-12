@@ -1,4 +1,6 @@
 import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -7,16 +9,20 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const BearerAuth = ({ item, collection }) => {
+const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const bearerToken = item.draft
-    ? get(item, 'draft.request.auth.bearer.token', '')
-    : get(item, 'request.auth.bearer.token', '');
+  // Use the request prop directly like OAuth2ClientCredentials does
+  const bearerToken = get(request, 'auth.bearer.token', '');
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(bearerToken);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  
+  const handleSave = () => {
+    save();
+  };
 
   const handleTokenChange = (token) => {
     dispatch(
@@ -34,7 +40,7 @@ const BearerAuth = ({ item, collection }) => {
   return (
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Token</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={bearerToken}
           theme={storedTheme}
@@ -45,6 +51,7 @@ const BearerAuth = ({ item, collection }) => {
           item={item}
           isSecret={true}
         />
+        {showWarning && <SensitiveFieldWarning fieldName="bearer-token" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );

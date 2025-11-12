@@ -38,6 +38,48 @@ const StyledWrapper = styled.div`
       outline: none !important;
     }
   }
+
+  .protocol-placeholder {
+    height: 100%;
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    overflow: hidden;
+  }
+
+  .protocol-https,
+  .protocol-grpcs {
+    position: absolute;
+    right: 8px;
+    top: 0;
+    bottom: 0;
+    transition: transform 0.3s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .protocol-https {
+    animation: slideUpDown 6s infinite;
+    transform: translateY(0);
+  }
+
+  .protocol-grpcs {
+    animation: slideUpDown 6s infinite 3s;
+    transform: translateY(100%);
+  }
+
+  @keyframes slideUpDown {
+    0%, 45% {
+      transform: translateY(0);
+    }
+    50%, 95% {
+      transform: translateY(100%);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
 `;
 
 export default StyledWrapper;
