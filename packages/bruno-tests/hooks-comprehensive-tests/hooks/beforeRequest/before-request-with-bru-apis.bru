@@ -1,0 +1,73 @@
+meta {
+  name: before-request-with-bru-apis
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    // Test: Can use getEnvVar
+    const host = bru.getEnvVar('host');
+    console.log('[beforeRequest] Host from env:', host);
+    
+    // Test: Can use setVar/getVar
+    bru.setVar('test-var', 'test-value');
+    const testVar = bru.getVar('test-var');
+    
+    // Test: Can use setEnvVar
+    bru.setEnvVar('hook-set-env-var', 'env-value-from-hook');
+    
+    // Test: Can use getCollectionVar
+    const collectionVar = bru.getCollectionVar('collection-var');
+    if (collectionVar) {
+      bru.setVar('got-collection-var', collectionVar);
+    }
+    
+    // Test: Can use interpolate
+    const interpolated = bru.interpolate('{{host}}/ping');
+    bru.setVar('interpolated-url', interpolated);
+    
+    // Test: Can use getEnvName
+    const envName = bru.getEnvName();
+    bru.setVar('env-name', envName);
+    
+    // Test: Can use getCollectionName
+    const collectionName = bru.getCollectionName();
+    bru.setVar('collection-name', collectionName);
+    
+    console.log('[beforeRequest] All bru APIs tested');
+  });
+}
+
+tests {
+  test("should have set and retrieved var in hook", function() {
+    const testVar = bru.getVar('test-var');
+    expect(testVar).to.equal('test-value');
+  });
+  
+  test("should have set env var in hook", function() {
+    const envVar = bru.getEnvVar('hook-set-env-var');
+    expect(envVar).to.equal('env-value-from-hook');
+  });
+  
+  test("should have interpolated URL", function() {
+    const interpolated = bru.getVar('interpolated-url');
+    expect(interpolated).to.include('/ping');
+  });
+  
+  test("should have captured env name", function() {
+    const envName = bru.getVar('env-name');
+    expect(envName).to.be.a('string');
+  });
+  
+  test("should have captured collection name", function() {
+    const collectionName = bru.getVar('collection-name');
+    expect(collectionName).to.be.a('string');
+  });
+}

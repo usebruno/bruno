@@ -1,0 +1,36 @@
+meta {
+  name: all-hooks-together
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  // beforeRequest hook
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Before request');
+    bru.setVar('hook-execution-order', 'beforeRequest');
+  });
+  
+  // afterResponse hook
+  bru.hooks.http.onAfterResponse(({ req, res }) => {
+    console.log('[afterResponse] After response');
+    const order = bru.getVar('hook-execution-order') || '';
+    bru.setVar('hook-execution-order', order + ',afterResponse');
+  });
+}
+
+tests {
+  test("request-level hooks should execute in correct order", function() {
+    const order = bru.getVar('hook-execution-order');
+    // Verify beforeRequest and afterResponse executed
+    expect(order).to.include('beforeRequest');
+    expect(order).to.include('afterResponse');
+  });
+}
+

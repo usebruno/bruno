@@ -1,0 +1,53 @@
+meta {
+  name: request-transform
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "users": [
+      {"id": 1, "name": "Alice"},
+      {"id": 2, "name": "Bob"}
+    ]
+  }
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    const body = req.getBody();
+    // Transform: add timestamp to each user
+    body.users = body.users.map(u => ({ ...u, timestamp: Date.now() }));
+    body.requestTime = new Date().toISOString();
+    req.setBody(body);
+  });
+  
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    const body = res.getBody();
+    // Transform: add summary
+    res.setBody({
+      data: body,
+      summary: { userCount: body.users.length }
+    });
+  });
+}
+
+tests {
+  test("Request body is transformed", function() {
+    const body = res.getBody();
+    expect(body.data.users[0]).to.have.property('timestamp');
+    expect(body.data).to.have.property('requestTime');
+  });
+  
+  test("Response body is enriched", function() {
+    const body = res.getBody();
+    expect(body.summary.userCount).to.equal(2);
+  });
+}
+

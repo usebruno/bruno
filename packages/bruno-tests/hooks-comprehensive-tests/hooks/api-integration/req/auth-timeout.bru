@@ -1,0 +1,47 @@
+meta {
+  name: auth-timeout
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    bru.setVar('auth-mode', req.getAuthMode());
+    bru.setVar('exec-mode', req.getExecutionMode());
+    
+    // Test timeout methods
+    bru.setVar('timeout-before', req.getTimeout());
+    req.setTimeout(10000);
+    bru.setVar('timeout-after', req.getTimeout());
+    
+    // Test max redirects
+    req.setMaxRedirects(5);
+  });
+}
+
+tests {
+  test("req.getAuthMode - returns auth mode", function() {
+    const mode = bru.getVar('auth-mode');
+    expect(mode).to.equal('none');
+  });
+  
+  test("req.getExecutionMode - returns execution mode", function() {
+    const mode = bru.getVar('exec-mode');
+    expect(['standalone', 'runner', 'cli', undefined]).to.include(mode);
+  });
+  
+  test("req.getTimeout/setTimeout - manages timeout", function() {
+    expect(bru.getVar('timeout-after')).to.equal(10000);
+  });
+  
+  test("request succeeds with configured options", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

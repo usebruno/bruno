@@ -6,6 +6,9 @@ const { sanitizeName } = require('./filesystem');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
+const { HooksRuntime } = require('@usebruno/js');
+const HookManager = require('@usebruno/js/src/hook-manager');
+const decomment = require('decomment');
 
 const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
@@ -369,6 +372,117 @@ const mergeAuth = (collection, request, requestTreePath) => {
   }
 };
 
+/**
+ * Extract hooks from collection, folders, and request for registration.
+ * Unlike mergeScripts, this returns separate hooks for each level to allow
+ * one-time registration at each level.
+ *
+ * @param {object} collection - Collection object
+ * @param {object} request - Request object (prepared request, may not have hooks)
+ * @param {array} requestTreePath - Path from collection to request
+ * @returns {object} Object containing hooks at each level
+ */
+const extractHooks = (collection, request, requestTreePath) => {
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
+
+  const folderHooks = [];
+  let requestHooks = '';
+
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderRoot = i?.draft || i?.root;
+      const hooks = get(folderRoot, 'request.script.hooks', '');
+      if (hooks && hooks.trim() !== '') {
+        folderHooks.push({
+          folderPathname: i.pathname, // Use pathname as unique identifier
+          hooks: hooks
+        });
+      }
+    } else if (i.type !== 'folder') {
+      // This is the request item - get hooks from it
+      const itemRoot = i?.draft || i?.root || i;
+      requestHooks = get(itemRoot, 'request.script.hooks', '') || '';
+    }
+  }
+
+  // Fallback: try to get from request object if not found in tree path
+  if (!requestHooks) {
+    requestHooks = get(request, 'script.hooks', '') || get(request, 'hooks', '') || '';
+  }
+
+  return {
+    collectionHooks,
+    folderHooks,
+    requestHooks
+  };
+};
+
+/**
+ * Hook event names used throughout the application.
+ * This object is frozen to prevent accidental modifications and improve maintainability.
+ */
+const HOOK_EVENTS = Object.freeze({
+  HTTP_BEFORE_REQUEST: 'http:beforeRequest',
+  HTTP_AFTER_RESPONSE: 'http:afterResponse',
+  RUNNER_BEFORE_COLLECTION_RUN: 'runner:beforeCollectionRun',
+  RUNNER_AFTER_COLLECTION_RUN: 'runner:afterCollectionRun'
+});
+
+/**
+ * Get or create HookManager for a specific level (collection, folder, or request)
+ * @param {Map} hookManagersMap - Map storing HookManagers by key
+ * @param {string} key - Unique identifier (collection:${pathname}, folder:${pathname}, or request uid/pathname)
+ * @param {string} hooksFile - Hooks file content for this level
+ * @param {object} options - Options for hook registration
+ * @param {object} options.request - Request object
+ * @param {object} options.envVars - Environment variables (or envVariables)
+ * @param {object} options.runtimeVariables - Runtime variables
+ * @param {string} options.collectionPath - Collection path
+ * @param {function} options.onConsoleLog - Console log callback
+ * @param {object} options.processEnvVars - Process environment variables
+ * @param {object} options.scriptingConfig - Scripting configuration
+ * @param {function} options.runRequestByItemPathname - Function to run requests
+ * @param {string} options.collectionName - Collection name
+ * @returns {Promise<HookManager>} HookManager instance for this level
+ */
+const getOrCreateHookManager = async (hookManagersMap, key, hooksFile, options = {}) => {
+  // Return existing HookManager if already created
+  if (hookManagersMap.has(key)) {
+    return hookManagersMap.get(key);
+  }
+
+  // Create new HookManager and register hooks
+  const hookManager = new HookManager();
+  hookManagersMap.set(key, hookManager);
+
+  if (hooksFile && hooksFile.trim()) {
+    const hooksRuntime = new HooksRuntime({ runtime: options.scriptingConfig?.runtime });
+    try {
+      await hooksRuntime.runHooks({
+        hooksFile: decomment(hooksFile),
+        hookManager,
+        request: options.request || {},
+        envVariables: options.envVars || options.envVariables || {},
+        runtimeVariables: options.runtimeVariables || {},
+        collectionPath: options.collectionPath,
+        onConsoleLog: options.onConsoleLog,
+        processEnvVars: options.processEnvVars || {},
+        scriptingConfig: options.scriptingConfig || {},
+        runRequestByItemPathname: options.runRequestByItemPathname,
+        collectionName: options.collectionName
+      });
+    } catch (error) {
+      console.error(`Error registering hooks for ${key}:`, error);
+      if (options.onConsoleLog) {
+        options.onConsoleLog('error', [`Error registering hooks for ${key}: ${error.message}`]);
+      }
+    }
+  }
+
+  return hookManager;
+};
+
 const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
   let requests = [];
 
@@ -598,5 +712,8 @@ module.exports = {
   mergeAuth,
   getAllRequestsInFolder,
   getAllRequestsAtFolderRoot,
-  getCallStack
+  getCallStack,
+  extractHooks,
+  HOOK_EVENTS,
+  getOrCreateHookManager
 };

@@ -86,10 +86,10 @@ const ResponsePane = ({ item, collection }) => {
   });
 
   useEffect(() => {
-    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
+    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage || item?.hookScriptErrorMessage) {
       setShowScriptErrorCard(true);
     }
-  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
+  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage, item?.hookScriptErrorMessage]);
 
   const selectTab = (tab) => {
     dispatch(
@@ -116,7 +116,7 @@ const ResponsePane = ({ item, collection }) => {
   }, [response.size, response.dataBuffer]);
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
 
-  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
+  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage || item?.hookScriptErrorMessage;
 
   const allTabs = useMemo(() => {
     return [

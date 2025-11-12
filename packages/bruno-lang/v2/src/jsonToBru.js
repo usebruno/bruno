@@ -719,6 +719,14 @@ ${indentString(script.res)}
 `;
   }
 
+  if (script && script.hooks && script.hooks.length) {
+    bru += `script:hooks {
+${indentString(script.hooks)}
+}
+
+`;
+  }
+
   if (tests && tests.length) {
     bru += `tests {
 ${indentString(tests)}

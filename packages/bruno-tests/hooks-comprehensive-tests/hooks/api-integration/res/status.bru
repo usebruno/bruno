@@ -1,0 +1,34 @@
+meta {
+  name: status
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    bru.setVar('res-status', res.getStatus());
+    bru.setVar('res-status-text', res.getStatusText());
+  });
+}
+
+tests {
+  test("res.getStatus - returns status code", function() {
+    expect(bru.getVar('res-status')).to.equal(200);
+  });
+  
+  test("res.getStatusText - returns status text", function() {
+    const statusText = bru.getVar('res-status-text');
+    expect(statusText).to.be.a('string');
+  });
+  
+  test("res.getStatus - accessible in tests", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

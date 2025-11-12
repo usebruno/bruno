@@ -1,0 +1,61 @@
+meta {
+  name: after-response-with-bru-apis
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onAfterResponse(({ req, res }) => {
+    // Test: Can use bru APIs based on response
+    const status = res.getStatus();
+    const body = res.getBody();
+    
+    // Test: Set vars based on response
+    if (status === 200) {
+      bru.setVar('request-successful', 'true');
+      bru.setVar('response-data', body);
+    }
+    
+    // Test: Can use setEnvVar
+    bru.setEnvVar('last-response-status', status.toString());
+    bru.setEnvVar('last-response-time', res.getResponseTime().toString());
+    
+    // Test: Can use interpolate
+    const interpolated = bru.interpolate('Status: {{last-response-status}}');
+    bru.setVar('interpolated-status', interpolated);
+    
+    // Test: Store response data for later use
+    bru.setVar('last-response-body', body);
+    bru.setVar('last-request-url', req.getUrl());
+    
+    console.log('[afterResponse] Stored response data using bru APIs');
+  });
+}
+
+tests {
+  test("should have set success flag based on response", function() {
+    const successful = bru.getVar('request-successful');
+    expect(successful).to.equal('true');
+  });
+  
+  test("should have stored response data", function() {
+    const responseData = bru.getVar('response-data');
+    expect(responseData).to.equal('pong');
+  });
+  
+  test("should have set env vars from response", function() {
+    const lastStatus = bru.getEnvVar('last-response-status');
+    expect(lastStatus).to.equal('200');
+  });
+  
+  test("should have stored last response body", function() {
+    const body = bru.getVar('last-response-body');
+    expect(body).to.equal('pong');
+  });
+}
