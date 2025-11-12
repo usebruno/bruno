@@ -42,7 +42,7 @@ const {
   generateUniqueName
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
-const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON, uuid } = require('../utils/common');
+const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
@@ -315,29 +315,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   };
 
   // Helper: Update or create variable in array
-  const updateOrCreateVariable = (variables, variableName, newValue) => {
-    const existingVar = variables.find((v) => v.name === variableName);
+  const updateOrCreateVariable = (variables, variable) => {
+    const existingVar = variables.find((v) => v.name === variable.name);
 
     if (existingVar) {
       // Update existing variable
-      return variables.map((v) => (v.name === variableName ? { ...v, value: newValue } : v));
+      return variables.map((v) => (v.name === variable.name ? variable : v));
     }
 
     // Create new variable
-    return [
-      ...variables,
-      {
-        uid: uuid(),
-        name: variableName,
-        value: newValue,
-        type: 'text',
-        enabled: true
-      }
-    ];
+    return [...variables, variable];
   };
 
   // update variable in request/folder/collection file
-  ipcMain.handle('renderer:update-variable-in-file', async (event, pathname, variableName, newValue, scopeType) => {
+  ipcMain.handle('renderer:update-variable-in-file', async (event, pathname, variable, scopeType) => {
     try {
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
@@ -348,9 +339,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parsedData = await parseFileByType(fileContent, scopeType);
 
       // Update the specific variable or create it if it doesn't exist
-      const varsPath = scopeType === 'request' ? 'request.vars.req' : 'root.request.vars.req';
+      const varsPath = 'request.vars.req';
       const variables = _.get(parsedData, varsPath, []);
-      const updatedVariables = updateOrCreateVariable(variables, variableName, newValue);
+      const updatedVariables = updateOrCreateVariable(variables, variable);
 
       _.set(parsedData, varsPath, updatedVariables);
 

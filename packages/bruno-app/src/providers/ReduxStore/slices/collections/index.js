@@ -25,25 +25,16 @@ import { getUniqueTagsFromItems } from 'utils/collections/index';
 import * as exampleReducers from './exampleReducers';
 
 // Helper: Update or create variable in variables array
-const updateOrCreateVariable = (vars, variableName, value) => {
-  const existingVar = vars.find((v) => v.name === variableName);
+const updateOrCreateVariable = (vars, variable) => {
+  const existingVar = vars.find((v) => v.name === variable.name);
 
   if (existingVar) {
-    // Update existing variable
-    return vars.map((v) => (v.name === variableName ? { ...v, value } : v));
+    // Update existing variable - use the passed variable object to preserve UID
+    return vars.map((v) => (v.name === variable.name ? variable : v));
   }
 
   // Create new variable
-  return [
-    ...vars,
-    {
-      uid: uuid(),
-      name: variableName,
-      value,
-      type: 'text',
-      enabled: true
-    }
-  ];
+  return [...vars, variable];
 };
 
 // gRPC status code meanings
@@ -3194,36 +3185,36 @@ export const collectionsSlice = createSlice({
     /* End Response Example Actions */
 
     updateRequestVarValue: (state, action) => {
-      const { collectionUid, itemUid, variableName, value } = action.payload;
+      const { collectionUid, itemUid, variable } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
       const item = findItemInCollection(collection, itemUid);
       if (item) {
         const vars = get(item, 'request.vars.req', []);
-        const updatedVars = updateOrCreateVariable(vars, variableName, value);
+        const updatedVars = updateOrCreateVariable(vars, variable);
         set(item, 'request.vars.req', updatedVars);
       }
     },
     updateFolderVarValue: (state, action) => {
-      const { collectionUid, folderUid, variableName, value } = action.payload;
+      const { collectionUid, folderUid, variable } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
       const folder = findItemInCollection(collection, folderUid);
       if (folder) {
         const vars = get(folder, 'root.request.vars.req', []);
-        const updatedVars = updateOrCreateVariable(vars, variableName, value);
+        const updatedVars = updateOrCreateVariable(vars, variable);
         set(folder, 'root.request.vars.req', updatedVars);
       }
     },
     updateCollectionVarValue: (state, action) => {
-      const { collectionUid, variableName, value } = action.payload;
+      const { collectionUid, variable } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
       const vars = get(collection, 'root.request.vars.req', []);
-      const updatedVars = updateOrCreateVariable(vars, variableName, value);
+      const updatedVars = updateOrCreateVariable(vars, variable);
       set(collection, 'root.request.vars.req', updatedVars);
     }
   }
