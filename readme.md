@@ -53,6 +53,7 @@ We strive to strike a harmonious balance between [open-source principles and sus
 You can explore our [paid versions](https://www.usebruno.com/pricing) to see if there are additional features that you or your team may find useful! <br/>
 
 ## Table of Contents
+
 - [Installation](#installation)
 - [Features](#features)
   - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
