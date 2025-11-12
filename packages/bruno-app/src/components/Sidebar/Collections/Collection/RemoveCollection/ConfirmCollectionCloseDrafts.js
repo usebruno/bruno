@@ -120,4 +120,3 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
 };
 
 export default ConfirmCollectionCloseDrafts;
-
