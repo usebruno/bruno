@@ -12,9 +12,9 @@ import StyledWrapper from './StyledWrapper';
 import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash, IconChevronDown, IconChevronUp } from '@tabler/icons';
 import ToolHint from 'components/ToolHint/index';
 import { toastError } from 'utils/common/error';
-import { format, applyEdits } from 'jsonc-parser';
 import toast from 'react-hot-toast'
 import { getAbsoluteFilePath } from 'utils/common/path';
+import { prettifyJsonString } from 'utils/common/index';
 
 const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCollapsed, onToggleCollapse, handleRun, canClientSendMultipleMessages }) => {
   const dispatch = useDispatch();
@@ -130,8 +130,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 
   const onPrettify = () => {
     try {
-      const edits = format(content, undefined, { tabSize: 2, insertSpaces: true });
-      const prettyBodyJson = applyEdits(content, edits);
+      const prettyBodyJson = prettifyJsonString(content);
 
       const currentMessages = [...(body.grpc || [])];
       currentMessages[index] = {
