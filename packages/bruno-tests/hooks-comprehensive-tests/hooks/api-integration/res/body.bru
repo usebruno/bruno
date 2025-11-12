@@ -1,0 +1,46 @@
+meta {
+  name: body
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "message": "original"
+  }
+}
+
+script:hooks {
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    const body = res.getBody();
+    bru.setVar('original-message', body.message);
+    
+    // Modify response body
+    res.setBody({
+      ...body,
+      message: 'modified-in-hook',
+      addedInHook: true
+    });
+  });
+}
+
+tests {
+  test("res.getBody - reads response body", function() {
+    expect(bru.getVar('original-message')).to.equal('original');
+  });
+  
+  test("res.setBody - modifies response", function() {
+    expect(res.getBody().message).to.equal('modified-in-hook');
+  });
+  
+  test("res.setBody - adds fields", function() {
+    expect(res.getBody().addedInHook).to.equal(true);
+  });
+}
+
