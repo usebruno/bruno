@@ -73,6 +73,10 @@ test.describe('Variable Tooltip', () => {
     });
 
     await test.step('Test secret variable with toggle', async () => {
+      // Move mouse away to dismiss any active tooltip
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(100);
+
       // Add header with secret
       await page.getByRole('tab', { name: 'Headers' }).click();
       await page.locator('button.btn-action').filter({ hasText: 'Add Header' }).click();
@@ -111,6 +115,246 @@ test.describe('Variable Tooltip', () => {
       const remaskedText = await valueDisplay.textContent();
       expect(remaskedText).not.toContain('secret-xyz');
       expect(remaskedText?.length).toBeGreaterThan(0);
+    });
+  });
+
+  test('should test tooltip with variable references', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-reference-test';
+
+    await test.step('Create collection with interdependent variables', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-ref-collection'), {
+        openWithSandboxMode: 'safe'
+      });
+      await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
+
+      // Open environment settings
+      await page.locator('[data-testid="environment-selector-trigger"]').click();
+      await expect(page.locator('[data-testid="env-tab-collection"]')).toHaveClass(/active/);
+
+      // Create environment
+      await page.locator('button[id="create-env"]').click();
+      await page.locator('input[name="name"]').fill('Ref Test Env');
+      await page.getByRole('button', { name: 'Create' }).click();
+
+      // Add base variable
+      await page.locator('button[data-testid="add-variable"]').click();
+      await page.locator('input[name="0.name"]').fill('baseUrl');
+      await page.locator('tr').filter({ has: page.locator('input[name="0.name"]') }).locator('.CodeMirror').click();
+      await page.keyboard.type('https://api.example.com');
+
+      // Add port variable
+      await page.locator('button[data-testid="add-variable"]').click();
+      await page.locator('input[name="1.name"]').fill('port');
+      await page.locator('tr').filter({ has: page.locator('input[name="1.name"]') }).locator('.CodeMirror').click();
+      await page.keyboard.type('8080');
+
+      // Add fullUrl that references baseUrl and port
+      await page.locator('button[data-testid="add-variable"]').click();
+      await page.locator('input[name="2.name"]').fill('fullUrl');
+      await page.locator('tr').filter({ has: page.locator('input[name="2.name"]') }).locator('.CodeMirror').click();
+      await page.keyboard.type('{{baseUrl}}:{{port}}');
+
+      // Add secret API key
+      await page.locator('button[data-testid="add-variable"]').click();
+      await page.locator('input[name="3.name"]').fill('apiSecret');
+      await page.locator('tr').filter({ has: page.locator('input[name="3.name"]') }).locator('.CodeMirror').click();
+      await page.keyboard.type('secret-key-456');
+      await page.locator('input[name="3.secret"]').check();
+
+      // Add authHeader that references secret
+      await page.locator('button[data-testid="add-variable"]').click();
+      await page.locator('input[name="4.name"]').fill('authHeader');
+      await page.locator('tr').filter({ has: page.locator('input[name="4.name"]') }).locator('.CodeMirror').click();
+      await page.keyboard.type('Bearer {{apiSecret}}');
+
+      // Save and close
+      await page.getByRole('button', { name: 'Save' }).click();
+      await page.getByText('×').click();
+    });
+
+    await test.step('Create request with variable references', async () => {
+      const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
+      await collectionContainer.locator('.collection-actions').hover();
+      await collectionContainer.locator('.collection-actions .icon').click();
+      await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
+
+      await page.getByPlaceholder('Request Name').fill('Ref Test Request');
+      await page.locator('#new-request-url .CodeMirror').click();
+      await page.locator('textarea').fill('{{fullUrl}}/api');
+      await page.getByRole('button', { name: 'Create' }).click();
+
+      await page.locator('.collection-item-name').filter({ hasText: 'Ref Test Request' }).click();
+    });
+
+    await test.step('Test variable referencing other variables', async () => {
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const fullUrlVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'fullUrl' }).first();
+
+      await fullUrlVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-name')).toContainText('fullUrl');
+
+      // Should show resolved value
+      await expect(tooltip.locator('.var-value-editable-display')).toContainText('https://api.example.com:8080');
+
+      // Should have copy button
+      await expect(tooltip.locator('.copy-button')).toBeVisible();
+    });
+
+    await test.step('Test non-secret variable referencing secret variable', async () => {
+      // Move mouse away to dismiss any active tooltip
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(100);
+
+      // Add header with authHeader
+      await page.getByRole('tab', { name: 'Headers' }).click();
+      await page.locator('button.btn-action').filter({ hasText: 'Add Header' }).click();
+
+      const headerNameEditor = page.locator('table tbody tr').first().locator('td').first().locator('.CodeMirror');
+      await headerNameEditor.click();
+      await page.keyboard.type('Authorization');
+
+      const headerValueEditor = page.locator('table tbody tr').first().locator('td').nth(1).locator('.CodeMirror');
+      await headerValueEditor.click();
+      await page.keyboard.type('{{authHeader}}');
+      await page.keyboard.press('Control+s');
+
+      // Test tooltip - should be masked because it references a secret
+      const authHeaderVar = headerValueEditor.locator('.cm-variable-valid').filter({ hasText: 'authHeader' }).first();
+      await authHeaderVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-name')).toContainText('authHeader');
+
+      // Should be masked because it references a secret
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      const maskedText = await valueDisplay.textContent();
+      expect(maskedText).not.toContain('Bearer');
+      expect(maskedText).not.toContain('secret-key-456');
+      expect(maskedText?.length).toBeGreaterThan(0);
+
+      // Test toggle to reveal
+      const toggleButton = tooltip.locator('.secret-toggle-button');
+      await expect(toggleButton).toBeVisible();
+      await toggleButton.click();
+      await expect(valueDisplay).toContainText('Bearer secret-key-456');
+
+      // Toggle back to mask
+      await toggleButton.click();
+      const remaskedText = await valueDisplay.textContent();
+      expect(remaskedText).not.toContain('Bearer');
+      expect(remaskedText).not.toContain('secret-key-456');
+    });
+
+    await test.step('Test editing variable with references', async () => {
+      // Move mouse away to dismiss any active tooltip
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(100);
+
+      // URL editor is always visible at the top
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const fullUrlVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'fullUrl' }).first();
+
+      await fullUrlVar.hover();
+      await page.waitForTimeout(100); // Wait for tooltip to appear
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      // Click on value to edit
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await valueDisplay.click();
+
+      // Should show editor with raw value (not resolved)
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+
+      // Verify it shows the raw value with variable references
+      const editorContent = await editor.locator('.CodeMirror-line').textContent();
+      expect(editorContent).toContain('{{baseUrl}}');
+      expect(editorContent).toContain('{{port}}');
+
+      // Edit the value
+      await page.keyboard.press('End');
+      await page.keyboard.type('/v1');
+
+      // Click outside to save
+      await page.locator('body').click();
+      await page.waitForTimeout(200); // Wait for save
+
+      // Hover again to verify the change
+      await fullUrlVar.hover();
+      await page.waitForTimeout(100);
+
+      const newTooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(newTooltip).toBeVisible();
+
+      // Should show updated resolved value
+      await expect(newTooltip.locator('.var-value-editable-display')).toContainText('https://api.example.com:8080/v1');
+    });
+  });
+
+  test('should handle runtime and process.env variables', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-readonly-test';
+
+    await test.step('Create collection and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-readonly-collection'), {
+        openWithSandboxMode: 'safe'
+      });
+      await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
+
+      // Create environment
+      await page.locator('[data-testid="environment-selector-trigger"]').click();
+      await page.locator('button[id="create-env"]').click();
+      await page.locator('input[name="name"]').fill('Readonly Env');
+      await page.getByRole('button', { name: 'Create' }).click();
+      await page.getByRole('button', { name: 'Save' }).click();
+      await page.getByText('×').click();
+
+      // Create request
+      const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
+      await collectionContainer.locator('.collection-actions').hover();
+      await collectionContainer.locator('.collection-actions .icon').click();
+      await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
+
+      await page.getByPlaceholder('Request Name').fill('Readonly Test');
+      await page.locator('#new-request-url .CodeMirror').click();
+      await page.locator('textarea').fill('https://example.com');
+      await page.getByRole('button', { name: 'Create' }).click();
+
+      await page.locator('.collection-item-name').filter({ hasText: 'Readonly Test' }).click();
+    });
+
+    await test.step('Test process.env variable tooltip', async () => {
+      // Move mouse away to dismiss any active tooltip
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(100);
+
+      // Add a process.env variable in URL (URL editor is always visible at the top)
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.press('End');
+      await page.keyboard.type('?env={{process.env.HOME}}');
+      await page.keyboard.press('Control+s');
+
+      // Hover over process.env variable
+      const processEnvVar = urlEditor.locator('.cm-variable-valid, .cm-variable-invalid').filter({ hasText: 'process.env.HOME' }).first();
+      await processEnvVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-name')).toContainText('process.env.HOME');
+      await expect(tooltip.locator('.var-scope-badge')).toContainText('Process Env');
+
+      // Should show read-only note
+      await expect(tooltip.locator('.var-readonly-note')).toContainText('read-only');
+
+      // Should have copy button but not be editable
+      await expect(tooltip.locator('.copy-button')).toBeVisible();
+      await expect(tooltip.locator('.var-value-editor')).not.toBeVisible();
     });
   });
 });
