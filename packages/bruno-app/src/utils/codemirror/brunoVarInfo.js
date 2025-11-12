@@ -121,13 +121,9 @@ const getCopyButton = (variableValue, onCopyCallback) => {
 
   copyButton.className = 'copy-button';
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
+  copyButton.type = 'button';
 
   let isCopied = false;
-
-  // Prevent mousedown from blurring the editor
-  copyButton.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-  });
 
   copyButton.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -335,11 +331,7 @@ export const renderVarInfo = (token, options) => {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
       toggleButton.innerHTML = EYE_ICON_SVG;
-
-      // Prevent mousedown from blurring the editor
-      toggleButton.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-      });
+      toggleButton.type = 'button';
 
       toggleButton.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -461,10 +453,7 @@ export const renderVarInfo = (token, options) => {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
       toggleButton.innerHTML = EYE_ICON_SVG;
-
-      toggleButton.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-      });
+      toggleButton.type = 'button';
 
       toggleButton.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -512,6 +501,9 @@ export const renderVarInfo = (token, options) => {
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
 
+  // Global state to track active popup
+  let activePopup = null;
+
   CodeMirror.defineOption('brunoVarInfo', false, function (cm, options, old) {
     if (old && old !== CodeMirror.Init) {
       const oldOnMouseOver = cm.state.brunoVarInfo.onMouseOver;
@@ -542,7 +534,8 @@ if (!SERVER_RENDERED) {
     const state = cm.state.brunoVarInfo;
     const target = e.target || e.srcElement;
 
-    if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
+    // Prevent new tooltips if one is already active
+    if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined || activePopup !== null) {
       return;
     }
     // Show popover for both valid and invalid variables
@@ -596,10 +589,19 @@ if (!SERVER_RENDERED) {
   }
 
   function showPopup(cm, box, brunoVarInfo) {
+    // If there's already an active popup, remove it first
+    if (activePopup && activePopup.parentNode) {
+      activePopup.parentNode.removeChild(activePopup);
+      activePopup = null;
+    }
+
     const popup = document.createElement('div');
     popup.className = 'CodeMirror-brunoVarInfo';
     popup.appendChild(brunoVarInfo);
     document.body.appendChild(popup);
+
+    // Track this popup as the active one
+    activePopup = popup;
 
     const popupBox = popup.getBoundingClientRect();
     const popupStyle = popup.currentStyle || window.getComputedStyle(popup);
@@ -674,6 +676,11 @@ if (!SERVER_RENDERED) {
           valueContainer._cmEditor.getWrapperElement().remove();
           valueContainer._cmEditor = null;
         }
+      }
+
+      // Clear the active popup reference
+      if (activePopup === popup) {
+        activePopup = null;
       }
 
       if (popup.style.opacity) {
