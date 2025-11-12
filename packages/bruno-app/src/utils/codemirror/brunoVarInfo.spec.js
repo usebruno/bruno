@@ -138,6 +138,24 @@ describe('extractVariableInfo', () => {
         variableValue: undefined
       });
     });
+
+    it('should return undefined for empty double brace variables', () => {
+      const result = extractVariableInfo('{{}}', mockVariables);
+
+      expect(result).toEqual({
+        variableName: undefined,
+        variableValue: undefined
+      });
+    });
+
+    it('should return undefined for whitespace-only double brace variables', () => {
+      const result = extractVariableInfo('{{   }}', mockVariables);
+
+      expect(result).toEqual({
+        variableName: undefined,
+        variableValue: undefined
+      });
+    });
   });
 
   describe('path parameter format (/:variableName)', () => {
@@ -178,6 +196,24 @@ describe('extractVariableInfo', () => {
 
       expect(result).toEqual({
         variableName: 'id',
+        variableValue: undefined
+      });
+    });
+
+    it('should return undefined for empty path parameters', () => {
+      const result = extractVariableInfo('/:', mockVariables);
+
+      expect(result).toEqual({
+        variableName: undefined,
+        variableValue: undefined
+      });
+    });
+
+    it('should return undefined for whitespace-only path parameters', () => {
+      const result = extractVariableInfo('/:   ', mockVariables);
+
+      expect(result).toEqual({
+        variableName: undefined,
         variableValue: undefined
       });
     });

@@ -1676,10 +1676,15 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
     try {
       const { type, data } = scopeInfo;
 
-      // Handle read-only process.env early
+      // Handle read-only variables early
       if (type === 'process.env') {
         toast.error('Process environment variables cannot be edited');
         return reject(new Error('Process environment variables are read-only'));
+      }
+
+      if (type === 'runtime') {
+        toast.error('Runtime variables are set by scripts and cannot be edited');
+        return reject(new Error('Runtime variables are read-only'));
       }
 
       // Validate collection for non-global scopes
