@@ -17,11 +17,13 @@ import {
   isItemAFolder,
   refreshUidsInItem,
   isItemARequest,
-  transformRequestToSaveToFilesystem
+  transformRequestToSaveToFilesystem,
+  transformCollectionRootToSave
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
+import brunoClipboard from 'utils/bruno-clipboard';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
@@ -42,7 +44,9 @@ import {
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
   saveRequest as _saveRequest,
-  saveEnvironment as _saveEnvironment
+  saveEnvironment as _saveEnvironment,
+  saveCollectionDraft,
+  saveFolderDraft
 } from './index';
 
 import { each } from 'lodash';
@@ -57,7 +61,8 @@ import {
   getReorderedItemsInTargetDirectory,
   resetSequencesInFolder,
   getReorderedItemsInSourceDirectory,
-  calculateDraggedItemNewPathname
+  calculateDraggedItemNewPathname,
+  transformFolderRootToSave
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { buildPersistedEnvVariables } from 'utils/environments';
@@ -159,11 +164,18 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    const collectionCopy = cloneDeep(collection);
+
+    // Transform collection root (uses draft if exists)
+    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('renderer:save-collection-root', collection.pathname, collection.root)
-      .then(() => toast.success('Collection Settings saved successfully'))
+      .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave)
+      .then(() => {
+        toast.success('Collection Settings saved successfully');
+        dispatch(saveCollectionDraft({ collectionUid }));
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save collection settings!');
@@ -188,15 +200,107 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
 
     const { ipcRenderer } = window;
 
+    // Use draft if it exists, otherwise use root
+    const folderRootToSave = transformFolderRootToSave(folder);
+
     const folderData = {
       name: folder.name,
       pathname: folder.pathname,
-      root: folder.root
+      root: folderRootToSave
     };
 
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)
-      .then(() => toast.success('Folder Settings saved successfully'))
+      .then(() => {
+        toast.success('Folder Settings saved successfully');
+        // If there was a draft, save it to root and clear the draft
+        if (folder.draft) {
+          dispatch(saveFolderDraft({ collectionUid, folderUid }));
+        }
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save folder settings!');
+        reject(err);
+      });
+  });
+};
+
+export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const savePromises = [];
+
+    each(collectionDrafts, (collectionDraft) => {
+      const collection = findCollectionByUid(collections, collectionDraft.collectionUid);
+      if (collection) {
+        const collectionCopy = cloneDeep(collection);
+        const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
+        const { ipcRenderer } = window;
+
+        let savePromises = [];
+
+        savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave));
+
+        if (collectionCopy.draft?.brunoConfig) {
+          savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', collectionCopy.draft.brunoConfig, collectionCopy.pathname, collectionDraft.collectionUid));
+        }
+
+        Promise.all(savePromises)
+          .then(() => {
+            dispatch(saveCollectionDraft({ collectionUid: collectionDraft.collectionUid }));
+          })
+          .catch((err) => {
+            toast.error('Failed to save collection settings!');
+            reject(err);
+          });
+      }
+    });
+
+    Promise.all(savePromises)
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save collection settings!');
+        reject(err);
+      });
+  });
+};
+
+export const saveMultipleFolders = (folderDrafts) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const savePromises = [];
+
+    each(folderDrafts, (folderDraft) => {
+      const collection = findCollectionByUid(collections, folderDraft.collectionUid);
+      const folder = collection ? findItemInCollection(collection, folderDraft.folderUid) : null;
+
+      if (collection && folder) {
+        const folderRootToSave = transformFolderRootToSave(folder);
+        const folderData = {
+          name: folder.name,
+          pathname: folder.pathname,
+          root: folderRootToSave
+        };
+
+        const { ipcRenderer } = window;
+        const savePromise = ipcRenderer
+          .invoke('renderer:save-folder-root', folderData)
+          .then(() => {
+            if (folder.draft) {
+              dispatch(saveFolderDraft({ collectionUid: folderDraft.collectionUid, folderUid: folderDraft.folderUid }));
+            }
+          });
+
+        savePromises.push(savePromise);
+      }
+    });
+
+    Promise.all(savePromises)
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save folder settings!');
@@ -719,6 +823,89 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
+    }
+  });
+};
+
+export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatch, getState) => {
+  const state = getState();
+
+  const clipboardResult = brunoClipboard.read();
+
+  if (!clipboardResult.hasData) {
+    return Promise.reject(new Error('No item in clipboard'));
+  }
+
+  const targetCollection = findCollectionByUid(state.collections.collections, targetCollectionUid);
+
+  if (!targetCollection) {
+    return Promise.reject(new Error('Target collection not found'));
+  }
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      for (const clipboardItem of clipboardResult.items) {
+        const copiedItem = cloneDeep(clipboardItem);
+
+        // Only allow pasting requests (not folders)
+        if (isItemAFolder(copiedItem)) {
+          return reject(new Error('Pasting folders is not supported'));
+        }
+
+        const targetCollectionCopy = cloneDeep(targetCollection);
+        let targetItem = null;
+        let targetParentPathname = targetCollection.pathname;
+
+        // If targetItemUid is provided, we're pasting into a folder
+        if (targetItemUid) {
+          targetItem = findItemInCollection(targetCollectionCopy, targetItemUid);
+          if (!targetItem) {
+            return reject(new Error('Target folder not found'));
+          }
+          if (!isItemAFolder(targetItem)) {
+            return reject(new Error('Target must be a folder or collection'));
+          }
+          targetParentPathname = targetItem.pathname;
+        }
+
+        // Generate a unique filename for the pasted item
+        let newName = copiedItem.name;
+        let newFilename = sanitizeName(copiedItem.name);
+        let counter = 1;
+
+        const existingItems = targetItem ? targetItem.items : targetCollection.items;
+
+        // Check for duplicate names and append counter if needed
+        while (find(existingItems, (i) => i.type !== 'folder' && trim(i.filename) === trim(resolveRequestFilename(newFilename)))) {
+          newName = `${copiedItem.name} (${counter})`;
+          newFilename = `${sanitizeName(copiedItem.name)} (${counter})`;
+          counter++;
+        }
+
+        const filename = resolveRequestFilename(newFilename);
+        const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+        set(itemToSave, 'name', trim(newName));
+        set(itemToSave, 'filename', trim(filename));
+
+        const fullPathname = path.join(targetParentPathname, filename);
+        const { ipcRenderer } = window;
+        const requestItems = filter(existingItems, (i) => i.type !== 'folder');
+        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
+
+        await itemSchema.validate(itemToSave);
+        await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave);
+
+        dispatch(insertTaskIntoQueue({
+          uid: uuid(),
+          type: 'OPEN_REQUEST',
+          collectionUid: targetCollectionUid,
+          itemPathname: fullPathname
+        }));
+      }
+
+      resolve();
+    } catch (error) {
+      reject(error);
     }
   });
 };
@@ -1255,7 +1442,7 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const importEnvironment = (name, variables, collectionUid) => (dispatch, getState) => {
+export const importEnvironment = ({ name, variables, collectionUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1555,6 +1742,45 @@ export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
 
   return new Promise((resolve, reject) => {
     ipcRenderer.invoke('renderer:browse-files', filters, properties).then(resolve).catch(reject);
+  });
+};
+
+export const saveCollectionSettings = (collectionUid, brunoConfig = null) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+
+    // Transform collection root (uses draft if exists)
+    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
+    const { ipcRenderer } = window;
+
+    const savePromises = [];
+
+    // Save collection.bru file
+    savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave));
+
+    // Save bruno.json if brunoConfig is provided or if there's a brunoConfig draft
+    const brunoConfigToSave = brunoConfig || (collectionCopy.draft && collectionCopy.draft.brunoConfig);
+    if (brunoConfigToSave) {
+      savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', brunoConfigToSave, collectionCopy.pathname, collectionUid));
+    }
+
+    Promise.all(savePromises)
+      .then(() => {
+        toast.success('Collection Settings saved successfully');
+        dispatch(saveCollectionDraft({ collectionUid }));
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save collection settings!');
+        reject(err);
+      });
   });
 };
 

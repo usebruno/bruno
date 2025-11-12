@@ -58,8 +58,11 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
         assertions: _.get(json, 'assertions', []),
         tests: _.get(json, 'tests', ''),
         docs: _.get(json, 'docs', '')
-      }
-    };
+      },
+      examples: _.get(json, 'examples', []).map((e: any) => {
+        return bruExampleToJson(e, true, requestType, _.get(json, 'http.method'));
+      })
+    } as any;
 
     // Add request type specific fields
     if (requestType === 'grpc-request') {
@@ -104,9 +107,9 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
         transformedJson.request.auth.oauth2.additionalParameters = additionalParameters;
       }
     }
-
     return transformedJson;
   } catch (error) {
+    console.log('bruRequestToJson error', error);
     throw error;
   }
 };
@@ -215,6 +218,7 @@ export const jsonRequestToBru = (json: any): string => {
     bruJson.tests = _.get(json, 'request.tests', '');
     bruJson.settings = _.get(json, 'settings', {});
     bruJson.docs = _.get(json, 'request.docs', '');
+    bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonExampleToBru(e));
 
     const bru = jsonToBruV2(bruJson);
     return bru;
@@ -331,6 +335,94 @@ export const jsonEnvironmentToBru = (json: any): string => {
   try {
     const bru = envJsonToBruV2(json);
     return bru;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// New functions for example handling
+export const bruExampleToJson = (data: string | any, parsed: boolean = false, parentType?: string, parentMethod?: string): any => {
+  try {
+    const json = parsed ? data : bruToJsonV2(data);
+
+    // Use parent request's type and method if provided
+    const requestType = parentType || _.get(json, 'meta.type', 'http');
+    const requestMethod = parentMethod || _.get(json, 'http.method', 'GET');
+
+    let transformedType = requestType;
+    switch (requestType) {
+      case 'http':
+        transformedType = 'http-request';
+        break;
+      case 'graphql':
+        transformedType = 'graphql-request';
+        break;
+      case 'grpc':
+        transformedType = 'grpc-request';
+        break;
+      case 'ws':
+        transformedType = 'ws-request';
+        break;
+      default:
+        transformedType = 'http-request';
+    }
+
+    // Follow the same structure as the main request, but with missing fields for examples
+    const transformedJson = {
+      type: transformedType,
+      name: _.get(json, 'name'),
+      description: _.get(json, 'description', ''),
+      // Examples don't have seq, settings, tags
+      request: {
+        method: _.get(json, 'request.method') || requestMethod,
+        url: _.get(json, 'request.url'),
+        headers: _.get(json, 'request.headers', []),
+        body: _.get(json, 'request.body', {
+          mode: 'none'
+        }),
+        // Examples don't have script, vars, assertions, tests, docs
+        params: _.get(json, 'request.params', [])
+      },
+      response: {
+        headers: _.get(json, 'response.headers', []).map((header: any) => ({
+          name: header.name,
+          value: header.value
+        })),
+        status: String(_.get(json, 'response.status', '200')),
+        statusText: _.get(json, 'response.statusText', 'OK'),
+        body: {
+          type: _.get(json, 'response.body.type', 'json'),
+          content: _.get(json, 'response.body.content', '')
+        }
+      }
+    } as any;
+
+    return transformedJson;
+  } catch (error) {
+    console.log('bruExampleToJson error', error);
+    throw error;
+  }
+};
+
+export const jsonExampleToBru = (json: any) => {
+  try {
+    // Transform the JSON to match the same structure as main request, but with missing fields
+    const exampleJson = {
+      name: _.get(json, 'name'),
+      description: _.get(json, 'description', ''),
+      // Examples don't have seq, settings, tags
+      request: {
+        method: _.get(json, 'request.method'),
+        url: _.get(json, 'request.url'),
+        headers: _.get(json, 'request.headers', []),
+        body: _.get(json, 'request.body', {}),
+        // Examples don't have script, vars, assertions, tests, docs
+        params: _.get(json, 'request.params', [])
+      },
+      response: _.get(json, 'response', {})
+    };
+
+    return exampleJson;
   } catch (error) {
     throw error;
   }

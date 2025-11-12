@@ -18,6 +18,7 @@ class SingleLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
+    this.readOnly = props.readOnly || false;
 
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
@@ -52,6 +53,7 @@ class SingleLineEditor extends Component {
       },
       scrollbarStyle: null,
       tabindex: 0,
+      readOnly: this.props.readOnly,
       extraKeys: {
         Enter: runHandler,
         'Ctrl-Enter': runHandler,
@@ -150,6 +152,9 @@ class SingleLineEditor extends Component {
       // also set the maskInput flag to the new value
       this.setState({ maskInput: this.props.isSecret });
     }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly);
+    }
     this.ignoreChangeEvent = false;
   }
 
@@ -187,7 +192,7 @@ class SingleLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button className="mx-2" onClick={() => this.toggleVisibleSecret()}>
+      <button type="button" className="mx-2" onClick={() => this.toggleVisibleSecret()}>
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (
@@ -200,7 +205,11 @@ class SingleLineEditor extends Component {
   render() {
     return (
       <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
-        <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
+        <StyledWrapper
+          ref={this.editorRef}
+          className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
+          {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
+        />
         {this.secretEye(this.props.isSecret)}
       </div>
     );

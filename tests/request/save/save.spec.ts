@@ -24,7 +24,7 @@ const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Pro
   await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
   await page.getByPlaceholder('Request Name').fill('test-request');
   await page.locator('#new-request-url .CodeMirror').click();
-  await page.locator('textarea').fill('https://httpbin.org/get');
+  await page.locator('textarea').fill('https://echo.usebruno.com');
   await page.getByRole('button', { name: 'Create' }).click();
   await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
 };
@@ -39,7 +39,7 @@ test.describe.serial('save requests', () => {
     await setup(page, createTmpDir);
 
     const locators = buildCommonLocators(page);
-    const originalUrl = 'https://httpbin.org/get';
+    const originalUrl = 'https://echo.usebruno.com';
     const replacementUrl = 'ws://localhost:8082';
 
     const clearText = async (text: string) => {

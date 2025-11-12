@@ -11,7 +11,8 @@ import {
   sendRequest,
   saveRequest,
   saveCollectionRoot,
-  saveFolderRoot
+  saveFolderRoot,
+  saveCollectionSettings
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
@@ -57,7 +58,7 @@ export const HotkeysProvider = (props) => {
                 dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
               }
             } else if (activeTab.type === 'collection-settings') {
-              dispatch(saveCollectionRoot(collection.uid));
+              dispatch(saveCollectionSettings(collection.uid));
             }
           }
         }

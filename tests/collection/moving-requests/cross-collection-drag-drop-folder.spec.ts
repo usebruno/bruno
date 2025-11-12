@@ -1,25 +1,15 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createCollection } from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop for folder', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
   });
 
-  test('Verify cross-collection folder drag and drop', async ({ pageWithUserData: page, createTmpDir }) => {
-    // Create first collection - click dropdown menu first
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('source-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    // Wait for collection to appear and click on it
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+  test('Verify cross-collection folder drag and drop', async ({ page, createTmpDir }) => {
+    // Create first collection - open with sandbox mode
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a folder in the first collection
     // Look for the collection menu button for the source collection specifically
@@ -29,42 +19,33 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
     // Fill folder name in the modal
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('test-folder');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('test-folder');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the folder to be created and appear in the sidebar
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(200);
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toBeVisible();
 
     // Add a request to the folder to make it more realistic
-    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).click({ button: 'right' });
+    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).hover();
+    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).locator('.menu-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request-in-folder');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(200);
 
     // Expand the folder to see the request inside
     await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(200);
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })).toBeVisible();
 
-    // Create second collection - click dropdown menu first
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('target-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('target-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    // Wait for second collection to appear and click on it
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    // Create second collection - open with sandbox mode
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
 
     // Wait for both collections to be visible in sidebar
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
@@ -82,12 +63,12 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await sourceFolder.dragTo(targetCollection);
 
     // Wait for the operation to complete
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(200);
 
     // Verify the folder has been moved to the target collection
     // Click on target collection to expand it if needed
     await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(200);
 
     // Check that the folder now appears under target collection
     const targetCollectionContainer = page
@@ -100,7 +81,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
 
     // Expand the moved folder to verify the request inside is also moved
     await targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' }).click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(200);
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
     ).toBeVisible();
@@ -121,21 +102,11 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
   });
 
   test('Verify cross-collection folder drag and drop, a duplicate folder exist. expected to throw error toast', async ({
-    pageWithUserData: page,
+    page,
     createTmpDir
   }) => {
     // Create first collection (source) - use unique names for this test
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('source-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    // Wait for collection to appear and click on it
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a folder in the first collection
     await page
@@ -151,35 +122,26 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       .locator('.collection-actions .icon')
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('folder-1');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('folder-1');
     await page.getByRole('button', { name: 'Create' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'folder-1' })).toBeVisible();
 
     // Add a request to the folder to make it more realistic
-    await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).click({ button: 'right' });
+    await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).hover();
+    await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).locator('.menu-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('http-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
     // Expand the folder to see the request inside
     await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).click();
     await expect(page.locator('.collection-item-name').filter({ hasText: 'http-request' })).toBeVisible();
 
     // Create second collection (target)
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-    await page.getByLabel('Name').fill('target-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('target-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-    // Wait for second collection to appear and click on it
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
 
     // Create a folder with the same name in the target collection
     await page
@@ -195,8 +157,8 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       .locator('.collection-actions .icon')
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('folder-1');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('folder-1');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Go back to source collection to drag the folder

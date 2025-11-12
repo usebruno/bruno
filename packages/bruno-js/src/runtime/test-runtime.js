@@ -37,6 +37,7 @@ const cheerio = require('cheerio');
 const tv4 = require('tv4');
 const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { mixinTypedArrays } = require('../sandbox/mixins/typed-arrays');
 
 class TestRuntime {
   constructor(props) {
@@ -107,6 +108,10 @@ class TestRuntime {
       __brunoTestResults: __brunoTestResults,
       jwt: jsonwebtoken
     };
+
+    if (this.runtime === 'vm2') {
+      mixinTypedArrays(context);
+    }
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
