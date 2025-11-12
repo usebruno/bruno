@@ -242,6 +242,16 @@ const lightTheme = {
     active: {
       color: '#343434',
       border: '#D97706'
+    },
+    secondary: {
+      active: {
+        bg: '#FFFFFF',
+        color: '#343434'
+      },
+      inactive: {
+        bg: '#ECECEE',
+        color: '#989898'
+      }
     }
   },
 
