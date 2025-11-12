@@ -295,7 +295,9 @@ const darkTheme = {
         iconColor: '#989898',
         editorBorder: '#3D3D3D',
         editorFocusBorder: '#CCCCCC',
-        editableDisplayHoverBg: 'rgba(255,255,255,0.03)'
+        editableDisplayHoverBg: 'rgba(255,255,255,0.03)',
+        border: '#4F4F4F',
+        editorBorder: '#3D3D3D'
       }
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.18)',

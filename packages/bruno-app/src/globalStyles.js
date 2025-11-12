@@ -241,7 +241,7 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo {
     color: ${(props) => props.theme.codemirror.variable.info.color};
     background: ${(props) => props.theme.codemirror.variable.info.bg};
-    border: 1px solid ${(props) => props.theme.codemirror.border};
+    border: 1px solid ${(props) => props.theme.codemirror.variable.info.border};
     border-radius: 6px;
     box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
     box-sizing: border-box;
@@ -292,7 +292,7 @@ const GlobalStyle = createGlobalStyle`
     display: inline-block;
     padding: 2px 6px;
     background: #D977061A;
-    border-radius: 3px;
+    border-radius: 4px;
     font-size: 14px;
     color: #D97706;
     letter-spacing: 0.5px;
@@ -301,9 +301,13 @@ const GlobalStyle = createGlobalStyle`
   /* Value Container */
   .CodeMirror-brunoVarInfo .var-value-container {
     position: relative;
-    border: 1px solid ${(props) => props.theme.codemirror.border};
+    border: 1px solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
     border-radius: 6px;
     background: ${(props) => props.theme.codemirror.variable.info.editorBg};
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-width: 277px;
+    max-height: 211px;
   }
 
   /* Value Display (Read-only) */

@@ -296,7 +296,9 @@ const lightTheme = {
         iconColor: '#989898',
         editorBorder: '#EFEFEF',
         editorFocusBorder: '#989898',
-        editableDisplayHoverBg: 'rgba(0,0,0,0.02)'
+        editableDisplayHoverBg: 'rgba(0,0,0,0.02)',
+        border: '#EFEFEF',
+        editorBorder: '#EFEFEF'
       }
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
