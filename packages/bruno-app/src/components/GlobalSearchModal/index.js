@@ -77,8 +77,9 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
           const nameMatch = searchTerms.every((term) => (item.name || '').toLowerCase().includes(term));
           const urlMatch = searchTerms.every(term => (item.request?.url || '').toLowerCase().includes(term));
           const pathMatch = enablePathMatch && searchTerms.every(term => itemPathLower.includes(term));
+          const tagMatch = item.tags && searchTerms.every(term => item.tags.some(tag => tag.toLowerCase().includes(term)));
 
-          if (nameMatch || urlMatch || pathMatch) {
+          if (nameMatch || urlMatch || pathMatch || tagMatch) {
             // Check if this is a gRPC request and get the method type
             const isGrpcRequest = item.request?.type === 'grpc';
             
@@ -97,6 +98,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
               path: itemPath,
               matchType: nameMatch ? MATCH_TYPES.REQUEST : urlMatch ? MATCH_TYPES.URL : MATCH_TYPES.PATH,
               method,
+              tags: item.tags || [],
               collectionUid: collection.uid
             });
           }
@@ -347,6 +349,44 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     return <IconComponent size={18} stroke={1.5} />;
   };
 
+  const renderTags = (tags, query) => {
+    if (!tags || tags.length === 0) return null;
+
+    // To show searched tag first
+    const queryLower = query?.toLowerCase() || '';
+    const sortedTags = queryLower 
+      ? [...tags].sort((a, b) => {
+          const aMatches = a.toLowerCase().includes(queryLower);
+          const bMatches = b.toLowerCase().includes(queryLower);
+          if (aMatches && !bMatches) return -1;
+          if (!aMatches && bMatches) return 1;
+          return 0;
+        })
+      : tags;
+    
+    return (
+      <div className="tags-container">
+        {sortedTags.slice(0, 3).map((tag, index) => (
+          <span 
+            key={tag} 
+            className={`method-badge tags ${queryLower && tag.toLowerCase().includes(queryLower) ? 'highlighted' : ''}`}
+            title={tag}
+          >
+            {tag}
+          </span>
+        ))}
+        {tags.length > 3 && (
+          <span 
+            className="method-badge tags" 
+            title={`${tags.length - 3} more tags`}
+          >
+            +{tags.length - 3}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -469,6 +509,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                         </div>
                       </div>
                       <div className="result-badges">
+                        {renderTags(result.tags, query)}
                         {result.type === SEARCH_TYPES.REQUEST && result.method && (
                           <span 
                             className={`method-badge ${result.method.toLowerCase()}`}
