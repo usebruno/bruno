@@ -249,7 +249,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         await page.getByRole('button', { name: 'Export 1 Environment' }).click();
 
         // Verify success message
-        await expect(page.getByText('Environment(s) exported successfully', { exact: false })).toBeVisible();
+        await expect(page.getByText('Environment(s) exported successfully', { exact: false }).first()).toBeVisible();
 
         await page.getByTestId('modal-close-button').click();
       });
@@ -296,9 +296,9 @@ test.describe.serial('Global Environment Export Tests', () => {
       await test.step('Execute export and verify success', async () => {
         // Export the environments
         await page.getByRole('button', { name: 'Export 2 Environments' }).click();
-
+        await page.waitForTimeout(200);
         // Verify success message
-        await expect(page.getByText('Environment(s) exported successfully', { exact: false })).toBeVisible();
+        await expect(page.getByText('Environment(s) exported successfully', { exact: false }).first()).toBeVisible();
 
         await page.getByTestId('modal-close-button').click();
       });

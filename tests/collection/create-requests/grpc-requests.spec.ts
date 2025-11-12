@@ -13,12 +13,14 @@ test.describe('Create gRPC Requests', () => {
     const locators = buildCommonLocators(page);
 
     // Clean up Root gRPC Request
-    await locators.sidebar.request('Root gRPC Request').click({ button: 'right' });
+    await locators.sidebar.request('Root gRPC Request').hover();
+    await locators.actions.collectionItemActions('Root gRPC Request').click();
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
 
     // Clean up Folder gRPC Request
-    await locators.sidebar.request('Folder gRPC Request').click({ button: 'right' });
+    await locators.sidebar.request('Folder gRPC Request').hover();
+    await locators.actions.collectionItemActions('Folder gRPC Request').click();
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
 
@@ -60,8 +62,8 @@ test.describe('Create gRPC Requests', () => {
     });
 
     await test.step('Create gRPC request via folder1 three dots menu', async () => {
-      const folderItem = locators.sidebar.folder('folder1');
-      await folderItem.click({ button: 'right' });
+      await locators.sidebar.folder('folder1').hover();
+      await locators.actions.collectionItemActions('folder1').click();
       await locators.dropdown.item('New Request').click();
 
       await page.getByTestId('grpc-request').click();

@@ -21,7 +21,12 @@ export const buildCommonLocators = (page: Page) => ({
     collectionActions: (collectionName: string) =>
       page.locator('.collection-name')
         .filter({ hasText: collectionName })
-        .locator('.collection-actions .icon')
+        .locator('.collection-actions .icon'),
+    collectionItemActions: (itemName: string) =>
+      page.locator('.collection-item-name')
+        .filter({ hasText: itemName })
+        .locator('.menu-icon')
+
   },
   dropdown: {
     item: (text: string) => page.locator('.dropdown-item').filter({ hasText: text })

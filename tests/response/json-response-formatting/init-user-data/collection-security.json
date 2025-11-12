@@ -1,7 +1,7 @@
 {
   "collections": [
     {
-      "path": "{{projectRoot}}/tests/response/json-with-bigint-response-formatting/fixtures/collection",
+      "path": "{{projectRoot}}/tests/response/json-response-formatting/fixtures/collection",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }
