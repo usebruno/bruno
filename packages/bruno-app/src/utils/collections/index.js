@@ -748,6 +748,60 @@ export const transformRequestToSaveToFilesystem = (item) => {
   return itemToSave;
 };
 
+export const transformCollectionRootToSave = (collection) => {
+  const _collection = collection.draft?.root ? collection.draft.root : collection.root;
+
+  const collectionRootToSave = {
+    docs: _collection?.docs,
+    meta: _collection?.meta,
+    request: {
+      auth: _collection?.request?.auth,
+      headers: [],
+      script: _collection?.request?.script,
+      vars: _collection?.request?.vars,
+      tests: _collection?.request?.tests
+    }
+  };
+
+  each(_collection?.request?.headers, (header) => {
+    collectionRootToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  return collectionRootToSave;
+};
+
+export const transformFolderRootToSave = (folder) => {
+  const _folder = folder.draft ? folder.draft : folder.root;
+  const folderRootToSave = {
+    docs: _folder.docs,
+    request: {
+      auth: _folder?.request?.auth,
+      headers: [],
+      script: _folder?.request?.script,
+      vars: _folder?.request?.vars,
+      tests: _folder?.request?.tests
+    }
+  };
+
+  each(_folder.request.headers, (header) => {
+    folderRootToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  return folderRootToSave;
+};
+
 // todo: optimize this
 export const deleteItemInCollection = (itemUid, collection) => {
   collection.items = filter(collection.items, (i) => i.uid !== itemUid);
@@ -1177,7 +1231,8 @@ const mergeVars = (collection, requestTreePath = []) => {
   let collectionVariables = {};
   let folderVariables = {};
   let requestVariables = {};
-  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
       collectionVariables[_var.name] = _var.value;

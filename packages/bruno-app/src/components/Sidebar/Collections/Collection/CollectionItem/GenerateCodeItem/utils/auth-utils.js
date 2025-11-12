@@ -21,13 +21,14 @@ export const resolveInheritedAuth = (item, collection) => {
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
   // Default to collection auth
-  const collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
 
   // Check folders in reverse to find the closest auth configuration
   for (let i of [...requestTreePath].reverse()) {
     if (i.type === 'folder') {
-      const folderAuth = get(i, 'root.request.auth');
+      const folderAuth = i?.draft ? get(i, 'draft.request.auth') : get(i, 'root.request.auth');
       if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         break;
