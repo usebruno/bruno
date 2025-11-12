@@ -1,0 +1,29 @@
+meta {
+  name: env-variables
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    bru.setEnvVar('hook-env-test', 'env-value-from-hook');
+  });
+}
+
+tests {
+  test("bru.getEnvVar - read existing env var", function() {
+    const host = bru.getEnvVar('host');
+    expect(host).to.include('http');
+  });
+  
+  test("bru.setEnvVar/getEnvVar - set in hook", function() {
+    expect(bru.getEnvVar('hook-env-test')).to.equal('env-value-from-hook');
+  });
+}
+

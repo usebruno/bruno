@@ -36,7 +36,8 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
     },
     script: {
       req: null,
-      res: null
+      res: null,
+      hooks: null
     },
     vars: {
       req: [],
@@ -55,6 +56,9 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
     }
     if (scripts.script.res) {
       brunoRequest.script.res = scripts.script.res;
+    }
+    if (scripts.script.hooks) {
+      brunoRequest.script.hooks = scripts.script.hooks;
     }
   }
   if (scripts?.tests) {

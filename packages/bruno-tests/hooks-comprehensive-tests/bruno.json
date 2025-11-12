@@ -1,0 +1,9 @@
+{
+    "version": "1",
+    "name": "hooks-comprehensive-tests",
+    "type": "collection",
+    "ignore": [
+        "node_modules",
+        ".git"
+    ]
+}

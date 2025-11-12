@@ -27,6 +27,7 @@ const hasRequestAuth = (folderRoot: FolderRoot): boolean => {
 const hasRequestScripts = (folderRoot: FolderRoot): boolean => {
   return Boolean((folderRoot.request?.script?.req)
     || (folderRoot.request?.script?.res)
+    || (folderRoot.request?.script?.hooks)
     || (folderRoot.request?.tests));
 };
 

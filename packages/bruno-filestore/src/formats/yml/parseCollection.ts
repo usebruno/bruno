@@ -117,7 +117,8 @@ const parseCollection = (ymlString: string): ParsedCollection => {
         auth: null,
         script: {
           req: null,
-          res: null
+          res: null,
+          hooks: null
         },
         vars: {
           req: [],
@@ -148,6 +149,9 @@ const parseCollection = (ymlString: string): ParsedCollection => {
         }
         if (scripts.script.res) {
           collectionRoot.request.script.res = scripts.script.res;
+        }
+        if (scripts.script.hooks) {
+          collectionRoot.request.script.hooks = scripts.script.hooks;
         }
       }
       if (scripts?.tests) {

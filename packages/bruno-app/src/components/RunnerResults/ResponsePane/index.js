@@ -21,17 +21,17 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const { requestSent, responseReceived, testResults, assertionResults, preRequestTestResults, postResponseTestResults, error } = item;
 
   useEffect(() => {
-    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
+    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage || item?.hookScriptErrorMessage) {
       setShowScriptErrorCard(true);
     }
-  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
+  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage, item?.hookScriptErrorMessage]);
 
   const headers = get(item, 'responseReceived.headers', []);
   const status = get(item, 'responseReceived.status', 0);
   const size = get(item, 'responseReceived.size', 0);
   const duration = get(item, 'responseReceived.duration', 0);
 
-  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
+  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage || item?.hookScriptErrorMessage;
 
   const selectTab = (tab) => setSelectedTab(tab);
 
