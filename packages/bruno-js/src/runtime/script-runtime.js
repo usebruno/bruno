@@ -92,7 +92,10 @@ class ScriptRuntime {
       test,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      process: {
+        env: processEnvVars || {}
+      }
     };
 
     if (this.runtime === 'vm2') {
@@ -267,7 +270,10 @@ class ScriptRuntime {
       test,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      process: {
+        env: processEnvVars || {}
+      }
     };
 
     if (this.runtime === 'vm2') {

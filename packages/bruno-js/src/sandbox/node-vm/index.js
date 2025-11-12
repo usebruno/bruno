@@ -52,7 +52,11 @@ async function runScriptInNodeVm({
       scriptingConfig: scriptingConfig,
       // Global objects
       Buffer: global.Buffer,
-      process: global.process,
+      // Use process from context if available (with collection-specific env), otherwise use global.process
+      // If context.process exists, merge its env with global.process to preserve other process properties
+      process: context.process
+        ? { ...global.process, env: context.process.env }
+        : global.process,
       setTimeout: global.setTimeout,
       setInterval: global.setInterval,
       clearTimeout: global.clearTimeout,

@@ -106,7 +106,10 @@ class TestRuntime {
       expect: chai.expect,
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults,
-      jwt: jsonwebtoken
+      jwt: jsonwebtoken,
+      process: {
+        env: processEnvVars || {}
+      }
     };
 
     if (this.runtime === 'vm2') {
