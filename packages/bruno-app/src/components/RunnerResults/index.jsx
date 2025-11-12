@@ -46,6 +46,24 @@ export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
   const [delay, setDelay] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('all');
+
+
+  const getActiveFilterPredicate = () => {
+    switch (activeFilter) {
+      case 'passing_requests':
+        return (item) => item.status !== 'error' && item.testStatus === 'pass' && item.assertionStatus === 'pass';
+      case 'failing_requests':
+        return (item) => (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
+      case 'passing_tests':
+        return (item) => item.testResults?.some((result) => result.status === 'pass');
+      case 'failing_tests':
+        return (item) => item.testResults?.some((result) => result.status === 'fail' || result.status === 'error');
+      default:
+        return () => true
+    }
+  }
+
   const [selectedRequestItems, setSelectedRequestItems] = useState([]);
   const [configureMode, setConfigureMode] = useState(false);
 
@@ -192,6 +210,44 @@ export default function RunnerResults({ collection }) {
   }, [tagsEnabled]);
 
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
+
+  const displayCollectionResults = () => {
+    let passedRequests = 0;
+    let failedRequests = 0;
+    let totalTestsInCollection = 0;
+    let passedTests = 0;
+    let failedTests = 0;
+    items.forEach(item => {
+      const isPassedRequest = item.status !== 'error' && item.testStatus === 'pass' && item.assertionStatus === 'pass';
+      const isFailedRequest = (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
+
+      if (isPassedRequest) passedRequests++;
+      if (isFailedRequest) failedRequests++;
+
+      const testResults = Array.isArray(item?.testResults) ? item.testResults : [];
+      totalTestsInCollection += testResults.length;
+      testResults.forEach(result => {
+        if (result.status === 'pass') passedTests++;
+        if (result.status === 'fail' || result.status === 'error') failedTests++;
+      });
+    });
+
+    return (
+      <div className="pb-2 font-medium test-summary flex flex-col items-start justify-center mx-2">
+        <div>
+          <span onClick={() => setActiveFilter('all')} className={`cursor-pointer ${activeFilter === 'all' ? 'underline font-semibold' : ''} hover:font-semibold`}>Total Requests: {items.length}, </span>
+          <span onClick={() => setActiveFilter('passing_requests')} className={`cursor-pointer ${activeFilter === 'passing_requests' ? 'underline font-semibold' : ''} hover:font-semibold`}>Passed: {passedRequests}, </span>
+          <span onClick={() => setActiveFilter('failing_requests') } className={`cursor-pointer ${activeFilter === 'failing_requests' ? 'underline font-semibold' : ''} hover:font-semibold`}>Failed: {failedRequests}</span>
+        </div>
+        <div>
+          <span onClick={() => setActiveFilter('all')} className={`cursor-pointer ${activeFilter === 'all' ? 'underline font-semibold' : ''} hover:font-semibold`}>Total Tests: {totalTestsInCollection}, </span>
+          <span onClick={() => setActiveFilter('passing_tests')} className={`cursor-pointer ${activeFilter === 'passing_tests' ? 'underline font-semibold' : ''} hover:font-semibold`}>Passed: {passedTests}, </span>
+          <span onClick={() => setActiveFilter('failing_tests')} className={`cursor-pointer ${activeFilter === 'failing_tests' ? 'underline font-semibold' : ''} hover:font-semibold`}>Failed: {failedTests}</span>
+        </div>
+      </div>
+    )
+  }
+
   const passedRequests = items.filter(allTestsPassed);
   const failedRequests = items.filter(anyTestFailed);
 
@@ -290,6 +346,7 @@ export default function RunnerResults({ collection }) {
           Runner
           <IconRun size={20} strokeWidth={1.5} className="ml-2" />
         </div>
+        {displayCollectionResults()}
         {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid && (
           <button className="btn btn-sm btn-danger" onClick={cancelExecution}>
             Cancel Execution
@@ -302,10 +359,17 @@ export default function RunnerResults({ collection }) {
           className={`flex flex-col overflow-y-auto ${selectedItem || (configureMode && !selectedItem && !runnerInfo.status === 'running') ? 'w-1/2' : 'w-full'}`}
           ref={runnerBodyRef}
         >
+        {runnerInfo?.statusText ? 
+            <div className="pb-2 font-medium danger">
+              {runnerInfo?.statusText}
+            </div>
+          : null}
+          
           <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped:{' '}
             {skippedRequests.length}
           </div>
+
           {tagsEnabled && areTagsAdded && (
             <div className="pb-2 text-xs flex flex-row gap-1">
               Tags:
@@ -319,15 +383,9 @@ export default function RunnerResults({ collection }) {
               </div>
             </div>
           )}
-          {runnerInfo?.statusText ?
-            <div className="pb-2 font-medium danger">
-              {runnerInfo?.statusText}
-            </div>
-            : null}
-
           {/* Items list */}
           <div className="overflow-y-auto flex-1">
-            {items.map((item) => {
+            {items.filter(getActiveFilterPredicate()).map((item) => {
               return (
                 <div key={item.uid}>
                   <div className="item-path mt-2">
