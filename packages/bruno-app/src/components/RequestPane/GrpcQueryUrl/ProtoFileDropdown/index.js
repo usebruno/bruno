@@ -39,7 +39,7 @@ const ProtoFileDropdown = ({
       return;
     }
 
-    const { success: addSuccess, relativePath, alreadyExists, error: addError } = await protoFileManagement.addProtoFileToCollection(filePath);
+    const { success: addSuccess, relativePath, alreadyExists, error: addError } = await protoFileManagement.addProtoFileFromRequest(filePath);
     if (!addSuccess) {
       if (addError) {
         toast.error(`Failed to add proto file: ${addError.message}`);
@@ -91,7 +91,7 @@ const ProtoFileDropdown = ({
       return;
     }
 
-    const { success: addSuccess, error: addError } = await protoFileManagement.addImportPathToCollection(directoryPath);
+    const { success: addSuccess, error: addError } = await protoFileManagement.addImportPathFromRequest(directoryPath);
     if (!addSuccess) {
       if (addError) {
         toast.error(`Failed to add import path: ${addError.message}`);
@@ -103,7 +103,7 @@ const ProtoFileDropdown = ({
   };
 
   const handleToggleImportPath = async (index) => {
-    const { success, enabled, error } = await protoFileManagement.toggleImportPath(index);
+    const { success, enabled, error } = await protoFileManagement.toggleImportPathFromRequest(index);
     if (!success) {
       if (error) {
         toast.error(`Failed to toggle import path: ${error.message}`);

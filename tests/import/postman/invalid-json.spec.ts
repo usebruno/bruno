@@ -18,7 +18,8 @@ test.describe('Invalid Postman Collection - Invalid JSON', () => {
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // Check for error message
-    const hasError = await page.getByText('Conversion failed').first().isVisible();
+    const hasError = await page.getByText('Unsupported collection format').first().isVisible();
+
     expect(hasError).toBe(true);
 
     // Cleanup: close any open modals

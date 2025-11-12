@@ -106,6 +106,11 @@ router.get('/anything', function (req, res) {
 router.get('/:count', function (req, res) {
   const count = parseInt(req.params.count, 10);
 
+  // Validate that count is a valid number to prevent infinite redirect loops
+  if (isNaN(count)) {
+    return res.status(404).json({ error: 'Invalid redirect count. Must be a number.' });
+  }
+
   if (count > 1) {
     // Redirect to the next redirect in the chain
     const nextCount = count - 1;

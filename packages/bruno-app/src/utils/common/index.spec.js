@@ -7,7 +7,7 @@ import {
   relativeDate,
   getContentType,
   formatSize,
-  prettifyJSON
+  prettifyJsonString
 } from './index';
 
 describe('common utils', () => {
@@ -193,29 +193,96 @@ describe('common utils', () => {
     });
   });
 
-  describe('prettifyJSON', () => {
-    it('should prettify a standard JSON string', () => {
-      const input = '{"key":"value","number":123}';
-      const expected = '{\n  "key": "value",\n  "number": 123\n}';
-      expect(prettifyJSON(input)).toBe(expected);
+  describe('prettifyJsonString', () => {
+    test('should return non-string inputs unchanged', () => {
+      expect(prettifyJsonString(null)).toBe(null);
+      expect(prettifyJsonString(undefined)).toBe(undefined);
+      expect(prettifyJsonString(123)).toBe(123);
+      expect(prettifyJsonString([])).toEqual([]);
+      expect(prettifyJsonString({})).toEqual({});
+      expect(prettifyJsonString(true)).toBe(true);
     });
 
-    it('should handle JSON with a Bruno variable as a value', () => {
-      const input = '{"id":{{request_id}}}';
-      const expected = '{\n  "id": {{request_id}}\n}';
-      expect(prettifyJSON(input)).toBe(expected);
+    test('should format valid JSON without Bruno variables', () => {
+      const input = '{"name":"John","age":30}';
+      const expected = `{\n  "name": "John",\n  "age": 30\n}`;
+      console.log(prettifyJsonString(input));
+      expect(prettifyJsonString(input)).toBe(expected);
     });
 
-    it('should handle JSON with a Bruno variable inside a string value', () => {
-      const input = '{"url":"https://example.com/{{path}}"}';
-      const expected = '{\n  "url": "https://example.com/{{path}}"\n}';
-      expect(prettifyJSON(input)).toBe(expected);
+    test('should format valid JSON with Bruno variables', () => {
+      const input = '{"name": {{userName}}}';
+      const expected = `{\n  "name": {{userName}}\n}`;
+      console.log(prettifyJsonString(input));
+      expect(prettifyJsonString(input)).toBe(expected);
     });
 
-    it('should return the original string for invalid JSON', () => {
-      const input = '{"key":"value",';
-      const expected = '{\n  "key": "value",';
-      expect(prettifyJSON(input)).toBe(expected);
+    test('should format complex json string', () => {
+      const input = `{"id": 123456789123456789123456789,"name": "Test 'JSON' Data with "quotes" — Pretty Print ","active": true,"price": 199.9999999,"decimals": 1.00,"nullValue": null,"unicodeText": "こんにちは世界 ","escapedCharacters": "Line1\nLine2\tTabbed\"Quoted\" and 'single quoted' with 'code' style","nestedObject": {  "level1": {    "level2": {      "emptyArray": [],      "specialChars": "@#$%^&*()_+-=[]{}|;':,./<>?~",      "booleanValues": [        true,        false,        true      ],      "numbers": [        0,        -1,        1.23e10,        3.1415926535      ]    }  }},"mixedArray": [  "string with 'apostrophe'",  42,  false,  null,  {    "innerObj": {      "keyWithQuotes": "value containing \`backticks\` and 'single quotes'",      "nestedArray": [        {          "a": "O'Reilly"        }{          "b": "'inline code'"        },        [          "deep",          "array",          {            "c": "contains 'quotes'"          }        ]      ]    }  }],"nonStringVariable": {{nonStringVar}},"withBrunoVariable": "{{string}} '{{with}}' "{{variety}}" of '{{variables}}'","dateExample": "2025-11-07T12:34:56Z","regexExample": "^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$","urls": {  "website": "https://example.com?param='value'&flag='true'",  "escapedURL": "https:\/\/escaped-url.com\/path\?q='search'\&debug='on'"},"multiLineString": "This is a long text\nthat spans multiple\nlines with \`backticks\` 'quotes' and 'code' snippets "}`;
+      const expectedOutput = `{
+  "id": 123456789123456789123456789,
+  "name": "Test 'JSON' Data with "quotes" — Pretty Print ",
+  "active": true,
+  "price": 199.9999999,
+  "decimals": 1.00,
+  "nullValue": null,
+  "unicodeText": "こんにちは世界 ",
+  "escapedCharacters": "Line1\nLine2\tTabbed\"Quoted\" and 'single quoted' with 'code' style",
+  "nestedObject": {
+    "level1": {
+      "level2": {
+        "emptyArray": [],
+        "specialChars": "@#$%^&*()_+-=[]{}|;':,./<>?~",
+        "booleanValues": [
+          true,
+          false,
+          true
+        ],
+        "numbers": [
+          0,
+          -1,
+          1.23e10,
+          3.1415926535
+        ]
+      }
+    }
+  },
+  "mixedArray": [
+    "string with 'apostrophe'",
+    42,
+    false,
+    null,
+    {
+      "innerObj": {
+        "keyWithQuotes": "value containing \`backticks\` and 'single quotes'",
+        "nestedArray": [
+          {
+            "a": "O'Reilly"
+          }{
+            "b": "'inline code'"
+          },
+          [
+            "deep",
+            "array",
+            {
+              "c": "contains 'quotes'"
+            }
+          ]
+        ]
+      }
+    }
+  ],
+  "nonStringVariable": {{nonStringVar}},
+  "withBrunoVariable": "{{string}} '{{with}}' "{{variety}}" of '{{variables}}'",
+  "dateExample": "2025-11-07T12:34:56Z",
+  "regexExample": "^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$",
+  "urls": {
+    "website": "https://example.com?param='value'&flag='true'",
+    "escapedURL": "https:\/\/escaped-url.com\/path\?q='search'\&debug='on'"
+  },
+  "multiLineString": "This is a long text\nthat spans multiple\nlines with \`backticks\` 'quotes' and 'code' snippets "
+}`;
+      expect(prettifyJsonString(input)).toBe(expectedOutput);
     });
   });
 });
