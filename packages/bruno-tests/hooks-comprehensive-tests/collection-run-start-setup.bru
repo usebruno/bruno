@@ -20,10 +20,9 @@ tests {
     const apiToken = bru.getEnvVar('api-token');
     expect(apiToken).to.equal('mock-token-12345');
   });
-  
+
   test("request should have access to setup vars", function() {
     const setupComplete = bru.getVar('setup-complete');
     expect(setupComplete).to.equal('true');
   });
 }
-
