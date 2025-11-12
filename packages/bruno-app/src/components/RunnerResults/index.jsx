@@ -44,23 +44,23 @@ const FILTERS = {
   all: {
     label: 'All',
     predicate: () => true,
-    resultFilter: (results) => results,
+    resultFilter: (results) => results
   },
   passed: {
     label: 'Passed',
     predicate: (item) => allTestsPassed(item),
-    resultFilter: (results) => results?.filter(r => r.status === 'pass'),
+    resultFilter: (results) => results?.filter((r) => r.status === 'pass')
   },
   failed: {
     label: 'Failed',
     predicate: (item) => anyTestFailed(item),
-    resultFilter: (results) => results?.filter(r => ['fail', 'error'].includes(r.status)),
+    resultFilter: (results) => results?.filter((r) => ['fail', 'error'].includes(r.status))
   },
   skipped: {
     label: 'Skipped',
     predicate: (item) => item.status === 'skipped',
-    resultFilter: (results) => results,
-  },
+    resultFilter: (results) => results
+  }
 };
 
 // === Reusable filter button ===
@@ -75,8 +75,8 @@ const FilterButton = ({ label, count, active, onClick }) => (
     style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
   >
     {label}
-    <span 
-      className="px-[4.5px] py-[2px] rounded-[2px] bg-[#F7F7F7] dark:bg-[#242424] border border-[#EFEFEF] dark:border-[#92929233] text-[#989898] dark:text-inherit" 
+    <span
+      className="px-[4.5px] py-[2px] rounded-[2px] bg-[#F7F7F7] dark:bg-[#242424] border border-[#EFEFEF] dark:border-[#92929233] text-[#989898] dark:text-inherit"
       style={{ borderWidth: '1px', fontFamily: 'Inter', fontSize: '10px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
     >
       {count}
@@ -147,9 +147,9 @@ export default function RunnerResults({ collection }) {
     if (runnerBodyRef?.current) {
       const element = runnerBodyRef.current;
       const scrollThreshold = 100; // pixels from bottom to consider "at bottom"
-      const isNearBottom = 
-        element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
-      
+      const isNearBottom
+        = element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
+
       // Only auto-scroll if user is already near the bottom
       if (isNearBottom) {
         // mimics the native terminal scroll style
@@ -262,7 +262,7 @@ export default function RunnerResults({ collection }) {
     all: items.length,
     passed: items.filter(allTestsPassed).length,
     failed: items.filter(anyTestFailed).length,
-    skipped: items.filter(i => i.status === 'skipped').length,
+    skipped: items.filter((i) => i.status === 'skipped').length
   };
 
   let isCollectionLoading = areItemsLoading(collection);
@@ -400,7 +400,7 @@ export default function RunnerResults({ collection }) {
 
       <div className="flex gap-4 h-[calc(100vh_-_10rem)] overflow-hidden">
         <div
-          className={`flex flex-col w-1/2`}
+          className="flex flex-col w-1/2"
         >
           {tagsEnabled && areTagsAdded && (
             <div className="pb-2 text-xs flex flex-row gap-1">
@@ -559,14 +559,14 @@ export default function RunnerResults({ collection }) {
                 <div className="flex items-center">
                   <span className="mr-2">{selectedItem.displayName}</span>
                   <span>
-                    {allTestsPassed(selectedItem) ?
-                      <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
+                    {allTestsPassed(selectedItem)
+                      ? <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                       : null}
-                    {anyTestFailed(selectedItem) ?
-                      <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
+                    {anyTestFailed(selectedItem)
+                      ? <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                       : null}
-                    {selectedItem.status === 'skipped' ?
-                      <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
+                    {selectedItem.status === 'skipped'
+                      ? <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
                       : null}
                   </span>
                 </div>
