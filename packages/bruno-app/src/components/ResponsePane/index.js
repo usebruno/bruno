@@ -21,10 +21,9 @@ import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 import ResponseBookmark from 'src/components/ResponsePane/ResponseBookmark';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
-import StopWatch from 'components/StopWatch';
-import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import ResponseLayoutToggle from './ResponseLayoutToggle';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import WSMessagesList from './WsResponsePane/WSMessagesList';
 
 const ResponsePane = ({ item, collection }) => {
@@ -194,9 +193,9 @@ const ResponsePane = ({ item, collection }) => {
                 <ResponseSave item={item} />
                 <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
                 <StatusCode status={response.status} isStreaming={item.response?.hasStreamRunning} />
-                {item.response?.hasStreamRunning ? (
-                    <ResponseStopWatch startMillis={response.duration} />
-                ) : <ResponseTime duration={response.duration} />}
+                {item.response?.hasStreamRunning
+                  ? <ResponseStopWatch startMillis={response.duration} />
+                  : <ResponseTime duration={response.duration} />}
                 <ResponseSize size={responseSize} />
               </>
             ) : null}
