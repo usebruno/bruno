@@ -41,7 +41,7 @@ export function patternHasher(input: string, pattern: string | RegExp = VARIABLE
       let clone = current;
       for (const hash in hashToOriginal) {
         const value = hashToOriginal[hash];
-        clone = clone.replace(hash, value);
+        clone = clone.replace(new RegExp(`(${hash})`, 'g'), value);
       }
       return clone;
     }
