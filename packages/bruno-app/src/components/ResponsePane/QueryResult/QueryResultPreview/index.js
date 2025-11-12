@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
+import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { Document, Page } from 'react-pdf';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -51,6 +53,10 @@ const QueryResultPreview = ({
   displayedTheme
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+
   const dispatch = useDispatch();
 
   const [numPages, setNumPages] = useState(null);
@@ -66,7 +72,19 @@ const QueryResultPreview = ({
     if (disableRunEventListener) {
       return;
     }
+
     dispatch(sendRequest(item, collection.uid));
+  };
+
+  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  const onScroll = (event) => {
+    dispatch(
+      updateResponsePaneScrollPosition({
+        uid: focusedTab.uid,
+        scrollY: event.doc.scrollTop
+      })
+    );
   };
 
   switch (previewTab?.mode) {
@@ -111,8 +129,11 @@ const QueryResultPreview = ({
           fontSize={get(preferences, 'font.codeFontSize')}
           theme={displayedTheme}
           onRun={onRun}
+          onSave={onSave}
+          onScroll={onScroll}
           value={formattedData}
           mode={mode}
+          initialScroll={focusedTab.responsePaneScrollPosition || 0}
           readOnly
         />
       );

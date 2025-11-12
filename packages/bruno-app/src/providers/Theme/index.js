@@ -1,3 +1,4 @@
+import React from 'react';
 import themes from 'themes/index';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 

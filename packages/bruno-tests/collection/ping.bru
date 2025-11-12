@@ -9,3 +9,7 @@ get {
   body: none
   auth: none
 }
+
+script:pre-request {
+  bru.runner.stopExecution();
+}

@@ -1,0 +1,22 @@
+meta {
+  name: test JSON true response
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{httpfaker}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "application/json" },
+    "content": "true"
+  }
+}
+
+assert {
+  res.body: eq true
+}

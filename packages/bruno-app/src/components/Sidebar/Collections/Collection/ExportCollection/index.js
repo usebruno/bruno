@@ -1,7 +1,6 @@
 import React from 'react';
 import exportBrunoCollection from 'utils/collections/export';
 import exportPostmanCollection from 'utils/exporters/postman-collection';
-import { toastError } from 'utils/common/error';
 import cloneDeep from 'lodash/cloneDeep';
 import Modal from 'components/Modal';
 import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';

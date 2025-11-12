@@ -43,12 +43,6 @@
 
 ![bruno](../../assets/images/landing-2.png) <br /><br />
 
-### ოქროს გამოცემა ✨
-
-მთავარი ფუნქციების უმეტესობა უფასოა და ღია წყაროა. ჩვენ ვცდილობთ ჰარმონიული ბალანსის დაცვას [ღია წყაროების პრინციპებსა და მდგრადობას შორის](https://github.com/usebruno/bruno/discussions/269)
-
-თქვენ შეგიძლიათ შეიძინოთ [ოქროს გამოცემა](https://www.usebruno.com/pricing) ერთჯერადი გადახდით **19 დოლარად**! <br/>
-
 ### ინსტალაცია
 
 ბრუნო ხელმისაწვდომია როგორც ბინარული ჩამოტვირთვა [ჩვენ的网站上](https://www.usebruno.com/downloads) Mac-ის, Windows-ისა და Linux-ისთვის.
@@ -77,12 +71,14 @@ flatpak install com.usebruno.Bruno
 
 # Linux-ზე Apt-ის საშუალებით
 sudo mkdir -p /etc/apt/keyrings
-sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
-
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
-
-sudo apt update
-sudo apt install bruno
+sudo apt update && sudo apt install gpg curl
+curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x9FA6017ECABE0266" \
+  | gpg --dearmor \
+  | sudo tee /etc/apt/keyrings/bruno.gpg > /dev/null
+sudo chmod 644 /etc/apt/keyrings/bruno.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" \
+  | sudo tee /etc/apt/sources.list.d/bruno.list
+sudo apt update && sudo apt install bruno
 ```
 
 ### პლატფორმებს შორის მუშაობა 🖥️

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
@@ -8,6 +8,7 @@ import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconArrowRight, IconCode } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
+import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
@@ -20,9 +21,11 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
+  const isGrpc = item.type === 'grpc-request';
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
+  const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   useEffect(() => {
     const el = document.querySelector('.method-selector-container');
@@ -79,10 +82,18 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
   return (
     <StyledWrapper className="flex items-center">
-      <div className="flex items-center h-full method-selector-container">
-        <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
+      <div className="flex flex-1 items-center h-full method-selector-container">
+        {isGrpc ? (
+          <div className="flex items-center justify-center h-full w-16">
+            <span className="text-xs text-indigo-500 font-bold">gRPC</span>
+          </div>
+          
+        ) : (
+          <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
+        )}
       </div>
       <div
+        id="request-url"
         className="flex items-center flex-grow input-container h-full"
         style={{
           color: 'yellow',
@@ -103,6 +114,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div
+            title="Generate Code"
             className="infotip mr-3"
             onClick={(e) => {
               handleGenerateCode(e);
@@ -119,28 +131,29 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             </span>
           </div>
           <div
+            title="Save Request"
             className="infotip mr-3"
             onClick={(e) => {
               e.stopPropagation();
-              if (!item.draft) return;
+              if (!hasChanges) return;
               onSave();
             }}
           >
             <IconDeviceFloppy
-              color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
               strokeWidth={1.5}
               size={22}
-              className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
+              className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
             />
             <span className="infotiptext text-xs">
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} data-testid="send-arrow-icon" />
         </div>
       </div>
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem collectionUid={collection.uid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
     </StyledWrapper>
   );

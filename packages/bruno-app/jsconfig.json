@@ -6,6 +6,7 @@
     "baseUrl": "./",
     "paths": {
       "assets/*": ["src/assets/*"],
+      "ui/*": ["src/ui/*"],
       "components/*": ["src/components/*"],
       "hooks/*": ["src/hooks/*"],
       "themes/*": ["src/themes/*"],

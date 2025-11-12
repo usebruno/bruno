@@ -1,0 +1,44 @@
+meta {
+  name: multiline-test
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo
+  body: json
+  auth: none
+}
+
+body:json {
+  {{multiline_data_json}}
+}
+
+tests {
+  test("should post multiline data successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("should resolve multiline_data_json variable correctly", function() {
+    const body = res.getBody();
+    // HTTP Faker echo endpoint returns the request body in body.body
+    // Verify the multiline JSON variable was resolved and parsed correctly
+    expect(body.body.user.name).to.equal("John Doe");
+    expect(body.body.user.email).to.equal("john@example.com");
+    expect(body.body.user.preferences.theme).to.equal("dark");
+    expect(body.body.user.preferences.notifications).to.equal(true);
+  });
+
+  test("should preserve JSON structure from multiline variable", function() {
+    const body = res.getBody();
+    // Verify the complete JSON structure was preserved
+    expect(body.body.metadata.created).to.equal("2025-09-03");
+    expect(body.body.metadata.version).to.equal("1.0");
+  });
+
+  test("should resolve host variable in URL", function() {
+    const body = res.getBody();
+    // Verify the host variable was resolved in the request URL
+    expect(body.url).to.equal("https://www.httpfaker.org/api/echo");
+  });
+}

@@ -146,19 +146,8 @@ const AssertionRow = ({
   const { operator, value } = parseAssertionOperator(assertion.value);
 
   return (
-    <tr key={assertion.uid}>
-      <td>
-        <input
-          type="text"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          value={assertion.name}
-          className="mousetrap"
-          onChange={(e) => handleAssertionChange(e, assertion, 'name')}
-        />
-      </td>
+    <>
+
       <td>
         <AssertionOperator
           operator={operator}
@@ -180,7 +169,6 @@ const AssertionRow = ({
           <SingleLineEditor
             value={value}
             theme={storedTheme}
-            readOnly={true}
             onSave={onSave}
             onChange={(newValue) => {
               handleAssertionChange(
@@ -216,7 +204,7 @@ const AssertionRow = ({
           </button>
         </div>
       </td>
-    </tr>
+    </>
   );
 };
 

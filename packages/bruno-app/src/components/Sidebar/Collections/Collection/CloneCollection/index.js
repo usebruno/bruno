@@ -1,33 +1,47 @@
 import React, { useRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { cloneCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
-import InfoTip from 'components/InfoTip';
 import Modal from 'components/Modal';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
+import Help from 'components/Help';
+import PathDisplay from 'components/PathDisplay';
+import { useState } from 'react';
+import { IconArrowBackUp, IconEdit } from "@tabler/icons";
+import { findCollectionByUid } from 'utils/collections/index';
+import get from 'lodash/get';
 
-const CloneCollection = ({ onClose, collection }) => {
+const CloneCollection = ({ onClose, collectionUid }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
+  const [isEditing, toggleEditing] = useState(false);
+  const collection = useSelector(state => findCollectionByUid(state.collections.collections, collectionUid));
+  const preferences = useSelector((state) => state.app.preferences);
+  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
+  const { name } = collection;
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionName: '',
-      collectionFolderName: '',
-      collectionLocation: ''
+      collectionName: `${name} copy`,
+      collectionFolderName: `${sanitizeName(name)} copy`,
+      collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
+        .max(255, 'must be 255 characters or less')
         .required('collection name is required'),
       collectionFolderName: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
-        .matches(/^[\w\-. ]+$/, 'Folder name contains invalid characters')
+        .max(255, 'must be 255 characters or less')
+        .test('is-valid-collection-name', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
         .required('folder name is required'),
       collectionLocation: Yup.string().min(1, 'location is required').required('location is required')
     }),
@@ -37,7 +51,7 @@ const CloneCollection = ({ onClose, collection }) => {
           values.collectionName,
           values.collectionFolderName,
           values.collectionLocation,
-          collection.pathname
+          collection?.pathname
         )
       )
         .then(() => {
@@ -51,7 +65,7 @@ const CloneCollection = ({ onClose, collection }) => {
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        // When the user closes the diolog without selecting anything dirPath will be false
+        // When the user closes the dialog without selecting anything dirPath will be false
         if (typeof dirPath === 'string') {
           formik.setFieldValue('collectionLocation', dirPath);
         }
@@ -85,9 +99,7 @@ const CloneCollection = ({ onClose, collection }) => {
             className="block textbox mt-2 w-full"
             onChange={(e) => {
               formik.handleChange(e);
-              if (formik.values.collectionName === formik.values.collectionFolderName) {
-                formik.setFieldValue('collectionFolderName', e.target.value);
-              }
+              !isEditing && formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
             }}
             autoComplete="off"
             autoCorrect="off"
@@ -119,33 +131,70 @@ const CloneCollection = ({ onClose, collection }) => {
             <div className="text-red-500">{formik.errors.collectionLocation}</div>
           ) : null}
           <div className="mt-1">
-            <span className="text-link cursor-pointer hover:underline" onClick={browse}>
+            <span
+              className="text-link cursor-pointer hover:underline" onClick={browse}
+              style={{
+                fontSize: '0.8125rem'
+              }}
+            >
               Browse
             </span>
           </div>
 
-          <label htmlFor="collection-folder-name" className="flex items-center mt-3">
-            <span className="font-semibold">Folder Name</span>
-            <InfoTip
-              text="This folder will be created under the selected location"
-              infotipId="collection-folder-name-infotip"
-            />
-          </label>
-          <input
-            id="collection-folder-name"
-            type="text"
-            name="collectionFolderName"
-            className="block textbox mt-2 w-full"
-            onChange={formik.handleChange}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            value={formik.values.collectionFolderName || ''}
-          />
-          {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
-            <div className="text-red-500">{formik.errors.collectionFolderName}</div>
-          ) : null}
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <label htmlFor="filename" className="flex items-center font-semibold">
+                Folder Name
+                <Help width="300">
+                  <p>
+                    The name of the folder used to store the collection.
+                  </p>
+                  <p className="mt-2">
+                    You can choose a folder name different from your collection's name or one compatible with filesystem rules.
+                  </p>
+                </Help>
+              </label>
+              {isEditing ? (
+                <IconArrowBackUp 
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  onClick={() => toggleEditing(false)} 
+                />
+              ) : (
+                <IconEdit
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5}
+                  onClick={() => toggleEditing(true)} 
+                />
+              )}
+            </div>
+            {isEditing ? (
+              <input
+                id="collection-folder-name"
+                type="text"
+                name="collectionFolderName"
+                className="block textbox mt-2 w-full"
+                onChange={formik.handleChange}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.collectionFolderName || ''}
+              />
+            ) : (
+              <div className='relative flex flex-row gap-1 items-center justify-between'>
+                <PathDisplay
+                  baseName={formik.values.collectionFolderName}
+                />
+              </div>
+            )}
+
+            {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
+              <div className="text-red-500">{formik.errors.collectionFolderName}</div>
+            ) : null}
+          </div>
         </div>
       </form>
     </Modal>

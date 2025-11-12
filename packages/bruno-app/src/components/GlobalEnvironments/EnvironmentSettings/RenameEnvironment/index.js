@@ -3,10 +3,10 @@ import Portal from 'components/Portal/index';
 import Modal from 'components/Modal/index';
 import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
-import { renameEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
 import { renameGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { validateName, validateNameError } from 'utils/common/regex';
 
 const RenameEnvironment = ({ onClose, environment }) => {
   const dispatch = useDispatch();
@@ -19,7 +19,11 @@ const RenameEnvironment = ({ onClose, environment }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
+        .max(255, 'Must be 255 characters or less')
+        .test('is-valid-filename', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
         .required('name is required')
     }),
     onSubmit: (values) => {

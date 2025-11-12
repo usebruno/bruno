@@ -1,0 +1,16 @@
+openapi: 2.0  # Invalid version - only v3 is supported
+info:
+  title: Invalid OpenAPI Version
+  description: This uses OpenAPI v2 which is not supported
+  version: 1.0.0
+host: api.example.com
+basePath: /v1
+schemes:
+  - https
+paths:
+  /users:
+    get:
+      summary: Get users
+      responses:
+        '200':
+          description: List of users

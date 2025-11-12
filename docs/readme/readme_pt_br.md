@@ -41,13 +41,6 @@ Bruno é totalmente offline. Não há planos de adicionar sincronização em nuv
 
 ![bruno](../../assets/images/landing-2.png) <br /><br />
 
-### Golden Edition ✨
-
-A grande maioria dos nossos recursos são gratuitos e de código aberto.
-Nós nos esforçamos para encontrar um equilíbrio harmônico entre [princípios de código aberto e sustentabilidade](https://github.com/usebruno/bruno/discussions/269)
-
-Você pode pré encomendar o plano [Golden Edition](https://www.usebruno.com/pricing) por ~~USD $19~~ **USD $9**! <br/>
-
 ### Instalação
 
 Bruno está disponível para download como binário [em nosso site](https://www.usebruno.com/downloads) para Mac, Windows e Linux.
@@ -76,12 +69,14 @@ flatpak install com.usebruno.Bruno
 
 # No Linux via Apt
 sudo mkdir -p /etc/apt/keyrings
-sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
-
-echo "deb [signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
-
-sudo apt update
-sudo apt install bruno
+sudo apt update && sudo apt install gpg curl
+curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x9FA6017ECABE0266" \
+  | gpg --dearmor \
+  | sudo tee /etc/apt/keyrings/bruno.gpg > /dev/null
+sudo chmod 644 /etc/apt/keyrings/bruno.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" \
+  | sudo tee /etc/apt/sources.list.d/bruno.list
+sudo apt update && sudo apt install bruno
 ```
 
 ### Execute em várias plataformas 🖥️

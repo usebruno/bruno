@@ -18,17 +18,18 @@
   },
   "homepage": "https://github.com/usebruno/bruno-testbench#readme",
   "dependencies": {
-    "axios": "1.7.5",
+    "axios": "^1.8.3",
     "body-parser": "1.20.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "express": "4.21.1",
+    "express": "^4.21.2",
     "express-basic-auth": "^1.2.1",
-    "fast-xml-parser": "^4.5.0",
+    "fast-xml-parser": "^5.0.8",
     "http-proxy": "^1.18.1",
     "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "ws": "^8.18.3"
   }
 }

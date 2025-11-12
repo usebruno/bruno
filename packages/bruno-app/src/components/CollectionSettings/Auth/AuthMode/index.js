@@ -11,7 +11,7 @@ const AuthMode = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-  const authMode = get(collection, 'root.request.auth.mode');
+  const authMode = collection.draft?.root ? get(collection, 'draft.root.request.auth.mode') : get(collection, 'root.request.auth.mode');
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -95,7 +95,7 @@ const AuthMode = ({ collection }) => {
               onModeChange('oauth2');
             }}
           >
-            Oauth2
+            OAuth 2.0
           </div>
           <div
             className="dropdown-item"

@@ -1,73 +1,65 @@
 import { debounce } from 'lodash';
 import QueryResultFilter from './QueryResultFilter';
-import { JSONPath } from 'jsonpath-plus';
 import React from 'react';
 import classnames from 'classnames';
-import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
+import { getContentType, formatResponse } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
-
 import StyledWrapper from './StyledWrapper';
-import { useState } from 'react';
-import { useMemo } from 'react';
-import { useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
-import { uuid } from 'utils/common/index';
+import { getEncoding, uuid } from 'utils/common/index';
+import LargeResponseWarning from '../LargeResponseWarning';
 
-const formatResponse = (data, mode, filter) => {
-  if (data === undefined) {
-    return '';
+const formatErrorMessage = (error) => {
+  if (!error) return 'Something went wrong';
+
+  const remoteMethodError = "Error invoking remote method 'send-http-request':";
+  
+  if (error?.includes(remoteMethodError)) {
+    const parts = error.split(remoteMethodError);
+    return parts[1]?.trim() || error;
   }
 
-  if (data === null) {
-    return 'null';
-  }
-
-  if (mode.includes('json')) {
-    let isValidJSON = false;
-
-    try {
-      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object'
-    } catch (error) {
-      console.log('Error parsing JSON: ', error.message);
-    }
-
-    if (!isValidJSON && typeof data === 'string') {
-      return data;
-    }
-
-    if (filter) {
-      try {
-        data = JSONPath({ path: filter, json: data });
-      } catch (e) {
-        console.warn('Could not apply JSONPath filter:', e.message);
-      }
-    }
-
-    return safeStringifyJSON(data, true);
-  }
-
-  if (mode.includes('xml')) {
-    let parsed = safeParseXML(data, { collapseContent: true });
-    if (typeof parsed === 'string') {
-      return parsed;
-    }
-    return safeStringifyJSON(parsed, true);
-  }
-
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  return safeStringifyJSON(data, true);
+  return error;
 };
 
-const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
+const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
-  const formattedData = formatResponse(data, mode, filter);
+  const [showLargeResponse, setShowLargeResponse] = useState(false);
+  const responseEncoding = getEncoding(headers);
   const { displayedTheme } = useTheme();
+
+  const responseSize = useMemo(() => {
+    const response = item.response || {};
+    if (typeof response.size === 'number') {
+      return response.size;
+    }
+    
+    if (!dataBuffer) return 0;
+
+    try {
+      // dataBuffer is base64 encoded, so we need to calculate the actual size
+      const buffer = Buffer.from(dataBuffer, 'base64');
+      return buffer.length;
+    } catch (error) {
+      return 0;
+    }
+  }, [dataBuffer, item.response]);
+
+  const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
+
+  const formattedData = useMemo(
+    () => {
+      if (isLargeResponse && !showLargeResponse) {
+        return '';
+      }
+      return formatResponse(data, dataBuffer, mode, filter);
+    },
+    [data, dataBuffer, responseEncoding, mode, filter, isLargeResponse, showLargeResponse]
+  );
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
@@ -77,7 +69,9 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
     // Always show raw
     const allowedPreviewModes = [{ mode: 'raw', name: 'Raw', uid: uuid() }];
 
-    if (mode.includes('html') && typeof data === 'string') {
+    if (!mode || !contentType) return allowedPreviewModes;
+
+    if (mode?.includes('html') && typeof data === 'string') {
       allowedPreviewModes.unshift({ mode: 'preview-web', name: 'Web', uid: uuid() });
     } else if (mode.includes('image')) {
       allowedPreviewModes.unshift({ mode: 'preview-image', name: 'Image', uid: uuid() });
@@ -121,11 +115,11 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   }, [allowedPreviewModes, previewTab]);
 
   const queryFilterEnabled = useMemo(() => mode.includes('json'), [mode]);
+  const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
     <StyledWrapper
-      className="w-full h-full relative"
-      style={{ maxWidth: width }}
+      className="w-full h-full relative flex"
       queryFilterEnabled={queryFilterEnabled}
     >
       <div className="flex justify-end gap-2 text-xs" role="tablist">
@@ -133,7 +127,9 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       </div>
       {error ? (
         <div>
-          <div className="text-red-500">{error}</div>
+          {hasScriptError ? null : (
+            <div className="text-red-500" style={{ whiteSpace: 'pre-line' }}>{formatErrorMessage(error)}</div>
+          )}
 
           {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
             <div className="mt-6 muted text-xs">
@@ -142,25 +138,33 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
             </div>
           ) : null}
         </div>
+      ) : isLargeResponse && !showLargeResponse ? (
+        <LargeResponseWarning
+          item={item}
+          responseSize={responseSize}
+          onRevealResponse={() => setShowLargeResponse(true)}
+        />
       ) : (
-        <>
-          <QueryResultPreview
-            previewTab={previewTab}
-            data={data}
-            dataBuffer={dataBuffer}
-            formattedData={formattedData}
-            item={item}
-            contentType={contentType}
-            mode={mode}
-            collection={collection}
-            allowedPreviewModes={allowedPreviewModes}
-            disableRunEventListener={disableRunEventListener}
-            displayedTheme={displayedTheme}
-          />
-          {queryFilterEnabled && (
-            <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
-          )}
-        </>
+        <div className="h-full flex flex-col">
+          <div className="flex-1 relative">
+            <QueryResultPreview
+              previewTab={previewTab}
+              data={data}
+              dataBuffer={dataBuffer}
+              formattedData={formattedData}
+              item={item}
+              contentType={contentType}
+              mode={mode}
+              collection={collection}
+              allowedPreviewModes={allowedPreviewModes}
+              disableRunEventListener={disableRunEventListener}
+              displayedTheme={displayedTheme}
+            />
+            {queryFilterEnabled && (
+              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+            )}
+          </div>
+        </div>
       )}
     </StyledWrapper>
   );
