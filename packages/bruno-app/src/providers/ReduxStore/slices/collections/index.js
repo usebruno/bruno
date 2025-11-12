@@ -1627,6 +1627,23 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateRequestHooks: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          if (!item.draft.request.script) {
+            item.draft.request.script = {};
+          }
+          item.draft.request.script.hooks = action.payload.hooks;
+        }
+      }
+    },
     updateRequestMethod: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1947,6 +1964,21 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.root.request.tests', action.payload.tests);
       }
     },
+    updateCollectionHooks: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        if (!collection.draft.root.request.script) {
+          collection.draft.root.request.script = {};
+        }
+        set(collection, 'draft.root.request.script.hooks', action.payload.hooks);
+      }
+    },
     updateCollectionDocs: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -2178,6 +2210,22 @@ export const collectionsSlice = createSlice({
           folder.draft = cloneDeep(folder.root);
         }
         set(folder, 'draft.request.tests', action.payload.tests);
+      }
+    },
+    updateFolderHooks: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        if (!folder.draft.request) {
+          folder.draft.request = {};
+        }
+        if (!folder.draft.request.script) {
+          folder.draft.request.script = {};
+        }
+        set(folder, 'draft.request.script.hooks', action.payload.hooks);
       }
     },
     updateFolderAuth: (state, action) => {
@@ -3291,6 +3339,7 @@ export const {
   updateRequestScript,
   updateResponseScript,
   updateRequestTests,
+  updateRequestHooks,
   updateRequestMethod,
   updateRequestProtoPath,
   addAssertion,
@@ -3310,6 +3359,7 @@ export const {
   updateFolderRequestScript,
   updateFolderResponseScript,
   updateFolderTests,
+  updateFolderHooks,
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
@@ -3321,6 +3371,7 @@ export const {
   updateCollectionRequestScript,
   updateCollectionResponseScript,
   updateCollectionTests,
+  updateCollectionHooks,
   updateCollectionDocs,
   updateCollectionProxy,
   updateCollectionClientCertificates,

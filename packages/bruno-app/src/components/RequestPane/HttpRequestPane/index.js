@@ -18,7 +18,6 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { useEffect } from 'react';
 import StatusDot from 'components/StatusDot';
 import Settings from 'components/RequestPane/Settings';
-
 const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -141,7 +140,7 @@ const HttpRequestPane = ({ item, collection }) => {
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
-          {(script.req || script.res) && (
+          {(script?.req || script?.res || script?.hooks) && (
             item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ?
             <StatusDot type="error" /> :
             <StatusDot />

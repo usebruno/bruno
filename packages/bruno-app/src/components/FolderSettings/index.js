@@ -21,7 +21,7 @@ const FolderSettings = ({ collection, folder }) => {
   }
 
   const folderRoot = folder?.draft || folder?.root;
-  const hasScripts = folderRoot?.request?.script?.res || folderRoot?.request?.script?.req;
+  const hasScripts = folderRoot?.request?.script?.res || folderRoot?.request?.script?.req || folderRoot?.request?.script?.hooks;
   const hasTests = folderRoot?.request?.tests;
 
   const headers = folderRoot?.request?.headers || [];
