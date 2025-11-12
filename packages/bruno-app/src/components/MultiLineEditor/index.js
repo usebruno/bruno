@@ -156,7 +156,7 @@ class MultiLineEditor extends Component {
       this.brunoAutoCompleteCleanup();
     }
     if (this.editor?._destroyLinkAware) {
-      this.editor?._destroyLinkAware?.();
+      this.editor._destroyLinkAware();
     }
     if (this.maskedEditor) {
       this.maskedEditor.destroy();

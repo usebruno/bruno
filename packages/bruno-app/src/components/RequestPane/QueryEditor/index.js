@@ -174,7 +174,7 @@ export default class QueryEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       if (this.editor?._destroyLinkAware) {
-        this.editor?._destroyLinkAware?.();
+        this.editor._destroyLinkAware();
       }
       this.editor.off('change', this._onEdit);
       this.editor.off('keyup', this._onKeyUp);

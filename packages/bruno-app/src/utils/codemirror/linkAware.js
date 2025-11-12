@@ -1,21 +1,6 @@
 import LinkifyIt from 'linkify-it';
 import { isMacOS } from 'utils/common/platform';
-
-/**
- * Creates a debounced version of a function that delays execution until after
- * the specified delay has passed since the last time it was invoked.
- * @param {Function} fn - The function to debounce
- * @param {number} delay - The delay in milliseconds
- * @returns {Function} The debounced function
- */
-function debounce(fn, delay) {
-  let timer;
-  return function (...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
-
+import { debounce } from 'lodash';
 /**
  * Marks URLs in the CodeMirror editor with clickable link styling
  * @param {Object} editor - The CodeMirror editor instance

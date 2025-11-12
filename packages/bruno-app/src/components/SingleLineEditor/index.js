@@ -159,7 +159,7 @@ class SingleLineEditor extends Component {
   componentWillUnmount() {
     if (this.editor) {
       if (this.editor?._destroyLinkAware) {
-        this.editor?._destroyLinkAware?.();
+        this.editor._destroyLinkAware();
       }
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
