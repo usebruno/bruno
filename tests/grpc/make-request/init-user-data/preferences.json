@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/tests/grpc/metadata/fixtures/collection"
+    "{{projectRoot}}/tests/grpc/make-request/fixtures/collection"
   ],
   "preferences": {
     "beta": {
