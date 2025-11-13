@@ -333,7 +333,7 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror {
     height: 100%;
-    min-height: 3.75rem;
+    min-height: 1.75rem;
     max-height: 11.125rem;
     font-size: 0.875rem;
     line-height: 1.4;
@@ -345,7 +345,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-scroll {
-    min-height: 3.75rem;
+    min-height: 1.75rem;
     max-height: 11.125rem;
     overflow-y: auto !important;
     overflow-x: hidden !important;
