@@ -14,7 +14,7 @@ const ResponseStopWatch = ({ startMillis }) => {
       tick();
     }, tickInterval);
     return () => {
-      clearTimeout(timerID);
+      clearInterval(timerID);
     };
   }, []);
 

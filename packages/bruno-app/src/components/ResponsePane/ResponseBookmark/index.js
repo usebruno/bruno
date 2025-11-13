@@ -13,15 +13,15 @@ import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
 const getTitleText = ({ isResponseTooLarge, isStreamingResponse }) => {
-  if (!isStreamingResponse && !isStreamingResponse) {
-    return 'Save current response as example';
-  }
   if (isStreamingResponse) {
     return 'Response Examples aren\'t supported in streaming responses yet.';
   }
+
   if (isResponseTooLarge) {
-    'Response size exceeds 5MB limit. Cannot save as example.';
+    return 'Response size exceeds 5MB limit. Cannot save as example.';
   }
+
+  return 'Save current response as example';
 };
 
 const ResponseBookmark = ({ item, collection, responseSize }) => {
