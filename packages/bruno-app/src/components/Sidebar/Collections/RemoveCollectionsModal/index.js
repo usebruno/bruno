@@ -71,9 +71,9 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
       .filter(Boolean);
   }, [allDrafts, allCollections]);
 
-  const hasUnsavedChanges = allDrafts.collectionDrafts.length > 0 || 
-                             allDrafts.folderDrafts.length > 0 || 
-                             allDrafts.requestDrafts.length > 0;
+  const hasUnsavedChanges = allDrafts.collectionDrafts.length > 0
+    || allDrafts.folderDrafts.length > 0
+    || allDrafts.requestDrafts.length > 0;
 
   const handleCloseAllCollections = () => {
     const removalPromises = collectionUids.map((uid) => dispatch(removeCollection(uid)));
