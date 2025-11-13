@@ -61,7 +61,7 @@ const CollectionsHeader = () => {
             <span>Collections</span>
           </div>
           {collections.length >= 1 && (
-            <div className="flex items-center collection-actions">
+            <div className="flex items-center collections-header-actions">
               <button
                 className="mr-1 collection-action-button"
                 onClick={selectAllCollectionsToClose}

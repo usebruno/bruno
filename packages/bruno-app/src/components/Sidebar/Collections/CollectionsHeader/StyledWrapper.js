@@ -12,7 +12,7 @@ const Wrapper = styled.div`
       fill: rgb(140, 140, 140);
     }
 
-    .collection-actions {
+    .collections-header-actions {
       .collection-action-button {
         opacity: 0;
         transition: opacity 0.2s ease-in-out;

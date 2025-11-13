@@ -5,7 +5,7 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
-  &:hover .collections-badge .collection-actions .collection-action-button {
+  &:hover .collections-badge .collections-header-actions .collection-action-button {
     opacity: 1;
   }
 `;
