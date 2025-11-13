@@ -968,7 +968,7 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
-    const response =  await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
+    const response = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
     if (response.stream) {
       const stream = response.stream;
       response.stream = { running: response.status >= 200 && response.status < 300 };
@@ -1007,7 +1007,7 @@ const registerNetworkIpc = (mainWindow) => {
       if (cancelTokenUid && cancelTokens[cancelTokenUid]) {
         const abortController = cancelTokens[cancelTokenUid];
         deleteCancelToken(cancelTokenUid);
-        abortController.abort()
+        abortController.abort();
         resolve();
       } else {
         reject(new Error('cancel token not found'));
