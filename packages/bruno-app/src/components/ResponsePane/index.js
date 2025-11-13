@@ -73,7 +73,7 @@ const ResponsePane = ({ item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
-        const isStream = response.headers['content-type'].includes('text/event-stream');
+        const isStream = item.response?.isStream ?? false;
         if (isStream) {
           return <WSMessagesList order={-1} messages={item.response.data} />;
         }

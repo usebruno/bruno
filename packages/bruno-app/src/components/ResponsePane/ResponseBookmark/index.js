@@ -18,6 +18,7 @@ const ResponseBookmark = ({ item, collection, responseSize }) => {
   const response = item.response || {};
 
   const isResponseTooLarge = responseSize >= 5 * 1024 * 1024; // 5 MB
+  const isStreamingResponse = response.isStream;
 
   // Only show for HTTP requests
   if (item.type !== 'http-request') {
@@ -96,19 +97,19 @@ const ResponseBookmark = ({ item, collection, responseSize }) => {
     toast.success(`Example "${name}" created successfully`);
   };
 
+  const disabledMessage = isResponseTooLarge ? 'Response size exceeds 5MB limit. Cannot save as example.' : isStreamingResponse ? 'Response Examples aren\t supported in streaming responses yet.' : 'Save current response as example';
+
   return (
     <>
       <StyledWrapper className="ml-2 flex items-center">
         <button
           onClick={handleSaveClick}
-          disabled={isResponseTooLarge}
+          disabled={isResponseTooLarge || isStreamingResponse}
           title={
-            isResponseTooLarge
-              ? 'Response size exceeds 5MB limit. Cannot save as example.'
-              : 'Save current response as example'
+            disabledMessage
           }
           className={classnames('p-1', {
-            'opacity-50 cursor-not-allowed': isResponseTooLarge
+            'opacity-50 cursor-not-allowed': isResponseTooLarge || isStreamingResponse
           })}
           data-testid="response-bookmark-btn"
         >
