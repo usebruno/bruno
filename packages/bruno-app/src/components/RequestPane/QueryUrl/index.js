@@ -322,6 +322,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         <SingleLineEditor
           ref={editorRef}
           value={url}
+          placeholder="Enter URL or paste a cURL request"
           onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
           onChange={(newValue) => onUrlChange(newValue)}
