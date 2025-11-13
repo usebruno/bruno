@@ -36,7 +36,7 @@ const COPY_SUCCESS_COLOR = '#22c55e';
 export const COPY_SUCCESS_TIMEOUT = 1000;
 
 // Editor height constraints
-const EDITOR_MIN_HEIGHT = 3.75;
+const EDITOR_MIN_HEIGHT = 1.75;
 const EDITOR_MAX_HEIGHT = 11.125;
 
 /**
