@@ -96,7 +96,7 @@ const promisifyStream = async (stream, abortController, closeOnFirst) => {
     });
 
     stream.on('close', doResolve);
-    stream.on('error', err => reject(err));
+    stream.on('error', (err) => reject(err));
   });
 };
 
@@ -613,7 +613,7 @@ const registerNetworkIpc = (mainWindow) => {
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
-    request.responseType = "stream";
+    request.responseType = 'stream';
     const brunoConfig = getBrunoConfig(collectionUid, collection);
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
@@ -957,9 +957,9 @@ const registerNetworkIpc = (mainWindow) => {
       response.stream = undefined;
       response.hasStreamRunning = response.status >= 200 && response.status < 300;
 
-      stream.on('data', newData => {
+      stream.on('data', (newData) => {
         const parsed = parseDataFromResponse({ data: newData, headers: {} });
-        mainWindow.webContents.send('main:http-stream-new-data', {collectionUid, itemUid: item.uid, data: parsed});
+        mainWindow.webContents.send('main:http-stream-new-data', { collectionUid, itemUid: item.uid, data: parsed });
       });
 
       stream.on('close', () => {
@@ -967,7 +967,7 @@ const registerNetworkIpc = (mainWindow) => {
           return;
         }
 
-        mainWindow.webContents.send('main:http-stream-end', {collectionUid, itemUid: item.uid});
+        mainWindow.webContents.send('main:http-stream-end', { collectionUid, itemUid: item.uid });
         deleteCancelToken(response.cancelTokenUid);
       });
     }
