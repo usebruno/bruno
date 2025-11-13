@@ -344,6 +344,26 @@ ${indentString(
     }
   }
 
+  if (auth && auth.oauth1) {
+    bru += `auth:oauth1 {
+${indentString(`consumer_key: ${auth?.oauth1?.consumerKey || ''}`)}
+${indentString(`consumer_secret: ${auth?.oauth1?.consumerSecret || ''}`)}
+${indentString(`signature_method: ${auth?.oauth1?.signatureMethod || 'HMAC-SHA1'}`)}
+${indentString(`parameter_transmission: ${auth?.oauth1?.parameterTransmission || 'authorization_header'}`)}
+${indentString(`request_token_url: ${auth?.oauth1?.requestTokenUrl || ''}`)}
+${indentString(`authorize_url: ${auth?.oauth1?.authorizeUrl || ''}`)}
+${indentString(`access_token_url: ${auth?.oauth1?.accessTokenUrl || ''}`)}
+${indentString(`callback_url: ${auth?.oauth1?.callbackUrl || ''}`)}
+${indentString(`verifier: ${auth?.oauth1?.verifier || ''}`)}
+${indentString(`access_token: ${auth?.oauth1?.accessToken || ''}`)}
+${indentString(`access_token_secret: ${auth?.oauth1?.accessTokenSecret || ''}`)}
+${indentString(`rsa_private_key: ${auth?.oauth1?.rsaPrivateKey || ''}`)}
+${indentString(`credentials_id: ${auth?.oauth1?.credentialsId || 'credentials'}`)}
+}
+
+`;
+  }
+
   let reqvars = _.get(vars, 'req');
   let resvars = _.get(vars, 'res');
   if (reqvars && reqvars.length) {

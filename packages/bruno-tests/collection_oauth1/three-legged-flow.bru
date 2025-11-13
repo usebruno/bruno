@@ -1,0 +1,167 @@
+meta {
+  name: 3-Legged OAuth 1.0 Flow
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{oauth1_base_url}}/api/auth/oauth1/three_legged/request_token
+  body: none
+  auth: oauth1
+}
+
+auth:oauth1 {
+  consumer_key: {{oauth1_consumer_key}}
+  consumer_secret: {{oauth1_consumer_secret}}
+  signature_method: HMAC-SHA1
+  parameter_transmission: authorization_header
+  callback_url: http://localhost:8081/callback
+  credentials_id: oauth1_test_creds
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should complete 3-legged OAuth flow", async function() {
+    const axios = require('axios');
+    const crypto = require('crypto');
+
+    // Helper function to parse form-encoded response
+    function parseFormResponse(data) {
+      const params = {};
+      data.split('&').forEach(pair => {
+        const [key, value] = pair.split('=');
+        params[key] = decodeURIComponent(value);
+      });
+      return params;
+    }
+
+    // Helper function to generate OAuth signature
+    function generateSignature(method, url, params, consumerSecret, tokenSecret = '') {
+      const sortedParams = Object.keys(params)
+        .sort()
+        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+        .join('&');
+
+      const baseString = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(sortedParams)}`;
+      const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
+
+      return crypto.createHmac('sha1', signingKey).update(baseString).digest('base64');
+    }
+
+    // Step 1: Get request token
+    const requestTokenResponse = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(requestTokenResponse).to.contain('oauth_token=');
+    expect(requestTokenResponse).to.contain('oauth_token_secret=');
+    expect(requestTokenResponse).to.contain('oauth_callback_confirmed=true');
+
+    const requestTokenData = parseFormResponse(requestTokenResponse);
+    const requestToken = requestTokenData.oauth_token;
+    const requestTokenSecret = requestTokenData.oauth_token_secret;
+
+    expect(requestToken).to.be.a('string');
+    expect(requestTokenSecret).to.be.a('string');
+    expect(requestTokenData.oauth_callback_confirmed).to.equal('true');
+
+    // Step 2: Authorize the request token (auto-approve for testing)
+    const baseUrl = bru.getEnvVar('oauth1_base_url');
+    const authorizeUrl = `${baseUrl}/api/auth/oauth1/three_legged/authorize?oauth_token=${requestToken}&auto_approve=true`;
+    const authorizeResponse = await axios.get(authorizeUrl, { maxRedirects: 0, validateStatus: status => status === 302 });
+
+    expect(authorizeResponse.status).to.equal(302);
+    const location = authorizeResponse.headers.location;
+    expect(location).to.contain('oauth_token=');
+    expect(location).to.contain('oauth_verifier=');
+
+    const callbackUrl = new URL(location);
+    const verifier = callbackUrl.searchParams.get('oauth_verifier');
+    expect(verifier).to.be.a('string');
+
+    // Step 3: Exchange request token for access token
+    const accessTokenUrl = `${baseUrl}/api/auth/oauth1/three_legged/access_token`;
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const nonce = crypto.randomBytes(16).toString('hex');
+
+    const consumerKey = bru.getEnvVar('oauth1_consumer_key');
+    const consumerSecret = bru.getEnvVar('oauth1_consumer_secret');
+
+    const accessTokenParams = {
+      oauth_consumer_key: consumerKey,
+      oauth_token: requestToken,
+      oauth_signature_method: 'HMAC-SHA1',
+      oauth_timestamp: timestamp,
+      oauth_nonce: nonce,
+      oauth_version: '1.0',
+      oauth_verifier: verifier
+    };
+
+    accessTokenParams.oauth_signature = generateSignature(
+      'POST',
+      accessTokenUrl,
+      accessTokenParams,
+      consumerSecret,
+      requestTokenSecret
+    );
+
+    const authHeader = 'OAuth ' + Object.keys(accessTokenParams)
+      .map(key => `${key}="${encodeURIComponent(accessTokenParams[key])}"`)
+      .join(', ');
+
+    const accessTokenResponse = await axios.post(
+      accessTokenUrl,
+      '',
+      { headers: { 'Authorization': authHeader } }
+    );
+
+    expect(accessTokenResponse.status).to.equal(200);
+    expect(accessTokenResponse.data).to.contain('oauth_token=');
+    expect(accessTokenResponse.data).to.contain('oauth_token_secret=');
+
+    const accessTokenData = parseFormResponse(accessTokenResponse.data);
+    const accessToken = accessTokenData.oauth_token;
+    const accessTokenSecret = accessTokenData.oauth_token_secret;
+
+    expect(accessToken).to.be.a('string');
+    expect(accessTokenSecret).to.be.a('string');
+
+    // Step 4: Access protected resource with access token
+    const resourceUrl = `${baseUrl}/api/auth/oauth1/three_legged/resource`;
+    const resourceTimestamp = Math.floor(Date.now() / 1000).toString();
+    const resourceNonce = crypto.randomBytes(16).toString('hex');
+
+    const resourceParams = {
+      oauth_consumer_key: consumerKey,
+      oauth_token: accessToken,
+      oauth_signature_method: 'HMAC-SHA1',
+      oauth_timestamp: resourceTimestamp,
+      oauth_nonce: resourceNonce,
+      oauth_version: '1.0'
+    };
+
+    resourceParams.oauth_signature = generateSignature(
+      'POST',
+      resourceUrl,
+      resourceParams,
+      consumerSecret,
+      accessTokenSecret
+    );
+
+    const resourceAuthHeader = 'OAuth ' + Object.keys(resourceParams)
+      .map(key => `${key}="${encodeURIComponent(resourceParams[key])}"`)
+      .join(', ');
+
+    const resourceResponse = await axios.post(
+      resourceUrl,
+      '',
+      { headers: { 'Authorization': resourceAuthHeader } }
+    );
+
+    expect(resourceResponse.status).to.equal(200);
+    expect(resourceResponse.data.message).to.equal('OAuth 1.0 3-legged authorization successful');
+    expect(resourceResponse.data.resource).to.be.an('object');
+    expect(resourceResponse.data.resource.user_id).to.equal('test_user');
+  });
+}

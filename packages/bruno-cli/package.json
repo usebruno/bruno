@@ -67,6 +67,7 @@
     "iconv-lite": "^0.6.3",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
+    "oauth-1.0a": "^2.2.6",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
     "xmlbuilder": "^15.1.1",

@@ -1,0 +1,35 @@
+meta {
+  name: Resource with Override OAuth 1.0
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{oauth1_base_url}}/api/auth/oauth1/two_legged/resource
+  body: none
+  auth: oauth1
+}
+
+auth:oauth1 {
+  consumer_key: {{oauth1_consumer_key}}
+  consumer_secret: {{oauth1_consumer_secret}}
+  signature_method: HMAC-SHA256
+  parameter_transmission: query_param
+  credentials_id: override_oauth1_test_creds
+}
+
+assert {
+  res.status: eq 200
+  res.body.message: eq OAuth 1.0 2-legged authorization successful
+}
+
+tests {
+  test("should override collection OAuth 1.0 with request-level config", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().message).to.equal('OAuth 1.0 2-legged authorization successful');
+    expect(res.getBody().oauth_params).to.be.an('object');
+    expect(res.getBody().oauth_params.consumer_key).to.equal('oauth1_consumer_key');
+    // This should use HMAC-SHA256 instead of collection's HMAC-SHA1
+    expect(res.getBody().oauth_params.signature_method).to.equal('HMAC-SHA256');
+  });
+}

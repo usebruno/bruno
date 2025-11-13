@@ -11,6 +11,7 @@ const AUTH_TYPES = Object.freeze({
   APIKEY: 'apikey',
   DIGEST: 'digest',
   OAUTH2: 'oauth2',
+  OAUTH1: 'oauth1',
   NOAUTH: 'noauth',
   NONE: 'none'
 });
@@ -285,6 +286,35 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
           break;
       }
       break;
+    case AUTH_TYPES.OAUTH1:
+      const findOAuth1Value = (key) => authValues[key] || '';
+
+      // Map Postman's addParamsToHeader to Bruno's parameterTransmission
+      const addParamsToHeader = findOAuth1Value('addParamsToHeader');
+      let parameterTransmission = 'authorization_header'; // default
+      if (addParamsToHeader === 'false' || addParamsToHeader === false) {
+        parameterTransmission = 'query_param';
+      }
+
+      // Map Postman's signatureMethod (defaults to HMAC-SHA1)
+      const signatureMethod = findOAuth1Value('signatureMethod') || 'HMAC-SHA1';
+
+      requestObject.auth.oauth1 = {
+        consumerKey: findOAuth1Value('consumerKey'),
+        consumerSecret: findOAuth1Value('consumerSecret'),
+        signatureMethod: signatureMethod,
+        parameterTransmission: parameterTransmission,
+        requestTokenUrl: findOAuth1Value('requestTokenUrl'),
+        authorizeUrl: findOAuth1Value('authUrl'),
+        accessTokenUrl: findOAuth1Value('accessTokenUrl'),
+        callbackUrl: findOAuth1Value('callback'),
+        verifier: findOAuth1Value('verifier'),
+        accessToken: findOAuth1Value('token'),
+        accessTokenSecret: findOAuth1Value('tokenSecret'),
+        rsaPrivateKey: findOAuth1Value('privateKey'),
+        credentialsId: 'credentials'
+      };
+      break;
     default:
       requestObject.auth.mode = AUTH_TYPES.NONE;
       console.warn('Unexpected auth.type:', auth.type, '- Mode set, but no specific config generated.');
@@ -327,6 +357,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               awsv4: null,
               apikey: null,
               oauth2: null,
+              oauth1: null,
               digest: null
             },
             headers: [],
@@ -392,6 +423,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
             awsv4: null,
             apikey: null,
             oauth2: null,
+            oauth1: null,
             digest: null
           },
           headers: [],
@@ -785,6 +817,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
           awsv4: null,
           apikey: null,
           oauth2: null,
+          oauth1: null,
           digest: null
         },
         headers: [],
