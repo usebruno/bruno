@@ -389,9 +389,9 @@ export const collectionsSlice = createSlice({
             item.response.data = [{ type: 'info', timestamp: Date.now(), message: 'Connection Closed' }].concat(item.response.data);
           } else {
             item.response = null;
+            item.requestUid = null;
           }
           item.cancelTokenUid = null;
-          item.requestUid = null;
           item.requestStartTime = null;
         }
       }

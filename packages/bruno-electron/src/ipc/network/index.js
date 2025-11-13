@@ -781,7 +781,7 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       const { data, dataBuffer } = request.isStream
-        ? { data: '', dataBuffer: new ArrayBuffer(0) }
+        ? { data: '', dataBuffer: Buffer.alloc(0) }
         : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
       response.dataBuffer = dataBuffer;
@@ -799,10 +799,9 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
       cookiesStore.saveCookieJar();
 
-      let postResponseScriptResult = null;
-      let postResponseError = null;
-      
       const runPostScripts = async () => {
+        let postResponseScriptResult = null;
+        let postResponseError = null;
         try {
           postResponseScriptResult = await runPostResponse(request,
             response,
