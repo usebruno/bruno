@@ -246,7 +246,7 @@ const GlobalStyle = createGlobalStyle`
     box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
     box-sizing: border-box;
     font-size: 0.875rem;
-    line-height: 1.4;
+    line-height: 1.25rem;
     margin: 0;
     min-width: 18.1875rem;
     max-width: 18.1875rem;
@@ -285,6 +285,7 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-name {
     font-size: 0.875rem;
     color: ${(props) => props.theme.codemirror.variable.info.color};
+    font-weight: 600;
   }
 
   /* Scope Badge */
@@ -312,11 +313,12 @@ const GlobalStyle = createGlobalStyle`
 
   /* Value Display (Read-only) */
   .CodeMirror-brunoVarInfo .var-value-display {
-    padding: 0.375rem 2.5rem 0.375rem 0.5rem;
+    padding: 0.375rem 1.5rem 0.375rem 0.5rem;
     font-size: 0.875rem;
-    font-family: monospace;
+    font-family: Inter, sans-serif;
+    font-weight: 400;
     word-break: break-word;
-    line-height: 1.4;
+    line-height: 1.25rem;
     color: ${(props) => props.theme.codemirror.variable.info.color};
     min-height: 1.75rem;
     max-width: 13.1875rem;
@@ -336,7 +338,9 @@ const GlobalStyle = createGlobalStyle`
     min-height: 1.75rem;
     max-height: 11.125rem;
     font-size: 0.875rem;
-    line-height: 1.4;
+    font-family: Inter, sans-serif;
+    font-weight: 400;
+    line-height: 1.25rem;
     border: 0.0625rem solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
     border-radius: 0.375rem;
     background: ${(props) => props.theme.codemirror.variable.info.editorBg};
@@ -357,9 +361,11 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-lines {
-    padding: 0.375rem 2.5rem 0.375rem 0.5rem;
+    padding: 0.375rem 1.5rem 0.375rem 0.5rem;
     max-width: 13.1875rem;
-    line-height: 1.4;
+    font-family: Inter, sans-serif;
+    font-weight: 400;
+    line-height: 1.25rem;
     word-break: break-all;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -367,7 +373,9 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror pre {
     font-size: 0.875rem;
-    line-height: 1.4;
+    font-family: Inter, sans-serif;
+    font-weight: 400;
+    line-height: 1.25rem;
     word-break: break-all;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -378,8 +386,10 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-line {
     padding: 0;
     max-width: 13.1875rem;
-    line-height: 1.4;
+    line-height: 1.25rem;
     font-size: 0.875rem;
+    font-family: Inter, sans-serif;
+    font-weight: 400;
     word-break: break-all;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -396,14 +406,15 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-value-editable-display {
     width: 17.1875rem;
     max-width: 13.1875rem;
-    padding: 0.375rem 2.5rem 0.375rem 0.5rem;
+    padding: 0.375rem 1.5rem 0.375rem 0.5rem;
     font-size: 0.875rem;
-    font-family: monospace;
+    font-family: Inter, sans-serif;
+    font-weight: 400;
     word-break: break-all;
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    line-height: 1.4;
+    line-height: 1.25rem;
     color: ${(props) => props.theme.codemirror.variable.info.color};
     min-height: 1.75rem;
     cursor: text;
