@@ -7,6 +7,7 @@
  */
 
 import { interpolate } from '@usebruno/common';
+import { store } from "providers/ReduxStore";
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -42,7 +43,7 @@ const getCopyButton = (variableValue) => {
   copyButton.style.transition = 'opacity 0.2s ease';
   copyButton.style.display = 'flex';
   copyButton.style.alignItems = 'center';
-  copyButton.style.justifyContent = 'center';
+  copyButton.style.justifyContent = 'flex-end';
 
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
 
@@ -115,24 +116,536 @@ export const renderVarInfo = (token, options, cm, pos) => {
   contentDiv.style.gap = '8px';
   contentDiv.className = 'info-content';
 
-  const descriptionDiv = document.createElement('div');
-  descriptionDiv.className = 'info-description';
-  descriptionDiv.style.flex = '1';
+  appendVariableHeader(into, variableName, options);  
+  appendVariableValue(into, variableName, variableValue, options, cm);
 
-  if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
-    descriptionDiv.appendChild(document.createTextNode('*****'));
-  } else {
-    descriptionDiv.appendChild(document.createTextNode(variableValue));
-  }
-
-  const copyButton = getCopyButton(variableValue);
-
-  contentDiv.appendChild(descriptionDiv);
-  contentDiv.appendChild(copyButton);
   into.appendChild(contentDiv);
-
   return into;
 };
+
+const appendVariableHeader = (container, variableName, options) => {
+    const variableType = getVariableType(variableName, options);
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'info-name';
+    headerDiv.textContent = `${variableName} (${variableType})`;
+    container.appendChild(headerDiv);
+  };
+
+const appendVariableValue = (container, variableName, variableValue, options, cm) => {
+    const variableType = getVariableType(variableName, options);
+    const isEditable = isVariableEditable(variableType);
+    const isMasked = isVariableMasked(variableName, options);
+    
+    const valueContainer = createValueContainer(variableValue, isMasked, isEditable);
+    container.appendChild(valueContainer);
+    
+    if (isEditable && !isMasked) {
+      const editControls = createEditControls(variableName, variableValue, options, cm, valueContainer);
+      container.appendChild(editControls);
+    } else if (!isEditable) {
+      container.appendChild(createReadOnlyInfo());
+    }
+  };
+
+  const isVariableEditable = (variableType) => {
+    return ['global', 'environment', 'collection', 'folder'].includes(variableType);
+  };
+
+  const isVariableMasked = (variableName, options) => {
+    return options?.variables?.maskedEnvVariables?.includes(variableName);
+  };
+
+  const createValueContainer = (variableValue, isMasked, isEditable) => {
+    const valueContainer = document.createElement('div');
+    valueContainer.className = 'value-container';
+    
+    const displayValue = isMasked ? '*****' : variableValue;
+    const descriptionDiv = createValueDisplay(displayValue);
+    valueContainer.appendChild(descriptionDiv);
+
+    const copyButton = getCopyButton(variableValue);
+    valueContainer.appendChild(copyButton);
+    
+    if (isEditable && !isMasked) {
+      const editInput = createEditInput(variableValue);
+      valueContainer.appendChild(editInput);
+    }
+    
+    return valueContainer;
+  };
+
+  const createValueDisplay = (displayValue) => {
+    const descriptionDiv = document.createElement('div');
+    descriptionDiv.className = 'info-description';
+    descriptionDiv.appendChild(document.createTextNode(displayValue));
+    return descriptionDiv;
+  };
+
+  const createEditInput = (variableValue) => {
+    const editInput = document.createElement('input');
+    editInput.type = 'text';
+    editInput.className = 'edit-input hidden';
+    editInput.value = variableValue;
+    return editInput;
+  };
+
+  const createEditControls = (variableName, variableValue, options, cm, valueContainer) => {
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'button-container';
+    
+    const editButton = createButton('Edit', 'edit-btn');
+    const saveButton = createButton('Save', 'save-btn hidden');
+    const cancelButton = createButton('Cancel', 'cancel-btn hidden');
+    
+    buttonContainer.appendChild(editButton);
+    buttonContainer.appendChild(saveButton);
+    buttonContainer.appendChild(cancelButton);
+    
+    setupEditFunctionality(
+      variableName, 
+      variableValue, 
+      options, 
+      cm, 
+      valueContainer, 
+      editButton, 
+      saveButton, 
+      cancelButton
+    );
+    
+    return buttonContainer;
+  };
+
+  const createButton = (text, className) => {
+    const button = document.createElement('button');
+    button.textContent = text;
+    button.className = className;
+    return button;
+  };
+
+  const createReadOnlyInfo = () => {
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'read-only-info';
+    infoDiv.textContent = 'This type of variable cannot be edited from tooltips.';
+    return infoDiv;
+  };
+
+  const setupEditFunctionality = (variableName, variableValue, options, cm, valueContainer, editButton, saveButton, cancelButton) => {
+    const descriptionDiv = valueContainer.querySelector('.info-description');
+    const editInput = valueContainer.querySelector('.edit-input');
+    const originalValue = variableValue;
+    
+    const editMode = createEditModeController(descriptionDiv, editInput, editButton, saveButton, cancelButton);
+    
+    setupEditEventListeners(
+      variableName, 
+      originalValue, 
+      options, 
+      cm, 
+      valueContainer, 
+      descriptionDiv, 
+      editInput, 
+      editButton, 
+      saveButton, 
+      cancelButton, 
+      editMode
+    );
+  };
+
+  const createEditModeController = (descriptionDiv, editInput, editButton, saveButton, cancelButton) => {
+    return {
+      enter: () => {
+        descriptionDiv.className = 'info-description hidden';
+        editInput.className = 'edit-input';
+        editInput.focus();
+        editInput.select();
+        
+        editButton.className = 'edit-btn hidden';
+        saveButton.className = 'save-btn visible';
+        cancelButton.className = 'cancel-btn visible';
+      },
+      
+      exit: () => {
+        descriptionDiv.className = 'info-description';
+        editInput.className = 'edit-input hidden';
+        
+        editButton.className = 'edit-btn visible';
+        saveButton.className = 'save-btn hidden';
+        cancelButton.className = 'cancel-btn hidden';
+      }
+    };
+  };
+
+  const setupEditEventListeners = (variableName, originalValue, options, cm, valueContainer, descriptionDiv, editInput, editButton, saveButton, cancelButton, editMode) => {
+    const saveValue = async () => {
+      const newValue = editInput.value;
+      try {
+        await updateVariableValue(variableName, newValue, options, cm);
+        descriptionDiv.textContent = newValue;
+        editMode.exit();
+        showFeedback(valueContainer, 'Saved!', 'success', 2000);
+      } catch (error) {
+        showFeedback(valueContainer, error.message || 'Failed to save', 'error', 4000);
+      }
+    };
+
+    const cancelEdit = () => {
+      editInput.value = originalValue;
+      editMode.exit();
+    };
+
+    editButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editMode.enter();
+    });
+
+    saveButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      saveValue();
+    });
+
+    cancelButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cancelEdit();
+    });
+
+    editInput.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') {
+        saveValue();
+      } else if (e.key === 'Escape') {
+        cancelEdit();
+      }
+    });
+  };
+
+  const showFeedback = (container, message, type, duration) => {
+    const feedbackMsg = document.createElement('div');
+    feedbackMsg.textContent = message;
+    feedbackMsg.className = `feedback-message ${type}`;
+    container.appendChild(feedbackMsg);
+    setTimeout(() => feedbackMsg.remove(), duration);
+  };
+
+  // Helper function to determine variable type
+  const getVariableType = (variableName, options) => {
+    
+    const reduxStore = store;
+    
+    if (!reduxStore) {
+      console.warn('Bruno Variable Info: Store not available for variable type detection');
+      // When store is unavailable, we can make some basic assumptions
+      if (variableName.startsWith('process.env.')) {
+        return 'process';
+      }
+      // Default to runtime for variables that appear in the variables object
+      return options?.variables?.[variableName] !== undefined ? 'runtime' : 'unknown';
+    }
+    
+    const state = reduxStore.getState();
+    const globalEnvironments = state?.globalEnvironments?.globalEnvironments;
+    const activeGlobalEnvironmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
+    const collections = state?.collections?.collections;
+
+    // Check global environment
+    const activeGlobalEnv = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+    if (activeGlobalEnv?.variables?.some(v => v.name === variableName)) {
+      return 'global';
+    }
+
+    // Check collection environments
+    if (collections) {
+      for (const collection of collections) {
+        if (collection.activeEnvironmentUid && collection.environments) {
+          const environment = collection.environments.find(env => env.uid === collection.activeEnvironmentUid);
+          if (environment?.variables?.some(v => v.name === variableName)) {
+            return 'environment';
+          }
+        }
+      }
+    }
+
+    // Check collection variables
+    if (collections) {
+      for (const collection of collections) {
+        if (collection.root?.request?.vars?.req?.some(v => v.name === variableName)) {
+          return 'collection';
+        }
+      }
+    }
+
+    // Check folder variables (recursive check through all folders in collections)
+    if (collections) {
+      for (const collection of collections) {
+        if (hasFolderVariable(collection.items, variableName)) {
+          return 'folder';
+        }
+      }
+    }
+
+    // Check if it's a process env variable
+    if (variableName.startsWith('process.env.')) {
+      return 'process';
+    }
+
+    return 'runtime';
+  };
+
+  const hasFolderVariable = (items, variableName) => {
+    if (!items || !Array.isArray(items)) {
+      return false;
+    }
+
+    for (const item of items) {
+      // Check if this item is a folder and has the variable
+      if (item.type === 'folder') {
+        const folderVars = item.root?.request?.vars?.req || [];
+        if (folderVars.some(v => v.name === variableName && v.enabled)) {
+          return true;
+        }
+        
+        // Recursively check nested folders
+        if (item.items && hasFolderVariable(item.items, variableName)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
+  // Function to update variable value
+  const updateVariableValue = async (variableName, newValue, options, cm) => {
+    validateUpdateParameters(variableName, newValue, options);
+    
+    const variableType = getVariableType(variableName, options);
+
+    if (!store) {
+      throw new Error(`Store not available to update variable '${variableName}'`);
+    }
+    
+    const state = store.getState();
+    
+    switch (variableType) {
+      case 'global':
+        return updateGlobalVariable(variableName, newValue, state, store);
+      case 'environment':
+        return updateEnvironmentVariable(variableName, newValue, state, store);
+      case 'runtime':
+        return updateRuntimeVariable(variableName, newValue, options, cm, store);
+      case 'collection':
+        return updateCollectionVariable(variableName, newValue, options, cm, store);
+      case 'folder':
+        return updateFolderVariable(variableName, newValue, options, cm, store);
+      default:
+        throw new Error(`Variable '${variableName}' not found in editable contexts. Global, environment, and runtime variables can be edited from tooltips.`);
+    }
+  };
+
+  const validateUpdateParameters = (variableName, newValue, options) => {
+    if (!variableName) {
+      throw new Error('Variable name is required');
+    }
+    if (!options?.variables) {
+      throw new Error('No variables context available');
+    }
+  };
+
+  const updateGlobalVariable = async (variableName, newValue, state, reduxStore) => {
+    const activeGlobalEnv = getActiveGlobalEnvironment(state);
+    
+    if (!activeGlobalEnv) {
+      throw new Error('No active global environment found');
+    }
+    
+    const globalVar = activeGlobalEnv.variables?.find(v => v.name === variableName);
+    if (!globalVar) {
+      throw new Error(`Global variable '${variableName}' not found`);
+    }
+    
+    const updatedVariables = updateVariableInArray(activeGlobalEnv.variables, variableName, newValue);
+    
+    const { saveGlobalEnvironment } = await import('providers/ReduxStore/slices/global-environments');
+    await reduxStore.dispatch(saveGlobalEnvironment({ 
+      environmentUid: state.globalEnvironments.activeGlobalEnvironmentUid, 
+      variables: updatedVariables 
+    }));
+  };
+
+  const updateEnvironmentVariable = async (variableName, newValue, state, reduxStore) => {
+    const collections = state?.collections?.collections;
+    if (!collections) {
+      throw new Error('No collections found');
+    }
+    
+    for (const collection of collections) {
+      const environment = getActiveEnvironment(collection);
+      if (!environment) continue;
+      
+      const envVar = environment.variables?.find(v => v.name === variableName && v.enabled);
+      if (envVar) {
+        const updatedVariables = updateVariableInArray(environment.variables, variableName, newValue);
+
+        const { saveEnvironment } = await import('providers/ReduxStore/slices/collections/actions');
+        await reduxStore.dispatch(saveEnvironment(updatedVariables, collection.activeEnvironmentUid, collection.uid));
+        return;
+      }
+    }
+    
+    throw new Error(`Environment variable '${variableName}' not found`);
+  };
+
+  const updateRuntimeVariable = async (variableName, newValue, options, cm, reduxStore) => {
+    options.variables[variableName] = newValue;
+    updateCodeMirrorState(cm, options.variables);
+    
+    const collectionUid = options.collectionUid;
+    if (collectionUid) {
+      await dispatchRuntimeVariableUpdate(reduxStore, collectionUid, variableName, newValue);
+    }
+  };
+
+  const updateCollectionVariable = async (variableName, newValue, options, cm, reduxStore) => {
+    const state = reduxStore.getState();
+    const collections = state?.collections?.collections;
+    if (!collections) {
+      throw new Error('No collections found');
+    }
+    
+    // Find the collection that contains this variable
+    for (const collection of collections) {
+      const collectionRequestVars = collection.root?.request?.vars?.req || [];
+      const collectionVar = collectionRequestVars.find(v => v.name === variableName && v.enabled);
+      
+      if (collectionVar) {
+        // Import the action creator and update the variable
+        const { updateCollectionVar } = await import('providers/ReduxStore/slices/collections');        
+        await reduxStore.dispatch(updateCollectionVar({
+          collectionUid: collection.uid,
+          type: 'request',
+          var: {
+            ...collectionVar,
+            value: newValue
+          }
+        }));
+        
+        // Also save the collection root to persist the change
+        const { saveCollectionRoot } = await import('providers/ReduxStore/slices/collections/actions');
+        await reduxStore.dispatch(saveCollectionRoot(collection.uid));
+        
+        // Update the local options to reflect the change immediately
+        if (options.variables) {
+          options.variables[variableName] = newValue;
+        }
+        updateCodeMirrorState(cm, options.variables);
+        
+        return;
+      }
+    }
+    
+    throw new Error(`Collection variable '${variableName}' not found`);
+  };
+
+  const updateFolderVariable = async (variableName, newValue, options, cm, reduxStore) => {
+    const state = reduxStore.getState();
+    const collections = state?.collections?.collections;
+    if (!collections) {
+      throw new Error('No collections found');
+    }
+    
+    // Find the folder that contains this variable
+    for (const collection of collections) {
+      const folderInfo = findFolderWithVariable(collection.items, variableName);
+      
+      if (folderInfo) {
+        const { updateFolderVar } = await import('providers/ReduxStore/slices/collections');
+        await reduxStore.dispatch(updateFolderVar({
+          collectionUid: collection.uid,
+          folderUid: folderInfo.folderUid,
+          type: 'request',
+          var: {
+            ...folderInfo.variable,
+            value: newValue
+          }
+        }));
+        
+        const { saveFolderRoot } = await import('providers/ReduxStore/slices/collections/actions');
+        await reduxStore.dispatch(saveFolderRoot(collection.uid, folderInfo.folderUid));
+        
+        if (options.variables) {
+          options.variables[variableName] = newValue;
+        }
+        updateCodeMirrorState(cm, options.variables);
+        
+        return;
+      }
+    }
+    
+    throw new Error(`Folder variable '${variableName}' not found`);
+  };
+
+const findFolderWithVariable = (items, variableName) => {
+    if (!items || !Array.isArray(items)) {
+      return null;
+    }
+
+    for (const item of items) {
+      if (item.type === 'folder') {
+        const folderVars = item.root?.request?.vars?.req || [];
+        const variable = folderVars.find(v => v.name === variableName && v.enabled);
+        
+        if (variable) {
+          return {
+            folderUid: item.uid,
+            variable
+          };
+        }
+        
+        // Recursively check nested folders
+        const nestedResult = findFolderWithVariable(item.items, variableName);
+        if (nestedResult) {
+          return nestedResult;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const getActiveGlobalEnvironment = (state) => {
+    const globalEnvironments = state?.globalEnvironments?.globalEnvironments;
+    const activeGlobalEnvironmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
+    
+    return globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  };
+
+  const getActiveEnvironment = (collection) => {
+    if (!collection.activeEnvironmentUid || !collection.environments) {
+      return null;
+    }
+    
+    return collection.environments.find(env => env.uid === collection.activeEnvironmentUid);
+  };
+
+  const updateVariableInArray = (variables, variableName, newValue) => {
+    return variables.map(v => 
+      v.name === variableName ? { ...v, value: newValue } : v
+    );
+  };
+
+  const updateCodeMirrorState = (cm, variables) => {
+    if (cm?.state?.brunoVarInfo) {
+      cm.state.brunoVarInfo.options.variables = variables;
+    }
+  };
+
+  const dispatchRuntimeVariableUpdate = async (reduxStore, collectionUid, variableName, variableValue) => {
+    const { updateRuntimeVariable } = await import('providers/ReduxStore/slices/collections');
+    await reduxStore.dispatch(updateRuntimeVariable({
+      collectionUid,
+      variableName,
+      variableValue
+    }));
+  };
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -232,23 +745,28 @@ if (!SERVER_RENDERED) {
     const popupHeight =
       popupBox.bottom - popupBox.top + parseFloat(popupStyle.marginTop) + parseFloat(popupStyle.marginBottom);
 
-    let topPos = box.bottom;
+    // Smart positioning: try below first, then above if no space
+    let topPos = box.bottom + 5;
     if (popupHeight > window.innerHeight - box.bottom - 15 && box.top > window.innerHeight - box.bottom) {
-      topPos = box.top - popupHeight;
+      topPos = box.top - popupHeight - 5;
     }
 
+    // If still doesn't fit, position at top of viewport
     if (topPos < 0) {
-      topPos = box.bottom;
+      topPos = 10;
     }
 
-    // make popup appear on top of cursor
-    if (topPos > 70) {
-      topPos = topPos - 70;
+    // Horizontal positioning: try to center on the variable, but stay within viewport
+    let leftPos = box.left + (box.width / 2) - (popupWidth / 2);
+    
+    // Ensure it doesn't go off the left edge
+    if (leftPos < 10) {
+      leftPos = 10;
     }
-
-    let leftPos = Math.max(0, window.innerWidth - popupWidth - 15);
-    if (leftPos > box.left) {
-      leftPos = box.left;
+    
+    // Ensure it doesn't go off the right edge
+    if (leftPos + popupWidth > window.innerWidth - 10) {
+      leftPos = window.innerWidth - popupWidth - 10;
     }
 
     popup.style.opacity = 1;
@@ -263,7 +781,7 @@ if (!SERVER_RENDERED) {
 
     const onMouseOut = function () {
       clearTimeout(popupTimeout);
-      popupTimeout = setTimeout(hidePopup, 200);
+      popupTimeout = setTimeout(hidePopup, 300); // Increased timeout for better UX
     };
 
     const hidePopup = function () {

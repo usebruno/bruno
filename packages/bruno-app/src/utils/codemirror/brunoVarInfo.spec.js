@@ -6,14 +6,7 @@ jest.mock('@usebruno/common', () => ({
   interpolate: jest.fn()
 }));
 
-describe('extractVariableInfo', () => {
-  let mockVariables;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    // Setup mock variables
-    mockVariables = {
+const fakeVariables = {
       apiKey: 'test-api-key-123',
       baseUrl: 'https://api.example.com',
       userId: 12345,
@@ -22,6 +15,41 @@ describe('extractVariableInfo', () => {
         slug: 'test-post'
       }
     };
+
+// Mock Redux store to avoid import.meta issues
+jest.mock('providers/ReduxStore', () => ({
+  store: {
+    getState: jest.fn(() => ({
+      collections: {
+        collections: [
+          {
+            activeEnvironmentUid: '111',
+            environments: [
+              { uid: '111', name: 'Development', variables: 
+                Object.entries(fakeVariables)
+                  .filter(([key]) => key !== 'pathParams')
+                  .map(([name, value]) => ({ name, value }))
+              }
+            ]
+          }
+        ]
+      },
+      app: {
+        globalEnvironments: []
+      }
+    })),
+    dispatch: jest.fn()
+  }
+}));
+
+describe('extractVariableInfo', () => {
+  let mockVariables;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Setup mock variables
+    mockVariables = fakeVariables;
 
     // Setup interpolate mock
     interpolate.mockImplementation((value, variables) => {
@@ -261,10 +289,14 @@ describe('renderVarInfo', () => {
   function setupRender(variables) {
     const result = renderVarInfo({ string: '{{apiKey}}' }, { variables });
     const contentDiv = result.querySelector('.info-content');
-    const descriptionDiv = contentDiv.querySelector('.info-description');
-    const copyButton = contentDiv.querySelector('.copy-button');
+    const descriptionDiv = result.querySelector('.info-description');
+    const copyButton = result.querySelector('.copy-button');
+    const editButton = result.querySelector('.button-container .edit-btn');
+    const saveButton = result.querySelector('.button-container .save-btn.hidden');
+    const cancelButton = result.querySelector('.button-container .cancel-btn.hidden');
+    const editInput = result.querySelector('.value-container .edit-input.hidden');
 
-    return { result, contentDiv, descriptionDiv, copyButton };
+    return { result, contentDiv, descriptionDiv, copyButton, editButton, saveButton, cancelButton, editInput };
   }
 
   describe('popup functionality', () => {
@@ -339,6 +371,48 @@ describe('renderVarInfo', () => {
 
       expect(clipboardText).toBe('');
       expect(console.error).toHaveBeenCalledWith('Failed to copy to clipboard:', 'Clipboard error');
+    });
+  });
+
+  describe('edit button functionality', () => {
+    it('should create an edit button', () => {
+      const { editButton } = setupRender({ apiKey: 'test-value' });
+
+      expect(editButton).toBeDefined();
+    });
+
+    it('should create an hidden save button', () => {
+      const { saveButton } = setupRender({ apiKey: 'test-value' });
+
+      expect(saveButton).toBeDefined();
+    });
+
+    it('should create an hidden cancel button', () => {
+      const { cancelButton } = setupRender({ apiKey: 'test-value' });
+
+      expect(cancelButton).toBeDefined();
+    });
+
+    it('should create an hidden edit input', () => {
+      const { editInput } = setupRender({ apiKey: 'test-value' });
+
+      expect(editInput).toBeDefined();
+    });
+
+    it('should should show save button, cancel button and edit input when clicked', async () => {
+      const { editButton, saveButton, cancelButton, editInput } = setupRender({ apiKey: 'test-value' });
+
+      await editButton.click();
+      expect(saveButton).not.toHaveClass('hidden');
+      expect(cancelButton).not.toHaveClass('hidden');
+      expect(editInput).not.toHaveClass('hidden');
+    });
+
+    it('should should hide edit button', async () => {
+      const { editButton, saveButton, cancelButton, editInput } = setupRender({ apiKey: 'test-value' });
+
+      await editButton.click();
+      expect(editButton).toHaveClass('hidden');
     });
   });
 });
