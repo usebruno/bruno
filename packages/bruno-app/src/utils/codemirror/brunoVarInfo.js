@@ -655,6 +655,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(popup, 'mouseover', onMouseOverPopup);
       CodeMirror.off(popup, 'mouseout', onMouseOut);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
+      CodeMirror.off(cm, 'change', onEditorChange);
 
       // Cleanup CodeMirror and MaskedEditor instances
       const valueContainer = popup.querySelector('.var-value-container');
@@ -695,9 +696,15 @@ if (!SERVER_RENDERED) {
       }
     };
 
+    // Hide popup when user types in the main editor
+    const onEditorChange = function () {
+      hidePopup();
+    };
+
     CodeMirror.on(popup, 'mouseover', onMouseOverPopup);
     CodeMirror.on(popup, 'mouseout', onMouseOut);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
+    CodeMirror.on(cm, 'change', onEditorChange);
   }
 }
 
