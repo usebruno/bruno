@@ -241,18 +241,18 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo {
     color: ${(props) => props.theme.codemirror.variable.info.color};
     background: ${(props) => props.theme.codemirror.variable.info.bg};
-    border: 1px solid ${(props) => props.theme.codemirror.variable.info.border};
-    border-radius: 6px;
+    border: 0.0625rem solid ${(props) => props.theme.codemirror.variable.info.border};
+    border-radius: 0.375rem;
     box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
     box-sizing: border-box;
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.4;
     margin: 0;
-    min-width: 291px;
-    max-width: 291px;
+    min-width: 18.1875rem;
+    max-width: 18.1875rem;
     opacity: 0;
     overflow: visible;
-    padding: 8px;
+    padding: 0.5rem;
     position: fixed;
     transition: opacity 0.15s;
     z-index: 10;
@@ -278,75 +278,75 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-info-header {
     display: flex;
     align-items: center;
-    margin-bottom: 6px;
-    gap: 6px;
+    margin-bottom: 0.375rem;
+    gap: 0.375rem;
   }
 
   .CodeMirror-brunoVarInfo .var-name {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: ${(props) => props.theme.codemirror.variable.info.color};
   }
 
   /* Scope Badge */
   .CodeMirror-brunoVarInfo .var-scope-badge {
     display: inline-block;
-    padding: 2px 6px;
+    padding: 0.125rem 0.375rem;
     background: #D977061A;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
     color: #D97706;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.03125rem;
   }
 
   /* Value Container */
   .CodeMirror-brunoVarInfo .var-value-container {
     position: relative;
-    border: 1px solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
-    border-radius: 6px;
+    border: 0.0625rem solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
+    border-radius: 0.375rem;
     background: ${(props) => props.theme.codemirror.variable.info.editorBg};
     overflow-y: auto;
     overflow-x: hidden;
-    min-width: 277px;
-    max-height: 211px;
+    min-width: 17.3125rem;
+    max-height: 13.1875rem;
   }
 
   /* Value Display (Read-only) */
   .CodeMirror-brunoVarInfo .var-value-display {
-    padding: 6px 40px 6px 8px;
-    font-size: 14px;
+    padding: 0.375rem 2.5rem 0.375rem 0.5rem;
+    font-size: 0.875rem;
     font-family: monospace;
     word-break: break-word;
     line-height: 1.4;
     color: ${(props) => props.theme.codemirror.variable.info.color};
-    min-height: 28px;
-    max-width: 211px;
+    min-height: 1.75rem;
+    max-width: 13.1875rem;
   }
 
   /* Value Editor (CodeMirror) */
   .CodeMirror-brunoVarInfo .var-value-editor {
     width: 100%;
-    min-width: 275px;
-    max-width: 275px;
-    max-height: 178px;
+    min-width: 17.1875rem;
+    max-width: 17.1875rem;
+    max-height: 11.125rem;
     position: relative;
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror {
     height: 100%;
-    min-height: 60px;
-    max-height: 178px;
-    font-size: 14px;
+    min-height: 3.75rem;
+    max-height: 11.125rem;
+    font-size: 0.875rem;
     line-height: 1.4;
-    border: 1px solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
-    border-radius: 6px;
+    border: 0.0625rem solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
+    border-radius: 0.375rem;
     background: ${(props) => props.theme.codemirror.variable.info.editorBg};
     color: ${(props) => props.theme.codemirror.variable.info.color};
     transition: border-color 0.15s;
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-scroll {
-    min-height: 60px;
-    max-height: 178px;
+    min-height: 3.75rem;
+    max-height: 11.125rem;
     overflow-y: auto !important;
     overflow-x: hidden !important;
   }
@@ -357,8 +357,8 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-lines {
-    padding: 6px 40px 6px 8px;
-    max-width: 211px;
+    padding: 0.375rem 2.5rem 0.375rem 0.5rem;
+    max-width: 13.1875rem;
     line-height: 1.4;
     word-break: break-all;
     word-wrap: break-word;
@@ -366,7 +366,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror pre {
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.4;
     word-break: break-all;
     word-wrap: break-word;
@@ -377,9 +377,9 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-line {
     padding: 0;
-    max-width: 211px;
+    max-width: 13.1875rem;
     line-height: 1.4;
-    font-size: 14px;
+    font-size: 0.875rem;
     word-break: break-all;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -389,15 +389,15 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-sizer {
     margin-left: 0 !important;
     margin-bottom: 0 !important;
-    max-width: 211px !important;
+    max-width: 13.1875rem !important;
   }
 
   /* Editable value display (shows interpolated value, click to edit) */
   .CodeMirror-brunoVarInfo .var-value-editable-display {
-    width: 275px;
-    max-width: 211px;
-    padding: 6px 40px 6px 8px;
-    font-size: 14px;
+    width: 17.1875rem;
+    max-width: 13.1875rem;
+    padding: 0.375rem 2.5rem 0.375rem 0.5rem;
+    font-size: 0.875rem;
     font-family: monospace;
     word-break: break-all;
     word-wrap: break-word;
@@ -405,18 +405,18 @@ const GlobalStyle = createGlobalStyle`
     white-space: pre-wrap;
     line-height: 1.4;
     color: ${(props) => props.theme.codemirror.variable.info.color};
-    min-height: 28px;
+    min-height: 1.75rem;
     cursor: text;
-    border-radius: 6px;
+    border-radius: 0.375rem;
   }
 
   /* Icons Container */
   .CodeMirror-brunoVarInfo .var-icons {
     position: absolute;
-    top: 6px;
-    right: 8px;
+    top: 0.375rem;
+    right: 0.5rem;
     display: flex;
-    gap: 4px;
+    gap: 0.25rem;
     z-index: 10;
   }
 
@@ -425,7 +425,7 @@ const GlobalStyle = createGlobalStyle`
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 2px;
+    padding: 0.125rem;
     opacity: 1;
     transition: opacity 0.2s;
     color: ${(props) => props.theme.codemirror.variable.info.iconColor};
@@ -445,10 +445,10 @@ const GlobalStyle = createGlobalStyle`
 
   /* Read-only Note */
   .CodeMirror-brunoVarInfo .var-readonly-note {
-    font-size: 10px;
+    font-size: 0.625rem;
     color: ${(props) => props.theme.colors.text.muted};
     opacity: 0.6;
-    margin-top: 4px;
+    margin-top: 0.25rem;
   }
 
   .CodeMirror-hint-active {

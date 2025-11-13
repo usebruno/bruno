@@ -36,8 +36,8 @@ const COPY_SUCCESS_COLOR = '#22c55e';
 export const COPY_SUCCESS_TIMEOUT = 1000;
 
 // Editor height constraints
-const EDITOR_MIN_HEIGHT = 60;
-const EDITOR_MAX_HEIGHT = 178;
+const EDITOR_MIN_HEIGHT = 3.75;
+const EDITOR_MAX_HEIGHT = 11.125;
 
 /**
  * Calculate editor height based on content, clamped between min and max
@@ -45,7 +45,8 @@ const EDITOR_MAX_HEIGHT = 178;
  * @returns {number} The clamped height value
  */
 const calculateEditorHeight = (contentHeight) => {
-  return Math.min(Math.max(contentHeight, EDITOR_MIN_HEIGHT), EDITOR_MAX_HEIGHT);
+  const contentHeightRem = contentHeight / 16;
+  return Math.min(Math.max(contentHeightRem, EDITOR_MIN_HEIGHT), EDITOR_MAX_HEIGHT);
 };
 
 const EYE_ICON_SVG = `
@@ -317,7 +318,7 @@ export const renderVarInfo = (token, options) => {
           const sizer = cmEditor.getWrapperElement().querySelector('.CodeMirror-sizer');
           const contentHeight = sizer ? sizer.clientHeight : cmEditor.getScrollInfo().height;
           const newHeight = calculateEditorHeight(contentHeight);
-          editorContainer.style.height = `${newHeight}px`;
+          editorContainer.style.height = `${newHeight}rem`;
         });
       }
     });
@@ -395,7 +396,7 @@ export const renderVarInfo = (token, options) => {
 
         // Adjust height based on content
         const contentHeight = cmEditor.getScrollInfo().height;
-        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}px`;
+        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}rem`;
       }, 0);
     });
 
@@ -405,7 +406,7 @@ export const renderVarInfo = (token, options) => {
 
       // Switch back to display mode
       editorContainer.style.display = 'none';
-      editorContainer.style.height = `${EDITOR_MIN_HEIGHT}px`; // Reset to minimum height
+      editorContainer.style.height = `${EDITOR_MIN_HEIGHT}rem`; // Reset to minimum height
       valueDisplay.style.display = 'block';
       isEditing = false;
 
@@ -610,25 +611,28 @@ if (!SERVER_RENDERED) {
     const popupHeight =
       popupBox.bottom - popupBox.top + parseFloat(popupStyle.marginTop) + parseFloat(popupStyle.marginBottom);
 
-    // Position below the trigger by default with 8px gap
-    let topPos = box.bottom + 8;
+    const GAP_REM = 0.5;
+    const EDGE_MARGIN_REM = 0.9375;
+
+    // Position below the trigger by default with gap
+    let topPos = box.bottom + (GAP_REM * 16);
 
     // Check if there's enough space below; if not, position above
-    if (popupHeight > window.innerHeight - box.bottom - 15 && box.top > window.innerHeight - box.bottom) {
-      topPos = box.top - popupHeight - 8;
+    if (popupHeight > window.innerHeight - box.bottom - (EDGE_MARGIN_REM * 16) && box.top > window.innerHeight - box.bottom) {
+      topPos = box.top - popupHeight - (GAP_REM * 16);
     }
 
     // Ensure it doesn't go off the top of the screen
     if (topPos < 0) {
-      topPos = box.bottom + 8;
+      topPos = box.bottom + (GAP_REM * 16);
     }
 
     // Horizontal positioning - align to left of trigger
     let leftPos = box.left;
 
     // Ensure it doesn't go off the right edge
-    if (leftPos + popupWidth > window.innerWidth - 15) {
-      leftPos = window.innerWidth - popupWidth - 15;
+    if (leftPos + popupWidth > window.innerWidth - (EDGE_MARGIN_REM * 16)) {
+      leftPos = window.innerWidth - popupWidth - (EDGE_MARGIN_REM * 16);
     }
 
     // Ensure it doesn't go off the left edge
@@ -637,8 +641,8 @@ if (!SERVER_RENDERED) {
     }
 
     popup.style.opacity = 1;
-    popup.style.top = topPos + 'px';
-    popup.style.left = leftPos + 'px';
+    popup.style.top = `${topPos / 16}rem`;
+    popup.style.left = `${leftPos / 16}rem`;
 
     let popupTimeout;
 
