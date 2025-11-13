@@ -12,13 +12,25 @@ import { getInitialExampleName } from 'utils/collections/index';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
+const getTitleText = ({ isResponseTooLarge, isStreamingResponse }) => {
+  if (!isStreamingResponse && !isStreamingResponse) {
+    return 'Save current response as example';
+  }
+  if (isStreamingResponse) {
+    return 'Response Examples aren\'t supported in streaming responses yet.';
+  }
+  if (isResponseTooLarge) {
+    'Response size exceeds 5MB limit. Cannot save as example.';
+  }
+};
+
 const ResponseBookmark = ({ item, collection, responseSize }) => {
   const dispatch = useDispatch();
   const [showSaveResponseExampleModal, setShowSaveResponseExampleModal] = useState(false);
   const response = item.response || {};
 
   const isResponseTooLarge = responseSize >= 5 * 1024 * 1024; // 5 MB
-  const isStreamingResponse = response.isStream;
+  const isStreamingResponse = response.stream;
 
   // Only show for HTTP requests
   if (item.type !== 'http-request') {
@@ -97,7 +109,10 @@ const ResponseBookmark = ({ item, collection, responseSize }) => {
     toast.success(`Example "${name}" created successfully`);
   };
 
-  const disabledMessage = isResponseTooLarge ? 'Response size exceeds 5MB limit. Cannot save as example.' : isStreamingResponse ? 'Response Examples aren\t supported in streaming responses yet.' : 'Save current response as example';
+  const disabledMessage = getTitleText({
+    isResponseTooLarge,
+    isStreamingResponse
+  });
 
   return (
     <>

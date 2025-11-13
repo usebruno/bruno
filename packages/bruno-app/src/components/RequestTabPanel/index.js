@@ -263,7 +263,7 @@ const RequestTabPanel = () => {
       return;
     }
 
-    if (item.response?.hasStreamRunning) {
+    if (item.response?.stream?.running) {
       dispatch(cancelRequest(item.cancelTokenUid, item, collection)).catch((err) =>
         toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
           duration: 5000

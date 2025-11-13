@@ -381,8 +381,8 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          if (item.response?.hasStreamRunning) {
-            item.response.hasStreamRunning = null;
+          if (item.response?.stream?.running) {
+            item.response.stream.running = null;
 
             const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
@@ -404,7 +404,7 @@ export const collectionsSlice = createSlice({
         if (item) {
           item.requestState = 'received';
           item.response = action.payload.response;
-          item.cancelTokenUid = item.response.hasStreamRunning ? item.cancelTokenUid : null;
+          item.cancelTokenUid = item.response.stream?.running ? item.cancelTokenUid : null;
           item.requestStartTime = null;
 
           if (!collection.timeline) {
@@ -599,7 +599,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
-          if (item.response && item.response.hasStreamRunning) {
+          if (item.response && item.response.stream?.running) {
             item.response.data = '';
             item.response.size = 0;
             return;

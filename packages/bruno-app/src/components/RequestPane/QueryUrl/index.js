@@ -150,7 +150,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             </span>
           </div>
           {
-            item.response?.hasStreamRunning ? (
+            item.response?.stream?.running ? (
               <IconX color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
             ) : (
               <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} data-testid="send-arrow-icon" />

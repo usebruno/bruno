@@ -73,7 +73,7 @@ const ResponsePane = ({ item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
-        const isStream = item.response?.isStream ?? false;
+        const isStream = item.response?.stream ?? false;
         if (isStream) {
           return <WSMessagesList order={-1} messages={item.response.data} />;
         }
@@ -190,8 +190,8 @@ const ResponsePane = ({ item, collection }) => {
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />
                 <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
-                <StatusCode status={response.status} isStreaming={item.response?.hasStreamRunning} />
-                {item.response?.hasStreamRunning
+                <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
+                {item.response?.stream?.running
                   ? <ResponseStopWatch startMillis={response.duration} />
                   : <ResponseTime duration={response.duration} />}
                 <ResponseSize size={responseSize} />

@@ -10,6 +10,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
           if (response?.error) {
             resolve(response)
           }
+
           resolve({
             state: 'success',
             data: response.data,
@@ -21,8 +22,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
             statusText: response.statusText,
             duration: response.duration,
             timeline: response.timeline,
-            hasStreamRunning: response.hasStreamRunning,
-            isStream: !!response.hasStreamRunning
+            stream: response.stream
           });
         })
         .catch((err) => reject(err));

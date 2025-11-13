@@ -69,7 +69,7 @@ const getJsSandboxRuntime = (collection) => {
   return 'vm2';
 };
 
-const isStream = (headers) => {
+const hasStreamHeaders = (headers) => {
   const headerSplit = (headers.get('content-type') ?? '').split(';').map((d) => d.trim());
   return headerSplit.indexOf('text/event-stream') > -1;
 };
@@ -627,6 +627,7 @@ const registerNetworkIpc = (mainWindow) => {
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
     request.responseType = 'stream';
+    let isResponseStream = false;
     const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
@@ -728,9 +729,9 @@ const registerNetworkIpc = (mainWindow) => {
       try {
         /** @type {import('axios').AxiosResponse} */
         response = await axiosInstance(request);
-        request.isStream = isStream(response.headers);
+        isResponseStream = hasStreamHeaders(response.headers);
 
-        if (!request.isStream) {
+        if (!isResponseStream) {
           response.data = await promisifyStream(response.data);
         }
 
@@ -757,8 +758,8 @@ const registerNetworkIpc = (mainWindow) => {
           // Prevents the duration on leaking to the actual result
           responseTime = response.headers.get('request-duration');
           response.headers.delete('request-duration');
-          request.isStream = isStream(response.headers);
-          if (!request.isStream) {
+          isResponseStream = hasStreamHeaders(response.headers);
+          if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
           }
         } else {
@@ -776,11 +777,11 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
-      if (request.isStream) {
+      if (isResponseStream) {
         response.stream = response.data;
       }
 
-      const { data, dataBuffer } = request.isStream
+      const { data, dataBuffer } = isResponseStream
         ? { data: '', dataBuffer: Buffer.alloc(0) }
         : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
@@ -930,7 +931,7 @@ const registerNetworkIpc = (mainWindow) => {
           cookiesStore.saveCookieJar();
         }
       };
-      if (request.isStream) {
+      if (isResponseStream) {
         response.stream.on('close', () => runPostScripts().then());
       } else {
         await runPostScripts();
@@ -942,7 +943,7 @@ const registerNetworkIpc = (mainWindow) => {
         headers: response.headers,
         data: response.data,
         dataBuffer: response.dataBuffer.toString('base64'),
-        stream: request.isStream ? response.stream : null,
+        stream: isResponseStream ? response.stream : null,
         cancelTokenUid: cancelTokenUid,
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
@@ -970,8 +971,7 @@ const registerNetworkIpc = (mainWindow) => {
     const response =  await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
     if (response.stream) {
       const stream = response.stream;
-      response.stream = undefined;
-      response.hasStreamRunning = response.status >= 200 && response.status < 300;
+      response.stream = { running: response.status >= 200 && response.status < 300 };
 
       stream.on('data', (newData) => {
         const parsed = parseDataFromResponse({ data: newData, headers: {} });
@@ -1032,6 +1032,7 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
       let currentAbortController;
+      let isResponseStream = false;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1294,7 +1295,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
-              request.isStream = isStream(response.headers);
+              isResponseStream = hasStreamHeaders(response.headers);
               response.data = await promisifyStream(response.data, currentAbortController, true);
               timeEnd = Date.now();
 
@@ -1337,7 +1338,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               if (error?.response) {
-                request.isStream = isStream(error.response.headers);
+                isResponseStream = hasStreamHeaders(error.response.headers);
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, true);
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.responseTime = error.response.headers.get('request-duration');
