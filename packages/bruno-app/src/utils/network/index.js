@@ -32,17 +32,19 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
 export const sendGrpcRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     startGrpcRequest(item, collection, environment, runtimeVariables)
-      .then((initialState) => {
-        // Return an initial state object to update the UI
-        // The real response data will be handled by event listeners
-        resolve({
-          ...initialState,
-          timeline: []
-        });
-      })
-      .catch((err) => reject(err));
+        .then((initialState) => {
+          // Return an initial state object to update the UI
+          // The real response data will be handled by event listeners
+          resolve({
+            ...initialState,
+            timeline: []
+          });
+        })
+        .catch((err) => reject(err));
   });
-};
+}
+
+
 
 const sendHttpRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
@@ -82,19 +84,19 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     const request = item.draft ? item.draft : item;
-
+    
     ipcRenderer.invoke('grpc:start-connection', {
-      request,
-      collection,
-      environment,
+      request, 
+      collection, 
+      environment, 
       runtimeVariables
     })
-      .then(() => {
-        resolve();
-      })
-      .catch((err) => {
-        reject(err);
-      });
+    .then(() => {
+      resolve();
+    })
+    .catch(err => {
+      reject(err);
+    });
   });
 };
 
@@ -187,7 +189,7 @@ export const isGrpcConnectionActive = async (connectionId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('grpc:is-connection-active', connectionId)
-      .then((response) => {
+      .then(response => {
         if (response.success) {
           resolve(response.isActive);
         } else {
@@ -196,7 +198,7 @@ export const isGrpcConnectionActive = async (connectionId) => {
           resolve(false);
         }
       })
-      .catch((err) => {
+      .catch(err => {
         console.error('Failed to check connection status:', err);
         // On error, assume the connection is not active
         resolve(false);
@@ -214,14 +216,14 @@ export const isGrpcConnectionActive = async (connectionId) => {
 export const generateGrpcSampleMessage = async (methodPath, existingMessage = null, options = {}) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-
-    ipcRenderer.invoke('grpc:generate-sample-message', {
-      methodPath,
-      existingMessage,
-      options
+    
+    ipcRenderer.invoke('grpc:generate-sample-message', { 
+      methodPath, 
+      existingMessage, 
+      options 
     })
-      .then(resolve)
-      .catch(reject);
+    .then(resolve)
+    .catch(reject);
   });
 };
 

@@ -87,7 +87,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           <div className="flex items-center justify-center h-full w-16">
             <span className="text-xs text-indigo-500 font-bold">gRPC</span>
           </div>
-
+          
         ) : (
           <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
         )}
