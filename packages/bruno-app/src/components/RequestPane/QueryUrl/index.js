@@ -156,25 +156,22 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           </div>
 
           {
-            item.response?.stream?.running ? (
-              <IconX color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+            isLoading || item.response?.stream?.running ? (
+              <IconSquareRoundedX
+                color={theme.requestTabPanel.url.icon}
+                strokeWidth={1.5}
+                size={22}
+                data-testid="cancel-request-icon"
+                onClick={handleCancelRequest}
+              />
+            ) : (
+              <IconArrowRight
+                color={theme.requestTabPanel.url.icon}
+                strokeWidth={1.5}
+                size={22}
+                data-testid="send-arrow-icon"
+              />
             )
-              : isLoading ? (
-                <IconSquareRoundedX
-                  color={theme.requestTabPanel.url.icon}
-                  strokeWidth={1.5}
-                  size={22}
-                  data-testid="cancel-request-icon"
-                  onClick={handleCancelRequest}
-                />
-              ) : (
-                <IconArrowRight
-                  color={theme.requestTabPanel.url.icon}
-                  strokeWidth={1.5}
-                  size={22}
-                  data-testid="send-arrow-icon"
-                />
-              )
           }
         </div>
       </div>
