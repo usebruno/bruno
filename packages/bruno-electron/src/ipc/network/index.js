@@ -725,7 +725,7 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      let response, responseTime;
+      let response, responseTime, axiosDataStream;
       try {
         /** @type {import('axios').AxiosResponse} */
         response = await axiosInstance(request);
@@ -778,7 +778,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
       if (isResponseStream) {
-        response.stream = response.data;
+        axiosDataStream = response.data;
       }
 
       const { data, dataBuffer } = isResponseStream
@@ -931,8 +931,9 @@ const registerNetworkIpc = (mainWindow) => {
           cookiesStore.saveCookieJar();
         }
       };
+
       if (isResponseStream) {
-        response.stream.on('close', () => runPostScripts().then());
+        axiosDataStream.on('close', () => runPostScripts().then());
       } else {
         await runPostScripts();
       }
@@ -943,7 +944,7 @@ const registerNetworkIpc = (mainWindow) => {
         headers: response.headers,
         data: response.data,
         dataBuffer: response.dataBuffer.toString('base64'),
-        stream: isResponseStream ? response.stream : null,
+        stream: isResponseStream ? axiosDataStream : null,
         cancelTokenUid: cancelTokenUid,
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
@@ -1279,7 +1280,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             timeStart = Date.now();
-            let response, responseTime;
+            let response, responseTime, axiosDataStream;
             try {
               if (delay && !Number.isNaN(delay) && delay > 0) {
                 const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
@@ -1296,10 +1297,33 @@ const registerNetworkIpc = (mainWindow) => {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
               isResponseStream = hasStreamHeaders(response.headers);
-              response.data = await promisifyStream(response.data, currentAbortController, true);
+
+              if (!isResponseStream) {
+                response.data = await promisifyStream(response.data, currentAbortController, true);
+              } else {
+                axiosDataStream = response.data;
+                response.stream = { running: response.status >= 200 && response.status < 300 };
+
+                axiosDataStream.on('data', (newData) => {
+                  const parsed = parseDataFromResponse({ data: newData, headers: {} });
+                  mainWindow.webContents.send('main:http-stream-new-data', { collectionUid, itemUid: item.uid, data: parsed });
+                });
+
+                axiosDataStream.on('close', () => {
+                  if (!cancelTokens[response.cancelTokenUid]) {
+                    return;
+                  }
+
+                  mainWindow.webContents.send('main:http-stream-end', { collectionUid, itemUid: item.uid });
+                  deleteCancelToken(response.cancelTokenUid);
+                });
+              }
+
               timeEnd = Date.now();
 
-              const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+              const { data, dataBuffer } = isResponseStream
+                ? { data: '', dataBuffer: Buffer.alloc(0) }
+                : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.dataBuffer = dataBuffer;
               response.responseTime = response.headers.get('request-duration');
@@ -1374,32 +1398,31 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            let postResponseScriptResult;
-            let postResponseError = null;
-            try {
-              postResponseScriptResult = await runPostResponse(
-                request,
-                response,
-                requestUid,
-                envVars,
-                collectionPath,
-                collection,
-                collectionUid,
-                runtimeVariables,
-                processEnvVars,
-                scriptingConfig,
-                runRequestByItemPathname
-              );
-            } catch (error) {
-              console.error('Post-response script error:', error);
-              postResponseError = error;
-            }
+            const runPostScripts = async () => {
+              let postResponseScriptResult;
+              let postResponseError = null;
+              try {
+                postResponseScriptResult = await runPostResponse(request,
+                  response,
+                  requestUid,
+                  envVars,
+                  collectionPath,
+                  collection,
+                  collectionUid,
+                  runtimeVariables,
+                  processEnvVars,
+                  scriptingConfig,
+                  runRequestByItemPathname);
+              } catch (error) {
+                console.error('Post-response script error:', error);
+                postResponseError = error;
+              }
 
-            notifyScriptExecution({
-              channel: 'main:run-folder-event',
-              basePayload: eventData,
+              notifyScriptExecution({
+                channel: 'main:run-folder-event',
+                basePayload: eventData,
               scriptType: 'post-response',
-              error: postResponseError
+                error: postResponseError
             });
 
             const domainsWithCookiesPostResponse = await getDomainsWithCookies();
@@ -1474,44 +1497,51 @@ const registerNetworkIpc = (mainWindow) => {
                     request,
                     envVariables: envVars,
                     runtimeVariables,
-                    globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
-                    results: [],
-                    nextRequestName: null
-                  };
+                      globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
+                      results: [],
+                      nextRequestName: null
+                    };
+                  }
                 }
+
+                if (testResults?.nextRequestName !== undefined) {
+                  nextRequestName = testResults.nextRequestName;
+                }
+
+                mainWindow.webContents.send('main:run-folder-event', {
+                  type: 'test-results',
+                  testResults: testResults.results,
+                  ...eventData
+                });
+
+                mainWindow.webContents.send('main:script-environment-update', {
+                  envVariables: testResults.envVariables,
+                  runtimeVariables: testResults.runtimeVariables,
+                  collectionUid
+                });
+
+                mainWindow.webContents.send('main:global-environment-variables-update', {
+                  globalEnvironmentVariables: testResults.globalEnvironmentVariables
+                });
+
+                collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+
+                notifyScriptExecution({
+                  channel: 'main:run-folder-event',
+                  basePayload: eventData,
+                  scriptType: 'test',
+                  error: testError
+                });
+
+                const domainsWithCookiesTest = await getDomainsWithCookies();
+                mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
               }
+            };
 
-              if (testResults?.nextRequestName !== undefined) {
-                nextRequestName = testResults.nextRequestName;
-              }
-
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'test-results',
-                testResults: testResults.results,
-                ...eventData
-              });
-
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: testResults.envVariables,
-                runtimeVariables: testResults.runtimeVariables,
-                collectionUid
-              });
-
-              mainWindow.webContents.send('main:global-environment-variables-update', {
-                globalEnvironmentVariables: testResults.globalEnvironmentVariables
-              });
-              
-              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
-
-              notifyScriptExecution({
-                channel: 'main:run-folder-event',
-                basePayload: eventData,
-                scriptType: 'test',
-                error: testError
-              });
-
-              const domainsWithCookiesTest = await getDomainsWithCookies();
-              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
+            if (isResponseStream) {
+              axiosDataStream.on('close', () => runPostScripts().then());
+            } else {
+              await runPostScripts();
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
