@@ -627,7 +627,7 @@ const registerNetworkIpc = (mainWindow) => {
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
     request.responseType = 'stream';
-    // flag to see if the stream needs to be handled as an actual stream or 
+    // flag to see if the stream needs to be handled as an actual stream or
     // is it just a data stream from axios
     let isResponseStream = false;
     const brunoConfig = getBrunoConfig(collectionUid, collection);
@@ -806,8 +806,7 @@ const registerNetworkIpc = (mainWindow) => {
         let postResponseScriptResult = null;
         let postResponseError = null;
         try {
-          postResponseScriptResult = await runPostResponse(
-            request,
+          postResponseScriptResult = await runPostResponse(request,
             response,
             requestUid,
             envVars,
@@ -817,13 +816,12 @@ const registerNetworkIpc = (mainWindow) => {
             runtimeVariables,
             processEnvVars,
             scriptingConfig,
-            runRequestByItemPathname
-          );
+            runRequestByItemPathname);
         } catch (error) {
           console.error('Post-response script error:', error);
           postResponseError = error;
         }
-        
+
         if (postResponseScriptResult?.results) {
           mainWindow.webContents.send('main:run-request-event', {
             type: 'test-results-post-response',
@@ -845,14 +843,12 @@ const registerNetworkIpc = (mainWindow) => {
         const assertions = get(request, 'assertions');
         if (assertions) {
           const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
-          const results = assertRuntime.runAssertions(
-            assertions,
+          const results = assertRuntime.runAssertions(assertions,
             request,
             response,
             envVars,
             runtimeVariables,
-            processEnvVars
-          );
+            processEnvVars);
 
           !runInBackground && mainWindow.webContents.send('main:run-request-event', {
             type: 'assertion-results',
@@ -864,15 +860,14 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         const testFile = get(request, 'tests');
-        const collectionName = collection?.name
+        const collectionName = collection?.name;
         if (typeof testFile === 'string') {
           const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
           let testResults = null;
           let testError = null;
 
           try {
-            testResults = await testRuntime.runTests(
-              decomment(testFile),
+            testResults = await testRuntime.runTests(decomment(testFile),
               request,
               response,
               envVars,
@@ -882,11 +877,10 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig,
               runRequestByItemPathname,
-              collectionName
-            );
+              collectionName);
           } catch (error) {
             testError = error;
-            
+
             if (error.partialResults) {
               testResults = error.partialResults;
             } else {
