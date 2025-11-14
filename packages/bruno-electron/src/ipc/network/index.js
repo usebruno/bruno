@@ -37,7 +37,6 @@ const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 const { setTimeout } = require('timers/promises');
-const { WaitGroup } = require('@usebruno/common/utils');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -1037,7 +1036,6 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
       let currentAbortController;
-      let pendingStreamsWG = new WaitGroup();
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1106,7 +1104,6 @@ const registerNetworkIpc = (mainWindow) => {
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
         while (currentRequestIndex < folderRequests.length) {
-          let isResponseStream = false;
           // user requested to cancel runner
           if (abortController.signal.aborted) {
             let error = new Error('Runner execution cancelled');
@@ -1285,7 +1282,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             timeStart = Date.now();
-            let response, responseTime, axiosDataStream;
+            let response, responseTime;
             try {
               if (delay && !Number.isNaN(delay) && delay > 0) {
                 const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
@@ -1301,35 +1298,11 @@ const registerNetworkIpc = (mainWindow) => {
 
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
-              isResponseStream = hasStreamHeaders(response.headers);
-              axiosDataStream = response.data;
-              if (!isResponseStream) {
-                response.data = await promisifyStream(response.data, currentAbortController, false);
-              } else {
-                pendingStreamsWG.add();
-                axiosDataStream = response.data;
-                response.stream = { running: response.status >= 200 && response.status < 300 };
-
-                axiosDataStream.on('data', (newData) => {
-                  const parsed = parseDataFromResponse({ data: newData, headers: {} });
-                  mainWindow.webContents.send('main:http-stream-new-data', { collectionUid, itemUid: item.uid, data: parsed });
-                });
-
-                axiosDataStream.on('close', () => {
-                  pendingStreamsWG.done();
-                  if (!cancelTokens[response.cancelTokenUid]) {
-                    return;
-                  }
-                  mainWindow.webContents.send('main:http-stream-end', { collectionUid, itemUid: item.uid });
-                  deleteCancelToken(response.cancelTokenUid);
-                });
-              }
+              response.data = await promisifyStream(response.data, currentAbortController, false);
 
               timeEnd = Date.now();
 
-              const { data, dataBuffer } = isResponseStream
-                ? { data: '', dataBuffer: Buffer.alloc(0) }
-                : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+              const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.dataBuffer = dataBuffer;
               response.responseTime = response.headers.get('request-duration');
@@ -1344,32 +1317,23 @@ const registerNetworkIpc = (mainWindow) => {
               const domainsWithCookies = await getDomainsWithCookies();
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
-              const markDone = () => {
-                mainWindow.webContents.send('main:run-folder-event', {
-                  type: 'response-received',
-                  responseReceived: {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers: response.headers,
-                    duration: timeEnd - timeStart,
-                    dataBuffer: dataBuffer.toString('base64'),
-                    size: Buffer.byteLength(dataBuffer),
-                    data: response.data,
-                    stream: isResponseStream ? { running: false } : undefined,
-                    responseTime: response.responseTime,
-                    timeline: response.timeline,
-                    url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
-                  },
-                  ...eventData
-                });
-              };
-              if (!isResponseStream) {
-                markDone();
-              } else {
-                axiosDataStream.on('close', () => {
-                  markDone();
-                });
-              }
+
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'response-received',
+                responseReceived: {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: response.headers,
+                  duration: timeEnd - timeStart,
+                  dataBuffer: dataBuffer.toString('base64'),
+                  size: Buffer.byteLength(dataBuffer),
+                  data: response.data,
+                  responseTime: response.responseTime,
+                  timeline: response.timeline,
+                  url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
+                },
+                ...eventData
+              });
             } catch (error) {
               // Skip further processing if request was cancelled
               if (axios.isCancel(error)) {
@@ -1377,7 +1341,6 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               if (error?.response) {
-                isResponseStream = hasStreamHeaders(error.response.headers);
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, true);
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.responseTime = error.response.headers.get('request-duration');
@@ -1553,11 +1516,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
             };
 
-            if (isResponseStream) {
-              axiosDataStream.on('close', () => runPostScripts().then());
-            } else {
-              await runPostScripts();
-            }
+            await runPostScripts();
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'error',
@@ -1600,8 +1559,6 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
-
-        await pendingStreamsWG.wait();
 
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',

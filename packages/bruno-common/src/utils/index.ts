@@ -11,7 +11,3 @@ export {
 export {
   patternHasher
 } from './template-hasher';
-
-export {
-  WaitGroup
-} from './sync';
