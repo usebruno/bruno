@@ -12,12 +12,25 @@ import { getInitialExampleName } from 'utils/collections/index';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
+const getTitleText = ({ isResponseTooLarge, isStreamingResponse }) => {
+  if (isStreamingResponse) {
+    return 'Response Examples aren\'t supported in streaming responses yet.';
+  }
+
+  if (isResponseTooLarge) {
+    return 'Response size exceeds 5MB limit. Cannot save as example.';
+  }
+
+  return 'Save current response as example';
+};
+
 const ResponseBookmark = ({ item, collection, responseSize }) => {
   const dispatch = useDispatch();
   const [showSaveResponseExampleModal, setShowSaveResponseExampleModal] = useState(false);
   const response = item.response || {};
 
   const isResponseTooLarge = responseSize >= 5 * 1024 * 1024; // 5 MB
+  const isStreamingResponse = response.stream;
 
   // Only show for HTTP requests
   if (item.type !== 'http-request') {
@@ -96,19 +109,22 @@ const ResponseBookmark = ({ item, collection, responseSize }) => {
     toast.success(`Example "${name}" created successfully`);
   };
 
+  const disabledMessage = getTitleText({
+    isResponseTooLarge,
+    isStreamingResponse
+  });
+
   return (
     <>
       <StyledWrapper className="ml-2 flex items-center">
         <button
           onClick={handleSaveClick}
-          disabled={isResponseTooLarge}
+          disabled={isResponseTooLarge || isStreamingResponse}
           title={
-            isResponseTooLarge
-              ? 'Response size exceeds 5MB limit. Cannot save as example.'
-              : 'Save current response as example'
+            disabledMessage
           }
           className={classnames('p-1', {
-            'opacity-50 cursor-not-allowed': isResponseTooLarge
+            'opacity-50 cursor-not-allowed': isResponseTooLarge || isStreamingResponse
           })}
           data-testid="response-bookmark-btn"
         >

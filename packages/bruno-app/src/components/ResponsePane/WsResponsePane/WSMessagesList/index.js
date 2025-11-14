@@ -195,7 +195,7 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
     <StyledWrapper className="ws-messages-list mt-1 flex flex-col">
       {ordered.map((msg, idx, src) => {
         const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
-        return <WSMessageItem inFocus={inFocus} id={idx} message={msg} />;
+        return <WSMessageItem key={msg.timestamp} inFocus={inFocus} id={idx} message={msg} />;
       })}
     </StyledWrapper>
   );
