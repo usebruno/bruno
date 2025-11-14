@@ -972,13 +972,11 @@ const registerNetworkIpc = (mainWindow) => {
     const processEnvVars = getProcessEnvVars(collectionUid);
     const response = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
     if (response.stream) {
-      let dataChunks = [];
       const stream = response.stream;
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
       stream.on('data', (newData) => {
         const parsed = parseDataFromResponse({ data: newData, headers: {} });
-        dataChunks.push(parsed.data);
         mainWindow.webContents.send('main:http-stream-new-data', { collectionUid, itemUid: item.uid, data: parsed });
       });
 
