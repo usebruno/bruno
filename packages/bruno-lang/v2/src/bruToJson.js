@@ -53,6 +53,7 @@ const grammar = ohm.grammar(`Bru {
    // Multiline text block surrounded by '''
   multilinetextblockdelimiter = "'''"
   multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  multilinetextblockwithsuffix = multilinetextblock st* valuechar*
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
@@ -65,7 +66,7 @@ const grammar = ohm.grammar(`Bru {
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = list | multilinetextblock | valuechar*
+  value = list | multilinetextblockwithsuffix | valuechar*
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -211,7 +212,7 @@ const mapRequestParams = (pairList = [], type) => {
 
 const multipartExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
-    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/s);
     if (match != null && match.length > 2) {
       pair.value = match[1];
       pair.contentType = match[2];
@@ -223,7 +224,7 @@ const multipartExtractContentType = (pair) => {
 
 const fileExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
-    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/s);
     if (match && match.length > 2) {
       pair.value = match[1].trim();
       pair.contentType = match[2].trim();
@@ -370,8 +371,26 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
+  multilinetextblockwithsuffix(block, _spaces, suffix) {
+    // Extract the multiline block content
+    const blockString = block.sourceString;
+    const suffixString = suffix.sourceString;
+
+    const multilineString = blockString.replace(/^'''|'''$/g, '');
+    const processedBlock = multilineString
+      .split('\n')
+      .map((line) => line.slice(4))
+      .join('\n');
+
+    // Return the combined string (block + space + suffix)
+    // The space is important for @contentType parsing
+    return suffixString.trim() ? processedBlock + ' ' + suffixString.trim() : processedBlock;
+  },
   value(chars) {
     if (chars.ctorName === 'list') {
+      return chars.ast;
+    }
+    if (chars.ctorName === 'multilinetextblockwithsuffix') {
       return chars.ast;
     }
     try {
