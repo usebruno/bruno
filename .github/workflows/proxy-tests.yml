@@ -1,0 +1,75 @@
+name: Proxy Tests - Linux and Macos
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tests-for-linux:
+    name: Proxy Tests - Linux
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup Feature Dependencies
+        uses: ./.github/actions/proxy/linux/setup-feature-specific-deps
+
+      - name: Setup Test Server
+        uses: ./.github/actions/proxy/linux/setup-server
+
+      - name: Run Proxy E2E Tests - Proxy OFF
+        uses: ./.github/actions/proxy/linux/run-e2e-tests-with-proxy-off
+
+      - name: Run Proxy CLI Tests - Proxy OFF
+        uses: ./.github/actions/proxy/linux/run-cli-tests-with-proxy-off
+
+      - name: Start Proxy Server
+        uses: ./.github/actions/proxy/linux/setup-proxy-server
+
+      - name: Run Proxy E2E Tests - Proxy ON
+        uses: ./.github/actions/proxy/linux/run-e2e-tests-with-proxy-on
+
+      - name: Run Proxy CLI Tests - Proxy ON
+        uses: ./.github/actions/proxy/linux/run-cli-tests-with-proxy-on
+
+  tests-for-macos:
+    name: Proxy Tests - macOS
+    timeout-minutes: 60
+    runs-on: macos-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup Test Server
+        uses: ./.github/actions/proxy/macos/setup-server
+
+      - name: Run Proxy E2E Tests - Proxy OFF
+        uses: ./.github/actions/proxy/macos/run-e2e-tests-with-proxy-off
+
+      - name: Run Proxy CLI Tests - Proxy OFF
+        uses: ./.github/actions/proxy/macos/run-cli-tests-with-proxy-off
+
+      - name: Start Proxy Server
+        uses: ./.github/actions/proxy/macos/setup-proxy-server
+
+      - name: Run Proxy E2E Tests - Proxy ON
+        uses: ./.github/actions/proxy/macos/run-e2e-tests-with-proxy-on
+
+      - name: Run Proxy CLI Tests - Proxy ON
+        uses: ./.github/actions/proxy/macos/run-cli-tests-with-proxy-on
