@@ -1,0 +1,62 @@
+name: 'run cli tests with proxy OFF - linux'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Proxy CLI tests for `proxy-false`
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        echo "Running proxy-false collection tests..."
+        
+        cd tests/proxy-settings/collections/proxy-false
+
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json
+        grep '"status": "pass"' report.json || {
+          echo "Test failed: should not use proxy."
+          exit 1
+        }
+
+        # Test with --noproxy flag (should still work)
+        echo "Running with --noproxy flag..."
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json --noproxy
+        grep '"status": "pass"' report.json || {
+          echo "Test failed: should not use proxy."
+          exit 1
+        }
+
+    - name: Run Proxy CLI tests for `proxy-object` with proxy turned `off`
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        echo "Running proxy-object collection tests..."
+
+        cd tests/proxy-settings/collections/proxy-object
+
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json 2>/dev/null || true
+        grep '"status": "error"' report.json || {
+          echo "Test failed: proxy not turned on, should throw an error."
+          exit 1
+        }
+
+    - name: Run Proxy CLI tests for `proxy-inherit` with proxy turned `off`
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        echo "Running proxy-inherit collection tests..."
+
+        cd tests/proxy-settings/collections/proxy-inherit
+        
+        # Test with system proxy environment variables set
+        echo "Running with HTTP_PROXY environment variable..."
+        export HTTPS_PROXY=http://127.0.0.1:8091
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json 2>/dev/null || true
+        env
+        cat report.json
+        grep '"status": "error"' report.json || {
+          echo "Test failed: proxy not turned on, should throw an error."
+          exit 1
+        }
+        export HTTPS_PROXY=

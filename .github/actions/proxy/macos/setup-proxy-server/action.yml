@@ -1,0 +1,16 @@
+name: 'setup proxy server - macos'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup proxy server
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        cd tests/proxy-settings/server
+        
+        echo "starting proxy server in background"
+        node proxy.js &
+        
+        echo "server started with PID: $!"
+

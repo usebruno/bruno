@@ -22,12 +22,21 @@ export default defineConfig({
       name: 'default',
       testDir: './tests',
       testIgnore: [
-        'ssl/**' // custom CA certificate tests require separate server setup and certificate generation
+        'ssl/**',
+        'proxy-settings/**'
       ]
     },
     {
       name: 'ssl',
       testDir: './tests/ssl'
+    },
+    {
+      name: 'proxy-off',
+      testDir: './tests/proxy-settings/with-proxy-turned-OFF'
+    },
+    {
+      name: 'proxy-on',
+      testDir: './tests/proxy-settings/with-proxy-turned-ON'
     }
   ],
 
