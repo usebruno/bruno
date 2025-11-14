@@ -627,6 +627,8 @@ const registerNetworkIpc = (mainWindow) => {
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
     request.responseType = 'stream';
+    // flag to see if the stream needs to be handled as an actual stream or 
+    // is it just a data stream from axios
     let isResponseStream = false;
     const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
@@ -804,7 +806,8 @@ const registerNetworkIpc = (mainWindow) => {
       let postResponseScriptResult = null;
       let postResponseError = null;
       try {
-        postResponseScriptResult = await runPostResponse(request,
+        postResponseScriptResult = await runPostResponse(
+          request,
           response,
           requestUid,
           envVars,
@@ -814,12 +817,13 @@ const registerNetworkIpc = (mainWindow) => {
           runtimeVariables,
           processEnvVars,
           scriptingConfig,
-          runRequestByItemPathname);
+          runRequestByItemPathname
+        );
       } catch (error) {
         console.error('Post-response script error:', error);
         postResponseError = error;
       }
-
+      
       if (postResponseScriptResult?.results) {
         mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results-post-response',
@@ -841,12 +845,14 @@ const registerNetworkIpc = (mainWindow) => {
       const assertions = get(request, 'assertions');
       if (assertions) {
         const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
-        const results = assertRuntime.runAssertions(assertions,
+        const results = assertRuntime.runAssertions(
+          assertions,
           request,
           response,
           envVars,
           runtimeVariables,
-          processEnvVars);
+          processEnvVars
+        );
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'assertion-results',
@@ -858,14 +864,15 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       const testFile = get(request, 'tests');
-      const collectionName = collection?.name;
+      const collectionName = collection?.name
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         let testResults = null;
         let testError = null;
 
         try {
-          testResults = await testRuntime.runTests(decomment(testFile),
+          testResults = await testRuntime.runTests(
+            decomment(testFile),
             request,
             response,
             envVars,
@@ -875,10 +882,11 @@ const registerNetworkIpc = (mainWindow) => {
             processEnvVars,
             scriptingConfig,
             runRequestByItemPathname,
-            collectionName);
+            collectionName
+          );
         } catch (error) {
           testError = error;
-
+          
           if (error.partialResults) {
             testResults = error.partialResults;
           } else {
@@ -931,7 +939,6 @@ const registerNetworkIpc = (mainWindow) => {
         cookiesStore.saveCookieJar();
       }
       };
-
       if (isResponseStream) {
         axiosDataStream.on('close', () => runPostScripts().then());
       } else {
@@ -1298,7 +1305,6 @@ const registerNetworkIpc = (mainWindow) => {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
               response.data = await promisifyStream(response.data, currentAbortController, false);
-
               timeEnd = Date.now();
 
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
@@ -1374,31 +1380,33 @@ const registerNetworkIpc = (mainWindow) => {
                 throw error;
               }
             }
-            
-            let postResponseScriptResult;
-              let postResponseError = null;
-              try {
-                postResponseScriptResult = await runPostResponse(request,
-                  response,
-                  requestUid,
-                  envVars,
-                  collectionPath,
-                  collection,
-                  collectionUid,
-                  runtimeVariables,
-                  processEnvVars,
-                  scriptingConfig,
-                  runRequestByItemPathname);
-              } catch (error) {
-                console.error('Post-response script error:', error);
-                postResponseError = error;
-              }
 
-              notifyScriptExecution({
-                channel: 'main:run-folder-event',
-                basePayload: eventData,
+            let postResponseScriptResult;
+            let postResponseError = null;
+            try {
+              postResponseScriptResult = await runPostResponse(
+                request,
+                response,
+                requestUid,
+                envVars,
+                collectionPath,
+                collection,
+                collectionUid,
+                runtimeVariables,
+                processEnvVars,
+                scriptingConfig,
+                runRequestByItemPathname
+              );
+            } catch (error) {
+              console.error('Post-response script error:', error);
+              postResponseError = error;
+            }
+
+            notifyScriptExecution({
+              channel: 'main:run-folder-event',
+              basePayload: eventData,
               scriptType: 'post-response',
-                error: postResponseError
+              error: postResponseError
             });
 
             const domainsWithCookiesPostResponse = await getDomainsWithCookies();
@@ -1473,45 +1481,45 @@ const registerNetworkIpc = (mainWindow) => {
                     request,
                     envVariables: envVars,
                     runtimeVariables,
-                      globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
-                      results: [],
-                      nextRequestName: null
-                    };
-                  }
+                    globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
+                    results: [],
+                    nextRequestName: null
+                  };
                 }
-
-                if (testResults?.nextRequestName !== undefined) {
-                  nextRequestName = testResults.nextRequestName;
-                }
-
-                mainWindow.webContents.send('main:run-folder-event', {
-                  type: 'test-results',
-                  testResults: testResults.results,
-                  ...eventData
-                });
-
-                mainWindow.webContents.send('main:script-environment-update', {
-                  envVariables: testResults.envVariables,
-                  runtimeVariables: testResults.runtimeVariables,
-                  collectionUid
-                });
-
-                mainWindow.webContents.send('main:global-environment-variables-update', {
-                  globalEnvironmentVariables: testResults.globalEnvironmentVariables
-                });
-
-                collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
-
-                notifyScriptExecution({
-                  channel: 'main:run-folder-event',
-                  basePayload: eventData,
-                  scriptType: 'test',
-                  error: testError
-                });
-
-                const domainsWithCookiesTest = await getDomainsWithCookies();
-                mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
               }
+
+              if (testResults?.nextRequestName !== undefined) {
+                nextRequestName = testResults.nextRequestName;
+              }
+
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'test-results',
+                testResults: testResults.results,
+                ...eventData
+              });
+
+              mainWindow.webContents.send('main:script-environment-update', {
+                envVariables: testResults.envVariables,
+                runtimeVariables: testResults.runtimeVariables,
+                collectionUid
+              });
+
+              mainWindow.webContents.send('main:global-environment-variables-update', {
+                globalEnvironmentVariables: testResults.globalEnvironmentVariables
+              });
+              
+              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+
+              notifyScriptExecution({
+                channel: 'main:run-folder-event',
+                basePayload: eventData,
+                scriptType: 'test',
+                error: testError
+              });
+
+              const domainsWithCookiesTest = await getDomainsWithCookies();
+              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
+            }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'error',
@@ -1554,15 +1562,14 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
-
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
           collectionUid,
           folderUid,
-          runCompletionTime: new Date().toISOString()
+          runCompletionTime: new Date().toISOString(),
         });
       } catch (error) {
-        console.log('error', error);
+        console.log("error", error);
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
@@ -1572,7 +1579,8 @@ const registerNetworkIpc = (mainWindow) => {
           error: error && !error.isCancel ? error : null
         });
       }
-    });
+    }
+  );
 
   // save response to file
   ipcMain.handle('renderer:save-response-to-file', async (event, response, url, pathname) => {
