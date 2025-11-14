@@ -1,20 +1,12 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .collections-badge {
-    margin-inline: 0.5rem;
-    background-color: ${(props) => props.theme.sidebar.badge.bg};
-    border-radius: 5px;
-
-    .caret {
-      margin-left: 0.25rem;
-      color: rgb(140, 140, 140);
-      fill: rgb(140, 140, 140);
-    }
-  }
-
   span.close-icon {
     color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  &:hover .collections-badge .collections-header-actions .collection-action-button {
+    opacity: 1;
   }
 `;
 
