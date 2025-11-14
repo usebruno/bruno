@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import find from 'lodash/find';
@@ -11,44 +11,22 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
 GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
-import ReactPlayer from 'react-player';
-
-const VideoPreview = React.memo(({ contentType, dataBuffer }) => {
-  const [videoUrl, setVideoUrl] = useState(null);
-
-  useEffect(() => {
-    const videoType = contentType.split(';')[0];
-    const byteArray = Buffer.from(dataBuffer, 'base64');
-    const blob = new Blob([byteArray], { type: videoType });
-    const url = URL.createObjectURL(blob);
-    setVideoUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [contentType, dataBuffer]);
-
-  if (!videoUrl) return <div>Loading video...</div>;
-
-  return (
-    <ReactPlayer
-      url={videoUrl}
-      controls
-      muted={true}
-      width="100%"
-      height="100%"
-      onError={(e) => console.error('Error loading video:', e)}
-    />
-  );
-});
+import ReactJson from 'react-json-view';
+import XmlPreview from './XmlPreview';
+import TextPreview from './TextPreview';
+import HtmlPreview from './HtmlPreview';
+import VideoPreview from './VideoPreview';
 
 const QueryResultPreview = ({
-  previewTab,
-  allowedPreviewModes,
+  selectedTab,
   data,
   dataBuffer,
   formattedData,
   item,
   contentType,
   collection,
-  mode,
+  codeMirrorMode,
+  previewMode,
   disableRunEventListener,
   displayedTheme
 }) => {
@@ -62,10 +40,6 @@ const QueryResultPreview = ({
   const [numPages, setNumPages] = useState(null);
   function onDocumentLoadSuccess({ numPages }) {
     setNumPages(numPages);
-  }
-  // Fail safe, so we don't render anything with an invalid tab
-  if (!allowedPreviewModes.find((previewMode) => previewMode?.uid == previewTab?.uid)) {
-    return null;
   }
 
   const onRun = () => {
@@ -87,16 +61,28 @@ const QueryResultPreview = ({
     );
   };
 
-  switch (previewTab?.mode) {
+  if (selectedTab === 'editor') {
+    return (
+      <CodeEditor
+        collection={collection}
+        font={get(preferences, 'font.codeFont', 'default')}
+        fontSize={get(preferences, 'font.codeFontSize')}
+        theme={displayedTheme}
+        onRun={onRun}
+        onSave={onSave}
+        onScroll={onScroll}
+        value={formattedData}
+        mode={codeMirrorMode}
+        initialScroll={focusedTab.responsePaneScrollPosition || 0}
+        readOnly
+      />
+    );
+  }
+
+  switch (previewMode) {
     case 'preview-web': {
-      const webViewSrc = data.replace('<head>', `<head><base href="${item.requestSent?.url || ''}">`);
-      return (
-        <webview
-          src={`data:text/html; charset=utf-8,${encodeURIComponent(webViewSrc)}`}
-          webpreferences="disableDialogs=true, javascript=yes"
-          className="h-full bg-white"
-        />
-      );
+      const baseUrl = item.requestSent?.url || '';
+      return <HtmlPreview data={data} baseUrl={baseUrl} />;
     }
     case 'preview-image': {
       return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />;
@@ -120,24 +106,45 @@ const QueryResultPreview = ({
     case 'preview-video': {
       return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
-    default:
-    case 'raw': {
+    case 'preview-json': {
       return (
-        <CodeEditor
-          collection={collection}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-          theme={displayedTheme}
-          onRun={onRun}
-          onSave={onSave}
-          onScroll={onScroll}
-          value={formattedData}
-          mode={mode}
-          initialScroll={focusedTab.responsePaneScrollPosition || 0}
-          readOnly
-        />
+        <ReactJson
+          src={data}
+          theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
+          collapsed={1}
+          displayDataTypes={false}
+          displayObjectSize={true}
+          enableClipboard={true}
+          name={false}
+          style={{
+            backgroundColor: 'transparent',
+            fontSize: '12px',
+            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+            padding: '16px'
+          }}
+      />
       );
     }
+
+    case 'preview-text': {
+      return <TextPreview data={data} />;
+    }
+
+    case 'preview-xml': {
+      return <XmlPreview data={data} />;
+    }
+
+    default:
+      return (
+        <div className="p-4 flex flex-col items-center justify-center h-full text-center">
+          <div className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            No Preview Available
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Sorry, no preview is available for this content type.
+          </div>
+        </div>
+      );
   }
 };
 
