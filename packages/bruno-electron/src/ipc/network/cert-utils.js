@@ -41,11 +41,13 @@ const getCertsAndProxyConfig = async ({
   httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;
   httpsAgentRequestFields['ca'] = caCertificates || [];
 
+  const { promptVariables } = collection;
   const brunoConfig = getBrunoConfig(collectionUid, collection);
   const interpolationOptions = {
     globalEnvironmentVariables,
     envVars,
     runtimeVariables,
+    promptVariables,
     processEnvVars
   };
 

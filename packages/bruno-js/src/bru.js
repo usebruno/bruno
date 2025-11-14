@@ -7,9 +7,10 @@ const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
+    this.promptVariables = promptVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
     this.collectionVariables = collectionVariables || {};
     this.folderVariables = folderVariables || {};
@@ -134,6 +135,7 @@ class Bru {
       ...this.requestVariables,
       ...this.oauth2CredentialVariables,
       ...this.runtimeVariables,
+      ...this.promptVariables,
       process: {
         env: {
           ...this.processEnvVars

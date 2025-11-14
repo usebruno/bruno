@@ -255,6 +255,7 @@ class AssertRuntime {
       return [];
     }
 
+    const promptVariables = request?.promptVariables || {};
     const bru = new Bru(
       envVariables,
       runtimeVariables,
@@ -263,7 +264,10 @@ class AssertRuntime {
       collectionVariables,
       folderVariables,
       requestVariables,
-      globalEnvironmentVariables
+      globalEnvironmentVariables,
+      {},
+      undefined,
+      promptVariables
     );
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);

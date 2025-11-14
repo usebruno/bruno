@@ -1,46 +1,8 @@
 import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
-import { getAllVariables, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { interpolateHeaders, interpolateBody } from './interpolation';
 import { get } from 'lodash';
-
-// Merge headers from collection, folders, and request
-const mergeHeaders = (collection, request, requestTreePath) => {
-  let headers = new Map();
-
-  // Add collection headers first
-  const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
-  collectionHeaders.forEach((header) => {
-    if (header.enabled) {
-      headers.set(header.name, header);
-    }
-  });
-
-  // Add folder headers next, traversing from root to leaf
-  if (requestTreePath && requestTreePath.length > 0) {
-    for (let i of requestTreePath) {
-      if (i.type === 'folder') {
-        const folderHeaders = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'root.request.headers', []);
-        folderHeaders.forEach((header) => {
-          if (header.enabled) {
-            headers.set(header.name, header);
-          }
-        });
-      }
-    }
-  }
-
-  // Add request headers last (they take precedence)
-  const requestHeaders = request.headers || [];
-  requestHeaders.forEach((header) => {
-    if (header.enabled) {
-      headers.set(header.name, header);
-    }
-  });
-
-  // Convert Map back to array
-  return Array.from(headers.values());
-};
 
 const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
   try {
@@ -88,6 +50,5 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 };
 
 export {
-  generateSnippet,
-  mergeHeaders
+  generateSnippet
 };

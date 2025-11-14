@@ -11,3 +11,8 @@ export {
 export {
   patternHasher
 } from './template-hasher';
+
+export {
+  extractPromptVariables,
+  extractPromptVariablesFromString
+} from './prompt-variables';

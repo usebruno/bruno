@@ -12,7 +12,7 @@ import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
-import { resolveInheritedAuth } from './utils/auth-utils';
+import { resolveInheritedAuth } from 'utils/auth';
 
 const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/;
 
