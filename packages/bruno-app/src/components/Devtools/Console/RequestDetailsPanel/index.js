@@ -153,7 +153,7 @@ const NetworkTab = ({ response }) => {
   );
 };
 
-const RequestDetailsPanel = () => {
+const RequestDetailsPanel = ({ style }) => {
   const dispatch = useDispatch();
   const { selectedRequest } = useSelector(state => state.logs);
   const collections = useSelector(state => state.collections.collections);
@@ -189,15 +189,15 @@ const RequestDetailsPanel = () => {
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper style={style}>
       <div className="panel-header">
         <div className="panel-title">
           <IconFileText size={16} strokeWidth={1.5} />
           <span>Request Details</span>
           <span className="request-time">({formatTime(selectedRequest.timestamp)})</span>
         </div>
-        
-        <button 
+
+        <button
           className="close-button"
           onClick={handleClose}
           title="Close details panel"
@@ -207,23 +207,23 @@ const RequestDetailsPanel = () => {
       </div>
 
       <div className="panel-tabs">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'request' ? 'active' : ''}`}
           onClick={() => setActiveTab('request')}
         >
           <IconArrowRight size={14} strokeWidth={1.5} />
           Request
         </button>
-        
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'response' ? 'active' : ''}`}
           onClick={() => setActiveTab('response')}
         >
           <IconFileText size={14} strokeWidth={1.5} />
           Response
         </button>
-        
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'network' ? 'active' : ''}`}
           onClick={() => setActiveTab('network')}
         >
