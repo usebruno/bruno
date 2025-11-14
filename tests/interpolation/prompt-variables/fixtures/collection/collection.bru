@@ -1,0 +1,13 @@
+auth {
+  mode: basic
+}
+
+auth:basic {
+  username: auth_unsername
+  password: {{?Enter Collection Auth Password}}
+}
+
+vars:pre-request {
+  collectionVar: {{?Enter Collection Variable}}
+  ~collectionVarDisabled: {{?Should Not Prompt collectionVarDisabled}}
+}

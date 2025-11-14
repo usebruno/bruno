@@ -1,0 +1,43 @@
+meta {
+  name: http-request-without-ca
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8081/api/echo/json?query={{?Enter Query Variable}}
+  body: json
+  auth: inherit
+}
+
+params:query {
+  query: {{?Enter Query Variable}}
+}
+
+headers {
+  Content-Type: application/json
+  ~x-disabled-header: {{?Should Not Prompt request x-disabled-header}}
+}
+
+body:json {
+  {
+    "body": "{{?Enter Body Variable}}",
+    "bodyNumber": {{?Enter Number Variable}},
+    "bodyBoolean": {{?Enter Boolean Variable}},
+    "repeat-1": "{{?Enter Body Variable}}",
+    "requestVar": "{{requestVar}}",
+    "folderVar": "{{folderVar}}",
+    "collectionVar": "{{collectionVar}}",
+    "collectionEnvVar": "{{collectionEnvVar}}",
+    "globalEnvVar": "{{globalEnvVar}}",
+    "folderHeader": "{{folderHeader}}"
+  }
+}
+
+body:form-urlencoded {
+  formurlencoded: {{?Should Not Prompt body mode form-urlencoded}}
+}
+
+vars:pre-request {
+  requestVar: {{?Enter Request Variable}}
+}

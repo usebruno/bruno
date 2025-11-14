@@ -1,0 +1,22 @@
+meta {
+  name: http-folder
+}
+
+headers {
+  folderHeaderVar: {{?Enter Folder Header Variable}}
+  ~folderHeaderVarDisabled: {{?Should Not Prompt folderHeaderVarDisabled}}
+}
+
+auth {
+  mode: basic
+}
+
+auth:basic {
+  username: auth_username
+  password: {{?Enter Folder Auth Password}}
+}
+
+vars:pre-request {
+  folderVar: {{?Enter Folder Variable}}
+  ~folderVarDisabled: {{?Should Not Prompt folderVarDisabled}}
+}

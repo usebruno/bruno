@@ -1,6 +1,5 @@
 import PromptVariablesModal from 'components/RequestPane/PromptVariables/PromptVariablesModal';
 import React, { createContext, useCallback, useState } from 'react';
-import { toast } from 'react-hot-toast';
 
 const PromptVariablesContext = createContext();
 
@@ -9,13 +8,7 @@ export function PromptVariablesProvider({ children }) {
 
   const prompt = useCallback((prompts) => {
     return new Promise((resolve, reject) => {
-      try {
-        setModalState({ open: true, prompts, resolve, reject });
-      } catch (err) {
-        console.error('PromptVariablesProvider: Error opening prompt modal:', err);
-        toast.error('Prompt variable(s) detected, but prompt modal is not available. Please ensure PromptVariableProvider is mounted.');
-        reject(err);
-      }
+      setModalState({ open: true, prompts, resolve, reject });
     });
   }, []);
 
@@ -32,41 +25,28 @@ export function PromptVariablesProvider({ children }) {
   }
 
   const handleSubmit = (values) => {
-    try {
-      modalState.resolve(values);
-    } catch (err) {
-      console.error('PromptVariablesProvider: Error resolving prompt values:', err);
-    }
+    modalState.resolve(values);
     setModalState({ open: false, prompts: [], resolve: null, reject: null });
   };
 
   const handleCancel = () => {
-    try {
-      modalState.reject('cancelled');
-    } catch (err) {
-      console.error('PromptVariablesProvider: Error rejecting prompt:', err);
-    }
+    modalState.reject('cancelled');
     setModalState({ open: false, prompts: [], resolve: null, reject: null });
   };
 
-  try {
-    return (
-      <PromptVariablesContext.Provider value={{ prompt }}>
-        {children}
-        {modalState.open && (
-          <PromptVariablesModal
-            title="Input Required"
-            prompts={modalState.prompts}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-          />
-        )}
-      </PromptVariablesContext.Provider>
-    );
-  } catch (err) {
-    console.error('PromptVariablesProvider: Error rendering provider or modal:', err);
-    return children;
-  }
+  return (
+    <PromptVariablesContext.Provider value={{ prompt }}>
+      {children}
+      {modalState.open && (
+        <PromptVariablesModal
+          title="Input Required"
+          prompts={modalState.prompts}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
+      )}
+    </PromptVariablesContext.Provider>
+  );
 }
 
 export default PromptVariablesProvider;
