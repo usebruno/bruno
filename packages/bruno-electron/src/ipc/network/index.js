@@ -803,141 +803,141 @@ const registerNetworkIpc = (mainWindow) => {
       cookiesStore.saveCookieJar();
 
       const runPostScripts = async () => {
-      let postResponseScriptResult = null;
-      let postResponseError = null;
-      try {
-        postResponseScriptResult = await runPostResponse(
-          request,
-          response,
-          requestUid,
-          envVars,
-          collectionPath,
-          collection,
-          collectionUid,
-          runtimeVariables,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname
-        );
-      } catch (error) {
-        console.error('Post-response script error:', error);
-        postResponseError = error;
-      }
-      
-      if (postResponseScriptResult?.results) {
-        mainWindow.webContents.send('main:run-request-event', {
-          type: 'test-results-post-response',
-          results: postResponseScriptResult.results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
-      }
-
-      !runInBackground && notifyScriptExecution({
-        channel: 'main:run-request-event',
-        basePayload: { requestUid, collectionUid, itemUid: item.uid },
-        scriptType: 'post-response',
-        error: postResponseError
-      });
-
-      // run assertions
-      const assertions = get(request, 'assertions');
-      if (assertions) {
-        const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
-        const results = assertRuntime.runAssertions(
-          assertions,
-          request,
-          response,
-          envVars,
-          runtimeVariables,
-          processEnvVars
-        );
-
-        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'assertion-results',
-          results: results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
-      }
-
-      const testFile = get(request, 'tests');
-      const collectionName = collection?.name
-      if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-        let testResults = null;
-        let testError = null;
-
+        let postResponseScriptResult = null;
+        let postResponseError = null;
         try {
-          testResults = await testRuntime.runTests(
-            decomment(testFile),
+          postResponseScriptResult = await runPostResponse(
             request,
             response,
+            requestUid,
             envVars,
-            runtimeVariables,
             collectionPath,
-            onConsoleLog,
+            collection,
+            collectionUid,
+            runtimeVariables,
             processEnvVars,
             scriptingConfig,
-            runRequestByItemPathname,
-            collectionName
+            runRequestByItemPathname
           );
         } catch (error) {
-          testError = error;
-          
-          if (error.partialResults) {
-            testResults = error.partialResults;
-          } else {
-            testResults = {
-              request,
-              envVariables: envVars,
-              runtimeVariables,
-              globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
-              results: [],
-              nextRequestName: null
-            };
-          }
+          console.error('Post-response script error:', error);
+          postResponseError = error;
         }
-
-        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'test-results',
-          results: testResults.results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: testResults.envVariables,
-          runtimeVariables: testResults.runtimeVariables,
-          requestUid,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:persistent-env-variables-update', {
-          persistentEnvVariables: testResults.persistentEnvVariables,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:global-environment-variables-update', {
-          globalEnvironmentVariables: testResults.globalEnvironmentVariables
-        });
-
-        collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+        
+        if (postResponseScriptResult?.results) {
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results-post-response',
+            results: postResponseScriptResult.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+        }
 
         !runInBackground && notifyScriptExecution({
           channel: 'main:run-request-event',
           basePayload: { requestUid, collectionUid, itemUid: item.uid },
-          scriptType: 'test',
-          error: testError
+          scriptType: 'post-response',
+          error: postResponseError
         });
 
-        const domainsWithCookiesTest = await getDomainsWithCookies();
-        mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
-        cookiesStore.saveCookieJar();
-      }
+        // run assertions
+        const assertions = get(request, 'assertions');
+        if (assertions) {
+          const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
+          const results = assertRuntime.runAssertions(
+            assertions,
+            request,
+            response,
+            envVars,
+            runtimeVariables,
+            processEnvVars
+          );
+
+          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+            type: 'assertion-results',
+            results: results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+        }
+
+        const testFile = get(request, 'tests');
+        const collectionName = collection?.name
+        if (typeof testFile === 'string') {
+          const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
+          let testResults = null;
+          let testError = null;
+
+          try {
+            testResults = await testRuntime.runTests(
+              decomment(testFile),
+              request,
+              response,
+              envVars,
+              runtimeVariables,
+              collectionPath,
+              onConsoleLog,
+              processEnvVars,
+              scriptingConfig,
+              runRequestByItemPathname,
+              collectionName
+            );
+          } catch (error) {
+            testError = error;
+            
+            if (error.partialResults) {
+              testResults = error.partialResults;
+            } else {
+              testResults = {
+                request,
+                envVariables: envVars,
+                runtimeVariables,
+                globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
+                results: [],
+                nextRequestName: null
+              };
+            }
+          }
+
+          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results',
+            results: testResults.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+
+          mainWindow.webContents.send('main:script-environment-update', {
+            envVariables: testResults.envVariables,
+            runtimeVariables: testResults.runtimeVariables,
+            requestUid,
+            collectionUid
+          });
+
+          mainWindow.webContents.send('main:persistent-env-variables-update', {
+            persistentEnvVariables: testResults.persistentEnvVariables,
+            collectionUid
+          });
+
+          mainWindow.webContents.send('main:global-environment-variables-update', {
+            globalEnvironmentVariables: testResults.globalEnvironmentVariables
+          });
+
+          collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+
+          !runInBackground && notifyScriptExecution({
+            channel: 'main:run-request-event',
+            basePayload: { requestUid, collectionUid, itemUid: item.uid },
+            scriptType: 'test',
+            error: testError
+          });
+
+          const domainsWithCookiesTest = await getDomainsWithCookies();
+          mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
+          cookiesStore.saveCookieJar();
+        }
       };
       if (isResponseStream) {
         axiosDataStream.on('close', () => runPostScripts().then());
