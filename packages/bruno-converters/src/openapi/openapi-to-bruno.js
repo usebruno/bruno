@@ -118,6 +118,129 @@ const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
   return _jsonBody;
 };
 
+/**
+ * Extracts or generates an example value from an OpenAPI schema
+ * Handles objects, arrays, primitives, and explicit examples
+ * @param {Object} schema - The OpenAPI schema object
+ * @returns {*} - The example value (object, array, or primitive)
+ */
+const getExampleFromSchema = (schema) => {
+  // Check for explicit example first
+  if (schema.example !== undefined) {
+    return schema.example;
+  }
+
+  // Handle different schema types
+  if (schema.type === 'object' || (schema.properties && !schema.type)) {
+    // Handle object type or schema with properties (even if type is not explicitly set)
+    return buildEmptyJsonBody(schema);
+  } else if (schema.type === 'array') {
+    if (schema.items) {
+      // If items are objects (either by type or by having properties), create array with one example object
+      if (schema.items.type === 'object' || schema.items.properties) {
+        return [buildEmptyJsonBody(schema.items)];
+      }
+      // For primitive array items, return array with default value
+      if (schema.items.type === 'integer' || schema.items.type === 'number') {
+        return [0];
+      } else if (schema.items.type === 'boolean') {
+        return [false];
+      } else if (schema.items.type === 'string') {
+        return [''];
+      }
+    }
+    return [];
+  } else {
+    // For primitive types, use default values
+    if (schema.type === 'integer' || schema.type === 'number') {
+      return 0;
+    } else if (schema.type === 'boolean') {
+      return false;
+    }
+    return '';
+  }
+};
+
+/**
+ * Populates request body in Bruno example from a value
+ * @param {Object} body - The Bruno request body object to populate
+ * @param {*} requestBodyValue - The request body value to set
+ * @param {string} contentType - Content type (e.g., 'application/json')
+ */
+const populateRequestBody = (body, requestBodyValue, contentType) => {
+  if (!requestBodyValue) return;
+
+  if (contentType?.includes('application/json')) {
+    body.mode = 'json';
+    body.json = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue, null, 2) : requestBodyValue;
+  } else if (contentType?.includes('application/x-www-form-urlencoded')) {
+    body.mode = 'formUrlEncoded';
+    // Handle form data if needed
+  } else if (contentType?.includes('multipart/form-data')) {
+    body.mode = 'multipartForm';
+    // Handle multipart form data if needed
+  } else if (contentType?.includes('text/plain')) {
+    body.mode = 'text';
+    body.text = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
+  } else if (contentType?.includes('text/xml') || contentType?.includes('application/xml')) {
+    body.mode = 'xml';
+    body.xml = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
+  }
+};
+
+/**
+ * Creates a Bruno example from OpenAPI example data
+ * @param {Object} brunoRequestItem - The base Bruno request item
+ * @param {*} exampleValue - The example value (object, array, or primitive)
+ * @param {string} exampleName - Name of the example
+ * @param {string} exampleDescription - Description of the example
+ * @param {string|number} statusCode - HTTP status code (for response examples)
+ * @param {string} contentType - Content type (e.g., 'application/json')
+ * @param {*} requestBodyValue - Optional request body value to populate in the example
+ * @param {string} requestBodyContentType - Optional request body content type
+ * @returns {Object} Bruno example object
+ */
+const createBrunoExample = (brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodyValue = null, requestBodyContentType = null) => {
+  const brunoExample = {
+    uid: uuid(),
+    itemUid: brunoRequestItem.uid,
+    name: exampleName,
+    description: exampleDescription,
+    type: 'http-request',
+    request: {
+      url: brunoRequestItem.request.url,
+      method: brunoRequestItem.request.method,
+      headers: [...brunoRequestItem.request.headers],
+      params: [...brunoRequestItem.request.params],
+      body: { ...brunoRequestItem.request.body }
+    },
+    response: {
+      status: String(statusCode),
+      statusText: getStatusText(statusCode),
+      headers: contentType ? [
+        {
+          uid: uuid(),
+          name: 'Content-Type',
+          value: contentType,
+          description: '',
+          enabled: true
+        }
+      ] : [],
+      body: {
+        type: getBodyTypeFromContentType(contentType),
+        content: typeof exampleValue === 'object' ? JSON.stringify(exampleValue, null, 2) : exampleValue
+      }
+    }
+  };
+
+  // Populate request body if provided
+  if (requestBodyValue !== null) {
+    populateRequestBody(brunoExample.request.body, requestBodyValue, requestBodyContentType);
+  }
+
+  return brunoExample;
+};
+
 const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   let _operationObject = request.operationObject;
 
@@ -391,54 +514,114 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   }
 
   // Handle OpenAPI examples from responses and request body
-  if (_operationObject.responses || _operationObject.requestBody) {
+  if (_operationObject.responses) {
     const examples = [];
+
+    // Extract request body examples if they exist
+    // Unified structure: all request body data is stored as examples with contentType
+    const requestBodyExamples = [];
+
+    /**
+     * Helper function to create examples with appropriate request body handling
+     * @param {*} responseExampleValue - The response example value
+     * @param {string} exampleName - Name of the example
+     * @param {string} exampleDescription - Description of the example
+     * @param {string|number} statusCode - HTTP status code
+     * @param {string} responseContentType - Response content type
+     * @param {string} [responseExampleKey] - Optional response example key for matching
+     */
+    const createExamplesWithRequestBody = (responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, responseExampleKey = null) => {
+      const requestBodyExamplesWithKeys = requestBodyExamples.filter((rb) => rb.key !== null);
+      const requestBodyExamplesWithoutKeys = requestBodyExamples.filter((rb) => rb.key === null);
+
+      // Check if there's a matching request body example by key
+      const matchingRequestBodyExample = responseExampleKey
+        ? requestBodyExamplesWithKeys.find((rb) => rb.key === responseExampleKey)
+        : null;
+
+      if (matchingRequestBodyExample) {
+        // Use the matching request body example
+        examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, matchingRequestBodyExample.value, matchingRequestBodyExample.contentType));
+      } else if (requestBodyExamplesWithKeys.length > 0) {
+        // No match found, create all combinations with request body examples that have keys
+        requestBodyExamplesWithKeys.forEach((rbExample) => {
+          const combinedExampleName = `${exampleName} (${rbExample.summary || rbExample.key})`;
+          const combinedExampleDescription = exampleDescription || rbExample.description || '';
+          examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, combinedExampleName, combinedExampleDescription, statusCode, responseContentType, rbExample.value, rbExample.contentType));
+        });
+      } else if (requestBodyExamplesWithoutKeys.length > 0) {
+        // Single example or schema - use the first one for all response examples
+        const rbExample = requestBodyExamplesWithoutKeys[0];
+        examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, rbExample.value, rbExample.contentType));
+      } else {
+        // No request body, create example without request body
+        examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType));
+      }
+    };
+
+    if (_operationObject.requestBody && _operationObject.requestBody.content) {
+      Object.entries(_operationObject.requestBody.content).forEach(([contentType, content]) => {
+        if (content.examples) {
+          // Multiple request body examples
+          Object.entries(content.examples).forEach(([exampleKey, example]) => {
+            requestBodyExamples.push({
+              key: exampleKey,
+              value: example.value !== undefined ? example.value : example,
+              summary: example.summary,
+              description: example.description,
+              contentType: contentType
+            });
+          });
+        } else if (content.example !== undefined) {
+          // Single request body example - convert to unified structure
+          requestBodyExamples.push({
+            key: null, // No key for single example
+            value: content.example,
+            summary: null,
+            description: null,
+            contentType: contentType
+          });
+        } else if (content.schema) {
+          // Schema-based request body - convert to unified structure
+          requestBodyExamples.push({
+            key: null, // No key for schema
+            value: getExampleFromSchema(content.schema),
+            summary: null,
+            description: null,
+            contentType: contentType,
+            isSchema: true
+          });
+        }
+      });
+    }
 
     // Handle response examples
     if (_operationObject.responses) {
       Object.entries(_operationObject.responses).forEach(([statusCode, response]) => {
         if (response.content) {
           Object.entries(response.content).forEach(([contentType, content]) => {
+            // Handle examples (plural) - multiple named examples
             if (content.examples) {
               Object.entries(content.examples).forEach(([exampleKey, example]) => {
                 const exampleName = example.summary || exampleKey || `${statusCode} Response`;
                 const exampleDescription = example.description || '';
+                const exampleValue = example.value !== undefined ? example.value : example;
 
-                // Create Bruno example
-                const brunoExample = {
-                  uid: uuid(),
-                  itemUid: brunoRequestItem.uid,
-                  name: exampleName,
-                  description: exampleDescription,
-                  type: 'http-request',
-                  request: {
-                    url: brunoRequestItem.request.url,
-                    method: brunoRequestItem.request.method,
-                    headers: [...brunoRequestItem.request.headers],
-                    params: [...brunoRequestItem.request.params],
-                    body: { ...brunoRequestItem.request.body }
-                  },
-                  response: {
-                    status: String(statusCode),
-                    statusText: getStatusText(statusCode),
-                    headers: [
-                      {
-                        uid: uuid(),
-                        name: 'Content-Type',
-                        value: contentType,
-                        description: '',
-                        enabled: true
-                      }
-                    ],
-                    body: {
-                      type: getBodyTypeFromContentType(contentType),
-                      content: typeof example.value === 'object' ? JSON.stringify(example.value, null, 2) : example.value
-                    }
-                  }
-                };
-
-                examples.push(brunoExample);
+                createExamplesWithRequestBody(exampleValue, exampleName, exampleDescription, statusCode, contentType, exampleKey);
               });
+            } else if (content.example !== undefined) {
+              // Handle example (singular) at content level
+              const exampleName = `${statusCode} Response`;
+              const exampleDescription = response.description || '';
+
+              createExamplesWithRequestBody(content.example, exampleName, exampleDescription, statusCode, contentType);
+            } else if (content.schema) {
+              // Handle schema - extract or generate example from schema
+              const exampleValue = getExampleFromSchema(content.schema);
+              const exampleName = `${statusCode} Response`;
+              const exampleDescription = response.description || '';
+
+              createExamplesWithRequestBody(exampleValue, exampleName, exampleDescription, statusCode, contentType);
             }
           });
         }
