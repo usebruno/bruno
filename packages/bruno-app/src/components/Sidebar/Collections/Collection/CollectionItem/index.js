@@ -380,21 +380,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
-  const handleCopyRequest = (fromKeyboard = false) => {
+  const handleCopyItem = () => {
     dropdownTippyRef.current.hide();
     dispatch(copyRequest(item));
     const itemType = isFolder ? 'Folder' : 'Request';
     toast.success(`${itemType} copied to clipboard`);
   };
 
-  const handlePasteRequest = (fromKeyboard = false) => {
+  const handlePasteItem = () => {
     dropdownTippyRef.current.hide();
 
     // Only allow paste into folders
     if (!isFolder) {
-      if (fromKeyboard) {
-        toast.error('Paste is only available for folders');
-      }
+      toast.error('Paste is only available for folders');
       return;
     }
 
@@ -416,11 +414,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (isModifierPressed && e.key.toLowerCase() === 'c') {
       e.preventDefault();
       e.stopPropagation();
-      handleCopyRequest(true);
+      handleCopyItem();
     } else if (isModifierPressed && e.key.toLowerCase() === 'v') {
       e.preventDefault();
       e.stopPropagation();
-      handlePasteRequest(true);
+      handlePasteItem();
     }
   };
 
@@ -581,14 +579,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               </div>
               <div
                 className="dropdown-item"
-                onClick={handleCopyRequest}
+                onClick={handleCopyItem}
               >
                 Copy
               </div>
               {isFolder && hasCopiedItems && (
                 <div
                   className="dropdown-item"
-                  onClick={handlePasteRequest}
+                  onClick={handlePasteItem}
                 >
                   Paste
                 </div>

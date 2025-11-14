@@ -148,7 +148,7 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
-  const handlePasteItem = (fromKeyboard = false) => {
+  const handlePasteItem = () => {
     menuDropdownTippyRef.current.hide();
     dispatch(pasteItem(collection.uid, null))
       .then(() => {
@@ -168,7 +168,7 @@ const Collection = ({ collection, searchText }) => {
     if (isModifierPressed && e.key.toLowerCase() === 'v') {
       e.preventDefault();
       e.stopPropagation();
-      handlePasteItem(true);
+      handlePasteItem();
     }
   };
 
