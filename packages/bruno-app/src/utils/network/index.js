@@ -241,6 +241,26 @@ export const connectWS = async (item, collection, environment, runtimeVariables,
   });
 };
 
+export const sendWsRequest = async (item, collection, environment, runtimeVariables) => {
+  const ensureConnection = async () => {
+    const connectionStatus = await isWsConnectionActive(item.uid);
+    if (!connectionStatus.isActive) {
+      await connectWS(item, collection, environment, runtimeVariables, { connectOnly: true });
+    }
+  };
+
+  await ensureConnection();
+
+  // Use queueWsMessage helper to queue all messages with proper variable interpolation
+  const result = await queueWsMessage(item, collection, environment, runtimeVariables, null);
+
+  if (result.success) {
+    return {};
+  } else {
+    throw new Error(result.error || 'Failed to queue messages');
+  }
+};
+
 /**
  * Queues a message to an existing WebSocket connection with variable interpolation
  * @param {Object} item - The request item
@@ -261,26 +281,6 @@ export const queueWsMessage = async (item, collection, environment, runtimeVaria
       messageContent
     }).then(resolve).catch(reject);
   });
-};
-
-export const sendWsRequest = async (item, collection, environment, runtimeVariables) => {
-  const ensureConnection = async () => {
-    const connectionStatus = await isWsConnectionActive(item.uid);
-    if (!connectionStatus.isActive) {
-      await connectWS(item, collection, environment, runtimeVariables, { connectOnly: true });
-    }
-  };
-
-  await ensureConnection();
-
-  // Use queueWsMessage helper to queue all messages with proper variable interpolation
-  const result = await queueWsMessage(item, collection, environment, runtimeVariables, null);
-
-  if (result.success) {
-    return {};
-  } else {
-    throw new Error(result.error || 'Failed to queue messages');
-  }
 };
 
 export const startWsConnection = async (item, collection, environment, runtimeVariables, options) => {
