@@ -6,22 +6,22 @@ const ResponseStopWatch = ({ startMillis }) => {
 
   const tickInterval = 100;
   const tick = () => {
-    setMilliseconds(_milliseconds => _milliseconds + tickInterval);
+    setMilliseconds((_milliseconds) => _milliseconds + tickInterval);
   };
 
   useEffect(() => {
     let timerID = setInterval(() => {
-      tick()
+      tick();
     }, tickInterval);
     return () => {
-      clearTimeout(timerID);
+      clearInterval(timerID);
     };
   }, []);
 
   let seconds = milliseconds / 1000;
   let secondsFormatted = `${seconds.toFixed(1)}s`;
   let width = secondsFormatted.length * 0.4; // Calculate width manually to stop parent layout from "flickering" by changing width too fast
-  return <StyledWrapper className="ml-4" style={{width: `${width}rem`}}>{secondsFormatted}</StyledWrapper>;
+  return <StyledWrapper className="ml-4" style={{ width: `${width}rem` }}>{secondsFormatted}</StyledWrapper>;
 };
 
 export default React.memo(ResponseStopWatch);

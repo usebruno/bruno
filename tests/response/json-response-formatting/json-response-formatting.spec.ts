@@ -35,6 +35,9 @@ test.describe.serial('JSON Response Formatting', () => {
       await expect(responseBody).toContainText('一');
       await expect(responseBody).toContainText('二');
       await expect(responseBody).toContainText('三');
+
+      // The response should handle escaped forward slashes
+      await expect(responseBody).toContainText('/url/path/');
     });
   });
 });

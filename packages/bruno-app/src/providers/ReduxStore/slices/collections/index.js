@@ -2,6 +2,7 @@ import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@use
 import { uuid } from 'utils/common';
 import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
+import { hexy as hexdump } from 'hexy';
 import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
@@ -83,8 +84,8 @@ const initiatedGrpcResponse = {
   isError: false,
   duration: 0,
   responses: [],
-  timestamp: Date.now()
-};
+  timestamp: Date.now(),
+}
 
 const initiatedWsResponse = {
   status: 'PENDING',
@@ -380,39 +381,39 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          if (item.response?.hasStreamRunning) {
-            item.response.hasStreamRunning = null;
+          if (item.response?.stream?.running) {
+            item.response.stream.running = null;
 
             const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
+            item.response.data = [{ type: 'info', timestamp: Date.now(), message: 'Connection Closed' }].concat(item.response.data);
           } else {
             item.response = null;
+            item.requestUid = null;
           }
-
           item.cancelTokenUid = null;
-          item.requestUid = null;
           item.requestStartTime = null;
         }
       }
     },
     responseReceived: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
+    
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
           item.requestState = 'received';
           item.response = action.payload.response;
-          item.cancelTokenUid = item.response.hasStreamRunning ? item.cancelTokenUid : null;
+          item.cancelTokenUid = item.response.stream?.running ? item.cancelTokenUid : null;
           item.requestStartTime = null;
 
           if (!collection.timeline) {
             collection.timeline = [];
           }
-
+    
           // Ensure timestamp is a number (milliseconds since epoch)
-          const timestamp = item?.requestSent?.timestamp instanceof Date
-            ? item.requestSent.timestamp.getTime()
+          const timestamp = item?.requestSent?.timestamp instanceof Date 
+            ? item.requestSent.timestamp.getTime() 
             : item?.requestSent?.timestamp || Date.now();
 
           // Append the new timeline entry with numeric timestamp
@@ -435,7 +436,7 @@ export const collectionsSlice = createSlice({
       const { itemUid, collectionUid, eventType, eventData } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
-
+      
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
       const request = item.draft ? item.draft.request : item.request;
@@ -455,7 +456,7 @@ export const collectionsSlice = createSlice({
       }
 
       collection.timeline.push({
-        type: 'request',
+        type: "request",
         eventType: eventType, // Add the specific gRPC event type
         collectionUid: collection.uid,
         folderUid: null,
@@ -464,34 +465,36 @@ export const collectionsSlice = createSlice({
         data: {
           request: eventData || item.requestSent || item.request,
           timestamp: Date.now(),
-          eventData: eventData
+          eventData: eventData,
         }
       });
+      
     },
     grpcResponseReceived: (state, action) => {
       const { itemUid, collectionUid, eventType, eventData } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-
+    
       if (!collection) return;
 
       const item = findItemInCollection(collection, itemUid);
 
       if (!item) return;
-
+      
       // Get current response state or create initial state
-      const currentResponse = item.response || initiatedGrpcResponse;
+      const currentResponse = item.response || initiatedGrpcResponse
       const timestamp = item?.requestSent?.timestamp;
       let updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
 
+      
       // Process based on event type
       switch (eventType) {
         case 'response':
           const { error, res } = eventData;
-
+          
           //  Handle error if present
           if (error) {
             const errorCode = error.code || 2; // Default to UNKNOWN if no code
-
+            
             updatedResponse.error = error.details || 'gRPC error occurred';
             updatedResponse.statusCode = errorCode;
             updatedResponse.statusText = grpcStatusCodes[errorCode] || 'UNKNOWN';
@@ -500,72 +503,72 @@ export const collectionsSlice = createSlice({
           }
 
           // Add response to list
-          updatedResponse.responses = res
-            ? [...(currentResponse?.responses || []), res]
+          updatedResponse.responses = res 
+            ? [...(currentResponse?.responses || []), res] 
             : [...(currentResponse?.responses || [])];
           break;
-
+          
         case 'metadata':
           updatedResponse.headers = eventData.metadata;
           updatedResponse.metadata = eventData.metadata;
           break;
-
+          
         case 'status':
           // Extract status info
           const statusCode = eventData.status?.code;
           const statusDetails = eventData.status?.details;
           const statusMetadata = eventData.status?.metadata;
-
+          
           // Set status based on actual code and details
           updatedResponse.statusCode = statusCode;
           updatedResponse.statusText = grpcStatusCodes[statusCode] || 'UNKNOWN';
           updatedResponse.statusDescription = statusDetails;
           updatedResponse.statusDetails = eventData.status;
-
+          
           // Store trailers (status metadata)
           if (statusMetadata) {
             updatedResponse.trailers = statusMetadata;
           }
-
+          
           // Handle error status (non-zero code)
           if (statusCode !== 0) {
             updatedResponse.isError = true;
             updatedResponse.error = statusDetails || `gRPC error with code ${statusCode} (${updatedResponse.statusText})`;
           }
-
+          
           break;
-
+          
         case 'error':
           // Extract error details
           const errorCode = eventData.error?.code || 2; // Default to UNKNOWN if no code
           const errorDetails = eventData.error?.details || eventData.error?.message;
           const errorMetadata = eventData.error?.metadata;
-
+          
           updatedResponse.isError = true;
           updatedResponse.error = errorDetails || 'Unknown gRPC error';
           updatedResponse.statusCode = errorCode;
           updatedResponse.statusText = grpcStatusCodes[errorCode] || 'UNKNOWN';
           updatedResponse.statusDescription = errorDetails;
-
+          
           // Store error metadata as trailers if present
           if (errorMetadata) {
             updatedResponse.trailers = errorMetadata;
           }
-
+          
           break;
-
+          
         case 'end':
-          state.activeConnections = state.activeConnections.filter((id) => id !== itemUid);
+          state.activeConnections = state.activeConnections.filter(id => id !== itemUid);
           break;
-
+          
         case 'cancel':
           updatedResponse.statusCode = 1; // CANCELLED
           updatedResponse.statusText = 'CANCELLED';
           updatedResponse.statusDescription = 'Stream cancelled by client or server';
-          state.activeConnections = state.activeConnections.filter((id) => id !== itemUid);
+          state.activeConnections = state.activeConnections.filter(id => id !== itemUid);
           break;
       }
-
+      
       item.requestState = 'received';
       item.response = updatedResponse;
 
@@ -576,7 +579,7 @@ export const collectionsSlice = createSlice({
 
       // Append the new timeline entry with specific gRPC event type
       collection.timeline.push({
-        type: 'request',
+        type: "request",
         eventType: eventType, // Add the specific gRPC event type
         collectionUid: collection.uid,
         folderUid: null,
@@ -586,7 +589,7 @@ export const collectionsSlice = createSlice({
           request: item.requestSent || item.request,
           response: updatedResponse,
           eventData: eventData, // Store the original event data
-          timestamp: Date.now()
+          timestamp: Date.now(),
         }
       });
     },
@@ -596,12 +599,11 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
-          if (item.response && item.response.hasStreamRunning) {
+          if (item.response && item.response.stream?.running) {
             item.response.data = '';
             item.response.size = 0;
             return;
           }
-
           item.response = null;
         }
       }
@@ -928,7 +930,7 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
+      const existingOtherParams = item.draft.request.params?.filter(p => p.type !== 'query') || [];
       const newQueryParams = map(params, ({ name = '', value = '', enabled = true }) => ({
         uid: uuid(),
         name,
@@ -942,7 +944,9 @@ export const collectionsSlice = createSlice({
 
       // Update the request URL to reflect the new query params
       const parts = splitOnFirst(item.draft.request.url, '?');
-      const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
+      const query = stringifyQueryParams(
+        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+      );
 
       // If there are enabled query params, append them to the URL
       if (query && query.length) {
@@ -1173,7 +1177,7 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.headers = map(action.payload.headers, ({ name = '', value = '', enabled = true }) => ({
+      item.draft.request.headers = map(action.payload.headers, ({name = '', value = '', enabled = true}) => ({
         uid: uuid(),
         name: name,
         value: value,
@@ -1215,8 +1219,8 @@ export const collectionsSlice = createSlice({
       if (!folder || !isItemAFolder(folder)) {
         return;
       }
-
-      folder.root.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
+      
+      folder.root.request.headers = map(headers, ({name = '', value = '', enabled = true}) => ({
         uid: uuid(),
         name: name,
         value: value,
@@ -1497,7 +1501,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-
+          
           switch (item.draft.request.body.mode) {
             case 'json': {
               item.draft.request.body.json = action.payload.content;
@@ -1634,7 +1638,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
+        const item = findItemInCollection(collection, action.payload.itemUid);    
 
         if (item && isItemARequest(item)) {
           if (!item.draft) {
@@ -1885,7 +1889,7 @@ export const collectionsSlice = createSlice({
             break;
           case 'ntlm':
             set(collection, 'draft.root.request.auth.ntlm', action.payload.content);
-            break;
+            break;            
           case 'oauth2':
             set(collection, 'draft.root.request.auth.oauth2', action.payload.content);
             break;
@@ -2614,7 +2618,7 @@ export const collectionsSlice = createSlice({
       const { requestUid, itemUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
-
+      
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
 
@@ -2647,7 +2651,7 @@ export const collectionsSlice = createSlice({
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
           }
 
-          if (type === 'test-script-execution') {
+          if(type === 'test-script-execution') {
             item.testScriptErrorMessage = action.payload.errorMessage;
           }
 
@@ -2662,7 +2666,7 @@ export const collectionsSlice = createSlice({
           if (type === 'request-sent') {
             const { cancelTokenUid, requestSent } = action.payload;
             item.requestSent = requestSent;
-
+            
             // sometimes the response is received before the request-sent event arrives
             if (item.requestState === 'queued') {
               item.requestState = 'sending';
@@ -2679,12 +2683,12 @@ export const collectionsSlice = createSlice({
             const { results } = action.payload;
             item.testResults = results;
           }
-
+          
           if (type === 'test-results-pre-request') {
             const { results } = action.payload;
             item.preRequestTestResults = results;
           }
-
+          
           if (type === 'test-results-post-response') {
             const { results } = action.payload;
             item.postResponseTestResults = results;
@@ -2798,7 +2802,7 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.runnerResult = null;
-        collection.runnerTags = { include: [], exclude: [] };
+        collection.runnerTags = { include: [], exclude: [] }
         collection.runnerTagsEnabled = false;
         collection.runnerConfiguration = null;
       }
@@ -2937,7 +2941,7 @@ export const collectionsSlice = createSlice({
     updateFolderAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
-
+      
       if (folder) {
         if (!folder.draft) {
           folder.draft = cloneDeep(folder.root);
@@ -2952,7 +2956,16 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
-        item.response.data = data.data + (item.response.data || '');
+        if (data.data) {
+          item.response.data ||= [];
+          item.response.data = [{
+            type: 'incoming',
+            message: data.data,
+            messageHexdump: hexdump(data.data),
+            timestamp: Date.now()
+          }].concat(item.response.data);
+        }
+        item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
         item.response.size = data.data?.length + (item.response.size || 0);
       }
     },
@@ -2997,7 +3010,7 @@ export const collectionsSlice = createSlice({
     updateCollectionTagsList: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-
+      
       if (collection) {
         collection.allTags = getUniqueTagsFromItems(collection.items);
       }
