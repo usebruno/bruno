@@ -15,7 +15,7 @@ const StyledWrapper = styled.div`
   }
 
   .collections-list-scrollable {
-    height: 160px;
+    max-height: calc((32px + 8px) * 4 + 8px); /* 4 rows: (tag height + gap) * 4 + padding */
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -25,6 +25,8 @@ const StyledWrapper = styled.div`
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
     padding: 4px;
+    align-content: start;
+    grid-auto-rows: min-content;
   }
 
   .collection-tag {
@@ -41,32 +43,16 @@ const StyledWrapper = styled.div`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-align: center;
+    height: 32px;
+    box-sizing: border-box;
   }
 
   .show-more-link,
   .show-less-link {
-    margin-top: 4px;
-    background: none;
-    border: none;
-    color: ${(props) => props.theme.colors.primary || props.theme.colors.text.link};
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    padding: 4px 0;
-    text-align: left;
-    width: fit-content;
-    display: inline-block;
-
     &:hover {
-      opacity: 0.8;
-      text-decoration: underline;
-    }
-
-    &:focus-visible {
-      outline: 2px solid ${(props) => props.theme.colors.primary || props.theme.colors.text.link};
-      outline-offset: 2px;
-      border-radius: 2px;
+      span {
+        text-decoration: underline;
+      }
     }
   }
 `;

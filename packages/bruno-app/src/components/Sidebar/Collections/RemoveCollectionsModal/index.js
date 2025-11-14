@@ -139,7 +139,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
     <Portal>
       <Modal
         size="md"
-        title="Close all collection"
+        title="Close all collections"
         disableEscapeKey={hasUnsavedChanges}
         disableCloseOnOutsideClick={hasUnsavedChanges}
         handleCancel={handleCancel}
@@ -155,6 +155,9 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
               Do you want to save changes you made to the following{' '}
               {collectionsWithUnsavedChanges.length === 1 ? 'collection' : 'collections'}?
             </div>
+            <div className="mt-2 text-xs text-gray-500">
+              Collections will still be available in the file system and can be re-opened later.
+            </div>
 
             <StyledWrapper>
               {showAllCollections ? (
@@ -168,12 +171,12 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                       ))}
                     </div>
                   </div>
-                  <button
-                    className="show-less-link"
+                  <div
+                    className="show-less-link w-fit flex items-center mt-2 cursor-pointer"
                     onClick={() => setShowAllCollections(false)}
                   >
-                    Show less
-                  </button>
+                    <span className="text-sm text-link">Show less</span>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -185,12 +188,12 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                     ))}
                   </div>
                   {collectionsWithUnsavedChanges.length > INITIAL_COLLECTIONS_TO_SHOW && (
-                    <button
-                      className="show-more-link"
+                    <div
+                      className="show-more-link w-fit flex items-center mt-2 cursor-pointer"
                       onClick={() => setShowAllCollections(true)}
                     >
-                      Show {collectionsWithUnsavedChanges.length - INITIAL_COLLECTIONS_TO_SHOW} more
-                    </button>
+                      <span className="text-sm text-link">Show {collectionsWithUnsavedChanges.length - INITIAL_COLLECTIONS_TO_SHOW} more</span>
+                    </div>
                   )}
                 </>
               )}
@@ -224,7 +227,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
               )}
             </div>
             <div className="mt-4 text-xs text-gray-500">
-              Collections will remain available in the file system and can be re-opened later.
+              Collections will still be available in the file system and can be re-opened later.
             </div>
             <div className="flex justify-end mt-6">
               <button className="btn btn-close btn-sm mr-2" onClick={handleCancel}>
