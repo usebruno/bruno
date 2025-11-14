@@ -122,7 +122,7 @@ const QueryResultPreview = ({
             fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
             padding: '16px'
           }}
-      />
+        />
       );
     }
 
