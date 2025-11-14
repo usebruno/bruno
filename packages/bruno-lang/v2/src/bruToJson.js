@@ -30,7 +30,7 @@ const parseExample = require('./example/bruToJson');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | hooks | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -155,6 +155,7 @@ const grammar = ohm.grammar(`Bru {
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
+  hooks = "hooks" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
@@ -1028,6 +1029,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   tests(_1, _2, _3, _4, textblock, _5) {
     return {
       tests: outdentString(textblock.sourceString)
+    };
+  },
+  hooks(_1, _2, _3, _4, textblock, _5) {
+    return {
+      hooks: outdentString(textblock.sourceString)
     };
   },
   docs(_1, _2, _3, _4, textblock, _5) {

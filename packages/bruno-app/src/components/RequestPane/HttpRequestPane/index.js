@@ -18,6 +18,7 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { useEffect } from 'react';
 import StatusDot from 'components/StatusDot';
 import Settings from 'components/RequestPane/Settings';
+import RequestHooks from 'components/RequestPane/Hooks';
 
 const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -64,6 +65,9 @@ const HttpRequestPane = ({ item, collection }) => {
       }
       case 'settings': {
         return <Settings item={item} collection={collection} />;
+      }
+      case 'hooks': {
+        return <RequestHooks item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -162,6 +166,10 @@ const HttpRequestPane = ({ item, collection }) => {
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
           {docs && docs.length > 0 && <StatusDot />}
+        </div>
+        <div className={getTabClassname('hooks')} role="tab" onClick={() => selectTab('hooks')}>
+          Hooks
+          {get(item, 'draft.request.hooks', get(item, 'request.hooks', '')) && <StatusDot />}
         </div>
         <div className={getTabClassname('settings')} role="tab" onClick={() => selectTab('settings')}>
           Settings

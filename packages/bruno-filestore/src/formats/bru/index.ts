@@ -57,6 +57,7 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
         vars: _.get(json, 'vars', {}),
         assertions: _.get(json, 'assertions', []),
         tests: _.get(json, 'tests', ''),
+        hooks: _.get(json, 'hooks', ''),
         docs: _.get(json, 'docs', '')
       },
       examples: _.get(json, 'examples', []).map((e: any) => {
@@ -216,6 +217,7 @@ export const jsonRequestToBru = (json: any): string => {
     // should we add assertions and tests for grpc requests?
     bruJson.assertions = _.get(json, 'request.assertions', []);
     bruJson.tests = _.get(json, 'request.tests', '');
+    bruJson.hooks = _.get(json, 'request.hooks', '');
     bruJson.settings = _.get(json, 'settings', {});
     bruJson.docs = _.get(json, 'request.docs', '');
     bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonExampleToBru(e));
@@ -237,7 +239,8 @@ export const bruCollectionToJson = (data: string | any, parsed: boolean = false)
         auth: _.get(json, 'auth', {}),
         script: _.get(json, 'script', {}),
         vars: _.get(json, 'vars', {}),
-        tests: _.get(json, 'tests', '')
+        tests: _.get(json, 'tests', ''),
+        hooks: _.get(json, 'hooks', '')
       },
       settings: _.get(json, 'settings', {}),
       docs: _.get(json, 'docs', '')
@@ -286,6 +289,7 @@ export const jsonCollectionToBru = (json: any, isFolder?: boolean): string => {
         res: _.get(json, 'request.vars.res', [])
       },
       tests: _.get(json, 'request.tests', ''),
+      hooks: _.get(json, 'request.hooks', ''),
       auth: _.get(json, 'request.auth', {}),
       docs: _.get(json, 'docs', '')
     };

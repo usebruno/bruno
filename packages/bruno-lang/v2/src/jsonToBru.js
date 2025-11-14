@@ -18,7 +18,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, hooks, vars, assertions, settings, docs, examples } = json;
 
   let bru = '';
 
@@ -729,6 +729,14 @@ ${indentString(script.res)}
   if (tests && tests.length) {
     bru += `tests {
 ${indentString(tests)}
+}
+
+`;
+  }
+
+  if (hooks && hooks.length) {
+    bru += `hooks {
+${indentString(hooks)}
 }
 
 `;

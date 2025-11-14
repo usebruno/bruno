@@ -176,6 +176,52 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   }
 };
 
+/**
+ * Extract hooks from collection, folders, and request for registration.
+ * Unlike mergeScripts, this returns separate hooks for each level to allow
+ * one-time registration at each level.
+ *
+ * @param {object} collection - Collection object
+ * @param {object} request - Request object (prepared request, may not have hooks)
+ * @param {array} requestTreePath - Path from collection to request
+ * @returns {object} Object containing hooks at each level
+ */
+const extractHooks = (collection, request, requestTreePath) => {
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionHooks = get(collectionRoot, 'request.hooks', '');
+
+  const folderHooks = [];
+  let requestHooks = '';
+
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderRoot = i?.draft || i?.root;
+      const hooks = get(folderRoot, 'request.hooks', '');
+      if (hooks && hooks.trim() !== '') {
+        folderHooks.push({
+          folderUid: i.uid,
+          hooks: hooks
+        });
+      }
+    } else if (i.type !== 'folder') {
+      // This is the request item - get hooks from it
+      const itemRoot = i?.draft || i?.root || i;
+      requestHooks = get(itemRoot, 'request.hooks', '') || '';
+    }
+  }
+
+  // Fallback: try to get from request object if not found in tree path
+  if (!requestHooks) {
+    requestHooks = get(request, 'hooks', '') || '';
+  }
+
+  return {
+    collectionHooks,
+    folderHooks,
+    requestHooks
+  };
+};
+
 const flattenItems = (items = []) => {
   const flattenedItems = [];
 
@@ -368,6 +414,7 @@ const transformRequestToSaveToFilesystem = (item) => {
       vars: _item.request.vars,
       assertions: _item.request.assertions,
       tests: _item.request.tests,
+      hooks: _item.request.hooks,
       docs: _item.request.docs
     }
   };
@@ -639,5 +686,6 @@ module.exports = {
   getEnvVars,
   getFormattedCollectionOauth2Credentials,
   sortByNameThenSequence,
-  resolveInheritedSettings
+  resolveInheritedSettings,
+  extractHooks
 };

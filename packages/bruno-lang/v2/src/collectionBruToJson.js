@@ -3,7 +3,7 @@ const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
 
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
+  BruFile = (meta | query | headers | auth | auths | vars | script | tests | hooks | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey | authOauth2Configs
 
   // Oauth2 additional parameters
@@ -66,6 +66,7 @@ const grammar = ohm.grammar(`Bru {
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
+  hooks = "hooks" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
@@ -507,6 +508,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   tests(_1, _2, _3, _4, textblock, _5) {
     return {
       tests: outdentString(textblock.sourceString)
+    };
+  },
+  hooks(_1, _2, _3, _4, textblock, _5) {
+    return {
+      hooks: outdentString(textblock.sourceString)
     };
   },
   docs(_1, _2, _3, _4, textblock, _5) {

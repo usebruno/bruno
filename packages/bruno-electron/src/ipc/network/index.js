@@ -9,7 +9,10 @@ const FormData = require('form-data');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, HooksRuntime } = require('@usebruno/js');
+// BrunoRequest and BrunoResponse are not exported from main index, require directly
+const BrunoRequest = require('@usebruno/js/src/bruno-request');
+const BrunoResponse = require('@usebruno/js/src/bruno-response');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
@@ -24,7 +27,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence, extractHooks } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -36,6 +39,7 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
+const hookManagerStore = require('../../store/hook-manager-store');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -370,6 +374,296 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
+  /**
+   * Register hooks at collection, folder, and request levels.
+   * Hooks are registered only once per level to avoid duplicate registrations.
+   *
+   * @param {object} options - Configuration options
+   * @param {string} options.collectionUid - Collection UID
+   * @param {object} options.collection - Collection object
+   * @param {object} options.request - Request object
+   * @param {array} options.requestTreePath - Path from collection to request
+   * @param {object} options.envVars - Environment variables
+   * @param {object} options.runtimeVariables - Runtime variables
+   * @param {string} options.collectionPath - Collection path
+   * @param {object} options.processEnvVars - Process environment variables
+   * @param {object} options.scriptingConfig - Scripting configuration
+   * @param {function} options.runRequestByItemPathname - Function to run requests
+   * @param {string} options.collectionName - Collection name
+   * @param {function} options.onConsoleLog - Console log callback
+   * @returns {object} HookManager instance
+   */
+  /**
+   * Register collection and folder-level hooks (without a specific request)
+   * Used for collection/folder runs where hooks should be registered before any requests run
+   */
+  const registerCollectionAndFolderHooks = async ({
+    collectionUid,
+    collection,
+    folder,
+    envVars,
+    runtimeVariables,
+    collectionPath,
+    processEnvVars,
+    scriptingConfig,
+    runRequestByItemPathname,
+    collectionName,
+    onConsoleLog
+  }) => {
+    // Get or create HookManager for this collection
+    const hookManager = hookManagerStore.getHookManager(collectionUid);
+    const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+
+    // Extract collection-level hooks
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    const collectionHooks = get(collectionRoot, 'request.hooks', '');
+
+    // Register collection-level hooks
+    if (collectionHooks && collectionHooks.trim()) {
+      const level = 'collection';
+      const shouldRegister = !hookManagerStore.isLevelRegistered(collectionUid, level)
+        || hookManagerStore.hasContentChanged(collectionUid, level, collectionHooks);
+
+      if (shouldRegister) {
+        if (hookManagerStore.isLevelRegistered(collectionUid, level)) {
+          hookManagerStore.clearLevel(collectionUid, level);
+        }
+
+        try {
+          // Create a minimal request object for hook registration context
+          const mockRequest = {
+            globalEnvironmentVariables: collection.globalEnvironmentVariables || {},
+            collectionVariables: {},
+            folderVariables: {},
+            requestVariables: {}
+          };
+
+          await hooksRuntime.runHooks({
+            hooksFile: decomment(collectionHooks),
+            request: mockRequest,
+            envVariables: envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName,
+            hookManager
+          });
+          const commonPatterns = ['onBeforeRequest', 'onAfterResponse', '*'];
+          const contentHash = hookManagerStore._hashContent(collectionHooks);
+          hookManagerStore.markLevelRegistered(collectionUid, level, contentHash, commonPatterns);
+        } catch (error) {
+          console.error('Error registering collection hooks:', error);
+          onConsoleLog?.('error', [`Error registering collection hooks: ${error.message}`]);
+        }
+      }
+    }
+
+    // Register folder-level hooks if a folder is specified
+    if (folder && folder.uid !== collection.uid) {
+      const folderTreePath = getTreePathFromCollectionToItem(collection, folder);
+      const folderHooks = [];
+
+      for (const item of folderTreePath) {
+        if (item.type === 'folder') {
+          const folderRoot = item?.draft || item?.root;
+          const hooks = get(folderRoot, 'request.hooks', '');
+          if (hooks && hooks.trim() !== '') {
+            folderHooks.push({
+              folderUid: item.uid,
+              hooks: hooks
+            });
+          }
+        }
+      }
+
+      for (const folderHook of folderHooks) {
+        const levelKey = `folder:${folderHook.folderUid}`;
+        const shouldRegister = !hookManagerStore.isLevelRegistered(collectionUid, levelKey)
+          || hookManagerStore.hasContentChanged(collectionUid, levelKey, folderHook.hooks);
+
+        if (shouldRegister) {
+          if (hookManagerStore.isLevelRegistered(collectionUid, levelKey)) {
+            hookManagerStore.clearLevel(collectionUid, levelKey);
+          }
+
+          try {
+            const mockRequest = {
+              globalEnvironmentVariables: collection.globalEnvironmentVariables || {},
+              collectionVariables: {},
+              folderVariables: {},
+              requestVariables: {}
+            };
+
+            await hooksRuntime.runHooks({
+              hooksFile: decomment(folderHook.hooks),
+              request: mockRequest,
+              envVariables: envVars,
+              runtimeVariables,
+              collectionPath,
+              onConsoleLog,
+              processEnvVars,
+              scriptingConfig,
+              runRequestByItemPathname,
+              collectionName,
+              hookManager
+            });
+            const commonPatterns = ['onBeforeRequest', 'onAfterResponse', '*'];
+            const contentHash = hookManagerStore._hashContent(folderHook.hooks);
+            hookManagerStore.markLevelRegistered(collectionUid, levelKey, contentHash, commonPatterns);
+          } catch (error) {
+            console.error(`Error registering folder hooks (${folderHook.folderUid}):`, error);
+            onConsoleLog?.('error', [`Error registering folder hooks: ${error.message}`]);
+          }
+        }
+      }
+    }
+
+    return hookManager;
+  };
+
+  const registerHooks = async ({
+    collectionUid,
+    collection,
+    request,
+    requestTreePath,
+    envVars,
+    runtimeVariables,
+    collectionPath,
+    processEnvVars,
+    scriptingConfig,
+    runRequestByItemPathname,
+    collectionName,
+    onConsoleLog
+  }) => {
+    // Get or create HookManager for this collection
+    const hookManager = hookManagerStore.getHookManager(collectionUid);
+
+    // Extract hooks from different levels
+    const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
+
+    const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+
+    // Register collection-level hooks
+    // Check if content has changed and re-register if needed
+    if (collectionHooks && collectionHooks.trim()) {
+      const level = 'collection';
+      const shouldRegister = !hookManagerStore.isLevelRegistered(collectionUid, level)
+        || hookManagerStore.hasContentChanged(collectionUid, level, collectionHooks);
+
+      if (shouldRegister) {
+        // Clear old handlers if content changed
+        if (hookManagerStore.isLevelRegistered(collectionUid, level)) {
+          hookManagerStore.clearLevel(collectionUid, level);
+        }
+
+        try {
+          await hooksRuntime.runHooks({
+            hooksFile: decomment(collectionHooks),
+            request,
+            envVariables: envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName,
+            hookManager
+          });
+          // Track common patterns that might be registered (we can't know all patterns, so track common ones)
+          const commonPatterns = ['onBeforeRequest', 'onAfterResponse', '*'];
+          const contentHash = hookManagerStore._hashContent(collectionHooks);
+          hookManagerStore.markLevelRegistered(collectionUid, level, contentHash, commonPatterns);
+        } catch (error) {
+          console.error('Error registering collection hooks:', error);
+          onConsoleLog?.('error', [`Error registering collection hooks: ${error.message}`]);
+        }
+      }
+    }
+
+    // Register folder-level hooks
+    // Check if content has changed and re-register if needed
+    for (const folderHook of folderHooks) {
+      const levelKey = `folder:${folderHook.folderUid}`;
+      const shouldRegister = !hookManagerStore.isLevelRegistered(collectionUid, levelKey)
+        || hookManagerStore.hasContentChanged(collectionUid, levelKey, folderHook.hooks);
+
+      if (shouldRegister) {
+        // Clear old handlers if content changed
+        if (hookManagerStore.isLevelRegistered(collectionUid, levelKey)) {
+          hookManagerStore.clearLevel(collectionUid, levelKey);
+        }
+
+        try {
+          await hooksRuntime.runHooks({
+            hooksFile: decomment(folderHook.hooks),
+            request,
+            envVariables: envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName,
+            hookManager
+          });
+          // Track common patterns that might be registered
+          const commonPatterns = ['onBeforeRequest', 'onAfterResponse', '*'];
+          const contentHash = hookManagerStore._hashContent(folderHook.hooks);
+          hookManagerStore.markLevelRegistered(collectionUid, levelKey, contentHash, commonPatterns);
+        } catch (error) {
+          console.error(`Error registering folder hooks (${folderHook.folderUid}):`, error);
+          onConsoleLog?.('error', [`Error registering folder hooks: ${error.message}`]);
+        }
+      }
+    }
+
+    // Register request-level hooks
+    // Check if content has changed and re-register if needed
+    // Note: We use item.uid from the request tree path or requestUid as fallback
+    if (requestHooks && requestHooks.trim()) {
+      const levelKey = `request:${request.uid}`;
+      const shouldRegister = !hookManagerStore.isLevelRegistered(collectionUid, levelKey)
+        || hookManagerStore.hasContentChanged(collectionUid, levelKey, requestHooks);
+
+      if (shouldRegister) {
+        // Clear old handlers if content changed
+        if (hookManagerStore.isLevelRegistered(collectionUid, levelKey)) {
+          hookManagerStore.clearLevel(collectionUid, levelKey);
+        }
+
+        try {
+          await hooksRuntime.runHooks({
+            hooksFile: decomment(requestHooks),
+            request,
+            envVariables: envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName,
+            hookManager
+          });
+          // Track common patterns that might be registered
+          const commonPatterns = ['onBeforeRequest', 'onAfterResponse', '*'];
+          const contentHash = hookManagerStore._hashContent(requestHooks);
+          hookManagerStore.markLevelRegistered(collectionUid, levelKey, contentHash, commonPatterns);
+        } catch (error) {
+          console.error('Error registering request hooks:', error);
+          onConsoleLog?.('error', [`Error registering request hooks: ${error.message}`]);
+        }
+      }
+    }
+
+    return hookManager;
+  };
+
   const runPreRequest = async (
     request,
     requestUid,
@@ -599,9 +893,42 @@ const registerNetworkIpc = (mainWindow) => {
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
+    // Get request tree path for hooks registration
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+
     try {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
+
+      // Register hooks before pre-request scripts
+      // This ensures hooks are registered once per level and available for all requests
+      const hookManager = await registerHooks({
+        collectionUid,
+        collection,
+        request,
+        requestTreePath,
+        envVars,
+        runtimeVariables,
+        collectionPath,
+        processEnvVars,
+        scriptingConfig,
+        runRequestByItemPathname,
+        collectionName: collection?.name,
+        onConsoleLog
+      });
+
+      // Call pre-request hooks before running pre-request scripts
+      // Hooks are called in registration order: collection -> folder(s) -> request
+      if (hookManager) {
+        try {
+          // Create req object for hook callbacks (res is not available yet)
+          const req = new BrunoRequest(request);
+          hookManager.call('onBeforeRequest', { request, req, collection, collectionUid });
+        } catch (error) {
+          console.error('Error calling pre-request hooks:', error);
+          onConsoleLog?.('error', [`Error calling pre-request hooks: ${error.message}`]);
+        }
+      }
 
       let preRequestScriptResult = null;
       let preRequestError = null;
@@ -751,6 +1078,21 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
       cookiesStore.saveCookieJar();
+
+      // Call post-response hooks after response is received but before post-response scripts
+      // Hooks are called in registration order: collection -> folder(s) -> request
+      const postResponseHookManager = hookManagerStore.getHookManager(collectionUid);
+      if (postResponseHookManager) {
+        try {
+          // Create req and res objects for hook callbacks
+          const req = new BrunoRequest(request);
+          const res = new BrunoResponse(response);
+          postResponseHookManager.call('onAfterResponse', { request, response, req, res, collection, collectionUid });
+        } catch (error) {
+          console.error('Error calling post-response hooks:', error);
+          onConsoleLog?.('error', [`Error calling post-response hooks: ${error.message}`]);
+        }
+      }
 
       let postResponseScriptResult = null;
       let postResponseError = null;
@@ -983,6 +1325,29 @@ const registerNetworkIpc = (mainWindow) => {
         folder = collection;
       }
 
+      // Register collection and folder-level hooks before running any requests
+      // This ensures hooks are available for all requests in the run
+      try {
+        await registerCollectionAndFolderHooks({
+          collectionUid,
+          collection,
+          folder,
+          envVars,
+          runtimeVariables,
+          collectionPath,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname,
+          collectionName: collection?.name,
+          onConsoleLog: (type, args) => {
+            // Console logs during hook registration can be sent to the renderer if needed
+            console.log(`[Hook Registration] ${type}:`, args);
+          }
+        });
+      } catch (error) {
+        console.error('Error registering collection/folder hooks for run:', error);
+      }
+
       mainWindow.webContents.send('main:run-folder-event', {
         type: 'testrun-started',
         isRecursive: recursive,
@@ -1071,7 +1436,43 @@ const registerNetworkIpc = (mainWindow) => {
           
           const requestUid = uuid();
 
+          // Register request-level hooks for this specific request
+          const requestTreePath = getTreePathFromCollectionToItem(collection, item);
           try {
+            await registerHooks({
+              collectionUid,
+              collection,
+              request,
+              requestTreePath,
+              envVars,
+              runtimeVariables,
+              collectionPath,
+              processEnvVars,
+              scriptingConfig,
+              runRequestByItemPathname,
+              collectionName: collection?.name,
+              onConsoleLog: (type, args) => {
+                console.log(`[Hook Registration] ${type}:`, args);
+              }
+            });
+          } catch (error) {
+            console.error('Error registering hooks for request in collection run:', error);
+          }
+
+          try {
+            // Call pre-request hooks before running pre-request scripts
+            // Hooks are called in registration order: collection -> folder(s) -> request
+            const hookManager = hookManagerStore.getHookManager(collectionUid);
+            if (hookManager) {
+              try {
+                // Create req object for hook callbacks (res is not available yet)
+                const req = new BrunoRequest(request);
+                hookManager.call('onBeforeRequest', { request, req, collection, collectionUid });
+              } catch (error) {
+                console.error('Error calling pre-request hooks:', error);
+              }
+            }
+
             let preRequestScriptResult;
             let preRequestError = null;
             try {
@@ -1285,6 +1686,20 @@ const registerNetworkIpc = (mainWindow) => {
 
                 // if it's not a network error, don't continue
                 throw error;
+              }
+            }
+
+            // Call post-response hooks after response is received but before post-response scripts
+            // Hooks are called in registration order: collection -> folder(s) -> request
+            const postResponseHookManager = hookManagerStore.getHookManager(collectionUid);
+            if (postResponseHookManager) {
+              try {
+                // Create req and res objects for hook callbacks
+                const req = new BrunoRequest(request);
+                const res = new BrunoResponse(response);
+                postResponseHookManager.call('onAfterResponse', { request, response, req, res, collection, collectionUid });
+              } catch (error) {
+                console.error('Error calling post-response hooks:', error);
               }
             }
 

@@ -9,6 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
 import Documentation from './Documentation';
 import Auth from './Auth';
+import Hooks from './Hooks';
 import StatusDot from 'components/StatusDot';
 import get from 'lodash/get';
 
@@ -23,6 +24,7 @@ const FolderSettings = ({ collection, folder }) => {
   const folderRoot = folder?.draft || folder?.root;
   const hasScripts = folderRoot?.request?.script?.res || folderRoot?.request?.script?.req;
   const hasTests = folderRoot?.request?.tests;
+  const hasHooks = folderRoot?.request?.hooks;
 
   const headers = folderRoot?.request?.headers || [];
   const activeHeadersCount = headers.filter((header) => header.enabled).length;
@@ -64,6 +66,9 @@ const FolderSettings = ({ collection, folder }) => {
       case 'docs': {
         return <Documentation collection={collection} folder={folder} />;
       }
+      case 'hooks': {
+        return <Hooks collection={collection} folder={folder} />;
+      }
     }
   };
 
@@ -99,6 +104,10 @@ const FolderSettings = ({ collection, folder }) => {
           </div>
           <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
             Docs
+          </div>
+          <div className={getTabClassname('hooks')} role="tab" onClick={() => setTab('hooks')}>
+            Hooks
+            {hasHooks && <StatusDot />}
           </div>
         </div>
         <section className={`flex mt-4 h-full overflow-auto`}>{getTabPanel(tab)}</section>

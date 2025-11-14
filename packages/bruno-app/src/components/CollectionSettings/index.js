@@ -9,6 +9,7 @@ import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
+import Hooks from './Hooks';
 import Presets from './Presets';
 import Protobuf from './Protobuf';
 import StyledWrapper from './StyledWrapper';
@@ -31,6 +32,7 @@ const CollectionSettings = ({ collection }) => {
   const root = collection?.draft?.root || collection?.root;
   const hasScripts = root?.request?.script?.res || root?.request?.script?.req;
   const hasTests = root?.request?.tests;
+  const hasHooks = root?.request?.hooks;
   const hasDocs = root?.docs;
 
   const headers = collection.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
@@ -68,6 +70,9 @@ const CollectionSettings = ({ collection }) => {
       }
       case 'tests': {
         return <Test collection={collection} />;
+      }
+      case 'hooks': {
+        return <Hooks collection={collection} />;
       }
       case 'presets': {
         return <Presets collection={collection} />;
@@ -119,6 +124,10 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
           {hasTests && <StatusDot />}
+        </div>
+        <div className={getTabClassname('hooks')} role="tab" onClick={() => setTab('hooks')}>
+          Hooks
+          {hasHooks && <StatusDot />}
         </div>
         <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
           Presets

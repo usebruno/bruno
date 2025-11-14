@@ -581,7 +581,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   };
 
   let { request, docs, meta } = collection?.root || {};
-  let { auth, headers, script = {}, vars = {}, tests } = request || {};
+  let { auth, headers, script = {}, vars = {}, tests, hooks } = request || {};
 
   // collection level auth
   if (auth?.mode) {
@@ -614,6 +614,10 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   // collection level tests
   if (tests?.length) {
     collectionToSave.root.request.tests = tests;
+  }
+  // collection level hooks
+  if (hooks?.length) {
+    collectionToSave.root.request.hooks = hooks;
   }
   // collection level docs
   if (docs?.length) {
@@ -677,6 +681,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       vars: _item.request.vars,
       assertions: _item.request.assertions,
       tests: _item.request.tests,
+      hooks: _item.request.hooks,
       docs: _item.request.docs
     }
   };
@@ -759,7 +764,8 @@ export const transformCollectionRootToSave = (collection) => {
       headers: [],
       script: _collection?.request?.script,
       vars: _collection?.request?.vars,
-      tests: _collection?.request?.tests
+      tests: _collection?.request?.tests,
+      hooks: _collection?.request?.hooks
     }
   };
 
@@ -785,7 +791,8 @@ export const transformFolderRootToSave = (folder) => {
       headers: [],
       script: _folder?.request?.script,
       vars: _folder?.request?.vars,
-      tests: _folder?.request?.tests
+      tests: _folder?.request?.tests,
+      hooks: _folder?.request?.hooks
     }
   };
 
