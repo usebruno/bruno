@@ -655,6 +655,9 @@ const handler = async function (argv) {
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
+    // Extract environment name from envVars if available
+    const environmentName = envVars?.__name__ || null;
+
     const formatKeys = Object.keys(formats);
     if (formatKeys && formatKeys.length > 0) {
       const outputJson = {
@@ -665,7 +668,7 @@ const handler = async function (argv) {
       const reporters = {
         'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path, runCompletionTime),
+        html: (path) => makeHtmlOutput(outputJson, path, runCompletionTime, environmentName)
       }
 
       for (const formatter of Object.keys(formats))
