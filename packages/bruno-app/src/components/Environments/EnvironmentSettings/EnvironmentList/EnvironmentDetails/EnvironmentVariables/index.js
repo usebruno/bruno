@@ -221,6 +221,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                       value={variable.value}
                       isSecret={variable.secret}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                      enableBrunoVarInfo={false}
                     />
                   </div>
                   {!variable.secret && hasSensitiveUsage(variable.name) && (

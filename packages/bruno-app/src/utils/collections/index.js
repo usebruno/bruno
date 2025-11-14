@@ -1472,3 +1472,108 @@ export const getInitialExampleName = (item) => {
     counter++;
   }
 };
+
+// Get the scope and raw value of a variable by checking all scopes in priority order
+export const getVariableScope = (variableName, collection, item) => {
+  if (!variableName || !collection) {
+    return null;
+  }
+
+  // 1. Check Request Variables (highest priority)
+  if (item && item.request && item.request.vars && item.request.vars.req) {
+    const requestVar = item.request.vars.req.find((v) => v.name === variableName && v.enabled);
+    if (requestVar) {
+      return {
+        type: 'request',
+        value: requestVar.value,
+        data: { item, variable: requestVar }
+      };
+    }
+  }
+
+  // 2. Check Folder Variables
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  for (let i = requestTreePath.length - 1; i >= 0; i--) {
+    const pathItem = requestTreePath[i];
+    if (pathItem.type === 'folder') {
+      const folderVars = get(pathItem, 'root.request.vars.req', []);
+      const folderVar = folderVars.find((v) => v.name === variableName && v.enabled);
+      if (folderVar) {
+        return {
+          type: 'folder',
+          value: folderVar.value,
+          data: { folder: pathItem, variable: folderVar }
+        };
+      }
+    }
+  }
+
+  // 3. Check Environment Variables
+  if (collection.activeEnvironmentUid) {
+    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    if (environment && environment.variables) {
+      const envVar = environment.variables.find((v) => v.name === variableName && v.enabled);
+      if (envVar) {
+        return {
+          type: 'environment',
+          value: envVar.value,
+          data: { environment, variable: envVar }
+        };
+      }
+    }
+  }
+
+  // 4. Check Collection Variables
+  const collectionVars = get(collection, 'root.request.vars.req', []);
+  const collectionVar = collectionVars.find((v) => v.name === variableName && v.enabled);
+  if (collectionVar) {
+    return {
+      type: 'collection',
+      value: collectionVar.value,
+      data: { collection, variable: collectionVar }
+    };
+  }
+
+  // 5. Check Global Environment Variables
+  const { globalEnvironmentVariables = {} } = collection;
+  if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
+    return {
+      type: 'global',
+      value: globalEnvironmentVariables[variableName],
+      data: { variableName, value: globalEnvironmentVariables[variableName] }
+    };
+  }
+
+  // 6. Check Runtime Variables (set during request execution via scripts)
+  const { runtimeVariables = {} } = collection;
+  if (runtimeVariables && runtimeVariables[variableName]) {
+    return {
+      type: 'runtime',
+      value: runtimeVariables[variableName],
+      data: { variableName, value: runtimeVariables[variableName], readonly: true }
+    };
+  }
+
+  // Process.env variables are not checked here
+
+  return null;
+};
+
+// Check if a variable is marked as secret
+export const isVariableSecret = (scopeInfo) => {
+  if (!scopeInfo) {
+    return false;
+  }
+
+  // Only environment variables can be marked as secret
+  if (scopeInfo.type === 'environment') {
+    return !!scopeInfo.data.variable?.secret;
+  }
+
+  // Global variables are not checked here
+  if (scopeInfo.type === 'global') {
+    return false;
+  }
+
+  return false;
+};

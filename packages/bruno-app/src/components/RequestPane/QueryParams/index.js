@@ -175,6 +175,7 @@ const QueryParams = ({ item, collection }) => {
                         onChange={(newValue) => handleQueryParamChange({ target: { value: newValue } }, param, 'value')}
                         onRun={handleRun}
                         collection={collection}
+                        item={item}
                         variablesAutocomplete={true}
                       />
                     </td>
