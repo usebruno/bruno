@@ -81,6 +81,26 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
     request.body = JSON.parse(parsed);
   }
+  // Interpolate WebSocket message body
+  const isWsRequest = request.mode === 'ws';
+  if (isWsRequest && request.body && request.body.ws && Array.isArray(request.body.ws)) {
+    request.body.ws.forEach((message) => {
+      if (message && message.content) {
+        // Try to detect if content is JSON for proper escaping
+        let isJson = false;
+        try {
+          JSON.parse(message.content);
+          isJson = true;
+        } catch (e) {
+          // Not JSON, treat as regular string
+        }
+
+        message.content = _interpolate(message.content, {
+          escapeJSONStrings: isJson
+        });
+      }
+    });
+  }
 
   if (typeof contentType === 'string') {
     /*
