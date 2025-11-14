@@ -49,18 +49,6 @@ const getValueString = (value) => {
 };
 
 const getKeyString = (key) => {
-  if (!key) {
-    return '';
-  }
-
-  // Check if key contains newlines - if so, use triple-quote format
-  const hasNewLines = key.includes('\n') || key.includes('\r');
-  if (hasNewLines) {
-    const normalizedKey = key.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    return `'''\n${normalizedKey}\n'''`;
-  }
-
-  // Otherwise, check for other quotable characters
   const quotableChars = [':', '"', '{', '}', ' '];
   return quotableChars.some((char) => key.includes(char)) ? ('"' + key.replaceAll('"', '\\"') + '"') : key;
 };
