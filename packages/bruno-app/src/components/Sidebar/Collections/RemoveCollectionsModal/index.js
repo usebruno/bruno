@@ -101,25 +101,21 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
 
   const handleSave = async () => {
     try {
-      const savePromises = [];
-
       // Save all collection drafts
       if (allDrafts.collectionDrafts.length > 0) {
-        savePromises.push(dispatch(saveMultipleCollections(allDrafts.collectionDrafts)));
+        await dispatch(saveMultipleCollections(allDrafts.collectionDrafts));
       }
 
       // Save all folder drafts
       if (allDrafts.folderDrafts.length > 0) {
-        savePromises.push(dispatch(saveMultipleFolders(allDrafts.folderDrafts)));
+        await dispatch(saveMultipleFolders(allDrafts.folderDrafts));
       }
 
       // Save all request drafts
       if (allDrafts.requestDrafts.length > 0) {
-        savePromises.push(dispatch(saveMultipleRequests(allDrafts.requestDrafts)));
+        await dispatch(saveMultipleRequests(allDrafts.requestDrafts));
       }
 
-      // Await all saving operations to complete in parallel, then proceed to close all collections.
-      await Promise.all(savePromises);
       handleCloseAllCollections();
     } catch (error) {
       console.error('Error saving drafts:', error);
