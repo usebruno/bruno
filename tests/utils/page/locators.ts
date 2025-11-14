@@ -41,6 +41,12 @@ export const buildCommonLocators = (page: Page) => ({
   modal: {
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     button: (name: string) => page.getByRole('button', { name: name, exact: true })
+  },
+  environment: {
+    selector: () => page.getByTestId('environment-selector-trigger'),
+    collectionTab: () => page.getByTestId('env-tab-collection'),
+    globalTab: () => page.getByTestId('env-tab-global'),
+    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   }
 });
 
@@ -63,5 +69,33 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
     latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
     clearResponse: () => page.getByRole('button', { name: 'Clear Response' })
+  }
+});
+
+export const buildGrpcCommonLocators = (page: Page) => ({
+  ...buildCommonLocators(page),
+  method: {
+    dropdownTrigger: () => page.getByTestId('grpc-method-dropdown-trigger'),
+    indicator: () => page.getByTestId('grpc-method-indicator')
+  },
+  request: {
+    queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
+    sendButton: () => page.getByTestId('grpc-send-request-button'),
+    messagesContainer: () => page.getByTestId('grpc-messages-container'),
+    addMessageButton: () => page.getByTestId('grpc-add-message-button'),
+    sendMessage: (index: number) => page.getByTestId(`grpc-send-message-${index}`),
+    endConnectionButton: () => page.getByTestId('grpc-end-connection-button'),
+    cancelConnectionButton: () => page.getByTestId('grpc-cancel-connection-button')
+  },
+  response: {
+    statusCode: () => page.getByTestId('grpc-response-status-code'),
+    statusText: () => page.getByTestId('grpc-response-status-text'),
+    content: () => page.getByTestId('grpc-response-content'),
+    container: () => page.getByTestId('grpc-responses-container'),
+    singleResponse: () => page.getByTestId('grpc-single-response'),
+    accordion: () => page.getByTestId('grpc-responses-accordion'),
+    responseItem: (index: number) => page.getByTestId(`grpc-response-item-${index}`),
+    responseItems: () => page.locator('[data-testid^="grpc-response-item-"]'),
+    tabCount: () => page.getByTestId('tab-response-count')
   }
 });

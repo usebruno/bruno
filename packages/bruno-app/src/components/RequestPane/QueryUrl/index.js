@@ -41,9 +41,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     if (!editorRef.current?.editor) return;
     const editor = editorRef.current.editor;
     const cursor = editor.getCursor();
-  
+
     const finalUrl = value?.trim() ?? value;
-  
+
     dispatch(
       requestUrlChanged({
         itemUid: item.uid,
@@ -51,7 +51,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         url: finalUrl
       })
     );
-  
+
     // Restore cursor position only if URL was trimmed
     if (finalUrl !== value) {
       setTimeout(() => {
@@ -92,7 +92,6 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           <div className="flex items-center justify-center h-full w-16">
             <span className="text-xs text-indigo-500 font-bold">gRPC</span>
           </div>
-          
         ) : (
           <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
         )}
@@ -125,15 +124,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               handleGenerateCode(e);
             }}
           >
-            <IconCode
-              color={theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={22}
-              className={'cursor-pointer'}
-            />
-            <span className="infotiptext text-xs">
-              Generate Code
-            </span>
+            <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className="cursor-pointer" />
+            <span className="infotiptext text-xs">Generate Code</span>
           </div>
           <div
             title="Save Request"
@@ -154,29 +146,30 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-
-          {
-            isLoading || item.response?.stream?.running ? (
-              <IconSquareRoundedX
-                color={theme.requestTabPanel.url.icon}
-                strokeWidth={1.5}
-                size={22}
-                data-testid="cancel-request-icon"
-                onClick={handleCancelRequest}
-              />
-            ) : (
-              <IconArrowRight
-                color={theme.requestTabPanel.url.icon}
-                strokeWidth={1.5}
-                size={22}
-                data-testid="send-arrow-icon"
-              />
-            )
-          }
+          {isLoading || item.response?.stream?.running ? (
+            <IconSquareRoundedX
+              color={theme.requestTabPanel.url.icon}
+              strokeWidth={1.5}
+              size={22}
+              data-testid="cancel-request-icon"
+              onClick={handleCancelRequest}
+            />
+          ) : (
+            <IconArrowRight
+              color={theme.requestTabPanel.url.icon}
+              strokeWidth={1.5}
+              size={22}
+              data-testid="send-arrow-icon"
+            />
+          )}
         </div>
       </div>
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collectionUid={collection.uid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem
+          collectionUid={collection.uid}
+          item={item}
+          onClose={() => setGenerateCodeItemModalOpen(false)}
+        />
       )}
     </StyledWrapper>
   );
