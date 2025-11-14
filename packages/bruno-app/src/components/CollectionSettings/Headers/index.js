@@ -24,22 +24,6 @@ const Headers = ({ collection }) => {
   const headers = collection.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
-  const validationErrors = headers.reduce((errors, header) => {
-    // Validate name
-    if (/[\r\n]/.test(header.name)) {
-      errors[`${header.uid}-name`] = 'Key contains invalid newline characters.';
-    } else if (/[\s]/.test(header.name)) {
-      errors[`${header.uid}-name`] = 'Key contains invalid whitespace characters.';
-    }
-
-    // Validate value
-    if (/[\r\n]/.test(header.value)) {
-      errors[`${header.uid}-value`] = 'Value contains invalid newline characters.';
-    }
-
-    return errors;
-  }, {});
-
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
   };
@@ -61,7 +45,8 @@ const Headers = ({ collection }) => {
     const header = cloneDeep(_header);
     switch (type) {
       case 'name': {
-        header.name = e.target.value;
+        // Strip newlines from header keys
+        header.name = e.target.value.replace(/[\r\n]/g, '');
         break;
       }
       case 'value': {
@@ -142,7 +127,6 @@ const Headers = ({ collection }) => {
                         }
                         autocomplete={headerAutoCompleteList}
                         collection={collection}
-                        validationError={validationErrors[`${header.uid}-name`]}
                       />
                     </td>
                     <td>
@@ -163,7 +147,6 @@ const Headers = ({ collection }) => {
                         }
                         collection={collection}
                         autocomplete={MimeTypes}
-                        validationError={validationErrors[`${header.uid}-value`]}
                       />
                     </td>
                     <td>

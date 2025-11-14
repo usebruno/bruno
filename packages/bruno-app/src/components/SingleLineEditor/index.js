@@ -5,8 +5,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
-import { IconEye, IconEyeOff, IconAlertCircle } from '@tabler/icons';
-import ToolHint from 'components/ToolHint';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
 
@@ -277,8 +276,6 @@ class SingleLineEditor extends Component {
   };
 
   render() {
-    const errorIconId = `validation-error-${Math.random().toString(36).substr(2, 9)}`;
-
     return (
       <div className={`flex flex-row items-center w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper
@@ -288,19 +285,6 @@ class SingleLineEditor extends Component {
         />
         <div className="flex items-center">
           {this.secretEye(this.props.isSecret)}
-          {this.props.validationError && (
-            <ToolHint
-              text={this.props.validationError}
-              toolhintId={errorIconId}
-              place="right"
-              delayShow={50}
-              style={{
-                maxWidth: '200px'
-              }}
-            >
-              <IconAlertCircle size={18} strokeWidth={2} color="#ef4444" className="ml-2" />
-            </ToolHint>
-          )}
         </div>
       </div>
     );
