@@ -27,6 +27,7 @@ import {
 } from 'providers/ReduxStore/slices/logs';
 
 import NetworkTab from './NetworkTab';
+import TerminalTab from './TerminalTab';
 import RequestDetailsPanel from './RequestDetailsPanel';
 // import DebugTab from './DebugTab';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
@@ -389,6 +390,8 @@ const Console = () => {
         return <NetworkTab />;
       case 'performance':
         return <Performance />;
+      case 'terminal':
+        return <TerminalTab />;
       // case 'debug':
       //   return <DebugTab />;
       default:
@@ -442,6 +445,8 @@ const Console = () => {
             </div>
           </div>
         );
+      case 'terminal':
+        return null; // No controls needed for terminal
       // case 'debug':
       //   return (
       //     <div className="tab-controls">
@@ -495,6 +500,14 @@ const Console = () => {
           >
             <IconDashboard size={16} strokeWidth={1.5} />
             <span>Performance</span>
+          </button>
+
+          <button
+            className={`console-tab ${activeTab === 'terminal' ? 'active' : ''}`}
+            onClick={() => handleTabChange('terminal')}
+          >
+            <IconTerminal2 size={16} strokeWidth={1.5} />
+            <span>Terminal</span>
           </button>
 
           {/* <button 
