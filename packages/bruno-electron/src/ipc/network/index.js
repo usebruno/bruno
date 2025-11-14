@@ -36,7 +36,6 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
-const { setTimeout } = require('timers/promises');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -1375,9 +1374,8 @@ const registerNetworkIpc = (mainWindow) => {
                 throw error;
               }
             }
-
-            const runPostScripts = async () => {
-              let postResponseScriptResult;
+            
+            let postResponseScriptResult;
               let postResponseError = null;
               try {
                 postResponseScriptResult = await runPostResponse(request,
@@ -1514,9 +1512,6 @@ const registerNetworkIpc = (mainWindow) => {
                 const domainsWithCookiesTest = await getDomainsWithCookies();
                 mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
               }
-            };
-
-            await runPostScripts();
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'error',
