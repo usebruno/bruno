@@ -20,7 +20,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
-  
+
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const addHeader = () => {
@@ -36,9 +36,11 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
+
     switch (type) {
       case 'name': {
-        header.name = e.target.value;
+        // Strip newlines from header keys
+        header.name = e.target.value.replace(/[\r\n]/g, '');
         break;
       }
       case 'value': {
@@ -50,6 +52,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         break;
       }
     }
+
     dispatch(
       updateRequestHeader({
         header: header,
@@ -154,7 +157,6 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                         }
                         onRun={handleRun}
                         autocomplete={MimeTypes}
-                        allowNewlines={true}
                         collection={collection}
                         item={item}
                       />

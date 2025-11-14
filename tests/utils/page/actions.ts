@@ -78,4 +78,6 @@ const createCollection = async (page, collectionName: string, collectionLocation
   });
 };
 
-export { closeAllCollections, openCollectionAndAcceptSandbox, createCollection };
+const getTableCell = (row, index) => row.locator('td').nth(index);
+
+export { closeAllCollections, openCollectionAndAcceptSandbox, createCollection, getTableCell };

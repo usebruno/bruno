@@ -53,4 +53,87 @@ describe('jsonToBru stringify', () => {
       expect(output).toMatch(new RegExp(`timeout: ${input.settings.timeout}`));
     });
   });
+
+  describe('multi-line values', () => {
+    it('handles multi-line values in URL, headers, params, and vars', () => {
+      const input = {
+        meta: {
+          name: 'new-line',
+          type: 'http',
+          seq: 1
+        },
+        http: {
+          method: 'get',
+          url: 'https://httpbin.io/anything?foo=hello\nworld',
+          body: 'none',
+          auth: 'oauth2'
+        },
+        params: [
+          {
+            name: 'foo',
+            value: 'hello\nworld',
+            enabled: true,
+            type: 'query'
+          }
+        ],
+        headers: [
+          {
+            name: 'test header',
+            value: 't1\nt2',
+            enabled: true
+          }
+        ],
+        vars: {
+          req: [
+            {
+              name: 'test-var',
+              value: 't1\nt2',
+              enabled: true
+            }
+          ]
+        }
+      };
+
+      const output = stringify(input);
+
+      expect(output).toMatchInlineSnapshot(`
+        "meta {
+          name: new-line
+          type: http
+          seq: 1
+        }
+
+        get {
+          url: '''
+            https://httpbin.io/anything?foo=hello
+            world
+        '''
+          body: none
+          auth: oauth2
+        }
+
+        params:query {
+          foo: '''
+            hello
+            world
+          '''
+        }
+
+        headers {
+          "test header": '''
+            t1
+            t2
+          '''
+        }
+
+        vars:pre-request {
+          test-var: '''
+            t1
+            t2
+          '''
+        }
+        "
+      `);
+    });
+  });
 });
