@@ -36,6 +36,8 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
+const { setTimeout } = require('timers/promises');
+const { WaitGroup } = require('@usebruno/common/utils');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -971,11 +973,13 @@ const registerNetworkIpc = (mainWindow) => {
     const processEnvVars = getProcessEnvVars(collectionUid);
     const response = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
     if (response.stream) {
+      let dataChunks = [];
       const stream = response.stream;
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
       stream.on('data', (newData) => {
         const parsed = parseDataFromResponse({ data: newData, headers: {} });
+        dataChunks.push(parsed.data);
         mainWindow.webContents.send('main:http-stream-new-data', { collectionUid, itemUid: item.uid, data: parsed });
       });
 
@@ -1033,7 +1037,7 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
       let currentAbortController;
-      let isResponseStream = false;
+      let pendingStreamsWG = new WaitGroup();
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1102,6 +1106,7 @@ const registerNetworkIpc = (mainWindow) => {
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
         while (currentRequestIndex < folderRequests.length) {
+          let isResponseStream = false;
           // user requested to cancel runner
           if (abortController.signal.aborted) {
             let error = new Error('Runner execution cancelled');
@@ -1297,10 +1302,11 @@ const registerNetworkIpc = (mainWindow) => {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
               isResponseStream = hasStreamHeaders(response.headers);
-
+              axiosDataStream = response.data;
               if (!isResponseStream) {
-                response.data = await promisifyStream(response.data, currentAbortController, true);
+                response.data = await promisifyStream(response.data, currentAbortController, false);
               } else {
+                pendingStreamsWG.add();
                 axiosDataStream = response.data;
                 response.stream = { running: response.status >= 200 && response.status < 300 };
 
@@ -1310,10 +1316,10 @@ const registerNetworkIpc = (mainWindow) => {
                 });
 
                 axiosDataStream.on('close', () => {
+                  pendingStreamsWG.done();
                   if (!cancelTokens[response.cancelTokenUid]) {
                     return;
                   }
-
                   mainWindow.webContents.send('main:http-stream-end', { collectionUid, itemUid: item.uid });
                   deleteCancelToken(response.cancelTokenUid);
                 });
@@ -1338,23 +1344,32 @@ const registerNetworkIpc = (mainWindow) => {
               const domainsWithCookies = await getDomainsWithCookies();
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
-
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'response-received',
-                responseReceived: {
-                  status: response.status,
-                  statusText: response.statusText,
-                  headers: response.headers,
-                  duration: timeEnd - timeStart,
-                  dataBuffer: dataBuffer.toString('base64'),
-                  size: Buffer.byteLength(dataBuffer),
-                  data: response.data,
-                  responseTime: response.responseTime,
-                  timeline: response.timeline,
-                  url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
-                },
-                ...eventData
-              });
+              const markDone = () => {
+                mainWindow.webContents.send('main:run-folder-event', {
+                  type: 'response-received',
+                  responseReceived: {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers,
+                    duration: timeEnd - timeStart,
+                    dataBuffer: dataBuffer.toString('base64'),
+                    size: Buffer.byteLength(dataBuffer),
+                    data: response.data,
+                    stream: isResponseStream ? { running: false } : undefined,
+                    responseTime: response.responseTime,
+                    timeline: response.timeline,
+                    url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
+                  },
+                  ...eventData
+                });
+              };
+              if (!isResponseStream) {
+                markDone();
+              } else {
+                axiosDataStream.on('close', () => {
+                  markDone();
+                });
+              }
             } catch (error) {
               // Skip further processing if request was cancelled
               if (axios.isCancel(error)) {
@@ -1585,14 +1600,17 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
+
+        await pendingStreamsWG.wait();
+
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
           collectionUid,
           folderUid,
-          runCompletionTime: new Date().toISOString(),
+          runCompletionTime: new Date().toISOString()
         });
       } catch (error) {
-        console.log("error", error);
+        console.log('error', error);
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
@@ -1602,8 +1620,7 @@ const registerNetworkIpc = (mainWindow) => {
           error: error && !error.isCancel ? error : null
         });
       }
-    }
-  );
+    });
 
   // save response to file
   ipcMain.handle('renderer:save-response-to-file', async (event, response, url, pathname) => {
