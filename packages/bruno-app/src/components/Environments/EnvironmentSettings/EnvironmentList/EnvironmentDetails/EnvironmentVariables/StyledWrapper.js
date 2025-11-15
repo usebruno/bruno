@@ -42,10 +42,10 @@ const Wrapper = styled.div`
 
     .resize-handle {
       position: absolute;
-      right: -5px;
-      top: 0;
-      bottom: 0;
-      width: 10px;
+      right: -6px;
+      top: -1px;
+      bottom: -1px;
+      width: 12px;
       cursor: col-resize;
       user-select: none;
       z-index: 1;
