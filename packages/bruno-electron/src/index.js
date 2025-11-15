@@ -101,8 +101,8 @@ app.on('ready', async () => {
     y,
     width,
     height,
-    minWidth: 1000,
-    minHeight: 640,
+    minWidth: 700,
+    minHeight: 400,
     show: false,
     webPreferences: {
       nodeIntegration: true,
