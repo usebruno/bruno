@@ -37,6 +37,7 @@ const General = ({ close }) => {
       .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
         return value === undefined || Number(value) >= 0;
       }),
+    useSystemBrowser: Yup.boolean(),
     defaultCollectionLocation: Yup.string().max(1024)
   });
 
@@ -53,6 +54,7 @@ const General = ({ close }) => {
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
       sendCookies: get(preferences, 'request.sendCookies', true),
+      useSystemBrowser: get(preferences, 'request.useSystemBrowser', false),
       defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', '')
     },
     validationSchema: preferencesSchema,
@@ -81,7 +83,8 @@ const General = ({ close }) => {
           },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
-          sendCookies: newPreferences.sendCookies
+          sendCookies: newPreferences.sendCookies,
+          useSystemBrowser: newPreferences.useSystemBrowser
         },
         general: {
           defaultCollectionLocation: newPreferences.defaultCollectionLocation
@@ -229,6 +232,19 @@ const General = ({ close }) => {
           />
           <label className="block ml-2 select-none" htmlFor="sendCookies">
             Send Cookies automatically
+          </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="useSystemBrowser"
+            type="checkbox"
+            name="useSystemBrowser"
+            checked={formik.values.useSystemBrowser}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="useSystemBrowser">
+            Use System Browser for OAuth2 Authorization
           </label>
         </div>
         <div className="flex flex-col mt-6">
