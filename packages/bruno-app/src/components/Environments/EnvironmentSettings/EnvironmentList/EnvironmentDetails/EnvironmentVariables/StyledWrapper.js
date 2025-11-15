@@ -21,9 +21,44 @@ const Wrapper = styled.div`
       }
 
       &:nth-child(2) {
-        width: 25%;
+        width: ${(props) => props.nameColumnWidth || 25}%;
       }
     }
+
+    .name-column {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        right: -1px;
+        top: -1px;
+        bottom: 0;
+        width: 1.5px;
+        pointer-events: none;
+        background-color: transparent;
+      }
+    }
+
+    .resize-handle {
+      position: absolute;
+      right: -5px;
+      top: 0;
+      bottom: 0;
+      width: 10px;
+      cursor: col-resize;
+      user-select: none;
+      z-index: 1;
+    }
+
+    &:has(.resize-handle:hover) .name-column::after {
+      background-color: ${(props) => props.theme.sidebar.dragbar};
+    }
+
+    &:has(.resize-handle:active) .name-column::after {
+      background-color: ${(props) => props.theme.sidebar.dragbar};
+    }
+  }
 
     thead {
       color: ${(props) => props.theme.table.thead.color};

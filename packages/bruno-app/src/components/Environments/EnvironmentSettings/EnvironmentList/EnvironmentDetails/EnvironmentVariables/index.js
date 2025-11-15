@@ -17,11 +17,13 @@ import { Tooltip } from 'react-tooltip';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'utils/collections';
 import { sensitiveFields } from './constants';
+import useLocalStorage from 'hooks/useLocalStorage';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
+  const [nameColumnWidth, setNameColumnWidth] = useLocalStorage('bruno.environmentVariables.columnWidths.name', 25);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   let _collection = cloneDeep(collection);
@@ -170,14 +172,42 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     formik.resetForm({ originalEnvironmentVariables });
   };
 
+  const handleResize = React.useCallback((e) => {
+    e.preventDefault();
+    const tableEl = e.currentTarget.closest('table');
+    if (!tableEl) return;
+
+    const tableRect = tableEl.getBoundingClientRect();
+    const startX = e.clientX;
+    const startWidth = nameColumnWidth;
+
+    const onMove = (moveEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const deltaPercent = (delta / tableRect.width) * 100;
+      const newWidth = startWidth + deltaPercent;
+      setNameColumnWidth(Math.max(15, Math.min(60, newWidth)));
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [nameColumnWidth]);
+
   return (
-    <StyledWrapper className="w-full mt-6 mb-6">
+    <StyledWrapper className="w-full mt-6 mb-6" nameColumnWidth={nameColumnWidth}>
       <div className="h-[50vh] overflow-y-auto w-full">
         <table className="environment-variables">
           <thead>
             <tr>
               <td className="text-center">Enabled</td>
-              <td>Name</td>
+              <td className="name-column">
+                Name
+                <div className="resize-handle" onMouseDown={handleResize} />
+              </td>
               <td>Value</td>
               <td className="text-center">Secret</td>
               <td></td>
@@ -195,22 +225,21 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                     onChange={formik.handleChange}
                   />
                 </td>
-                <td>
-                  <div className="flex items-center">
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      className="mousetrap"
-                      id={`${index}.name`}
-                      name={`${index}.name`}
-                      value={variable.name}
-                      onChange={formik.handleChange}
-                    />
-                    <ErrorMessage name={`${index}.name`} />
-                  </div>
+                <td className="name-column">
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    className="mousetrap"
+                    id={`${index}.name`}
+                    name={`${index}.name`}
+                    value={variable.name}
+                    onChange={formik.handleChange}
+                  />
+                  <ErrorMessage name={`${index}.name`} />
+                  <div className="resize-handle" onMouseDown={handleResize} />
                 </td>
                 <td className="flex flex-row flex-nowrap items-center">
                   <div className="overflow-hidden grow w-full relative">
