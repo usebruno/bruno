@@ -99,7 +99,7 @@ const WSSettingsPane = ({ item, collection }) => {
               <div>
                 <p>
                   <span>
-                    Keep the websocket alive by sending ping requests to the server at every interval (in millseconds)
+                    Keep the websocket alive by sending ping requests to the server at every interval (in milliseconds)
                   </span>
                 </p>
                 <p className="mt-2">0 (zero) = off</p>
