@@ -24,6 +24,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
   const [nameColumnWidth, setNameColumnWidth] = useLocalStorage('bruno.environmentVariables.columnWidths.name', 25);
+  const columnWidthRef = useRef(nameColumnWidth);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   let _collection = cloneDeep(collection);
@@ -117,6 +118,11 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     setIsModified(formik.dirty);
   }, [formik.dirty]);
 
+  // Keep ref in sync with state
+  React.useEffect(() => {
+    columnWidthRef.current = nameColumnWidth;
+  }, [nameColumnWidth]);
+
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
     const id = uuid();
@@ -174,28 +180,35 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
 
   const handleResize = React.useCallback((e) => {
     e.preventDefault();
-    const tableEl = e.currentTarget.closest('table');
-    if (!tableEl) return;
+    const table = e.currentTarget.closest('table');
+    if (!table) return;
 
-    const tableRect = tableEl.getBoundingClientRect();
+    const nameColumnCells = table.querySelectorAll('.name-column');
+    const tableBounds = table.getBoundingClientRect();
     const startX = e.clientX;
-    const startWidth = nameColumnWidth;
+    const initialWidth = columnWidthRef.current;
+    const tableWidth = tableBounds.width;
 
-    const onMove = (moveEvent) => {
-      const delta = moveEvent.clientX - startX;
-      const deltaPercent = (delta / tableRect.width) * 100;
-      const newWidth = startWidth + deltaPercent;
-      setNameColumnWidth(Math.max(15, Math.min(60, newWidth)));
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaPercent = (deltaX / tableWidth) * 100;
+      const newWidth = Math.max(15, Math.min(60, initialWidth + deltaPercent));
+
+      columnWidthRef.current = newWidth;
+      nameColumnCells.forEach((cell) => {
+        cell.style.width = `${newWidth}%`;
+      });
     };
 
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      setNameColumnWidth(columnWidthRef.current);
     };
 
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, [nameColumnWidth]);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [setNameColumnWidth]);
 
   return (
     <StyledWrapper className="w-full mt-6 mb-6" nameColumnWidth={nameColumnWidth}>
