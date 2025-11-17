@@ -69,6 +69,7 @@ import { buildPersistedEnvVariables } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
+import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -1603,12 +1604,184 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
   });
 };
 
-export const mergeAndPersistEnvironment =
-  ({ persistentEnvVariables, collectionUid }) =>
-  (_dispatch, getState) => {
-    return new Promise((resolve, reject) => {
-      const state = getState();
-      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+/**
+ * Update a variable value directly in the file without affecting draft state
+ * @param {string} pathname - File path
+ * @param {Object} variable - Variable object with uid, name, value, type, enabled
+ * @param {string} scopeType - Type of scope ('request', 'folder', 'collection')
+ * @param {string} collectionUid - Collection UID
+ * @param {string} itemUid - Item/Folder UID (for request/folder)
+ */
+const updateVariableInFile = (pathname, variable, scopeType, collectionUid, itemUid) => (dispatch) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:update-variable-in-file', pathname, variable, scopeType)
+      .then(() => {
+        // Update Redux state to reflect the change
+        if (scopeType === 'request') {
+          dispatch({
+            type: 'collections/updateRequestVarValue',
+            payload: { collectionUid, itemUid, variable }
+          });
+        } else if (scopeType === 'folder') {
+          dispatch({
+            type: 'collections/updateFolderVarValue',
+            payload: { collectionUid, folderUid: itemUid, variable }
+          });
+        } else if (scopeType === 'collection') {
+          dispatch({
+            type: 'collections/updateCollectionVarValue',
+            payload: { collectionUid, variable }
+          });
+        }
+
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
+/**
+ * Helper: Execute update action with toast notification
+ * @param {Function} action - The action to dispatch
+ * @param {string} successMessage - Success toast message
+ * @returns {Promise}
+ */
+const executeVariableUpdate = (dispatch, action, successMessage) => {
+  return dispatch(action)
+    .then(() => {
+      toast.success(successMessage);
+    });
+};
+
+/**
+ * Update a variable value in its detected scope (inline editing)
+ * @param {string} variableName - Name of the variable to update
+ * @param {string} newValue - New value for the variable
+ * @param {Object} scopeInfo - Scope information from getVariableScope()
+ * @param {string} collectionUid - Collection UID
+ */
+export const updateVariableInScope = (variableName, newValue, scopeInfo, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    if (!scopeInfo || !variableName) {
+      return reject(new Error('Invalid scope information or variable name'));
+    }
+
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    try {
+      const { type, data } = scopeInfo;
+
+      // Handle read-only variables early
+      if (type === 'process.env') {
+        toast.error('Process environment variables cannot be edited');
+        return reject(new Error('Process environment variables are read-only'));
+      }
+
+      if (type === 'runtime') {
+        toast.error('Runtime variables are set by scripts and cannot be edited');
+        return reject(new Error('Runtime variables are read-only'));
+      }
+
+      // Validate collection for non-global scopes
+      if (type !== 'global' && !collection) {
+        return reject(new Error('Collection not found'));
+      }
+
+      let updatePromise;
+      let successMessage;
+
+      switch (type) {
+        case 'environment': {
+          const { environment, variable } = data;
+          const updatedVariables = variable
+            ? environment.variables.map((v) => (v.name === variableName ? { ...v, value: newValue } : v))
+            : [...environment.variables, { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true }];
+
+          updatePromise = saveEnvironment(updatedVariables, environment.uid, collectionUid);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
+          break;
+        }
+
+        case 'collection': {
+          const { collection: scopeCollection, variable } = data;
+          const variableToSave = variable
+            ? { ...variable, value: newValue }
+            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+
+          const collectionFilePath = path.join(scopeCollection.pathname, 'collection.bru');
+          updatePromise = updateVariableInFile(collectionFilePath, variableToSave, 'collection', collectionUid, null);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
+          break;
+        }
+
+        case 'folder': {
+          const { folder, variable } = data;
+          const variableToSave = variable
+            ? { ...variable, value: newValue }
+            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+
+          const folderFilePath = path.join(folder.pathname, 'folder.bru');
+          updatePromise = updateVariableInFile(folderFilePath, variableToSave, 'folder', collectionUid, folder.uid);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
+          break;
+        }
+
+        case 'request': {
+          const { item, variable } = data;
+          const variableToSave = variable
+            ? { ...variable, value: newValue }
+            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+
+          updatePromise = updateVariableInFile(item.pathname, variableToSave, 'request', collectionUid, item.uid);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
+          break;
+        }
+
+        case 'global': {
+          const globalEnvironments = state.globalEnvironments?.globalEnvironments || [];
+          const activeGlobalEnvUid = state.globalEnvironments?.activeGlobalEnvironmentUid;
+
+          if (!activeGlobalEnvUid) {
+            return reject(new Error('No active global environment'));
+          }
+
+          const environment = globalEnvironments.find((env) => env.uid === activeGlobalEnvUid);
+          if (!environment) {
+            return reject(new Error('Global environment not found'));
+          }
+
+          const updatedVariables = environment.variables.map((v) =>
+            v.name === variableName ? { ...v, value: newValue } : v);
+
+          updatePromise = saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid });
+          successMessage = `Variable "${variableName}" updated`;
+          break;
+        }
+
+        default:
+          return reject(new Error(`Unknown scope type: ${type}`));
+      }
+
+      executeVariableUpdate(dispatch, updatePromise, successMessage)
+        .then(resolve)
+        .catch(reject);
+    } catch (error) {
+      toast.error(`Failed to update variable: ${error.message}`);
+      reject(error);
+    }
+  });
+};
+
+export const mergeAndPersistEnvironment
+  = ({ persistentEnvVariables, collectionUid }) =>
+    (_dispatch, getState) => {
+      return new Promise((resolve, reject) => {
+        const state = getState();
+        const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
       if (!collection) {
         return reject(new Error('Collection not found'));

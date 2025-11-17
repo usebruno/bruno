@@ -289,9 +289,16 @@ const darkTheme = {
       valid: 'rgb(11 178 126)',
       invalid: '#f06f57',
       info: {
-        color: '#ce9178',
-        bg: 'rgb(48,48,49)',
-        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px'
+        color: '#FFFFFF',
+        bg: '#343434',
+        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
+        editorBg: '#292929',
+        iconColor: '#989898',
+        editorBorder: '#3D3D3D',
+        editorFocusBorder: '#CCCCCC',
+        editableDisplayHoverBg: 'rgba(255,255,255,0.03)',
+        border: '#4F4F4F',
+        editorBorder: '#3D3D3D'
       }
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.18)',
