@@ -115,6 +115,7 @@ const lightTheme = {
     url: {
       bg: '#f3f3f3',
       icon: '#515151',
+      iconDanger: '#d91f11',
       errorHoverBg: '#fef2f2'
     },
     dragbar: {

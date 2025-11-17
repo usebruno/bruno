@@ -10,7 +10,7 @@ import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl/index';
 import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
@@ -263,11 +263,17 @@ const RequestTabPanel = () => {
       return;
     }
 
-    dispatch(sendRequest(item, collection.uid)).catch((err) =>
-      toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-        duration: 5000
-      })
-    );
+    if (item.response?.stream?.running) {
+      dispatch(cancelRequest(item.cancelTokenUid, item, collection)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        }));
+    } else if (item.requestState !== 'sending' && item.requestState !== 'queued') {
+      dispatch(sendRequest(item, collection.uid)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        }));
+    }
   };
 
   // TODO: reaper, improve selection of panes
