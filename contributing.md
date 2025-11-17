@@ -16,6 +16,7 @@
 | [日本語](docs/contributing/contributing_ja.md)
 | [हिंदी](docs/contributing/contributing_hi.md)
 | [Dutch](docs/contributing/contributing_nl.md)
+| [فارسی](docs/contributing/contributing_fa.md)
 
 ## Let's make Bruno better, together!!
 
@@ -74,6 +75,7 @@ npm run build:bruno-filestore
 # bundle js sandbox libraries
 npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 ```
+
 ##### Option 2
 
 ```bash
@@ -94,18 +96,22 @@ npm run dev:electron
 ```
 
 ##### Option 2
+
 ```bash
 # run electron and react app concurrently
 npm run dev
 ```
 
 #### Customize Electron `userData` path
+
 If `ELECTRON_USER_DATA_PATH` env-variable is present and its development mode, then `userData` path is modified accordingly.
 
 e.g.
+
 ```sh
 ELECTRON_USER_DATA_PATH=$(realpath ~/Desktop/bruno-test) npm run dev:electron
 ```
+
 This will create a `bruno-test` folder on your Desktop and use it as the `userData` path.
 
 ### Troubleshooting
