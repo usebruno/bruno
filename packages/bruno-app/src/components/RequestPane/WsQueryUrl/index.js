@@ -104,6 +104,8 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             className="w-full"
             theme={displayedTheme}
             onRun={handleRun}
+            collection={collection}
+            item={item}
           />
           <div className="flex items-center h-full mr-2 cursor-pointer">
             <div
