@@ -284,7 +284,7 @@ const registerWsEventHandlers = (window) => {
       try {
         const itemCopy = cloneDeep(item);
         const preparedRequest = await prepareWsRequest(itemCopy, collection, environment, runtimeVariables, {});
-        
+
         // If messageContent is provided, find and queue that specific message (interpolated)
         // Otherwise, queue all messages
         if (messageContent !== undefined && messageContent !== null) {
@@ -309,7 +309,7 @@ const registerWsEventHandlers = (window) => {
               });
           }
         }
-        
+
         return { success: true };
       } catch (error) {
         console.error('Error queuing WebSocket message:', error);
