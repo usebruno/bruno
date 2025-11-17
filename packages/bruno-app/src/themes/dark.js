@@ -241,6 +241,16 @@ const darkTheme = {
     active: {
       color: '#CCCCCC',
       border: '#F59E0B'
+    },
+    secondary: {
+      active: {
+        bg: '#2D2D2D',
+        color: '#CCCCCC'
+      },
+      inactive: {
+        bg: '#3F3F3F',
+        color: '#CCCCCC'
+      }
     }
   },
 

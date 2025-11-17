@@ -29,4 +29,10 @@ describe('patternHasher', () => {
     expect(hashed).toMatchInlineSnapshot(`"$name.example.com"`);
     expect(restore(hashed)).toEqual(originalUrl);
   });
+
+  it('verify restoring duplicate hashes', () => {
+    const originalJSON = `{"name":"{{name}}","x":"{{name}}", "y":"{{name}}"}`;
+    const { hashed, restore } = patternHasher(originalJSON);
+    expect(restore(hashed)).toEqual(originalJSON);
+  });
 });
