@@ -114,7 +114,7 @@ const ButtonDropdown = ({
     }
   };
 
-  const ButtonIcon = forwardRef((props, ref) => {
+  const ButtonIcon = forwardRef((iconProps, ref) => {
     return (
       <button
         ref={ref}
@@ -140,7 +140,7 @@ const ButtonDropdown = ({
         data-testid={dataTestId}
         style={style}
         role={isTab ? 'tabitem' : 'button'}
-        {...props}
+        {...iconProps}
       >
         <span>{selectedLabel}</span>
         {isTab && isTabSelected && <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />}
@@ -157,11 +157,13 @@ const ButtonDropdown = ({
     <StyledWrapper>
       <Dropdown
         onCreate={onDropdownCreate}
-        icon={<ButtonIcon />}
+        icon={<ButtonIcon {...props} />}
         placement="bottom-end"
         disabled={disabled || !canOpenDropdown}
       >
-        {renderOptions()}
+        <div {...(props['data-testid'] && { 'data-testid': props['data-testid'] + '-dropdown' })}>
+          {renderOptions()}
+        </div>
       </Dropdown>
     </StyledWrapper>
   );
