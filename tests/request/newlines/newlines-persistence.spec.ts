@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
-import { openCollectionAndAcceptSandbox, getTableCell } from '../../utils/page/actions';
+import { openCollectionAndAcceptSandbox } from '../../utils/page/actions';
+import { getTableCell } from '../../utils/page/locators';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
   const userDataPath = await createTmpDir('newlines-persistence-userdata');

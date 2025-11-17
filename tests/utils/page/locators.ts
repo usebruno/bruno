@@ -65,3 +65,5 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
     clearResponse: () => page.getByRole('button', { name: 'Clear Response' })
   }
 });
+
+export const getTableCell = (row, index) => row.locator('td').nth(index);
