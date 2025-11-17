@@ -50,9 +50,6 @@ const StyledWrapper = styled.div`
   .cm-variable-invalid {
     color: red;
   }
-  .cm-variable-prompt {
-    color: blue;
-  }
 
   .CodeMirror-search-hint {
     display: inline;
