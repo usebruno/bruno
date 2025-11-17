@@ -185,12 +185,11 @@ const CloneCollection = ({ onClose, collectionUid }) => {
               />
             ) : (
               <div className="relative flex items-center justify-between gap-1 min-w-0">
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <div className="truncate" title={formik.values.collectionFolderName || ''}>
-                    <PathDisplay
-                      baseName={formik.values.collectionFolderName}
-                    />
-                  </div>
+                <div
+                  className="flex-1 min-w-0 truncate"
+                  title={formik.values.collectionFolderName || ''}
+                >
+                  <PathDisplay baseName={formik.values.collectionFolderName} />
                 </div>
               </div>
             )}

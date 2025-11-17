@@ -154,13 +154,14 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
                   </div>
                 ) : (
                   <div className="relative flex items-center justify-between gap-1 min-w-0">
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="truncate" title={formik.values.directoryName || ''}>
-                        <PathDisplay
-                          iconType="folder"
-                          baseName={formik.values.directoryName}
-                        />
-                      </div>
+                    <div
+                      className="flex-1 min-w-0 truncate"
+                      title={formik.values.directoryName || ''}
+                    >
+                      <PathDisplay
+                        iconType="folder"
+                        baseName={formik.values.directoryName}
+                      />
                     </div>
                   </div>
                 )}
