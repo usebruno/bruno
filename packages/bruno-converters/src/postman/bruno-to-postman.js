@@ -117,32 +117,12 @@ export const brunoToPostman = (collection) => {
   };
 
   const generateCollectionVars = (collection) => {
-    const pattern = /{{[^{}]+}}/g;
-    let listOfVars = [];
-
-    const findOccurrences = (obj, results) => {
-      if (typeof obj === 'object') {
-        if (Array.isArray(obj)) {
-          obj.forEach((item) => findOccurrences(item, results));
-        } else {
-          for (const key in obj) {
-            findOccurrences(obj[key], results);
-          }
-        }
-      } else if (typeof obj === 'string') {
-        obj.replace(pattern, (match) => {
-          results.push(match.replace(/{{|}}/g, ''));
-        });
-      }
-    };
-
-    findOccurrences(collection, listOfVars);
-
-    const finalArrayOfVars = [...new Set(listOfVars)];
-
-    return finalArrayOfVars.map((variable) => ({
-      key: variable,
-      value: '',
+    const reqVars = collection.root?.request?.vars?.req || [];
+    const resVars = collection.root?.request?.vars?.res || [];
+    const vars = [...reqVars, ...resVars];
+    return vars.map((v) => ({
+      key: v.name,
+      value: v.value,
       type: 'default'
     }));
   };
