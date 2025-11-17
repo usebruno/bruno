@@ -75,7 +75,6 @@ test.describe('Variable Tooltip', () => {
     await test.step('Test secret variable with toggle', async () => {
       // Move mouse away to dismiss any active tooltip
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(100);
 
       // Add header with secret
       await page.getByRole('tab', { name: 'Headers' }).click();
@@ -187,14 +186,12 @@ test.describe('Variable Tooltip', () => {
     await test.step('Test editing variable with references', async () => {
       // Move mouse away to dismiss any active tooltip
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(100);
 
       // URL editor is always visible at the top
       const urlEditor = page.locator('#request-url .CodeMirror');
       const endpointVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'endpoint' }).first();
 
       await endpointVar.hover();
-      await page.waitForTimeout(100); // Wait for tooltip to appear
 
       const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
       await expect(tooltip).toBeVisible();
@@ -218,15 +215,12 @@ test.describe('Variable Tooltip', () => {
 
       // Click outside to save
       await page.locator('body').click();
-      await page.waitForTimeout(300); // Wait for save
 
       // Move mouse away and back to get fresh tooltip
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(100);
 
       // Hover again to verify the change
       await endpointVar.hover();
-      await page.waitForTimeout(200);
 
       const newTooltip = page.locator('.CodeMirror-brunoVarInfo').first();
       await expect(newTooltip).toBeVisible();
@@ -238,13 +232,11 @@ test.describe('Variable Tooltip', () => {
     await test.step('Test copy button', async () => {
       // Move mouse away to dismiss any active tooltip
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(100);
 
       const urlEditor = page.locator('#request-url .CodeMirror');
       const endpointVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'endpoint' }).first();
 
       await endpointVar.hover();
-      await page.waitForTimeout(100);
 
       const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
       await expect(tooltip).toBeVisible();
@@ -259,7 +251,6 @@ test.describe('Variable Tooltip', () => {
       await expect(copyButton.locator('svg polyline')).toBeVisible({ timeout: 1000 });
 
       // Wait for it to revert back to copy icon
-      await page.waitForTimeout(1100);
       await expect(copyButton.locator('svg rect')).toBeVisible();
     });
   });
@@ -298,7 +289,6 @@ test.describe('Variable Tooltip', () => {
     await test.step('Test process.env variable tooltip', async () => {
       // Move mouse away to dismiss any active tooltip
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(100);
 
       // Add a process.env variable in URL (URL editor is always visible at the top)
       const urlEditor = page.locator('#request-url .CodeMirror');

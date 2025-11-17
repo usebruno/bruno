@@ -229,6 +229,16 @@ export default class CodeEditor extends React.Component {
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
+
+      // Update collection and item when they change
+      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+        if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+          this.editor.options.brunoVarInfo.collection = this.props.collection;
+        }
+        if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+          this.editor.options.brunoVarInfo.item = this.props.item;
+        }
+      }
     }
 
     if (this.props.theme !== prevProps.theme && this.editor) {
@@ -292,11 +302,9 @@ export default class CodeEditor extends React.Component {
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
-    // Update brunoVarInfo with latest collection and item references
+    // Update brunoVarInfo with latest variables
     if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
       this.editor.options.brunoVarInfo.variables = variables;
-      this.editor.options.brunoVarInfo.collection = this.props.collection;
-      this.editor.options.brunoVarInfo.item = this.props.item;
     }
 
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);

@@ -380,21 +380,19 @@ describe('renderVarInfo', () => {
       expect(copyButton).toBeDefined();
     });
 
-    it('should copy the variable value to the clipboard', async () => {
+    it('should copy the variable value to the clipboard', () => {
       const { copyButton } = setupRender({ apiKey: 'test-value' });
 
       copyButton.click();
-      await Promise.resolve();
 
       expect(clipboardText).toBe('test-value');
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-value');
     });
 
-    it('should copy the variable value of masked variables to the clipboard', async () => {
+    it('should copy the variable value of masked variables to the clipboard', () => {
       const { copyButton } = setupRender({ apiKey: 'test-value', maskedEnvVariables: ['apiKey'] });
 
       copyButton.click();
-      await Promise.resolve();
 
       expect(clipboardText).toBe('test-value');
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-value');
@@ -405,8 +403,7 @@ describe('renderVarInfo', () => {
 
       expect(copyButton.classList.contains('copy-success')).toBe(false);
 
-      copyButton.click();
-      await Promise.resolve();
+      await copyButton.click();
 
       expect(copyButton.classList.contains('copy-success')).toBe(true);
 

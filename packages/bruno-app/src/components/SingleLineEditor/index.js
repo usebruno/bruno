@@ -150,10 +150,18 @@ class SingleLineEditor extends Component {
     if (!isEqual(variables, this.variables)) {
       if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
         this.editor.options.brunoVarInfo.variables = variables;
-        this.editor.options.brunoVarInfo.collection = this.props.collection;
-        this.editor.options.brunoVarInfo.item = this.props.item;
       }
       this.addOverlay(variables);
+    }
+
+    // Update collection and item when they change
+    if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+      if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+        this.editor.options.brunoVarInfo.collection = this.props.collection;
+      }
+      if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+        this.editor.options.brunoVarInfo.item = this.props.item;
+      }
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
