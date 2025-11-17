@@ -81,7 +81,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const handleCancelRequest = () => {
+  const handleCancelRequest = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     dispatch(cancelRequest(item.cancelTokenUid, item, collection));
   };
 
@@ -148,7 +150,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           </div>
           {isLoading || item.response?.stream?.running ? (
             <IconSquareRoundedX
-              color={theme.requestTabPanel.url.icon}
+              color={theme.requestTabPanel.url.iconDanger}
               strokeWidth={1.5}
               size={22}
               data-testid="cancel-request-icon"

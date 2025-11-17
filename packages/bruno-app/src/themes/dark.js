@@ -115,6 +115,7 @@ const darkTheme = {
     url: {
       bg: '#3D3D3D',
       icon: 'rgb(204, 204, 204)',
+      iconDanger: '#fa5343',
       errorHoverBg: '#4a2a2a'
     },
     dragbar: {
