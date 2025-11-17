@@ -201,7 +201,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
       ) : (
         <div className="h-full flex flex-col">
           <div className="flex-1 relative">
-            <div className="absolute top-0 left-0 h-full w-full bg-[#f3f3f3] dark:bg-[#262626]">
+            <div className="absolute top-0 left-0 h-full w-full bg-[#f3f3f3] dark:bg-[#262626]" data-testid="response-preview-container">
               <QueryResultPreview
                 selectedTab={selectedTab}
                 data={data}

@@ -519,6 +519,80 @@ export const isValidHtml = (str) => {
   return /<\s*html[\s>]/i.test(str);
 };
 
+export const isValidHtmlSnippet = (snippet) => {
+  if (!snippet || typeof snippet !== 'string') {
+    return false;
+  }
+
+  const trimmed = snippet.trim();
+
+  // Check for XML declaration
+  if (trimmed.startsWith('<?xml')) {
+    return false;
+  }
+
+  // Check for XML namespaces
+  if (/xmlns(:\w+)?=/.test(trimmed)) {
+    return false;
+  }
+
+  // Extract all tag names from the snippet
+  const tagMatches = trimmed.matchAll(/<\s*\/?([a-zA-Z][a-zA-Z0-9]*)/g);
+  const tags = [...tagMatches].map((match) => match[1].toLowerCase());
+
+  if (tags.length === 0) {
+    return false; // No tags found
+  }
+
+  // Define recognized HTML tags
+  const validHtmlTags = new Set([
+    'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
+    'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button',
+    'canvas', 'caption', 'cite', 'code', 'col', 'colgroup',
+    'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt',
+    'em', 'embed',
+    'fieldset', 'figcaption', 'figure', 'footer', 'form',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html',
+    'i', 'iframe', 'img', 'input', 'ins',
+    'kbd',
+    'label', 'legend', 'li', 'link',
+    'main', 'map', 'mark', 'meta', 'meter',
+    'nav', 'noscript',
+    'object', 'ol', 'optgroup', 'option', 'output',
+    'p', 'param', 'picture', 'pre', 'progress',
+    'q',
+    'rp', 'rt', 'ruby',
+    's', 'samp', 'script', 'section', 'select', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'svg',
+    'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track',
+    'u', 'ul',
+    'var', 'video',
+    'wbr'
+  ]);
+
+  // Check if all tags are valid HTML tags
+  const allTagsValid = tags.every((tag) => validHtmlTags.has(tag));
+
+  if (!allTagsValid) {
+    return false; // Contains non-HTML tags
+  }
+
+  try {
+    // Parse with DOMParser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(trimmed, 'text/html');
+
+    // Check for parsing errors
+    const parseError = doc.querySelector('parsererror');
+    if (parseError) {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
 export function formatHexView(buffer) {
   const width = 16;
   let output = '';
