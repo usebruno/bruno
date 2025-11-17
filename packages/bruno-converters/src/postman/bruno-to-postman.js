@@ -178,15 +178,18 @@ export const brunoToPostman = (collection) => {
         exec.push(...testsBlock.split('\n'));
       }
 
-      eventArray.push({
-        listen: 'test',
-        script: {
-          type: 'text/javascript',
-          packages: {},
-          requests: {},
-          exec: exec
-        }
-      });
+      // Only push the event if exec has content
+      if (exec.length > 0) {
+        eventArray.push({
+          listen: 'test',
+          script: {
+            type: 'text/javascript',
+            packages: {},
+            requests: {},
+            exec: exec
+          }
+        });
+      }
     }
     return eventArray;
   };
