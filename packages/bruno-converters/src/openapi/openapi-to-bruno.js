@@ -5,13 +5,17 @@ import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uui
 
 // Content type patterns for matching MIME type variants
 // These patterns handle structured types with many variants (e.g., application/ld+json, application/vnd.api+json)
+// MIME types can contain: letters, numbers, hyphens, dots, and plus signs
 const CONTENT_TYPE_PATTERNS = {
   // Matches: application/json, application/ld+json, application/vnd.api+json, text/json, etc.
-  JSON: /^[\w\-]+\/([\w\-]+\+)?json$/,
-  // Matches: application/xml, text/xml, application/atom+xml, application/rss+xml, etc.
-  XML: /^[\w\-]+\/([\w\-]+\+)?xml$/,
-  // Matches: text/html, application/xhtml+xml
-  HTML: /^[\w\-]+\/([\w\-]+\+)?html$/
+  // Pattern: type/([base]+)?suffix where suffix is json
+  JSON: /^[\w\-.+]+\/([\w\-.+]+\+)?json$/,
+  // Matches: application/xml, text/xml, application/atom+xml, application/rss+xml, application/xhtml+xml, etc.
+  // Pattern: type/([base]+)?suffix where suffix is xml
+  XML: /^[\w\-.+]+\/([\w\-.+]+\+)?xml$/,
+  // Matches: text/html
+  // Pattern: type/([base]+)?suffix where suffix is html
+  HTML: /^[\w\-.+]+\/([\w\-.+]+\+)?html$/
 };
 
 const ensureUrl = (url) => {
