@@ -1,8 +1,8 @@
 import React from 'react';
-import { escapeHtml, isValidHtml } from 'utils/common/index';
+import { escapeHtml, isValidHtml, isValidHtmlSnippet } from 'utils/common/index';
 
 const HtmlPreview = React.memo(({ data, baseUrl }) => {
-  if (isValidHtml(data)) {
+  if (isValidHtml(data) || isValidHtmlSnippet(data)) {
     const htmlContent = data.includes('<head>')
       ? data.replace('<head>', `<head><base href="${escapeHtml(baseUrl)}">`)
       : `<head><base href="${escapeHtml(baseUrl)}"></head>${data}`;
