@@ -88,6 +88,21 @@ const getBodyTypeFromContentType = (contentType) => {
   return 'text';
 };
 
+const getBodyModeFromContentType = (contentType) => {
+  if (contentType?.includes('application/json')) {
+    return 'json';
+  } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {
+    return 'xml';
+  } else if (contentType?.includes('text/plain')) {
+    return 'text';
+  } else if (contentType?.includes('application/x-www-form-urlencoded')) {
+    return 'formUrlEncoded';
+  } else if (contentType?.includes('multipart/form-data')) {
+    return 'multipartForm';
+  }
+  return 'none';
+};
+
 const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
   // Check for circular references
   if (visited.has(bodySchema)) {
@@ -390,6 +405,83 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     brunoRequestItem.request.script.res = script.join('\n');
   }
 
+  // Helper function to extract example value from various OpenAPI formats
+  const extractExampleValue = (content, schema) => {
+    // Priority order:
+    // 1. content.examples (multiple examples)
+    // 2. content.example (single example)
+    // 3. schema.example (example in schema)
+    // 4. Build from schema.properties.*.example (examples in properties)
+
+    if (content.examples) {
+      return { type: 'examples', data: content.examples };
+    }
+
+    if (content.example !== undefined) {
+      return { type: 'example', data: content.example };
+    }
+
+    if (schema && schema.example !== undefined) {
+      return { type: 'example', data: schema.example };
+    }
+
+    // Try to build example from property-level examples
+    if (schema && schema.type === 'object' && schema.properties) {
+      const exampleFromProperties = {};
+      let hasAnyExample = false;
+
+      each(schema.properties, (prop, propName) => {
+        if (prop.example !== undefined) {
+          exampleFromProperties[propName] = prop.example;
+          hasAnyExample = true;
+        } else if (prop.type === 'object' && prop.properties) {
+          // Recursively build nested objects
+          const nested = {};
+          let hasNestedExample = false;
+          each(prop.properties, (nestedProp, nestedPropName) => {
+            if (nestedProp.example !== undefined) {
+              nested[nestedPropName] = nestedProp.example;
+              hasNestedExample = true;
+            }
+          });
+          if (hasNestedExample) {
+            exampleFromProperties[propName] = nested;
+            hasAnyExample = true;
+          }
+        } else if (prop.type === 'array' && prop.items && prop.items.example !== undefined) {
+          exampleFromProperties[propName] = [prop.items.example];
+          hasAnyExample = true;
+        }
+      });
+
+      if (hasAnyExample) {
+        return { type: 'example', data: exampleFromProperties };
+      }
+    }
+
+    // Try to build example from array items
+    if (schema && schema.type === 'array' && schema.items) {
+      if (schema.items.example !== undefined) {
+        return { type: 'example', data: [schema.items.example] };
+      }
+      if (schema.items.type === 'object' && schema.items.properties) {
+        const itemExample = {};
+        let hasAnyExample = false;
+        each(schema.items.properties, (prop, propName) => {
+          if (prop.example !== undefined) {
+            itemExample[propName] = prop.example;
+            hasAnyExample = true;
+          }
+        });
+        if (hasAnyExample) {
+          return { type: 'example', data: [itemExample] };
+        }
+      }
+    }
+
+    return null;
+  };
+
   // Handle OpenAPI examples from responses and request body
   if (_operationObject.responses || _operationObject.requestBody) {
     const examples = [];
@@ -399,17 +491,57 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
       Object.entries(_operationObject.responses).forEach(([statusCode, response]) => {
         if (response.content) {
           Object.entries(response.content).forEach(([contentType, content]) => {
-            if (content.examples) {
-              Object.entries(content.examples).forEach(([exampleKey, example]) => {
-                const exampleName = example.summary || exampleKey || `${statusCode} Response`;
-                const exampleDescription = example.description || '';
+            const exampleData = extractExampleValue(content, content.schema);
 
-                // Create Bruno example
+            if (exampleData) {
+              if (exampleData.type === 'examples') {
+                // Multiple examples
+                Object.entries(exampleData.data).forEach(([exampleKey, example]) => {
+                  const exampleValue = example.value !== undefined ? example.value : example;
+                  const exampleName = example.summary || exampleKey || `${statusCode} Response`;
+                  const exampleDescription = example.description || '';
+
+                  const brunoExample = {
+                    uid: uuid(),
+                    itemUid: brunoRequestItem.uid,
+                    name: exampleName,
+                    description: exampleDescription,
+                    type: 'http-request',
+                    request: {
+                      url: brunoRequestItem.request.url,
+                      method: brunoRequestItem.request.method,
+                      headers: [...brunoRequestItem.request.headers],
+                      params: [...brunoRequestItem.request.params],
+                      body: { ...brunoRequestItem.request.body }
+                    },
+                    response: {
+                      status: String(statusCode),
+                      statusText: getStatusText(statusCode),
+                      headers: [
+                        {
+                          uid: uuid(),
+                          name: 'Content-Type',
+                          value: contentType,
+                          description: '',
+                          enabled: true
+                        }
+                      ],
+                      body: {
+                        type: getBodyTypeFromContentType(contentType),
+                        content: typeof exampleValue === 'object' ? JSON.stringify(exampleValue, null, 2) : String(exampleValue)
+                      }
+                    }
+                  };
+
+                  examples.push(brunoExample);
+                });
+              } else {
+                // Single example
                 const brunoExample = {
                   uid: uuid(),
                   itemUid: brunoRequestItem.uid,
-                  name: exampleName,
-                  description: exampleDescription,
+                  name: `${statusCode} Response`,
+                  description: '',
                   type: 'http-request',
                   request: {
                     url: brunoRequestItem.request.url,
@@ -432,15 +564,114 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
                     ],
                     body: {
                       type: getBodyTypeFromContentType(contentType),
-                      content: typeof example.value === 'object' ? JSON.stringify(example.value, null, 2) : example.value
+                      content: typeof exampleData.data === 'object' ? JSON.stringify(exampleData.data, null, 2) : String(exampleData.data)
                     }
                   }
                 };
 
                 examples.push(brunoExample);
-              });
+              }
             }
           });
+        }
+      });
+    }
+
+    // Handle request body examples
+    if (_operationObject.requestBody && _operationObject.requestBody.content) {
+      Object.entries(_operationObject.requestBody.content).forEach(([contentType, content]) => {
+        const exampleData = extractExampleValue(content, content.schema);
+
+        if (exampleData) {
+          if (exampleData.type === 'examples') {
+            // Multiple examples
+            Object.entries(exampleData.data).forEach(([exampleKey, example]) => {
+              const exampleValue = example.value !== undefined ? example.value : example;
+              const exampleName = example.summary || exampleKey || 'Request Example';
+              const exampleDescription = example.description || '';
+
+              const bodyMode = getBodyModeFromContentType(contentType);
+              const requestBody = {
+                mode: bodyMode
+              };
+
+              // Set the appropriate body content based on mode
+              if (bodyMode === 'json') {
+                requestBody.json = typeof exampleValue === 'object' ? JSON.stringify(exampleValue, null, 2) : String(exampleValue);
+              } else if (bodyMode === 'xml') {
+                requestBody.xml = typeof exampleValue === 'string' ? exampleValue : JSON.stringify(exampleValue);
+              } else if (bodyMode === 'text') {
+                requestBody.text = String(exampleValue);
+              }
+
+              const brunoExample = {
+                uid: uuid(),
+                itemUid: brunoRequestItem.uid,
+                name: exampleName,
+                description: exampleDescription,
+                type: 'http-request',
+                request: {
+                  url: brunoRequestItem.request.url,
+                  method: brunoRequestItem.request.method,
+                  headers: [
+                    ...brunoRequestItem.request.headers,
+                    {
+                      uid: uuid(),
+                      name: 'Content-Type',
+                      value: contentType,
+                      description: '',
+                      enabled: true
+                    }
+                  ],
+                  params: [...brunoRequestItem.request.params],
+                  body: requestBody
+                }
+              };
+
+              examples.push(brunoExample);
+            });
+          } else {
+            // Single example
+            const bodyMode = getBodyModeFromContentType(contentType);
+            const requestBody = {
+              mode: bodyMode
+            };
+
+            // Set the appropriate body content based on mode
+            if (bodyMode === 'json') {
+              requestBody.json = typeof exampleData.data === 'object' ? JSON.stringify(exampleData.data, null, 2) : String(exampleData.data);
+            } else if (bodyMode === 'xml') {
+              requestBody.xml = typeof exampleData.data === 'string' ? exampleData.data : JSON.stringify(exampleData.data);
+            } else if (bodyMode === 'text') {
+              requestBody.text = String(exampleData.data);
+            }
+
+            const brunoExample = {
+              uid: uuid(),
+              itemUid: brunoRequestItem.uid,
+              name: 'Request Example',
+              description: '',
+              type: 'http-request',
+              request: {
+                url: brunoRequestItem.request.url,
+                method: brunoRequestItem.request.method,
+                headers: [
+                  ...brunoRequestItem.request.headers,
+                  {
+                    uid: uuid(),
+                    name: 'Content-Type',
+                    value: contentType,
+                    description: '',
+                    enabled: true
+                  }
+                ],
+                params: [...brunoRequestItem.request.params],
+                body: requestBody
+              }
+            };
+
+            examples.push(brunoExample);
+          }
         }
       });
     }
