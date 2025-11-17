@@ -288,6 +288,7 @@ const darkTheme = {
     variable: {
       valid: 'rgb(11 178 126)',
       invalid: '#f06f57',
+      prompt: '#3D8DF5',
       info: {
         color: '#FFFFFF',
         bg: '#343434',

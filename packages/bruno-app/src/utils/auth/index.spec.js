@@ -1,4 +1,4 @@
-import { resolveInheritedAuth } from './auth-utils';
+import { resolveInheritedAuth } from './index';
 
 jest.mock('utils/collections/index', () => ({
   getTreePathFromCollectionToItem: (collection, item) => {

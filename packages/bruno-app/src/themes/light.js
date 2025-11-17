@@ -289,6 +289,7 @@ const lightTheme = {
     variable: {
       valid: '#047857',
       invalid: 'rgb(185, 28, 28)',
+      prompt: '#186ADE',
       info: {
         color: '#343434',
         bg: '#FFFFFF',

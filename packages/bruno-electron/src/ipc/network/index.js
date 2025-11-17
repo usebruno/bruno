@@ -11,6 +11,7 @@ const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { encodeUrl } = require('@usebruno/common').utils;
+const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('@usebruno/requests');
@@ -144,6 +145,7 @@ const configureRequest = async (
 
   request.maxRedirects = 0;
 
+  const { promptVariables = {} } = collection;
   let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
     proxyMode,
@@ -164,7 +166,7 @@ const configureRequest = async (
     let credentials, credentialsId, oauth2Url, debugInfo;
     switch (grantType) {
       case 'authorization_code':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
@@ -180,7 +182,7 @@ const configureRequest = async (
         }
         break;
       case 'implicit':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingImplicitGrant({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
@@ -196,7 +198,7 @@ const configureRequest = async (
         }
         break;
       case 'client_credentials':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
@@ -212,7 +214,7 @@ const configureRequest = async (
         }
         break;
       case 'password':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
@@ -415,7 +417,8 @@ const registerNetworkIpc = (mainWindow) => {
   ) => {
     // run pre-request script
     let scriptResult;
-    const collectionName = collection?.name
+    const { promptVariables = {}, name: collectionName } = collection;
+
     const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
@@ -456,7 +459,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVars, runtimeVariables, processEnvVars);
+    interpolateVars(request, envVars, runtimeVariables, processEnvVars, promptVariables);
 
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
@@ -965,6 +968,50 @@ const registerNetworkIpc = (mainWindow) => {
     }
   }
 
+  /**
+   * Extract prompt variables from a request
+   * Tries to respect the hierarchy of the variables and avoid unnecessary prompts as much as possible
+   * Note: TO BE CALLED ONLY AFTER THE PREPARE REQUEST
+   *
+   * @param {*} request - request object built by prepareRequest
+   * @returns {string[]} An array of extracted prompt variables
+   */
+  const extractPromptVariablesForRequest = async ({ request, collection, envVars: collectionEnvironmentVars, runtimeVariables, processEnvVars }) => {
+    const { globalEnvironmentVariables, collectionVariables, folderVariables, requestVariables, ...requestObj } = request;
+
+    const allVariables = {
+      ...globalEnvironmentVariables,
+      ...collectionEnvironmentVars,
+      ...collectionVariables,
+      ...folderVariables,
+      ...requestVariables,
+      ...runtimeVariables,
+      process: {
+        env: {
+          ...processEnvVars
+        }
+      }
+    };
+
+    const { interpolationOptions, ...certsAndProxyConfig } = await getCertsAndProxyConfig({
+      collectionUid: collection.uid,
+      collection,
+      request,
+      envVars: collectionEnvironmentVars,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath: collection.pathname,
+      globalEnvironmentVariables
+    });
+
+    const prompts = extractPromptVariables(requestObj);
+    prompts.push(...extractPromptVariables(allVariables));
+    prompts.push(...extractPromptVariables(certsAndProxyConfig));
+
+    // return unique prompt variables
+    return Array.from(new Set(prompts));
+  };
+
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
     const collectionUid = collection.uid;
@@ -1148,8 +1195,29 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
-          
+
           const requestUid = uuid();
+
+          const promptVars = await extractPromptVariablesForRequest({ request, collection, envVars, runtimeVariables, processEnvVars });
+
+          if (promptVars.length > 0) {
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'runner-request-skipped',
+              error: 'Request has been skipped due to containing prompt variables',
+              responseReceived: {
+                status: 'skipped',
+                statusText: `Prompt variables detected in request. Runner execution is not supported for requests with prompt variables. \n Promps: ${promptVars.join(', ')}`,
+                data: null,
+                responseTime: 0,
+                headers: null
+              },
+              ...eventData
+            });
+
+            currentRequestIndex++;
+
+            continue;
+          }
 
           try {
             let preRequestScriptResult;
