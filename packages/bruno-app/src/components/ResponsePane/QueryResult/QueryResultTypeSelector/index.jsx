@@ -33,6 +33,7 @@ const QueryResultTypeSelector = ({
             'hover:bg-gray-300 dark:hover:bg-[#363636]': selectedTab === 'preview'
           },
           'h-[20px] text-[11px]')}
+        data-testid="preview-response-tab"
       >
         <IconPlayerPlay size={14} strokeWidth={2} />
         <span>Preview</span>
@@ -46,6 +47,7 @@ const QueryResultTypeSelector = ({
         isTabSelected={selectedTab === 'editor'}
         onTabClick={onEditorTabSelect}
         className="h-[20px] text-[11px]"
+        data-testid="format-response-tab"
       />
     </div>
   );
