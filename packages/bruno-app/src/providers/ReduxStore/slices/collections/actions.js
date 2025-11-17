@@ -922,16 +922,28 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
 
     const item = findItemInCollection(collection, itemUid);
     if (item) {
+      const parentDirectoryItem = findParentItemInCollection(collection, itemUid) || collection;
       const { ipcRenderer } = window;
 
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
-        .then(() => {
+        .then(async () => {
+          // Reorder items in parent directory after deletion
+          if (parentDirectoryItem.items) {
+            const directoryItemsWithoutDeletedItem = parentDirectoryItem.items.filter((i) => i.uid !== itemUid);
+            const reorderedSourceItems = getReorderedItemsInSourceDirectory({
+              items: directoryItemsWithoutDeletedItem
+            });
+            if (reorderedSourceItems?.length) {
+              await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
+            }
+          }
           resolve();
         })
         .catch((error) => reject(error));
+    } else {
+      return reject(new Error('Unable to locate item'));
     }
-    return;
   });
 };
 
