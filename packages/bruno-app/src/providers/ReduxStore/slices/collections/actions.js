@@ -926,31 +926,25 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
 
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
-        .then(() => {
-          resolve({ parentDirectory: parentDirectoryItem });
+        .then(async () => {
+          // Reorder items in parent directory after deletion
+          if (parentDirectoryItem.items) {
+            const directoryItemsWithoutDeletedItem = parentDirectoryItem.items.filter((i) => i.uid !== itemUid);
+            const reorderedSourceItems = getReorderedItemsInSourceDirectory({
+              items: directoryItemsWithoutDeletedItem
+            });
+            if (reorderedSourceItems?.length) {
+              await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
+            }
+          }
+          resolve();
         })
         .catch((error) => reject(error));
+    } else {
+      return reject(new Error('Unable to locate item'));
     }
-    return;
   });
 };
-
-export const reorderDirectoryItems = (directory, itemUid) => (dispatch, getState) => {
-  if (!directory.items) return;
-  
-  const directoryItemsWithoutDeletedItem = directory.items.filter(
-    (i) => i.uid !== itemUid
-  );
-
-  const reorderedSourceItems = getReorderedItemsInSourceDirectory({
-    items: directoryItemsWithoutDeletedItem
-  });
-  if (reorderedSourceItems?.length) {
-    dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
-  }
-
-  return;
-}
 
 export const sortCollections = (payload) => (dispatch) => {
   dispatch(_sortCollections(payload));
