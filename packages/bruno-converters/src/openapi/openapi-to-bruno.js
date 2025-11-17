@@ -3,6 +3,17 @@ import get from 'lodash/get';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 
+// Content type patterns for matching MIME type variants
+// These patterns handle structured types with many variants (e.g., application/ld+json, application/vnd.api+json)
+const CONTENT_TYPE_PATTERNS = {
+  // Matches: application/json, application/ld+json, application/vnd.api+json, text/json, etc.
+  JSON: /^[\w\-]+\/([\w\-]+\+)?json$/,
+  // Matches: application/xml, text/xml, application/atom+xml, application/rss+xml, etc.
+  XML: /^[\w\-]+\/([\w\-]+\+)?xml$/,
+  // Matches: text/html, application/xhtml+xml
+  HTML: /^[\w\-]+\/([\w\-]+\+)?html$/
+};
+
 const ensureUrl = (url) => {
   // removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
   return url.replace(/([^:])\/{2,}/g, '$1/');
@@ -77,14 +88,28 @@ const getStatusText = (statusCode) => {
   return statusTexts[statusCode] || 'Unknown';
 };
 
+/**
+ * Determines the body type based on content-type from OpenAPI spec
+ * Uses pattern matching to handle various MIME type variants (e.g., application/ld+json, application/vnd.api+json)
+ * @param {string} contentType - The content-type from OpenAPI spec (object key, e.g., "application/json")
+ * @returns {string} - The body type (json, xml, html, text)
+ */
 const getBodyTypeFromContentType = (contentType) => {
-  if (contentType?.includes('application/json')) {
+  if (!contentType || typeof contentType !== 'string') {
+    return 'text';
+  }
+
+  // Normalize: lowercase (object keys may vary in case, but shouldn't have parameters or whitespace)
+  const normalizedContentType = contentType.toLowerCase();
+
+  if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedContentType)) {
     return 'json';
-  } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {
+  } else if (CONTENT_TYPE_PATTERNS.XML.test(normalizedContentType)) {
     return 'xml';
-  } else if (contentType?.includes('text/html')) {
+  } else if (CONTENT_TYPE_PATTERNS.HTML.test(normalizedContentType)) {
     return 'html';
   }
+
   return 'text';
 };
 
@@ -163,26 +188,31 @@ const getExampleFromSchema = (schema) => {
 
 /**
  * Populates request body in Bruno example from a value
- * @param {Object} body - The Bruno request body object to populate
- * @param {*} requestBodyValue - The request body value to set
- * @param {string} contentType - Content type (e.g., 'application/json')
+ * Uses pattern matching to handle various MIME type variants
+ * @param {Object} params - Parameters object
+ * @param {Object} params.body - The Bruno request body object to populate
+ * @param {*} params.requestBodyValue - The request body value to set
+ * @param {string} params.contentType - Content type (e.g., 'application/json', 'application/ld+json')
  */
-const populateRequestBody = (body, requestBodyValue, contentType) => {
-  if (!requestBodyValue) return;
+const populateRequestBody = ({ body, requestBodyValue, contentType }) => {
+  if (!requestBodyValue || !contentType) return;
 
-  if (contentType?.includes('application/json')) {
+  // Normalize: lowercase (content types from OpenAPI spec object keys may vary in case)
+  const normalizedContentType = contentType.toLowerCase();
+
+  if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedContentType)) {
     body.mode = 'json';
     body.json = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue, null, 2) : requestBodyValue;
-  } else if (contentType?.includes('application/x-www-form-urlencoded')) {
+  } else if (normalizedContentType === 'application/x-www-form-urlencoded') {
     body.mode = 'formUrlEncoded';
     // Handle form data if needed
-  } else if (contentType?.includes('multipart/form-data')) {
+  } else if (normalizedContentType === 'multipart/form-data') {
     body.mode = 'multipartForm';
     // Handle multipart form data if needed
-  } else if (contentType?.includes('text/plain')) {
+  } else if (normalizedContentType === 'text/plain') {
     body.mode = 'text';
     body.text = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
-  } else if (contentType?.includes('text/xml') || contentType?.includes('application/xml')) {
+  } else if (CONTENT_TYPE_PATTERNS.XML.test(normalizedContentType)) {
     body.mode = 'xml';
     body.xml = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
   }
@@ -190,17 +220,18 @@ const populateRequestBody = (body, requestBodyValue, contentType) => {
 
 /**
  * Creates a Bruno example from OpenAPI example data
- * @param {Object} brunoRequestItem - The base Bruno request item
- * @param {*} exampleValue - The example value (object, array, or primitive)
- * @param {string} exampleName - Name of the example
- * @param {string} exampleDescription - Description of the example
- * @param {string|number} statusCode - HTTP status code (for response examples)
- * @param {string} contentType - Content type (e.g., 'application/json')
- * @param {*} requestBodyValue - Optional request body value to populate in the example
- * @param {string} requestBodyContentType - Optional request body content type
+ * @param {Object} params - Parameters object
+ * @param {Object} params.brunoRequestItem - The base Bruno request item
+ * @param {*} params.exampleValue - The example value (object, array, or primitive)
+ * @param {string} params.exampleName - Name of the example
+ * @param {string} params.exampleDescription - Description of the example
+ * @param {string|number} params.statusCode - HTTP status code (for response examples)
+ * @param {string} params.contentType - Content type (e.g., 'application/json')
+ * @param {*} [params.requestBodyValue] - Optional request body value to populate in the example
+ * @param {string} [params.requestBodyContentType] - Optional request body content type
  * @returns {Object} Bruno example object
  */
-const createBrunoExample = (brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodyValue = null, requestBodyContentType = null) => {
+const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodyValue = null, requestBodyContentType = null }) => {
   const brunoExample = {
     uid: uuid(),
     itemUid: brunoRequestItem.uid,
@@ -235,7 +266,7 @@ const createBrunoExample = (brunoRequestItem, exampleValue, exampleName, example
 
   // Populate request body if provided
   if (requestBodyValue !== null) {
-    populateRequestBody(brunoExample.request.body, requestBodyValue, requestBodyContentType);
+    populateRequestBody({ body: brunoExample.request.body, requestBodyValue, contentType: requestBodyContentType });
   }
 
   return brunoExample;
@@ -448,7 +479,11 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     let mimeType = Object.keys(content)[0];
     let body = content[mimeType] || {};
     let bodySchema = body.schema;
-    if (mimeType === 'application/json') {
+
+    // Normalize: lowercase (object keys may vary in case)
+    const normalizedMimeType = mimeType.toLowerCase();
+
+    if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedMimeType)) {
       brunoRequestItem.request.body.mode = 'json';
       if (bodySchema && bodySchema.type === 'object') {
         let _jsonBody = buildEmptyJsonBody(bodySchema);
@@ -457,7 +492,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
       if (bodySchema && bodySchema.type === 'array') {
         brunoRequestItem.request.body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
       }
-    } else if (mimeType === 'application/x-www-form-urlencoded') {
+    } else if (normalizedMimeType === 'application/x-www-form-urlencoded') {
       brunoRequestItem.request.body.mode = 'formUrlEncoded';
       if (bodySchema && bodySchema.type === 'object') {
         each(bodySchema.properties || {}, (prop, name) => {
@@ -470,7 +505,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
           });
         });
       }
-    } else if (mimeType === 'multipart/form-data') {
+    } else if (normalizedMimeType === 'multipart/form-data') {
       brunoRequestItem.request.body.mode = 'multipartForm';
       if (bodySchema && bodySchema.type === 'object') {
         each(bodySchema.properties || {}, (prop, name) => {
@@ -484,10 +519,10 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
           });
         });
       }
-    } else if (mimeType === 'text/plain') {
+    } else if (normalizedMimeType === 'text/plain') {
       brunoRequestItem.request.body.mode = 'text';
       brunoRequestItem.request.body.text = '';
-    } else if (mimeType === 'text/xml') {
+    } else if (CONTENT_TYPE_PATTERNS.XML.test(normalizedMimeType)) {
       brunoRequestItem.request.body.mode = 'xml';
       brunoRequestItem.request.body.xml = '';
     }
@@ -523,14 +558,15 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
 
     /**
      * Helper function to create examples with appropriate request body handling
-     * @param {*} responseExampleValue - The response example value
-     * @param {string} exampleName - Name of the example
-     * @param {string} exampleDescription - Description of the example
-     * @param {string|number} statusCode - HTTP status code
-     * @param {string} responseContentType - Response content type
-     * @param {string} [responseExampleKey] - Optional response example key for matching
+     * @param {Object} params - Parameters object
+     * @param {*} params.responseExampleValue - The response example value
+     * @param {string} params.exampleName - Name of the example
+     * @param {string} params.exampleDescription - Description of the example
+     * @param {string|number} params.statusCode - HTTP status code
+     * @param {string} params.responseContentType - Response content type
+     * @param {string} [params.responseExampleKey] - Optional response example key for matching
      */
-    const createExamplesWithRequestBody = (responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, responseExampleKey = null) => {
+    const createExamplesWithRequestBody = ({ responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, responseExampleKey = null }) => {
       const requestBodyExamplesWithKeys = requestBodyExamples.filter((rb) => rb.key !== null);
       const requestBodyExamplesWithoutKeys = requestBodyExamples.filter((rb) => rb.key === null);
 
@@ -541,21 +577,55 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
 
       if (matchingRequestBodyExample) {
         // Use the matching request body example
-        examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, matchingRequestBodyExample.value, matchingRequestBodyExample.contentType));
+        examples.push(createBrunoExample({
+          brunoRequestItem,
+          exampleValue: responseExampleValue,
+          exampleName,
+          exampleDescription,
+          statusCode,
+          contentType: responseContentType,
+          requestBodyValue: matchingRequestBodyExample.value,
+          requestBodyContentType: matchingRequestBodyExample.contentType
+        }));
       } else if (requestBodyExamplesWithKeys.length > 0) {
         // No match found, create all combinations with request body examples that have keys
         requestBodyExamplesWithKeys.forEach((rbExample) => {
           const combinedExampleName = `${exampleName} (${rbExample.summary || rbExample.key})`;
           const combinedExampleDescription = exampleDescription || rbExample.description || '';
-          examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, combinedExampleName, combinedExampleDescription, statusCode, responseContentType, rbExample.value, rbExample.contentType));
+          examples.push(createBrunoExample({
+            brunoRequestItem,
+            exampleValue: responseExampleValue,
+            exampleName: combinedExampleName,
+            exampleDescription: combinedExampleDescription,
+            statusCode,
+            contentType: responseContentType,
+            requestBodyValue: rbExample.value,
+            requestBodyContentType: rbExample.contentType
+          }));
         });
       } else if (requestBodyExamplesWithoutKeys.length > 0) {
         // Single example or schema - use the first one for all response examples
         const rbExample = requestBodyExamplesWithoutKeys[0];
-        examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType, rbExample.value, rbExample.contentType));
+        examples.push(createBrunoExample({
+          brunoRequestItem,
+          exampleValue: responseExampleValue,
+          exampleName,
+          exampleDescription,
+          statusCode,
+          contentType: responseContentType,
+          requestBodyValue: rbExample.value,
+          requestBodyContentType: rbExample.contentType
+        }));
       } else {
         // No request body, create example without request body
-        examples.push(createBrunoExample(brunoRequestItem, responseExampleValue, exampleName, exampleDescription, statusCode, responseContentType));
+        examples.push(createBrunoExample({
+          brunoRequestItem,
+          exampleValue: responseExampleValue,
+          exampleName,
+          exampleDescription,
+          statusCode,
+          contentType: responseContentType
+        }));
       }
     };
 
@@ -607,22 +677,53 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
                 const exampleDescription = example.description || '';
                 const exampleValue = example.value !== undefined ? example.value : example;
 
-                createExamplesWithRequestBody(exampleValue, exampleName, exampleDescription, statusCode, contentType, exampleKey);
+                createExamplesWithRequestBody({
+                  responseExampleValue: exampleValue,
+                  exampleName,
+                  exampleDescription,
+                  statusCode,
+                  responseContentType: contentType,
+                  responseExampleKey: exampleKey
+                });
               });
             } else if (content.example !== undefined) {
               // Handle example (singular) at content level
               const exampleName = `${statusCode} Response`;
               const exampleDescription = response.description || '';
 
-              createExamplesWithRequestBody(content.example, exampleName, exampleDescription, statusCode, contentType);
+              createExamplesWithRequestBody({
+                responseExampleValue: content.example,
+                exampleName,
+                exampleDescription,
+                statusCode,
+                responseContentType: contentType
+              });
             } else if (content.schema) {
               // Handle schema - extract or generate example from schema
               const exampleValue = getExampleFromSchema(content.schema);
               const exampleName = `${statusCode} Response`;
               const exampleDescription = response.description || '';
 
-              createExamplesWithRequestBody(exampleValue, exampleName, exampleDescription, statusCode, contentType);
+              createExamplesWithRequestBody({
+                responseExampleValue: exampleValue,
+                exampleName,
+                exampleDescription,
+                statusCode,
+                responseContentType: contentType
+              });
             }
+          });
+        } else {
+          // Handle responses without content (e.g., 204 No Content)
+          const exampleName = `${statusCode} Response`;
+          const exampleDescription = response.description || '';
+
+          createExamplesWithRequestBody({
+            responseExampleValue: '',
+            exampleName,
+            exampleDescription,
+            statusCode,
+            responseContentType: null
           });
         }
       });
