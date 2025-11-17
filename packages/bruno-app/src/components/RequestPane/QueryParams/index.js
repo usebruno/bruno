@@ -13,7 +13,7 @@ import {
   updatePathParam,
   setQueryParams
 } from 'providers/ReduxStore/slices/collections';
-import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
@@ -168,13 +168,14 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MultiLineEditor
                         value={param.value}
                         theme={storedTheme}
                         onSave={onSave}
                         onChange={(newValue) => handleQueryParamChange({ target: { value: newValue } }, param, 'value')}
                         onRun={handleRun}
                         collection={collection}
+                        item={item}
                         variablesAutocomplete={true}
                       />
                     </td>
@@ -244,7 +245,7 @@ const QueryParams = ({ item, collection }) => {
                         />
                       </td>
                       <td>
-                        <SingleLineEditor
+                        <MultiLineEditor
                           value={path.value}
                           theme={storedTheme}
                           onSave={onSave}

@@ -2,6 +2,7 @@ import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@use
 import { uuid } from 'utils/common';
 import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
+import { hexy as hexdump } from 'hexy';
 import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
@@ -23,6 +24,19 @@ import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import * as exampleReducers from './exampleReducers';
+
+// Helper: Update or create variable in variables array
+const updateOrCreateVariable = (vars, variable) => {
+  const existingVar = vars.find((v) => v.name === variable.name);
+
+  if (existingVar) {
+    // Update existing variable - use the passed variable object to preserve UID
+    return vars.map((v) => (v.name === variable.name ? variable : v));
+  }
+
+  // Create new variable
+  return [...vars, variable];
+};
 
 // gRPC status code meanings
 const grpcStatusCodes = {
@@ -380,9 +394,17 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          item.response = null;
+          if (item.response?.stream?.running) {
+            item.response.stream.running = null;
+
+            const startTimestamp = item.requestSent.timestamp;
+            item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
+            item.response.data = [{ type: 'info', timestamp: Date.now(), message: 'Connection Closed' }].concat(item.response.data);
+          } else {
+            item.response = null;
+            item.requestUid = null;
+          }
           item.cancelTokenUid = null;
-          item.requestUid = null;
           item.requestStartTime = null;
         }
       }
@@ -395,7 +417,7 @@ export const collectionsSlice = createSlice({
         if (item) {
           item.requestState = 'received';
           item.response = action.payload.response;
-          item.cancelTokenUid = null;
+          item.cancelTokenUid = item.response.stream?.running ? item.cancelTokenUid : null;
           item.requestStartTime = null;
 
           if (!collection.timeline) {
@@ -590,6 +612,11 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
+          if (item.response && item.response.stream?.running) {
+            item.response.data = '';
+            item.response.size = 0;
+            return;
+          }
           item.response = null;
         }
       }
@@ -635,6 +662,43 @@ export const collectionsSlice = createSlice({
         if (item && item.draft) {
           item.draft = null;
         }
+      }
+    },
+    saveCollectionDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection && collection.draft) {
+        if (collection.draft.root) {
+          collection.root = collection.draft.root;
+        }
+        if (collection.draft.brunoConfig) {
+          collection.brunoConfig = collection.draft.brunoConfig;
+        }
+        collection.draft = null;
+      }
+    },
+    saveFolderDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+
+      if (folder && folder.draft) {
+        folder.root = folder.draft;
+        folder.draft = null;
+      }
+    },
+    deleteCollectionDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection && collection.draft) {
+        collection.draft = null;
+      }
+    },
+    deleteFolderDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+
+      if (folder && folder.draft) {
+        folder.draft = null;
       }
     },
     newEphemeralHttpRequest: (state, action) => {
@@ -1142,7 +1206,13 @@ export const collectionsSlice = createSlice({
         return;
       }
 
-      collection.root.request.headers = map(headers, ({name = '', value = '', enabled = true}) => ({
+      if (!collection.draft) {
+        collection.draft = {
+          root: cloneDeep(collection.root)
+        };
+      }
+
+      collection.draft.root.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
         uid: uuid(),
         name: name,
         value: value,
@@ -1797,40 +1867,50 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        set(collection, 'root.request.auth', {});
-        set(collection, 'root.request.auth.mode', action.payload.mode);
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        set(collection, 'draft.root.request.auth', {});
+        set(collection, 'draft.root.request.auth.mode', action.payload.mode);
       }
     },
     updateCollectionAuth: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        set(collection, 'root.request.auth', {});
-        set(collection, 'root.request.auth.mode', action.payload.mode);
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        set(collection, 'draft.root.request.auth', {});
+        set(collection, 'draft.root.request.auth.mode', action.payload.mode);
         switch (action.payload.mode) {
           case 'awsv4':
-            set(collection, 'root.request.auth.awsv4', action.payload.content);
+            set(collection, 'draft.root.request.auth.awsv4', action.payload.content);
             break;
           case 'bearer':
-            set(collection, 'root.request.auth.bearer', action.payload.content);
+            set(collection, 'draft.root.request.auth.bearer', action.payload.content);
             break;
           case 'basic':
-            set(collection, 'root.request.auth.basic', action.payload.content);
+            set(collection, 'draft.root.request.auth.basic', action.payload.content);
             break;
           case 'digest':
-            set(collection, 'root.request.auth.digest', action.payload.content);
+            set(collection, 'draft.root.request.auth.digest', action.payload.content);
             break;
           case 'ntlm':
-            set(collection, 'root.request.auth.ntlm', action.payload.content);
+            set(collection, 'draft.root.request.auth.ntlm', action.payload.content);
             break;            
           case 'oauth2':
-            set(collection, 'root.request.auth.oauth2', action.payload.content);
+            set(collection, 'draft.root.request.auth.oauth2', action.payload.content);
             break;
           case 'wsse':
-            set(collection, 'root.request.auth.wsse', action.payload.content);
+            set(collection, 'draft.root.request.auth.wsse', action.payload.content);
             break;
           case 'apikey':
-            set(collection, 'root.request.auth.apikey', action.payload.content);
+            set(collection, 'draft.root.request.auth.apikey', action.payload.content);
             break;
         }
       }
@@ -1839,35 +1919,122 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        set(collection, 'root.request.script.req', action.payload.script);
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        set(collection, 'draft.root.request.script.req', action.payload.script);
       }
     },
     updateCollectionResponseScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        set(collection, 'root.request.script.res', action.payload.script);
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        set(collection, 'draft.root.request.script.res', action.payload.script);
       }
     },
     updateCollectionTests: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        set(collection, 'root.request.tests', action.payload.tests);
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        set(collection, 'draft.root.request.tests', action.payload.tests);
       }
     },
     updateCollectionDocs: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        set(collection, 'root.docs', action.payload.docs);
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        set(collection, 'draft.root.docs', action.payload.docs);
+      }
+    },
+    updateCollectionProxy: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.proxy', action.payload.proxy);
+      }
+    },
+    updateCollectionClientCertificates: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.clientCertificates', action.payload.clientCertificates);
+      }
+    },
+    updateCollectionPresets: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.presets', action.payload.presets);
+      }
+    },
+    updateCollectionProtobuf: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.protobuf', action.payload.protobuf);
       }
     },
     addFolderHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        const headers = get(folder, 'root.request.headers', []);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        const headers = get(folder, 'draft.request.headers', []);
         headers.push({
           uid: uuid(),
           name: '',
@@ -1875,14 +2042,17 @@ export const collectionsSlice = createSlice({
           description: '',
           enabled: true
         });
-        set(folder, 'root.request.headers', headers);
+        set(folder, 'draft.request.headers', headers);
       }
     },
     updateFolderHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        const headers = get(folder, 'root.request.headers', []);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        const headers = get(folder, 'draft.request.headers', []);
         const header = find(headers, (h) => h.uid === action.payload.header.uid);
         if (header) {
           header.name = action.payload.header.name;
@@ -1896,9 +2066,12 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        let headers = get(folder, 'root.request.headers', []);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        let headers = get(folder, 'draft.request.headers', []);
         headers = filter(headers, (h) => h.uid !== action.payload.headerUid);
-        set(folder, 'root.request.headers', headers);
+        set(folder, 'draft.request.headers', headers);
       }
     },
     addFolderVar: (state, action) => {
@@ -1906,24 +2079,27 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       const type = action.payload.type;
       if (folder) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
         if (type === 'request') {
-          const vars = get(folder, 'root.request.vars.req', []);
+          const vars = get(folder, 'draft.request.vars.req', []);
           vars.push({
             uid: uuid(),
             name: '',
             value: '',
             enabled: true
           });
-          set(folder, 'root.request.vars.req', vars);
+          set(folder, 'draft.request.vars.req', vars);
         } else if (type === 'response') {
-          const vars = get(folder, 'root.request.vars.res', []);
+          const vars = get(folder, 'draft.request.vars.res', []);
           vars.push({
             uid: uuid(),
             name: '',
             value: '',
             enabled: true
           });
-          set(folder, 'root.request.vars.res', vars);
+          set(folder, 'draft.request.vars.res', vars);
         }
       }
     },
@@ -1932,8 +2108,11 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       const type = action.payload.type;
       if (folder) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
         if (type === 'request') {
-          let vars = get(folder, 'root.request.vars.req', []);
+          let vars = get(folder, 'draft.request.vars.req', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -1941,9 +2120,9 @@ export const collectionsSlice = createSlice({
             _var.description = action.payload.var.description;
             _var.enabled = action.payload.var.enabled;
           }
-          set(folder, 'root.request.vars.req', vars);
+          set(folder, 'draft.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(folder, 'root.request.vars.res', []);
+          let vars = get(folder, 'draft.request.vars.res', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -1951,7 +2130,7 @@ export const collectionsSlice = createSlice({
             _var.description = action.payload.var.description;
             _var.enabled = action.payload.var.enabled;
           }
-          set(folder, 'root.request.vars.res', vars);
+          set(folder, 'draft.request.vars.res', vars);
         }
       }
     },
@@ -1960,14 +2139,17 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       const type = action.payload.type;
       if (folder) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
         if (type === 'request') {
-          let vars = get(folder, 'root.request.vars.req', []);
+          let vars = get(folder, 'draft.request.vars.req', []);
           vars = filter(vars, (h) => h.uid !== action.payload.varUid);
-          set(folder, 'root.request.vars.req', vars);
+          set(folder, 'draft.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(folder, 'root.request.vars.res', []);
+          let vars = get(folder, 'draft.request.vars.res', []);
           vars = filter(vars, (h) => h.uid !== action.payload.varUid);
-          set(folder, 'root.request.vars.res', vars);
+          set(folder, 'draft.request.vars.res', vars);
         }
       }
     },
@@ -1975,21 +2157,30 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        set(folder, 'root.request.script.req', action.payload.script);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        set(folder, 'draft.request.script.req', action.payload.script);
       }
     },
     updateFolderResponseScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        set(folder, 'root.request.script.res', action.payload.script);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        set(folder, 'draft.request.script.res', action.payload.script);
       }
     },
     updateFolderTests: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        set(folder, 'root.request.tests', action.payload.tests);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        set(folder, 'draft.request.tests', action.payload.tests);
       }
     },
     updateFolderAuth: (state, action) => {
@@ -2000,35 +2191,38 @@ export const collectionsSlice = createSlice({
       if (!folder) return;
 
       if (folder) {
-        set(folder, 'root.request.auth', {});
-        set(folder, 'root.request.auth.mode', action.payload.mode);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        set(folder, 'draft.request.auth', {});
+        set(folder, 'draft.request.auth.mode', action.payload.mode);
         switch (action.payload.mode) {
           case 'oauth2':
-            set(folder, 'root.request.auth.oauth2', action.payload.content);
+            set(folder, 'draft.request.auth.oauth2', action.payload.content);
             break;
           case 'basic':
-            set(folder, 'root.request.auth.basic', action.payload.content);
+            set(folder, 'draft.request.auth.basic', action.payload.content);
             break;
           case 'bearer':
-            set(folder, 'root.request.auth.bearer', action.payload.content);
+            set(folder, 'draft.request.auth.bearer', action.payload.content);
             break;
           case 'digest':
-            set(folder, 'root.request.auth.digest', action.payload.content);
+            set(folder, 'draft.request.auth.digest', action.payload.content);
             break;
           case 'ntlm':
-            set(folder, 'root.request.auth.ntlm', action.payload.content);
+            set(folder, 'draft.request.auth.ntlm', action.payload.content);
             break;
           case 'apikey':
-            set(folder, 'root.request.auth.apikey', action.payload.content);
+            set(folder, 'draft.request.auth.apikey', action.payload.content);
             break;
           case 'awsv4':
-            set(folder, 'root.request.auth.awsv4', action.payload.content);
+            set(folder, 'draft.request.auth.awsv4', action.payload.content);
             break;
           case 'wsse':
-            set(folder, 'root.request.auth.wsse', action.payload.content);
+            set(folder, 'draft.request.auth.wsse', action.payload.content);
             break;
           case 'ws':
-            set(folder, 'root.request.auth.ws', action.payload.content);
+            set(folder, 'draft.request.auth.ws', action.payload.content);
             break;
         }
       }
@@ -2037,7 +2231,12 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        const headers = get(collection, 'root.request.headers', []);
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        const headers = get(collection, 'draft.root.request.headers', []);
         headers.push({
           uid: uuid(),
           name: '',
@@ -2045,14 +2244,19 @@ export const collectionsSlice = createSlice({
           description: '',
           enabled: true
         });
-        set(collection, 'root.request.headers', headers);
+        set(collection, 'draft.root.request.headers', headers);
       }
     },
     updateCollectionHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        const headers = get(collection, 'root.request.headers', []);
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        const headers = get(collection, 'draft.root.request.headers', []);
         const header = find(headers, (h) => h.uid === action.payload.header.uid);
         if (header) {
           header.name = action.payload.header.name;
@@ -2066,73 +2270,95 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        let headers = get(collection, 'root.request.headers', []);
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        let headers = get(collection, 'draft.root.request.headers', []);
         headers = filter(headers, (h) => h.uid !== action.payload.headerUid);
-        set(collection, 'root.request.headers', headers);
+        set(collection, 'draft.root.request.headers', headers);
       }
     },
     addCollectionVar: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const type = action.payload.type;
       if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
         if (type === 'request') {
-          const vars = get(collection, 'root.request.vars.req', []);
+          const vars = get(collection, 'draft.root.request.vars.req', []);
           vars.push({
             uid: uuid(),
             name: '',
             value: '',
             enabled: true
           });
-          set(collection, 'root.request.vars.req', vars);
+          set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
-          const vars = get(collection, 'root.request.vars.res', []);
+          const vars = get(collection, 'draft.root.request.vars.res', []);
           vars.push({
             uid: uuid(),
             name: '',
             value: '',
             enabled: true
           });
-          set(collection, 'root.request.vars.res', vars);
+          set(collection, 'draft.root.request.vars.res', vars);
         }
       }
     },
     updateCollectionVar: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const type = action.payload.type;
-      if (type === 'request') {
-        let vars = get(collection, 'root.request.vars.req', []);
-        const _var = find(vars, (h) => h.uid === action.payload.var.uid);
-        if (_var) {
-          _var.name = action.payload.var.name;
-          _var.value = action.payload.var.value;
-          _var.description = action.payload.var.description;
-          _var.enabled = action.payload.var.enabled;
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
         }
-        set(collection, 'root.request.vars.req', vars);
-      } else if (type === 'response') {
-        let vars = get(collection, 'root.request.vars.res', []);
-        const _var = find(vars, (h) => h.uid === action.payload.var.uid);
-        if (_var) {
-          _var.name = action.payload.var.name;
-          _var.value = action.payload.var.value;
-          _var.description = action.payload.var.description;
-          _var.enabled = action.payload.var.enabled;
+        if (type === 'request') {
+          let vars = get(collection, 'draft.root.request.vars.req', []);
+          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          if (_var) {
+            _var.name = action.payload.var.name;
+            _var.value = action.payload.var.value;
+            _var.description = action.payload.var.description;
+            _var.enabled = action.payload.var.enabled;
+          }
+          set(collection, 'draft.root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(collection, 'draft.root.request.vars.res', []);
+          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          if (_var) {
+            _var.name = action.payload.var.name;
+            _var.value = action.payload.var.value;
+            _var.description = action.payload.var.description;
+            _var.enabled = action.payload.var.enabled;
+          }
+          set(collection, 'draft.root.request.vars.res', vars);
         }
-        set(collection, 'root.request.vars.res', vars);
       }
     },
     deleteCollectionVar: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const type = action.payload.type;
       if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
         if (type === 'request') {
-          let vars = get(collection, 'root.request.vars.req', []);
+          let vars = get(collection, 'draft.root.request.vars.req', []);
           vars = filter(vars, (h) => h.uid !== action.payload.varUid);
-          set(collection, 'root.request.vars.req', vars);
+          set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(collection, 'root.request.vars.res', []);
+          let vars = get(collection, 'draft.root.request.vars.res', []);
           vars = filter(vars, (h) => h.uid !== action.payload.varUid);
-          set(collection, 'root.request.vars.res', vars);
+          set(collection, 'draft.root.request.vars.res', vars);
         }
       }
     },
@@ -2636,7 +2862,10 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
         if (isItemAFolder(folder)) {
-          set(folder, 'root.docs', action.payload.docs);
+          if (!folder.draft) {
+            folder.draft = cloneDeep(folder.root);
+          }
+          set(folder, 'draft.docs', action.payload.docs);
         }
       }
     },
@@ -2727,11 +2956,32 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       
       if (folder) {
-        set(folder, 'root.request.auth', {});
-        set(folder, 'root.request.auth.mode', action.payload.mode);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        set(folder, 'draft.request.auth', {});
+        set(folder, 'draft.request.auth.mode', action.payload.mode);
       }
     },
+    streamDataReceived: (state, action) => {
+      const { itemUid, collectionUid, data } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+        if (data.data) {
+          item.response.data ||= [];
+          item.response.data = [{
+            type: 'incoming',
+            message: data.data,
+            messageHexdump: hexdump(data.data),
+            timestamp: Date.now()
+          }].concat(item.response.data);
+        }
+        item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        item.response.size = data.data?.length + (item.response.size || 0);
+      }
+    },
     addRequestTag: (state, action) => {
       const { tag, collectionUid, itemUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -2963,8 +3213,42 @@ export const collectionsSlice = createSlice({
     deleteResponseExampleFormUrlEncodedParam: exampleReducers.deleteResponseExampleFormUrlEncodedParam,
     addResponseExampleMultipartFormParam: exampleReducers.addResponseExampleMultipartFormParam,
     updateResponseExampleMultipartFormParam: exampleReducers.updateResponseExampleMultipartFormParam,
-    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam
+    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam,
     /* End Response Example Actions */
+
+    updateRequestVarValue: (state, action) => {
+      const { collectionUid, itemUid, variable } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (item) {
+        const vars = get(item, 'request.vars.req', []);
+        const updatedVars = updateOrCreateVariable(vars, variable);
+        set(item, 'request.vars.req', updatedVars);
+      }
+    },
+    updateFolderVarValue: (state, action) => {
+      const { collectionUid, folderUid, variable } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const folder = findItemInCollection(collection, folderUid);
+      if (folder) {
+        const vars = get(folder, 'root.request.vars.req', []);
+        const updatedVars = updateOrCreateVariable(vars, variable);
+        set(folder, 'root.request.vars.req', updatedVars);
+      }
+    },
+    updateCollectionVarValue: (state, action) => {
+      const { collectionUid, variable } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const vars = get(collection, 'root.request.vars.req', []);
+      const updatedVars = updateOrCreateVariable(vars, variable);
+      set(collection, 'root.request.vars.req', updatedVars);
+    }
   }
 });
 
@@ -2998,6 +3282,10 @@ export const {
   clearRequestTimeline,
   saveRequest,
   deleteRequestDraft,
+  saveCollectionDraft,
+  saveFolderDraft,
+  deleteCollectionDraft,
+  deleteFolderDraft,
   newEphemeralHttpRequest,
   collapseFullCollection,
   toggleCollection,
@@ -3068,6 +3356,10 @@ export const {
   updateCollectionResponseScript,
   updateCollectionTests,
   updateCollectionDocs,
+  updateCollectionProxy,
+  updateCollectionClientCertificates,
+  updateCollectionPresets,
+  updateCollectionProtobuf,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,
@@ -3085,6 +3377,7 @@ export const {
   updateRequestDocs,
   updateFolderDocs,
   moveCollection,
+  streamDataReceived,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
   collectionGetOauth2CredentialsByUrl,
@@ -3129,8 +3422,12 @@ export const {
   deleteResponseExampleRequestHeader,
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
-  setResponseExampleParams
+  setResponseExampleParams,
   /* Response Example Actions - End */
+
+  updateRequestVarValue,
+  updateFolderVarValue,
+  updateCollectionVarValue
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

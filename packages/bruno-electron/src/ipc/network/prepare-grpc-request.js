@@ -15,9 +15,10 @@ const processHeaders = (headers) => {
 
 const prepareGrpcRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
-  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
+  const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const headers = {};
   const url = request.url;
+  const { promptVariables = {} } = collection;
 
   const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
@@ -28,6 +29,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
+    request.promptVariables = promptVariables;
   }
 
   each(get(request, 'headers', []), (h) => {
@@ -49,6 +51,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     processEnvVars,
     envVars,
     runtimeVariables,
+    promptVariables,
     body: request.body,
     protoPath: request.protoPath,
     // Add variable properties for interpolation
@@ -68,7 +71,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     let credentials, credentialsId, oauth2Url, debugInfo;
     switch (grantType) {
       case 'authorization_code':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
         grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
@@ -82,7 +85,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
         }
         break;
       case 'client_credentials':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
         grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
@@ -96,7 +99,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
         }
         break;
       case 'password':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
         grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
@@ -112,7 +115,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     }
   }
 
-  interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars);
+  interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars, promptVariables);
   processHeaders(grpcRequest.headers);
 
   return grpcRequest;

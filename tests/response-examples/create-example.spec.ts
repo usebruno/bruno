@@ -10,8 +10,8 @@ test.describe.serial('Create and Delete Response Examples', () => {
 
   test('should create a response example from response bookmark', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
-      await page.locator('#sidebar-collection-name').getByText('collection').click();
-      await page.locator('.collection-item-name').getByText('create-example').click();
+      await page.locator('#sidebar-collection-name').filter({ hasText: 'collection' }).click();
+      await page.locator('.collection-item-name').filter({ hasText: 'create-example' }).click();
     });
 
     await test.step('Send request and validate example creation', async () => {

@@ -46,7 +46,8 @@ const Auth = ({ item, collection }) => {
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
 
-    const collectionAuth = get(collection, 'root.request.auth');
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    const collectionAuth = get(collectionRoot, 'request.auth');
     let effectiveSource = {
       type: 'collection',
       name: 'Collection',

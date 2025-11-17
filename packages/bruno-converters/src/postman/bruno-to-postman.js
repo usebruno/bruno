@@ -149,9 +149,11 @@ export const brunoToPostman = (collection) => {
   const generateEventSection = (item) => {
     const eventArray = [];
     // Request: item.script, Folder: item.root.request.script, Collection: item.request.script
-    const scriptBlock = item?.script || item?.root?.request?.script || item?.request?.script;
+    // Tests: item.tests, Folder: item.root.request.tests, Collection: item.request.tests
+    const scriptBlock = item?.script || item?.root?.request?.script || item?.request?.script || {};
+    const testsBlock = item?.tests || item?.root?.request?.tests || item?.request?.tests;
 
-    if (scriptBlock?.req) {
+    if (scriptBlock.req && typeof scriptBlock.req === 'string') {
       eventArray.push({
         listen: 'prerequest',
         script: {
@@ -162,14 +164,27 @@ export const brunoToPostman = (collection) => {
         }
       });
     }
-    if (scriptBlock?.res) {
+    // testsBlock is added in the post response script since postman only supports tests in the post response script
+    if (scriptBlock.res || testsBlock) {
+      const exec = [];
+      if (scriptBlock.res && typeof scriptBlock.res === 'string') {
+        exec.push(...scriptBlock.res.split('\n'));
+      }
+      if (testsBlock && typeof testsBlock === 'string') {
+        if (exec.length > 0) {
+          exec.push('');
+        }
+        exec.push('// Tests');
+        exec.push(...testsBlock.split('\n'));
+      }
+
       eventArray.push({
         listen: 'test',
         script: {
           type: 'text/javascript',
           packages: {},
           requests: {},
-          exec: scriptBlock.res.split('\n')
+          exec: exec
         }
       });
     }

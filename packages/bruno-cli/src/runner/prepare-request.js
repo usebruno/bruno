@@ -15,7 +15,7 @@ const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
-  const brunoConfig = get(collection, 'brunoConfig', {});
+  const brunoConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig', {}) : get(collection, 'brunoConfig', {});
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
@@ -49,7 +49,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
     responseType: 'arraybuffer'
   };
 
-  const collectionAuth = get(collection, 'root.request.auth');
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth?.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.basicAuth = {

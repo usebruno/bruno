@@ -8,7 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
 
-  let collectionHeaders = get(collection, 'root.request.headers', []);
+  let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       if (header?.name?.toLowerCase?.() === 'content-type') {
@@ -21,7 +21,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let _headers = get(i, 'root.request.headers', []);
+      const folderRoot = i?.draft || i?.root;
+      let _headers = get(folderRoot, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
           if (header.name.toLowerCase() === 'content-type') {
@@ -50,7 +51,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
 const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
-  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
@@ -62,7 +64,8 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let requestVariables = {};
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.req', []);
+      const folderRoot = i?.draft || i?.root;
+      let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           reqVars.set(_var.name, _var.value);
@@ -94,7 +97,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   }
 
   let resVars = new Map();
-  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
+  let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
       resVars.set(_var.name, _var.value);
@@ -102,7 +105,8 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.res', []);
+      const folderRoot = i?.draft || i?.root;
+      let vars = get(folderRoot, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           resVars.set(_var.name, _var.value);
@@ -129,26 +133,28 @@ const mergeVars = (collection, request, requestTreePath = []) => {
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
-  let collectionPreReqScript = get(collection, 'root.request.script.req', '');
-  let collectionPostResScript = get(collection, 'root.request.script.res', '');
-  let collectionTests = get(collection, 'root.request.tests', '');
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
+  let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
+  let collectionTests = get(collectionRoot, 'request.tests', '');
 
   let combinedPreReqScript = [];
   let combinedPostResScript = [];
   let combinedTests = [];
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let preReqScript = get(i, 'root.request.script.req', '');
+      const folderRoot = i?.draft || i?.root;
+      let preReqScript = get(folderRoot, 'request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
         combinedPreReqScript.push(preReqScript);
       }
 
-      let postResScript = get(i, 'root.request.script.res', '');
+      let postResScript = get(folderRoot, 'request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
       }
 
-      let tests = get(i, 'root.request.tests', '');
+      let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
       }
@@ -499,14 +505,16 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
 
 const mergeAuth = (collection, request, requestTreePath) => {
   // Start with collection level auth (always consider collection auth as base)
-  let collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  let collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
   let lastFolderWithAuth = null;
 
   // Traverse through the path to find the closest auth configuration
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      const folderAuth = get(i, 'root.request.auth');
+      const folderRoot = i?.draft || i?.root;
+      const folderAuth = get(folderRoot, 'request.auth');
       // Only consider folders that have a valid auth mode
       if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;

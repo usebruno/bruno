@@ -1,8 +1,9 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
-import { format, applyEdits } from 'jsonc-parser';
 import { JSONPath } from 'jsonpath-plus';
 import fastJsonFormat from 'fast-json-format';
+import { format, applyEdits } from 'jsonc-parser';
+import { patternHasher } from '@usebruno/common/utils';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -49,34 +50,6 @@ export const safeStringifyJSON = (obj, indent = false) => {
       return JSON.stringify(obj, null, 2);
     }
     return JSON.stringify(obj);
-  } catch (e) {
-    return obj;
-  }
-};
-
-export const prettifyJSON = (obj, spaces = 2) => {
-  try {
-    const text = obj.replace(/\\"/g, '"').replace(/\\'/g, '\'');
-
-    const placeholders = [];
-    const modifiedJson = text.replace(/"[^"]*?"|{{[^{}]+}}/g, (match) => {
-      if (match.startsWith('{{')) {
-        const placeholder = `__BRUNO_VAR_PLACEHOLDER_${placeholders.length}__`;
-        placeholders.push(match);
-        return `"${placeholder}"`; // Wrap bare variable in quotes to make it a valid JSON string
-      }
-      return match;
-    });
-
-    const edits = format(modifiedJson, undefined, { tabSize: spaces, insertSpaces: true });
-    let result = applyEdits(modifiedJson, edits);
-
-    for (let i = 0; i < placeholders.length; i++) {
-      const placeholder = `__BRUNO_VAR_PLACEHOLDER_${i}__`;
-      result = result.replace(`"${placeholder}"`, placeholders[i]);
-    }
-
-    return result;
   } catch (e) {
     return obj;
   }
@@ -350,4 +323,20 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
   }
 
   return safeStringifyJSON(data, !isVeryLargeResponse);
+};
+
+export const prettifyJsonString = (jsonDataString) => {
+  if (typeof jsonDataString !== 'string') return jsonDataString;
+
+  try {
+    const { hashed, restore } = patternHasher(jsonDataString);
+    const edits = format(hashed, undefined, { tabSize: 2, insertSpaces: true });
+    const formattedJsonDataStringHashed = applyEdits(hashed, edits);
+    const formattedJsonDataString = restore(formattedJsonDataStringHashed);
+    return formattedJsonDataString;
+  } catch (error) {
+    console.log('error formatting json data!');
+    console.error(error);
+  }
+  return jsonDataString;
 };

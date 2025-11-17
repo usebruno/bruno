@@ -339,7 +339,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
   const settings = item.draft?.settings ?? item.settings;
-  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
+  const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
@@ -361,6 +361,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     mergeAuth(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
+    request.promptVariables = collection?.promptVariables || {};
   }
 
 
@@ -497,6 +498,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
+  axiosRequest.promptVariables = request.promptVariables;
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
