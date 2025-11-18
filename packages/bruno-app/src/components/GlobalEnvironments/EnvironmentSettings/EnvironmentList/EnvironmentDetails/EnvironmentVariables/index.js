@@ -125,7 +125,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
           </thead>
           <tbody>
             {formik.values.map((variable, index) => (
-              <tr key={variable.uid}>
+              <tr key={variable.uid} data-testid={`env-var-row-${variable.name}`}>
                 <td className="text-center">
                   <input
                     type="checkbox"
@@ -162,6 +162,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       isSecret={variable.secret}
                       readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                      enableBrunoVarInfo={false}
                     />
                   </div>
                   {typeof variable.value !== 'string' && (

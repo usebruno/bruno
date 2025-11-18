@@ -346,6 +346,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               strokeWidth={1.5}
               size={22}
               className={`${(isReflectionMode ? reflectionManagement.isLoadingMethods : protoFileManagement.isLoadingMethods) ? 'animate-spin' : 'cursor-pointer'}`}
+              data-testid="refresh-methods-icon"
             />
             <span className="infotip-text text-xs">
               {isReflectionMode ? 'Refresh server reflection' : 'Refresh proto file methods'}
@@ -388,25 +389,28 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
           {isConnectionActive && isStreamingMethod && (
             <div className="connection-controls relative flex items-center h-full gap-3">
-              <div className="infotip" onClick={handleCancelConnection}>
+              <div className="infotip" onClick={handleCancelConnection} data-testid="grpc-cancel-connection-button">
                 <IconX color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className="cursor-pointer" />
                 <span className="infotip-text text-xs">Cancel</span>
               </div>
 
-            {isClientStreamingMethod && <div onClick={handleEndConnection}>
-                <IconCheck
-                  color={theme.colors.text.green}
-                  strokeWidth={2}
-                  size={22}
-                  className="cursor-pointer"
-                />
-              </div>}
+              {isClientStreamingMethod && (
+                <div onClick={handleEndConnection} data-testid="grpc-end-connection-button">
+                  <IconCheck
+                    color={theme.colors.text.green}
+                    strokeWidth={2}
+                    size={22}
+                    className="cursor-pointer"
+                  />
+                </div>
+              )}
             </div>
           )}
 
           {(!isConnectionActive || !isStreamingMethod) && (
             <div
               className="cursor-pointer"
+              data-testid="grpc-send-request-button"
               onClick={(e) => {
                 e.stopPropagation();
                 handleRun(e);

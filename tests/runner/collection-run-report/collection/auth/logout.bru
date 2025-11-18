@@ -4,14 +4,34 @@ meta {
   seq: 4
 }
 
-delete {
-  url: https://httpbin.org/delete
-  body: none
+post {
+  url: https://echo.usebruno.com
+  body: json
   auth: none
 }
 
 headers {
   Accept: application/json
+}
+
+body:json {
+  {
+    "args": {},
+    "data": "",
+    "files": {},
+    "form": {},
+    "headers": {
+      "Accept": "application/json",
+      "Accept-Encoding": "gzip, compress, deflate, br",
+      "Host": "echo.usebruno.com",
+      "Request-Start-Time": "1762260355402",
+      "User-Agent": "bruno-runtime/1.99.3",
+      "X-Amzn-Trace-Id": "Root=1-6909f585-57dba07b099d8b143524cc8a"
+    },
+    "json": null,
+    "origin": "180.151.198.14",
+    "url": "https://echo.usebruno.com"
+  }
 }
 
 tests {

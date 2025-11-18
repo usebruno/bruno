@@ -4,6 +4,7 @@ const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
 const { cleanJson } = require('../../utils');
+const { mixinTypedArrays } = require('../mixins/typed-arrays');
 
 class ScriptError extends Error {
   constructor(error, script) {
@@ -59,6 +60,8 @@ async function runScriptInNodeVm({
       setImmediate: global.setImmediate,
       clearImmediate: global.clearImmediate
     };
+
+    mixinTypedArrays(scriptContext);
 
     // Create shared cache for local modules
     const localModuleCache = new Map();

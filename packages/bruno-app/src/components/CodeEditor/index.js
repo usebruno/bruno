@@ -54,9 +54,11 @@ export default class CodeEditor extends React.Component {
       lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
-      brunoVarInfo: {
-        variables
-      },
+      brunoVarInfo: this.props.enableBrunoVarInfo !== false ? {
+        variables,
+        collection: this.props.collection,
+        item: this.props.item
+      } : false,
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
@@ -230,6 +232,16 @@ export default class CodeEditor extends React.Component {
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
+
+      // Update collection and item when they change
+      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+        if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+          this.editor.options.brunoVarInfo.collection = this.props.collection;
+        }
+        if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+          this.editor.options.brunoVarInfo.item = this.props.item;
+        }
+      }
     }
 
     if (this.props.theme !== prevProps.theme && this.editor) {
@@ -246,6 +258,10 @@ export default class CodeEditor extends React.Component {
 
     if (this.props.mode !== prevProps.mode) {
       this.editor.setOption('mode', this.props.mode);
+    }
+
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly);
     }
 
     this.ignoreChangeEvent = false;
@@ -266,7 +282,7 @@ export default class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className="h-full w-full flex flex-col relative graphiql-container"
+        className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
         aria-label="Code Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
@@ -289,6 +305,11 @@ export default class CodeEditor extends React.Component {
     const mode = this.props.mode || 'application/ld+json';
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
+
+    // Update brunoVarInfo with latest variables
+    if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+      this.editor.options.brunoVarInfo.variables = variables;
+    }
 
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');

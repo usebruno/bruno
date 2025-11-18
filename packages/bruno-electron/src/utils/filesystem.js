@@ -172,7 +172,29 @@ const sanitizeName = (name) => {
 
 const isWindowsOS = () => {
   return os.platform() === 'win32';
-}
+};
+
+/**
+ * Generate a unique name by adding a "copy" suffix if needed
+ *
+ * @param {string} baseName - The base name
+ * @param {Function} checkExists - Function that takes a name and returns true if it exists
+ * @returns {string} - A unique name
+ */
+const generateUniqueName = (baseName, checkExists) => {
+  if (!checkExists(baseName)) {
+    return baseName;
+  }
+
+  let counter = 1;
+  let uniqueName = `${baseName} copy`;
+
+  while (checkExists(uniqueName)) {
+    counter++;
+    uniqueName = `${baseName} copy ${counter}`;
+  }
+  return uniqueName;
+};
 
 const validateName = (name) => {
     const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // keeping this for informational purpose
@@ -389,5 +411,6 @@ module.exports = {
   copyPath,
   removePath,
   getPaths,
-  isLargeFile
+  isLargeFile,
+  generateUniqueName
 };

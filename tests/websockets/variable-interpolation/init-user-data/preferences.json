@@ -1,0 +1,10 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{projectRoot}}/tests/websockets/variable-interpolation/fixtures/collection"
+  ],
+  "beta": {
+    "websocket": true
+  }
+}
+

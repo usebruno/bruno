@@ -546,7 +546,7 @@ const handler = async function (argv) {
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
-      const { pathname } = requestItem;
+      const { name, pathname } = requestItem;
 
       const start = process.hrtime();
       const result = await runSingleRequest(
@@ -576,7 +576,8 @@ const handler = async function (argv) {
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: pathname.replace('.bru', '')
+        suitename: pathname.replace('.bru', ''),
+        name
       });
 
       if (reporterSkipAllHeaders) {

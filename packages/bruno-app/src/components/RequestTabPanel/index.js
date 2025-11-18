@@ -10,7 +10,7 @@ import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl/index';
 import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
@@ -29,9 +29,11 @@ import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
 import FolderNotFound from './FolderNotFound';
+import ExampleNotFound from './ExampleNotFound';
 import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
+import ResponseExample from 'components/ResponseExample';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -186,6 +188,16 @@ const RequestTabPanel = () => {
     return <div className="pb-4 px-4">Collection not found!</div>;
   }
 
+  if (focusedTab.type === 'response-example') {
+    const item = findItemInCollection(collection, focusedTab.itemUid);
+    const example = item?.examples?.find((ex) => ex.uid === focusedTab.uid);
+
+    if (!example) {
+      return <ExampleNotFound itemUid={focusedTab.itemUid} exampleUid={focusedTab.uid} />;
+    }
+    return <ResponseExample item={item} collection={collection} example={example} />;
+  }
+
   const item = findItemInCollection(collection, activeTabUid);
   const isGrpcRequest = item?.type === 'grpc-request';
   const isWsRequest = item?.type === 'ws-request';
@@ -251,11 +263,17 @@ const RequestTabPanel = () => {
       return;
     }
 
-    dispatch(sendRequest(item, collection.uid)).catch((err) =>
-      toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-        duration: 5000
-      })
-    );
+    if (item.response?.stream?.running) {
+      dispatch(cancelRequest(item.cancelTokenUid, item, collection)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        }));
+    } else if (item.requestState !== 'sending' && item.requestState !== 'queued') {
+      dispatch(sendRequest(item, collection.uid)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        }));
+    }
   };
 
   // TODO: reaper, improve selection of panes

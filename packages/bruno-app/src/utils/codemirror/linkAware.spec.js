@@ -143,15 +143,13 @@ describe('setupLinkAware', () => {
       setupLinkAware(mockEditor);
 
       // Verify that markUrls was called which sets the hint
-      expect(mockEditor.markText).toHaveBeenCalledWith(
-        expect.anything(),
+      expect(mockEditor.markText).toHaveBeenCalledWith(expect.anything(),
         expect.anything(),
         expect.objectContaining({
           attributes: expect.objectContaining({
             title: 'Hold Cmd and click to open link'
           })
-        })
-      );
+        }));
     });
 
     it('should use Ctrl key hint on non-macOS', () => {
@@ -159,15 +157,13 @@ describe('setupLinkAware', () => {
       setupLinkAware(mockEditor);
 
       // Verify that markUrls was called which sets the hint
-      expect(mockEditor.markText).toHaveBeenCalledWith(
-        expect.anything(),
+      expect(mockEditor.markText).toHaveBeenCalledWith(expect.anything(),
         expect.anything(),
         expect.objectContaining({
           attributes: expect.objectContaining({
             title: 'Hold Ctrl and click to open link'
           })
-        })
-      );
+        }));
     });
   });
 
@@ -309,17 +305,15 @@ describe('setupLinkAware', () => {
     it('should apply link tooltips when marking URLs', () => {
       setupLinkAware(mockEditor);
 
-      expect(mockEditor.markText).toHaveBeenCalledWith(
-        { line: 0, ch: 10 },
+      expect(mockEditor.markText).toHaveBeenCalledWith({ line: 0, ch: 10 },
         { line: 0, ch: 28 },
         {
           className: 'CodeMirror-link',
           attributes: {
             'data-url': 'https://example.com',
-            title: 'Hold Cmd and click to open link'
+            'title': 'Hold Cmd and click to open link'
           }
-        }
-      );
+        });
     });
   });
 
@@ -341,9 +335,7 @@ describe('setupLinkAware', () => {
     it('should add hover class on mouseover for link elements', () => {
       setupLinkAware(mockEditor);
 
-      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find(
-        (call) => call[0] === 'mouseover'
-      )[1];
+      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find((call) => call[0] === 'mouseover')[1];
 
       const mockTarget = {
         classList: {
@@ -380,9 +372,7 @@ describe('setupLinkAware', () => {
     it('should not add hover class for non-link elements', () => {
       setupLinkAware(mockEditor);
 
-      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find(
-        (call) => call[0] === 'mouseover'
-      )[1];
+      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find((call) => call[0] === 'mouseover')[1];
 
       const mockTarget = {
         classList: {
@@ -434,9 +424,7 @@ describe('setupLinkAware', () => {
     it('should handle multi-span links correctly on hover', () => {
       setupLinkAware(mockEditor);
 
-      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find(
-        (call) => call[0] === 'mouseover'
-      )[1];
+      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find((call) => call[0] === 'mouseover')[1];
 
       // Create a mock with a chain of link spans
       const mockNestedPrev = {
@@ -511,9 +499,7 @@ describe('setupLinkAware', () => {
     it('should handle missing target in mouse event', () => {
       setupLinkAware(mockEditor);
 
-      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find(
-        (call) => call[0] === 'mouseover'
-      )[1];
+      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find((call) => call[0] === 'mouseover')[1];
       const mockEvent = { target: null };
 
       // Note: This will throw as the implementation accesses target.classList without null check
@@ -549,9 +535,7 @@ describe('setupLinkAware', () => {
     it('should handle null siblings in mouseover events', () => {
       setupLinkAware(mockEditor);
 
-      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find(
-        (call) => call[0] === 'mouseover'
-      )[1];
+      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find((call) => call[0] === 'mouseover')[1];
 
       const mockTarget = {
         classList: {
@@ -571,9 +555,7 @@ describe('setupLinkAware', () => {
     it('should handle non-link siblings in mouseover events', () => {
       setupLinkAware(mockEditor);
 
-      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find(
-        (call) => call[0] === 'mouseover'
-      )[1];
+      const mouseoverHandler = mockWrapperElement.addEventListener.mock.calls.find((call) => call[0] === 'mouseover')[1];
 
       const mockPrev = {
         classList: {

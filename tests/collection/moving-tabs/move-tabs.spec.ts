@@ -28,8 +28,8 @@ test.describe('Move tabs', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
     // Fill folder name in the modal
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('test-folder');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('test-folder');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the folder to be created and appear in the sidebar
@@ -47,7 +47,7 @@ test.describe('Move tabs', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created
@@ -116,8 +116,8 @@ test.describe('Move tabs', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
     // Fill folder name in the modal
-    await expect(page.locator('#collection-name')).toBeVisible();
-    await page.locator('#collection-name').fill('test-folder');
+    await expect(page.locator('#folder-name')).toBeVisible();
+    await page.locator('#folder-name').fill('test-folder');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the folder to be created and appear in the sidebar
@@ -135,7 +135,7 @@ test.describe('Move tabs', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.locator('textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created

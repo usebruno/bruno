@@ -123,7 +123,10 @@ test.describe('Global Environment Create Tests', () => {
       .locator('.collection-actions')
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
-    await page.getByRole('button', { name: 'Close' }).click();
+    // Scope the Close button to the confirmation modal to avoid matching the dropdown close button
+    // Wait for the confirmation modal with "Close Collection" title to appear
+    const closeModal = page.getByRole('dialog').filter({ has: page.getByText('Close Collection') });
+    await closeModal.getByRole('button', { name: 'Close' }).click();
 
     await page.locator('.bruno-logo').click();
   });
