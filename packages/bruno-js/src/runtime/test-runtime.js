@@ -37,6 +37,7 @@ const cheerio = require('cheerio');
 const tv4 = require('tv4');
 const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { mixinTypedArrays } = require('../sandbox/mixins/typed-arrays');
 
 class TestRuntime {
   constructor(props) {
@@ -60,8 +61,9 @@ class TestRuntime {
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
+    const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || [];
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName, promptVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -107,6 +109,10 @@ class TestRuntime {
       __brunoTestResults: __brunoTestResults,
       jwt: jsonwebtoken
     };
+
+    if (this.runtime === 'vm2') {
+      mixinTypedArrays(context);
+    }
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {

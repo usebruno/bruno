@@ -9,13 +9,14 @@ const StyledWrapper = styled.div`
   &.read-only {
     .CodeMirror .CodeMirror-lines {
       cursor: not-allowed !important;
-      user-select: none !important;
-      -webkit-user-select: none !important;
-      -ms-user-select: none !important;
     }
 
     .CodeMirror-line {
       color: ${(props) => props.theme.colors.text.muted} !important;
+    }
+
+    .CodeMirror-cursor {
+      display: none !important;
     }
   }
 

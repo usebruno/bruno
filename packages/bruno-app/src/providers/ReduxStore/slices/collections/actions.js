@@ -1,5 +1,5 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -17,11 +17,14 @@ import {
   isItemAFolder,
   refreshUidsInItem,
   isItemARequest,
-  transformRequestToSaveToFilesystem
+  getAllVariables,
+  transformRequestToSaveToFilesystem,
+  transformCollectionRootToSave
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
+import brunoClipboard from 'utils/bruno-clipboard';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
@@ -42,13 +45,15 @@ import {
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
   saveRequest as _saveRequest,
-  saveEnvironment as _saveEnvironment
+  saveEnvironment as _saveEnvironment,
+  saveCollectionDraft,
+  saveFolderDraft
 } from './index';
 
 import { each } from 'lodash';
 import { closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
-import { parsePathParams, splitOnFirst } from 'utils/url/index';
+import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import {
   getGlobalEnvironmentVariables,
@@ -57,13 +62,18 @@ import {
   getReorderedItemsInTargetDirectory,
   resetSequencesInFolder,
   getReorderedItemsInSourceDirectory,
-  calculateDraggedItemNewPathname
+  calculateDraggedItemNewPathname,
+  transformFolderRootToSave,
+  getTreePathFromCollectionToItem,
+  mergeHeaders
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { buildPersistedEnvVariables } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
+import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
+import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -159,11 +169,18 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    const collectionCopy = cloneDeep(collection);
+
+    // Transform collection root (uses draft if exists)
+    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('renderer:save-collection-root', collection.pathname, collection.root)
-      .then(() => toast.success('Collection Settings saved successfully'))
+      .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave)
+      .then(() => {
+        toast.success('Collection Settings saved successfully');
+        dispatch(saveCollectionDraft({ collectionUid }));
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save collection settings!');
@@ -188,15 +205,107 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
 
     const { ipcRenderer } = window;
 
+    // Use draft if it exists, otherwise use root
+    const folderRootToSave = transformFolderRootToSave(folder);
+
     const folderData = {
       name: folder.name,
       pathname: folder.pathname,
-      root: folder.root
+      root: folderRootToSave
     };
 
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)
-      .then(() => toast.success('Folder Settings saved successfully'))
+      .then(() => {
+        toast.success('Folder Settings saved successfully');
+        // If there was a draft, save it to root and clear the draft
+        if (folder.draft) {
+          dispatch(saveFolderDraft({ collectionUid, folderUid }));
+        }
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save folder settings!');
+        reject(err);
+      });
+  });
+};
+
+export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const savePromises = [];
+
+    each(collectionDrafts, (collectionDraft) => {
+      const collection = findCollectionByUid(collections, collectionDraft.collectionUid);
+      if (collection) {
+        const collectionCopy = cloneDeep(collection);
+        const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
+        const { ipcRenderer } = window;
+
+        let savePromises = [];
+
+        savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave));
+
+        if (collectionCopy.draft?.brunoConfig) {
+          savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', collectionCopy.draft.brunoConfig, collectionCopy.pathname, collectionDraft.collectionUid));
+        }
+
+        Promise.all(savePromises)
+          .then(() => {
+            dispatch(saveCollectionDraft({ collectionUid: collectionDraft.collectionUid }));
+          })
+          .catch((err) => {
+            toast.error('Failed to save collection settings!');
+            reject(err);
+          });
+      }
+    });
+
+    Promise.all(savePromises)
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save collection settings!');
+        reject(err);
+      });
+  });
+};
+
+export const saveMultipleFolders = (folderDrafts) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const savePromises = [];
+
+    each(folderDrafts, (folderDraft) => {
+      const collection = findCollectionByUid(collections, folderDraft.collectionUid);
+      const folder = collection ? findItemInCollection(collection, folderDraft.folderUid) : null;
+
+      if (collection && folder) {
+        const folderRootToSave = transformFolderRootToSave(folder);
+        const folderData = {
+          name: folder.name,
+          pathname: folder.pathname,
+          root: folderRootToSave
+        };
+
+        const { ipcRenderer } = window;
+        const savePromise = ipcRenderer
+          .invoke('renderer:save-folder-root', folderData)
+          .then(() => {
+            if (folder.draft) {
+              dispatch(saveFolderDraft({ collectionUid: folderDraft.collectionUid, folderUid: folderDraft.folderUid }));
+            }
+          });
+
+        savePromises.push(savePromise);
+      }
+    });
+
+    Promise.all(savePromises)
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save folder settings!');
@@ -275,6 +384,76 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
   });
 };
 
+/**
+ * Extract prompt variables from a request, collection, and environment variables.
+ * Tries to respect the hierarchy of the variables and avoid unnecessary prompts as much as possible
+ *
+ * @param {*} item
+ * @param {*} collection
+ * @returns {Promise<Object>} A promise that resolves with the prompt variables or null if no prompt variables are found
+ */
+const extractPromptVariablesForRequest = async (item, collection) => {
+  return new Promise(async (resolve, reject) => {
+    // Ensure window contains promptForVariables function
+    if (typeof window === 'undefined' || typeof window.promptForVariables !== 'function') {
+      console.error('Failed to initialize prompt variables: window.promptForVariables is not available. '
+        + 'This may indicate an initialization issue with the app environment.');
+      return resolve(null);
+    }
+
+    const prompts = [];
+    const request = item.draft?.request ?? item.request ?? {};
+    const allVariables = getAllVariables(collection, item);
+    const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+    // Get active headers from collection, folders, and request by priority order
+    const headers = mergeHeaders(collection, request, requestTreePath);
+    // Get request auth or inherited auth
+    const resolvedAuthRequest = resolveInheritedAuth(item, collection);
+
+    for (let clientCert of clientCertConfig) {
+      const domain = interpolateUrl({ url: clientCert?.domain, variables: allVariables });
+
+      if (domain) {
+        const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)?' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+        const requestUrl = interpolateUrl({ url: request.url, variables: allVariables });
+        if (requestUrl.match(hostRegex)) {
+          prompts.push(...extractPromptVariables(clientCert));
+        }
+      }
+    }
+
+    // Attempt to extract unique prompt variables from anywhere in the request and environment variables.
+    prompts.push(...extractPromptVariables(allVariables));
+    prompts.push(...extractPromptVariables(request.body?.[request.body.mode]));
+    prompts.push(...extractPromptVariables(headers));
+    prompts.push(...extractPromptVariables(request.params));
+    prompts.push(...extractPromptVariables(resolvedAuthRequest.auth));
+
+    // Remove duplicates
+    const uniquePrompts = Array.from(new Set(prompts));
+
+    // If no prompt variables are found, return null
+    if (!uniquePrompts?.length) {
+      return resolve(null);
+    }
+
+    try {
+      // Prompt user for values if any prompt variables are found
+      const userValues = await window.promptForVariables(uniquePrompts);
+      const promptVariables = {};
+      // Populate runtimeVariables with user input for prompt variables
+      for (const prompt of uniquePrompts) {
+        promptVariables[`?${prompt}`] = userValues[prompt] ?? '';
+      }
+
+      return resolve(promptVariables);
+    } catch (error) {
+      return reject(error);
+    }
+  });
+};
+
 export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
@@ -290,8 +469,25 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     const itemCopy = cloneDeep(item);
 
+    // add selected global env variables to the collection object
+    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+      globalEnvironments,
+      activeGlobalEnvironmentUid
+    });
+    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
+
+    try {
+      const promptVariables = await extractPromptVariablesForRequest(itemCopy, collectionCopy);
+      collectionCopy.promptVariables = promptVariables ?? {};
+    } catch (error) {
+      if (error === 'cancelled') {
+        return resolve(); // Resolve without error if user cancels prompt
+      }
+      return reject(error);
+    }
 
     await dispatch(
       updateResponsePaneScrollPosition({
@@ -307,13 +503,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         collectionUid
       })
     );
-
-    // add selected global env variables to the collection object
-    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
-      globalEnvironments,
-      activeGlobalEnvironmentUid
-    });
-    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     const isGrpcRequest = itemCopy.type === 'grpc-request';
@@ -723,6 +912,89 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
   });
 };
 
+export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatch, getState) => {
+  const state = getState();
+
+  const clipboardResult = brunoClipboard.read();
+
+  if (!clipboardResult.hasData) {
+    return Promise.reject(new Error('No item in clipboard'));
+  }
+
+  const targetCollection = findCollectionByUid(state.collections.collections, targetCollectionUid);
+
+  if (!targetCollection) {
+    return Promise.reject(new Error('Target collection not found'));
+  }
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      for (const clipboardItem of clipboardResult.items) {
+        const copiedItem = cloneDeep(clipboardItem);
+
+        // Only allow pasting requests (not folders)
+        if (isItemAFolder(copiedItem)) {
+          return reject(new Error('Pasting folders is not supported'));
+        }
+
+        const targetCollectionCopy = cloneDeep(targetCollection);
+        let targetItem = null;
+        let targetParentPathname = targetCollection.pathname;
+
+        // If targetItemUid is provided, we're pasting into a folder
+        if (targetItemUid) {
+          targetItem = findItemInCollection(targetCollectionCopy, targetItemUid);
+          if (!targetItem) {
+            return reject(new Error('Target folder not found'));
+          }
+          if (!isItemAFolder(targetItem)) {
+            return reject(new Error('Target must be a folder or collection'));
+          }
+          targetParentPathname = targetItem.pathname;
+        }
+
+        // Generate a unique filename for the pasted item
+        let newName = copiedItem.name;
+        let newFilename = sanitizeName(copiedItem.name);
+        let counter = 1;
+
+        const existingItems = targetItem ? targetItem.items : targetCollection.items;
+
+        // Check for duplicate names and append counter if needed
+        while (find(existingItems, (i) => i.type !== 'folder' && trim(i.filename) === trim(resolveRequestFilename(newFilename)))) {
+          newName = `${copiedItem.name} (${counter})`;
+          newFilename = `${sanitizeName(copiedItem.name)} (${counter})`;
+          counter++;
+        }
+
+        const filename = resolveRequestFilename(newFilename);
+        const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+        set(itemToSave, 'name', trim(newName));
+        set(itemToSave, 'filename', trim(filename));
+
+        const fullPathname = path.join(targetParentPathname, filename);
+        const { ipcRenderer } = window;
+        const requestItems = filter(existingItems, (i) => i.type !== 'folder');
+        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
+
+        await itemSchema.validate(itemToSave);
+        await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave);
+
+        dispatch(insertTaskIntoQueue({
+          uid: uuid(),
+          type: 'OPEN_REQUEST',
+          collectionUid: targetCollectionUid,
+          itemPathname: fullPathname
+        }));
+      }
+
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -734,16 +1006,28 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
 
     const item = findItemInCollection(collection, itemUid);
     if (item) {
+      const parentDirectoryItem = findParentItemInCollection(collection, itemUid) || collection;
       const { ipcRenderer } = window;
 
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
-        .then(() => {
+        .then(async () => {
+          // Reorder items in parent directory after deletion
+          if (parentDirectoryItem.items) {
+            const directoryItemsWithoutDeletedItem = parentDirectoryItem.items.filter((i) => i.uid !== itemUid);
+            const reorderedSourceItems = getReorderedItemsInSourceDirectory({
+              items: directoryItemsWithoutDeletedItem
+            });
+            if (reorderedSourceItems?.length) {
+              await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
+            }
+          }
           resolve();
         })
         .catch((error) => reject(error));
+    } else {
+      return reject(new Error('Unable to locate item'));
     }
-    return;
   });
 };
 
@@ -1169,7 +1453,7 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -1185,6 +1469,18 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     const runtimeVariables = collectionCopy.runtimeVariables;
+
+    try {
+      const promptVariables = await extractPromptVariablesForRequest(itemCopy, collectionCopy);
+      if (promptVariables) {
+        collectionCopy.promptVariables = promptVariables;
+      }
+    } catch (error) {
+      if (error === 'cancelled') {
+        return resolve(); // Resolve without error if user cancels prompt
+      }
+      return reject(error);
+    }
 
     const { ipcRenderer } = window;
     ipcRenderer
@@ -1255,7 +1551,7 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const importEnvironment = (name, variables, collectionUid) => (dispatch, getState) => {
+export const importEnvironment = ({ name, variables, collectionUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1416,12 +1712,184 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
   });
 };
 
-export const mergeAndPersistEnvironment =
-  ({ persistentEnvVariables, collectionUid }) =>
-  (_dispatch, getState) => {
-    return new Promise((resolve, reject) => {
-      const state = getState();
-      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+/**
+ * Update a variable value directly in the file without affecting draft state
+ * @param {string} pathname - File path
+ * @param {Object} variable - Variable object with uid, name, value, type, enabled
+ * @param {string} scopeType - Type of scope ('request', 'folder', 'collection')
+ * @param {string} collectionUid - Collection UID
+ * @param {string} itemUid - Item/Folder UID (for request/folder)
+ */
+const updateVariableInFile = (pathname, variable, scopeType, collectionUid, itemUid) => (dispatch) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:update-variable-in-file', pathname, variable, scopeType)
+      .then(() => {
+        // Update Redux state to reflect the change
+        if (scopeType === 'request') {
+          dispatch({
+            type: 'collections/updateRequestVarValue',
+            payload: { collectionUid, itemUid, variable }
+          });
+        } else if (scopeType === 'folder') {
+          dispatch({
+            type: 'collections/updateFolderVarValue',
+            payload: { collectionUid, folderUid: itemUid, variable }
+          });
+        } else if (scopeType === 'collection') {
+          dispatch({
+            type: 'collections/updateCollectionVarValue',
+            payload: { collectionUid, variable }
+          });
+        }
+
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
+/**
+ * Helper: Execute update action with toast notification
+ * @param {Function} action - The action to dispatch
+ * @param {string} successMessage - Success toast message
+ * @returns {Promise}
+ */
+const executeVariableUpdate = (dispatch, action, successMessage) => {
+  return dispatch(action)
+    .then(() => {
+      toast.success(successMessage);
+    });
+};
+
+/**
+ * Update a variable value in its detected scope (inline editing)
+ * @param {string} variableName - Name of the variable to update
+ * @param {string} newValue - New value for the variable
+ * @param {Object} scopeInfo - Scope information from getVariableScope()
+ * @param {string} collectionUid - Collection UID
+ */
+export const updateVariableInScope = (variableName, newValue, scopeInfo, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    if (!scopeInfo || !variableName) {
+      return reject(new Error('Invalid scope information or variable name'));
+    }
+
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    try {
+      const { type, data } = scopeInfo;
+
+      // Handle read-only variables early
+      if (type === 'process.env') {
+        toast.error('Process environment variables cannot be edited');
+        return reject(new Error('Process environment variables are read-only'));
+      }
+
+      if (type === 'runtime') {
+        toast.error('Runtime variables are set by scripts and cannot be edited');
+        return reject(new Error('Runtime variables are read-only'));
+      }
+
+      // Validate collection for non-global scopes
+      if (type !== 'global' && !collection) {
+        return reject(new Error('Collection not found'));
+      }
+
+      let updatePromise;
+      let successMessage;
+
+      switch (type) {
+        case 'environment': {
+          const { environment, variable } = data;
+          const updatedVariables = variable
+            ? environment.variables.map((v) => (v.name === variableName ? { ...v, value: newValue } : v))
+            : [...environment.variables, { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true }];
+
+          updatePromise = saveEnvironment(updatedVariables, environment.uid, collectionUid);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
+          break;
+        }
+
+        case 'collection': {
+          const { collection: scopeCollection, variable } = data;
+          const variableToSave = variable
+            ? { ...variable, value: newValue }
+            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+
+          const collectionFilePath = path.join(scopeCollection.pathname, 'collection.bru');
+          updatePromise = updateVariableInFile(collectionFilePath, variableToSave, 'collection', collectionUid, null);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
+          break;
+        }
+
+        case 'folder': {
+          const { folder, variable } = data;
+          const variableToSave = variable
+            ? { ...variable, value: newValue }
+            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+
+          const folderFilePath = path.join(folder.pathname, 'folder.bru');
+          updatePromise = updateVariableInFile(folderFilePath, variableToSave, 'folder', collectionUid, folder.uid);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
+          break;
+        }
+
+        case 'request': {
+          const { item, variable } = data;
+          const variableToSave = variable
+            ? { ...variable, value: newValue }
+            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+
+          updatePromise = updateVariableInFile(item.pathname, variableToSave, 'request', collectionUid, item.uid);
+          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
+          break;
+        }
+
+        case 'global': {
+          const globalEnvironments = state.globalEnvironments?.globalEnvironments || [];
+          const activeGlobalEnvUid = state.globalEnvironments?.activeGlobalEnvironmentUid;
+
+          if (!activeGlobalEnvUid) {
+            return reject(new Error('No active global environment'));
+          }
+
+          const environment = globalEnvironments.find((env) => env.uid === activeGlobalEnvUid);
+          if (!environment) {
+            return reject(new Error('Global environment not found'));
+          }
+
+          const updatedVariables = environment.variables.map((v) =>
+            v.name === variableName ? { ...v, value: newValue } : v);
+
+          updatePromise = saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid });
+          successMessage = `Variable "${variableName}" updated`;
+          break;
+        }
+
+        default:
+          return reject(new Error(`Unknown scope type: ${type}`));
+      }
+
+      executeVariableUpdate(dispatch, updatePromise, successMessage)
+        .then(resolve)
+        .catch(reject);
+    } catch (error) {
+      toast.error(`Failed to update variable: ${error.message}`);
+      reject(error);
+    }
+  });
+};
+
+export const mergeAndPersistEnvironment
+  = ({ persistentEnvVariables, collectionUid }) =>
+    (_dispatch, getState) => {
+      return new Promise((resolve, reject) => {
+        const state = getState();
+        const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
       if (!collection) {
         return reject(new Error('Collection not found'));
@@ -1555,6 +2023,45 @@ export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
 
   return new Promise((resolve, reject) => {
     ipcRenderer.invoke('renderer:browse-files', filters, properties).then(resolve).catch(reject);
+  });
+};
+
+export const saveCollectionSettings = (collectionUid, brunoConfig = null) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+
+    // Transform collection root (uses draft if exists)
+    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
+    const { ipcRenderer } = window;
+
+    const savePromises = [];
+
+    // Save collection.bru file
+    savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave));
+
+    // Save bruno.json if brunoConfig is provided or if there's a brunoConfig draft
+    const brunoConfigToSave = brunoConfig || (collectionCopy.draft && collectionCopy.draft.brunoConfig);
+    if (brunoConfigToSave) {
+      savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', brunoConfigToSave, collectionCopy.pathname, collectionUid));
+    }
+
+    Promise.all(savePromises)
+      .then(() => {
+        toast.success('Collection Settings saved successfully');
+        dispatch(saveCollectionDraft({ collectionUid }));
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save collection settings!');
+        reject(err);
+      });
   });
 };
 

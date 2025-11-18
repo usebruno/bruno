@@ -26,13 +26,6 @@ Bruno is uitsluitend offline. Er zijn geen plannen om ooit cloud-synchronisatie 
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
-### Golden Edition ✨
-
-De meeste van onze functies zijn gratis en open source.
-We streven naar een harmonieuze balans tussen [open-source principes en duurzaamheid](https://github.com/usebruno/bruno/discussions/269).
-
-Je kunt de [Golden Edition](https://www.usebruno.com/pricing) kopen voor een eenmalige betaling van **$19**! <br/>
-
 ### Installatie
 
 Bruno is beschikbaar als binaire download [op onze website](https://www.usebruno.com/downloads) voor Mac, Windows en Linux.

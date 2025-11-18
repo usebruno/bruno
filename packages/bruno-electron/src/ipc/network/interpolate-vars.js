@@ -1,5 +1,5 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find } = require('lodash');
+const { each, forOwn, cloneDeep } = require('lodash');
 const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
@@ -18,7 +18,7 @@ const getRawQueryString = (url) => {
   return queryIndex !== -1 ? url.slice(queryIndex) : '';
 };
 
-const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}, promptVariables = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
   const collectionVariables = request?.collectionVariables || {};
@@ -52,6 +52,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       ...requestVariables,
       ...oauth2CredentialVariables,
       ...runtimeVariables,
+      ...promptVariables,
       process: {
         env: {
           ...processEnvVars
@@ -65,6 +66,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   };
 
   request.url = _interpolate(request.url);
+  const isGrpcRequest = request.mode === 'grpc';
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
@@ -72,14 +74,33 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   const contentType = getContentType(request.headers);
-  const isGrpcBody = request.mode === 'grpc';
 
-  if (isGrpcBody) {
+  if (isGrpcRequest) {
     const jsonDoc = JSON.stringify(request.body);
     const parsed = _interpolate(jsonDoc, {
       escapeJSONStrings: true
     });
     request.body = JSON.parse(parsed);
+  }
+  // Interpolate WebSocket message body
+  const isWsRequest = request.mode === 'ws';
+  if (isWsRequest && request.body && request.body.ws && Array.isArray(request.body.ws)) {
+    request.body.ws.forEach((message) => {
+      if (message && message.content) {
+        // Try to detect if content is JSON for proper escaping
+        let isJson = false;
+        try {
+          JSON.parse(message.content);
+          isJson = true;
+        } catch (e) {
+          // Not JSON, treat as regular string
+        }
+
+        message.content = _interpolate(message.content, {
+          escapeJSONStrings: isJson
+        });
+      }
+    });
   }
 
   if (typeof contentType === 'string') {

@@ -1,19 +1,30 @@
 import React from 'react';
 import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
 import { useFormik } from 'formik';
-import { uuid } from 'utils/common';
 import * as Yup from 'yup';
-import { IconEye, IconEyeOff } from '@tabler/icons';
-import { useState } from 'react';
-
 import StyledWrapper from './StyledWrapper';
 import { useRef } from 'react';
 import path from 'utils/common/path';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
+import { useTheme } from 'styled-components';
+import { useDispatch } from 'react-redux';
+import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import get from 'lodash/get';
 
-const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
+const ClientCertSettings = ({ collection }) => {
+  const dispatch = useDispatch();
+
+  // Get client certs from draft if exists, otherwise from brunoConfig
+  const clientCertConfig = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.clientCertificates.certs', [])
+    : get(collection, 'brunoConfig.clientCertificates.certs', []);
   const certFilePathInputRef = useRef();
   const keyFilePathInputRef = useRef();
   const pfxFilePathInputRef = useRef();
+  const { storedTheme } = useTheme();
 
   const formik = useFormik({
     initialValues: {
@@ -62,27 +73,46 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
           passphrase: values.passphrase
         };
       }
-      onUpdate(relevantValues);
+
+      // Add the new cert to the existing certs in draft
+      const updatedCerts = [...clientCertConfig, relevantValues];
+      const clientCertificates = {
+        enabled: true,
+        certs: updatedCerts
+      };
+
+      dispatch(updateCollectionClientCertificates({
+        collectionUid: collection.uid,
+        clientCertificates
+      }));
+
       formik.resetForm();
       resetFileInputFields();
     }
   });
 
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(formik.values.passphrase);
+
   const getFile = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
     if (filePath) {
-      let relativePath = path.relative(root, filePath);
+      let relativePath = path.relative(collection.pathname, filePath);
       formik.setFieldValue(e.name, relativePath);
     }
   };
 
   const resetFileInputFields = () => {
-    certFilePathInputRef.current.value = '';
-    keyFilePathInputRef.current.value = '';
-    pfxFilePathInputRef.current.value = '';
+    if (certFilePathInputRef.current) {
+      certFilePathInputRef.current.value = '';
+    }
+    if (keyFilePathInputRef.current) {
+      keyFilePathInputRef.current.value = '';
+    }
+    if (pfxFilePathInputRef.current) {
+      pfxFilePathInputRef.current.value = '';
+    }
   };
-
-  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleTypeChange = (e) => {
     formik.setFieldValue('type', e.target.value);
@@ -96,6 +126,21 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
       keyFilePathInputRef.current.value = '';
     }
   };
+
+  const handleRemove = (indexToRemove) => {
+    const updatedCerts = clientCertConfig.filter((cert, index) => index !== indexToRemove);
+    const clientCertificates = {
+      enabled: true,
+      certs: updatedCerts
+    };
+
+    dispatch(updateCollectionClientCertificates({
+      collectionUid: collection.uid,
+      clientCertificates
+    }));
+  };
+
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   return (
     <StyledWrapper className="w-full h-full">
@@ -116,9 +161,9 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
                   <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
                   {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
                 </div>
-                <button onClick={() => onRemove(clientCert)} className="remove-certificate ml-2">
+                  <button onClick={() => handleRemove(index)} className="remove-certificate ml-2">
                   <IconTrash size={18} strokeWidth={1.5} />
-                </button>
+                  </button>
               </div>
             </li>
           ))}
@@ -314,29 +359,26 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
             Passphrase
           </label>
           <div className="textbox flex flex-row items-center w-[300px] h-[1.70rem] relative">
-            <input
-              id="passphrase"
-              type={passwordVisible ? 'text' : 'password'}
-              name="passphrase"
-              className="outline-none w-64 bg-transparent"
-              onChange={formik.handleChange}
+            <SingleLineEditor
               value={formik.values.passphrase || ''}
+              theme={storedTheme}
+              onChange={(val) => formik.setFieldValue('passphrase', val)}
+              collection={collection}
+              isSecret={true}
             />
-            <button
-              type="button"
-              className="btn btn-sm absolute right-0 l"
-              onClick={() => setPasswordVisible(!passwordVisible)}
-            >
-              {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
-            </button>
+            {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
           </div>
           {formik.touched.passphrase && formik.errors.passphrase ? (
             <div className="ml-1 text-red-500">{formik.errors.passphrase}</div>
           ) : null}
         </div>
-        <div className="mt-6">
+        <div className="mt-6 flex flex-row gap-2 items-center">
           <button type="submit" className="submit btn btn-sm btn-secondary">
             Add
+          </button>
+          <div className="h-4 border-l border-gray-600"></div>
+          <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+            Save
           </button>
         </div>
       </form>

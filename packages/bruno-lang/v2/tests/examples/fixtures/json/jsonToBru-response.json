@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "name": "Response Example API",
+    "type": "http"
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com/test"
+  },
+  "examples": [
+    {
+      "name": "Response Example",
+      "description": "An example with response data",
+      "request": {
+        "url": "https://api.example.com/users/123",
+        "method": "get",
+        "body": {
+          "mode": "none"
+        }
+      },
+      "response": {
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "application/json",
+            "enabled": true
+          }
+        ],
+        "status": "200",
+        "statusText": "OK",
+        "body": {
+          "type": "json",
+          "content": "{\n  \"id\": 123,\n  \"name\": \"John Doe\"\n}"
+        }
+      }
+    }
+  ]
+}

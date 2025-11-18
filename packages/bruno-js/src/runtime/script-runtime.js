@@ -35,6 +35,7 @@ const cheerio = require('cheerio');
 const tv4 = require('tv4');
 const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { mixinTypedArrays } = require('../sandbox/mixins/typed-arrays');
 
 class ScriptRuntime {
   constructor(props) {
@@ -60,8 +61,9 @@ class ScriptRuntime {
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
+    const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || [];
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables);
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
@@ -93,6 +95,10 @@ class ScriptRuntime {
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults
     };
+
+    if (this.runtime === 'vm2') {
+      mixinTypedArrays(context);
+    }
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
@@ -229,8 +235,9 @@ class ScriptRuntime {
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const assertionResults = request?.assertionResults || [];
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
+    const promptVariables = request?.promptVariables || {};
+    const assertionResults = request?.assertionResults || {};
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -264,6 +271,10 @@ class ScriptRuntime {
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults
     };
+
+    if (this.runtime === 'vm2') {
+      mixinTypedArrays(context);
+    }
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {

@@ -19,6 +19,7 @@ class MultiLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
+    this.readOnly = props.readOnly || false;
 
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
@@ -35,10 +36,12 @@ class MultiLineEditor extends Component {
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       placeholder: this.props.placeholder,
       mode: 'brunovariables',
-      brunoVarInfo: {
-        variables
-      },
-      readOnly: this.props.readOnly ? 'nocursor' : false,
+      brunoVarInfo: this.props.enableBrunoVarInfo !== false ? {
+        variables,
+        collection: this.props.collection,
+        item: this.props.item
+      } : false,
+      readOnly: this.props.readOnly,
       tabindex: 0,
       extraKeys: {
         'Ctrl-Enter': () => {
@@ -129,14 +132,26 @@ class MultiLineEditor extends Component {
 
     let variables = getAllVariables(this.props.collection, this.props.item);
     if (!isEqual(variables, this.variables)) {
-      this.editor.options.brunoVarInfo.variables = variables;
+      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+        this.editor.options.brunoVarInfo.variables = variables;
+      }
       this.addOverlay(variables);
+    }
+
+    // Update collection and item when they change
+    if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+      if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+        this.editor.options.brunoVarInfo.collection = this.props.collection;
+      }
+      if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+        this.editor.options.brunoVarInfo.item = this.props.item;
+      }
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
-      this.editor.setOption('readOnly', this.props.readOnly ? 'nocursor' : false);
+      this.editor.setOption('readOnly', this.props.readOnly);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
@@ -147,6 +162,9 @@ class MultiLineEditor extends Component {
       this._enableMaskedEditor(this.props.isSecret);
       // also set the maskInput flag to the new value
       this.setState({ maskInput: this.props.isSecret });
+    }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly || false);
     }
     this.ignoreChangeEvent = false;
   }
