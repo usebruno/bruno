@@ -42,30 +42,17 @@ function markUrls(editor, linkify, linkClass, linkHint) {
 function handleMouseEnter(event, linkClass, linkHoverClass, updateCmdCtrlClass) {
   const el = event.target;
   if (!el.classList.contains(linkClass)) return;
-<<<<<<< HEAD
-  
-  updateCmdCtrlClass(event);
-
-  el.classList.add(linkHoverClass);
-  
-=======
 
   updateCmdCtrlClass(event);
 
   el.classList.add(linkHoverClass);
 
->>>>>>> base/feature/cmd-click-to-links-internal
   // Add hover effect to previous siblings that are also links
   let sibling = el.previousElementSibling;
   while (sibling && sibling.classList.contains(linkClass)) {
     sibling.classList.add(linkHoverClass);
     sibling = sibling.previousElementSibling;
   }
-<<<<<<< HEAD
-  
-=======
-
->>>>>>> base/feature/cmd-click-to-links-internal
   // Add hover effect to next siblings that are also links
   sibling = el.nextElementSibling;
   while (sibling && sibling.classList.contains(linkClass)) {
@@ -83,22 +70,12 @@ function handleMouseEnter(event, linkClass, linkHoverClass, updateCmdCtrlClass) 
 function handleMouseLeave(event, linkClass, linkHoverClass) {
   const el = event.target;
   el.classList.remove(linkHoverClass);
-<<<<<<< HEAD
-  
-=======
-
->>>>>>> base/feature/cmd-click-to-links-internal
   // Remove hover effect from previous siblings that are also links
   let sibling = el.previousElementSibling;
   while (sibling && sibling.classList.contains(linkClass)) {
     sibling.classList.remove(linkHoverClass);
     sibling = sibling.previousElementSibling;
   }
-<<<<<<< HEAD
-  
-=======
-
->>>>>>> base/feature/cmd-click-to-links-internal
   // Remove hover effect from next siblings that are also links
   sibling = el.nextElementSibling;
   while (sibling && sibling.classList.contains(linkClass)) {
