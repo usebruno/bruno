@@ -9,7 +9,6 @@ import ResponsePane from 'components/ResponsePane';
 import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl/index';
