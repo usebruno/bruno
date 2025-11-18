@@ -14,6 +14,7 @@ import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
 import CodeMirrorSearch from 'components/CodeMirrorSearch';
 
 const CodeMirror = require('codemirror');
@@ -204,6 +205,8 @@ export default class CodeEditor extends React.Component {
         editor,
         autoCompleteOptions
       );
+
+      setupLinkAware(editor);
     }
   }
 
@@ -266,6 +269,7 @@ export default class CodeEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
       this.editor.off('scroll', this.onScroll);
       this.editor = null;
