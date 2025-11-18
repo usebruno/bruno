@@ -115,6 +115,7 @@ const lightTheme = {
     url: {
       bg: '#f3f3f3',
       icon: '#515151',
+      iconDanger: '#d91f11',
       errorHoverBg: '#fef2f2'
     },
     dragbar: {
@@ -242,6 +243,16 @@ const lightTheme = {
     active: {
       color: '#343434',
       border: '#D97706'
+    },
+    secondary: {
+      active: {
+        bg: '#FFFFFF',
+        color: '#343434'
+      },
+      inactive: {
+        bg: '#ECECEE',
+        color: '#989898'
+      }
     }
   },
 
@@ -459,6 +470,26 @@ const lightTheme = {
         border: '#dae0e5',
         hoverBorder: '#696969'
       }
+    }
+  },
+  examples: {
+    buttonBg: '#D977061A',
+    buttonColor: '#D97706',
+    buttonText: '#fff',
+    buttonIconColor: '#000',
+    border: '#efefef',
+    urlBar: {
+      border: '#efefef',
+      bg: '#F5F5F5'
+    },
+    table: {
+      thead: {
+        bg: '#f8f9fa',
+        color: '#212529'
+      }
+    },
+    checkbox: {
+      color: '#fff'
     }
   }
 };

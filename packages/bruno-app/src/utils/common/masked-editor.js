@@ -20,8 +20,8 @@
  *
  * MULTILINE SUPPORT:
  * The MaskedEditor automatically handles multiline content efficiently:
- * - Small content (< 1000 chars): Character-by-character masking
- * - Large content (>= 1000 chars): Line-by-line masking for performance
+ * - Small content (< 500 chars): Character-by-character masking
+ * - Large content (>= 500 chars): Line-by-line masking for performance
  * - Preserves line breaks and cursor position across line boundaries
  * - Handles empty lines gracefully
  *
@@ -68,8 +68,6 @@ export class MaskedEditor {
     this.enabled = false;
     this.isProcessing = false;
     this.marks = new Set();
-    this.originalCursor = null;
-    this.originalSelection = null;
 
     // Bind methods to preserve context
     this.handleInputRead = this.handleInputRead.bind(this);
@@ -88,21 +86,14 @@ export class MaskedEditor {
     this.isProcessing = true;
 
     try {
-      // Store current cursor and selection
-      this.storeCursorState();
-
       // Add event listeners with proper cleanup
       this.editor.on('inputRead', this.handleInputRead);
       this.editor.on('beforeChange', this.handleBeforeChange);
       this.editor.on('cursorActivity', this.handleCursorActivity);
       this.editor.on('selectionChange', this.handleSelectionChange);
 
-      // Apply masking
+      // Apply masking with editor operation for better performance
       this.applyMasking();
-
-      // Restore cursor state
-      this.restoreCursorState();
-
     } finally {
       this.isProcessing = false;
     }
@@ -118,9 +109,6 @@ export class MaskedEditor {
     this.isProcessing = true;
 
     try {
-      // Store current state
-      this.storeCursorState();
-
       // Remove event listeners
       this.editor.off('inputRead', this.handleInputRead);
       this.editor.off('beforeChange', this.handleBeforeChange);
@@ -133,9 +121,8 @@ export class MaskedEditor {
       // Refresh editor to show real content
       this.editor.refresh();
 
-      // Restore cursor state
-      this.restoreCursorState();
-
+      // Move cursor to end of content
+      this.moveCursorToEnd();
     } finally {
       this.isProcessing = false;
     }
@@ -150,9 +137,7 @@ export class MaskedEditor {
     this.isProcessing = true;
 
     try {
-      this.storeCursorState();
       this.applyMasking();
-      this.restoreCursorState();
     } finally {
       this.isProcessing = false;
     }
@@ -172,10 +157,8 @@ export class MaskedEditor {
 
       // For multiline content, use more efficient line-based masking
       if (lineCount > 1) {
-        this.editor.operation(() => {
-          this.clearAllMarks();
-          this.applyLineMasking(lineCount);
-        });
+        this.clearAllMarks();
+        this.applyLineMasking(lineCount);
       } else {
         this.update();
       }
@@ -185,29 +168,14 @@ export class MaskedEditor {
   }
 
   /**
-   * Store current cursor and selection state
+   * Move cursor to the end of the content
    */
-  storeCursorState() {
-    this.originalCursor = this.editor.getCursor();
-    this.originalSelection = this.editor.getSelection();
-  }
-
-  /**
-   * Restore cursor and selection state
-   */
-  restoreCursorState() {
-    if (this.originalCursor) {
-      // Ensure cursor position is within editor bounds
-      const lineCount = this.editor.lineCount();
-      const clampedLine = Math.min(this.originalCursor.line, Math.max(0, lineCount - 1));
-      const lineLength = this.editor.getLine(clampedLine).length;
-      const clampedCh = Math.min(this.originalCursor.ch, Math.max(0, lineLength));
-
-      this.editor.setCursor({ line: clampedLine, ch: clampedCh });
-    }
-    if (this.originalSelection) {
-      // For selection, just set cursor position to avoid selection issues with masked content
-      this.editor.setSelection(this.editor.getCursor(), this.editor.getCursor());
+  moveCursorToEnd() {
+    const lineCount = this.editor.lineCount();
+    if (lineCount > 0) {
+      const lastLine = lineCount - 1;
+      const lastLineLength = this.editor.getLine(lastLine).length;
+      this.editor.setCursor({ line: lastLine, ch: lastLineLength });
     }
   }
 
@@ -225,13 +193,11 @@ export class MaskedEditor {
   }
 
   /**
-   * Handle before change events to preserve cursor
+   * Handle before change events
    */
   handleBeforeChange(cm, changeObj) {
     if (!this.enabled || this.isProcessing) return;
-
-    // Store cursor position before change
-    this.storeCursorState();
+    // No cursor state management needed
   }
 
   /**
@@ -239,9 +205,7 @@ export class MaskedEditor {
    */
   handleCursorActivity() {
     if (!this.enabled || this.isProcessing) return;
-
-    // Update cursor state
-    this.storeCursorState();
+    // No cursor state management needed
   }
 
   /**
@@ -249,9 +213,7 @@ export class MaskedEditor {
    */
   handleSelectionChange() {
     if (!this.enabled || this.isProcessing) return;
-
-    // Update selection state
-    this.storeCursorState();
+    // No cursor state management needed
   }
 
   /**
@@ -261,19 +223,41 @@ export class MaskedEditor {
     const content = this.editor.getValue();
     const lineCount = this.editor.lineCount();
 
-    if (lineCount === 0) return;
+    if (lineCount === 0) {
+      return;
+    }
 
-    this.editor.operation(() => {
-      // Clear existing marks
-      this.clearAllMarks();
+    this.clearAllMarks();
 
-      // Apply new masking based on content size
-      if (content.length <= 1000) {
-        this.applyCharacterMasking(content);
-      } else {
-        this.applyLineMasking(lineCount);
-      }
-    });
+    // Apply new masking based on content size
+    if (content.length <= 500) {
+      this.applyCharacterMasking(content);
+    } else {
+      // For large content, we apply line-by-line masking for high performance
+      this.applyLineMasking(lineCount);
+    }
+  }
+
+  /**
+   * Apply masking with editor operation for enable operations
+   */
+  applyMasking() {
+    const content = this.editor.getValue();
+    const lineCount = this.editor.lineCount();
+
+    if (lineCount === 0) {
+      return;
+    }
+
+    this.clearAllMarks();
+
+    // Apply new masking based on content size with editor operation
+    if (content.length <= 500) {
+      this.applyCharacterMasking(content);
+    } else {
+      // For large content, we apply line-by-line masking (fast synchronous)
+      this.applyLineMasking(lineCount);
+    }
   }
 
   /**
@@ -319,6 +303,51 @@ export class MaskedEditor {
   }
 
   /**
+   * Apply character-by-character masking with editor operation for enable operations
+   */
+  applyCharacterMasking(content) {
+    let currentLine = 0;
+    let currentCh = 0;
+
+    // Use editor operation to batch all DOM operations
+    this.editor.operation(() => {
+      for (let i = 0; i < content.length; i++) {
+        const char = content[i];
+
+        if (char === '\n') {
+          currentLine++;
+          currentCh = 0;
+        } else {
+          // Create masked node
+          const maskedNode = document.createTextNode(this.maskChar);
+
+          // Create mark with proper bounds checking
+          const fromPos = { line: currentLine, ch: currentCh };
+          const toPos = { line: currentLine, ch: currentCh + 1 };
+
+          // Ensure positions are within editor bounds
+          const lineCount = this.editor.lineCount();
+          if (currentLine < lineCount) {
+            const lineLength = this.editor.getLine(currentLine).length;
+            if (currentCh < lineLength) {
+              const mark = this.editor.markText(fromPos, toPos, {
+                replacedWith: maskedNode,
+                handleMouseEvents: true,
+                className: 'masked-character'
+              });
+
+              // Store mark for cleanup
+              this.marks.add(mark);
+            }
+          }
+
+          currentCh++;
+        }
+      }
+    });
+  }
+
+  /**
    * Apply line-by-line masking for large content
    */
   applyLineMasking(lineCount) {
@@ -331,15 +360,13 @@ export class MaskedEditor {
           const maskedNode = document.createTextNode(this.maskChar.repeat(lineLength));
 
           // Create mark with proper bounds checking
-          const mark = this.editor.markText(
-            { line, ch: 0 },
+          const mark = this.editor.markText({ line, ch: 0 },
             { line, ch: lineLength },
             {
               replacedWith: maskedNode,
               handleMouseEvents: false,
               className: 'masked-line'
-            }
-          );
+            });
 
           // Store mark for cleanup
           this.marks.add(mark);
@@ -355,23 +382,22 @@ export class MaskedEditor {
    * Clear all marks with proper cleanup
    */
   clearAllMarks() {
-    this.marks.forEach(mark => {
-      try {
-        mark.clear();
-      } catch (e) {
-        // Ignore errors when clearing marks
-      }
+    // Use editor operation for better performance
+    this.editor.operation(() => {
+      // Clear all marks in the editor
+      const marks = this.editor.getAllMarks();
+      marks.forEach((mark) => {
+        try {
+          mark.clear();
+        } catch (error) {
+          // Skip problematic marks
+          console.warn('Failed to clear mark:', error);
+        }
+      });
     });
-    this.marks.clear();
 
-    // Also clear any marks that might have been created outside our control
-    this.editor.getAllMarks().forEach(mark => {
-      try {
-        mark.clear();
-      } catch (e) {
-        // Ignore errors
-      }
-    });
+    // Clear our mark tracking
+    this.marks.clear();
   }
 
   /**
@@ -416,8 +442,6 @@ export class MaskedEditor {
   destroy() {
     this.disable();
     this.marks.clear();
-    this.originalCursor = null;
-    this.originalSelection = null;
 
     if (this.maskTimeout) {
       clearTimeout(this.maskTimeout);
@@ -437,8 +461,8 @@ export function createMaskedEditor(editor, maskChar = '*') {
  * Utility function to check if an editor supports masking
  */
 export function supportsMasking(editor) {
-  return editor &&
-         typeof editor.getValue === 'function' &&
-         typeof editor.markText === 'function' &&
-         typeof editor.operation === 'function';
+  return editor
+    && typeof editor.getValue === 'function'
+    && typeof editor.markText === 'function'
+    && typeof editor.operation === 'function';
 }

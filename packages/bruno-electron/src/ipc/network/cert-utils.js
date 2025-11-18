@@ -11,11 +11,13 @@ const { interpolateString } = require('./interpolate-string');
  */
 const getCertsAndProxyConfig = async ({
   collectionUid,
+  collection,
   request,
   envVars,
   runtimeVariables,
   processEnvVars,
-  collectionPath
+  collectionPath,
+  globalEnvironmentVariables
 }) => {
   /**
    * @see https://github.com/usebruno/bruno/issues/211 set keepAlive to true, this should fix socket hang up errors
@@ -39,8 +41,9 @@ const getCertsAndProxyConfig = async ({
   httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;
   httpsAgentRequestFields['ca'] = caCertificates || [];
 
-  const brunoConfig = getBrunoConfig(collectionUid);
+  const brunoConfig = getBrunoConfig(collectionUid, collection);
   const interpolationOptions = {
+    globalEnvironmentVariables,
     envVars,
     runtimeVariables,
     processEnvVars

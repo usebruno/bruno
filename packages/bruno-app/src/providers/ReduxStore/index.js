@@ -27,7 +27,7 @@ export const store = configureStore({
     notifications: notificationsReducer,
     globalEnvironments: globalEnvironmentsReducer,
     logs: logsReducer,
-    performance: performanceReducer,
+    performance: performanceReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });

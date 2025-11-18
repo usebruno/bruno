@@ -3,7 +3,10 @@
     "name": "Send Bulk SMS",
     "type": "http",
     "seq": "1",
-    "tags": ["foo", "bar"]
+    "tags": [
+      "foo",
+      "bar"
+    ]
   },
   "http": {
     "method": "get",
@@ -31,14 +34,14 @@
       "enabled": true
     },
     {
-      "name" : "colon:parameter",
-      "value" : "is allowed",
+      "name": "colon:parameter",
+      "value": "is allowed",
       "type": "query",
       "enabled": true
     },
     {
-      "name" : "nested escaped \"quote\"",
-      "value" : "is allowed",
+      "name": "nested escaped \"quote\"",
+      "value": "is allowed",
       "type": "query",
       "enabled": true
     },
@@ -49,8 +52,8 @@
       "enabled": true
     },
     {
-      "name" : "disabled:colon:parameter",
-      "value" : "is allowed",
+      "name": "disabled:colon:parameter",
+      "value": "is allowed",
       "type": "query",
       "enabled": false
     },
@@ -132,7 +135,7 @@
     "oauth2": {
       "accessTokenUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/token",
       "authorizationUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/authorize",
-       "autoFetchToken": true,
+      "autoFetchToken": true,
       "autoRefreshToken": true,
       "callbackUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/callback",
       "clientId": "client_id_1",
@@ -262,7 +265,7 @@
         "type": "text"
       }
     ],
-    "file" : [
+    "file": [
       {
         "filePath": "path/to/file.json",
         "contentType": "application/json",

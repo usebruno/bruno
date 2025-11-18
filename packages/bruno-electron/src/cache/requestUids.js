@@ -11,6 +11,7 @@
  */
 
 const requestUids = new Map();
+const exampleUids = new Map();
 const { uuid } = require('../utils/common');
 
 const getRequestUid = (pathname) => {
@@ -37,8 +38,20 @@ const deleteRequestUid = (pathname) => {
   requestUids.delete(pathname);
 };
 
+const getExampleUid = (pathname, index) => {
+  let uid = exampleUids.get(`${pathname}-${index}`);
+
+  if (!uid) {
+    uid = uuid();
+    exampleUids.set(`${pathname}-${index}`, uid);
+  }
+
+  return uid;
+};
+
 module.exports = {
   getRequestUid,
   moveRequestUid,
-  deleteRequestUid
+  deleteRequestUid,
+  getExampleUid
 };

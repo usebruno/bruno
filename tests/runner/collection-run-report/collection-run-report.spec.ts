@@ -17,7 +17,7 @@ function normalizeJunitReport(xmlContent: string): string {
 
 test.describe('Collection Run Report Tests', () => {
   const collectionPath = path.join(__dirname, 'collection');
-  
+
   test('CLI: Run collection and generate JUnit report', async ({ createTmpDir }) => {
     const outputDir = await createTmpDir('junit-report');
     const junitOutputPath = path.join(outputDir, 'cli-report.xml');

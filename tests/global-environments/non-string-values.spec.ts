@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import { openCollectionAndAcceptSandbox, closeAllCollections } from '../utils/page';
 
 test.describe('Global Environment Variables - Non-string Values', () => {
-  test.afterAll(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     // Cleanup: close all collections
     await closeAllCollections(page);
   });

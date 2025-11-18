@@ -17,7 +17,7 @@ import NTLMAuth from 'components/RequestPane/Auth/NTLMAuth';
 import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
-  import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
 
 const GrantTypeComponentMap = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -26,7 +26,8 @@ const GrantTypeComponentMap = ({ collection, folder }) => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
 
-  let request = get(folder, 'root.request', {});
+  const folderRoot = folder?.draft || folder?.root;
+  let request = get(folderRoot, 'request', {});
   const grantType = get(request, 'auth.oauth2.grantType', 'authorization_code');
 
   switch (grantType) {
@@ -45,15 +46,15 @@ const GrantTypeComponentMap = ({ collection, folder }) => {
 
 const Auth = ({ collection, folder }) => {
   const dispatch = useDispatch();
-  let request = get(folder, 'root.request', {});
-  const authMode = get(folder, 'root.request.auth.mode');
-
-
+  const folderRoot = folder?.draft || folder?.root;
+  let request = get(folderRoot, 'request', {});
+  const authMode = get(folderRoot, 'request.auth.mode');
 
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
 
-    const collectionAuth = get(collection, 'root.request.auth');
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    const collectionAuth = get(collectionRoot, 'request.auth');
     let effectiveSource = {
       type: 'collection',
       name: 'Collection',
@@ -68,7 +69,8 @@ const Auth = ({ collection, folder }) => {
     for (let i = 0; i < folderTreePath.length - 1; i++) {
       const parentFolder = folderTreePath[i];
       if (parentFolder.type === 'folder') {
-        const folderAuth = get(parentFolder, 'root.request.auth');
+        const parentFolderRoot = parentFolder?.draft || parentFolder?.root;
+        const folderAuth = get(parentFolderRoot, 'request.auth');
         if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
           effectiveSource = {
             type: 'folder',

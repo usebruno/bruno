@@ -21,7 +21,7 @@ const insomniaCollection = {
       "parentId": "fld_1",
       "name": "Request1",
       "method": "GET",
-      "url": "https://httpbin.org/get",
+      url: 'https://testbench-sanity.usebruno.com/ping',
       "settingEncodeUrl": false,
       "parameters": []
     },
@@ -31,7 +31,7 @@ const insomniaCollection = {
       "parentId": "fld_2",
       "name": "Request2",
       "method": "GET",
-      "url": "https://httpbin.org/get",
+      url: 'https://testbench-sanity.usebruno.com/ping',
       "settingEncodeUrl": true,
       "parameters": []
     },
@@ -65,7 +65,27 @@ const insomniaCollection = {
 };
 
 const expectedOutput = {
-  "environments": [],
+  environments: [
+    {
+      name: 'Environment 1',
+      variables: [
+        {
+          name: 'var1',
+          value: 'value1',
+          type: 'text',
+          enabled: true,
+          secret: false
+        },
+        {
+          name: 'var2',
+          value: 'value2',
+          type: 'text',
+          enabled: true,
+          secret: false
+        }
+      ]
+    }
+  ],
   "items": [
     {
       "items": [
@@ -89,7 +109,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 1,
           "type": "http-request",
@@ -118,7 +138,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 2,
           "type": "http-request",
@@ -154,7 +174,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 1,
           "type": "http-request",
@@ -183,7 +203,7 @@ const expectedOutput = {
             "headers": [],
             "method": "GET",
             "params": [],
-            "url": "https://httpbin.org/get",
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
           "seq": 2,
           "type": "http-request",

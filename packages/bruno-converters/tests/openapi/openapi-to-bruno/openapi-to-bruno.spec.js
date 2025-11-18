@@ -269,7 +269,7 @@ components:
         type: "string"
         default: "value2"
 servers:
-  - url: "https://httpbin.org"
+  - url: "https://echo.usebruno.com"
 `;
 
 const expectedOutput = {
@@ -284,7 +284,7 @@ const expectedOutput = {
           "secret": false,
           "type": "text",
           "uid": "mockeduuidvalue123456",
-          "value": "https://httpbin.org",
+          value: 'https://echo.usebruno.com'
         },
       ],
     },

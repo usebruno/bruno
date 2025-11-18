@@ -115,6 +115,7 @@ const darkTheme = {
     url: {
       bg: '#3D3D3D',
       icon: 'rgb(204, 204, 204)',
+      iconDanger: '#fa5343',
       errorHoverBg: '#4a2a2a'
     },
     dragbar: {
@@ -241,6 +242,16 @@ const darkTheme = {
     active: {
       color: '#CCCCCC',
       border: '#F59E0B'
+    },
+    secondary: {
+      active: {
+        bg: '#2D2D2D',
+        color: '#CCCCCC'
+      },
+      inactive: {
+        bg: '#3F3F3F',
+        color: '#CCCCCC'
+      }
     }
   },
 
@@ -452,6 +463,26 @@ const darkTheme = {
         border: '#185387',
         hoverBorder: '#696969'
       }
+    }
+  },
+  examples: {
+    buttonBg: '#F59E0B1A',
+    buttonColor: '#F59E0B',
+    buttonText: '#fff',
+    buttonIconColor: '#fff',
+    border: '#444',
+    urlBar: {
+      border: '#3D3D3D',
+      bg: '#292929'
+    },
+    table: {
+      thead: {
+        bg: '#292929',
+        color: '#969696'
+      }
+    },
+    checkbox: {
+      color: '#000'
     }
   }
 };

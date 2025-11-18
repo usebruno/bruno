@@ -1,5 +1,5 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find } = require('lodash');
+const { each, forOwn, cloneDeep } = require('lodash');
 const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
@@ -65,6 +65,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   };
 
   request.url = _interpolate(request.url);
+  const isGrpcRequest = request.mode === 'grpc';
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
@@ -72,14 +73,33 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   const contentType = getContentType(request.headers);
-  const isGrpcBody = request.mode === 'grpc';
 
-  if (isGrpcBody) {
+  if (isGrpcRequest) {
     const jsonDoc = JSON.stringify(request.body);
     const parsed = _interpolate(jsonDoc, {
       escapeJSONStrings: true
     });
     request.body = JSON.parse(parsed);
+  }
+  // Interpolate WebSocket message body
+  const isWsRequest = request.mode === 'ws';
+  if (isWsRequest && request.body && request.body.ws && Array.isArray(request.body.ws)) {
+    request.body.ws.forEach((message) => {
+      if (message && message.content) {
+        // Try to detect if content is JSON for proper escaping
+        let isJson = false;
+        try {
+          JSON.parse(message.content);
+          isJson = true;
+        } catch (e) {
+          // Not JSON, treat as regular string
+        }
+
+        message.content = _interpolate(message.content, {
+          escapeJSONStrings: isJson
+        });
+      }
+    });
   }
 
   if (typeof contentType === 'string') {
@@ -91,14 +111,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
-            escapeJSONStrings: true,
+            escapeJSONStrings: true
           });
         }
       } else if (typeof request.data === 'object') {
         try {
           const jsonDoc = JSON.stringify(request.data);
           const parsed = _interpolate(jsonDoc, {
-            escapeJSONStrings: true,
+            escapeJSONStrings: true
           });
           request.data = JSON.parse(parsed);
         } catch (err) {}
@@ -148,7 +168,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         // traditional path parameters
         if (path.startsWith(':')) {
           const paramName = path.slice(1);
-          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
           if (!existingPathParam) {
             return '/' + path;
           }
