@@ -36,7 +36,7 @@ export default class QueryEditor extends React.Component {
   }
 
   componentDidMount() {
-    const editor = CodeMirror(this._node, {
+    const editor = this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
       tabSize: 2,
