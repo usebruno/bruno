@@ -26,7 +26,7 @@ function markUrls(editor, linkify, linkClass, linkHint) {
       className: linkClass,
       attributes: {
         'data-url': url,
-        title: linkHint
+        'title': linkHint
       }
     });
   });
@@ -42,18 +42,18 @@ function markUrls(editor, linkify, linkClass, linkHint) {
 function handleMouseEnter(event, linkClass, linkHoverClass, updateCmdCtrlClass) {
   const el = event.target;
   if (!el.classList.contains(linkClass)) return;
-  
+
   updateCmdCtrlClass(event);
 
   el.classList.add(linkHoverClass);
-  
+
   // Add hover effect to previous siblings that are also links
   let sibling = el.previousElementSibling;
   while (sibling && sibling.classList.contains(linkClass)) {
     sibling.classList.add(linkHoverClass);
     sibling = sibling.previousElementSibling;
   }
-  
+
   // Add hover effect to next siblings that are also links
   sibling = el.nextElementSibling;
   while (sibling && sibling.classList.contains(linkClass)) {
@@ -71,14 +71,14 @@ function handleMouseEnter(event, linkClass, linkHoverClass, updateCmdCtrlClass) 
 function handleMouseLeave(event, linkClass, linkHoverClass) {
   const el = event.target;
   el.classList.remove(linkHoverClass);
-  
+
   // Remove hover effect from previous siblings that are also links
   let sibling = el.previousElementSibling;
   while (sibling && sibling.classList.contains(linkClass)) {
     sibling.classList.remove(linkHoverClass);
     sibling = sibling.previousElementSibling;
   }
-  
+
   // Remove hover effect from next siblings that are also links
   sibling = el.nextElementSibling;
   while (sibling && sibling.classList.contains(linkClass)) {
