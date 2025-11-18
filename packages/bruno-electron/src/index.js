@@ -99,10 +99,10 @@ app.on('ready', async () => {
   mainWindow = new BrowserWindow({
     x,
     y,
-    width,
-    height,
-    minWidth: 1000,
-    minHeight: 640,
+    width: 375,
+    height: 667,
+    minWidth: 320,
+    minHeight: 480,
     show: false,
     webPreferences: {
       nodeIntegration: true,
