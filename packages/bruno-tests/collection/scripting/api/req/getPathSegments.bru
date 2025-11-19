@@ -1,0 +1,34 @@
+meta {
+  name: getUrl().path
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/api/users/123/posts
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("req.getUrl().path", function() {
+    const segments = req.getUrl().path;
+    expect(segments).to.be.an('array');
+    expect(segments.length).to.equal(4);
+    expect(segments[0]).to.equal("api");
+    expect(segments[1]).to.equal("users");
+    expect(segments[2]).to.equal("123");
+    expect(segments[3]).to.equal("posts");
+  });
+
+  test("req.getUrl().path - array indexing", function() {
+    const path = req.getUrl().path;
+    expect(path[0]).to.equal("api");
+    expect(path[1]).to.equal("users");
+  });
+}
+

@@ -32,8 +32,54 @@ class BrunoRequest {
     }
   }
 
+  /**
+   * Get the request URL with enhanced properties
+   *
+   * Returns a String object that can be used as a regular string (backward compatible)
+   * but also has additional properties for convenience:
+   * - .host: Array of hostname parts (e.g., ["api", "example", "com"]) - matches Postman's pm.request.url.host
+   * - .path: Array of path segments (e.g., ["users", "123"])
+   *
+   * Examples:
+   *   const url = req.getUrl(); // "https://api.example.com/users/123"
+   *   const host = req.getUrl().host; // ["api", "example", "com"]
+   *   const segments = req.getUrl().path; // ["users", "123"]
+   *   const firstSegment = req.getUrl().path[0]; // "users"
+   *
+   * @returns {String} URL string with additional properties
+   */
   getUrl() {
-    return this.req.url;
+    const url = this.req.url || '';
+
+    // Create a String object (not primitive) so we can attach properties
+    const urlString = new String(url);
+
+    try {
+      // Add .host property (array of hostname parts, matching Postman's behavior)
+      const parts = url.split('/');
+      const hostString = parts[2] || '';
+      // Split hostname by dots to create array (e.g., "api.example.com" -> ["api", "example", "com"])
+      urlString.host = hostString ? hostString.split('.') : [];
+
+      // Add .path property (array of path segments)
+      const cleanUrl = url.split('?')[0].split('#')[0];
+      const pathParts = cleanUrl.split('/').slice(3);
+      urlString.path = pathParts.filter(Boolean);
+
+      // Add .getHost() method (returns hostname as string, matching Postman's behavior)
+      urlString.getHost = function () {
+        return this.host.join('.');
+      };
+    } catch (e) {
+      // If parsing fails, set safe defaults
+      urlString.host = [];
+      urlString.path = [];
+      urlString.getHost = function () {
+        return '';
+      };
+    }
+
+    return urlString;
   }
 
   setUrl(url) {

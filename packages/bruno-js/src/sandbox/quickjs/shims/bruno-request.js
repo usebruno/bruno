@@ -3,7 +3,9 @@ const { marshallToVm } = require('../utils');
 const addBrunoRequestShimToContext = (vm, req) => {
   const reqObject = vm.newObject();
 
-  const url = marshallToVm(req.getUrl(), vm);
+  // Convert String object to primitive string to avoid marshalling issues
+  const urlValue = req.getUrl();
+  const url = marshallToVm(urlValue.toString(), vm);
   const method = marshallToVm(req.getMethod(), vm);
   const headers = marshallToVm(req.getHeaders(), vm);
   const body = marshallToVm(req.getBody(), vm);
@@ -28,7 +30,59 @@ const addBrunoRequestShimToContext = (vm, req) => {
   tags.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
-    return marshallToVm(req.getUrl(), vm);
+    // Get the enhanced URL string with properties
+    const urlWithProps = req.getUrl();
+    const urlStr = urlWithProps.toString();
+
+    // In QuickJS, we can't attach properties to primitive strings
+    // So we create an object that acts like a string but has properties
+    const urlObject = vm.newObject();
+
+    // Add toString and valueOf methods so it behaves like a string
+    const toStringFn = vm.newFunction('toString', function () {
+      return vm.newString(urlStr);
+    });
+    vm.setProp(urlObject, 'toString', toStringFn);
+    toStringFn.dispose();
+
+    const valueOfFn = vm.newFunction('valueOf', function () {
+      return vm.newString(urlStr);
+    });
+    vm.setProp(urlObject, 'valueOf', valueOfFn);
+    valueOfFn.dispose();
+
+    // Add the .host property (array of hostname parts, matching Postman's behavior)
+    const hostArray = vm.newArray();
+    const hostParts = urlWithProps.host || [];
+    for (let i = 0; i < hostParts.length; i++) {
+      const part = vm.newString(hostParts[i]);
+      vm.setProp(hostArray, i, part);
+      part.dispose();
+    }
+    vm.setProp(urlObject, 'host', hostArray);
+    // Don't dispose hostArray - it's now owned by urlObject
+
+    // Add the .path property (array)
+    const pathArray = vm.newArray();
+    const pathSegments = urlWithProps.path || [];
+    for (let i = 0; i < pathSegments.length; i++) {
+      const segment = vm.newString(pathSegments[i]);
+      vm.setProp(pathArray, i, segment);
+      segment.dispose();
+    }
+    vm.setProp(urlObject, 'path', pathArray);
+    // Don't dispose pathArray - it's now owned by urlObject
+
+    // Add the .getHost() method (returns hostname as string, matching Postman's behavior)
+    const getHostFn = vm.newFunction('getHost', function () {
+      // Join the host array parts with '.'
+      const hostname = hostParts.join('.');
+      return vm.newString(hostname);
+    });
+    vm.setProp(urlObject, 'getHost', getHostFn);
+    getHostFn.dispose();
+
+    return urlObject;
   });
   vm.setProp(reqObject, 'getUrl', getUrl);
   getUrl.dispose();
