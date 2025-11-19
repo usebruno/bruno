@@ -144,7 +144,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
       `
     );
 
-    const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
+    const { bru, req, res, test, __brunoTestResults, console: consoleFn, process: processObj } = externalContext;
 
     consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
@@ -156,6 +156,11 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     await addLibraryShimsToContext(vm);
 
     test && __brunoTestResults && addTestShimToContext(vm, __brunoTestResults);
+
+    // Add process.env to the context if available
+    if (processObj && processObj.env) {
+      vm.setProp(vm.global, 'process', marshallToVm(processObj, vm));
+    }
 
     const script = `
       (async () => {
