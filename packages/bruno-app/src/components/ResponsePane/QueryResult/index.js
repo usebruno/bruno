@@ -144,15 +144,10 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
   // User explicitly changes format - switch to editor tab to show the formatted data
   const handleFormatChange = (newFormat) => {
     setSelectedFormat(newFormat);
-    setSelectedTab('editor');
   };
 
   const onPreviewTabSelect = () => {
-    setSelectedTab('preview');
-  };
-
-  const onEditorTabSelect = () => {
-    setSelectedTab('editor');
+    setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
   };
 
   const tabs = useMemo(() => {
@@ -162,7 +157,6 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
         formatValue={selectedFormat}
         onFormatChange={handleFormatChange}
         onPreviewTabSelect={onPreviewTabSelect}
-        onEditorTabSelect={onEditorTabSelect}
         selectedTab={selectedTab}
       />
     );

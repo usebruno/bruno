@@ -1,5 +1,4 @@
-import React from 'react';
-import { useRef, forwardRef } from 'react';
+import React, { useRef, forwardRef } from 'react';
 import { IconCaretDown } from '@tabler/icons';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
@@ -13,10 +12,7 @@ const ButtonDropdown = ({
   disabled,
   className,
   style,
-  dataTestId,
-  isTab,
-  onTabClick,
-  isTabSelected,
+  header,
   ...props
 }) => {
   const dropdownTippyRef = useRef(null);
@@ -46,23 +42,7 @@ const ButtonDropdown = ({
   };
 
   const handleOptionSelect = (optionValue) => {
-    if (dropdownTippyRef.current) {
-      dropdownTippyRef.current.hide();
-    }
     onChange(optionValue);
-  };
-
-  const handleTabClick = (e) => {
-    if (isTab && !disabled) {
-      // If tab is not selected, select it (and prevent dropdown from opening)
-      if (!isTabSelected && isTab) {
-        e.stopPropagation();
-        if (onTabClick) {
-          onTabClick();
-        }
-      }
-      // If tab is already selected, let the dropdown handle the click
-    }
   };
 
   // Flatten options for rendering
@@ -129,29 +109,22 @@ const ButtonDropdown = ({
           // Hover background color
           'hover:bg-gray-200 dark:hover:bg-[#303030]',
           {
-            // Selected tab styles
-            'tab active bg-gray-200  dark:bg-[#303030]': isTab && isTabSelected,
-            'hover:bg-gray-300 dark:hover:bg-[#363636]': isTab && isTabSelected,
             // Disabled styles
             'opacity-50 cursor-not-allowed': disabled
           },
           className)}
-        onClick={handleTabClick}
-        data-testid={dataTestId}
+        data-testid={props['data-testid']}
         style={style}
-        role={isTab ? 'tabitem' : 'button'}
+        role="button"
         {...iconProps}
       >
         <span>{selectedLabel}</span>
-        {isTab && isTabSelected && <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />}
+        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
       </button>
     );
   });
 
   ButtonIcon.displayName = 'ButtonIcon';
-
-  // If isTab is true, only allow dropdown to open when tab is selected
-  const canOpenDropdown = !isTab || isTabSelected;
 
   return (
     <StyledWrapper>
@@ -159,9 +132,15 @@ const ButtonDropdown = ({
         onCreate={onDropdownCreate}
         icon={<ButtonIcon {...props} />}
         placement="bottom-end"
-        disabled={disabled || !canOpenDropdown}
+        disabled={disabled}
       >
         <div {...(props['data-testid'] && { 'data-testid': props['data-testid'] + '-dropdown' })}>
+          {header && (
+            <div className="dropdown-header-container">
+              {header}
+              <div className="h-px bg-[#e7e7e7] dark:bg-[#444] my-1"></div>
+          </div>
+)}
           {renderOptions()}
         </div>
       </Dropdown>
