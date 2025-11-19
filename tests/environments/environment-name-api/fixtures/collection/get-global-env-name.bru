@@ -1,0 +1,24 @@
+meta {
+  name: get-global-env-name
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  // Test new API - bru.environment.getGlobalEnvName()
+  test("bru.environment.getGlobalEnvName() should return 'Global Production'", function() {
+    const globalEnvName = bru.environment.getGlobalEnvName();
+    expect(globalEnvName).to.equal('Global Production');
+  });
+
+  // Test response status
+  test("response status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

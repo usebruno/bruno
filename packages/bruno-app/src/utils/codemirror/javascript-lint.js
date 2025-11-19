@@ -95,7 +95,34 @@ if (!SERVER_RENDERED) {
 
     if (errors) parseErrors(errors, result);
 
+    // Add deprecation warnings
+    addDeprecationWarnings(text, result);
+
     return result;
+  }
+
+  function addDeprecationWarnings(text, output) {
+    const lines = text.split('\n');
+
+    // Check for deprecated bru.getEnvName() usage
+    const getEnvNameRegex = /\bbru\.getEnvName\s*\(/g;
+
+    lines.forEach((line, lineIndex) => {
+      let match;
+      while ((match = getEnvNameRegex.exec(line)) !== null) {
+        const start = match.index;
+        const end = start + 'bru.getEnvName'.length;
+
+        const hint = {
+          message: 'bru.getEnvName() is deprecated. Use bru.environment.getEnvName() instead.',
+          severity: 'warning',
+          from: CodeMirror.Pos(lineIndex, start),
+          to: CodeMirror.Pos(lineIndex, end)
+        };
+
+        output.push(hint);
+      }
+    });
   }
 
   CodeMirror.registerHelper('lint', 'javascript', validator);

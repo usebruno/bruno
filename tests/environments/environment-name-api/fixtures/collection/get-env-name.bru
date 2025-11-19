@@ -1,0 +1,37 @@
+meta {
+  name: get-env-name
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  // Test legacy API - bru.getEnvName()
+  test("bru.getEnvName() should return 'Production'", function() {
+    const envName = bru.getEnvName();
+    expect(envName).to.equal('Production');
+  });
+
+  // Test new API - bru.environment.getEnvName()
+  test("bru.environment.getEnvName() should return 'Production'", function() {
+    const envName = bru.environment.getEnvName();
+    expect(envName).to.equal('Production');
+  });
+
+  // Test that both APIs return the same value
+  test("both getEnvName APIs should return the same value", function() {
+    const legacyEnvName = bru.getEnvName();
+    const newEnvName = bru.environment.getEnvName();
+    expect(legacyEnvName).to.equal(newEnvName);
+  });
+
+  // Test response status
+  test("response status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
