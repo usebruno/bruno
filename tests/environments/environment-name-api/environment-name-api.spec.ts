@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 
 test.describe('Environment Name API Tests', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
   });
