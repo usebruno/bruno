@@ -126,6 +126,18 @@ const StyledWrapper = styled.div`
   .cm-search-current {
     background: rgba(255, 193, 7, 0.4);
   }
+
+  .cm-search-line-highlight {
+    background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
+  }
+
+  .cm-search-match {
+    background: rgba(255, 193, 7, 0.25);
+  }
+
+  .cm-search-current {
+    background: rgba(255, 193, 7, 0.4);
+  }
 `;
 
 export default StyledWrapper;
