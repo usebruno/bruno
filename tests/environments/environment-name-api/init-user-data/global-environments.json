@@ -1,0 +1,33 @@
+{
+  "environments": [
+    {
+      "uid": "FlaexlO7lcH7UtEpWsVyz",
+      "name": "Global Production",
+      "variables": [
+        {
+          "uid": "lflBDSYBdHkUedYhBF4Ty",
+          "name": "global_api_url",
+          "value": "https://api.production.com",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "uid": "MsHcnAIonZ3455OfvpTUT",
+      "name": "Global Staging",
+      "variables": [
+        {
+          "uid": "TZljXLErzW1nUWoozntZE",
+          "name": "global_api_url",
+          "value": "https://api.staging.com",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "FlaexlO7lcH7UtEpWsVyz"
+}

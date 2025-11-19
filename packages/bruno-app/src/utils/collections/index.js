@@ -1078,7 +1078,10 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
       }
     });
   }
-  return variables;
+  return {
+    ...variables,
+    name: environment?.name
+  };
 };
 
 export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
