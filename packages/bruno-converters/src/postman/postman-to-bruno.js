@@ -751,6 +751,11 @@ const searchLanguageByHeader = (headers) => {
 };
 
 const getBodyTypeFromContentTypeHeader = (headers) => {
+  // Check if headers is null, undefined, or not an array
+  if (!headers || !Array.isArray(headers)) {
+    return 'text';
+  }
+
   const contentTypeHeader = headers.find((header) => header.key.toLowerCase() === 'content-type');
   if (contentTypeHeader) {
     const contentType = contentTypeHeader.value?.toLowerCase();
