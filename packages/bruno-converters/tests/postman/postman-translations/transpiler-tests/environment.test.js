@@ -28,7 +28,7 @@ describe('Environment Variable Translation', () => {
     it('should translate pm.environment.name', () => {
         const code = 'pm.environment.name;';
         const translatedCode = translateCode(code);
-        expect(translatedCode).toBe('bru.getEnvName();');
+    expect(translatedCode).toBe('bru.environment.getEnvName();');
     });
 
     it('should handle nested Postman API calls with environment', () => {
@@ -58,9 +58,9 @@ describe('Environment Variable Translation', () => {
         `;
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe(`
-        const envName1 = bru.getEnvName();
-        const envName2 = bru.getEnvName();
-        console.log(bru.getEnvName());
+        const envName1 = bru.environment.getEnvName();
+        const envName2 = bru.environment.getEnvName();
+        console.log(bru.environment.getEnvName());
         `);
     });
 
@@ -75,7 +75,7 @@ describe('Environment Variable Translation', () => {
         `;
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe(`
-        const name = bru.getEnvName();
+        const name = bru.environment.getEnvName();
         const has = bru.getEnvVar("test") !== undefined && bru.getEnvVar("test") !== null;
         const set = bru.setEnvVar("test", "value");
         const get = bru.getEnvVar("test");
@@ -114,7 +114,7 @@ describe('Environment Variable Translation', () => {
         `;
         const translatedCode = translateCode(code);
         
-        expect(translatedCode).toContain('const envName = bru.getEnvName();');
+    expect(translatedCode).toContain('const envName = bru.environment.getEnvName();');
         expect(translatedCode).toContain('const hasToken = bru.getEnvVar("token") !== undefined && bru.getEnvVar("token") !== null;');
         expect(translatedCode).toContain('const token = bru.getEnvVar("token");');
         expect(translatedCode).toContain('bru.setEnvVar("timestamp", new Date().toISOString());');
