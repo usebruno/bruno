@@ -51,6 +51,17 @@ export const buildCommonLocators = (page: Page) => ({
     collectionTab: () => page.getByTestId('env-tab-collection'),
     globalTab: () => page.getByTestId('env-tab-global'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
+  },
+  response: {
+    body: () => page.locator('.response-pane'),
+    editorContainer: () => page.locator('.response-pane .editor-container'),
+    formatTab: () => page.getByTestId('format-response-tab'),
+    formatTabDropdown: () => page.getByTestId('format-response-tab-dropdown'),
+    previewTab: () => page.getByTestId('preview-response-tab'),
+    previewContainer: () => page.getByTestId('response-preview-container'),
+    codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
+    jsonTreeLine: () => page.locator('.response-pane .object-content'),
+    statusCode: () => page.getByTestId('response-status-code')
   }
 });
 
