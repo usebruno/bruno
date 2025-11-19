@@ -1,4 +1,4 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 import { buildCommonLocators } from './locators';
 
 /**
@@ -127,4 +127,80 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
   });
 };
 
-export { closeAllCollections, openCollectionAndAcceptSandbox, createCollection, createRequest, deleteRequest };
+/**
+ * Navigate to a collection and open a request
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param requestName - The name of the request
+ */
+const openRequest = async (page: Page, collectionName: string, requestName: string) => {
+  await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
+    await expect(page.locator('#sidebar-collection-name').getByText(collectionName)).toBeVisible();
+    await page.locator('#sidebar-collection-name').getByText(collectionName).click();
+    await page.getByRole('complementary').getByText(requestName).click();
+  });
+};
+
+/**
+ * Send a request and wait for the response
+ * @param page - The page object
+ * @param expectedStatusCode - The expected status code (default: '200')
+ * @param timeout - Timeout in milliseconds (default: 15000)
+ */
+const sendRequestAndWaitForResponse = async (page: Page,
+  expectedStatusCode: string = '200',
+  timeout: number = 15000) => {
+  await test.step(`Send request and wait for status code ${expectedStatusCode}`, async () => {
+    await page.getByTestId('send-arrow-icon').click();
+    await expect(page.getByTestId('response-status-code')).toContainText(expectedStatusCode, { timeout });
+  });
+};
+
+/**
+ * Switch the response format
+ * @param page - The page object
+ * @param format - The format to switch to (e.g., 'JSON', 'HTML', 'XML', 'JavaScript', 'Raw', 'Hex', 'Base64')
+ */
+const switchResponseFormat = async (page: Page, format: string) => {
+  await test.step(`Switch response format to ${format}`, async () => {
+    const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.click();
+    await page.getByTestId('format-response-tab-dropdown').getByText(format).click();
+  });
+};
+
+/**
+ * Switch to the preview tab
+ * @param page - The page object
+ */
+const switchToPreviewTab = async (page: Page) => {
+  await test.step('Switch to preview tab', async () => {
+    const previewTab = page.getByTestId('preview-response-tab');
+    await previewTab.click();
+  });
+};
+
+/**
+ * Switch to the editor tab
+ * @param page - The page object
+ */
+const switchToEditorTab = async (page: Page) => {
+  await test.step('Switch to editor tab', async () => {
+    const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.click();
+  });
+};
+
+
+export { 
+  closeAllCollections, 
+  openCollectionAndAcceptSandbox, 
+  createCollection, 
+  createRequest, 
+  deleteRequest, 
+  sendRequestAndWaitForResponse, 
+  switchResponseFormat, 
+  switchToPreviewTab, 
+  switchToEditorTab,
+  openRequest
+};
