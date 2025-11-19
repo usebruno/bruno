@@ -116,6 +116,85 @@ servers:
     expect(result.name).toBe('Untitled Collection');
   });
 
+  it('should set default value on a query param if specified', () => {
+    const openApiWithDefaultParamValues = `
+openapi: '3.0.0'
+paths:
+  /get:
+    get:
+      summary: 'Request'
+      operationId: 'getRequest'
+      parameters:
+        - name: status
+          in: query
+          description: Status values
+          schema:
+            type: string
+            default: value2
+            enum:
+              - value1
+              - value2
+              - value3
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithDefaultParamValues);
+    expect(result.items[0].request.params[0].value).toBe('value2');
+  });
+
+  it('should set default value on a header param if specified', () => {
+    const openApiWithDefaultParamValues = `
+openapi: '3.0.0'
+paths:
+  /get:
+    get:
+      summary: 'Request'
+      operationId: 'getRequest'
+      parameters:
+        - name: header1
+          in: header
+          description: header1
+          schema:
+            type: string
+            default: my-test-value
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithDefaultParamValues);
+    expect(result.items[0].request.headers[0].value).toBe('my-test-value');
+  });
+
+  it('should set default value on a path param if specified', () => {
+    const openApiWithDefaultParamValues = `
+openapi: '3.0.0'
+paths:
+  /get:
+    get:
+      summary: 'Request'
+      operationId: 'getRequest'
+      parameters:
+        - name: path1
+          in: path
+          description: path1
+          schema:
+            type: integer
+            default: '123'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithDefaultParamValues);
+    expect(result.items[0].request.params[0].value).toBe('123');
+  });
+
   describe('authentication inheritance', () => {
     it('should set auth mode to inherit when no security is defined', () => {
       const openApiWithoutSecurity = `
