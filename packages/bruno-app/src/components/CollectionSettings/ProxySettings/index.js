@@ -8,15 +8,48 @@ import { updateCollectionProxy } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
 import toast from 'react-hot-toast';
+import { getProxyMode, transformProxyForStorage } from './helpers';
+
+// Helper to normalize proxy config to object format for form display
+const normalizeProxyConfig = (proxyConfig) => {
+  // If it's false, 'inherit', or not an object, return default object structure
+  if (proxyConfig === false || proxyConfig === 'inherit' || typeof proxyConfig !== 'object' || proxyConfig === null) {
+    return {
+      mode: getProxyMode(proxyConfig),
+      protocol: 'http',
+      hostname: '',
+      port: '',
+      auth: { enabled: false, username: '', password: '' },
+      bypassProxy: ''
+    };
+  }
+
+  // If it's an object, merge with defaults and add mode
+  return {
+    mode: 'on',
+    protocol: proxyConfig.protocol || 'http',
+    hostname: proxyConfig.hostname || '',
+    port: proxyConfig.port || '',
+    auth: {
+      enabled: proxyConfig.auth?.enabled || false,
+      username: proxyConfig.auth?.username || '',
+      password: proxyConfig.auth?.password || ''
+    },
+    bypassProxy: proxyConfig.bypassProxy || ''
+  };
+};
 
 const ProxySettings = ({ collection }) => {
   const dispatch = useDispatch();
-  const initialProxyConfig = { enabled: 'global', protocol: 'http', hostname: '', port: '', auth: { enabled: false, username: '', password: '' }, bypassProxy: '' };
+  const defaultProxyValue = 'inherit';
 
   // Get proxy from draft.brunoConfig if it exists, otherwise from brunoConfig
-  const currentProxyConfig = collection.draft?.brunoConfig
-    ? get(collection, 'draft.brunoConfig.proxy', initialProxyConfig)
-    : get(collection, 'brunoConfig.proxy', initialProxyConfig);
+  const proxyConfig = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.proxy', defaultProxyValue)
+    : get(collection, 'brunoConfig.proxy', defaultProxyValue);
+
+  // Normalize to object format for form display
+  const currentProxyConfig = normalizeProxyConfig(proxyConfig);
 
   const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -73,17 +106,14 @@ const ProxySettings = ({ collection }) => {
     const updatedProxy = { ...currentProxyConfig, ...updates };
     dispatch(updateCollectionProxy({
       collectionUid: collection.uid,
-      proxy: updatedProxy
+      proxy: transformProxyForStorage(updatedProxy)
     }));
   };
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
-  const handleEnabledChange = (e) => {
-    const value = e.target.value;
-    // Convert string to boolean or keep as 'global'
-    const enabled = value === 'true' ? true : value === 'false' ? false : 'global';
-    updateProxy({ enabled });
+  const handleModeChange = (e) => {
+    updateProxy({ mode: e.target.value });
   };
 
   const handleProtocolChange = (e) => {
@@ -144,21 +174,33 @@ const ProxySettings = ({ collection }) => {
     }
   };
 
-  const enabledValue = currentProxyConfig.enabled === true ? 'true' : currentProxyConfig.enabled === false ? 'false' : 'global';
+  const proxyMode = currentProxyConfig.mode;
 
   return (
     <StyledWrapper className="h-full w-full">
       <div className="text-xs mb-4 text-muted">Configure proxy settings for this collection.</div>
       <div className="bruno-form">
         <div className="mb-3 flex items-center">
-          <label className="settings-label flex items-center" htmlFor="enabled">
+          <label className="settings-label flex items-center" htmlFor="mode">
             Config
             <InfoTip infotipId="request-var">
               <div>
                 <ul>
-                  <li><span style={{width: "50px", display: "inline-block"}}>global</span> - use global proxy config</li>
-                  <li><span style={{width: "50px", display: "inline-block"}}>enabled</span> - use collection proxy config</li>
-                  <li><span style={{width: "50px", display: "inline-block"}}>disable</span> - disable proxy</li>
+                  <li>
+                    <span style={{ width: '50px', display: 'inline-block' }}>inherit</span>
+                    {' '}
+                    - use global proxy config
+                  </li>
+                  <li>
+                    <span style={{ width: '50px', display: 'inline-block' }}>on</span>
+                    {' '}
+                    - use collection proxy config
+                  </li>
+                  <li>
+                    <span style={{ width: '50px', display: 'inline-block' }}>off</span>
+                    {' '}
+                    - disable proxy
+                  </li>
                 </ul>
               </div>
             </InfoTip>
@@ -167,196 +209,200 @@ const ProxySettings = ({ collection }) => {
             <label className="flex items-center">
               <input
                 type="radio"
-                name="enabled"
-                value="global"
-                checked={enabledValue === 'global'}
-                onChange={handleEnabledChange}
+                name="mode"
+                value="inherit"
+                checked={proxyMode === 'inherit'}
+                onChange={handleModeChange}
                 className="mr-1"
               />
-              global
+              Inherit
             </label>
             <label className="flex items-center ml-4">
               <input
                 type="radio"
-                name="enabled"
-                value="true"
-                checked={enabledValue === 'true'}
-                onChange={handleEnabledChange}
+                name="mode"
+                value="on"
+                checked={proxyMode === 'on'}
+                onChange={handleModeChange}
                 className="mr-1"
               />
-              enabled
+              On
             </label>
             <label className="flex items-center ml-4">
               <input
                 type="radio"
-                name="enabled"
-                value="false"
-                checked={enabledValue === 'false'}
-                onChange={handleEnabledChange}
+                name="mode"
+                value="off"
+                checked={proxyMode === 'off'}
+                onChange={handleModeChange}
                 className="mr-1"
               />
-              disabled
+              Off
             </label>
           </div>
         </div>
-        <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="protocol">
-            Protocol
-          </label>
-          <div className="flex items-center">
-            <label className="flex items-center">
+        {proxyMode === 'on' ? (
+          <>
+            <div className="mb-3 flex items-center">
+              <label className="settings-label" htmlFor="protocol">
+                Protocol
+              </label>
+              <div className="flex items-center">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="protocol"
+                    value="http"
+                    checked={(currentProxyConfig.protocol || 'http') === 'http'}
+                    onChange={handleProtocolChange}
+                    className="mr-1"
+                  />
+                  HTTP
+                </label>
+                <label className="flex items-center ml-4">
+                  <input
+                    type="radio"
+                    name="protocol"
+                    value="https"
+                    checked={(currentProxyConfig.protocol || 'http') === 'https'}
+                    onChange={handleProtocolChange}
+                    className="mr-1"
+                  />
+                  HTTPS
+                </label>
+                <label className="flex items-center ml-4">
+                  <input
+                    type="radio"
+                    name="protocol"
+                    value="socks4"
+                    checked={(currentProxyConfig.protocol || 'http') === 'socks4'}
+                    onChange={handleProtocolChange}
+                    className="mr-1"
+                  />
+                  SOCKS4
+                </label>
+                <label className="flex items-center ml-4">
+                  <input
+                    type="radio"
+                    name="protocol"
+                    value="socks5"
+                    checked={(currentProxyConfig.protocol || 'http') === 'socks5'}
+                    onChange={handleProtocolChange}
+                    className="mr-1"
+                  />
+                  SOCKS5
+                </label>
+              </div>
+            </div>
+            <div className="mb-3 flex items-center">
+              <label className="settings-label" htmlFor="hostname">
+                Hostname
+              </label>
               <input
-                type="radio"
-                name="protocol"
-                value="http"
-                checked={(currentProxyConfig.protocol || 'http') === 'http'}
-                onChange={handleProtocolChange}
-                className="mr-1"
-              />
-              HTTP
-            </label>
-            <label className="flex items-center ml-4">
-              <input
-                type="radio"
-                name="protocol"
-                value="https"
-                checked={(currentProxyConfig.protocol || 'http') === 'https'}
-                onChange={handleProtocolChange}
-                className="mr-1"
-              />
-              HTTPS
-            </label>
-            <label className="flex items-center ml-4">
-              <input
-                type="radio"
-                name="protocol"
-                value="socks4"
-                checked={(currentProxyConfig.protocol || 'http') === 'socks4'}
-                onChange={handleProtocolChange}
-                className="mr-1"
-              />
-              SOCKS4
-            </label>
-            <label className="flex items-center ml-4">
-              <input
-                type="radio"
-                name="protocol"
-                value="socks5"
-                checked={(currentProxyConfig.protocol || 'http') === 'socks5'}
-                onChange={handleProtocolChange}
-                className="mr-1"
-              />
-              SOCKS5
-            </label>
-          </div>
-        </div>
-        <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="hostname">
-            Hostname
-          </label>
-          <input
-            id="hostname"
-            type="text"
-            name="hostname"
-            className="block textbox"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            onChange={handleHostnameChange}
-            value={currentProxyConfig.hostname || ''}
-          />
-        </div>
-        <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="port">
-            Port
-          </label>
-          <input
-            id="port"
-            type="number"
-            name="port"
-            className="block textbox"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            onChange={handlePortChange}
-            value={currentProxyConfig.port || ''}
-          />
-        </div>
-        <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="auth.enabled">
-            Auth
-          </label>
-          <input
-            type="checkbox"
-            name="auth.enabled"
-            checked={currentProxyConfig.auth?.enabled || false}
-            onChange={handleAuthEnabledChange}
-          />
-        </div>
-        <div>
-          <div className="mb-3 flex items-center">
-            <label className="settings-label" htmlFor="auth.username">
-              Username
-            </label>
-            <input
-              id="auth.username"
-              type="text"
-              name="auth.username"
-              className="block textbox"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={currentProxyConfig.auth?.username || ''}
-              onChange={handleAuthUsernameChange}
-            />
-          </div>
-          <div className="mb-3 flex items-center">
-            <label className="settings-label" htmlFor="auth.password">
-              Password
-            </label>
-            <div className="textbox flex flex-row items-center w-[13.2rem] h-[1.70rem] relative">
-              <input
-                id="auth.password"
-                type={passwordVisible ? 'text' : 'password'}
-                name="auth.password"
-                className="outline-none bg-transparent w-[10.5rem]"
+                id="hostname"
+                type="text"
+                name="hostname"
+                className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
-                value={currentProxyConfig.auth?.password || ''}
-                onChange={handleAuthPasswordChange}
+                onChange={handleHostnameChange}
+                value={currentProxyConfig.hostname || ''}
               />
-              <button
-                type="button"
-                className="btn btn-sm absolute right-0"
-                onClick={() => setPasswordVisible(!passwordVisible)}
-              >
-                {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
-              </button>
             </div>
-          </div>
-        </div>
-        <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="bypassProxy">
-            Proxy Bypass
-          </label>
-          <input
-            id="bypassProxy"
-            type="text"
-            name="bypassProxy"
-            className="block textbox"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            onChange={handleBypassProxyChange}
-            value={currentProxyConfig.bypassProxy || ''}
-          />
-        </div>
+            <div className="mb-3 flex items-center">
+              <label className="settings-label" htmlFor="port">
+                Port
+              </label>
+              <input
+                id="port"
+                type="number"
+                name="port"
+                className="block textbox"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                onChange={handlePortChange}
+                value={currentProxyConfig.port || ''}
+              />
+            </div>
+            <div className="mb-3 flex items-center">
+              <label className="settings-label" htmlFor="auth.enabled">
+                Auth
+              </label>
+              <input
+                type="checkbox"
+                name="auth.enabled"
+                checked={currentProxyConfig.auth?.enabled || false}
+                onChange={handleAuthEnabledChange}
+              />
+            </div>
+            <div>
+              <div className="mb-3 flex items-center">
+                <label className="settings-label" htmlFor="auth.username">
+                  Username
+                </label>
+                <input
+                  id="auth.username"
+                  type="text"
+                  name="auth.username"
+                  className="block textbox"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  value={currentProxyConfig.auth?.username || ''}
+                  onChange={handleAuthUsernameChange}
+                />
+              </div>
+              <div className="mb-3 flex items-center">
+                <label className="settings-label" htmlFor="auth.password">
+                  Password
+                </label>
+                <div className="textbox flex flex-row items-center w-[13.2rem] h-[1.70rem] relative">
+                  <input
+                    id="auth.password"
+                    type={passwordVisible ? 'text' : 'password'}
+                    name="auth.password"
+                    className="outline-none bg-transparent w-[10.5rem]"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    value={currentProxyConfig.auth?.password || ''}
+                    onChange={handleAuthPasswordChange}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm absolute right-0"
+                    onClick={() => setPasswordVisible(!passwordVisible)}
+                  >
+                    {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="mb-3 flex items-center">
+              <label className="settings-label" htmlFor="bypassProxy">
+                Proxy Bypass
+              </label>
+              <input
+                id="bypassProxy"
+                type="text"
+                name="bypassProxy"
+                className="block textbox"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                onChange={handleBypassProxyChange}
+                value={currentProxyConfig.bypassProxy || ''}
+              />
+            </div>
+          </>
+        ) : null}
         <div className="mt-6">
           <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
             Save

@@ -150,7 +150,7 @@ test.describe('Draft values are used in requests', () => {
 
     // Go to Proxy Settings tab
     await page.locator('.tab.proxy').click();
-    await page.locator('input[name="enabled"][value="true"]').check();
+    await page.locator('input[name="mode"][value="on"]').check();
     await page.locator('#hostname').fill('localhost');
     await page.locator('#port').fill('8080');
 
