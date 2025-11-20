@@ -1820,8 +1820,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             ? { ...variable, value: newValue }
             : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
 
-          // OpenCollection uses opencollection.yml, BRU collections use collection.bru
-          const collectionFilePath = scopeCollection.type === 'opencollection'
+          const collectionFilePath = scopeCollection.filetype === 'yaml'
             ? path.join(scopeCollection.pathname, 'opencollection.yml')
             : path.join(scopeCollection.pathname, 'collection.bru');
 
@@ -1836,7 +1835,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             ? { ...variable, value: newValue }
             : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
 
-          const extension = collection.type === 'opencollection' ? 'yml' : 'bru';
+          const extension = collection.filetype === 'yaml' ? 'yml' : 'bru';
           const folderFilePath = path.join(folder.pathname, `folder.${extension}`);
 
           updatePromise = updateVariableInFile(folderFilePath, variableToSave, 'folder', collectionUid, folder.uid);

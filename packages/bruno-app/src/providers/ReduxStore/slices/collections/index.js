@@ -136,11 +136,6 @@ export const collectionsSlice = createSlice({
       // Add filetype property from brunoConfig for easy access
       collection.filetype = collection.brunoConfig?.filetype || 'bru';
 
-      // Add type property for OpenCollection (only if it's an OpenCollection)
-      if (collection.brunoConfig?.isOpenCollection) {
-        collection.type = 'opencollection';
-      }
-
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
       // this is optional

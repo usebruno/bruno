@@ -338,9 +338,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
 
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
-
-      // Detect format from file extension
-      const filetype = pathname.toLowerCase().endsWith('.yml') || pathname.toLowerCase().endsWith('.yaml') ? 'yaml' : 'bru';
+      const filetype = detectFileFormat(pathname);
       file.data = await parseCollection(bruContent, { format: filetype });
 
       hydrateBruCollectionFileWithUuid(file.data);
@@ -608,9 +606,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
-
-      // Detect format from file extension
-      const filetype = pathname.toLowerCase().endsWith('.yml') || pathname.toLowerCase().endsWith('.yaml') ? 'yaml' : 'bru';
+      const filetype = detectFileFormat(pathname);
       file.data = await parseCollection(bruContent, { format: filetype });
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
@@ -633,9 +629,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
-
-      // Detect format from file extension
-      const filetype = pathname.toLowerCase().endsWith('.yml') || pathname.toLowerCase().endsWith('.yaml') ? 'yaml' : 'bru';
+      const filetype = detectFileFormat(pathname);
       file.data = await parseCollection(bruContent, { format: filetype });
 
       hydrateBruCollectionFileWithUuid(file.data);

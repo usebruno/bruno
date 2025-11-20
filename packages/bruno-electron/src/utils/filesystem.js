@@ -98,7 +98,7 @@ const hasBruExtension = (filename) => {
 
 const hasRequestExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
-  return ['bru', 'yml', 'yaml'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
+  return ['bru', 'yml'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 
 const createDirectory = async (dir) => {
@@ -166,16 +166,11 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
-// Search for request files based on filetype (bru or yaml)
 const searchForRequestFiles = (dir, filetype = 'bru') => {
   if (filetype === 'yaml') {
-    // Search for both .yml and .yaml files
-    const ymlFiles = searchForFiles(dir, '.yml');
-    const yamlFiles = searchForFiles(dir, '.yaml');
-    return [...ymlFiles, ...yamlFiles];
-  } else {
-    return searchForFiles(dir, '.bru');
+    return searchForFiles(dir, '.yml');
   }
+  return searchForFiles(dir, '.bru');
 };
 
 // Search for request files based on collection filetype by reading config
@@ -230,8 +225,7 @@ const getFileExtensionFromFiletype = (filetype) => {
 
 const detectFileFormat = (pathname) => {
   if (!pathname || typeof pathname !== 'string') return 'bru';
-  const lower = pathname.toLowerCase();
-  return (lower.endsWith('.yml') || lower.endsWith('.yaml')) ? 'yaml' : 'bru';
+  return pathname.toLowerCase().endsWith('.yml') ? 'yaml' : 'bru';
 };
 
 const getCollectionFiletypeSync = (collectionPath) => {
@@ -283,7 +277,7 @@ const readCollectionConfig = (collectionPath) => {
 const isFileTypeCompatible = (filename, collectionFiletype) => {
   const ext = path.extname(filename).toLowerCase();
   if (collectionFiletype === 'yaml') {
-    return ext === '.yml' || ext === '.yaml';
+    return ext === '.yml';
   }
   return ext === '.bru';
 };

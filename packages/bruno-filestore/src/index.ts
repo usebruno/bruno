@@ -63,13 +63,8 @@ const getWorkerInstance = (): BruParserWorker => {
   return globalWorkerInstance;
 };
 
-// Helper function to detect format from file extension
 export const detectFormatFromExtension = (filename: string): 'bru' | 'yaml' => {
-  const ext = filename.toLowerCase();
-  if (ext.endsWith('.yml') || ext.endsWith('.yaml')) {
-    return 'yaml';
-  }
-  return 'bru';
+  return filename.toLowerCase().endsWith('.yml') ? 'yaml' : 'bru';
 };
 
 // Helper function to detect format from content (basic heuristic)
