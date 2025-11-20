@@ -191,16 +191,15 @@ const switchToEditorTab = async (page: Page) => {
   });
 };
 
-
 export { 
-  closeAllCollections, 
-  openCollectionAndAcceptSandbox, 
-  createCollection, 
-  createRequest, 
-  deleteRequest, 
-  sendRequestAndWaitForResponse, 
-  switchResponseFormat, 
-  switchToPreviewTab, 
+  closeAllCollections,
+  openCollectionAndAcceptSandbox,
+  createCollection,
+  createRequest,
+  deleteRequest,
+  sendRequestAndWaitForResponse,
+  switchResponseFormat,
+  switchToPreviewTab,
   switchToEditorTab,
   openRequest
 };

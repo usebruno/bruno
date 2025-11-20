@@ -10,7 +10,6 @@ const QueryResultTypeSelector = ({
   onPreviewTabSelect,
   selectedTab
 }) => {
-
   const header = (
     <div className="flex items-center justify-between gap-3 py-[0.35rem] px-[0.6rem]">
       <span className="text-[0.8125rem] text-gray-700 dark:text-gray-300">Preview</span>
