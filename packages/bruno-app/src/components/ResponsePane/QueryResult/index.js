@@ -163,7 +163,6 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
       }
       // for all other content types, return preview-text
       return 'preview-text';
-
     }
   }, [selectedFormat, contentType, dataBuffer]);
 
