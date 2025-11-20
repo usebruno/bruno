@@ -24,7 +24,6 @@ test.describe.serial('Response Format Select and Preview', () => {
     const editorContainer = locators.response.editorContainer();
     const responseFormatTab = locators.response.formatTab();
     const codeLine = locators.response.codeLine();
-    const previewTab = locators.response.previewTab();
     const previewContainer = locators.response.previewContainer();
 
     await test.step('Verify response pane and default JSON editor formatting', async () => {
@@ -97,7 +96,6 @@ test.describe.serial('Response Format Select and Preview', () => {
     const editorContainer = locators.response.editorContainer();
     const responseFormatTab = locators.response.formatTab();
     const codeLine = locators.response.codeLine();
-    const previewTab = locators.response.previewTab();
     const previewContainer = locators.response.previewContainer();
 
     await test.step('Verify response pane and default HTML preview', async () => {

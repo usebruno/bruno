@@ -83,7 +83,6 @@ export const buildCommonLocators = (page: Page) => ({
     editorContainer: () => page.locator('.response-pane .editor-container'),
     formatTab: () => page.getByTestId('format-response-tab'),
     formatTabDropdown: () => page.getByTestId('format-response-tab-dropdown'),
-    previewTab: () => page.getByTestId('preview-response-tab'),
     previewContainer: () => page.getByTestId('response-preview-container'),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
