@@ -194,7 +194,7 @@ const switchToEditorTab = async (page: Page) => {
   });
 };
 
-export { 
+export {
   closeAllCollections,
   openCollectionAndAcceptSandbox,
   createCollection,
