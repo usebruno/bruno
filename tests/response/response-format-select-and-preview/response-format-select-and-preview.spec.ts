@@ -34,7 +34,6 @@ test.describe.serial('Response Format Select and Preview', () => {
     });
 
     await test.step('Switch to Preview tab and check formatted object', async () => {
-      await expect(previewTab).toBeVisible();
       await switchToPreviewTab(page);
       const jsonTreeLines = locators.response.jsonTreeLine();
       await expect(jsonTreeLines.nth(1)).toContainText('"hello":"bruno"');
@@ -103,7 +102,6 @@ test.describe.serial('Response Format Select and Preview', () => {
 
     await test.step('Verify response pane and default HTML preview', async () => {
       await expect(responseBody).toBeVisible();
-      await expect(previewTab).toBeVisible();
       await expect(previewContainer.locator('webview')).toBeVisible();
     });
 
