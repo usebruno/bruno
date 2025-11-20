@@ -2539,10 +2539,7 @@ export const collectionsSlice = createSlice({
               && JSON.stringify(oldVars) !== JSON.stringify(newVars);
 
             if (onlyVarsChanged && item.draft) {
-              // Only variables changed - update saved vars but preserve draft
               set(item, 'request.vars.req', newVars);
-              // Also update vars in draft to keep them in sync
-              set(item, 'draft.request.vars.req', newVars);
             } else {
               // Other changes - replace everything
               item.name = file.data.name;
@@ -3243,9 +3240,17 @@ export const collectionsSlice = createSlice({
 
       const item = findItemInCollection(collection, itemUid);
       if (item) {
-        const vars = get(item, 'request.vars.req', []);
-        const updatedVars = updateOrCreateVariable(vars, variable);
-        set(item, 'request.vars.req', updatedVars);
+        // Update saved state
+        const savedVars = get(item, 'request.vars.req', []);
+        const updatedSavedVars = updateOrCreateVariable(savedVars, variable);
+        set(item, 'request.vars.req', updatedSavedVars);
+
+        // If draft exists, also update the variable in the draft
+        if (item.draft) {
+          const draftVars = get(item, 'draft.request.vars.req', []);
+          const updatedDraftVars = updateOrCreateVariable(draftVars, variable);
+          set(item, 'draft.request.vars.req', updatedDraftVars);
+        }
       }
     },
     updateFolderVarValue: (state, action) => {
@@ -3255,9 +3260,17 @@ export const collectionsSlice = createSlice({
 
       const folder = findItemInCollection(collection, folderUid);
       if (folder) {
-        const vars = get(folder, 'root.request.vars.req', []);
-        const updatedVars = updateOrCreateVariable(vars, variable);
-        set(folder, 'root.request.vars.req', updatedVars);
+        // Update saved state
+        const savedVars = get(folder, 'root.request.vars.req', []);
+        const updatedSavedVars = updateOrCreateVariable(savedVars, variable);
+        set(folder, 'root.request.vars.req', updatedSavedVars);
+
+        // If draft exists, also update the variable in the draft
+        if (folder.draft) {
+          const draftVars = get(folder, 'draft.request.vars.req', []);
+          const updatedDraftVars = updateOrCreateVariable(draftVars, variable);
+          set(folder, 'draft.request.vars.req', updatedDraftVars);
+        }
       }
     },
     updateCollectionVarValue: (state, action) => {
@@ -3265,9 +3278,17 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
-      const vars = get(collection, 'root.request.vars.req', []);
-      const updatedVars = updateOrCreateVariable(vars, variable);
-      set(collection, 'root.request.vars.req', updatedVars);
+      // Update saved state
+      const savedVars = get(collection, 'root.request.vars.req', []);
+      const updatedSavedVars = updateOrCreateVariable(savedVars, variable);
+      set(collection, 'root.request.vars.req', updatedSavedVars);
+
+      // If draft exists, also update the variable in the draft
+      if (collection.draft?.root) {
+        const draftVars = get(collection, 'draft.root.request.vars.req', []);
+        const updatedDraftVars = updateOrCreateVariable(draftVars, variable);
+        set(collection, 'draft.root.request.vars.req', updatedDraftVars);
+      }
     }
   }
 });

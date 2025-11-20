@@ -47,7 +47,10 @@ import {
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
   saveCollectionDraft,
-  saveFolderDraft
+  saveFolderDraft,
+  updateRequestVarValue,
+  updateFolderVarValue,
+  updateCollectionVarValue
 } from './index';
 
 import { each } from 'lodash';
@@ -1727,23 +1730,6 @@ const updateVariableInFile = (pathname, variable, scopeType, collectionUid, item
     ipcRenderer
       .invoke('renderer:update-variable-in-file', pathname, variable, scopeType)
       .then(() => {
-        // Update Redux state to reflect the change
-        if (scopeType === 'request') {
-          dispatch({
-            type: 'collections/updateRequestVarValue',
-            payload: { collectionUid, itemUid, variable }
-          });
-        } else if (scopeType === 'folder') {
-          dispatch({
-            type: 'collections/updateFolderVarValue',
-            payload: { collectionUid, folderUid: itemUid, variable }
-          });
-        } else if (scopeType === 'collection') {
-          dispatch({
-            type: 'collections/updateCollectionVarValue',
-            payload: { collectionUid, variable }
-          });
-        }
 
         resolve();
       })
@@ -1818,8 +1804,12 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           const { collection: scopeCollection, variable } = data;
           const variableToSave = variable
             ? { ...variable, value: newValue }
-            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+            : { uid: uuid(), name: variableName, value: newValue, enabled: true };
 
+          // First, update Redux state (both saved and draft if draft exists)
+          dispatch(updateCollectionVarValue({ collectionUid, variable: variableToSave }));
+
+          // Then, write to file
           const collectionFilePath = path.join(scopeCollection.pathname, 'collection.bru');
           updatePromise = updateVariableInFile(collectionFilePath, variableToSave, 'collection', collectionUid, null);
           successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
@@ -1830,8 +1820,12 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           const { folder, variable } = data;
           const variableToSave = variable
             ? { ...variable, value: newValue }
-            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+            : { uid: uuid(), name: variableName, value: newValue, enabled: true };
 
+          // First, update Redux state (both saved and draft if draft exists)
+          dispatch(updateFolderVarValue({ collectionUid, folderUid: folder.uid, variable: variableToSave }));
+
+          // Then, write to file
           const folderFilePath = path.join(folder.pathname, 'folder.bru');
           updatePromise = updateVariableInFile(folderFilePath, variableToSave, 'folder', collectionUid, folder.uid);
           successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
@@ -1842,8 +1836,12 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           const { item, variable } = data;
           const variableToSave = variable
             ? { ...variable, value: newValue }
-            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+            : { uid: uuid(), name: variableName, value: newValue, enabled: true };
 
+          // First, update Redux state (both saved and draft if draft exists)
+          dispatch(updateRequestVarValue({ collectionUid, itemUid: item.uid, variable: variableToSave }));
+
+          // Then, write to file
           updatePromise = updateVariableInFile(item.pathname, variableToSave, 'request', collectionUid, item.uid);
           successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
           break;
