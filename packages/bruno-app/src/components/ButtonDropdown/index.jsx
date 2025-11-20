@@ -147,8 +147,8 @@ const ButtonDropdown = ({
             <div className="dropdown-header-container">
               {header}
               <div className="h-px bg-[#e7e7e7] dark:bg-[#444] my-1"></div>
-          </div>
-)}
+            </div>
+          )}
           {renderOptions()}
         </div>
       </Dropdown>
