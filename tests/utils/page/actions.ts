@@ -175,6 +175,8 @@ const switchResponseFormat = async (page: Page, format: string) => {
  */
 const switchToPreviewTab = async (page: Page) => {
   await test.step('Switch to preview tab', async () => {
+    const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.click();
     const previewTab = page.getByTestId('preview-response-tab');
     await previewTab.click();
   });
@@ -188,6 +190,8 @@ const switchToEditorTab = async (page: Page) => {
   await test.step('Switch to editor tab', async () => {
     const responseFormatTab = page.getByTestId('format-response-tab');
     await responseFormatTab.click();
+    const previewTab = page.getByTestId('preview-response-tab');
+    await previewTab.click();
   });
 };
 
