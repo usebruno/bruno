@@ -264,7 +264,9 @@ const Collection = ({ collection, searchText }) => {
             onDoubleClick={handleCollectionDoubleClick}
           />
           <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
-            {collection.name}
+            <span className="hover:underline" onClick={handleCollectionCollapse}>
+              {collection.name}
+            </span>
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
