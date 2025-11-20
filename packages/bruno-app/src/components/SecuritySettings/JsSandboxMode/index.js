@@ -23,7 +23,7 @@ const JsSandboxMode = ({ collection }) => {
     <StyledWrapper className='flex'>
       {jsSandboxMode === 'safe' && (
         <div
-          className="flex items-center border rounded-md text-xs cursor-pointer safe-mode"
+          className="flex items-center border rounded-md cursor-pointer safe-mode"
           onClick={viewSecuritySettings}
         >
           Safe Mode
@@ -31,7 +31,7 @@ const JsSandboxMode = ({ collection }) => {
       )}
       {jsSandboxMode === 'developer' && (
         <div
-          className="flex items-center border rounded-md text-xs cursor-pointer developer-mode"
+          className="flex items-center border rounded-md cursor-pointer developer-mode"
           onClick={viewSecuritySettings}
         >
           Developer Mode

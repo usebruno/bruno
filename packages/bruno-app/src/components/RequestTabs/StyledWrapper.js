@@ -1,13 +1,16 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
+  border-bottom: 1px solid transparent;
+  background: #222222;
 
   ul {
     padding: 0;
     margin: 0;
     display: flex;
-    overflow: scroll;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 
     &::-webkit-scrollbar {
       display: none;
@@ -17,29 +20,36 @@ const Wrapper = styled.div`
 
     li {
       display: inline-flex;
-      max-width: 150px;
-      border: 1px solid transparent;
+      min-width: 100px;
+      max-width: 180px;
+      flex: 1 0 auto;
+      border-right: 1px solid #333;
       list-style: none;
-      padding-top: 8px;
-      padding-bottom: 8px;
-      padding-left: 0;
-      padding-right: 0;
+      padding: 8px 12px;
       cursor: pointer;
       font-size: 0.8125rem;
       height: 38px;
-
-      margin-right: 6px;
-      color: ${(props) => props.theme.requestTabs.color};
-      background: ${(props) => props.theme.requestTabs.bg};
-      border-radius: 0;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      background: transparent;
+      transition: all 0.2s ease;
 
       .tab-container {
         width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       &.active {
-        background: ${(props) => props.theme.requestTabs.active.bg};
+        background: #1e1e1e;
         font-weight: 500;
+        border-top: 2px solid #fa7d09;
+        border-bottom: 1px solid transparent;
+        color: #fff;
+        margin-bottom: -1px;
+        z-index: 1;
       }
 
       &.active {
@@ -49,47 +59,42 @@ const Wrapper = styled.div`
       }
 
       &:hover {
+        background: #2a2a2a;
+        color: #fff;
         .close-icon-container .close-icon {
           display: block;
         }
       }
 
       &.short-tab {
-        vertical-align: bottom;
-        width: 34px;
         min-width: 34px;
         max-width: 34px;
-        padding: 3px 0px;
+        padding: 0;
         display: inline-flex;
         justify-content: center;
-        color: ${(props) => props.theme.requestTabs.shortTab.color};
-        background-color: ${(props) => props.theme.requestTabs.shortTab.bg};
-        position: relative;
-        top: -1px;
+        align-items: center;
+        color: #999;
+        background-color: transparent;
+        border-right: none;
+        margin: 0;
 
         > div {
-          padding: 3px 4px;
-        }
-
-        > div.home-icon-container {
-          padding: 3px 7px;
-        }
-
-        &.choose-request {
-          > div {
-            padding: 3px 5px;
-          }
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         svg {
-          height: 22px;
+          height: 18px;
+          width: 18px;
         }
 
         &:hover {
           > div {
-            background-color: ${(props) => props.theme.requestTabs.shortTab.hoverBg};
-            color: ${(props) => props.theme.requestTabs.shortTab.hoverColor};
-            border-radius: 3px;
+            background-color: #333;
+            color: #fff;
+            border-radius: 4px;
           }
         }
       }

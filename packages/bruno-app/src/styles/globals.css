@@ -154,33 +154,32 @@ body {
 }
 
 body {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 body::-webkit-scrollbar,
 .CodeMirror-vscrollbar::-webkit-scrollbar {
-  width: 0.6rem;
+  width: 8px;
+  height: 8px;
 }
 
 body::-webkit-scrollbar-track,
 .CodeMirror-vscrollbar::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
+  background-color: transparent;
 }
 
 body::-webkit-scrollbar-thumb,
 .CodeMirror-vscrollbar::-webkit-scrollbar-thumb {
-  background-color: #cdcdcd;
-  border-radius: 5rem;
+  background-color: transparent;
+  border-radius: 4px;
 }
 
-/*
- * Mac-specific scrollbar styling
- * This ensures that scrollbars are only visible when the user starts to scroll,
- * providing a cleaner and more minimalistic appearance.
- */
-body.os-mac * {
-  scrollbar-width: thin;
+body::-webkit-scrollbar-thumb:hover,
+.CodeMirror-vscrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(150, 150, 150, 0.5);
 }
+
+
 
 /*
  * todo: this will be supported in the future to be changed via applying a theme

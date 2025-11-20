@@ -52,9 +52,6 @@ const RequestTabs = () => {
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
 
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
-  const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
-  const tabsWidth = collectionRequestTabs.length * 150 + 34; // 34: (+)icon
-  const showChevrons = maxTablistWidth < tabsWidth;
 
   const leftSlide = () => {
     tabsRef.current.scrollBy({
@@ -73,29 +70,21 @@ const RequestTabs = () => {
     });
   };
 
-  const getRootClassname = () => {
-    return classnames({
-      'has-chevrons': showChevrons
-    });
-  };
-  // Todo: Must support ephemeral requests
   return (
-    <StyledWrapper className={getRootClassname()}>
+    <StyledWrapper>
       {newRequestModalOpen && (
         <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center pl-4">
+          <div className="flex items-center pl-4 w-full overflow-hidden">
             <ul role="tablist">
-              {showChevrons ? (
-                <li className="select-none short-tab" onClick={leftSlide}>
-                  <div className="flex items-center">
-                    <IconChevronLeft size={18} strokeWidth={1.5} />
-                  </div>
-                </li>
-              ) : null}
+              <li className="select-none short-tab" onClick={leftSlide}>
+                <div className="flex items-center">
+                  <IconChevronLeft size={18} strokeWidth={1.5} />
+                </div>
+              </li>
               {/* Moved to post mvp */}
               {/* <li className="select-none new-tab mr-1" onClick={createNewTab}>
                 <div className="flex items-center home-icon-container">
@@ -103,7 +92,7 @@ const RequestTabs = () => {
                 </div>
               </li> */}
             </ul>
-            <ul role="tablist" style={{ maxWidth: maxTablistWidth }} ref={tabsRef}>
+            <ul role="tablist" className="flex-1 w-full" ref={tabsRef}>
               {collectionRequestTabs && collectionRequestTabs.length
                 ? collectionRequestTabs.map((tab, index) => {
                     return (
@@ -135,13 +124,11 @@ const RequestTabs = () => {
             </ul>
 
             <ul role="tablist">
-              {showChevrons ? (
-                <li className="select-none short-tab" onClick={rightSlide}>
-                  <div className="flex items-center">
-                    <IconChevronRight size={18} strokeWidth={1.5} />
-                  </div>
-                </li>
-              ) : null}
+              <li className="select-none short-tab" onClick={rightSlide}>
+                <div className="flex items-center">
+                  <IconChevronRight size={18} strokeWidth={1.5} />
+                </div>
+              </li>
               <li className="select-none short-tab" id="create-new-tab" onClick={createNewTab}>
                 <div className="flex items-center">
                   <svg

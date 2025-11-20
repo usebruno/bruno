@@ -70,7 +70,9 @@ const darkTheme = {
     },
 
     dropdownIcon: {
-      color: '#ccc'
+      color: '#ccc',
+      hoverColor: '#fff',
+      hoverBg: 'rgba(255, 255, 255, 0.1)'
     }
   },
 
@@ -323,7 +325,8 @@ const darkTheme = {
   },
 
   scrollbar: {
-    color: 'rgb(52 51 49)'
+    color: 'transparent',
+    hoverColor: 'rgb(80, 80, 80)'
   },
 
   dragAndDrop: {

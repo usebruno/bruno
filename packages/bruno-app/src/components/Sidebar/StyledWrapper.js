@@ -31,12 +31,28 @@ const Wrapper = styled.div`
 
     .collection-filter {
       input {
-        border: ${(props) => props.theme.sidebar.search.border};
-        border-radius: 2px;
-        background-color: ${(props) => props.theme.sidebar.search.bg};
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        background-color: rgba(0, 0, 0, 0.2);
+        padding: 0.375rem 2rem 0.375rem 2rem;
+        transition: all 0.2s ease;
+        font-size: 0.8125rem;
+        color: ${(props) => props.theme.sidebar.color};
+
+        &::placeholder {
+          color: ${(props) => props.theme.sidebar.color};
+          opacity: 0.5;
+        }
 
         &:focus {
           outline: none;
+          background-color: rgba(0, 0, 0, 0.3);
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.25);
+          border-color: rgba(255, 255, 255, 0.12);
         }
       }
     }

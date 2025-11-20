@@ -10,6 +10,7 @@ import { useState, forwardRef, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
+import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import { multiLineMsg } from "utils/common";
 import { formatIpcError } from "utils/common/error";
@@ -46,7 +47,7 @@ const TitleBar = () => {
   const MenuIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="dropdown-icon cursor-pointer">
-        <IconDots size={22} />
+        <IconDots size={18} />
       </div>
     );
   });
@@ -89,44 +90,46 @@ const TitleBar = () => {
           bruno
         </button>
         <div className="collection-dropdown flex flex-grow items-center justify-end">
-          <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                setCreateCollectionModalOpen(true);
-                menuDropdownTippyRef.current.hide();
-              }}
-            >
-              Create Collection
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                handleOpenCollection();
-                menuDropdownTippyRef.current.hide();
-              }}
-            >
-              Open Collection
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-                setImportCollectionModalOpen(true);
-              }}
-            >
-              Import Collection
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-                openDevTools();
-              }}
-            >
-              Devtools
-            </div>
-          </Dropdown>
+          <ToolHint text="Menu" toolhintId="titlebar-menu" place="bottom" delayShow={800}>
+            <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  setCreateCollectionModalOpen(true);
+                  menuDropdownTippyRef.current.hide();
+                }}
+              >
+                Create Collection
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  handleOpenCollection();
+                  menuDropdownTippyRef.current.hide();
+                }}
+              >
+                Open Collection
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  menuDropdownTippyRef.current.hide();
+                  setImportCollectionModalOpen(true);
+                }}
+              >
+                Import Collection
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  menuDropdownTippyRef.current.hide();
+                  openDevTools();
+                }}
+              >
+                Devtools
+              </div>
+            </Dropdown>
+          </ToolHint>
         </div>
       </div>
     </StyledWrapper>

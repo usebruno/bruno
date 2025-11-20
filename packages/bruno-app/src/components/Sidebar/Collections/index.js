@@ -1,6 +1,6 @@
 import {
   IconSearch,
-  IconX
+  IconX,
 } from '@tabler/icons';
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -18,7 +18,7 @@ const Collections = () => {
   if (!collections || !collections.length) {
     return (
       <StyledWrapper data-testid="collections">
-        <CollectionsHeader />
+        <CollectionsHeader setCreateCollectionModalOpen={setCreateCollectionModalOpen} />
         <CreateOrOpenCollection />
       </StyledWrapper>
     );
@@ -28,9 +28,9 @@ const Collections = () => {
     <StyledWrapper data-testid="collections">
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
 
-      <CollectionsHeader />
+      <CollectionsHeader setCreateCollectionModalOpen={setCreateCollectionModalOpen} />
 
-      <div className="mt-4 relative collection-filter px-2">
+      <div className="mt-3 relative collection-filter px-2">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           <span className="text-gray-500 sm:text-sm">
             <IconSearch size={16} strokeWidth={1.5} />
@@ -63,7 +63,7 @@ const Collections = () => {
         )}
       </div>
 
-      <div className="mt-4 flex flex-col overflow-hidden hover:overflow-y-auto absolute top-32 bottom-0 left-0 right-0">
+      <div className="mt-[14px] flex flex-col overflow-hidden hover:overflow-y-auto absolute top-32 bottom-0 left-0 right-0">
         {collections && collections.length
           ? collections.map((c) => {
               return (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { uuid } from 'utils/common';
-import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
+import { IconBox, IconRun, IconEye, IconSettings } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
@@ -43,29 +43,31 @@ const CollectionToolBar = ({ collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex items-center p-2">
-        <div className="flex flex-1 items-center cursor-pointer hover:underline" onClick={viewCollectionSettings}>
-          <IconFiles size={18} strokeWidth={1.5} />
+      <div className="flex items-center p-2 header-container">
+        <div className="flex flex-1 items-center">
+          <IconBox size={18} strokeWidth={1.5} />
           <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
         </div>
-        <div className="flex flex-3 items-center justify-end">
-          <span className="mr-2">
+        <div className="flex flex-1 items-center justify-end gap-3">
+          <span>
             <JsSandboxMode collection={collection} />
           </span>
-          <span className="mr-3">
-            <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place='bottom'>
-              <IconRun className="cursor-pointer" size={18} strokeWidth={1.5} onClick={handleRun} />
-            </ToolHint>
-          </span>
-          <span className="mr-3">
-            <ToolHint text="Variables" toolhintId="VariablesToolhintId">
-              <IconEye className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewVariables} />
-            </ToolHint>
-          </span>
-          <span className="mr-3">
-            <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
-              <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
-            </ToolHint>
+          <span className="flex items-center gap-1">
+            <span className="action-icon">
+              <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place="bottom">
+                <IconRun className="cursor-pointer" size={18} strokeWidth={1.5} onClick={handleRun} />
+              </ToolHint>
+            </span>
+            <span className="action-icon">
+              <ToolHint text="Variables" toolhintId="VariablesToolhintId">
+                <IconEye className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewVariables} />
+              </ToolHint>
+            </span>
+            <span className="action-icon">
+              <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
+                <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
+              </ToolHint>
+            </span>
           </span>
           <span>
             <EnvironmentSelector collection={collection} />
