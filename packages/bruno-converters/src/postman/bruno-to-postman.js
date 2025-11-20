@@ -118,33 +118,67 @@ export const brunoToPostman = (collection) => {
 
   const generateCollectionVars = (collection) => {
     const pattern = /{{[^{}]+}}/g;
-    let listOfVars = [];
+    const varsSet = new Set(); // Use Set to track unique variable keys
+    const varsMap = new Map(); // Map to store variable objects by key
 
-    const findOccurrences = (obj, results) => {
-      if (typeof obj === 'object') {
-        if (Array.isArray(obj)) {
-          obj.forEach((item) => findOccurrences(item, results));
-        } else {
-          for (const key in obj) {
-            findOccurrences(obj[key], results);
-          }
-        }
-      } else if (typeof obj === 'string') {
-        obj.replace(pattern, (match) => {
-          results.push(match.replace(/{{|}}/g, ''));
-        });
+    // Iterative traversal using a stack to avoid recursion
+    const stack = [collection];
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+
+      if (current === null || current === undefined) {
+        continue;
       }
-    };
 
-    findOccurrences(collection, listOfVars);
+      if (typeof current === 'string') {
+        // Extract variables from string using regex
+        const matches = current.matchAll(pattern);
+        matches.forEach((match) => {
+          const varKey = match[0].replace(/{{|}}/g, '');
+          if (!varsSet.has(varKey)) {
+            varsSet.add(varKey);
+            varsMap.set(varKey, {
+              key: varKey,
+              value: '',
+              type: 'default'
+            });
+          }
+        });
+      } else if (Array.isArray(current)) {
+        // Push array items onto stack
+        current.forEach((item) => stack.push(item));
+      } else if (typeof current === 'object') {
+        // Push object values onto stack
+        Object.values(current).forEach((value) => stack.push(value));
+      }
+    }
 
-    const finalArrayOfVars = [...new Set(listOfVars)];
+    // Convert Set to array
+    const listOfVars = Array.from(varsMap.values());
 
-    return finalArrayOfVars.map((variable) => ({
-      key: variable,
-      value: '',
+    // Add request and response vars
+    let reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
+      key: v.name,
+      value: v.value,
       type: 'default'
     }));
+
+    let resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
+      key: v.name,
+      value: v.value,
+      type: 'default'
+    }));
+
+    // Merge and deduplicate final result
+    const allVars = [...reqVars, ...resVars, ...listOfVars];
+    const finalVarsMap = new Map();
+    allVars.forEach((v) => {
+      if (!finalVarsMap.has(v.key)) {
+        finalVarsMap.set(v.key, v);
+      }
+    });
+    return Array.from(finalVarsMap.values());
   };
   const generateEventSection = (item) => {
     const eventArray = [];
