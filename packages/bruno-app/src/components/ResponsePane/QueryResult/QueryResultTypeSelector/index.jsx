@@ -1,8 +1,7 @@
 import React from 'react';
-import { IconPlayerPlay, IconCode } from '@tabler/icons';
+import { IconEye } from '@tabler/icons';
 import ButtonDropdown from 'components/ButtonDropdown';
 import ToggleSwitch from 'components/ToggleSwitch';
-import classnames from 'classnames';
 
 const QueryResultTypeSelector = ({
   formatOptions,
@@ -34,6 +33,7 @@ const QueryResultTypeSelector = ({
         header={header}
         className="h-[20px] text-[11px]"
         data-testid="format-response-tab"
+        suffix={selectedTab === 'preview' ? <IconEye size={14} strokeWidth={2} className="active mr-[2px]" /> : null}
       />
     </div>
   );

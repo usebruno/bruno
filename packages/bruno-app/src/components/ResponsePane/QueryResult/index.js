@@ -8,7 +8,7 @@ import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
 import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
-import { getEncoding, uuid } from 'utils/common/index';
+import { detectContentTypeFromBuffer, getEncoding } from 'utils/common/index';
 import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultTypeSelector from './QueryResultTypeSelector/index';
 
@@ -46,8 +46,15 @@ const formatErrorMessage = (error) => {
 };
 
 const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListener, headers, error }) => {
+  let buffer = null;
+  try {
+    buffer = Buffer.from(dataBuffer, 'base64'); // dataBuffer is already a base64 string, convert it to actual Buffer
+  } catch (error) {
+    console.error('Error converting dataBuffer to Buffer:', error);
+    buffer = null;
+  }
+  const detectedContentType = detectContentTypeFromBuffer(buffer);
   const contentType = getContentType(headers);
-  const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const responseEncoding = getEncoding(headers);
@@ -55,6 +62,29 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
   const [selectedFormat, setSelectedFormat] = useState('raw');
   const [selectedTab, setSelectedTab] = useState('editor');
   const [isInitialRun, setIsInitialRun] = useState(true);
+  const [previewFormatOptions, setPreviewFormatOptions] = useState(PREVIEW_FORMAT_OPTIONS);
+
+  useEffect(() => {
+    const byteFormatTypes = ['image', 'video', 'audio', 'pdf', 'zip'];
+
+    const isByteFormatType = (contentType) => {
+      return byteFormatTypes.some((type) => contentType.includes(type));
+    };
+
+    const updatePreviewFormatOptionsBasedOnContentType = (contentType) => {
+      if (isByteFormatType(contentType)) {
+        setPreviewFormatOptions(PREVIEW_FORMAT_OPTIONS.slice(1, 2)); // Remove structured format options
+      } else {
+        setPreviewFormatOptions(PREVIEW_FORMAT_OPTIONS);
+      }
+    };
+
+    if (detectedContentType) {
+      updatePreviewFormatOptionsBasedOnContentType(detectedContentType);
+    } else { // If no detected content type, fallback to content type to determine format options
+      updatePreviewFormatOptionsBasedOnContentType(contentType);
+    }
+  }, [detectedContentType, contentType]);
 
   const responseSize = useMemo(() => {
     const response = item.response || {};
@@ -76,15 +106,16 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
   const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
 
   // Determine initial format based on content type (only runs once)
-  const getInitialFormat = (mode, contentType) => {
-    if (mode.includes('html')) return { format: 'html', tab: 'preview' };
-    if (mode.includes('json')) return { format: 'json', tab: 'editor' };
-    if (mode.includes('xml')) return { format: 'xml', tab: 'editor' };
-    if (mode.includes('javascript')) return { format: 'javascript', tab: 'editor' };
-    if (mode.includes('image')) return { format: 'base64', tab: 'preview' };
-    if (contentType.includes('pdf')) return { format: 'base64', tab: 'preview' };
-    if (contentType.includes('audio')) return { format: 'base64', tab: 'preview' };
-    if (contentType.includes('video')) return { format: 'base64', tab: 'preview' };
+  const getInitialFormat = (_contentType) => {
+    if (_contentType.includes('html')) return { format: 'html', tab: 'preview' };
+    if (_contentType.includes('json')) return { format: 'json', tab: 'editor' };
+    if (_contentType.includes('xml')) return { format: 'xml', tab: 'editor' };
+    if (_contentType.includes('javascript')) return { format: 'javascript', tab: 'editor' };
+    if (_contentType.includes('image')) return { format: 'base64', tab: 'preview' };
+    if (_contentType.includes('pdf')) return { format: 'base64', tab: 'preview' };
+    if (_contentType.includes('audio')) return { format: 'base64', tab: 'preview' };
+    if (_contentType.includes('video')) return { format: 'base64', tab: 'preview' };
+    if (_contentType.includes('text')) return { format: 'raw', tab: 'editor' };
 
     // for all other content types, return raw
     return { format: 'raw', tab: 'editor' };
@@ -92,13 +123,13 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
 
   // Initialize format and tab only once when data loads
   useEffect(() => {
-    if (isInitialRun && (data || dataBuffer)) {
-      const initial = getInitialFormat(mode, contentType);
+    if (isInitialRun && (detectedContentType !== undefined && contentType !== undefined)) {
+      const initial = getInitialFormat(contentType);
       setSelectedFormat(initial.format);
       setSelectedTab(initial.tab);
       setIsInitialRun(false);
     }
-  }, [mode, contentType, data, dataBuffer, isInitialRun]);
+  }, [contentType, isInitialRun, detectedContentType]);
 
   const formattedData = useMemo(
     () => {
@@ -124,19 +155,21 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
 
     // For base64/hex, check content type to determine binary preview type
     if (selectedFormat === 'base64' || selectedFormat === 'hex') {
-      if (contentType.includes('image')) return 'preview-image';
-      if (contentType.includes('pdf')) return 'preview-pdf';
-      if (contentType.includes('audio')) return 'preview-audio';
-      if (contentType.includes('video')) return 'preview-video';
-
+      if (detectedContentType) {
+        if (detectedContentType.includes('image')) return 'preview-image';
+        if (detectedContentType.includes('pdf')) return 'preview-pdf';
+        if (detectedContentType.includes('audio')) return 'preview-audio';
+        if (detectedContentType.includes('video')) return 'preview-video';
+      }
       // for all other content types, return preview-text
       return 'preview-text';
+
     }
-  }, [selectedFormat, contentType]);
+  }, [selectedFormat, contentType, dataBuffer]);
 
 
   const codeMirrorMode = useMemo(() => {
-    return PREVIEW_FORMAT_OPTIONS
+    return previewFormatOptions
       .flatMap((option) => option.options)
       .find((option) => option.value === selectedFormat)?.codeMirrorMode || 'application/text';
   }, [selectedFormat]);
@@ -153,7 +186,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
   const tabs = useMemo(() => {
     return (
       <QueryResultTypeSelector
-        formatOptions={PREVIEW_FORMAT_OPTIONS}
+        formatOptions={previewFormatOptions}
         formatValue={selectedFormat}
         onFormatChange={handleFormatChange}
         onPreviewTabSelect={onPreviewTabSelect}
@@ -162,7 +195,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
     );
   }, [selectedFormat, selectedTab]);
 
-  const queryFilterEnabled = useMemo(() => mode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor', [mode, selectedFormat, selectedTab]);
+  const queryFilterEnabled = useMemo(() => codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor', [codeMirrorMode, selectedFormat, selectedTab]);
   const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
@@ -211,7 +244,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
               />
             </div>
             {queryFilterEnabled && (
-              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={codeMirrorMode} />
             )}
           </div>
         </div>
