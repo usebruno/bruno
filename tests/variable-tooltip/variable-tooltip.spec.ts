@@ -314,4 +314,131 @@ test.describe('Variable Tooltip', () => {
       await expect(tooltip.locator('.var-value-editor')).not.toBeVisible();
     });
   });
+
+  test('should preserve draft changes when creating variable via tooltip', async ({ page, createTmpDir }) => {
+    const collectionName = 'draft-preserve-test';
+
+    await test.step('Setup collection and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('draft-preserve'), {
+        openWithSandboxMode: 'safe'
+      });
+
+      // Create request
+      const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
+      await collectionContainer.locator('.collection-actions').hover();
+      await collectionContainer.locator('.collection-actions .icon').click();
+      await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
+
+      await page.getByPlaceholder('Request Name').fill('Draft Test');
+      await page.locator('#new-request-url .CodeMirror').click();
+      await page.locator('textarea').fill('https://api.example.com');
+      await page.getByRole('button', { name: 'Create' }).click();
+
+      await page.locator('.collection-item-name').filter({ hasText: 'Draft Test' }).click();
+    });
+
+    await test.step('Edit URL to create draft with undefined variable', async () => {
+      // Edit the URL to add a variable reference
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.press('End');
+      await page.keyboard.type('/users/{{myApiKey}}');
+
+      // Verify draft indicator appears (unsaved changes) in the request tab
+      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Test' }) });
+      await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
+    });
+
+    await test.step('Create variable via tooltip while draft exists', async () => {
+      // Hover over the undefined variable {{myApiKey}}
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const undefinedVar = urlEditor.locator('.cm-variable-invalid').filter({ hasText: 'myApiKey' }).first();
+      await undefinedVar.hover();
+
+      // Tooltip should appear
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-name')).toContainText('myApiKey');
+      await expect(tooltip.locator('.var-scope-badge')).toContainText('Request');
+
+      // Click to edit the variable
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await valueDisplay.click();
+
+      // Type value and save
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+      await page.keyboard.type('secret-key-123');
+
+      // Click outside to save
+      await page.locator('body').click();
+    });
+
+    await test.step('Verify variable created AND draft preserved', async () => {
+      // Move mouse away
+      await page.mouse.move(0, 0);
+
+      // Verify variable is now valid (green) in the URL
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const validVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'myApiKey' });
+      await expect(validVar).toBeVisible();
+
+      // Hover to verify value was saved
+      await validVar.first().hover();
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-value-editable-display')).toContainText('secret-key-123');
+
+      // Move mouse away
+      await page.mouse.move(0, 0);
+
+      // verify the URL changes are still in draft (not lost!)
+      const urlContent = await urlEditor.locator('.CodeMirror-line').first().textContent();
+      expect(urlContent).toContain('api.example.com/users');
+      expect(urlContent).toContain('myApiKey');
+
+      // Verify draft indicator still shows (changes not saved yet)
+      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Test' }) });
+      await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
+    });
+
+    await test.step('Verify saving works correctly', async () => {
+      // Save the request
+      await page.keyboard.press('Control+s');
+
+      // Draft indicator should disappear and close icon should appear
+      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Test' }) });
+      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible();
+      await expect(requestTab.locator('.close-icon')).toBeVisible();
+
+      // Check URL is saved (still visible without reload)
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const urlContent = await urlEditor.locator('.CodeMirror-line').first().textContent();
+      expect(urlContent).toContain('api.example.com/users');
+      expect(urlContent).toContain('myApiKey');
+
+      // Check variable is saved in the Vars tab
+      await page.getByRole('tab', { name: 'Vars' }).click();
+
+      // The variable should already exist
+      // Find the variable using the table structure
+      const varsTable = page.locator('table').first();
+      await expect(varsTable).toBeVisible();
+
+      const varRow = varsTable.locator('tbody tr').first();
+      await expect(varRow).toBeVisible();
+
+      // Check variable name - it's just a text input in the first td
+      const varNameInput = varRow.locator('td').first().locator('input[type="text"]');
+      await expect(varNameInput).toBeVisible();
+      await expect(varNameInput).toHaveValue('myApiKey');
+
+      // Check variable value - MultiLineEditor uses CodeMirror in the second td
+      const varValueTd = varRow.locator('td').nth(1);
+      const varValue = varValueTd.locator('.CodeMirror');
+      await expect(varValue).toBeVisible();
+      const varValueContent = await varValue.locator('.CodeMirror-line').textContent();
+      expect(varValueContent).toContain('secret-key-123');
+    });
+  });
 });

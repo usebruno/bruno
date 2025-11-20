@@ -2526,16 +2526,36 @@ export const collectionsSlice = createSlice({
               item.draft = null;
             }
           } else {
-            item.name = file.data.name;
-            item.type = file.data.type;
-            item.seq = file.data.seq;
-            item.tags = file.data.tags;
-            item.request = file.data.request;
-            item.settings = file.data.settings;
-            item.examples = file.data.examples;
-            item.filename = file.meta.name;
-            item.pathname = file.meta.pathname;
-            item.draft = null;
+            // Check if only variables changed (to preserve draft state)
+            const oldVars = get(item, 'request.vars.req', []);
+            const newVars = get(file.data, 'request.vars.req', []);
+
+            const itemWithoutVars = cloneDeep(item);
+            const fileDataWithoutVars = cloneDeep(file.data);
+            set(itemWithoutVars, 'request.vars.req', []);
+            set(fileDataWithoutVars, 'request.vars.req', []);
+
+            const onlyVarsChanged = areItemsTheSameExceptSeqUpdate(itemWithoutVars, fileDataWithoutVars)
+              && JSON.stringify(oldVars) !== JSON.stringify(newVars);
+
+            if (onlyVarsChanged && item.draft) {
+              // Only variables changed - update saved vars but preserve draft
+              set(item, 'request.vars.req', newVars);
+              // Also update vars in draft to keep them in sync
+              set(item, 'draft.request.vars.req', newVars);
+            } else {
+              // Other changes - replace everything
+              item.name = file.data.name;
+              item.type = file.data.type;
+              item.seq = file.data.seq;
+              item.tags = file.data.tags;
+              item.request = file.data.request;
+              item.settings = file.data.settings;
+              item.examples = file.data.examples;
+              item.filename = file.meta.name;
+              item.pathname = file.meta.pathname;
+              item.draft = null;
+            }
           }
         }
       }
