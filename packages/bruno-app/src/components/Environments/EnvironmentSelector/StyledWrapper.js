@@ -2,8 +2,8 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .current-environment {
-    border-radius: 0.9375rem;
-    padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+    border-radius: 4px;
+    padding: 0.15rem 0.4rem;
     user-select: none;
     background-color: transparent;
     border: 1px solid ${(props) => props.theme.dropdown.selectedColor};
@@ -22,7 +22,7 @@ const Wrapper = styled.div`
 
     .env-text {
       color: ${(props) => props.theme.dropdown.selectedColor};
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       display: block;
     }
 
