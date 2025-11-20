@@ -14,7 +14,9 @@ const {
   parseFolder,
   stringifyFolder,
   parseEnvironment,
-  stringifyEnvironment
+  stringifyEnvironment,
+  parseOpenCollection,
+  stringifyOpenCollection
 } = require('@usebruno/filestore');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
@@ -177,7 +179,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         if (filetype === 'yaml') {
-          const { stringifyOpenCollection } = require('@usebruno/filestore');
           const collectionRoot = { name: collectionName };
           const ocContent = stringifyOpenCollection(brunoConfig, collectionRoot);
           await writeFile(path.join(dirPath, 'opencollection.yml'), ocContent);
@@ -215,17 +216,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await createDirectory(dirPath);
       const uid = generateUidBasedOnHash(dirPath);
 
-      // open the bruno.json of previousPath
+      const ocYmlPath = path.join(previousPath, 'opencollection.yml');
       const brunoJsonFilePath = path.join(previousPath, 'bruno.json');
-      const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
 
-      // Change new name of collection
-      let brunoConfig = JSON.parse(content);
-      brunoConfig.name = collectionName;
-      const cont = await stringifyJson(brunoConfig);
+      if (fs.existsSync(ocYmlPath)) {
+        const content = fs.readFileSync(ocYmlPath, 'utf8');
+        const parsed = parseOpenCollection(content);
 
-      // write the bruno.json to new dir
-      await writeFile(path.join(dirPath, 'bruno.json'), cont);
+        parsed.brunoConfig.name = collectionName;
+
+        const newContent = stringifyOpenCollection(parsed.brunoConfig, parsed.root);
+        await writeFile(path.join(dirPath, 'opencollection.yml'), newContent);
+      } else {
+        const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
+        let brunoConfig = JSON.parse(content);
+        brunoConfig.name = collectionName;
+        const cont = await stringifyJson(brunoConfig);
+        await writeFile(path.join(dirPath, 'bruno.json'), cont);
+      }
 
       // Now copy all the files matching the collection's filetype along with the dir
       const files = searchForCollectionRequestFiles(previousPath);
@@ -251,17 +259,27 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {
+      const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
       const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
-      const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
-      const json = JSON.parse(content);
 
-      json.name = newName;
+      if (fs.existsSync(ocYmlPath)) {
+        const content = fs.readFileSync(ocYmlPath, 'utf8');
+        const parsed = parseOpenCollection(content);
 
-      const newContent = await stringifyJson(json);
-      await writeFile(brunoJsonFilePath, newContent);
+        parsed.brunoConfig.name = newName;
 
-      // todo: listen for bruno.json changes and handle it in watcher
-      // the app will change the name of the collection after parsing the bruno.json file contents
+        const newContent = stringifyOpenCollection(parsed.brunoConfig, parsed.root);
+        await writeFile(ocYmlPath, newContent);
+      } else {
+        const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
+        const json = JSON.parse(content);
+
+        json.name = newName;
+
+        const newContent = await stringifyJson(json);
+        await writeFile(brunoJsonFilePath, newContent);
+      }
+
       mainWindow.webContents.send('main:collection-renamed', {
         collectionPathname,
         newName
@@ -296,7 +314,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
 
       if (fs.existsSync(ocYmlPath)) {
-        const { parseOpenCollection, stringifyOpenCollection } = require('@usebruno/filestore');
 
         try {
           const existingContent = fs.readFileSync(ocYmlPath, 'utf8');
@@ -855,25 +872,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           return Promise.reject(new Error('The directory does not exist'));
         }
 
-        // delete the request uid mappings
-        // Find the collection root to determine filetype
         let collectionPath = pathname;
         while (collectionPath !== path.dirname(collectionPath)) {
-          if (fs.existsSync(path.join(collectionPath, 'bruno.json'))) {
+          const hasBrunoJson = fs.existsSync(path.join(collectionPath, 'bruno.json'));
+          const hasOpenCollectionYml = fs.existsSync(path.join(collectionPath, 'opencollection.yml'));
+          if (hasBrunoJson || hasOpenCollectionYml) {
             break;
           }
           collectionPath = path.dirname(collectionPath);
         }
 
-        // Get collection filetype and search for files in pathname only
         let collectionFiletype = 'bru';
         try {
-          const brunoJsonPath = path.join(collectionPath, 'bruno.json');
-          if (fs.existsSync(brunoJsonPath)) {
-            const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
-            const brunoConfig = JSON.parse(brunoJsonContent);
-            collectionFiletype = brunoConfig.filetype || 'bru';
-          }
+          collectionFiletype = getCollectionFiletypeSync(collectionPath);
         } catch (error) {
           console.warn('Error reading collection filetype, defaulting to bru:', error);
         }
@@ -1009,7 +1020,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const collectionFiletype = brunoConfig.filetype || 'bru';
 
       if (collectionFiletype === 'yaml') {
-        const { stringifyOpenCollection } = require('@usebruno/filestore');
         const collectionRoot = collection.root || {};
         const ocContent = stringifyOpenCollection(brunoConfig, collectionRoot);
         await writeFile(path.join(collectionPath, 'opencollection.yml'), ocContent);
@@ -1205,24 +1215,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`folder: ${newFolderPath} already exists`);
       }
 
-      // Find the collection root to determine filetype
       let collectionPath = folderPath;
       while (collectionPath !== path.dirname(collectionPath)) {
-        if (fs.existsSync(path.join(collectionPath, 'bruno.json'))) {
+        const hasBrunoJson = fs.existsSync(path.join(collectionPath, 'bruno.json'));
+        const hasOpenCollectionYml = fs.existsSync(path.join(collectionPath, 'opencollection.yml'));
+        if (hasBrunoJson || hasOpenCollectionYml) {
           break;
         }
         collectionPath = path.dirname(collectionPath);
       }
 
-      // Get collection filetype and search for files in folderPath only
       let collectionFiletype = 'bru';
       try {
-        const brunoJsonPath = path.join(collectionPath, 'bruno.json');
-        if (fs.existsSync(brunoJsonPath)) {
-          const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
-          const brunoConfig = JSON.parse(brunoJsonContent);
-          collectionFiletype = brunoConfig.filetype || 'bru';
-        }
+        collectionFiletype = getCollectionFiletypeSync(collectionPath);
       } catch (error) {
         console.warn('Error reading collection filetype, defaulting to bru:', error);
       }
@@ -1247,7 +1252,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
 
       if (fs.existsSync(ocYmlPath)) {
-        const { parseOpenCollection, stringifyOpenCollection } = require('@usebruno/filestore');
 
         try {
           const existingContent = fs.readFileSync(ocYmlPath, 'utf8');
