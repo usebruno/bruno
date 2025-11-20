@@ -171,7 +171,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
     return previewFormatOptions
       .flatMap((option) => option.options)
       .find((option) => option.value === selectedFormat)?.codeMirrorMode || 'application/text';
-  }, [selectedFormat]);
+  }, [selectedFormat, previewFormatOptions]);
 
   // User explicitly changes format - switch to editor tab to show the formatted data
   const handleFormatChange = (newFormat) => {
