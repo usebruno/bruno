@@ -95,6 +95,15 @@ const Wrapper = styled.div`
         background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
       }
     }
+
+    &.collection-keyboard-focused {
+      background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg};
+      outline: none;
+
+      &:hover {
+        background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg} !important;
+      }
+    }
   }
 
   #sidebar-collection-name {

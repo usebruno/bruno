@@ -62,6 +62,7 @@ const lightTheme = {
       item: {
         bg: '#e1e1e1',
         hoverBg: '#e7e7e7',
+        keyboardFocusBg: 'rgba(0, 103, 214, 0.15)',
         indentBorder: 'solid 1px #e1e1e1',
         active: {
           indentBorder: 'solid 1px #d0d0d0'

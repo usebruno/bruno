@@ -131,6 +131,15 @@ const Wrapper = styled.div`
       }
     }
 
+    &.item-keyboard-focused {
+      background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg};
+      outline: none;
+
+      &:hover {
+        background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg} !important;
+      }
+    }
+
     div.tippy-box {
       position: relative;
       top: -0.625rem;
