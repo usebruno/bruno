@@ -13,6 +13,8 @@ const ButtonDropdown = ({
   className,
   style,
   header,
+  prefix,
+  suffix,
   ...props
 }) => {
   const dropdownTippyRef = useRef(null);
@@ -118,7 +120,13 @@ const ButtonDropdown = ({
         role="button"
         {...iconProps}
       >
-        <span>{selectedLabel}</span>
+        {prefix && (
+          <span>{prefix}</span>
+        )}
+        <span className="active">{selectedLabel}</span>
+        {suffix && (
+          <span>{suffix}</span>
+        )}
         <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
       </button>
     );

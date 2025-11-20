@@ -270,6 +270,117 @@ const applyJSONPathFilter = (data, filter) => {
   }
 };
 
+/**
+ * Detects content type from buffer by checking magic numbers (file signatures)
+ * @param {Buffer} buffer - The data buffer to analyze
+ * @returns {string|null} - Detected MIME type or null
+ */
+export const detectContentTypeFromBuffer = (buffer) => {
+  if (!buffer || buffer.length < 4) {
+    return null;
+  }
+
+  // Get first few bytes for magic number checking
+  const bytes = buffer.subarray(0, 12);
+
+  // Image formats
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+    return 'image/jpeg';
+  }
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+    return 'image/png';
+  }
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+    return 'image/gif';
+  }
+  if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+    return 'image/webp';
+  }
+  if (bytes[0] === 0x42 && bytes[1] === 0x4D) {
+    return 'image/bmp';
+  }
+  if ((bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2A && bytes[3] === 0x00)
+    || (bytes[0] === 0x4D && bytes[1] === 0x4D && bytes[2] === 0x00 && bytes[3] === 0x2A)) {
+    return 'image/tiff';
+  }
+  if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) {
+    return 'image/x-icon';
+  }
+
+  // PDF
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+    return 'application/pdf';
+  }
+
+  // Video formats
+  if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x00
+    && (bytes[3] === 0x18 || bytes[3] === 0x20)
+    && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    return 'video/mp4';
+  }
+  if ((bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3)) {
+    return 'video/webm';
+  }
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    && bytes[8] === 0x41 && bytes[9] === 0x56 && bytes[10] === 0x49 && bytes[11] === 0x20) {
+    return 'video/x-msvideo'; // AVI
+  }
+
+  // Audio formats
+  if (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) {
+    return 'audio/mpeg'; // MP3
+  }
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    && bytes[8] === 0x57 && bytes[9] === 0x41 && bytes[10] === 0x56 && bytes[11] === 0x45) {
+    return 'audio/wav';
+  }
+  if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+    return 'audio/ogg';
+  }
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70
+    && bytes[8] === 0x4D && bytes[9] === 0x34 && bytes[10] === 0x41) {
+    return 'audio/m4a';
+  }
+
+  // Archive formats
+  if (bytes[0] === 0x50 && bytes[1] === 0x4B
+    && (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07)) {
+    return 'application/zip';
+  }
+  if (bytes[0] === 0x1F && bytes[1] === 0x8B) {
+    return 'application/gzip';
+  }
+
+  // Check if it's likely text (UTF-8)
+  if (isLikelyText(buffer.slice(0, Math.min(512, buffer.length)))) {
+    return 'text/plain';
+  }
+
+  return null;
+};
+
+/**
+ * Helper to detect if buffer contains text data
+ */
+const isLikelyText = (buffer) => {
+  let textChars = 0;
+  const sampleSize = Math.min(buffer.length, 512);
+
+  for (let i = 0; i < sampleSize; i++) {
+    const byte = buffer[i];
+    // Check for common text characters (printable ASCII + common control chars)
+    if ((byte >= 0x20 && byte <= 0x7E) // Printable ASCII
+      || byte === 0x09 // Tab
+      || byte === 0x0A // Line feed
+      || byte === 0x0D) { // Carriage return
+      textChars++;
+    }
+  }
+
+  // If more than 85% are text characters, likely text
+  return (textChars / sampleSize) > 0.85;
+};
+
 export const formatResponse = (data, dataBufferString, mode, filter, bufferThreshold = LARGE_BUFFER_THRESHOLD) => {
   if (data === undefined || !dataBufferString || !mode) {
     return '';
