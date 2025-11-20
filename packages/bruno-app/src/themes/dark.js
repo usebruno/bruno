@@ -238,10 +238,35 @@ const darkTheme = {
     }
   },
 
+  badge: {
+    bg: '#474747',
+    color: '#E3E3E3'
+  },
+
   tabs: {
     active: {
-      color: '#CCCCCC',
-      border: '#F59E0B'
+      color: '#E3E3E3',
+      bg: '#2D2D2D',
+      border: '#F59E0B',
+      badge: {
+        bg: '#8C9196',
+        color: '#fff'
+      }
+    },
+    inactive: {
+      color: '#B5B5B5',
+      bg: 'transparent'
+    },
+    hover: {
+      color: '#E3E3E3',
+      bg: 'rgba(255, 255, 255, 0.05)'
+    },
+    focus: {
+      outline: '#8C9CAA33'
+    },
+    badge: {
+      bg: '#474747',
+      color: '#B5B5B5'
     },
     secondary: {
       active: {
@@ -256,22 +281,26 @@ const darkTheme = {
   },
 
   requestTabs: {
-    color: '#ccc',
+    color: '#E3E3E3',
     bg: '#2A2D2F',
-    bottomBorder: '#444',
+    bottomBorder: '#474747',
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(204, 204, 204)',
       hoverBg: '#1e1e1e'
     },
     active: {
-      bg: '#3D3D3D'
+      bg: '#222'
+    },
+    inactive: {
+      bg: '#2D2D2D',
+      hoverBg: '#353535'
     },
     shortTab: {
-      color: '#ccc',
+      color: '#B5B5B5',
       bg: 'transparent',
-      hoverColor: '#ccc',
-      hoverBg: '#3D3D3D'
+      hoverColor: '#E3E3E3',
+      hoverBg: 'rgba(255, 255, 255, 0.05)'
     }
   },
 
@@ -308,9 +337,13 @@ const darkTheme = {
   },
 
   table: {
-    border: '#333',
+    border: '#3a3a3a',
     thead: {
-      color: 'rgb(204, 204, 204)'
+      color: '#9d9d9d',
+      bg: '#1e1e1e'
+    },
+    row: {
+      hoverBg: '#2a2a2a'
     },
     striped: '#2A2D2F',
     input: {
