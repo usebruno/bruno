@@ -1,6 +1,7 @@
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
+const json = require('@rollup/plugin-json');
 const dts = require('rollup-plugin-dts');
 const { terser } = require('rollup-plugin-terser');
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
@@ -29,11 +30,12 @@ module.exports = [
       nodeResolve({
         extensions: ['.js', '.ts', '.tsx', '.json', '.css']
       }),
+      json(),
       commonjs(),
       typescript({ tsconfig: './tsconfig.json' }),
       terser(),
     ],
-    external: ['@usebruno/lang', 'lodash', 'worker_threads', 'path']
+    external: ['@usebruno/lang', 'lodash', 'yaml', 'ajv', 'worker_threads', 'path', 'fs']
   },
   {
     input: 'src/workers/worker-script.ts',
@@ -54,10 +56,11 @@ module.exports = [
       nodeResolve({
         extensions: ['.js', '.ts', '.tsx', '.json', '.css']
       }),
+      json(),
       commonjs(),
       typescript({ tsconfig: './tsconfig.json' }),
       terser(),
     ],
-    external: ['@usebruno/lang', 'lodash', 'worker_threads', 'path']
+    external: ['@usebruno/lang', 'lodash', 'yaml', 'ajv', 'worker_threads', 'path', 'fs']
   }
-]; 
+];

@@ -133,6 +133,14 @@ export const collectionsSlice = createSlice({
       // values can be 'unmounted', 'mounting', 'mounted'
       collection.mountStatus = 'unmounted';
 
+      // Add filetype property from brunoConfig for easy access
+      collection.filetype = collection.brunoConfig?.filetype || 'bru';
+
+      // Add type property for OpenCollection (only if it's an OpenCollection)
+      if (collection.brunoConfig?.isOpenCollection) {
+        collection.type = 'opencollection';
+      }
+
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
       // this is optional
@@ -2575,6 +2583,7 @@ export const collectionsSlice = createSlice({
 
         if (existingEnv) {
           const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
+          existingEnv.name = environment.name;
           existingEnv.variables = environment.variables;
           /*
            Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.

@@ -1,0 +1,1703 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schema.opencollection.com/json/draft-07/opencollection/v1.0.0",
+  "type": "object",
+  "properties": {
+    "info": {
+      "$ref": "#/$defs/Info"
+    },
+    "opencollection": {
+      "type": "string",
+      "description": "The version of the opencollection"
+    },
+    "config": {
+      "$ref": "#/$defs/CollectionConfig"
+    },
+    "items": {
+      "type": "array",
+      "description": "Array of items in the collection",
+      "items": {
+        "$ref": "#/$defs/Item"
+      }
+    },
+    "request": {
+      "$ref": "#/$defs/RequestDefaults"
+    },
+    "docs": {
+      "$ref": "#/$defs/Documentation"
+    },
+    "bundled": {
+      "type": "boolean",
+      "description": "True if the opencollection is a standalone file, false if stored on the filesystem with nested structure of folders and files"
+    },
+    "extensions": {
+      "$ref": "#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "Extensions": {
+      "type": "object",
+      "description": "Free-form object that allows implementers to extend the spec"
+    },
+    "Info": {
+      "type": "object",
+      "description": "Info about the collection",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the collection"
+        },
+        "summary": {
+          "type": "string",
+          "description": "A short summary of the collection"
+        },
+        "version": {
+          "type": "string",
+          "description": "The version of the collection"
+        },
+        "authors": {
+          "type": "array",
+          "description": "Array of authors of the collection",
+          "items": {
+            "$ref": "#/$defs/Author"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Author": {
+      "type": "object",
+      "description": "An author of the collection",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the author"
+        },
+        "email": {
+          "type": "string",
+          "description": "The email of the author"
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the author"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RequestDefaults": {
+      "type": "object",
+      "description": "Default request configuration for the collection/folder",
+      "properties": {
+        "headers": {
+          "type": "array",
+          "description": "Array of http headers, sent with http, graphql, websocket requests",
+          "items": {
+            "$ref": "#/$defs/HttpHeader"
+          }
+        },
+        "metadata": {
+          "type": "array",
+          "description": "Array of gRPC metadata, sent with grpc requests",
+          "items": {
+            "$ref": "#/$defs/GrpcMetadata"
+          }
+        },
+        "auth": {
+          "$ref": "#/$defs/Auth"
+        },
+        "variables": {
+          "type": "array",
+          "description": "Array of variables",
+          "items": {
+            "$ref": "#/$defs/Variable"
+          }
+        },
+        "scripts": {
+          "$ref": "#/$defs/Scripts"
+        },
+        "settings": {
+          "$ref": "#/$defs/RequestSettings"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CollectionConfig": {
+      "type": "object",
+      "description": "Configuration for the collection",
+      "properties": {
+        "environments": {
+          "type": "array",
+          "description": "Array of environments",
+          "items": {
+            "$ref": "#/$defs/Environment"
+          }
+        },
+        "protobuf": {
+          "$ref": "#/$defs/Protobuf"
+        },
+        "proxy": {
+          "oneOf": [
+            {
+              "type": "boolean",
+              "const": false
+            },
+            {
+              "$ref": "#/$defs/Proxy"
+            },
+            {
+              "type": "string",
+              "const": "inherit"
+            }
+          ],
+          "description": "Proxy configuration for the collection"
+        },
+        "clientCertificates": {
+          "type": "array",
+          "description": "Array of client certificates for mutual TLS authentication",
+          "items": {
+            "$ref": "#/$defs/ClientCertificate"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Protobuf": {
+      "type": "object",
+      "description": "Protobuf configuration",
+      "properties": {
+        "protofFiles": {
+          "type": "array",
+          "description": "Array of proto files",
+          "items": {
+            "$ref": "#/$defs/ProtoFileItem"
+          }
+        },
+        "importPaths": {
+          "type": "array",
+          "description": "Array of proto file import paths",
+          "items": {
+            "$ref": "#/$defs/ProtoFileImportPath"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Proxy": {
+      "type": "object",
+      "description": "Proxy configuration",
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "description": "Proxy protocol"
+        },
+        "hostname": {
+          "type": "string",
+          "description": "Proxy hostname"
+        },
+        "port": {
+          "type": "number",
+          "description": "Proxy port"
+        },
+        "auth": {
+          "oneOf": [
+            {
+              "type": "boolean",
+              "const": false
+            },
+            {
+              "$ref": "#/$defs/ProxyAuth"
+            }
+          ],
+          "description": "Proxy authentication"
+        },
+        "bypassProxy": {
+          "type": "string",
+          "description": "Bypass proxy string"
+        }
+      },
+      "required": ["protocol", "hostname", "port"],
+      "additionalProperties": false
+    },
+    "ProxyAuth": {
+      "type": "object",
+      "description": "Proxy authentication credentials",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Proxy username"
+        },
+        "password": {
+          "type": "string",
+          "description": "Proxy password"
+        }
+      },
+      "required": ["username", "password"],
+      "additionalProperties": false
+    },
+    "ClientCertificate": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PemCertificate"
+        },
+        {
+          "$ref": "#/$defs/Pkcs12Certificate"
+        }
+      ]
+    },
+    "PemCertificate": {
+      "type": "object",
+      "description": "Client certificate using separate PEM-encoded cert and key files",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "The domain this certificate applies to"
+        },
+        "type": {
+          "type": "string",
+          "const": "pem"
+        },
+        "certificateFilePath": {
+          "type": "string",
+          "description": "Path to the certificate file"
+        },
+        "privateKeyFilePath": {
+          "type": "string",
+          "description": "Path to the private key file"
+        },
+        "passphrase": {
+          "type": "string",
+          "description": "Passphrase for the private key (optional)"
+        }
+      },
+      "required": ["domain", "type", "certificateFilePath", "privateKeyFilePath"],
+      "additionalProperties": false
+    },
+    "Pkcs12Certificate": {
+      "type": "object",
+      "description": "Client certificate using PKCS#12 format (PFX)",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "The domain this certificate applies to"
+        },
+        "type": {
+          "type": "string",
+          "const": "pkcs12"
+        },
+        "pkcs12FilePath": {
+          "type": "string",
+          "description": "Path to the PKCS#12/PFX file"
+        },
+        "passphrase": {
+          "type": "string",
+          "description": "Passphrase for the PKCS#12 file (optional)"
+        }
+      },
+      "required": ["domain", "type", "pkcs12FilePath"],
+      "additionalProperties": false
+    },
+    "ProtoFileItem": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ProtoFile"
+        }
+      ]
+    },
+    "ProtoFile": {
+      "type": "object",
+      "description": "A proto file reference",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "file"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path to the proto file"
+        }
+      },
+      "required": ["type", "path"],
+      "additionalProperties": false
+    },
+    "ProtoFileImportPath": {
+      "type": "object",
+      "description": "A proto file import path",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "The import path"
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "Whether the import path is disabled"
+        }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+    },
+    "Description": {
+      "description": "The description",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string",
+              "description": "The content of the description"
+            },
+            "type": {
+              "type": "string",
+              "description": "The MIME type of the content"
+            }
+          },
+          "required": ["content", "type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "Documentation": {
+      "description": "The documentation",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string",
+              "description": "The content of the documentation"
+            },
+            "type": {
+              "type": "string",
+              "description": "The MIME type of the content"
+            }
+          },
+          "required": ["content", "type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "HttpHeader": {
+      "type": "object",
+      "description": "Http header with name, value, description, and disabled state",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The header name"
+        },
+        "value": {
+          "type": "string",
+          "description": "The header value"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "Whether the header is disabled"
+        }
+      },
+      "required": ["name", "value"],
+      "additionalProperties": false
+    },
+    "GrpcMetadata": {
+      "type": "object",
+      "description": "A gRPC metadata entry with name, value, description, and disabled state",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The metadata name"
+        },
+        "value": {
+          "type": "string",
+          "description": "The metadata value"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "Whether the metadata is disabled"
+        }
+      },
+      "required": ["name", "value"],
+      "additionalProperties": false
+    },
+    "GrpcRequestMessage": {
+      "type": "object",
+      "description": "A gRPC request message with description and data",
+      "properties": {
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "message": {
+          "type": "string",
+          "description": "The message"
+        }
+      },
+      "required": ["message"],
+      "additionalProperties": false
+    },
+    "GrpcMessage": {
+      "type": "string",
+      "description": "A gRPC message"
+    },
+    "GrpcMessageVariant": {
+      "type": "object",
+      "description": "A variant of gRPC message with title, selected state, and message",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the variant"
+        },
+        "selected": {
+          "type": "boolean",
+          "description": "Whether this variant is selected"
+        },
+        "message": {
+          "$ref": "#/$defs/GrpcMessage"
+        }
+      },
+      "required": ["title", "message"],
+      "additionalProperties": false
+    },
+    "WebSocketMessage": {
+      "type": "object",
+      "description": "A WebSocket message with type and data",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["text", "json", "xml", "binary"],
+          "description": "The type of WebSocket message"
+        },
+        "data": {
+          "type": "string",
+          "description": "The message data"
+        }
+      },
+      "required": ["type", "data"],
+      "additionalProperties": false
+    },
+    "WebSocketMessageVariant": {
+      "type": "object",
+      "description": "A variant of WebSocket message with title, selected state, and message",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the variant"
+        },
+        "selected": {
+          "type": "boolean",
+          "description": "Whether this variant is selected"
+        },
+        "message": {
+          "$ref": "#/$defs/WebSocketMessage"
+        }
+      },
+      "required": ["title", "message"],
+      "additionalProperties": false
+    },
+    "HttpRequestParam": {
+      "type": "object",
+      "description": "A request parameter with name, value, description, type, and disabled state",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The parameter name"
+        },
+        "value": {
+          "type": "string",
+          "description": "The parameter value"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["query", "path"],
+          "description": "The type of parameter"
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "Whether the parameter is disabled"
+        }
+      },
+      "required": ["name", "value", "type"],
+      "additionalProperties": false
+    },
+    "HttpRequestBody": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RawBody"
+        },
+        {
+          "$ref": "#/$defs/FormUrlEncodedBody"
+        },
+        {
+          "$ref": "#/$defs/MultipartFormBody"
+        },
+        {
+          "$ref": "#/$defs/FileBody"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "HttpRequestBodyVariant": {
+      "type": "object",
+      "description": "A variant of HTTP request body with title, selected state, and body",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the variant"
+        },
+        "selected": {
+          "type": "boolean",
+          "description": "Whether this variant is selected"
+        },
+        "body": {
+          "$ref": "#/$defs/HttpRequestBody"
+        }
+      },
+      "required": ["title", "body"],
+      "additionalProperties": false
+    },
+    "HttpRequestExample": {
+      "type": "object",
+      "description": "An example HTTP request/response pair",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the example"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "request": {
+          "type": "object",
+          "description": "Example request configuration",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "The URL of the request"
+            },
+            "method": {
+              "type": "string",
+              "description": "HTTP method"
+            },
+            "headers": {
+              "type": "array",
+              "description": "Array of request headers",
+              "items": {
+                "$ref": "#/$defs/HttpHeader"
+              }
+            },
+            "params": {
+              "type": "array",
+              "description": "Array of request parameters",
+              "items": {
+                "$ref": "#/$defs/HttpRequestParam"
+              }
+            },
+            "body": {
+              "$ref": "#/$defs/HttpRequestBody"
+            }
+          },
+          "additionalProperties": false
+        },
+        "response": {
+          "type": "object",
+          "description": "Example response",
+          "properties": {
+            "status": {
+              "type": "number",
+              "description": "HTTP status code"
+            },
+            "statusText": {
+              "type": "string",
+              "description": "HTTP status text"
+            },
+            "headers": {
+              "type": "array",
+              "description": "Array of response headers",
+              "items": {
+                "$ref": "#/$defs/HttpHeader"
+              }
+            },
+            "body": {
+              "type": "object",
+              "description": "Response body",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["json", "text", "xml", "html", "binary"],
+                  "description": "The type of response body"
+                },
+                "data": {
+                  "type": "string",
+                  "description": "The response body data"
+                }
+              },
+              "required": ["type", "data"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "RawBody": {
+      "type": "object",
+      "description": "Raw request body with type and data",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["json", "text", "xml", "sparql"],
+          "description": "The type of raw body content"
+        },
+        "data": {
+          "type": "string",
+          "description": "The raw body data"
+        }
+      },
+      "required": ["type", "data"],
+      "additionalProperties": false
+    },
+    "FormUrlEncodedBody": {
+      "type": "array",
+      "description": "Form URL encoded body as array of key-value pairs",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The form field name"
+          },
+          "value": {
+            "type": "string",
+            "description": "The form field value"
+          },
+          "description": {
+            "$ref": "#/$defs/Description"
+          },
+          "disabled": {
+            "type": "boolean",
+            "description": "Whether the form field is disabled"
+          }
+        },
+        "required": ["name", "value"],
+        "additionalProperties": false
+      }
+    },
+    "MultipartFormBody": {
+      "type": "array",
+      "description": "Multipart form body as array of form parts",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The form part name"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["text", "file"],
+            "description": "The type of form part"
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "The form part value"
+          },
+          "description": {
+            "$ref": "#/$defs/Description"
+          },
+          "disabled": {
+            "type": "boolean",
+            "description": "Whether the form part is disabled"
+          }
+        },
+        "required": ["name", "type", "value"],
+        "additionalProperties": false
+      }
+    },
+    "FileBody": {
+      "type": "array",
+      "description": "File body as array of file objects",
+      "items": {
+        "type": "object",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "description": "Path to the file"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME type of the file"
+          },
+          "selected": {
+            "type": "boolean",
+            "description": "Whether the file is selected"
+          }
+        },
+        "required": ["filePath", "contentType", "selected"],
+        "additionalProperties": false
+      }
+    },
+    "GraphQLBody": {
+      "type": "object",
+      "description": "GraphQL request body with query and variables",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The GraphQL query or mutation"
+        },
+        "variables": {
+          "type": "string",
+          "description": "JSON string containing GraphQL variables"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GraphQLBodyVariant": {
+      "type": "object",
+      "description": "A variant of GraphQL body with title, selected state, and body",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the variant"
+        },
+        "selected": {
+          "type": "boolean",
+          "description": "Whether this variant is selected"
+        },
+        "body": {
+          "$ref": "#/$defs/GraphQLBody"
+        }
+      },
+      "required": ["title", "body"],
+      "additionalProperties": false
+    },
+    "Assertion": {
+      "type": "object",
+      "description": "An assertion for response validation",
+      "properties": {
+        "expression": {
+          "type": "string",
+          "description": "The expression to evaluate"
+        },
+        "operator": {
+          "type": "string",
+          "description": "The comparison operator"
+        },
+        "value": {
+          "type": "string",
+          "description": "The expected value"
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "Whether the assertion is disabled"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        }
+      },
+      "required": ["expression", "operator", "value"],
+      "additionalProperties": false
+    },
+    "Auth": {
+      "description": "Authentication",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AuthAwsV4"
+        },
+        {
+          "$ref": "#/$defs/AuthBasic"
+        },
+        {
+          "$ref": "#/$defs/AuthWsse"
+        },
+        {
+          "$ref": "#/$defs/AuthBearer"
+        },
+        {
+          "$ref": "#/$defs/AuthDigest"
+        },
+        {
+          "$ref": "#/$defs/AuthNTLM"
+        },
+        {
+          "$ref": "#/$defs/AuthApiKey"
+        }
+      ]
+    },
+    "AuthAwsV4": {
+      "type": "object",
+      "description": "AWS V4 authentication",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "awsv4"
+        },
+        "accessKeyId": {
+          "type": "string",
+          "description": "AWS access key ID"
+        },
+        "secretAccessKey": {
+          "type": "string",
+          "description": "AWS secret access key"
+        },
+        "sessionToken": {
+          "type": "string",
+          "description": "AWS session token"
+        },
+        "service": {
+          "type": "string",
+          "description": "AWS service name"
+        },
+        "region": {
+          "type": "string",
+          "description": "AWS region"
+        },
+        "profileName": {
+          "type": "string",
+          "description": "AWS profile name"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "AuthBasic": {
+      "type": "object",
+      "description": "Basic authentication",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "basic"
+        },
+        "username": {
+          "type": "string",
+          "description": "Username for basic auth"
+        },
+        "password": {
+          "type": "string",
+          "description": "Password for basic auth"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "AuthWsse": {
+      "type": "object",
+      "description": "WSSE authentication",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "wsse"
+        },
+        "username": {
+          "type": "string",
+          "description": "Username for WSSE auth"
+        },
+        "password": {
+          "type": "string",
+          "description": "Password for WSSE auth"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "AuthBearer": {
+      "type": "object",
+      "description": "Bearer token authentication",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "bearer"
+        },
+        "token": {
+          "type": "string",
+          "description": "Bearer token"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "AuthDigest": {
+      "type": "object",
+      "description": "Digest authentication",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "digest"
+        },
+        "username": {
+          "type": "string",
+          "description": "Username for digest auth"
+        },
+        "password": {
+          "type": "string",
+          "description": "Password for digest auth"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "AuthNTLM": {
+      "type": "object",
+      "description": "NTLM authentication",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "ntlm"
+        },
+        "username": {
+          "type": "string",
+          "description": "Username for NTLM auth"
+        },
+        "password": {
+          "type": "string",
+          "description": "Password for NTLM auth"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain for NTLM auth"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "AuthApiKey": {
+      "type": "object",
+      "description": "API Key authentication",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "apikey"
+        },
+        "key": {
+          "type": "string",
+          "description": "API key name"
+        },
+        "value": {
+          "type": "string",
+          "description": "API key value"
+        },
+        "placement": {
+          "type": "string",
+          "enum": ["header", "query"],
+          "description": "Where to place the API key"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "Item": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/HttpRequest"
+        },
+        {
+          "$ref": "#/$defs/GraphQLRequest"
+        },
+        {
+          "$ref": "#/$defs/GrpcRequest"
+        },
+        {
+          "$ref": "#/$defs/WebSocketRequest"
+        },
+        {
+          "$ref": "#/$defs/Folder"
+        },
+        {
+          "$ref": "#/$defs/Script"
+        }
+      ]
+    },
+    "Tag": {
+      "type": "string",
+      "description": "A tag for categorizing or labeling items"
+    },
+    "HttpRequestSettings": {
+      "type": "object",
+      "description": "Settings for HTTP request execution",
+      "properties": {
+        "encodeUrl": {
+          "oneOf": [
+            {
+              "type": "boolean",
+              "const": true
+            },
+            {
+              "type": "boolean",
+              "const": false
+            },
+            {
+              "type": "string",
+              "const": "inherit"
+            }
+          ],
+          "description": "Whether to encode the URL"
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in milliseconds"
+        },
+        "followRedirects": {
+          "oneOf": [
+            {
+              "type": "boolean",
+              "const": true
+            },
+            {
+              "type": "boolean",
+              "const": false
+            },
+            {
+              "type": "string",
+              "const": "inherit"
+            }
+          ],
+          "description": "Whether to follow redirects"
+        },
+        "maxRedirects": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "const": "inherit"
+            }
+          ],
+          "description": "Maximum number of redirects to follow"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GraphQLRequestSettings": {
+      "type": "object",
+      "description": "Settings for GraphQL request execution",
+      "properties": {
+        "encodeUrl": {
+          "oneOf": [
+            {
+              "type": "boolean",
+              "const": true
+            },
+            {
+              "type": "boolean",
+              "const": false
+            },
+            {
+              "type": "string",
+              "const": "inherit"
+            }
+          ],
+          "description": "Whether to encode the URL"
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in milliseconds"
+        },
+        "followRedirects": {
+          "oneOf": [
+            {
+              "type": "boolean",
+              "const": true
+            },
+            {
+              "type": "boolean",
+              "const": false
+            },
+            {
+              "type": "string",
+              "const": "inherit"
+            }
+          ],
+          "description": "Whether to follow redirects"
+        },
+        "maxRedirects": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "const": "inherit"
+            }
+          ],
+          "description": "Maximum number of redirects to follow"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RequestSettings": {
+      "type": "object",
+      "description": "Request settings for different request types",
+      "properties": {
+        "http": {
+          "$ref": "#/$defs/HttpRequestSettings"
+        },
+        "graphql": {
+          "$ref": "#/$defs/GraphQLRequestSettings"
+        }
+      },
+      "additionalProperties": false
+    },
+    "HttpRequest": {
+      "type": "object",
+      "description": "HTTP request configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the request"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "type": {
+          "type": "string",
+          "const": "http",
+          "description": "The type of request"
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the request"
+        },
+        "method": {
+          "type": "string",
+          "description": "HTTP method"
+        },
+        "params": {
+          "type": "array",
+          "description": "Array of request parameters",
+          "items": {
+            "$ref": "#/$defs/HttpRequestParam"
+          }
+        },
+        "headers": {
+          "type": "array",
+          "description": "Array of request headers",
+          "items": {
+            "$ref": "#/$defs/HttpHeader"
+          }
+        },
+        "body": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HttpRequestBody"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/HttpRequestBodyVariant"
+              }
+            }
+          ]
+        },
+        "auth": {
+          "$ref": "#/$defs/Auth"
+        },
+        "scripts": {
+          "$ref": "#/$defs/Scripts"
+        },
+        "variables": {
+          "type": "array",
+          "description": "Array of variables",
+          "items": {
+            "$ref": "#/$defs/Variable"
+          }
+        },
+        "assertions": {
+          "type": "array",
+          "description": "Array of assertions for response validation",
+          "items": {
+            "$ref": "#/$defs/Assertion"
+          }
+        },
+        "docs": {
+          "type": "string",
+          "description": "Documentation for this request"
+        },
+        "settings": {
+          "$ref": "#/$defs/HttpRequestSettings"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Array of tags",
+          "items": {
+            "$ref": "#/$defs/Tag"
+          }
+        },
+        "examples": {
+          "type": "array",
+          "description": "Array of example HTTP request/response pairs",
+          "items": {
+            "$ref": "#/$defs/HttpRequestExample"
+          }
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "GraphQLRequest": {
+      "type": "object",
+      "description": "GraphQL request configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the request"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "type": {
+          "type": "string",
+          "const": "graphql",
+          "description": "The type of request"
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the request"
+        },
+        "method": {
+          "type": "string",
+          "description": "HTTP method"
+        },
+        "params": {
+          "type": "array",
+          "description": "Array of request parameters",
+          "items": {
+            "$ref": "#/$defs/HttpRequestParam"
+          }
+        },
+        "headers": {
+          "type": "array",
+          "description": "Array of request headers",
+          "items": {
+            "$ref": "#/$defs/HttpHeader"
+          }
+        },
+        "body": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/GraphQLBody"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/GraphQLBodyVariant"
+              }
+            }
+          ]
+        },
+        "auth": {
+          "$ref": "#/$defs/Auth"
+        },
+        "scripts": {
+          "$ref": "#/$defs/Scripts"
+        },
+        "variables": {
+          "type": "array",
+          "description": "Array of variables",
+          "items": {
+            "$ref": "#/$defs/Variable"
+          }
+        },
+        "assertions": {
+          "type": "array",
+          "description": "Array of assertions for response validation",
+          "items": {
+            "$ref": "#/$defs/Assertion"
+          }
+        },
+        "docs": {
+          "type": "string",
+          "description": "Documentation for this request"
+        },
+        "settings": {
+          "$ref": "#/$defs/GraphQLRequestSettings"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Array of tags",
+          "items": {
+            "$ref": "#/$defs/Tag"
+          }
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "GrpcRequest": {
+      "type": "object",
+      "description": "gRPC request configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the request"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "type": {
+          "type": "string",
+          "const": "grpc",
+          "description": "The type of request"
+        },
+        "url": {
+          "type": "string",
+          "description": "The gRPC service URL or endpoint"
+        },
+        "method": {
+          "type": "string",
+          "description": "Full RPC method name (package.Service/Method)"
+        },
+        "methodType": {
+          "type": "string",
+          "enum": ["unary", "client-streaming", "server-streaming", "bidi-streaming"],
+          "description": "Method streaming type"
+        },
+        "protoFilePath": {
+          "type": "string",
+          "description": "Path to the proto file"
+        },
+        "metadata": {
+          "type": "array",
+          "description": "Array of gRPC metadata",
+          "items": {
+            "$ref": "#/$defs/GrpcMetadata"
+          }
+        },
+        "message": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/GrpcMessage"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/GrpcMessageVariant"
+              }
+            }
+          ]
+        },
+        "auth": {
+          "$ref": "#/$defs/Auth"
+        },
+        "scripts": {
+          "$ref": "#/$defs/Scripts"
+        },
+        "variables": {
+          "type": "array",
+          "description": "Array of variables",
+          "items": {
+            "$ref": "#/$defs/Variable"
+          }
+        },
+        "assertions": {
+          "type": "array",
+          "description": "Array of assertions for response validation",
+          "items": {
+            "$ref": "#/$defs/Assertion"
+          }
+        },
+        "docs": {
+          "type": "string",
+          "description": "Documentation for this request"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Array of tags",
+          "items": {
+            "$ref": "#/$defs/Tag"
+          }
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "WebSocketRequest": {
+      "type": "object",
+      "description": "WebSocket request configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the request"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "type": {
+          "type": "string",
+          "const": "websocket",
+          "description": "The type of request"
+        },
+        "url": {
+          "type": "string",
+          "description": "The WebSocket URL"
+        },
+        "headers": {
+          "type": "array",
+          "description": "Array of request headers",
+          "items": {
+            "$ref": "#/$defs/HttpHeader"
+          }
+        },
+        "message": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/WebSocketMessage"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/WebSocketMessageVariant"
+              }
+            }
+          ]
+        },
+        "auth": {
+          "$ref": "#/$defs/Auth"
+        },
+        "scripts": {
+          "$ref": "#/$defs/Scripts"
+        },
+        "variables": {
+          "type": "array",
+          "description": "Array of variables",
+          "items": {
+            "$ref": "#/$defs/Variable"
+          }
+        },
+        "docs": {
+          "type": "string",
+          "description": "Documentation for this request"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Array of tags",
+          "items": {
+            "$ref": "#/$defs/Tag"
+          }
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "Folder": {
+      "type": "object",
+      "description": "A folder for organizing collection items",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "folder"
+        },
+        "items": {
+          "type": "array",
+          "description": "Array of items in the folder",
+          "items": {
+            "$ref": "#/$defs/Item"
+          }
+        },
+        "request": {
+          "$ref": "#/$defs/RequestDefaults"
+        },
+        "docs": {
+          "$ref": "#/$defs/Documentation"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Array of tags",
+          "items": {
+            "$ref": "#/$defs/Tag"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Script": {
+      "type": "object",
+      "description": "Javscript module or shared collection scripts",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "script"
+        },
+        "script": {
+          "type": "string",
+          "description": "The script"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Environment": {
+      "type": "object",
+      "description": "An environment configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the environment"
+        },
+        "color": {
+          "type": "string",
+          "description": "The color of the environment"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "variables": {
+          "type": "array",
+          "description": "Array of environment variables",
+          "items": {
+            "$ref": "#/$defs/Variable"
+          }
+        },
+        "clientCertificates": {
+          "type": "array",
+          "description": "Array of client certificates for mutual TLS authentication",
+          "items": {
+            "$ref": "#/$defs/ClientCertificate"
+          }
+        },
+        "extends": {
+          "type": "string",
+          "description": "The name of the environment to extend from"
+        },
+        "dotEnvFilePath": {
+          "type": "string",
+          "description": "Path to a .env file to load variables from"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "Variable": {
+      "type": "object",
+      "description": "A variable with name, value, description, and state flags",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The variable name"
+        },
+        "value": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/VariableValue"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/VariableValueVariant"
+              }
+            }
+          ]
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "Whether the variable is disabled"
+        },
+        "transient": {
+          "type": "boolean",
+          "description": "Whether the variable value should be persisted or not"
+        },
+        "default": {
+          "description": "The default value when transient is true",
+          "$ref": "#/$defs/VariableValue"
+        }
+      },
+      "additionalProperties": false
+    },
+    "VariableValue": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["string", "number", "boolean", "null", "object"],
+              "description": "The type of the value"
+            },
+            "data": {
+              "type": "string",
+              "description": "The string representation of the value"
+            }
+          },
+          "required": ["type", "data"],
+          "additionalProperties": false
+        }
+      ],
+      "description": "A variable value (string or typed object)"
+    },
+    "VariableValueVariant": {
+      "type": "object",
+      "description": "A variant of variable value with title, selected state, and value",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the variant"
+        },
+        "selected": {
+          "type": "boolean",
+          "description": "Whether this variant is selected"
+        },
+        "value": {
+          "$ref": "#/$defs/VariableValue"
+        }
+      },
+      "required": ["title", "value"],
+      "additionalProperties": false
+    },
+    "Scripts": {
+      "type": "object",
+      "description": "Scripts for collection execution lifecycle",
+      "properties": {
+        "preRequest": {
+          "type": "string",
+          "description": "Script to execute before making requests"
+        },
+        "postResponse": {
+          "type": "string",
+          "description": "Script to execute after receiving responses"
+        },
+        "tests": {
+          "type": "string",
+          "description": "Test scripts to validate responses"
+        },
+        "hooks": {
+          "type": "string",
+          "description": "Scripts that can be injected into specific stages of the execution process."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

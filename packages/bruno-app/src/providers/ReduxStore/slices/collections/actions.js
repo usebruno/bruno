@@ -847,7 +847,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
     }
 
     const parentItem = findParentItemInCollection(collectionCopy, itemUid);
-    const filename = resolveRequestFilename(newFilename);
+    const filename = resolveRequestFilename(newFilename, collection.filetype);
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
     set(itemToSave, 'name', trim(newName));
     set(itemToSave, 'filename', trim(filename));
@@ -1242,7 +1242,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     };
 
     // itemUid is null when we are creating a new request at the root level
-    const resolvedFilename = resolveRequestFilename(filename);
+    const resolvedFilename = resolveRequestFilename(filename, collection.filetype);
     if (!itemUid) {
       const reqWithSameNameExists = find(
         collection.items,
@@ -1345,7 +1345,7 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
 
     // itemUid is null when we are creating a new request at the root level
     const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
-    const resolvedFilename = resolveRequestFilename(filename);
+    const resolvedFilename = resolveRequestFilename(filename, collection.filetype);
 
     if (!parentItem) {
       return reject(new Error('Parent item not found'));
@@ -1415,7 +1415,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
 
     // itemUid is null when we are creating a new request at the root level
     const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
-    const resolvedFilename = resolveRequestFilename(filename);
+    const resolvedFilename = resolveRequestFilename(filename, collection.filetype);
 
     if (!parentItem) {
       return reject(new Error('Parent item not found'));
@@ -1820,7 +1820,11 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             ? { ...variable, value: newValue }
             : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
 
-          const collectionFilePath = path.join(scopeCollection.pathname, 'collection.bru');
+          // OpenCollection uses opencollection.yml, BRU collections use collection.bru
+          const collectionFilePath = scopeCollection.type === 'opencollection'
+            ? path.join(scopeCollection.pathname, 'opencollection.yml')
+            : path.join(scopeCollection.pathname, 'collection.bru');
+
           updatePromise = updateVariableInFile(collectionFilePath, variableToSave, 'collection', collectionUid, null);
           successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
           break;
@@ -1832,7 +1836,9 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             ? { ...variable, value: newValue }
             : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
 
-          const folderFilePath = path.join(folder.pathname, 'folder.bru');
+          const extension = collection.type === 'opencollection' ? 'yml' : 'bru';
+          const folderFilePath = path.join(folder.pathname, `folder.${extension}`);
+
           updatePromise = updateVariableInFile(folderFilePath, variableToSave, 'folder', collectionUid, folder.uid);
           successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
           break;
@@ -2114,12 +2120,12 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
   });
 };
 
-export const createCollection = (collectionName, collectionFolderName, collectionLocation) => () => {
+export const createCollection = (collectionName, collectionFolderName, collectionLocation, filetype = 'bru') => () => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
     ipcRenderer
-      .invoke('renderer:create-collection', collectionName, collectionFolderName, collectionLocation)
+      .invoke('renderer:create-collection', collectionName, collectionFolderName, collectionLocation, filetype)
       .then(resolve)
       .catch(reject);
   });
