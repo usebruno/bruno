@@ -94,6 +94,13 @@ const StyledWrapper = styled.div`
   .searchbar-icon-btn.active {
     color: #f39c12 !important;
   }
+
+  .searchbar-error {
+    color: #ff4444;
+    font-size: 11px;
+    padding: 2px 4px;
+    margin-top: 2px;
+  }
 `;
 
 export default StyledWrapper;
