@@ -163,6 +163,55 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
           v = await bru.sleep(timer);
           fn.apply();
         }
+
+        // Override console.log to handle Sets and Maps properly
+        const originalConsoleLog = console.log;
+        console.log = function(...args) {
+          const processedArgs = args.map(arg => {
+            if (arg instanceof Set) {
+              return {
+                __brunoType: 'Set',
+                __brunoValue: Array.from(arg),
+                size: arg.size
+              };
+            }
+            if (arg instanceof Map) {
+              return {
+                __brunoType: 'Map',
+                __brunoValue: Array.from(arg.entries()),
+                size: arg.size
+              };
+            }
+            return arg;
+          });
+          return originalConsoleLog.apply(this, processedArgs);
+        };
+
+        // Also override other console methods
+        ['debug', 'info', 'warn', 'error'].forEach(method => {
+          const originalMethod = console[method];
+          console[method] = function(...args) {
+            const processedArgs = args.map(arg => {
+              if (arg instanceof Set) {
+                return {
+                  __brunoType: 'Set',
+                  __brunoValue: Array.from(arg),
+                  size: arg.size
+                };
+              }
+              if (arg instanceof Map) {
+                return {
+                  __brunoType: 'Map',
+                  __brunoValue: Array.from(arg.entries()),
+                  size: arg.size
+                };
+              }
+              return arg;
+            });
+            return originalMethod.apply(this, processedArgs);
+          };
+        });
+
         await bru.sleep(0);
         try {
           ${externalScript}
