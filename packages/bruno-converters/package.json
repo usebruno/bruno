@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@usebruno/schema": "^0.7.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.1.1",
     "jscodeshift": "^17.3.0",
     "lodash": "^4.17.21",
     "nanoid": "3.3.8",
