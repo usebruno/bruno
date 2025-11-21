@@ -1742,20 +1742,20 @@ export const collectionsSlice = createSlice({
             item.draft.request.vars.req = item.draft.request.vars.req || [];
             item.draft.request.vars.req.push({
               uid: uuid(),
-              name: varData.name || '',
-              value: varData.value || '',
-              local: varData.local !== undefined ? varData.local : false,
-              enabled: varData.enabled !== undefined ? varData.enabled : true
+              name: varData?.name || '',
+              value: varData?.value || '',
+              local: varData?.local !== undefined ? varData.local : false,
+              enabled: varData?.enabled !== undefined ? varData.enabled : true
             });
           } else if (type === 'response') {
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.res = item.draft.request.vars.res || [];
             item.draft.request.vars.res.push({
               uid: uuid(),
-              name: varData.name || '',
-              value: varData.value || '',
-              local: varData.local !== undefined ? varData.local : false,
-              enabled: varData.enabled !== undefined ? varData.enabled : true
+              name: '',
+              value: '',
+              local: false,
+              enabled: true
             });
           }
         }
@@ -2084,9 +2084,10 @@ export const collectionsSlice = createSlice({
           const vars = get(folder, 'draft.request.vars.res', []);
           vars.push({
             uid: uuid(),
-            name: varData.name || '',
-            value: varData.value || '',
-            enabled: varData.enabled !== undefined ? varData.enabled : true
+            name: '',
+            value: '',
+            local: false,
+            enabled: true
           });
           set(folder, 'draft.request.vars.res', vars);
         }
@@ -2292,9 +2293,10 @@ export const collectionsSlice = createSlice({
           const vars = get(collection, 'draft.root.request.vars.res', []);
           vars.push({
             uid: uuid(),
-            name: varData.name || '',
-            value: varData.value || '',
-            enabled: varData.enabled !== undefined ? varData.enabled : true
+            name: '',
+            value: '',
+            local: false,
+            enabled: true
           });
           set(collection, 'draft.root.request.vars.res', vars);
         }
@@ -2516,7 +2518,6 @@ export const collectionsSlice = createSlice({
               item.draft = null;
             }
           } else {
-            // Other changes - replace everything
             item.name = file.data.name;
             item.type = file.data.type;
             item.seq = file.data.seq;
