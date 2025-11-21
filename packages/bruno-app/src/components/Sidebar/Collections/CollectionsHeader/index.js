@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconArrowsSort, IconBox, IconSortAscendingLetters, IconSortDescendingLetters } from '@tabler/icons';
+import { IconArrowsSort, IconBox, IconSortAscendingLetters, IconSortDescendingLetters, IconPlus, IconFolder } from '@tabler/icons';
 import CloseAllIcon from 'components/Icons/CloseAll';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import RemoveCollectionsModal from '../RemoveCollectionsModal';
 import StyledWrapper from './StyledWrapper';
+import ToolHint from 'components/ToolHint';
 
 const CollectionsHeader = ({ setCreateCollectionModalOpen }) => {
   const dispatch = useDispatch();
@@ -72,22 +73,21 @@ const CollectionsHeader = ({ setCreateCollectionModalOpen }) => {
               <IconFolder size={18} strokeWidth={1.5} />
             </button>
           </ToolHint>
-        {collections.length >= 1 && (
-          <div className="flex items-center collections-header-actions">
+          {collections.length >= 1 && (
             <ToolHint text="Close all collections" toolhintId="close-all-collections" place="bottom" delayShow={800}>
-            <button
-              className="mr-1 collection-action-button"
-              onClick={selectAllCollectionsToClose}
-              aria-label="Close all collections"
-              title="Close all collections"
-              data-testid="close-all-collections-button"
-            >
-              <CloseAllIcon size={18} strokeWidth={1.5} className="cursor-pointer" />
-            </button>
+              <button
+                onClick={selectAllCollectionsToClose}
+                aria-label="Close all collections"
+                title="Close all collections"
+                data-testid="close-all-collections-button"
+              >
+                <CloseAllIcon size={18} strokeWidth={1.5} className="cursor-pointer" />
+              </button>
             </ToolHint>
+          )}
+          {collections.length >= 1 && (
             <ToolHint text="Sort collections" toolhintId="sort-collections" place="bottom" delayShow={800}>
               <button
-                className="collection-action-button"
                 onClick={() => sortCollectionOrder()}
                 aria-label="Sort collections"
                 title="Sort collections"
@@ -95,12 +95,11 @@ const CollectionsHeader = ({ setCreateCollectionModalOpen }) => {
                 {sortIcon}
               </button>
             </ToolHint>
-            {collectionsToClose.length > 0 && (
-              <RemoveCollectionsModal collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
-            )}
-          </div>
-        )}
+          )}
         </div>
+        {collectionsToClose.length > 0 && (
+          <RemoveCollectionsModal collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
+        )}
       </div>
     </StyledWrapper>
   );

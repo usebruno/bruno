@@ -48,6 +48,7 @@ const lightTheme = {
     muted: '#4b5563',
     bg: '#F3F3F3',
     dragbar: 'rgb(200, 200, 200)',
+    bottomBorder: '#d3d3d3',
 
     badge: {
       bg: '#e1e1e1'
@@ -261,7 +262,7 @@ const lightTheme = {
   requestTabs: {
     color: 'rgb(52, 52, 52)',
     bg: '#f7f7f7',
-    bottomBorder: '#efefef',
+    bottomBorder: '#d3d3d3',
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(76 76 76)',

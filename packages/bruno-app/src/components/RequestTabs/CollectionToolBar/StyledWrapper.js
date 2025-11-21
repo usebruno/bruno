@@ -2,8 +2,8 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .header-container {
-    min-height: 47px;
-    border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
+    height: 46px;
+    background: ${(props) => props.theme.sidebar.bg};
     
     .action-icon {
       display: flex;

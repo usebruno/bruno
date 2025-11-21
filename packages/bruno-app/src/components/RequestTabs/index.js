@@ -78,17 +78,17 @@ const RequestTabs = () => {
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center pl-4 w-full overflow-hidden">
+          <div className="flex items-center px-3 w-full overflow-hidden tabs-bar">
             <ul role="tablist">
               <li className="select-none short-tab" onClick={leftSlide}>
                 <div className="flex items-center">
-                  <IconChevronLeft size={18} strokeWidth={1.5} />
+                  <IconChevronLeft size={16} strokeWidth={1.5} />
                 </div>
               </li>
               {/* Moved to post mvp */}
               {/* <li className="select-none new-tab mr-1" onClick={createNewTab}>
                 <div className="flex items-center home-icon-container">
-                  <IconHome2 size={18} strokeWidth={1.5}/>
+                  <IconHome2 size={16} strokeWidth={1.5}/>
                 </div>
               </li> */}
             </ul>
@@ -126,15 +126,15 @@ const RequestTabs = () => {
             <ul role="tablist">
               <li className="select-none short-tab" onClick={rightSlide}>
                 <div className="flex items-center">
-                  <IconChevronRight size={18} strokeWidth={1.5} />
+                  <IconChevronRight size={16} strokeWidth={1.5} />
                 </div>
               </li>
               <li className="select-none short-tab" id="create-new-tab" onClick={createNewTab}>
                 <div className="flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="22"
-                    height="22"
+                    width="16"
+                    height="16"
                     fill="currentColor"
                     viewBox="0 0 16 16"
                   >

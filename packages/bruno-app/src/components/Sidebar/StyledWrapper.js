@@ -31,28 +31,27 @@ const Wrapper = styled.div`
 
     .collection-filter {
       input {
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: ${(props) => props.theme.sidebar.search.border};
         border-radius: 4px;
-        background-color: rgba(0, 0, 0, 0.2);
+        background-color: ${(props) => props.theme.sidebar.search.bg};
         padding: 0.375rem 2rem 0.375rem 2rem;
         transition: all 0.2s ease;
         font-size: 0.8125rem;
         color: ${(props) => props.theme.sidebar.color};
 
         &::placeholder {
-          color: ${(props) => props.theme.sidebar.color};
+          color: ${(props) => props.theme.sidebar.muted};
           opacity: 0.5;
         }
 
         &:focus {
           outline: none;
-          background-color: rgba(0, 0, 0, 0.3);
-          border-color: rgba(255, 255, 255, 0.15);
+          background-color: ${(props) => props.theme.sidebar.search.bg};
+          border-color: ${(props) => props.theme.sidebar.dropdownIcon.color};
         }
 
         &:hover {
-          background-color: rgba(0, 0, 0, 0.25);
-          border-color: rgba(255, 255, 255, 0.12);
+          border-color: ${(props) => props.theme.sidebar.dropdownIcon.color};
         }
       }
     }
@@ -69,10 +68,16 @@ const Wrapper = styled.div`
     right: -3px;
     transition: opacity 0.2s ease;
 
+    div.drag-request-border {
+      width: 1px;
+      height: 100%;
+      background-color: ${(props) => props.theme.requestTabs.bottomBorder};
+      transition: all 0.2s ease;
+    }
+
     &:hover div.drag-request-border {
       width: 2px;
-      height: 100%;
-      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar};
+      background-color: ${(props) => props.theme.sidebar.dragbar};
     }
   }
 `;
