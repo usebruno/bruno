@@ -4,10 +4,11 @@ import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { responseCleared } from 'providers/ReduxStore/slices/collections/index';
 
-const ResponseClear = ({ collection, item }) => {
+const ResponseClear = ({ collection, item, asDropdownItem, onClose }) => {
   const dispatch = useDispatch();
 
-  const clearResponse = () =>
+  const clearResponse = () => {
+    if (onClose) onClose();
     dispatch(
       responseCleared({
         itemUid: item.uid,
@@ -15,6 +16,16 @@ const ResponseClear = ({ collection, item }) => {
         response: null
       })
     );
+  };
+
+  if (asDropdownItem) {
+    return (
+      <div className="dropdown-item" onClick={clearResponse}>
+        <IconEraser size={16} strokeWidth={1.5} className="icon mr-2" />
+        Clear
+      </div>
+    );
+  }
 
   return (
     <StyledWrapper className="ml-2 flex items-center">
