@@ -51,7 +51,7 @@ const simpleTranslations = {
   // Environment variables
   'pm.environment.get': 'bru.getEnvVar',
   'pm.environment.set': 'bru.setEnvVar',
-  'pm.environment.name': 'bru.getEnvName()',
+  'pm.environment.name': 'bru.environment.getEnvName()',
   'pm.environment.unset': 'bru.deleteEnvVar',
   
   // Variables
