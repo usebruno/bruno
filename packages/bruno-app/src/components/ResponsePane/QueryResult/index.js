@@ -8,8 +8,29 @@ import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
 import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
-import { getEncoding, uuid } from 'utils/common/index';
+import { detectContentTypeFromBuffer, getEncoding } from 'utils/common/index';
 import LargeResponseWarning from '../LargeResponseWarning';
+import QueryResultTypeSelector from './QueryResultTypeSelector/index';
+
+const PREVIEW_FORMAT_OPTIONS = [
+  {
+    // name: 'Structured',
+    options: [
+      { label: 'JSON', value: 'json', codeMirrorMode: 'application/ld+json' },
+      { label: 'HTML', value: 'html', codeMirrorMode: 'xml' },
+      { label: 'XML', value: 'xml', codeMirrorMode: 'xml' },
+      { label: 'JavaScript', value: 'javascript', codeMirrorMode: 'javascript' }
+    ]
+  },
+  {
+    // name: 'Raw',
+    options: [
+      { label: 'Raw', value: 'raw', codeMirrorMode: 'text/plain' },
+      { label: 'Hex', value: 'hex', codeMirrorMode: 'text/plain' },
+      { label: 'Base64', value: 'base64', codeMirrorMode: 'text/plain' }
+    ]
+  }
+];
 
 const formatErrorMessage = (error) => {
   if (!error) return 'Something went wrong';
@@ -25,12 +46,45 @@ const formatErrorMessage = (error) => {
 };
 
 const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListener, headers, error }) => {
+  let buffer = null;
+  try {
+    buffer = Buffer.from(dataBuffer, 'base64'); // dataBuffer is already a base64 string, convert it to actual Buffer
+  } catch (error) {
+    console.error('Error converting dataBuffer to Buffer:', error);
+    buffer = null;
+  }
+  const detectedContentType = detectContentTypeFromBuffer(buffer);
   const contentType = getContentType(headers);
-  const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const responseEncoding = getEncoding(headers);
   const { displayedTheme } = useTheme();
+  const [selectedFormat, setSelectedFormat] = useState('raw');
+  const [selectedTab, setSelectedTab] = useState('editor');
+  const [isInitialRun, setIsInitialRun] = useState(true);
+  const [previewFormatOptions, setPreviewFormatOptions] = useState(PREVIEW_FORMAT_OPTIONS);
+
+  useEffect(() => {
+    const byteFormatTypes = ['image', 'video', 'audio', 'pdf', 'zip'];
+
+    const isByteFormatType = (contentType) => {
+      return byteFormatTypes.some((type) => contentType.includes(type));
+    };
+
+    const updatePreviewFormatOptionsBasedOnContentType = (contentType) => {
+      if (isByteFormatType(contentType)) {
+        setPreviewFormatOptions(PREVIEW_FORMAT_OPTIONS.slice(1, 2)); // Remove structured format options
+      } else {
+        setPreviewFormatOptions(PREVIEW_FORMAT_OPTIONS);
+      }
+    };
+
+    if (detectedContentType) {
+      updatePreviewFormatOptionsBasedOnContentType(detectedContentType);
+    } else { // If no detected content type, fallback to content type to determine format options
+      updatePreviewFormatOptionsBasedOnContentType(contentType);
+    }
+  }, [detectedContentType, contentType]);
 
   const responseSize = useMemo(() => {
     const response = item.response || {};
@@ -51,70 +105,96 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
 
   const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
 
+  // Determine initial format based on content type (only runs once)
+  const getInitialFormat = (_contentType) => {
+    if (_contentType.includes('html')) return { format: 'html', tab: 'preview' };
+    if (_contentType.includes('json')) return { format: 'json', tab: 'editor' };
+    if (_contentType.includes('xml')) return { format: 'xml', tab: 'editor' };
+    if (_contentType.includes('javascript')) return { format: 'javascript', tab: 'editor' };
+    if (_contentType.includes('image')) return { format: 'base64', tab: 'preview' };
+    if (_contentType.includes('pdf')) return { format: 'base64', tab: 'preview' };
+    if (_contentType.includes('audio')) return { format: 'base64', tab: 'preview' };
+    if (_contentType.includes('video')) return { format: 'base64', tab: 'preview' };
+    if (_contentType.includes('text')) return { format: 'raw', tab: 'editor' };
+
+    // for all other content types, return raw
+    return { format: 'raw', tab: 'editor' };
+  };
+
+  // Initialize format and tab only once when data loads
+  useEffect(() => {
+    if (isInitialRun && (detectedContentType !== undefined && contentType !== undefined)) {
+      const initial = getInitialFormat(contentType);
+      setSelectedFormat(initial.format);
+      setSelectedTab(initial.tab);
+      setIsInitialRun(false);
+    }
+  }, [contentType, isInitialRun, detectedContentType]);
+
   const formattedData = useMemo(
     () => {
       if (isLargeResponse && !showLargeResponse) {
         return '';
       }
-      return formatResponse(data, dataBuffer, mode, filter);
+      return formatResponse(data, dataBuffer, selectedFormat, filter);
     },
-    [data, dataBuffer, responseEncoding, mode, filter, isLargeResponse, showLargeResponse]
+    [data, dataBuffer, responseEncoding, selectedFormat, filter, isLargeResponse, showLargeResponse]
   );
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
   }, 250);
 
-  const allowedPreviewModes = useMemo(() => {
-    // Always show raw
-    const allowedPreviewModes = [{ mode: 'raw', name: 'Raw', uid: uuid() }];
+  const previewMode = useMemo(() => {
+    // Derive preview mode based on selected format
+    if (selectedFormat === 'html') return 'preview-web';
+    if (selectedFormat === 'json') return 'preview-json';
+    if (selectedFormat === 'xml') return 'preview-xml';
+    if (selectedFormat === 'raw') return 'preview-text';
+    if (selectedFormat === 'javascript') return 'preview-web';
 
-    if (!mode || !contentType) return allowedPreviewModes;
-
-    if (mode?.includes('html') && typeof data === 'string') {
-      allowedPreviewModes.unshift({ mode: 'preview-web', name: 'Web', uid: uuid() });
-    } else if (mode.includes('image')) {
-      allowedPreviewModes.unshift({ mode: 'preview-image', name: 'Image', uid: uuid() });
-    } else if (contentType.includes('pdf')) {
-      allowedPreviewModes.unshift({ mode: 'preview-pdf', name: 'PDF', uid: uuid() });
-    } else if (contentType.includes('audio')) {
-      allowedPreviewModes.unshift({ mode: 'preview-audio', name: 'Audio', uid: uuid() });
-    } else if (contentType.includes('video')) {
-      allowedPreviewModes.unshift({ mode: 'preview-video', name: 'Video', uid: uuid() });
+    // For base64/hex, check content type to determine binary preview type
+    if (selectedFormat === 'base64' || selectedFormat === 'hex') {
+      if (detectedContentType) {
+        if (detectedContentType.includes('image')) return 'preview-image';
+        if (detectedContentType.includes('pdf')) return 'preview-pdf';
+        if (detectedContentType.includes('audio')) return 'preview-audio';
+        if (detectedContentType.includes('video')) return 'preview-video';
+      }
+      // for all other content types, return preview-text
+      return 'preview-text';
     }
+  }, [selectedFormat, contentType, dataBuffer]);
 
-    return allowedPreviewModes;
-  }, [mode, data, formattedData]);
 
-  const [previewTab, setPreviewTab] = useState(allowedPreviewModes[0]);
-  // Ensure the active Tab is always allowed
-  useEffect(() => {
-    if (!allowedPreviewModes.find((previewMode) => previewMode?.uid == previewTab?.uid)) {
-      setPreviewTab(allowedPreviewModes[0]);
-    }
-  }, [previewTab, allowedPreviewModes]);
+  const codeMirrorMode = useMemo(() => {
+    return previewFormatOptions
+      .flatMap((option) => option.options)
+      .find((option) => option.value === selectedFormat)?.codeMirrorMode || 'application/text';
+  }, [selectedFormat, previewFormatOptions]);
+
+  // User explicitly changes format - switch to editor tab to show the formatted data
+  const handleFormatChange = (newFormat) => {
+    setSelectedFormat(newFormat);
+  };
+
+  const onPreviewTabSelect = () => {
+    setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
+  };
 
   const tabs = useMemo(() => {
-    if (allowedPreviewModes.length === 1) {
-      return null;
-    }
+    return (
+      <QueryResultTypeSelector
+        formatOptions={previewFormatOptions}
+        formatValue={selectedFormat}
+        onFormatChange={handleFormatChange}
+        onPreviewTabSelect={onPreviewTabSelect}
+        selectedTab={selectedTab}
+      />
+    );
+  }, [selectedFormat, selectedTab]);
 
-    return allowedPreviewModes.map((previewMode) => (
-      <div
-        className={classnames(
-          'select-none capitalize',
-          previewMode?.uid === previewTab?.uid ? 'active' : 'cursor-pointer'
-        )}
-        role="tab"
-        onClick={() => setPreviewTab(previewMode)}
-        key={previewMode?.uid}
-      >
-        {previewMode?.name}
-      </div>
-    ));
-  }, [allowedPreviewModes, previewTab]);
-
-  const queryFilterEnabled = useMemo(() => mode.includes('json'), [mode]);
+  const queryFilterEnabled = useMemo(() => codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor', [codeMirrorMode, selectedFormat, selectedTab]);
   const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
@@ -147,21 +227,23 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
       ) : (
         <div className="h-full flex flex-col">
           <div className="flex-1 relative">
-            <QueryResultPreview
-              previewTab={previewTab}
-              data={data}
-              dataBuffer={dataBuffer}
-              formattedData={formattedData}
-              item={item}
-              contentType={contentType}
-              mode={mode}
-              collection={collection}
-              allowedPreviewModes={allowedPreviewModes}
-              disableRunEventListener={disableRunEventListener}
-              displayedTheme={displayedTheme}
-            />
+            <div className="absolute top-0 left-0 h-full w-full bg-[#f3f3f3] dark:bg-[#262626]" data-testid="response-preview-container">
+              <QueryResultPreview
+                selectedTab={selectedTab}
+                data={data}
+                dataBuffer={dataBuffer}
+                formattedData={formattedData}
+                item={item}
+                contentType={contentType}
+                previewMode={previewMode}
+                codeMirrorMode={codeMirrorMode}
+                collection={collection}
+                disableRunEventListener={disableRunEventListener}
+                displayedTheme={displayedTheme}
+              />
+            </div>
             {queryFilterEnabled && (
-              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={codeMirrorMode} />
             )}
           </div>
         </div>

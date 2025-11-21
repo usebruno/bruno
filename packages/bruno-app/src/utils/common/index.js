@@ -4,6 +4,8 @@ import { JSONPath } from 'jsonpath-plus';
 import fastJsonFormat from 'fast-json-format';
 import { format, applyEdits } from 'jsonc-parser';
 import { patternHasher } from '@usebruno/common/utils';
+import prettierFormat from 'prettier/standalone';
+import parserBabel from 'prettier/parser-babel';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -101,6 +103,8 @@ export const getContentType = (headers) => {
   const SVG_PATTERN = /^image\/svg/i;
   // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
   const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
+  // This pattern matches JavaScript content types: application/javascript, text/javascript, application/ecmascript, text/ecmascript
+  const JAVASCRIPT_PATTERN = /^(application|text)\/(javascript|ecmascript)/i;
 
   if (JSON_PATTERN.test(contentType)) {
     return 'application/ld+json';
@@ -108,6 +112,8 @@ export const getContentType = (headers) => {
     return 'image/svg+xml';
   } else if (XML_PATTERN.test(contentType)) {
     return 'application/xml';
+  } else if (JAVASCRIPT_PATTERN.test(contentType)) {
+    return 'application/javascript';
   }
 
   return contentType;
@@ -266,6 +272,117 @@ const applyJSONPathFilter = (data, filter) => {
   }
 };
 
+/**
+ * Detects content type from buffer by checking magic numbers (file signatures)
+ * @param {Buffer} buffer - The data buffer to analyze
+ * @returns {string|null} - Detected MIME type or null
+ */
+export const detectContentTypeFromBuffer = (buffer) => {
+  if (!buffer || buffer.length < 4) {
+    return null;
+  }
+
+  // Get first few bytes for magic number checking
+  const bytes = buffer.subarray(0, 12);
+
+  // Image formats
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+    return 'image/jpeg';
+  }
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+    return 'image/png';
+  }
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+    return 'image/gif';
+  }
+  if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+    return 'image/webp';
+  }
+  if (bytes[0] === 0x42 && bytes[1] === 0x4D) {
+    return 'image/bmp';
+  }
+  if ((bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2A && bytes[3] === 0x00)
+    || (bytes[0] === 0x4D && bytes[1] === 0x4D && bytes[2] === 0x00 && bytes[3] === 0x2A)) {
+    return 'image/tiff';
+  }
+  if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) {
+    return 'image/x-icon';
+  }
+
+  // PDF
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+    return 'application/pdf';
+  }
+
+  // Video formats
+  if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x00
+    && (bytes[3] === 0x18 || bytes[3] === 0x20)
+    && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    return 'video/mp4';
+  }
+  if ((bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3)) {
+    return 'video/webm';
+  }
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    && bytes[8] === 0x41 && bytes[9] === 0x56 && bytes[10] === 0x49 && bytes[11] === 0x20) {
+    return 'video/x-msvideo'; // AVI
+  }
+
+  // Audio formats
+  if (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) {
+    return 'audio/mpeg'; // MP3
+  }
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    && bytes[8] === 0x57 && bytes[9] === 0x41 && bytes[10] === 0x56 && bytes[11] === 0x45) {
+    return 'audio/wav';
+  }
+  if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+    return 'audio/ogg';
+  }
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70
+    && bytes[8] === 0x4D && bytes[9] === 0x34 && bytes[10] === 0x41) {
+    return 'audio/m4a';
+  }
+
+  // Archive formats
+  if (bytes[0] === 0x50 && bytes[1] === 0x4B
+    && (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07)) {
+    return 'application/zip';
+  }
+  if (bytes[0] === 0x1F && bytes[1] === 0x8B) {
+    return 'application/gzip';
+  }
+
+  // Check if it's likely text (UTF-8)
+  if (isLikelyText(buffer.slice(0, Math.min(512, buffer.length)))) {
+    return 'text/plain';
+  }
+
+  return null;
+};
+
+/**
+ * Helper to detect if buffer contains text data
+ */
+const isLikelyText = (buffer) => {
+  let textChars = 0;
+  const sampleSize = Math.min(buffer.length, 512);
+
+  for (let i = 0; i < sampleSize; i++) {
+    const byte = buffer[i];
+    // Check for common text characters (printable ASCII + common control chars)
+    if ((byte >= 0x20 && byte <= 0x7E) // Printable ASCII
+      || byte === 0x09 // Tab
+      || byte === 0x0A // Line feed
+      || byte === 0x0D) { // Carriage return
+      textChars++;
+    }
+  }
+
+  // If more than 85% are text characters, likely text
+  return (textChars / sampleSize) > 0.85;
+};
+
 export const formatResponse = (data, dataBufferString, mode, filter, bufferThreshold = LARGE_BUFFER_THRESHOLD) => {
   if (data === undefined || !dataBufferString || !mode) {
     return '';
@@ -318,6 +435,105 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
     return safeStringifyJSON(parsed, true);
   }
 
+  if (mode.includes('html')) {
+    if (isVeryLargeResponse) {
+      if (typeof data === 'string') {
+        return data;
+      }
+      if (data === null || data === undefined) {
+        return String(data);
+      }
+      if (typeof data === 'object') {
+        return safeStringifyJSON(data, false);
+      }
+      return String(data);
+    }
+
+    // Get HTML string from rawData
+    let htmlString = rawData;
+    // Prettify HTML
+    try {
+      return prettifyHtmlString(htmlString);
+    } catch (error) {
+      return htmlString;
+    }
+  }
+
+  if (mode.includes('javascript')) {
+    if (isVeryLargeResponse) {
+      if (typeof data === 'string') {
+        return data;
+      }
+      if (data === null || data === undefined) {
+        return String(data);
+      }
+      if (typeof data === 'object') {
+        return safeStringifyJSON(data, false);
+      }
+      return String(data);
+    }
+
+    // Get JavaScript string from rawData
+    let jsString = rawData;
+
+    // Prettify JavaScript
+    try {
+      return prettifyJavaScriptString(jsString);
+    } catch (error) {
+      return jsString;
+    }
+  }
+
+  // Handle hex format - return hex representation
+  if (mode.includes('hex')) {
+    // Check if data is already in hex format
+    if (typeof data === 'string' && isHexFormat(data)) {
+      // Data is already in hex format, return it as-is
+      return data;
+    }
+
+    // Data is not in hex format, encode it to hex
+    try {
+      const dataBuffer = Buffer.from(dataBufferString, 'base64');
+      const hexView = formatHexView(dataBuffer);
+      return hexView;
+    } catch (error) {
+      // If buffer conversion fails, try to encode the string data directly
+      if (typeof data === 'string') {
+        try {
+          const stringBuffer = Buffer.from(data, 'utf8');
+          return formatHexView(stringBuffer);
+        } catch (stringError) {
+          return '';
+        }
+      }
+      return '';
+    }
+  }
+
+  // Handle base64 format - return base64 string as-is
+  if (mode.includes('base64')) {
+    return dataBufferString;
+  }
+
+  // Handle raw format - return data as-is without any formatting
+  if (mode.includes('text') || mode.includes('raw')) {
+    if (isVeryLargeResponse) {
+      if (typeof data === 'string') {
+        return data;
+      }
+      if (data === null || data === undefined) {
+        return String(data);
+      }
+      if (typeof data === 'object') {
+        return safeStringifyJSON(data, false);
+      }
+      return String(data);
+    }
+    // Return the raw decoded buffer data
+    return rawData;
+  }
+
   if (typeof data === 'string') {
     return data;
   }
@@ -340,3 +556,181 @@ export const prettifyJsonString = (jsonDataString) => {
   }
   return jsonDataString;
 };
+
+// Simple HTML formatter that indents HTML properly
+export function prettifyHtmlString(htmlString) {
+  if (typeof htmlString !== 'string') return htmlString;
+
+  try {
+    // Use xml-formatter which works well for HTML
+    return xmlFormat(htmlString, {
+      collapseContent: true,
+      lineSeparator: '\n',
+      whiteSpaceAtEndOfSelfClosingTag: true
+    });
+  } catch (error) {
+    console.log('error formatting html data!');
+    console.error(error);
+    // Fallback: return original string if formatting fails
+    return htmlString;
+  }
+};
+
+// Simple JavaScript formatter that uses prettier
+export function prettifyJavaScriptString(jsString) {
+  if (typeof jsString !== 'string') return jsString;
+
+  try {
+    return prettierFormat.format(jsString, {
+      parser: 'babel',
+      plugins: [parserBabel],
+      semi: true,
+      singleQuote: true,
+      tabWidth: 2,
+      trailingComma: 'none',
+      printWidth: 120
+    });
+  } catch (error) {
+    // If prettier fails, return the original string
+    return jsString;
+  }
+};
+
+// Safe HTML escaping for webview content
+export const escapeHtml = (text) => {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
+// Check if string contains valid HTML structure
+export const isValidHtml = (str) => {
+  if (typeof str !== 'string' || !str.trim()) return false;
+  return /<\s*html[\s>]/i.test(str);
+};
+
+export const isValidHtmlSnippet = (snippet) => {
+  if (!snippet || typeof snippet !== 'string') {
+    return false;
+  }
+
+  const trimmed = snippet.trim();
+
+  // Check for XML declaration
+  if (trimmed.startsWith('<?xml')) {
+    return false;
+  }
+
+  // Check for XML namespaces
+  if (/xmlns(:\w+)?=/.test(trimmed)) {
+    return false;
+  }
+
+  // Extract all tag names from the snippet
+  const tagMatches = trimmed.matchAll(/<\s*\/?([a-zA-Z][a-zA-Z0-9]*)/g);
+  const tags = [...tagMatches].map((match) => match[1].toLowerCase());
+
+  if (tags.length === 0) {
+    return false; // No tags found
+  }
+
+  // Define recognized HTML tags
+  const validHtmlTags = new Set([
+    'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
+    'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button',
+    'canvas', 'caption', 'cite', 'code', 'col', 'colgroup',
+    'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt',
+    'em', 'embed',
+    'fieldset', 'figcaption', 'figure', 'footer', 'form',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html',
+    'i', 'iframe', 'img', 'input', 'ins',
+    'kbd',
+    'label', 'legend', 'li', 'link',
+    'main', 'map', 'mark', 'meta', 'meter',
+    'nav', 'noscript',
+    'object', 'ol', 'optgroup', 'option', 'output',
+    'p', 'param', 'picture', 'pre', 'progress',
+    'q',
+    'rp', 'rt', 'ruby',
+    's', 'samp', 'script', 'section', 'select', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'svg',
+    'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track',
+    'u', 'ul',
+    'var', 'video',
+    'wbr'
+  ]);
+
+  // Check if all tags are valid HTML tags
+  const allTagsValid = tags.every((tag) => validHtmlTags.has(tag));
+
+  if (!allTagsValid) {
+    return false; // Contains non-HTML tags
+  }
+
+  try {
+    // Parse with DOMParser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(trimmed, 'text/html');
+
+    // Check for parsing errors
+    const parseError = doc.querySelector('parsererror');
+    if (parseError) {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+export function formatHexView(buffer) {
+  const width = 16;
+  let output = '';
+
+  for (let i = 0; i < buffer.length; i += width) {
+    const slice = buffer.slice(i, i + width);
+    const hex = Array.from(slice)
+      .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+      .join(' ');
+    const ascii = Array.from(slice)
+      .map((b) => (b >= 32 && b <= 126 ? String.fromCharCode(b) : '.'))
+      .join('');
+
+    output += `${i.toString(16).padStart(8, '0')}: ${hex.padEnd(48)} ${ascii}\n`;
+  }
+
+  return output;
+}
+
+// Function to detect if a string is already in hex format
+// Checks if the string looks like hex dump format (with addresses and ASCII) or plain hex
+export function isHexFormat(str) {
+  if (typeof str !== 'string' || !str.trim()) {
+    return false;
+  }
+
+  const trimmed = str.trim();
+
+  // Check for hex dump format (e.g., "00000000: 48 65 6C 6C 6F 20 57 6F 72 6C 64 21 00 00 00 00  Hello World!....")
+  const hexDumpPattern = /^[0-9a-fA-F]{8}:\s+([0-9a-fA-F]{2}\s+){1,16}/m;
+  if (hexDumpPattern.test(trimmed)) {
+    return true;
+  }
+
+  // Check for plain hex string (only hex characters, possibly with spaces)
+  // Remove spaces and check if all characters are hex
+  const hexOnly = trimmed.replace(/\s+/g, '');
+  if (hexOnly.length > 0 && /^[0-9a-fA-F]+$/i.test(hexOnly)) {
+    // Make sure it's not too short (could be a regular number) and has even length
+    // or is a reasonable hex representation
+    if (hexOnly.length >= 4 && hexOnly.length % 2 === 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
