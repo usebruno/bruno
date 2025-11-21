@@ -129,7 +129,14 @@ export default class QueryEditor extends React.Component {
           }
         },
         'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent'
+        'Ctrl-F': 'findPersistent',
+        // Pass through tab navigation shortcuts to global handlers
+        'Cmd-W': () => CodeMirror.Pass,
+        'Ctrl-W': () => CodeMirror.Pass,
+        'Cmd-PageUp': () => CodeMirror.Pass,
+        'Ctrl-PageUp': () => CodeMirror.Pass,
+        'Cmd-PageDown': () => CodeMirror.Pass,
+        'Ctrl-PageDown': () => CodeMirror.Pass
       }
     }));
     if (editor) {
