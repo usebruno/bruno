@@ -49,6 +49,7 @@ const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
+const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
@@ -1059,19 +1060,57 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
         mergeVars(collection, requestCopy, requestTreePath);
         const globalEnvironmentVariables = collection.globalEnvironmentVariables;
-
+        const promptVariables = collection.promptVariables;
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const certsAndProxyConfig = await getCertsAndProxyConfig({
-          collectionUid,
-          collection,
-          request: requestCopy,
-          envVars,
-          runtimeVariables,
-          processEnvVars,
-          collectionPath,
-          globalEnvironmentVariables
-        });
-        const { oauth2: { grantType } } = requestCopy || {};
+        const { oauth2: { grantType, accessTokenUrl, refreshTokenUrl } } = requestCopy || {};
+
+        // For OAuth2 token requests, use accessTokenUrl for cert/proxy config instead of main request URL
+        let certsAndProxyConfigForTokenUrl = null;
+        let certsAndProxyConfigForRefreshUrl = null;
+
+        if (accessTokenUrl && grantType !== 'implicit') {
+          const interpolatedTokenUrl = interpolateString(accessTokenUrl, {
+            globalEnvironmentVariables,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            promptVariables
+          });
+          let tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
+          certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
+            collectionUid,
+            collection,
+            request: tokenRequestForConfig,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath,
+            globalEnvironmentVariables
+          });
+        }
+
+        // For refresh token requests, use refreshTokenUrl if available, otherwise accessTokenUrl
+        const tokenUrlForRefresh = refreshTokenUrl || accessTokenUrl;
+        if (tokenUrlForRefresh && grantType !== 'implicit') {
+          const interpolatedRefreshUrl = interpolateString(tokenUrlForRefresh, {
+            globalEnvironmentVariables,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            promptVariables
+          });
+          let refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+          certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
+            collectionUid,
+            collection,
+            request: refreshRequestForConfig,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath,
+            globalEnvironmentVariables
+          });
+        }
 
         const handleOAuth2Response = (response) => {
           if (response.error && !response.debugInfo) {
@@ -1087,7 +1126,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
             }).then(handleOAuth2Response);
 
           case 'client_credentials':
@@ -1096,7 +1136,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
             }).then(handleOAuth2Response);
 
           case 'password':
@@ -1105,7 +1146,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
             }).then(handleOAuth2Response);
 
           case 'implicit':
@@ -1195,18 +1237,33 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         const globalEnvironmentVariables = collection.globalEnvironmentVariables;
 
-        const certsAndProxyConfig = await getCertsAndProxyConfig({
-          collectionUid,
-          collection,
-          request: requestCopy,
-          envVars,
-          runtimeVariables,
-          processEnvVars,
-          collectionPath,
-          globalEnvironmentVariables
-        });
+        // For refresh token requests, use refreshTokenUrl if available, otherwise accessTokenUrl
+        const { oauth2: { refreshTokenUrl, accessTokenUrl } } = requestCopy || {};
+        const tokenUrl = refreshTokenUrl || accessTokenUrl;
 
-        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+        let certsAndProxyConfigForRefreshUrl = null;
+        if (tokenUrl) {
+          const interpolatedRefreshUrl = interpolateString(tokenUrl, {
+            globalEnvironmentVariables,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            promptVariables: collection.promptVariables
+          });
+          let refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+          certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
+            collectionUid,
+            collection,
+            request: refreshRequestForConfig,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath,
+            globalEnvironmentVariables
+          });
+        }
+
+        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig: certsAndProxyConfigForRefreshUrl });
         return { credentials, url, collectionUid, credentialsId, debugInfo };
       }
     } catch (error) {
