@@ -1719,19 +1719,6 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
 };
 
 /**
- * Helper: Execute update action with toast notification
- * @param {Function} action - The action to dispatch
- * @param {string} successMessage - Success toast message
- * @returns {Promise}
- */
-const executeVariableUpdate = (dispatch, action, successMessage) => {
-  return action
-    .then(() => {
-      toast.success(successMessage);
-    });
-};
-
-/**
  * Update a variable value in its detected scope (inline editing)
  * @param {string} variableName - Name of the variable to update
  * @param {string} newValue - New value for the variable
@@ -1774,12 +1761,12 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Variable not found'));
           }
 
-          const updatedVariables = environment.variables.map((v) => (v.name === variableName ? { ...v, value: newValue } : v));
+          const updatedVariables = environment.variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v));
 
-          const updatePromise = dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid));
-          const successMessage = `Variable "${variableName}" updated`;
-
-          return executeVariableUpdate(dispatch, updatePromise, successMessage)
+          return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
+            .then(() => {
+              toast.success(`Variable "${variableName}" updated`);
+            })
             .then(resolve)
             .catch(reject);
         }
@@ -1877,13 +1864,19 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Global environment not found'));
           }
 
+          const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
+
+          if (!variable) {
+            return reject(new Error('Variable not found'));
+          }
+
           const updatedVariables = environment.variables.map((v) =>
-            v.name === variableName ? { ...v, value: newValue } : v);
+            v.uid === variable.uid ? { ...v, value: newValue } : v);
 
-          const updatePromise = dispatch(saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid }));
-          const successMessage = `Variable "${variableName}" updated`;
-
-          return executeVariableUpdate(dispatch, updatePromise, successMessage)
+          return dispatch(saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid }))
+            .then(() => {
+              toast.success(`Variable "${variableName}" updated`);
+            })
             .then(resolve)
             .catch(reject);
         }

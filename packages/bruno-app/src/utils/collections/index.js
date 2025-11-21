@@ -1280,9 +1280,13 @@ const mergeVars = (collection, requestTreePath = []) => {
     }
   });
   for (let i of requestTreePath) {
+    if (!i) {
+      continue;
+    }
+
     if (i.type === 'folder') {
       // Check draft first, then fall back to root
-      const folderRoot = i?.draft || i?.root;
+      const folderRoot = i.draft || i.root;
       let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
@@ -1290,7 +1294,7 @@ const mergeVars = (collection, requestTreePath = []) => {
         }
       });
     } else {
-      let vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
+      let vars = i.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           requestVariables[_var.name] = _var.value;
@@ -1539,9 +1543,13 @@ export const getVariableScope = (variableName, collection, item) => {
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   for (let i = requestTreePath.length - 1; i >= 0; i--) {
     const pathItem = requestTreePath[i];
+    if (!pathItem) {
+      continue;
+    }
+
     if (pathItem.type === 'folder') {
       // Check draft first, then fall back to root
-      const folderRoot = pathItem?.draft || pathItem?.root;
+      const folderRoot = pathItem.draft || pathItem.root;
       const folderVars = get(folderRoot, 'request.vars.req', []);
       const folderVar = folderVars.find((v) => v.name === variableName && v.enabled);
       if (folderVar) {
@@ -1571,7 +1579,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 4. Check Collection Variables
   // Check draft first, then fall back to root
-  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionRoot = (collection.draft && collection.draft.root) || collection.root || {};
   const collectionVars = get(collectionRoot, 'request.vars.req', []);
   const collectionVar = collectionVars.find((v) => v.name === variableName && v.enabled);
   if (collectionVar) {
