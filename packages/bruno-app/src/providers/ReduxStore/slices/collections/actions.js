@@ -47,7 +47,13 @@ import {
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
   saveCollectionDraft,
-  saveFolderDraft
+  saveFolderDraft,
+  addVar,
+  updateVar,
+  addFolderVar,
+  updateFolderVar,
+  addCollectionVar,
+  updateCollectionVar
 } from './index';
 
 import { each } from 'lodash';
@@ -1713,58 +1719,6 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
 };
 
 /**
- * Update a variable value directly in the file without affecting draft state
- * @param {string} pathname - File path
- * @param {Object} variable - Variable object with uid, name, value, type, enabled
- * @param {string} scopeType - Type of scope ('request', 'folder', 'collection')
- * @param {string} collectionUid - Collection UID
- * @param {string} itemUid - Item/Folder UID (for request/folder)
- */
-const updateVariableInFile = (pathname, variable, scopeType, collectionUid, itemUid) => (dispatch) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-
-    ipcRenderer
-      .invoke('renderer:update-variable-in-file', pathname, variable, scopeType)
-      .then(() => {
-        // Update Redux state to reflect the change
-        if (scopeType === 'request') {
-          dispatch({
-            type: 'collections/updateRequestVarValue',
-            payload: { collectionUid, itemUid, variable }
-          });
-        } else if (scopeType === 'folder') {
-          dispatch({
-            type: 'collections/updateFolderVarValue',
-            payload: { collectionUid, folderUid: itemUid, variable }
-          });
-        } else if (scopeType === 'collection') {
-          dispatch({
-            type: 'collections/updateCollectionVarValue',
-            payload: { collectionUid, variable }
-          });
-        }
-
-        resolve();
-      })
-      .catch(reject);
-  });
-};
-
-/**
- * Helper: Execute update action with toast notification
- * @param {Function} action - The action to dispatch
- * @param {string} successMessage - Success toast message
- * @returns {Promise}
- */
-const executeVariableUpdate = (dispatch, action, successMessage) => {
-  return dispatch(action)
-    .then(() => {
-      toast.success(successMessage);
-    });
-};
-
-/**
  * Update a variable value in its detected scope (inline editing)
  * @param {string} variableName - Name of the variable to update
  * @param {string} newValue - New value for the variable
@@ -1799,54 +1753,101 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
         return reject(new Error('Collection not found'));
       }
 
-      let updatePromise;
-      let successMessage;
-
       switch (type) {
         case 'environment': {
           const { environment, variable } = data;
-          const updatedVariables = variable
-            ? environment.variables.map((v) => (v.name === variableName ? { ...v, value: newValue } : v))
-            : [...environment.variables, { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true }];
 
-          updatePromise = saveEnvironment(updatedVariables, environment.uid, collectionUid);
-          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
-          break;
+          if (!variable) {
+            return reject(new Error('Variable not found'));
+          }
+
+          const updatedVariables = environment.variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v));
+
+          return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
+            .then(() => {
+              toast.success(`Variable "${variableName}" updated`);
+            })
+            .then(resolve)
+            .catch(reject);
         }
 
         case 'collection': {
-          const { collection: scopeCollection, variable } = data;
-          const variableToSave = variable
-            ? { ...variable, value: newValue }
-            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
+          const { variable } = data;
 
-          const collectionFilePath = path.join(scopeCollection.pathname, 'collection.bru');
-          updatePromise = updateVariableInFile(collectionFilePath, variableToSave, 'collection', collectionUid, null);
-          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
-          break;
+          if (variable) {
+            // Update existing variable in draft
+            dispatch(updateCollectionVar({
+              collectionUid,
+              type: 'request',
+              var: { ...variable, value: newValue }
+            }));
+          } else {
+            // Create new variable in draft with actual values
+            dispatch(addCollectionVar({
+              collectionUid,
+              type: 'request',
+              var: { name: variableName, value: newValue, enabled: true }
+            }));
+          }
+
+          // Save collection root to persist the changes
+          return dispatch(saveCollectionRoot(collectionUid))
+            .then(resolve)
+            .catch(reject);
         }
 
         case 'folder': {
           const { folder, variable } = data;
-          const variableToSave = variable
-            ? { ...variable, value: newValue }
-            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
 
-          const folderFilePath = path.join(folder.pathname, 'folder.bru');
-          updatePromise = updateVariableInFile(folderFilePath, variableToSave, 'folder', collectionUid, folder.uid);
-          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
-          break;
+          if (variable) {
+            // Update existing variable in draft
+            dispatch(updateFolderVar({
+              collectionUid,
+              folderUid: folder.uid,
+              type: 'request',
+              var: { ...variable, value: newValue }
+            }));
+          } else {
+            // Create new variable in draft with actual values
+            dispatch(addFolderVar({
+              collectionUid,
+              folderUid: folder.uid,
+              type: 'request',
+              var: { name: variableName, value: newValue, enabled: true }
+            }));
+          }
+
+          // Save folder root to persist the changes
+          return dispatch(saveFolderRoot(collectionUid, folder.uid))
+            .then(resolve)
+            .catch(reject);
         }
 
         case 'request': {
           const { item, variable } = data;
-          const variableToSave = variable
-            ? { ...variable, value: newValue }
-            : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
 
-          updatePromise = updateVariableInFile(item.pathname, variableToSave, 'request', collectionUid, item.uid);
-          successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
-          break;
+          if (variable) {
+            // Update existing variable in draft
+            dispatch(updateVar({
+              collectionUid,
+              itemUid: item.uid,
+              type: 'request',
+              var: { ...variable, value: newValue }
+            }));
+          } else {
+            // Create new variable in draft with actual values
+            dispatch(addVar({
+              collectionUid,
+              itemUid: item.uid,
+              type: 'request',
+              var: { name: variableName, value: newValue, local: false, enabled: true }
+            }));
+          }
+
+          // Save request to persist the changes
+          return dispatch(saveRequest(item.uid, collectionUid, true))
+            .then(resolve)
+            .catch(reject);
         }
 
         case 'global': {
@@ -1858,25 +1859,31 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           }
 
           const environment = globalEnvironments.find((env) => env.uid === activeGlobalEnvUid);
+
           if (!environment) {
             return reject(new Error('Global environment not found'));
           }
 
-          const updatedVariables = environment.variables.map((v) =>
-            v.name === variableName ? { ...v, value: newValue } : v);
+          const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
 
-          updatePromise = saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid });
-          successMessage = `Variable "${variableName}" updated`;
-          break;
+          if (!variable) {
+            return reject(new Error('Variable not found'));
+          }
+
+          const updatedVariables = environment.variables.map((v) =>
+            v.uid === variable.uid ? { ...v, value: newValue } : v);
+
+          return dispatch(saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid }))
+            .then(() => {
+              toast.success(`Variable "${variableName}" updated`);
+            })
+            .then(resolve)
+            .catch(reject);
         }
 
         default:
           return reject(new Error(`Unknown scope type: ${type}`));
       }
-
-      executeVariableUpdate(dispatch, updatePromise, successMessage)
-        .then(resolve)
-        .catch(reject);
     } catch (error) {
       toast.error(`Failed to update variable: ${error.message}`);
       reject(error);
