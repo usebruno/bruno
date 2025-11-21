@@ -4,7 +4,8 @@ import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
-import { IconChevronRight, IconDots } from '@tabler/icons';
+import { IconChevronRight, IconDots, IconSettings, IconFolder, IconPlus } from '@tabler/icons';
+import ToolHint from 'components/ToolHint';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -117,7 +118,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (!newPathname) return false;
 
     if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
-    
+
     return true;
   };
 
@@ -156,8 +157,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref}>
-        <IconDots size={22} />
+      <div ref={ref} className="menu-icon-trigger mr-1" onClick={(e) => e.stopPropagation()}>
+        <IconDots size={18} />
       </div>
     );
   });
@@ -210,21 +211,21 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       );
     } else {
       dispatch(
-        addTab({
-          uid: item.uid,
-          collectionUid: collectionUid,
-          type: 'folder-settings',
+        toggleCollectionItem({
+          itemUid: item.uid,
+          collectionUid: collectionUid
         })
       );
-      if(item.collapsed) {
-        dispatch(
-          toggleCollectionItem({
-            itemUid: item.uid,
-            collectionUid: collectionUid
-          })
-        );
-      }
     }
+  };
+
+  const handleSettingsClick = (e) => {
+    e.stopPropagation();
+    dispatch(addTab({
+      uid: item.uid,
+      collectionUid: collectionUid,
+      type: 'folder-settings'
+    }));
   };
 
   const handleFolderCollapse = (e) => {
@@ -434,28 +435,25 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           ref.current = node;
           drag(drop(node));
         }}
+        onClick={handleClick}
+        onContextMenu={handleRightClick}
+        onDoubleClick={handleDoubleClick}
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => (
                 <div
-                  onClick={handleClick}
-                  onContextMenu={handleRightClick}
-                  onDoubleClick={handleDoubleClick}
                   className="indent-block"
                   key={i}
                   style={{ width: 16, minWidth: 16, height: '100%' }}
                 >
-                  &nbsp;{/* Indent */}
+                &nbsp;{/* Indent */}
                 </div>
               ))
             : null}
           <div
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{ paddingLeft: 8 }}
-            onClick={handleClick}
-            onContextMenu={handleRightClick}
-            onDoubleClick={handleDoubleClick}
           >
             <div style={{ width: 16, minWidth: 16 }}>
               {isFolder ? (
@@ -464,8 +462,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   strokeWidth={2}
                   className={iconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
-                  onClick={handleFolderCollapse}
-                  onDoubleClick={handleFolderDoubleClick}
                   data-testid="folder-chevron"
                 />
               ) : hasExamples ? (
@@ -481,156 +477,183 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               ) : null}
             </div>
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
+              {isFolder && (
+                <div className="flex items-center mr-1">
+                  <IconFolder size={18} strokeWidth={1.5} className="text-gray-500" />
+                </div>
+              )}
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
             </div>
           </div>
-          <div className="menu-icon pr-2">
-            <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
-              {isFolder && (
-                <>
+          <div className="menu-icon pr-2 flex items-center">
+            {isFolder && (
+              <>
+                <ToolHint text="New Request" toolhintId={`new-request-${item.uid}`} place="bottom" delayShow={800}>
                   <div
-                    className="dropdown-item"
+                    className="new-request-icon mr-1"
                     onClick={(e) => {
-                      dropdownTippyRef.current.hide();
+                      e.stopPropagation();
                       setNewRequestModalOpen(true);
                     }}
                   >
-                    New Request
+                    <IconPlus size={18} strokeWidth={1.5} />
                   </div>
+                </ToolHint>
+                <ToolHint text="Folder Settings" toolhintId={`settings-${item.uid}`} place="bottom" delayShow={800}>
+                  <div className="settings-icon mr-1" onClick={handleSettingsClick}>
+                    <IconSettings size={18} strokeWidth={1.5} />
+                  </div>
+                </ToolHint>
+              </>
+            )}
+            <ToolHint text="More options" toolhintId={`menu-${item.uid}`} place="bottom" delayShow={800}>
+              <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
+                {isFolder && (
+                  <>
+                    <div
+                      className="dropdown-item"
+                      onClick={(e) => {
+                        dropdownTippyRef.current.hide();
+                        setNewRequestModalOpen(true);
+                      }}
+                    >
+                      New Request
+                    </div>
+                    <div
+                      className="dropdown-item"
+                      onClick={(e) => {
+                        dropdownTippyRef.current.hide();
+                        setNewFolderModalOpen(true);
+                      }}
+                    >
+                      New Folder
+                    </div>
+                    <div
+                      className="dropdown-item"
+                      onClick={(e) => {
+                        dropdownTippyRef.current.hide();
+                        setRunCollectionModalOpen(true);
+                      }}
+                    >
+                      Run
+                    </div>
+                  </>
+                )}
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                    setRenameItemModalOpen(true);
+                  }}
+                >
+                  Rename
+                </div>
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                    setCloneItemModalOpen(true);
+                  }}
+                >
+                  Clone
+                </div>
+                {!isFolder && (
                   <div
                     className="dropdown-item"
-                    onClick={(e) => {
-                      dropdownTippyRef.current.hide();
-                      setNewFolderModalOpen(true);
-                    }}
+                    onClick={handleCopyRequest}
                   >
-                    New Folder
+                    Copy
                   </div>
+                )}
+                {isFolder && hasCopiedItems && (
+                  <div
+                    className="dropdown-item"
+                    onClick={handlePasteRequest}
+                  >
+                    Paste
+                  </div>
+                )}
+                {!isFolder && (
                   <div
                     className="dropdown-item"
                     onClick={(e) => {
                       dropdownTippyRef.current.hide();
-                      setRunCollectionModalOpen(true);
+                      handleClick(null);
+                      handleRun();
                     }}
                   >
                     Run
                   </div>
-                </>
-              )}
-              <div
-                className="dropdown-item"
-                onClick={(e) => {
-                  dropdownTippyRef.current.hide();
-                  setRenameItemModalOpen(true);
-                }}
-              >
-                Rename
-              </div>
-              <div
-                className="dropdown-item"
-                onClick={(e) => {
-                  dropdownTippyRef.current.hide();
-                  setCloneItemModalOpen(true);
-                }}
-              >
-                Clone
-              </div>
-              {!isFolder && (
-                <div
-                  className="dropdown-item"
-                  onClick={handleCopyRequest}
-                >
-                  Copy
-                </div>
-              )}
-              {isFolder && hasCopiedItems && (
-                <div
-                  className="dropdown-item"
-                  onClick={handlePasteRequest}
-                >
-                  Paste
-                </div>
-              )}
-              {!isFolder && (
+                )}
+                {!isFolder && (item.type === 'http-request' || item.type === 'graphql-request') && (
+                  <div
+                    className="dropdown-item"
+                    onClick={(e) => {
+                      handleGenerateCode(e);
+                    }}
+                  >
+                    Generate Code
+                  </div>
+                )}
+                {!isFolder && isItemARequest(item) && item.type === 'http-request' && (
+                  <div
+                    className="dropdown-item"
+                    onClick={(e) => {
+                      dropdownTippyRef.current.hide();
+                      setCreateExampleModalOpen(true);
+                    }}
+                  >
+                    Create Example
+                  </div>
+                )}
                 <div
                   className="dropdown-item"
                   onClick={(e) => {
                     dropdownTippyRef.current.hide();
-                    handleClick(null);
-                    handleRun();
+                    handleShowInFolder();
                   }}
                 >
-                  Run
+                  Show in Folder
                 </div>
-              )}
-              {!isFolder && (item.type === 'http-request' || item.type === 'graphql-request') && (
                 <div
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    handleGenerateCode(e);
-                  }}
-                >
-                  Generate Code
-                </div>
-              )}
-              {!isFolder && isItemARequest(item) && item.type === 'http-request' && (
-                <div
-                  className="dropdown-item"
+                  className="dropdown-item delete-item"
                   onClick={(e) => {
                     dropdownTippyRef.current.hide();
-                    setCreateExampleModalOpen(true);
+                    setDeleteItemModalOpen(true);
                   }}
                 >
-                  Create Example
+                  Delete
                 </div>
-              )}
-              <div
-                className="dropdown-item"
-                onClick={(e) => {
-                  dropdownTippyRef.current.hide();
-                  handleShowInFolder();
-                }}
-              >
-                Show in Folder
-              </div>
-              <div
-                className="dropdown-item delete-item"
-                onClick={(e) => {
-                  dropdownTippyRef.current.hide();
-                  setDeleteItemModalOpen(true);
-                }}
-              >
-                Delete
-              </div>
-              {isFolder && (
+                {isFolder && (
+                  <div
+                    className="dropdown-item"
+                    onClick={(e) => {
+                      dropdownTippyRef.current.hide();
+                      viewFolderSettings();
+                    }}
+                  >
+                    Settings
+                  </div>
+                )}
                 <div
-                  className="dropdown-item"
+                  className="dropdown-item item-info"
                   onClick={(e) => {
                     dropdownTippyRef.current.hide();
-                    viewFolderSettings();
+                    setItemInfoModalOpen(true);
                   }}
                 >
-                  Settings
+                  Info
                 </div>
-              )}
-              <div
-                className="dropdown-item item-info"
-                onClick={(e) => {
-                  dropdownTippyRef.current.hide();
-                  setItemInfoModalOpen(true);
-                }}
-              >
-                Info
-              </div>
-            </Dropdown>
+              </Dropdown>
+            </ToolHint>
           </div>
         </div>
       </div>
-      {!itemIsCollapsed ? (
-        <div>
+      <div className={`transition-container ${itemIsCollapsed ? 'collapsed' : ''}`}>
+        <div className="transition-inner">
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
                 return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
@@ -642,7 +665,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               })
             : null}
         </div>
-      ) : null}
+      </div>
 
       {/* Show examples when expanded (only for HTTP requests) */}
       {isItemARequest(item) && item.type === 'http-request' && examplesExpanded && hasExamples && (

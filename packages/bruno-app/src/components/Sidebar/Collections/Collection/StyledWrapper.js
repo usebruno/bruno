@@ -1,13 +1,16 @@
 import styled from 'styled-components';
 
-const Wrapper = styled.div`
+const StyledWrapper = styled.div`
   .collection-name {
     height: 1.875rem;
     cursor: pointer;
     user-select: none;
     padding-left: 8px;
-    font-weight: 600;
+    font-weight: 500;
     border: ${(props) => props.theme.dragAndDrop.borderStyle} transparent;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    margin: 0 4px;
 
     .rotate-90 {
       transform: rotateZ(90deg);
@@ -17,21 +20,37 @@ const Wrapper = styled.div`
       border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       border-bottom: 2px solid transparent;
       .collection-actions {
-        .dropdown {
+        .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
           div[aria-expanded='false'] {
             visibility: visible;
           }
+        }
+        .settings-icon, .new-request-icon, .menu-icon-trigger {
+          display: flex;
         }
       }
     }
 
     .collection-actions {
-      .dropdown {
+      .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
         div[aria-expanded='true'] {
           visibility: visible;
         }
         div[aria-expanded='false'] {
           visibility: hidden;
+        }
+      }
+      
+      .settings-icon, .new-request-icon, .menu-icon-trigger {
+        display: none;
+        width: 24px;
+        height: 24px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        &:hover {
+          color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+          background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
         }
       }
 
@@ -44,10 +63,13 @@ const Wrapper = styled.div`
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .collection-actions {
-        .dropdown {
+        .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
           div[aria-expanded='false'] {
             visibility: visible;
           }
+        }
+        .settings-icon, .new-request-icon, .menu-icon-trigger {
+          display: flex;
         }
       }
     }
@@ -102,6 +124,20 @@ const Wrapper = styled.div`
     text-overflow: ellipsis;
     overflow: hidden;
   }
+
+  .transition-container {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.2s ease-out;
+
+    &.collapsed {
+      grid-template-rows: 0fr;
+    }
+
+    .transition-inner {
+      overflow: hidden;
+    }
+  }
 `;
 
-export default Wrapper;
+export default StyledWrapper;

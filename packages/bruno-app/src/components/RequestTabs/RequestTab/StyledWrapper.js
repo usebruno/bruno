@@ -28,7 +28,7 @@ const StyledWrapper = styled.div`
     &:hover,
     &:hover .close-icon {
       color: ${(props) => props.theme.requestTabs.icon.hoverColor};
-      background-color: ${(props) => props.theme.requestTabs.icon.hoverBg};
+      background-color: rgba(255, 255, 255, 0.1);
     }
 
     .has-changes-icon {
