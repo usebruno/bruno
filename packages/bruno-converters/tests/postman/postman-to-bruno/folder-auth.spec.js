@@ -58,6 +58,7 @@ describe('Folder Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -121,6 +122,7 @@ describe('Folder Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -184,6 +186,7 @@ describe('Folder Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -239,6 +242,7 @@ describe('Folder Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -299,6 +303,7 @@ describe('Folder Authentication', () => {
       awsv4: null,
       apikey: { key: 'apikey', value: 'apikey', placement: 'header' },
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -364,6 +369,7 @@ describe('Folder Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: { username: 'digest user', password: 'digest pass' }
     });
   });
@@ -416,6 +422,7 @@ describe('Folder Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });

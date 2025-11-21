@@ -868,6 +868,153 @@ describe('setAuthHeaders', () => {
     });
   });
 
+  describe('OAuth1 authentication inheritance', () => {
+    test('should inherit OAuth1 from collection', () => {
+      mockCollectionRoot.request.auth = {
+        mode: 'oauth1',
+        oauth1: {
+          consumerKey: 'collection-consumer-key',
+          consumerSecret: 'collection-consumer-secret',
+          signatureMethod: 'HMAC-SHA256',
+          parameterTransmission: 'authorization_header',
+          requestTokenUrl: 'https://api.example.com/request_token',
+          authorizeUrl: 'https://api.example.com/authorize',
+          accessTokenUrl: 'https://api.example.com/access_token',
+          callbackUrl: 'https://example.com/callback',
+          verifier: 'test-verifier',
+          accessToken: 'collection-access-token',
+          accessTokenSecret: 'collection-access-token-secret',
+          rsaPrivateKey: '-----BEGIN PRIVATE KEY-----\ntest-key\n-----END PRIVATE KEY-----',
+          credentialsId: 'collection-credentials'
+        }
+      };
+      mockRequest.auth.mode = 'inherit';
+
+      const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
+
+      expect(result.oauth1).toEqual({
+        consumerKey: 'collection-consumer-key',
+        consumerSecret: 'collection-consumer-secret',
+        signatureMethod: 'HMAC-SHA256',
+        parameterTransmission: 'authorization_header',
+        requestTokenUrl: 'https://api.example.com/request_token',
+        authorizeUrl: 'https://api.example.com/authorize',
+        accessTokenUrl: 'https://api.example.com/access_token',
+        callbackUrl: 'https://example.com/callback',
+        verifier: 'test-verifier',
+        accessToken: 'collection-access-token',
+        accessTokenSecret: 'collection-access-token-secret',
+        rsaPrivateKey: '-----BEGIN PRIVATE KEY-----\ntest-key\n-----END PRIVATE KEY-----',
+        credentialsId: 'collection-credentials'
+      });
+    });
+
+    test('should inherit OAuth1 with PLAINTEXT signature', () => {
+      mockCollectionRoot.request.auth = {
+        mode: 'oauth1',
+        oauth1: {
+          consumerKey: 'plaintext-key',
+          consumerSecret: 'plaintext-secret',
+          signatureMethod: 'PLAINTEXT',
+          parameterTransmission: 'query_param',
+          accessToken: 'plaintext-token',
+          accessTokenSecret: 'plaintext-token-secret',
+          credentialsId: 'plaintext-credentials'
+        }
+      };
+      mockRequest.auth.mode = 'inherit';
+
+      const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
+
+      expect(result.oauth1).toBeDefined();
+      expect(result.oauth1.signatureMethod).toBe('PLAINTEXT');
+      expect(result.oauth1.parameterTransmission).toBe('query_param');
+    });
+  });
+
+  describe('Request-level authentication (overrides collection)', () => {
+    test('should set OAuth1 at request level', () => {
+      mockCollectionRoot.request.auth = {
+        mode: 'oauth1',
+        oauth1: {
+          consumerKey: 'collection-consumer-key',
+          consumerSecret: 'collection-consumer-secret',
+          signatureMethod: 'HMAC-SHA1',
+          parameterTransmission: 'authorization_header',
+          accessToken: 'collection-access-token',
+          accessTokenSecret: 'collection-access-token-secret',
+          credentialsId: 'collection-credentials'
+        }
+      };
+      mockRequest.auth = {
+        mode: 'oauth1',
+        oauth1: {
+          consumerKey: 'request-consumer-key',
+          consumerSecret: 'request-consumer-secret',
+          signatureMethod: 'RSA-SHA256',
+          parameterTransmission: 'request_body',
+          requestTokenUrl: 'https://api.example.com/request_request_token',
+          authorizeUrl: 'https://api.example.com/request_authorize',
+          accessTokenUrl: 'https://api.example.com/request_access_token',
+          callbackUrl: 'https://example.com/request_callback',
+          verifier: 'request-verifier',
+          accessToken: 'request-access-token',
+          accessTokenSecret: 'request-access-token-secret',
+          rsaPrivateKey: '-----BEGIN PRIVATE KEY-----\nrequest-key\n-----END PRIVATE KEY-----',
+          credentialsId: 'request-credentials'
+        }
+      };
+
+      const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
+
+      expect(result.oauth1).toEqual({
+        consumerKey: 'request-consumer-key',
+        consumerSecret: 'request-consumer-secret',
+        signatureMethod: 'RSA-SHA256',
+        parameterTransmission: 'request_body',
+        requestTokenUrl: 'https://api.example.com/request_request_token',
+        authorizeUrl: 'https://api.example.com/request_authorize',
+        accessTokenUrl: 'https://api.example.com/request_access_token',
+        callbackUrl: 'https://example.com/request_callback',
+        verifier: 'request-verifier',
+        accessToken: 'request-access-token',
+        accessTokenSecret: 'request-access-token-secret',
+        rsaPrivateKey: '-----BEGIN PRIVATE KEY-----\nrequest-key\n-----END PRIVATE KEY-----',
+        credentialsId: 'request-credentials'
+      });
+    });
+
+    test('should override collection OAuth1 with different signature method', () => {
+      mockCollectionRoot.request.auth = {
+        mode: 'oauth1',
+        oauth1: {
+          consumerKey: 'collection-key',
+          consumerSecret: 'collection-secret',
+          signatureMethod: 'HMAC-SHA1',
+          parameterTransmission: 'authorization_header',
+          credentialsId: 'collection-creds'
+        }
+      };
+      mockRequest.auth = {
+        mode: 'oauth1',
+        oauth1: {
+          consumerKey: 'request-key',
+          consumerSecret: 'request-secret',
+          signatureMethod: 'HMAC-SHA512',
+          parameterTransmission: 'query_param',
+          credentialsId: 'request-creds'
+        }
+      };
+
+      const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
+
+      expect(result.oauth1.signatureMethod).toBe('HMAC-SHA512');
+      expect(result.oauth1.parameterTransmission).toBe('query_param');
+      expect(result.oauth1.consumerKey).toBe('request-key');
+      expect(result.oauth1.credentialsId).toBe('request-creds');
+    });
+  });
+
   describe('Edge cases and error handling', () => {
     test('should handle missing collection auth gracefully', () => {
       mockCollectionRoot.request.auth = null;

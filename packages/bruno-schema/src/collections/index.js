@@ -158,6 +158,28 @@ const authApiKeySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const authOAuth1Schema = Yup.object({
+  consumerKey: Yup.string().nullable(),
+  consumerSecret: Yup.string().nullable(),
+  signatureMethod: Yup.string()
+    .oneOf(['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'RSA-SHA1', 'RSA-SHA256', 'RSA-SHA512', 'PLAINTEXT'])
+    .nullable(),
+  parameterTransmission: Yup.string()
+    .oneOf(['authorization_header', 'request_body', 'query_param'])
+    .nullable(),
+  requestTokenUrl: Yup.string().nullable(),
+  authorizeUrl: Yup.string().nullable(),
+  accessTokenUrl: Yup.string().nullable(),
+  callbackUrl: Yup.string().nullable(),
+  verifier: Yup.string().nullable(),
+  accessToken: Yup.string().nullable(),
+  accessTokenSecret: Yup.string().nullable(),
+  rsaPrivateKey: Yup.string().nullable(),
+  credentialsId: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const oauth2AuthorizationAdditionalParametersSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
@@ -291,7 +313,7 @@ const oauth2Schema = Yup.object({
 
 const authSchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth2', 'wsse', 'apikey'])
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth2', 'oauth1', 'wsse', 'apikey'])
     .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
@@ -299,6 +321,7 @@ const authSchema = Yup.object({
   ntlm: authNTLMSchema.nullable(),
   digest: authDigestSchema.nullable(),
   oauth2: oauth2Schema.nullable(),
+  oauth1: authOAuth1Schema.nullable(),
   wsse: authWsseSchema.nullable(),
   apikey: authApiKeySchema.nullable()
 })

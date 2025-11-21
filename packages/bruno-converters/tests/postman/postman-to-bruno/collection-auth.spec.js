@@ -39,6 +39,7 @@ describe('Collection Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -98,6 +99,7 @@ describe('Collection Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -151,6 +153,7 @@ describe('Collection Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -210,6 +213,7 @@ describe('Collection Authentication', () => {
         placement: 'header'
       },
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -270,6 +274,7 @@ describe('Collection Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: {
         username: 'digest auth',
         password: 'digest auth'
@@ -319,6 +324,7 @@ describe('Collection Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -365,6 +371,7 @@ describe('Collection Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
