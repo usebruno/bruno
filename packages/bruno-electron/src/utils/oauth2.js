@@ -1,10 +1,13 @@
 const { get, cloneDeep, filter } = require('lodash');
 const crypto = require('crypto');
 const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-window');
+const { authorizeUserInSystemBrowser } = require('../ipc/network/authorize-user-in-system-browser');
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
 const { safeParseJSON, safeStringifyJSON } = require('./common');
+const { preferencesUtil } = require('../store/preferences');
 const qs = require('qs');
+const { BRUNO_OAUTH2_URL } = require('./oauth2-protocol-handler');
 
 const oauth2Store = new Oauth2Store();
 
@@ -148,8 +151,9 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
-    additionalParameters,
+    additionalParameters
   } = oAuth;
+  const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
   const url = requestCopy?.oauth2?.accessTokenUrl;
   
   // Validate required fields
@@ -254,10 +258,11 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   if (credentialsPlacement === "basic_auth_header") {
     axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
   }
+  const effectiveCallbackUrl = useSystemBrowser ? BRUNO_OAUTH2_URL : callbackUrl;
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
-    redirect_uri: callbackUrl,
+    redirect_uri: effectiveCallbackUrl
   };
   if (credentialsPlacement !== "basic_auth_header") {
     data.client_id = clientId;
@@ -298,13 +303,18 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
     const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl, additionalParameters } = oauth2;
+    const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
     authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
-    if (callbackUrl) {
-      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+
+    // Use bruno:// callback URL if system browser is enabled, otherwise use user's callbackUrl
+    const effectiveCallbackUrl = useSystemBrowser ? BRUNO_OAUTH2_URL : callbackUrl;
+    if (effectiveCallbackUrl) {
+      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', effectiveCallbackUrl);
     }
+
     if (scope) {
       authorizationUrlWithQueryParams.searchParams.append('scope', scope);
     }
@@ -327,9 +337,10 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     
     try {
       const authorizeUrl = authorizationUrlWithQueryParams.toString();
-      const { authorizationCode, debugInfo } = await authorizeUserInWindow({
+      const authorizeFunction = useSystemBrowser ? authorizeUserInSystemBrowser : authorizeUserInWindow;
+      const { authorizationCode, debugInfo } = await authorizeFunction({
         authorizeUrl,
-        callbackUrl,
+        callbackUrl: effectiveCallbackUrl,
         session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl }),
         additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
       });
@@ -743,6 +754,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
     autoFetchToken = true,
     additionalParameters
   } = oauth2;
+  const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
 
   // Validate required fields
   if (!authorizationUrl) {
@@ -819,7 +831,13 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   const authorizationUrlWithQueryParams = new URL(authorizationUrl);
   authorizationUrlWithQueryParams.searchParams.append('response_type', 'token');
   authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
-  authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+
+  // Use bruno:// callback URL if system browser is enabled, otherwise use user's callbackUrl
+  const effectiveCallbackUrl = useSystemBrowser ? BRUNO_OAUTH2_URL : callbackUrl;
+  if (effectiveCallbackUrl) {
+    authorizationUrlWithQueryParams.searchParams.append('redirect_uri', effectiveCallbackUrl);
+  }
+
   if (scope) {
     authorizationUrlWithQueryParams.searchParams.append('scope', scope);
   }
@@ -839,13 +857,16 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   const authorizeUrl = authorizationUrlWithQueryParams.toString();
   
   try {
-    const { implicitTokens, debugInfo } = await authorizeUserInWindow({
+    const authorizeFunction = useSystemBrowser ? authorizeUserInSystemBrowser : authorizeUserInWindow;
+    const result = await authorizeFunction({
       authorizeUrl,
-      callbackUrl,
+      callbackUrl: effectiveCallbackUrl,
       session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: authorizationUrl }),
       grantType: 'implicit',
       additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
     });
+
+    const { implicitTokens, debugInfo } = result;
 
     if (!implicitTokens || !implicitTokens.access_token) {
       return {
