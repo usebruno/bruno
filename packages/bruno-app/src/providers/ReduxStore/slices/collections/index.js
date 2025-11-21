@@ -1742,10 +1742,10 @@ export const collectionsSlice = createSlice({
             item.draft.request.vars.req = item.draft.request.vars.req || [];
             item.draft.request.vars.req.push({
               uid: uuid(),
-              name: varData?.name || '',
-              value: varData?.value || '',
-              local: varData?.local !== undefined ? varData.local : false,
-              enabled: varData?.enabled !== undefined ? varData.enabled : true
+              name: varData.name || '',
+              value: varData.value || '',
+              local: varData.local === true,
+              enabled: varData.enabled !== false
             });
           } else if (type === 'response') {
             item.draft.request.vars = item.draft.request.vars || {};
@@ -2077,7 +2077,7 @@ export const collectionsSlice = createSlice({
             uid: uuid(),
             name: varData.name || '',
             value: varData.value || '',
-            enabled: varData.enabled !== undefined ? varData.enabled : true
+            enabled: varData.enabled !== false
           });
           set(folder, 'draft.request.vars.req', vars);
         } else if (type === 'response') {
@@ -2086,7 +2086,6 @@ export const collectionsSlice = createSlice({
             uid: uuid(),
             name: '',
             value: '',
-            local: false,
             enabled: true
           });
           set(folder, 'draft.request.vars.res', vars);
@@ -2286,7 +2285,7 @@ export const collectionsSlice = createSlice({
             uid: uuid(),
             name: varData.name || '',
             value: varData.value || '',
-            enabled: varData.enabled !== undefined ? varData.enabled : true
+            enabled: varData.enabled !== false
           });
           set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
