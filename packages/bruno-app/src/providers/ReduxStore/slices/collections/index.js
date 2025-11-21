@@ -1742,8 +1742,8 @@ export const collectionsSlice = createSlice({
             item.draft.request.vars.req = item.draft.request.vars.req || [];
             item.draft.request.vars.req.push({
               uid: uuid(),
-              name: varData?.name || '',
-              value: varData?.value || '',
+              name: varData.name || '',
+              value: varData.value || '',
               local: varData?.local === true,
               enabled: varData?.enabled !== false
             });
