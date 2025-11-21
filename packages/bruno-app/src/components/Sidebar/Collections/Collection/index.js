@@ -270,14 +270,15 @@ const Collection = ({ collection, searchText }) => {
         </div>
         <div className="collection-actions" data-testid="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
-            <CreateUntitledRequest
-              collectionUid={collection.uid}
-              onRequestCreated={() => {
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
+                setShowNewRequestModal(true);
               }}
-              icon={<div className="dropdown-item">New Request</div>}
-              placement="right-start"
-            />
+            >
+              New Request
+            </div>
 
             <div
               className="dropdown-item"
