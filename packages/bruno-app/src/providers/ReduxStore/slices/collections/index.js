@@ -25,19 +25,6 @@ import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import * as exampleReducers from './exampleReducers';
 
-// Helper: Update or create variable in variables array
-const updateOrCreateVariable = (vars, variable) => {
-  const existingVar = vars.find((v) => v.name === variable.name);
-
-  if (existingVar) {
-    // Update existing variable - use the passed variable object to preserve UID
-    return vars.map((v) => (v.name === variable.name ? variable : v));
-  }
-
-  // Create new variable
-  return [...vars, variable];
-};
-
 // gRPC status code meanings
 const grpcStatusCodes = {
   0: 'OK',
@@ -1741,6 +1728,7 @@ export const collectionsSlice = createSlice({
     addVar: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const type = action.payload.type;
+      const varData = action.payload.var || {};
 
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
@@ -1754,20 +1742,20 @@ export const collectionsSlice = createSlice({
             item.draft.request.vars.req = item.draft.request.vars.req || [];
             item.draft.request.vars.req.push({
               uid: uuid(),
-              name: '',
-              value: '',
-              local: false,
-              enabled: true
+              name: varData.name || '',
+              value: varData.value || '',
+              local: varData.local !== undefined ? varData.local : false,
+              enabled: varData.enabled !== undefined ? varData.enabled : true
             });
           } else if (type === 'response') {
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.res = item.draft.request.vars.res || [];
             item.draft.request.vars.res.push({
               uid: uuid(),
-              name: '',
-              value: '',
-              local: false,
-              enabled: true
+              name: varData.name || '',
+              value: varData.value || '',
+              local: varData.local !== undefined ? varData.local : false,
+              enabled: varData.enabled !== undefined ? varData.enabled : true
             });
           }
         }
@@ -2078,6 +2066,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       const type = action.payload.type;
+      const varData = action.payload.var || {};
       if (folder) {
         if (!folder.draft) {
           folder.draft = cloneDeep(folder.root);
@@ -2086,18 +2075,18 @@ export const collectionsSlice = createSlice({
           const vars = get(folder, 'draft.request.vars.req', []);
           vars.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            enabled: true
+            name: varData.name || '',
+            value: varData.value || '',
+            enabled: varData.enabled !== undefined ? varData.enabled : true
           });
           set(folder, 'draft.request.vars.req', vars);
         } else if (type === 'response') {
           const vars = get(folder, 'draft.request.vars.res', []);
           vars.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            enabled: true
+            name: varData.name || '',
+            value: varData.value || '',
+            enabled: varData.enabled !== undefined ? varData.enabled : true
           });
           set(folder, 'draft.request.vars.res', vars);
         }
@@ -2283,6 +2272,7 @@ export const collectionsSlice = createSlice({
     addCollectionVar: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const type = action.payload.type;
+      const varData = action.payload.var || {};
       if (collection) {
         if (!collection.draft) {
           collection.draft = {
@@ -2293,18 +2283,18 @@ export const collectionsSlice = createSlice({
           const vars = get(collection, 'draft.root.request.vars.req', []);
           vars.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            enabled: true
+            name: varData.name || '',
+            value: varData.value || '',
+            enabled: varData.enabled !== undefined ? varData.enabled : true
           });
           set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
           const vars = get(collection, 'draft.root.request.vars.res', []);
           vars.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            enabled: true
+            name: varData.name || '',
+            value: varData.value || '',
+            enabled: varData.enabled !== undefined ? varData.enabled : true
           });
           set(collection, 'draft.root.request.vars.res', vars);
         }
@@ -2526,33 +2516,17 @@ export const collectionsSlice = createSlice({
               item.draft = null;
             }
           } else {
-            // Check if only variables changed (to preserve draft state)
-            const oldVars = get(item, 'request.vars.req', []);
-            const newVars = get(file.data, 'request.vars.req', []);
-
-            const itemWithoutVars = cloneDeep(item);
-            const fileDataWithoutVars = cloneDeep(file.data);
-            set(itemWithoutVars, 'request.vars.req', []);
-            set(fileDataWithoutVars, 'request.vars.req', []);
-
-            const onlyVarsChanged = areItemsTheSameExceptSeqUpdate(itemWithoutVars, fileDataWithoutVars)
-              && JSON.stringify(oldVars) !== JSON.stringify(newVars);
-
-            if (onlyVarsChanged && item.draft) {
-              set(item, 'request.vars.req', newVars);
-            } else {
-              // Other changes - replace everything
-              item.name = file.data.name;
-              item.type = file.data.type;
-              item.seq = file.data.seq;
-              item.tags = file.data.tags;
-              item.request = file.data.request;
-              item.settings = file.data.settings;
-              item.examples = file.data.examples;
-              item.filename = file.meta.name;
-              item.pathname = file.meta.pathname;
-              item.draft = null;
-            }
+            // Other changes - replace everything
+            item.name = file.data.name;
+            item.type = file.data.type;
+            item.seq = file.data.seq;
+            item.tags = file.data.tags;
+            item.request = file.data.request;
+            item.settings = file.data.settings;
+            item.examples = file.data.examples;
+            item.filename = file.meta.name;
+            item.pathname = file.meta.pathname;
+            item.draft = null;
           }
         }
       }
@@ -3230,66 +3204,8 @@ export const collectionsSlice = createSlice({
     deleteResponseExampleFormUrlEncodedParam: exampleReducers.deleteResponseExampleFormUrlEncodedParam,
     addResponseExampleMultipartFormParam: exampleReducers.addResponseExampleMultipartFormParam,
     updateResponseExampleMultipartFormParam: exampleReducers.updateResponseExampleMultipartFormParam,
-    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam,
+    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam
     /* End Response Example Actions */
-
-    updateRequestVarValue: (state, action) => {
-      const { collectionUid, itemUid, variable } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) return;
-
-      const item = findItemInCollection(collection, itemUid);
-      if (item) {
-        // Update saved state
-        const savedVars = get(item, 'request.vars.req', []);
-        const updatedSavedVars = updateOrCreateVariable(savedVars, variable);
-        set(item, 'request.vars.req', updatedSavedVars);
-
-        // If draft exists, also update the variable in the draft
-        if (item.draft) {
-          const draftVars = get(item, 'draft.request.vars.req', []);
-          const updatedDraftVars = updateOrCreateVariable(draftVars, variable);
-          set(item, 'draft.request.vars.req', updatedDraftVars);
-        }
-      }
-    },
-    updateFolderVarValue: (state, action) => {
-      const { collectionUid, folderUid, variable } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) return;
-
-      const folder = findItemInCollection(collection, folderUid);
-      if (folder) {
-        // Update saved state
-        const savedVars = get(folder, 'root.request.vars.req', []);
-        const updatedSavedVars = updateOrCreateVariable(savedVars, variable);
-        set(folder, 'root.request.vars.req', updatedSavedVars);
-
-        // If draft exists, also update the variable in the draft
-        if (folder.draft) {
-          const draftVars = get(folder, 'draft.request.vars.req', []);
-          const updatedDraftVars = updateOrCreateVariable(draftVars, variable);
-          set(folder, 'draft.request.vars.req', updatedDraftVars);
-        }
-      }
-    },
-    updateCollectionVarValue: (state, action) => {
-      const { collectionUid, variable } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) return;
-
-      // Update saved state
-      const savedVars = get(collection, 'root.request.vars.req', []);
-      const updatedSavedVars = updateOrCreateVariable(savedVars, variable);
-      set(collection, 'root.request.vars.req', updatedSavedVars);
-
-      // If draft exists, also update the variable in the draft
-      if (collection.draft?.root) {
-        const draftVars = get(collection, 'draft.root.request.vars.req', []);
-        const updatedDraftVars = updateOrCreateVariable(draftVars, variable);
-        set(collection, 'draft.root.request.vars.req', updatedDraftVars);
-      }
-    }
   }
 });
 
@@ -3463,12 +3379,8 @@ export const {
   deleteResponseExampleRequestHeader,
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
-  setResponseExampleParams,
+  setResponseExampleParams
   /* Response Example Actions - End */
-
-  updateRequestVarValue,
-  updateFolderVarValue,
-  updateCollectionVarValue
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

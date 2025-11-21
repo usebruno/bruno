@@ -315,11 +315,11 @@ test.describe('Variable Tooltip', () => {
     });
   });
 
-  test('should preserve draft changes when creating variable via tooltip', async ({ page, createTmpDir }) => {
-    const collectionName = 'draft-preserve-test';
+  test('should auto-save request when creating variable via tooltip', async ({ page, createTmpDir }) => {
+    const collectionName = 'draft-autosave-test';
 
     await test.step('Setup collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('draft-preserve'), {
+      await createCollection(page, collectionName, await createTmpDir('draft-autosave'), {
         openWithSandboxMode: 'safe'
       });
 
@@ -329,12 +329,12 @@ test.describe('Variable Tooltip', () => {
       await collectionContainer.locator('.collection-actions .icon').click();
       await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
 
-      await page.getByPlaceholder('Request Name').fill('Draft Test');
+      await page.getByPlaceholder('Request Name').fill('Autosave Test');
       await page.locator('#new-request-url .CodeMirror').click();
       await page.locator('textarea').fill('https://api.example.com');
       await page.getByRole('button', { name: 'Create' }).click();
 
-      await page.locator('.collection-item-name').filter({ hasText: 'Draft Test' }).click();
+      await page.locator('.collection-item-name').filter({ hasText: 'Autosave Test' }).click();
     });
 
     await test.step('Edit URL to create draft with undefined variable', async () => {
@@ -345,11 +345,11 @@ test.describe('Variable Tooltip', () => {
       await page.keyboard.type('/users/{{myApiKey}}');
 
       // Verify draft indicator appears (unsaved changes) in the request tab
-      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Test' }) });
+      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Autosave Test' }) });
       await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
     });
 
-    await test.step('Create variable via tooltip while draft exists', async () => {
+    await test.step('Create variable via tooltip - should auto-save entire request', async () => {
       // Hover over the undefined variable {{myApiKey}}
       const urlEditor = page.locator('#request-url .CodeMirror');
       const undefinedVar = urlEditor.locator('.cm-variable-invalid').filter({ hasText: 'myApiKey' }).first();
@@ -365,16 +365,16 @@ test.describe('Variable Tooltip', () => {
       const valueDisplay = tooltip.locator('.var-value-editable-display');
       await valueDisplay.click();
 
-      // Type value and save
+      // Type value
       const editor = tooltip.locator('.var-value-editor .CodeMirror');
       await expect(editor).toBeVisible();
       await page.keyboard.type('secret-key-123');
 
-      // Click outside to save
+      // Click outside to close editor - this will auto-save the entire request
       await page.locator('body').click();
     });
 
-    await test.step('Verify variable created AND draft preserved', async () => {
+    await test.step('Verify request was auto-saved with URL changes and new variable', async () => {
       // Move mouse away
       await page.mouse.move(0, 0);
 
@@ -392,48 +392,34 @@ test.describe('Variable Tooltip', () => {
       // Move mouse away
       await page.mouse.move(0, 0);
 
-      // verify the URL changes are still in draft (not lost!)
+      // Verify the URL changes were also saved
       const urlContent = await urlEditor.locator('.CodeMirror-line').first().textContent();
       expect(urlContent).toContain('api.example.com/users');
       expect(urlContent).toContain('myApiKey');
 
-      // Verify draft indicator still shows (changes not saved yet)
-      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Test' }) });
-      await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
-    });
-
-    await test.step('Verify saving works correctly', async () => {
-      // Save the request
-      await page.keyboard.press('Control+s');
-
-      // Draft indicator should disappear and close icon should appear
-      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Test' }) });
+      // Verify draft indicator is GONE (everything was auto-saved)
+      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Autosave Test' }) });
       await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible();
       await expect(requestTab.locator('.close-icon')).toBeVisible();
+    });
 
-      // Check URL is saved (still visible without reload)
-      const urlEditor = page.locator('#request-url .CodeMirror');
-      const urlContent = await urlEditor.locator('.CodeMirror-line').first().textContent();
-      expect(urlContent).toContain('api.example.com/users');
-      expect(urlContent).toContain('myApiKey');
-
-      // Check variable is saved in the Vars tab
+    await test.step('Verify variable exists in Vars tab', async () => {
+      // Check variable is saved to file - should appear in the Vars tab
       await page.getByRole('tab', { name: 'Vars' }).click();
 
-      // The variable should already exist
-      // Find the variable using the table structure
+      // The variable should exist in the saved file
       const varsTable = page.locator('table').first();
       await expect(varsTable).toBeVisible();
 
       const varRow = varsTable.locator('tbody tr').first();
       await expect(varRow).toBeVisible();
 
-      // Check variable name - it's just a text input in the first td
+      // Check variable name
       const varNameInput = varRow.locator('td').first().locator('input[type="text"]');
       await expect(varNameInput).toBeVisible();
       await expect(varNameInput).toHaveValue('myApiKey');
 
-      // Check variable value - MultiLineEditor uses CodeMirror in the second td
+      // Check variable value
       const varValueTd = varRow.locator('td').nth(1);
       const varValue = varValueTd.locator('.CodeMirror');
       await expect(varValue).toBeVisible();
