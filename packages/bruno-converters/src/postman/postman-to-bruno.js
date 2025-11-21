@@ -751,7 +751,7 @@ const searchLanguageByHeader = (headers) => {
 };
 
 const getBodyTypeFromContentTypeHeader = (headers) => {
-  const contentTypeHeader = headers.find((header) => header.key.toLowerCase() === 'content-type');
+  const contentTypeHeader = headers?.find((header) => header?.key?.toLowerCase() === 'content-type');
   if (contentTypeHeader) {
     const contentType = contentTypeHeader.value?.toLowerCase();
     if (contentType?.includes('application/json')) {
