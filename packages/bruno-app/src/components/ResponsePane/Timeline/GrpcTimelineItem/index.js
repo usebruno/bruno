@@ -138,7 +138,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                 ))}
               </div>
             ) : (
-              <div className="text-sm italic text-gray-500">No metadata headers</div>
+              <div className="italic text-gray-500">No metadata headers</div>
             )}
           </div>
         );
@@ -155,7 +155,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                 {JSON.stringify(response.responses[response.responses.length - 1], null, 2)}
               </pre>
             ) : (
-              <div className="text-sm italic text-gray-500">Empty message</div>
+              <div className="italic text-gray-500">Empty message</div>
             )}
           </div>
         );
@@ -169,12 +169,12 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             </div>
             
             {response.statusDescription && (
-              <div className="text-sm mb-2">{response.statusDescription}</div>
+              <div className="mb-2">{response.statusDescription}</div>
             )}
             
             {response.trailers && response.trailers.length > 0 && (
               <>
-                <div className="font-semibold text-sm mt-2 mb-1 text-purple-700 dark:text-purple-400">Trailers</div>
+                <div className="font-semibold mt-2 mb-1 text-purple-700 dark:text-purple-400">Trailers</div>
                 <div className="grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
@@ -193,7 +193,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         return (
           <div className="mt-2 bg-red-50 dark:bg-red-900/10 rounded p-2">
             <div className="font-semibold mb-1 text-red-700 dark:text-red-400">Error</div>
-            <div className="text-sm mb-2">{response.error || "Unknown error"}</div>
+            <div className="mb-2">{response.error || 'Unknown error'}</div>
             
             <div className="flex items-center gap-2">
               <Status statusCode={statusCode} statusText={statusText} />
@@ -201,7 +201,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             
             {response.trailers && response.trailers.length > 0 && (
               <>
-                <div className="font-semibold text-sm mt-2 mb-1 text-red-700 dark:text-red-400">Error Metadata</div>
+                <div className="font-semibold mt-2 mb-1 text-red-700 dark:text-red-400">Error Metadata</div>
                 <div className="grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
@@ -220,7 +220,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         return (
           <div className="mt-2 bg-gray-50 dark:bg-gray-700/30 rounded p-2">
             <div className="font-semibold mb-1">Stream Ended</div>
-            <div className="text-sm">
+            <div>
               Total messages: {(response?.responses?.length) || 0}
             </div>
           </div>
@@ -231,7 +231,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         return (
           <div className="mt-2 bg-amber-50 dark:bg-amber-900/10 rounded p-2">
             <div className="font-semibold mb-1 text-amber-700 dark:text-amber-400">Stream Cancelled</div>
-            <div className="text-sm">{response.statusDescription || "The gRPC stream was cancelled"}</div>
+            <div>{response.statusDescription || 'The gRPC stream was cancelled'}</div>
           </div>
         );
         
@@ -245,7 +245,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       <div className={`flex items-center gap-2 cursor-pointer`} onClick={toggleCollapse}>
         {isCollapsed ? <IconChevronRight size={16} strokeWidth={1.5} /> : <IconChevronDown size={16} strokeWidth={1.5} />}
         {eventIcon}
-        <span className="font-medium text-sm">{eventName}</span>
+        <span className="font-medium">{eventName}</span>
         {eventType === 'request' && effectiveRequest.methodType && (
           <span className="px-2 py-0.5 text-xs rounded bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300">
             {effectiveRequest.methodType}

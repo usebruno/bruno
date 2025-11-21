@@ -22,12 +22,12 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 8px;
     color: ${(props) => props.theme.console.titleColor};
-    font-size: 13px;
+    font-size: var(--font-size-body);
     font-weight: 500;
 
     .request-count {
       color: ${(props) => props.theme.console.countColor};
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       font-weight: 400;
     }
   }
@@ -59,12 +59,12 @@ const StyledWrapper = styled.div`
 
     p {
       margin: 0;
-      font-size: 14px;
+      font-size: var(--font-size-body);
       font-weight: 500;
     }
 
     span {
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       opacity: 0.7;
     }
   }
@@ -84,7 +84,7 @@ const StyledWrapper = styled.div`
     padding: 8px 16px;
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 600;
     color: ${(props) => props.theme.console.titleColor};
     text-transform: uppercase;
@@ -107,7 +107,7 @@ const StyledWrapper = styled.div`
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     cursor: pointer;
     transition: background-color 0.1s ease;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     align-items: center;
 
     &:hover {
@@ -136,7 +136,7 @@ const StyledWrapper = styled.div`
 
   .status-badge {
     font-weight: 600;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 
   .request-domain {
@@ -158,20 +158,20 @@ const StyledWrapper = styled.div`
   .request-time {
     color: ${(props) => props.theme.console.timestampColor};
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
   }
 
   .request-duration {
     color: ${(props) => props.theme.console.messageColor};
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     text-align: right;
   }
 
   .request-size {
     color: ${(props) => props.theme.console.messageColor};
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     text-align: right;
   }
 
@@ -190,7 +190,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
 
     &:hover {
       background: ${(props) => props.theme.console.buttonHoverBg};
@@ -225,7 +225,7 @@ const StyledWrapper = styled.div`
     padding: 8px 12px;
     background: ${(props) => props.theme.console.dropdownHeaderBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     color: ${(props) => props.theme.console.titleColor};
   }
@@ -235,7 +235,7 @@ const StyledWrapper = styled.div`
     border: none;
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 500;
     padding: 2px 4px;
     border-radius: 2px;
@@ -278,13 +278,13 @@ const StyledWrapper = styled.div`
 
   .filter-option-label {
     color: ${(props) => props.theme.console.optionLabelColor};
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 400;
   }
 
   .filter-option-count {
     color: ${(props) => props.theme.console.optionCountColor};
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 400;
     margin-left: auto;
   }

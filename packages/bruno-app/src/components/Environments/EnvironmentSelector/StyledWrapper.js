@@ -22,7 +22,7 @@ const Wrapper = styled.div`
 
     .env-text {
       color: ${(props) => props.theme.dropdown.selectedColor};
-      font-size: 0.875rem;
+      font-size: var(--font-size-body);
       display: block;
     }
 
@@ -34,7 +34,7 @@ const Wrapper = styled.div`
 
     .env-text-inactive {
       color: ${(props) => props.theme.dropdown.color};
-      font-size: 0.875rem;
+      font-size: var(--font-size-body);
       opacity: 0.7;
     }
 
@@ -51,7 +51,7 @@ const Wrapper = styled.div`
     max-width: 650px !important;
     min-height: 15.5rem;
     max-height: 75vh;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body);
     position: relative;
     overflow: hidden;
   }
@@ -67,7 +67,7 @@ const Wrapper = styled.div`
       align-items: center;
       padding: 0.35rem 0.6rem;
       cursor: pointer;
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body);
       color: ${(props) => props.theme.dropdown.primaryText};
 
       &:hover:not(:disabled) {
@@ -111,7 +111,7 @@ const Wrapper = styled.div`
 
   .tab-button {
     color: var(--color-tab-inactive);
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body);
 
     .tab-content-wrapper {
       position: relative;
@@ -171,7 +171,7 @@ const Wrapper = styled.div`
     p {
       color: ${(props) => props.theme.dropdown.primaryText};
       opacity: 0.75;
-      font-size: 0.6875rem;
+      font-size: var(--font-size-xs);
       line-height: 1.5;
       margin-bottom: 1rem;
       max-width: 11.875rem;
@@ -192,7 +192,7 @@ const Wrapper = styled.div`
       border-radius: 0.375rem;
       width: 100%;
       margin-bottom: 0.5rem;
-      font-size: 0.75rem;
+      font-size: var(--font-size-sm);
       font-weight: 500;
       display: flex;
       align-items: center;
@@ -216,7 +216,7 @@ const Wrapper = styled.div`
     justify-content: center;
     padding: 2rem 1rem;
     color: ${(props) => props.theme.dropdown.primaryText};
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body);
     line-height: 1.5;
     text-align: center;
     opacity: 0.75;

@@ -106,7 +106,7 @@ const CreateCollection = ({ onClose }) => {
         <Modal size="sm" title="Create Collection" hideFooter={true} handleCancel={onClose}>
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
-              <label htmlFor="collection-name" className="flex items-center font-semibold">
+              <label htmlFor="collection-name" className="flex items-center font-medium">
                 Name
               </label>
               <input
@@ -129,7 +129,7 @@ const CreateCollection = ({ onClose }) => {
                 <div className="text-red-500">{formik.errors.collectionName}</div>
               ) : null}
 
-              <label htmlFor="collection-location" className="font-semibold mt-3 flex items-center">
+              <label htmlFor="collection-location" className="font-medium mt-3 flex items-center">
                 Location
                 <Help>
                   <p>
@@ -172,7 +172,7 @@ const CreateCollection = ({ onClose }) => {
               {formik.values.collectionName?.trim()?.length > 0 && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between">
-                    <label htmlFor="filename" className="flex items-center font-semibold">
+                    <label htmlFor="filename" className="flex items-center font-medium">
                       Folder Name
                       <Help width="300">
                         <p>
@@ -227,7 +227,7 @@ const CreateCollection = ({ onClose }) => {
 
               {showAdvanced && (
                 <div className="mt-4">
-                  <label htmlFor="format" className="flex items-center font-semibold">
+                  <label htmlFor="format" className="flex items-center font-medium">
                     File Format
                     <Help width="300">
                       <p>

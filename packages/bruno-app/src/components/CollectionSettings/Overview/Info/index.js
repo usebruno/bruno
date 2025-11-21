@@ -26,8 +26,8 @@ const Info = ({ collection }) => {
               <IconFolder className="w-5 h-5 text-blue-500" stroke={1.5} />
             </div>
             <div className="ml-4">
-              <div className="font-semibold text-sm">Location</div>
-              <div className="mt-1 text-sm text-muted break-all">
+              <div className="font-semibold">Location</div>
+              <div className="mt-1 text-muted break-all">
                 {collection.pathname}
               </div>
             </div>
@@ -39,8 +39,8 @@ const Info = ({ collection }) => {
               <IconWorld className="w-5 h-5 text-green-500" stroke={1.5} />
             </div>
             <div className="ml-4">
-              <div className="font-semibold text-sm">Environments</div>
-              <div className="mt-1 text-sm text-muted">
+              <div className="font-semibold">Environments</div>
+              <div className="mt-1 text-muted">
                 {collection.environments?.length || 0} environment{collection.environments?.length !== 1 ? 's' : ''} configured
               </div>
             </div>
@@ -52,8 +52,8 @@ const Info = ({ collection }) => {
               <IconApi className="w-5 h-5 text-purple-500" stroke={1.5} />
             </div>
             <div className="ml-4">
-              <div className="font-semibold text-sm">Requests</div>
-              <div className="mt-1 text-sm text-muted">
+              <div className="font-semibold">Requests</div>
+              <div className="mt-1 text-muted">
                 {
                   isCollectionLoading? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
                 }
@@ -66,8 +66,8 @@ const Info = ({ collection }) => {
               <IconShare className="w-5 h-5 text-indigo-500" stroke={1.5} />
             </div>
             <div className="ml-4 h-full flex flex-col justify-start">
-              <div className="font-semibold text-sm h-fit my-auto">Share</div>
-              <div className="mt-1 text-sm group-hover:underline text-link">
+              <div className="font-semibold h-fit my-auto">Share</div>
+              <div className="mt-1 group-hover:underline text-link">
                 Share Collection
               </div>
             </div>

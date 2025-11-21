@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
     background-color: transparent;
     color: ${(props) => props.theme.text};
     font-family: inherit;
-    font-size: 14px;
+    font-size: var(--font-size-body);
     line-height: 1.5;
     border: 1px solid transparent;
     padding: 0;

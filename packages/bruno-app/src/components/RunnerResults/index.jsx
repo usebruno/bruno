@@ -72,7 +72,7 @@ const FilterButton = ({ label, count, active, onClick }) => (
         ? 'text-[#343434] dark:text-[#CCCCCC] border-[#F59E0B]'
         : 'text-[#989898] dark:text-[#CCCCCC80] border-transparent'
     }`}
-    style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+    style={{ fontFamily: 'Inter', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
   >
     {label}
     <span
@@ -278,7 +278,7 @@ export default function RunnerResults({ collection }) {
             <div className="mt-6">
               You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
               {isCollectionLoading && (
-                <span className="ml-2 text-sm text-gray-500">
+                <span className="ml-2 text-gray-500">
                   (Loading...)
                 </span>
               )}
@@ -355,7 +355,7 @@ export default function RunnerResults({ collection }) {
       <div className="flex items-center justify-between mb-4 pt-[14px] gap-4">
         <div className="flex items-stretch rounded-lg border border-[#EFEFEF] dark:border-[#92929233] max-h-[35px] flex-shrink-0" style={{ borderWidth: '1px' }}>
           <div className="flex items-center px-3 py-2 rounded-l-lg bg-[#F3F3F3] dark:bg-[#2B2D2F]">
-            <span className="text-gray-600 dark:text-gray-400" style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 400 }}>
+            <span className="text-gray-600 dark:text-gray-400" style={{ fontFamily: 'Inter', fontWeight: 400 }}>
               Filter by:
             </span>
           </div>
@@ -381,7 +381,7 @@ export default function RunnerResults({ collection }) {
             <button
               type="button"
               className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors"
-              style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 500 }}
+              style={{ fontFamily: 'Inter', fontSize: 'var(--font-size-sm)', fontWeight: 500 }}
               onClick={runAgain}
             >
               Run Again
@@ -389,7 +389,7 @@ export default function RunnerResults({ collection }) {
             <button
               type="button"
               className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors"
-              style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 500 }}
+              style={{ fontFamily: 'Inter', fontSize: 'var(--font-size-sm)', fontWeight: 500 }}
               onClick={resetRunner}
             >
               Reset
@@ -588,7 +588,7 @@ export default function RunnerResults({ collection }) {
               <div className="mb-4 text-gray-400 dark:text-gray-500">
                 <IconExternalLink size={64} strokeWidth={1.5} />
               </div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-gray-600 dark:text-gray-400">
                 Click on the status code to view the response
               </p>
             </div>
