@@ -93,7 +93,7 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
                 <th ref={ref} key={name} title={name}>
                   <span>{name}</span>
                   <div
-                    className="resizer absolute cursor-col-resize w-[4px] right-[-2px] top-0 z-10 opacity-50 hover:bg-blue-500 active:bg-blue-500"
+                    className="resizer absolute cursor-col-resize w-[2px] right-[-1px] top-0 z-10"
                     onMouseDown={handleMouseDown(i)}
                   ></div>
                 </th>

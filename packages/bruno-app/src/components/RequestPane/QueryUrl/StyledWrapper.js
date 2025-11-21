@@ -2,20 +2,19 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   height: 2.3rem;
+  border: 1px solid ${(props) => props.theme.table?.border || '#E1E3E5'};
+  border-radius: 8px;
+  overflow: hidden;
 
   div.method-selector-container {
-    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
-    border-top-left-radius: 3px;
-    border-bottom-left-radius: 3px;
+    background-color: transparent;
   }
 
   div.input-container {
-    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
-    border-top-right-radius: 3px;
-    border-bottom-right-radius: 3px;
+    background-color: transparent;
 
     input {
-      background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+      background-color: transparent;
       outline: none;
       box-shadow: none;
 

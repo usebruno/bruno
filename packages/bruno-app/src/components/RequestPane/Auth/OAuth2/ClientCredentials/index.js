@@ -1,9 +1,15 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useRef, forwardRef, useState } from 'react';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { IconCaretDown, IconSettings, IconKey, IconAdjustmentsHorizontal, IconHelp } from '@tabler/icons';
+import {
+  IconCaretDown,
+  IconSettings,
+  IconKey,
+  IconAdjustmentsHorizontal,
+  IconChevronRight
+} from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
@@ -20,6 +26,8 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
+
+  const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
   const { 
     accessTokenUrl, 
@@ -40,23 +48,24 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
-
   const handleSave = () => { save(); };
 
   const TokenPlacementIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {tokenPlacement == 'url' ?  'URL' : 'Headers'}
-        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      <div ref={ref} className="select-button">
+        <span className="select-label">{tokenPlacement == 'url' ? 'URL' : 'Headers'}</span>
+        <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
     );
   });
 
   const CredentialsPlacementIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {credentialsPlacement == 'body' ?  'Request Body' : 'Basic Auth Header'}
-        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      <div ref={ref} className="select-button">
+        <span className="select-label">
+          {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
+        </span>
+        <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
     );
   });
@@ -89,118 +98,153 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
   };
 
   return (
-    <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
-      <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
-      <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
-        </div>
-        <span className="text-sm font-medium">
-          Configuration
-        </span>
-      </div>
-      {inputsConfig.map((input) => {
-        const { key, label, isSecret } = input;
-        const value = oAuth[key] || '';
-        const { showWarning, warningMessage } = isSensitive(value);
-        
-        return (
-          <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
-            <label className="block min-w-[140px]">{label}</label>
-            <div className="single-line-editor-wrapper flex-1 flex items-center">
-              <SingleLineEditor
-                value={value}
-                theme={storedTheme}
-                onSave={handleSave}
-                onChange={(val) => handleChange(key, val)}
-                onRun={handleRun}
-                collection={collection}
-                item={item}
-                isSecret={isSecret}
-              />
-              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
-            </div>
+    <StyledWrapper className="mt-2 w-full">
+      {/* Token Viewer */}
+      <Oauth2TokenViewer
+        handleRun={handleRun}
+        collection={collection}
+        item={item}
+        url={accessTokenUrl}
+        credentialsId={credentialsId}
+      />
+
+      {/* Configuration Section */}
+      <div className="oauth-section">
+        <div className="section-header">
+          <div className="section-icon">
+            <IconSettings size={16} strokeWidth={2} />
           </div>
-        );
-      })}
-      <div className="flex items-center gap-4 w-full" key={`input-credentials-placement`}>
-        <label className="block min-w-[140px]">Add Credentials to</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <Dropdown onCreate={onDropdownCreate} icon={<CredentialsPlacementIcon />} placement="bottom-end">
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('credentialsPlacement', 'body');
-              }}
-            >
-              Request Body
+          <h3 className="section-title">Configuration</h3>
+        </div>
+
+        {inputsConfig.map((input) => {
+          const { key, label, isSecret } = input;
+          const value = oAuth[key] || '';
+          const { showWarning, warningMessage } = isSensitive(value);
+
+          return (
+            <div className="form-field" key={`input-${key}`}>
+              <label className="form-label" htmlFor={`oauth-${key}`}>{label}</label>
+              <div className="input-wrapper">
+                <div className="single-line-editor-wrapper">
+                  <SingleLineEditor
+                    id={`oauth-${key}`}
+                    value={value}
+                    theme={storedTheme}
+                    onSave={handleSave}
+                    onChange={(val) => handleChange(key, val)}
+                    onRun={handleRun}
+                    collection={collection}
+                    item={item}
+                    isSecret={isSecret}
+                  />
+                </div>
+                {isSecret && showWarning && (
+                  <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />
+                )}
+              </div>
             </div>
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('credentialsPlacement', 'basic_auth_header');
-              }}
-            >
-              Basic Auth Header
-            </div>
-          </Dropdown>
+          );
+        })}
+
+        <div className="form-field">
+          <label className="form-label" htmlFor="oauth-credentials-placement">
+            Add Credentials to
+          </label>
+          <div className="select-wrapper">
+            <Dropdown onCreate={onDropdownCreate} icon={<CredentialsPlacementIcon />} placement="bottom-end">
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  dropdownTippyRef.current.hide();
+                  handleChange('credentialsPlacement', 'body');
+                }}
+              >
+                Request Body
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  dropdownTippyRef.current.hide();
+                  handleChange('credentialsPlacement', 'basic_auth_header');
+                }}
+              >
+                Basic Auth Header
+              </div>
+            </Dropdown>
+          </div>
         </div>
       </div>
-      <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+
+      {/* Token Section */}
+      <div className="oauth-section">
+        <div className="section-header">
+          <div className="section-icon">
+            <IconKey size={16} strokeWidth={2} />
+          </div>
+          <h3 className="section-title">Token</h3>
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-          Token
-        </span>
-      </div>
-      <div className="flex items-center gap-4 w-full" key={`input-token-name`}>
-        <label className="block min-w-[140px]">Token ID</label>
-        <div className="single-line-editor-wrapper flex-1">
-          <SingleLineEditor
-            value={oAuth['credentialsId'] || ''}
-            theme={storedTheme}
-            onSave={handleSave}
-            onChange={(val) => handleChange('credentialsId', val)}
-            onRun={handleRun}
-            collection={collection}
-            item={item}
-          />
+
+        <div className="form-field">
+          <label className="form-label" htmlFor="oauth-credentials-id">
+            Token ID
+          </label>
+          <div className="help-text">
+            A unique identifier for this token in your collection
+          </div>
+          <div className="single-line-editor-wrapper">
+            <SingleLineEditor
+              id="oauth-credentials-id"
+              value={oAuth['credentialsId'] || ''}
+              theme={storedTheme}
+              onSave={handleSave}
+              onChange={(val) => handleChange('credentialsId', val)}
+              onRun={handleRun}
+              collection={collection}
+              item={item}
+            />
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-4 w-full" key={`input-token-placement`}>
-        <label className="block min-w-[140px]">Add token to</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector w-fit">
-          <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenPlacement', 'header');
-              }}
-            >
-              Header
+
+        <div className="form-field">
+          <label className="form-label" htmlFor="oauth-token-placement">
+            Add token to
+          </label>
+          <div className="select-wrapper">
+            <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  dropdownTippyRef.current.hide();
+                  handleChange('tokenPlacement', 'header');
+                }}
+              >
+                Header
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  dropdownTippyRef.current.hide();
+                  handleChange('tokenPlacement', 'url');
+                }}
+              >
+                URL
+              </div>
+            </Dropdown>
+          </div>
+        </div>
+
+        {tokenPlacement === 'header' ? (
+          <div className="form-field">
+            <label className="form-label" htmlFor="oauth-token-prefix">
+              Header Prefix
+            </label>
+            <div className="help-text">
+              The prefix to use before the token (e.g., "Bearer")
             </div>
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenPlacement', 'url');
-              }}
-            >
-              URL
-            </div>
-          </Dropdown>
-        </div>
-      </div>
-      {
-        tokenPlacement === 'header' ?
-          <div className="flex items-center gap-4 w-full" key={`input-token-prefix`}>
-            <label className="block min-w-[140px]">Header Prefix</label>
-            <div className="single-line-editor-wrapper flex-1">
+            <div className="single-line-editor-wrapper">
               <SingleLineEditor
+                id="oauth-token-prefix"
                 value={oAuth['tokenHeaderPrefix'] || ''}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -210,11 +254,17 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
               />
             </div>
           </div>
-          :
-          <div className="flex items-center gap-4 w-full" key={`input-token-query-param-key`}>
-            <label className="block font-medium min-w-[140px]">Query Param Key</label>
-            <div className="single-line-editor-wrapper flex-1">
+        ) : (
+          <div className="form-field">
+            <label className="form-label" htmlFor="oauth-token-query-key">
+              Query Param Key
+            </label>
+            <div className="help-text">
+              The query parameter name to use for the token
+            </div>
+            <div className="single-line-editor-wrapper">
               <SingleLineEditor
+                id="oauth-token-query-key"
                 value={oAuth['tokenQueryKey'] || ''}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -224,75 +274,84 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
               />
             </div>
           </div>
-      }
-      <div className="flex items-center gap-2.5 mt-4 mb-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
-        </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-          Advanced Settings
-        </span>
+        )}
       </div>
 
-      <div className="flex items-center gap-4 w-full mb-4">
-        <label className="block min-w-[140px]">Refresh Token URL</label>
-        <div className="single-line-editor-wrapper flex-1">
-          <SingleLineEditor
-            value={get(request, 'auth.oauth2.refreshTokenUrl', '')}
-            theme={storedTheme}
-            onSave={handleSave}
-            onChange={(val) => handleChange("refreshTokenUrl", val)}
-            collection={collection}
-            item={item}
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2.5 mt-4">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
-        </div>
-        <span className="text-sm font-medium">Settings</span>
-      </div>
-
-      {/* Automatically Fetch Token */}
-      <div className="flex items-center gap-4 w-full">
-        <input
-          type="checkbox"
-          checked={Boolean(autoFetchToken)}
-          onChange={(e) => handleChange('autoFetchToken', e.target.checked)}
-          className="cursor-pointer ml-1"
-        />
-        <label className="block min-w-[140px]">Automatically fetch token if not found</label>
-        <div className="flex items-center gap-2">
-          <div className="relative group cursor-pointer">
-            <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
-              Automatically fetch a new token when you try to access a resource and don't have one.
-            </span>
+      {/* Advanced Settings - Collapsible */}
+      <div className="oauth-section">
+        <div
+          className={`collapsible-header ${advancedExpanded ? 'expanded' : ''}`}
+          onClick={() => setAdvancedExpanded(!advancedExpanded)}
+        >
+          <IconChevronRight size={16} strokeWidth={2} />
+          <div className="section-icon">
+            <IconAdjustmentsHorizontal size={16} strokeWidth={2} />
           </div>
+          <h3 className="section-title">Advanced Settings</h3>
         </div>
+
+        {advancedExpanded && (
+          <div className="collapsible-content">
+            <div className="form-field">
+              <label className="form-label" htmlFor="oauth-refresh-url">
+                Refresh Token URL
+              </label>
+              <div className="help-text">
+                The URL to use for refreshing expired tokens
+              </div>
+              <div className="single-line-editor-wrapper">
+                <SingleLineEditor
+                  id="oauth-refresh-url"
+                  value={get(request, 'auth.oauth2.refreshTokenUrl', '')}
+                  theme={storedTheme}
+                  onSave={handleSave}
+                  onChange={(val) => handleChange('refreshTokenUrl', val)}
+                  collection={collection}
+                  item={item}
+                />
+              </div>
+            </div>
+
+            <div className="checkbox-field">
+              <input
+                id="oauth-auto-fetch"
+                type="checkbox"
+                checked={Boolean(autoFetchToken)}
+                onChange={(e) => handleChange('autoFetchToken', e.target.checked)}
+              />
+              <label className="checkbox-label" htmlFor="oauth-auto-fetch">
+                Automatically fetch token if not found
+                <div className="help-text" style={{ marginTop: '0.25rem' }}>
+                  Automatically fetch a new token when you try to access a resource and don't have one
+                </div>
+              </label>
+            </div>
+
+            <div className="checkbox-field">
+              <input
+                id="oauth-auto-refresh"
+                type="checkbox"
+                checked={Boolean(autoRefreshToken)}
+                onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
+                disabled={isAutoRefreshDisabled}
+              />
+              <label
+                className={`checkbox-label ${isAutoRefreshDisabled ? 'disabled' : ''}`}
+                htmlFor="oauth-auto-refresh"
+              >
+                Auto refresh token (with refresh URL)
+                <div className="help-text" style={{ marginTop: '0.25rem' }}>
+                  {isAutoRefreshDisabled
+                    ? 'Please provide a Refresh Token URL to enable this feature'
+                    : 'Automatically refresh your token using the refresh URL when it expires'}
+                </div>
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Auto Refresh Token (With Refresh URL) */}
-      <div className="flex items-center gap-4 w-full">
-        <input
-          type="checkbox"
-          checked={Boolean(autoRefreshToken)}
-          onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
-          className={`cursor-pointer ml-1 ${isAutoRefreshDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={isAutoRefreshDisabled}
-        />
-        <label className={`block min-w-[140px] ${isAutoRefreshDisabled ? 'text-gray-500' : ''}`}>Auto refresh token (with refresh URL)</label>
-        <div className="flex items-center gap-2">
-          <div className="relative group cursor-pointer">
-            <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
-              Automatically refresh your token using the refresh URL when it expires.
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* Additional Parameters */}
       <AdditionalParams
         item={item}
         request={request}
@@ -300,8 +359,15 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
         updateAuth={updateAuth}
         handleSave={handleSave}
       />
-      <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
 
+      {/* Action Buttons */}
+      <Oauth2ActionButtons
+        item={item}
+        request={request}
+        collection={collection}
+        url={accessTokenUrl}
+        credentialsId={credentialsId}
+      />
     </StyledWrapper>
   );
 };

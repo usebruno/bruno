@@ -6,8 +6,9 @@ import { IconPlus, IconTrash, IconAdjustmentsHorizontal } from '@tabler/icons';
 import { cloneDeep } from "lodash";
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import MultiLineEditor from 'components/MultiLineEditor/index';
-import StyledWrapper from "./StyledWrapper";
+import PolarisTable from 'components/PolarisTable';
 import Table from "components/Table/index";
+import StyledWrapper from './StyledWrapper';
 
 const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleSave }) => {
   const dispatch = useDispatch();
@@ -165,122 +166,125 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
   );
 
   return (
-    <StyledWrapper className="mt-4">
-      <div className="flex items-center gap-2.5 mb-3">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+    <StyledWrapper className="oauth-section">
+      <div className="section-header">
+        <div className="section-icon">
+          <IconAdjustmentsHorizontal size={16} strokeWidth={2} />
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-          Additional Parameters
-        </span>
+        <h3 className="section-title">Additional Parameters</h3>
       </div>
       
-      <div className="tabs flex w-full gap-2 my-2">
+      <div className="tabs-container">
         {availableTabs.includes('authorization') && renderTab('authorization', 'Authorization')}
         {availableTabs.includes('token') && renderTab('token', 'Token')}
         {availableTabs.includes('refresh') && renderTab('refresh', 'Refresh')}
       </div>
-      <Table
-        headers={[
-          { name: 'Key', accessor: 'name', width: '30%' },
-          { name: 'Value', accessor: 'value', width: '30%' },
-          { name: 'Send In', accessor: 'sendIn', width: '150px' },
-          { name: '', accessor: '', width: '15%' }
-        ]}
-      >
-        <tbody>
-          {(additionalParameters?.[activeTab] || []).map((param, index) => 
-            <tr key={index}>
-              <td className='flex relative'>
-                <SingleLineEditor
-                  value={param?.name || ''}
-                  theme={storedTheme}
-                  onChange={(value) => handleUpdateAdditionalParam({ 
-                    paramType: activeTab,
-                    key: 'name',
-                    paramIndex: index,
-                    value
-                  })}
-                  collection={collection}
-                  onSave={handleSave}
-                />
-              </td>
-              <td>
-                <MultiLineEditor
-                  value={param?.value || ''}
-                  theme={storedTheme}
-                  onChange={(value) => handleUpdateAdditionalParam({ 
-                    paramType: activeTab,
-                    key: 'value',
-                    paramIndex: index,
-                    value
-                  })}
-                  collection={collection}
-                  onSave={handleSave}
-                />
-              </td>
-              <td>
-                <div className="w-full additional-parameter-sends-in-selector">
-                  <select 
-                    value={param?.sendIn || 'headers'} 
-                    onChange={e => {
-                      handleUpdateAdditionalParam({ 
-                        paramType: activeTab,
-                        key: 'sendIn',
-                        paramIndex: index,
-                        value: e.target.value
-                      })
-                    }} 
-                    className="mousetrap bg-transparent"
-                  >
-                    {sendInOptionsMap[grantType || 'authorization_code'][activeTab].map((optionValue) => (
-                      <option key={optionValue} value={optionValue}>
-                        {optionValue}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </td>
-              <td>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={param?.enabled ?? true}
-                    tabIndex="-1"
-                    className="mr-3 mousetrap"
-                    onChange={(e) => {
-                      handleUpdateAdditionalParam({ 
-                        paramType: activeTab,
-                        key: 'enabled',
-                        paramIndex: index,
-                        value: e.target.checked
-                      })
-                    }}
+
+      <PolarisTable>
+        <Table
+          headers={[
+            { name: 'Key', accessor: 'name', width: '30%' },
+            { name: 'Value', accessor: 'value', width: '30%' },
+            { name: 'Send In', accessor: 'sendIn', width: '150px' },
+            { name: '', accessor: '', width: '15%' }
+          ]}
+        >
+          <tbody>
+            {(additionalParameters?.[activeTab] || []).map((param, index) => (
+              <tr key={index}>
+                <td className="flex relative">
+                  <SingleLineEditor
+                    value={param?.name || ''}
+                    theme={storedTheme}
+                    onChange={(value) => handleUpdateAdditionalParam({
+                      paramType: activeTab,
+                      key: 'name',
+                      paramIndex: index,
+                      value
+                    })}
+                    collection={collection}
+                    onSave={handleSave}
                   />
-                  <button 
-                    tabIndex="-1" 
-                    onClick={() => {
-                      handleDeleteAdditionalParam({
-                        paramType: activeTab,
-                        paramIndex: index
-                      })
-                    }}
-                  >
-                    <IconTrash strokeWidth={1.5} size={20} />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
-      <div 
-        className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} 
+                </td>
+                <td>
+                  <MultiLineEditor
+                    value={param?.value || ''}
+                    theme={storedTheme}
+                    onChange={(value) => handleUpdateAdditionalParam({
+                      paramType: activeTab,
+                      key: 'value',
+                      paramIndex: index,
+                      value
+                    })}
+                    collection={collection}
+                    onSave={handleSave}
+                  />
+                </td>
+                <td>
+                  <div className="w-full">
+                    <select
+                      value={param?.sendIn || 'headers'}
+                      onChange={(e) => {
+                        handleUpdateAdditionalParam({
+                          paramType: activeTab,
+                          key: 'sendIn',
+                          paramIndex: index,
+                          value: e.target.value
+                        });
+                      }}
+                      className="mousetrap bg-transparent"
+                    >
+                      {sendInOptionsMap[grantType || 'authorization_code'][activeTab].map((optionValue) => (
+                        <option key={optionValue} value={optionValue}>
+                          {optionValue}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </td>
+                <td>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={param?.enabled ?? true}
+                      tabIndex="-1"
+                      className="mr-3 mousetrap"
+                      onChange={(e) => {
+                        handleUpdateAdditionalParam({
+                          paramType: activeTab,
+                          key: 'enabled',
+                          paramIndex: index,
+                          value: e.target.checked
+                        });
+                      }}
+                    />
+                    <button
+                      tabIndex="-1"
+                      onClick={() => {
+                        handleDeleteAdditionalParam({
+                          paramType: activeTab,
+                          paramIndex: index
+                        });
+                      }}
+                    >
+                      <IconTrash strokeWidth={1.5} size={20} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </PolarisTable>
+
+      <button
+        className={`btn-action ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={addButtonDisabled ? null : handleAddNewAdditionalParam}
+        disabled={addButtonDisabled}
       >
-        <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
-        <span className="ml-1 text-sm text-gray-500">Add Parameter</span>
-      </div>
+        <IconPlus size={16} strokeWidth={1.5} />
+        <span>Add Parameter</span>
+      </button>
     </StyledWrapper>
   )
 }

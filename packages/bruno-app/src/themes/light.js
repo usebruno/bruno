@@ -239,10 +239,35 @@ const lightTheme = {
     }
   },
 
+  badge: {
+    bg: '#E1E3E5',
+    color: '#202223'
+  },
+
   tabs: {
     active: {
-      color: '#343434',
-      border: '#D97706'
+      color: '#202223',
+      bg: '#F6F6F7',
+      border: '#D97706',
+      badge: {
+        bg: '#8C9196',
+        color: '#fff'
+      }
+    },
+    inactive: {
+      color: '#616161',
+      bg: 'transparent'
+    },
+    hover: {
+      color: '#202223',
+      bg: 'rgba(0, 0, 0, 0.05)'
+    },
+    focus: {
+      outline: '#0052CC33'
+    },
+    badge: {
+      bg: '#E1E3E5',
+      color: '#616161'
     },
     secondary: {
       active: {
@@ -257,22 +282,26 @@ const lightTheme = {
   },
 
   requestTabs: {
-    color: 'rgb(52, 52, 52)',
+    color: '#202223',
     bg: '#f7f7f7',
-    bottomBorder: '#efefef',
+    bottomBorder: '#E1E3E5',
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(76 76 76)',
       hoverBg: 'rgb(234, 234, 234)'
     },
     active: {
-      bg: '#e7e7e7'
+      bg: '#fff'
+    },
+    inactive: {
+      bg: '#F6F6F7',
+      hoverBg: '#EBEBEB'
     },
     shortTab: {
-      color: 'rgb(117 117 117)',
-      bg: 'white',
-      hoverColor: 'rgb(76 76 76)',
-      hoverBg: '#eaeaea'
+      color: '#616161',
+      bg: 'transparent',
+      hoverColor: '#202223',
+      hoverBg: 'rgba(0, 0, 0, 0.05)'
     }
   },
 
@@ -309,9 +338,13 @@ const lightTheme = {
   },
 
   table: {
-    border: '#efefef',
+    border: '#E1E3E5',
     thead: {
-      color: '#616161'
+      color: '#616161',
+      bg: '#fff'
+    },
+    row: {
+      hoverBg: '#F6F6F7'
     },
     striped: '#f3f3f3',
     input: {

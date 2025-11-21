@@ -1,17 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  /* Polaris-inspired section title */
-  div.title {
-    font-size: 0.6875rem; /* 11px */
-    font-weight: 600;
-    color: ${(props) => props.theme.table?.thead?.color || '#616161'};
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 6px;
-  }
-
-  /* Polaris-inspired path params table */
+  /* Polaris-inspired table design */
   table {
     width: 100%;
     border-collapse: separate;
@@ -64,9 +54,6 @@ const Wrapper = styled.div`
       }
       
       td {
-        display: flex;
-        align-items: center;
-        justify-content: center;
         padding: 6px 8px;
         font-size: 0.75rem; /* 12px */
         color: ${(props) => props.theme.text || '#202223'};
@@ -172,6 +159,25 @@ const Wrapper = styled.div`
     &:focus:not(:focus-visible) {
       outline: none;
     }
+  }
+
+  /* Select dropdown styling */
+  select {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    color: ${(props) => props.theme.text || '#202223'};
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0;
+    
+    &:focus {
+      outline: none;
+    }
+  }
+
+  option {
+    background-color: ${(props) => props.theme.bg};
   }
 `;
 
