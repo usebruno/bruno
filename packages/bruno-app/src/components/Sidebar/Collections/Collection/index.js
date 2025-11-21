@@ -256,11 +256,13 @@ const Collection = ({ collection, searchText }) => {
             className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
           />
-          <div className="flex items-center">
-            <IconBox size={18} strokeWidth={1.5} className="mr-1 text-gray-500" />
-          </div>
-          <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
-            {collection.name}
+          <div className="ml-1 flex">
+            <div className="flex items-center">
+              <IconBox size={18} strokeWidth={1.5} className="mr-1 text-gray-500" />
+            </div>
+            <div className="w-full" id="sidebar-collection-name" title={collection.name}>
+              {collection.name}
+            </div>
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>

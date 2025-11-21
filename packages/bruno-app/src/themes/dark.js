@@ -48,6 +48,7 @@ const darkTheme = {
     muted: '#9d9d9d',
     bg: '#252526',
     dragbar: '#666666',
+    bottomBorder: '#444',
 
     badge: {
       bg: '#3D3D3D'

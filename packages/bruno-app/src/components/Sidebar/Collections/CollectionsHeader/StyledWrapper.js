@@ -8,8 +8,9 @@ const Wrapper = styled.div`
     opacity: 0.8;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid ${(props) => props.theme.sidebar.bottomBorder};
+    border-top: 1px solid ${(props) => props.theme.sidebar.bottomBorder};
+    height: 40px;
 
     button {
       display: flex;

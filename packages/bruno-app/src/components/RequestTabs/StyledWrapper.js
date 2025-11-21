@@ -1,8 +1,13 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  border-bottom: 1px solid transparent;
-  background: #222222;
+  background: ${(props) => props.theme.sidebar.bg};
+
+  .tabs-bar{
+    min-height: 40px;
+    border-top: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
+    border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
+  }
 
   ul {
     padding: 0;
@@ -23,15 +28,15 @@ const Wrapper = styled.div`
       min-width: 100px;
       max-width: 180px;
       flex: 1 0 auto;
-      border-right: 1px solid #333;
+      border-right: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
       list-style: none;
-      padding: 8px 12px;
+      padding: 6px 12px;
       cursor: pointer;
       font-size: 0.8125rem;
-      height: 38px;
+      height: 36px;
       align-items: center;
       justify-content: center;
-      color: #999;
+      color: ${(props) => props.theme.sidebar.muted};
       background: transparent;
       transition: all 0.2s ease;
 
@@ -43,11 +48,11 @@ const Wrapper = styled.div`
       }
 
       &.active {
-        background: #1e1e1e;
+        background: ${(props) => props.theme.bg};
         font-weight: 500;
         border-top: 2px solid #fa7d09;
         border-bottom: 1px solid transparent;
-        color: #fff;
+        color: ${(props) => props.theme.text};
         margin-bottom: -1px;
         z-index: 1;
       }
@@ -59,21 +64,21 @@ const Wrapper = styled.div`
       }
 
       &:hover {
-        background: #2a2a2a;
-        color: #fff;
+        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+        color: ${(props) => props.theme.text};
         .close-icon-container .close-icon {
           display: block;
         }
       }
 
       &.short-tab {
-        min-width: 34px;
-        max-width: 34px;
+        min-width: 32px;
+        max-width: 32px;
         padding: 0;
         display: inline-flex;
         justify-content: center;
         align-items: center;
-        color: #999;
+        color: ${(props) => props.theme.sidebar.muted};
         background-color: transparent;
         border-right: none;
         margin: 0;
@@ -92,8 +97,8 @@ const Wrapper = styled.div`
 
         &:hover {
           > div {
-            background-color: #333;
-            color: #fff;
+            background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
+            color: ${(props) => props.theme.text};
             border-radius: 4px;
           }
         }
