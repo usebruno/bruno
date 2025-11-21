@@ -1744,8 +1744,8 @@ export const collectionsSlice = createSlice({
               uid: uuid(),
               name: varData.name || '',
               value: varData.value || '',
-              local: varData?.local === true,
-              enabled: varData?.enabled !== false
+              local: varData.local === true,
+              enabled: varData.enabled !== false
             });
           } else if (type === 'response') {
             item.draft.request.vars = item.draft.request.vars || {};
