@@ -2285,7 +2285,7 @@ export const collectionsSlice = createSlice({
             uid: uuid(),
             name: varData.name || '',
             value: varData.value || '',
-            enabled: varData?.enabled !== false
+            enabled: varData.enabled !== false
           });
           set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
