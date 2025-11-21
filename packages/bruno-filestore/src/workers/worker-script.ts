@@ -1,20 +1,33 @@
 import { parentPort } from 'node:worker_threads';
 import { bruRequestToJson, jsonRequestToBru } from '../formats/bru';
+import { yamlRequestToJson, jsonRequestToYaml } from '../formats/yaml';
 
 interface WorkerMessage {
   taskType: 'parse' | 'stringify';
-  data: any;
+  data: {
+    data: any;
+    format?: 'bru' | 'yaml';
+  };
 }
 
 parentPort?.on('message', async (message: WorkerMessage) => {
   try {
-    const { taskType, data } = message;
+    const { taskType, data: messageData } = message;
+    const { data, format = 'bru' } = messageData;
     let result: any;
 
     if (taskType === 'parse') {
-      result = bruRequestToJson(data);
+      if (format === 'yaml') {
+        result = yamlRequestToJson(data);
+      } else {
+        result = bruRequestToJson(data);
+      }
     } else if (taskType === 'stringify') {
-      result = jsonRequestToBru(data);
+      if (format === 'yaml') {
+        result = jsonRequestToYaml(data);
+      } else {
+        result = jsonRequestToBru(data);
+      }
     } else {
       throw new Error(`Unknown task type: ${taskType}`);
     }

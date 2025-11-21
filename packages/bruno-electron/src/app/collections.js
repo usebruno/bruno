@@ -31,9 +31,25 @@ const validateSchema = async (config) => {
 };
 
 const getCollectionConfigFile = async (pathname) => {
+  // Check for opencollection.yml first
+  const ocYmlPath = path.join(pathname, 'opencollection.yml');
+  if (fs.existsSync(ocYmlPath)) {
+    try {
+      const { parseOpenCollection } = require('@usebruno/filestore');
+      const ocContent = fs.readFileSync(ocYmlPath, 'utf8');
+      const parsed = parseOpenCollection(ocContent);
+      const config = parsed.brunoConfig;
+      await validateSchema(config);
+      return config;
+    } catch (err) {
+      throw new Error(`Unable to parse opencollection.yml: ${err.message}`);
+    }
+  }
+
+  // Fall back to bruno.json
   const configFilePath = path.join(pathname, 'bruno.json');
   if (!fs.existsSync(configFilePath)) {
-    throw new Error(`The collection is not valid (bruno.json not found)`);
+    throw new Error(`The collection is not valid (neither bruno.json nor opencollection.yml found)`);
   }
 
   const config = await readConfigFile(configFilePath);
@@ -97,6 +113,12 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
+
+      // Mark if this is an OpenCollection
+      const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+      if (fs.existsSync(ocYmlPath)) {
+        brunoConfig.isOpenCollection = true;
+      }
 
       win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);

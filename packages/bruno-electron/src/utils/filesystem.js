@@ -96,6 +96,11 @@ const hasBruExtension = (filename) => {
   return ['bru'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 
+const hasRequestExtension = (filename) => {
+  if (!filename || typeof filename !== 'string') return false;
+  return ['bru', 'yml'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
+};
+
 const createDirectory = async (dir) => {
   if (!dir) {
     throw new Error(`directory: path is null`);
@@ -161,6 +166,24 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
+const searchForRequestFiles = (dir, filetype = 'bru') => {
+  if (filetype === 'yaml') {
+    return searchForFiles(dir, '.yml');
+  }
+  return searchForFiles(dir, '.bru');
+};
+
+// Search for request files based on collection filetype by reading config
+const searchForCollectionRequestFiles = (dir) => {
+  try {
+    const collectionFiletype = getCollectionFiletypeSync(dir);
+    return searchForRequestFiles(dir, collectionFiletype);
+  } catch (error) {
+    console.warn('Error reading collection filetype, defaulting to bru:', error);
+    return searchForRequestFiles(dir, 'bru');
+  }
+};
+
 const sanitizeName = (name) => {
   const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
   name = name
@@ -194,6 +217,69 @@ const generateUniqueName = (baseName, checkExists) => {
     uniqueName = `${baseName} copy ${counter}`;
   }
   return uniqueName;
+};
+
+const getFileExtensionFromFiletype = (filetype) => {
+  return filetype === 'yaml' ? '.yml' : '.bru';
+};
+
+const detectFileFormat = (pathname) => {
+  if (!pathname || typeof pathname !== 'string') return 'bru';
+  return pathname.toLowerCase().endsWith('.yml') ? 'yaml' : 'bru';
+};
+
+const getCollectionFiletypeSync = (collectionPath) => {
+  try {
+    const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+    if (fs.existsSync(ocYmlPath)) {
+      return 'yaml';
+    }
+
+    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
+    if (fs.existsSync(brunoJsonPath)) {
+      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
+      const brunoConfig = JSON.parse(brunoJsonContent);
+      return brunoConfig.filetype || 'bru';
+    }
+  } catch (error) {
+    console.warn('Error reading collection filetype:', error);
+  }
+  return 'bru';
+};
+
+/**
+ * Read collection config (bruno.json or opencollection.yml)
+ * Returns the brunoConfig object in a unified format
+ */
+const readCollectionConfig = (collectionPath) => {
+  try {
+    const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+    if (fs.existsSync(ocYmlPath)) {
+      const { parseOpenCollection } = require('@usebruno/filestore');
+      const ocContent = fs.readFileSync(ocYmlPath, 'utf8');
+      const parsed = parseOpenCollection(ocContent);
+      return parsed.brunoConfig;
+    }
+
+    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
+    if (fs.existsSync(brunoJsonPath)) {
+      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
+      return JSON.parse(brunoJsonContent);
+    }
+  } catch (error) {
+    console.error('Error reading collection config:', error);
+    throw error;
+  }
+
+  throw new Error(`No collection configuration found at: ${collectionPath}`);
+};
+
+const isFileTypeCompatible = (filename, collectionFiletype) => {
+  const ext = path.extname(filename).toLowerCase();
+  if (collectionFiletype === 'yaml') {
+    return ext === '.yml';
+  }
+  return ext === '.bru';
 };
 
 const validateName = (name) => {
@@ -297,7 +383,14 @@ const getSafePathToWrite = (filePath) => {
 
 async function safeWriteFile(filePath, data, options) {
   const safePath = getSafePathToWrite(filePath);
-  await fs.writeFile(safePath, data, options);
+
+  try {
+    const fsExtra = require('fs-extra');
+    fsExtra.outputFileSync(safePath, data, options);
+  } catch (err) {
+    console.error(`Error writing file at ${safePath}:`, err);
+    return Promise.reject(err);
+  }
 }
 
 function safeWriteFileSync(filePath, data) {
@@ -393,12 +486,15 @@ module.exports = {
   writeFile,
   hasJsonExtension,
   hasBruExtension,
+  hasRequestExtension,
   createDirectory,
   browseDirectory,
   browseFiles,
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
+  searchForRequestFiles,
+  searchForCollectionRequestFiles,
   sanitizeName,
   isWindowsOS,
   safeToRename,
@@ -412,5 +508,10 @@ module.exports = {
   removePath,
   getPaths,
   isLargeFile,
-  generateUniqueName
+  generateUniqueName,
+  getFileExtensionFromFiletype,
+  detectFileFormat,
+  getCollectionFiletypeSync,
+  isFileTypeCompatible,
+  readCollectionConfig
 };
