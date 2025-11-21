@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
     margin-bottom: 0.5rem;
 
     .counter {
-      font-size: 0.875rem;
+      font-size: var(--font-size-body);
       font-weight: 500;
     }
 
@@ -32,7 +32,7 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       gap: 0.25rem;
-      font-size: 0.75rem;
+      font-size: var(--font-size-body);
       color: ${props => props.theme.textLink};
       background: none;
       border: none;
@@ -66,7 +66,7 @@ const StyledWrapper = styled.div`
     .empty-message {
       padding: 0.75rem;
       color: ${props => props.theme.colors.text.muted};
-      font-size: 0.875rem;
+      font-size: var(--font-size-body);
     }
     
     .requests-container {
@@ -177,7 +177,7 @@ const StyledWrapper = styled.div`
     
     .method {
       font-family: monospace;
-      font-size: 0.75rem;
+      font-size: var(--font-size-body);
       font-weight: 500;
       margin-right: 0.5rem;
       min-width: 3rem;
@@ -214,14 +214,14 @@ const StyledWrapper = styled.div`
     
     .request-name {
       flex: 1;
-      font-size: 0.875rem;
+      font-size: var(--font-size-body);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       
       .folder-path {
         margin-left: 0.5rem;
-        font-size: 0.75rem;
+        font-size: var(--font-size-body);
         color: ${props => props.theme.sidebar.muted};
       }
     }

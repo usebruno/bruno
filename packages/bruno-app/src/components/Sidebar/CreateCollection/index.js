@@ -138,7 +138,7 @@ const CreateCollection = ({ onClose }) => {
             <span
               className="text-link cursor-pointer hover:underline" onClick={browse}
               style={{
-                fontSize: '0.8125rem'
+                fontSize: 'var(--font-size-body)'
               }}
             >
               Browse

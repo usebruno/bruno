@@ -26,12 +26,12 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 8px;
     color: ${(props) => props.theme.console.titleColor};
-    font-size: 13px;
+    font-size: var(--font-size-body);
     font-weight: 500;
 
     .error-time {
       color: ${(props) => props.theme.console.countColor};
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       font-weight: 400;
     }
   }
@@ -73,7 +73,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
 
     &:hover {
@@ -111,7 +111,7 @@ const StyledWrapper = styled.div`
 
     h4 {
       margin: 0 0 12px 0;
-      font-size: 13px;
+      font-size: var(--font-size-body);
       font-weight: 600;
       color: ${(props) => props.theme.console.titleColor};
       text-transform: uppercase;
@@ -131,7 +131,7 @@ const StyledWrapper = styled.div`
     gap: 4px;
 
     label {
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       font-weight: 600;
       color: ${(props) => props.theme.console.titleColor};
       text-transform: uppercase;
@@ -139,7 +139,7 @@ const StyledWrapper = styled.div`
     }
 
     span {
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       color: ${(props) => props.theme.console.messageColor};
       font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
       word-break: break-all;
@@ -167,7 +167,7 @@ const StyledWrapper = styled.div`
 
     p {
       margin: 0;
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       color: ${(props) => props.theme.console.messageColor};
       line-height: 1.4;
     }
@@ -184,7 +184,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     text-decoration: none;
     align-self: flex-start;
@@ -212,7 +212,7 @@ const StyledWrapper = styled.div`
   .arguments {
     margin: 0;
     padding: 16px;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     line-height: 1.5;
     color: ${(props) => props.theme.console.messageColor};
     background: transparent;

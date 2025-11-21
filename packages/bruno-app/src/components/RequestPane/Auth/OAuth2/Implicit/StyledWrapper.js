@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   label {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body);
   }
   .oauth2-input-wrapper {
     max-width: 400px;

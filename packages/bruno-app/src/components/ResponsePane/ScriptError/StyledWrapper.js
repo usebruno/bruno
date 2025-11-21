@@ -44,7 +44,7 @@ const StyledWrapper = styled.div`
   
   .error-message {
     font-family: monospace;
-    font-size: 0.6875rem;
+    font-size: var(--font-size-xs);
     line-height: 1.25rem;
     white-space: pre-wrap;
     word-break: break-all;

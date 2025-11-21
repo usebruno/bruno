@@ -180,7 +180,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
       className={`${showAllCollections ? 'show-less-link' : 'show-more-link'} w-fit flex items-center mt-2 cursor-pointer`}
       onClick={() => setShowAllCollections(!showAllCollections)}
     >
-      <span className="text-sm text-link">
+      <span className="text-link">
         {showAllCollections ? 'Show less' : `Show ${hiddenCollectionsCount} more`}
       </span>
     </span>

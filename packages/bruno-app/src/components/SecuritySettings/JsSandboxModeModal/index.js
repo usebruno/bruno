@@ -62,7 +62,7 @@ const JsSandboxModeModal = ({ collection }) => {
                 Safe Mode
               </span>
             </label>
-            <p className='text-sm text-muted mt-1'>
+            <p className="text-muted mt-1">
               JavaScript code is executed in a secure sandbox and cannot access your filesystem or execute system commands.
             </p>
 
@@ -81,7 +81,7 @@ const JsSandboxModeModal = ({ collection }) => {
                 <span className='ml-1 developer-mode-warning'>(use only if you trust the authors of the collection)</span>
               </span>
             </label>
-            <p className='text-sm text-muted mt-1'>
+            <p className="text-muted mt-1">
               JavaScript code has access to the filesystem, can execute system commands and access sensitive information.
             </p>
           </div>

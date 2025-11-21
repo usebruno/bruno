@@ -13,7 +13,7 @@ const Wrapper = styled.div`
   }
 
   .header-text {
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     color: ${(props) => props.theme.grpc.protoFiles.header.text};
   }
 
@@ -36,7 +36,7 @@ const Wrapper = styled.div`
     padding: 0.5rem;
     background-color: ${(props) => props.theme.grpc.protoFiles.error.bg};
     border-radius: 0.25rem;
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     color: ${(props) => props.theme.grpc.protoFiles.error.text};
   }
 
@@ -110,14 +110,14 @@ const Wrapper = styled.div`
   }
 
   .item-title {
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     display: flex;
     align-items: center;
     color: ${(props) => props.theme.grpc.protoFiles.item.text};
   }
 
   .item-path {
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     color: ${(props) => props.theme.grpc.protoFiles.item.secondaryText};
     overflow: hidden;
     text-overflow: ellipsis;
@@ -127,7 +127,7 @@ const Wrapper = styled.div`
 
   .invalid-icon {
     color: ${(props) => props.theme.grpc.protoFiles.item.invalid.text};
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     display: flex;
     align-items: center;
     margin-left: 0.5rem;
@@ -139,7 +139,7 @@ const Wrapper = styled.div`
 
   .empty-text {
     color: ${(props) => props.theme.grpc.protoFiles.empty.text};
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     font-style: italic;
     text-align: center;
     padding: 0.5rem 0;
@@ -159,7 +159,7 @@ const Wrapper = styled.div`
     border: 1px solid ${(props) => props.theme.grpc.protoFiles.button.border};
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     cursor: pointer;
     transition: border-color 0.2s ease;
 

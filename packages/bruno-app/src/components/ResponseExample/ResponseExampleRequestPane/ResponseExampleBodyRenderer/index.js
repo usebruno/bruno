@@ -51,7 +51,7 @@ const ResponseExampleBodyRenderer = ({
     switch (bodyMode) {
       case 'none':
         return (
-          <div className="text-sm no-body-text">
+          <div className="no-body-text">
             No Body
           </div>
         );
@@ -91,7 +91,7 @@ const ResponseExampleBodyRenderer = ({
 
       default:
         return (
-          <div className="text-sm no-body-text">
+          <div className="no-body-text">
             No Body
           </div>
         );

@@ -6,7 +6,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.requestTabPanel.url.bg};
     border-radius: 4px;
     padding: 8px 12px;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body);
     border: 1px solid rgba(0, 0, 0, 0.08);
     
     .icon-column {

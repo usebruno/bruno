@@ -116,7 +116,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
     return (
       <div ref={ref} className="flex items-center justify-between w-full current-group" data-testid="grouping-dropdown">
         <div>
-          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedOption.label}</div>
+          <div className="font-medium text-gray-900 dark:text-gray-100">{selectedOption.label}</div>
         </div>
         <IconCaretDown size={16} className="text-gray-400 ml-[0.25rem]" fill="currentColor" />
       </div>
@@ -201,7 +201,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
                 <label htmlFor="groupingType" className="block font-semibold mt-4">
                   Folder arrangement
                 </label>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-2">
+                <p className="text-gray-600 dark:text-gray-400 mt-1 mb-2">
                   Select whether to create folders according to the spec's paths or tags.
                 </p>
               </div>

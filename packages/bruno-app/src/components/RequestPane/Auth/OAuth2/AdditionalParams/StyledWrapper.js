@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
     .tab {
       cursor: pointer;
       padding: 4px 8px !important;
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       border-radius: 4px;
       
       &:hover {
@@ -33,7 +33,7 @@ const StyledWrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body);
       user-select: none;
     }
     td {

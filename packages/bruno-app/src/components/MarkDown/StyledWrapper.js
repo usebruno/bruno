@@ -9,36 +9,36 @@ const StyledMarkdownBodyWrapper = styled.div`
     box-sizing: border-box;
     height: 100%;
     margin: 0 auto;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
 
     h1 {
       margin: 0.67em 0;
       font-weight: var(--base-text-weight-semibold, 600);
       padding-bottom: 0.3em;
-      font-size: 1.3em;
+      font-size: 1.4em;
       border-bottom: 1px solid var(--color-border-muted);
     }
 
     h2 {
       font-weight: var(--base-text-weight-semibold, 600);
       padding-bottom: 0.3em;
-      font-size: 1.2em;
+      font-size: 1.3em;
       border-bottom: 1px solid var(--color-border-muted);
     }
 
     h3 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 1.1em;
+      font-size: 1.2em;
     }
 
     h4 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 1em;
+      font-size: 1.1em;
     }
 
     h5 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 0.95em;
+      font-size: 1em;
     }
 
     h6 {

@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  font-size: 0.6875rem;
+  font-size: var(--font-size-xs);
   display: flex;
   align-self: stretch;
   align-items: center;

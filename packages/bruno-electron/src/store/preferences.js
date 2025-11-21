@@ -24,7 +24,7 @@ const defaultPreferences = {
   },
   font: {
     codeFont: 'default',
-    codeFontSize: 14
+    codeFontSize: 13
   },
   proxy: {
     mode: 'off',

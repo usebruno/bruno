@@ -7,7 +7,7 @@ const Wrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body);
       user-select: none;
     }
   }

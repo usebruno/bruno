@@ -74,7 +74,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
               data-testid="create-example-name-input"
             />
             {nameError && (
-              <div className="text-red-500 text-sm mt-1" data-testid="name-error">
+              <div className="text-red-500 mt-1" data-testid="name-error">
                 {nameError}
               </div>
             )}

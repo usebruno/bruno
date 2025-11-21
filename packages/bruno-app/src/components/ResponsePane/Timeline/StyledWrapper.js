@@ -35,18 +35,18 @@ const StyledWrapper = styled.div`
 
   .url-text {
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     margin-top: 0.25rem;
   }
 
   .timestamp {
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
   }
 
   .meta-info {
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
   }
 
   .oauth-section {
@@ -128,7 +128,7 @@ const StyledWrapper = styled.div`
   }
     
   .request-label {
-    font-size: 0.75rem;
+    font-size: var(--font-size-body);
     padding: 2px 6px;
     border-radius: 3px;
     margin-left: 8px;
@@ -148,7 +148,7 @@ const StyledWrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body);
       user-select: none;
     }
     td {

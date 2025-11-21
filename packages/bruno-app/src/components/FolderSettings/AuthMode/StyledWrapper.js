@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
     border: 1px solid ${({ theme }) => theme.colors.border};
     padding: 4px 8px;
     border-radius: 4px;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body);
   }
 
   .auth-mode-label {

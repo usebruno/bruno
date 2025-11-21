@@ -150,7 +150,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
             data-testid={importTestId}
           >
             <IconFileImport size={64} />
-            <span className="mt-2 block text-sm font-semibold">
+            <span className="mt-2 block font-semibold">
               {isDragOver ? 'Drop your environment files here' : 'Import your environments'}
             </span>
             <span className="mt-1 block text-xs text-muted">

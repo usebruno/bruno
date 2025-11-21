@@ -17,7 +17,7 @@ const Wrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body);
       user-select: none;
     }
     td {
@@ -32,7 +32,7 @@ const Wrapper = styled.div`
   }
 
   .btn-action {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body);
     &:hover span {
       text-decoration: underline;
     }
