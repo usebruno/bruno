@@ -10,7 +10,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
             <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Collection</span>
+            <span>Collection</span>
           </div>
         );
       }
@@ -18,7 +18,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Collection</span>
+            <span>Collection</span>
           </>
         );
       }
@@ -26,7 +26,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconShieldLock size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1">Security</span>
+            <span>Security</span>
           </>
         )
       }
@@ -34,7 +34,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
             <IconFolder size={18} strokeWidth={1.5} className="text-yellow-600 min-w-[18px]" />
-            <span className="ml-1 leading-6 truncate">{tabName || 'Folder'}</span>
+            <span className="truncate">{tabName || 'Folder'}</span>
           </div>
         );
       }
@@ -42,7 +42,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconVariable size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Variables</span>
+            <span>Variables</span>
           </>
         );
       }
@@ -50,7 +50,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconRun size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Runner</span>
+            <span>Runner</span>
           </>
         );
       }

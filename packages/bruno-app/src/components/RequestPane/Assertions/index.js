@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { addAssertion, updateAssertion, deleteAssertion } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import AssertionRow from './AssertionRow';
-import StyledWrapper from './StyledWrapper';
+import PolarisTable from 'components/PolarisTable';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
 import { moveAssertion } from 'providers/ReduxStore/slices/collections/index';
@@ -71,7 +71,7 @@ const Assertions = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
+    <PolarisTable className="w-full">
       <Table
         headers={[
           { name: 'Expr', accessor: 'expr', width: '30%' },
@@ -113,10 +113,10 @@ const Assertions = ({ item, collection }) => {
             : null}
         </ReorderTable>
       </Table>
-      <button className="btn-add-assertion text-link pr-2 py-3 mt-2 select-none" onClick={handleAddAssertion}>
+      <button className="btn-action text-link pr-2 py-3 mt-2 select-none" onClick={handleAddAssertion}>
         + Add Assertion
       </button>
-    </StyledWrapper>
+    </PolarisTable>
   );
 };
 export default Assertions;

@@ -16,7 +16,7 @@ const Wrapper = styled.div`
   }
 
   ul {
-    padding: 0;
+    padding: 0 3px;
     margin: 0;
     display: flex;
     overflow: scroll;

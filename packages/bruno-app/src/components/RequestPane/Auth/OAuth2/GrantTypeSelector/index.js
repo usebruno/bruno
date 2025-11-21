@@ -19,8 +19,9 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-end grant-type-label select-none">
-        {humanizeGrantType(oAuth?.grantType)} <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      <div ref={ref} className="select-button">
+        <span className="select-label">{humanizeGrantType(oAuth?.grantType)}</span>
+        <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
     );
   });
@@ -72,54 +73,59 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   }, [oAuth]);
 
   return (
-    <StyledWrapper>
-      <div className="flex items-center gap-2.5 my-4">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+    <StyledWrapper className="oauth-section">
+      <div className="section-header">
+        <div className="section-icon">
+          <IconKey size={16} strokeWidth={2} />
         </div>
-        <span className="text-sm font-medium">
-          Grant Type
-        </span>
+        <h3 className="section-title">Grant Type</h3>
       </div>
-      <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-fit">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onGrantTypeChange('password');
-            }}
-          >
-            Password Credentials
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onGrantTypeChange('authorization_code');
-            }}
-          >
-            Authorization Code
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onGrantTypeChange('implicit');
-            }}
-          >
-            Implicit
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onGrantTypeChange('client_credentials');
-            }}
-          >
-            Client Credentials
-          </div>
-        </Dropdown>
+
+      <div className="form-field">
+        <label className="form-label">OAuth 2.0 Flow</label>
+        <div className="help-text">
+          Select the OAuth 2.0 grant type that matches your authorization server configuration
+        </div>
+        <div className="select-wrapper">
+          <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                onGrantTypeChange('authorization_code');
+              }}
+            >
+              Authorization Code
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                onGrantTypeChange('password');
+              }}
+            >
+              Password Credentials
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                onGrantTypeChange('client_credentials');
+              }}
+            >
+              Client Credentials
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                onGrantTypeChange('implicit');
+              }}
+            >
+              Implicit
+            </div>
+          </Dropdown>
+        </div>
       </div>
     </StyledWrapper>
   );

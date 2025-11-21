@@ -7,7 +7,7 @@ import { useTheme } from 'providers/Theme';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader, moveRequestHeader, setRequestHeaders } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
-import StyledWrapper from './StyledWrapper';
+import PolarisTable from 'components/PolarisTable';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import Table from 'components/Table/index';
@@ -92,7 +92,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
 
   if (isBulkEditMode) {
     return (
-      <StyledWrapper className="w-full mt-3">
+      <PolarisTable className="w-full mt-3">
         <BulkEditor
           params={headers}
           onChange={handleBulkHeadersChange}
@@ -100,12 +100,12 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           onSave={onSave}
           onRun={handleRun}
         />
-      </StyledWrapper>
+      </PolarisTable>
     );
   }
 
   return (
-    <StyledWrapper className="w-full">
+    <PolarisTable className="w-full">
       <Table
         headers={[
           { name: 'Key', accessor: 'key', width: '34%' },
@@ -189,7 +189,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           Bulk Edit
         </button>
       </div>
-    </StyledWrapper>
+    </PolarisTable>
   );
 };
 export default RequestHeaders;
