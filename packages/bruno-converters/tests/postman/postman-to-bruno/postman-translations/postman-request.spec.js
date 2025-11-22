@@ -26,4 +26,20 @@ describe('postmanTranslations - request commands', () => {
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
+
+  test('should handle legacy request object without pm prefix', () => {
+    const inputScript = `
+      const url = request.url;
+      const method = request.method;
+      const body = request.body;
+      const name = request.name;
+    `;
+    const expectedOutput = `
+      const url = req.getUrl();
+      const method = req.getMethod();
+      const body = req.getBody();
+      const name = req.getName();
+    `;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
 }); 

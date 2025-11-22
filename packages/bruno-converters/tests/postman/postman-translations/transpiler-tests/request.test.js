@@ -105,4 +105,20 @@ describe('Request Translation', () => {
         expect(translatedCode).toContain('bru.setVar("lastRequestBody", JSON.stringify(requestData));');
         expect(translatedCode).toContain('bru.setEnvVar("lastContentType", contentType);');
     });
+
+  it('should translate legacy request.* properties', () => {
+    const code = `
+        const url = request.url;
+        const method = request.method;
+        const body = request.body;
+        const name = request.name;
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe(`
+        const url = req.getUrl();
+        const method = req.getMethod();
+        const body = req.getBody();
+        const name = req.getName();
+        `);
+  });
 }); 

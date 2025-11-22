@@ -35,11 +35,23 @@ const replacements = {
   'pm\\.response\\.status': 'res.statusText',
   'pm\\.response\\.headers': 'res.getHeaders()',
   "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
+
+  // Supported Postman request translations:
+  // - pm.request.url / request.url     -> req.getUrl()
+  // - pm.request.method / request.method -> req.getMethod()
+  // - pm.request.headers / request.headers -> req.getHeaders()
+  // - pm.request.body / request.body   -> req.getBody()
+  // - pm.info.requestName / request.name -> req.getName()
   'pm\\.request\\.url': 'req.getUrl()',
   'pm\\.request\\.method': 'req.getMethod()',
   'pm\\.request\\.headers': 'req.getHeaders()',
   'pm\\.request\\.body': 'req.getBody()',
   'pm\\.info\\.requestName': 'req.getName()',
+  'request\\.url': 'req.getUrl()',
+  'request\\.method': 'req.getMethod()',
+  'request\\.headers': 'req.getHeaders()',
+  'request\\.body': 'req.getBody()',
+  'request\\.name': 'req.getName()',
   // deprecated translations
   'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
   'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',
