@@ -1,6 +1,12 @@
 import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
+  html,
+  body {
+    font-family: ${(props) => props.theme.uiFont || 'Inter'}, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: ${(props) => props.theme.uiFontSize ? `${props.theme.uiFontSize}px` : '14px'} !important;
+  }
+
   .CodeMirror-gutters {
     background-color: ${(props) => props.theme.codemirror.gutter.bg} !important;
     border-right: solid 1px ${(props) => props.theme.codemirror.border};
@@ -318,7 +324,7 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-value-display {
     padding: 0.375rem 1.5rem 0.375rem 0.5rem;
     font-size: 0.875rem;
-    font-family: Inter, sans-serif;
+    font-family: ${(props) => props.theme.uiFont || 'Inter'}, sans-serif;
     font-weight: 400;
     word-break: break-word;
     line-height: 1.25rem;
@@ -341,7 +347,7 @@ const GlobalStyle = createGlobalStyle`
     min-height: 1.75rem;
     max-height: 11.125rem;
     font-size: 0.875rem;
-    font-family: Inter, sans-serif;
+    font-family: ${(props) => props.theme.uiFont || 'Inter'}, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
     border: 0.0625rem solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
@@ -366,7 +372,7 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-lines {
     padding: 0.375rem 1.5rem 0.375rem 0.5rem;
     max-width: 13.1875rem;
-    font-family: Inter, sans-serif;
+    font-family: ${(props) => props.theme.uiFont || 'Inter'}, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
     word-break: break-all;
@@ -376,7 +382,7 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror pre {
     font-size: 0.875rem;
-    font-family: Inter, sans-serif;
+    font-family: ${(props) => props.theme.uiFont || 'Inter'}, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
     word-break: break-all;
@@ -391,7 +397,7 @@ const GlobalStyle = createGlobalStyle`
     max-width: 13.1875rem;
     line-height: 1.25rem;
     font-size: 0.875rem;
-    font-family: Inter, sans-serif;
+    font-family: ${(props) => props.theme.uiFont || 'Inter'}, sans-serif;
     font-weight: 400;
     word-break: break-all;
     word-wrap: break-word;
@@ -411,7 +417,7 @@ const GlobalStyle = createGlobalStyle`
     max-width: 13.1875rem;
     padding: 0.375rem 1.5rem 0.375rem 0.5rem;
     font-size: 0.875rem;
-    font-family: Inter, sans-serif;
+    font-family: ${(props) => props.theme.uiFont || 'Inter'}, sans-serif;
     font-weight: 400;
     word-break: break-all;
     word-wrap: break-word;
