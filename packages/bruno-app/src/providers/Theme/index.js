@@ -1,6 +1,8 @@
 import React from 'react';
 import themes from 'themes/index';
 import useLocalStorage from 'hooks/useLocalStorage/index';
+import { useSelector } from 'react-redux';
+import get from 'lodash/get';
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { ThemeProvider as SCThemeProvider } from 'styled-components';
@@ -10,6 +12,10 @@ export const ThemeProvider = (props) => {
   const isBrowserThemeLight = window.matchMedia('(prefers-color-scheme: light)').matches;
   const [displayedTheme, setDisplayedTheme] = useState(isBrowserThemeLight ? 'light' : 'dark');
   const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', 'system');
+  const preferences = useSelector((state) => state.app.preferences);
+  const uiFont = get(preferences, 'font.uiFont', 'Inter');
+  const uiFontSize = get(preferences, 'font.uiFontSize', '14');
+
   const toggleHtml = () => {
     const html = document.querySelector('html');
     if (html) {
@@ -41,7 +47,12 @@ export const ThemeProvider = (props) => {
   // storedTheme can have 3 values: 'light', 'dark', 'system'
   // displayedTheme can have 2 values: 'light', 'dark'
 
-  const theme = storedTheme === 'system' ? themes[displayedTheme] : themes[storedTheme];
+  const baseTheme = storedTheme === 'system' ? themes[displayedTheme] : themes[storedTheme];
+  const theme = {
+    ...baseTheme,
+    uiFont,
+    uiFontSize
+  };
   const themeOptions = Object.keys(themes);
   const value = {
     theme,

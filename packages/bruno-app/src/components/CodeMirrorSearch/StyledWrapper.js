@@ -84,7 +84,7 @@ const StyledWrapper = styled.div`
   }
 
   .bruno-search-bar, .bruno-search-bar input {
-    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-family: ${(props) => props.theme.uiFont || 'Inter'}, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   }
 
   .cm-search-line-highlight {
