@@ -32,11 +32,11 @@ const validateSchema = async (config) => {
 
 const getCollectionConfigFile = async (pathname) => {
   // Check for opencollection.yml first
-  const ocYmlPath = path.join(pathname, 'opencollection.yml');
-  if (fs.existsSync(ocYmlPath)) {
+  const ocYamlPath = path.join(pathname, 'opencollection.yml');
+  if (fs.existsSync(ocYamlPath)) {
     try {
       const { parseOpenCollection } = require('@usebruno/filestore');
-      const ocContent = fs.readFileSync(ocYmlPath, 'utf8');
+      const ocContent = fs.readFileSync(ocYamlPath, 'utf8');
       const parsed = parseOpenCollection(ocContent);
       const config = parsed.brunoConfig;
       await validateSchema(config);
@@ -115,8 +115,8 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       brunoConfig.filesCount = filesCount;
 
       // Mark if this is an OpenCollection
-      const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
-      if (fs.existsSync(ocYmlPath)) {
+      const ocYamlPath = path.join(collectionPath, 'opencollection.yml');
+      if (fs.existsSync(ocYamlPath)) {
         brunoConfig.isOpenCollection = true;
       }
 

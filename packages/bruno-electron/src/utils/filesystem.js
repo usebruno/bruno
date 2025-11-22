@@ -176,7 +176,7 @@ const searchForRequestFiles = (dir, filetype = 'bru') => {
 // Search for request files based on collection filetype by reading config
 const searchForCollectionRequestFiles = (dir) => {
   try {
-    const collectionFiletype = getCollectionFiletypeSync(dir);
+    const collectionFiletype = getCollectionFormat(dir);
     return searchForRequestFiles(dir, collectionFiletype);
   } catch (error) {
     console.warn('Error reading collection filetype, defaulting to bru:', error);
@@ -228,47 +228,15 @@ const detectFileFormat = (pathname) => {
   return pathname.toLowerCase().endsWith('.yml') ? 'yaml' : 'bru';
 };
 
-const getCollectionFiletypeSync = (collectionPath) => {
-  try {
-    const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
-    if (fs.existsSync(ocYmlPath)) {
-      return 'yaml';
-    }
-
-    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
-    if (fs.existsSync(brunoJsonPath)) {
-      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
-      const brunoConfig = JSON.parse(brunoJsonContent);
-      return brunoConfig.filetype || 'bru';
-    }
-  } catch (error) {
-    console.warn('Error reading collection filetype:', error);
+const getCollectionFormat = (collectionPath) => {
+  const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+  if (fs.existsSync(ocYmlPath)) {
+    return 'yml';
   }
-  return 'bru';
-};
 
-/**
- * Read collection config (bruno.json or opencollection.yml)
- * Returns the brunoConfig object in a unified format
- */
-const readCollectionConfig = (collectionPath) => {
-  try {
-    const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
-    if (fs.existsSync(ocYmlPath)) {
-      const { parseOpenCollection } = require('@usebruno/filestore');
-      const ocContent = fs.readFileSync(ocYmlPath, 'utf8');
-      const parsed = parseOpenCollection(ocContent);
-      return parsed.brunoConfig;
-    }
-
-    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
-    if (fs.existsSync(brunoJsonPath)) {
-      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
-      return JSON.parse(brunoJsonContent);
-    }
-  } catch (error) {
-    console.error('Error reading collection config:', error);
-    throw error;
+  const brunoJsonPath = path.join(collectionPath, 'bruno.json');
+  if (fs.existsSync(brunoJsonPath)) {
+    return 'bru';
   }
 
   throw new Error(`No collection configuration found at: ${collectionPath}`);
@@ -511,7 +479,6 @@ module.exports = {
   generateUniqueName,
   getFileExtensionFromFiletype,
   detectFileFormat,
-  getCollectionFiletypeSync,
-  isFileTypeCompatible,
-  readCollectionConfig
+  getCollectionFormat,
+  isFileTypeCompatible
 };

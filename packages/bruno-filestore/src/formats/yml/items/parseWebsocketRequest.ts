@@ -1,0 +1,80 @@
+import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
+import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
+import type { WebSocketRequest, WebSocketMessage } from '@opencollection/types/requests/websocket';
+import { toBrunoAuth } from '../common/auth';
+import { toBrunoHttpHeaders } from '../common/headers';
+import { toBrunoVariables } from '../common/variables';
+import { toBrunoScripts } from '../common/scripts';
+import { uuid } from '../utils';
+
+export default (ocRequest: WebSocketRequest): BrunoItem => {
+  const brunoRequest: BrunoWebSocketRequest = {
+    url: ocRequest.url || '',
+    headers: toBrunoHttpHeaders(ocRequest.headers) || [],
+    auth: toBrunoAuth(ocRequest.auth),
+    body: {
+      mode: 'ws',
+      ws: []
+    },
+    script: null,
+    vars: null,
+    assertions: null,
+    tests: null,
+    docs: null
+  };
+
+  // message
+  if (ocRequest.message) {
+    const message = ocRequest.message as WebSocketMessage;
+    if (message.data?.trim().length) {
+      brunoRequest.body.ws = [{
+        name: '',
+        type: message.type || 'text',
+        content: message.data
+      }];
+    }
+  }
+
+  // scripts
+  const scripts = toBrunoScripts(ocRequest.scripts);
+  if (scripts?.script) {
+    brunoRequest.script = scripts.script;
+  }
+  if (scripts?.tests) {
+    brunoRequest.tests = scripts.tests;
+  }
+
+  // variables
+  const variables = toBrunoVariables(ocRequest.variables);
+  if (variables) {
+    brunoRequest.vars = {
+      req: variables,
+      res: null
+    };
+  }
+
+  // docs
+  if (ocRequest.docs) {
+    brunoRequest.docs = ocRequest.docs;
+  }
+
+  // bruno item
+  const brunoItem: BrunoItem = {
+    uid: uuid(),
+    type: 'ws-request',
+    seq: ocRequest.seq || 1,
+    name: ocRequest.name || 'Untitled Request',
+    tags: ocRequest.tags || [],
+    request: brunoRequest,
+    settings: null,
+    fileContent: null,
+    root: null,
+    items: [],
+    examples: [],
+    filename: null,
+    pathname: null
+  };
+
+  return brunoItem;
+};
+

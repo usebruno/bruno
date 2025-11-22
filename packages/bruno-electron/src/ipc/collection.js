@@ -41,7 +41,7 @@ const {
   hasRequestExtension,
   searchForRequestFiles,
   detectFileFormat,
-  getCollectionFiletypeSync,
+  getCollectionFormat,
   getFileExtensionFromFiletype,
   searchForCollectionRequestFiles,
   normalizeAndResolvePath,
@@ -55,7 +55,8 @@ const {
   copyPath,
   removePath,
   getPaths,
-  generateUniqueName
+  generateUniqueName,
+  getCollectionFormat
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { stringifyJson, safeParseJSON, generateUidBasedOnHash } = require('../utils/common');
@@ -121,8 +122,8 @@ const getCollectionFiletype = async (filePath, lastOpenedCollections) => {
     }
 
     // Check for opencollection.yml first
-    const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
-    if (fs.existsSync(ocYmlPath)) {
+    const ocYamlPath = path.join(collectionPath, 'opencollection.yml');
+    if (fs.existsSync(ocYamlPath)) {
       return 'yaml';
     }
 
@@ -216,11 +217,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await createDirectory(dirPath);
       const uid = generateUidBasedOnHash(dirPath);
 
-      const ocYmlPath = path.join(previousPath, 'opencollection.yml');
+      const ocYamlPath = path.join(previousPath, 'opencollection.yml');
       const brunoJsonFilePath = path.join(previousPath, 'bruno.json');
 
-      if (fs.existsSync(ocYmlPath)) {
-        const content = fs.readFileSync(ocYmlPath, 'utf8');
+      if (fs.existsSync(ocYamlPath)) {
+        const content = fs.readFileSync(ocYamlPath, 'utf8');
         const parsed = parseOpenCollection(content);
 
         parsed.brunoConfig.name = collectionName;
@@ -259,17 +260,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {
-      const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
+      const ocYamlPath = path.join(collectionPathname, 'opencollection.yml');
       const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
 
-      if (fs.existsSync(ocYmlPath)) {
-        const content = fs.readFileSync(ocYmlPath, 'utf8');
+      if (fs.existsSync(ocYamlPath)) {
+        const content = fs.readFileSync(ocYamlPath, 'utf8');
         const parsed = parseOpenCollection(content);
 
         parsed.brunoConfig.name = newName;
 
         const newContent = stringifyOpenCollection(parsed.brunoConfig, parsed.root);
-        await writeFile(ocYmlPath, newContent);
+        await writeFile(ocYamlPath, newContent);
       } else {
         const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
         const json = JSON.parse(content);
@@ -309,43 +310,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return Promise.reject(error);
     }
   });
-  ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot) => {
+
+  // save collection root
+  ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot, brunoConfig) => {
     try {
-      const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
+      const format = getCollectionFormat(collectionPathname);
+      const filename = format === 'yml' ? 'opencollection.yml' : 'collection.bru';
+      const content = await stringifyCollection(collectionRoot, brunoConfig, { format });
 
-      if (fs.existsSync(ocYmlPath)) {
-
-        try {
-          const existingContent = fs.readFileSync(ocYmlPath, 'utf8');
-          const parsed = parseOpenCollection(existingContent);
-
-          const existingBrunoConfig = parsed.brunoConfig || {};
-          const existingCollectionRoot = parsed.root || {};
-
-          const mergedCollectionRoot = {
-            ...existingCollectionRoot,
-            ...collectionRoot,
-            request: {
-              ...(existingCollectionRoot.request || {}),
-              ...(collectionRoot.request || {})
-            }
-          };
-
-          const content = stringifyOpenCollection(existingBrunoConfig, mergedCollectionRoot);
-
-          await writeFile(ocYmlPath, content);
-        } catch (readError) {
-          console.error('Error processing opencollection.yml:', readError);
-          throw new Error(`Failed to update opencollection.yml: ${readError.message}`);
-        }
-      } else {
-        // For BRU collections, write to collection.bru or collection.yml
-        const filetype = await getCollectionFiletype(collectionPathname, lastOpenedCollections);
-        const extension = getFileExtensionFromFiletype(filetype);
-        const collectionBruFilePath = path.join(collectionPathname, `collection${extension}`);
-        const content = await stringifyCollection(collectionRoot, { format: filetype });
-        await writeFile(collectionBruFilePath, content);
-      }
+      await writeFile(path.join(collectionPathname, filename), content);
     } catch (error) {
       console.error('Error in save-collection-root:', error);
       return Promise.reject(error);
@@ -428,6 +401,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       case 'folder':
         return stringifyFolder(data, { format });
       case 'collection':
+        // TODO: update to conform to stringifyCollection(collectionRoot, brunoConfig, { format }) signature
         return stringifyCollection(data, { format });
       default:
         throw new Error(`Invalid scope type: ${scopeType}`);
@@ -545,7 +519,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename environment
   ipcMain.handle('renderer:rename-environment', async (event, collectionPathname, environmentName, newName) => {
     try {
-      const collectionFiletype = getCollectionFiletypeSync(collectionPathname);
+      const collectionFiletype = getCollectionFormat(collectionPathname);
       const extension = getFileExtensionFromFiletype(collectionFiletype);
       const envDirPath = path.join(collectionPathname, 'environments');
       const envFilePath = path.join(envDirPath, `${environmentName}${extension}`);
@@ -582,7 +556,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // delete environment
   ipcMain.handle('renderer:delete-environment', async (event, collectionPathname, environmentName) => {
     try {
-      const collectionFiletype = getCollectionFiletypeSync(collectionPathname);
+      const collectionFiletype = getCollectionFormat(collectionPathname);
       const extension = getFileExtensionFromFiletype(collectionFiletype);
       const envDirPath = path.join(collectionPathname, 'environments');
       const envFilePath = path.join(envDirPath, `${environmentName}${extension}`);
@@ -748,7 +722,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           collectionPath = path.dirname(collectionPath);
         }
 
-        const collectionFiletype = getCollectionFiletypeSync(collectionPath);
+        const collectionFiletype = getCollectionFormat(collectionPath);
         const folderExtension = getFileExtensionFromFiletype(collectionFiletype);
         const folderFilePath = path.join(oldPath, `folder${folderExtension}`);
 
@@ -851,7 +825,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           parentCollectionPath = path.dirname(parentCollectionPath);
         }
 
-        const filetype = getCollectionFiletypeSync(parentCollectionPath);
+        const filetype = getCollectionFormat(parentCollectionPath);
         const extension = getFileExtensionFromFiletype(filetype);
         const folderBruFilePath = path.join(pathname, `folder${extension}`);
         const content = await stringifyFolder(folderBruJsonData, { format: filetype });
@@ -884,7 +858,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         let collectionFiletype = 'bru';
         try {
-          collectionFiletype = getCollectionFiletypeSync(collectionPath);
+          collectionFiletype = getCollectionFormat(collectionPath);
         } catch (error) {
           console.warn('Error reading collection filetype, defaulting to bru:', error);
         }
@@ -1123,7 +1097,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             collectionPath = path.dirname(collectionPath);
           }
 
-          const collectionFiletype = getCollectionFiletypeSync(collectionPath);
+          const collectionFiletype = getCollectionFormat(collectionPath);
           const folderExtension = getFileExtensionFromFiletype(collectionFiletype);
           const folderRootPath = path.join(item.pathname, `folder${folderExtension}`);
 
@@ -1227,7 +1201,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       let collectionFiletype = 'bru';
       try {
-        collectionFiletype = getCollectionFiletypeSync(collectionPath);
+        collectionFiletype = getCollectionFormat(collectionPath);
       } catch (error) {
         console.warn('Error reading collection filetype, defaulting to bru:', error);
       }
@@ -1249,12 +1223,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
 
-      const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+      const ocYamlPath = path.join(collectionPath, 'opencollection.yml');
 
-      if (fs.existsSync(ocYmlPath)) {
+      if (fs.existsSync(ocYamlPath)) {
 
         try {
-          const existingContent = fs.readFileSync(ocYmlPath, 'utf8');
+          const existingContent = fs.readFileSync(ocYamlPath, 'utf8');
           const parsed = parseOpenCollection(existingContent);
 
           const existingBrunoConfig = parsed.brunoConfig || {};
@@ -1267,7 +1241,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
           const updatedContent = stringifyOpenCollection(mergedBrunoConfig, existingCollectionRoot);
 
-          await writeFile(ocYmlPath, updatedContent);
+          await writeFile(ocYamlPath, updatedContent);
         } catch (parseError) {
           throw new Error(`Failed to update opencollection.yml: ${parseError.message}`);
         }

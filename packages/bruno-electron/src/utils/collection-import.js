@@ -103,7 +103,7 @@ async function importCollection(collection, collectionLocation, mainWindow, last
   // Write the Bruno configuration to a file
   await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
-  const collectionContent = await stringifyCollection(collection.root);
+  const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format: 'bru' });
   await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
 
   const { size, filesCount } = await getCollectionStats(collectionPath);

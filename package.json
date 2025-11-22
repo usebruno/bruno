@@ -8,6 +8,7 @@
     "packages/bruno-common",
     "packages/bruno-converters",
     "packages/bruno-schema",
+    "packages/bruno-schema-types",
     "packages/bruno-query",
     "packages/bruno-js",
     "packages/bruno-lang",

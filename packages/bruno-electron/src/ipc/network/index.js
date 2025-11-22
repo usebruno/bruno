@@ -22,7 +22,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
-const { chooseFileToSave, writeBinaryFile, writeFile, getCollectionFiletypeSync, getFileExtensionFromFiletype, hasRequestExtension } = require('../../utils/filesystem');
+const { chooseFileToSave, writeBinaryFile, writeFile, getCollectionFormat, getFileExtensionFromFiletype, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
@@ -607,7 +607,7 @@ const registerNetworkIpc = (mainWindow) => {
       return new Promise(async (resolve, reject) => {
         let itemPathname = path.join(collection?.pathname, relativeItemPathname);
         if (itemPathname && !hasRequestExtension(itemPathname)) {
-          const collectionFiletype = getCollectionFiletypeSync(collection?.pathname);
+          const collectionFiletype = getCollectionFormat(collection?.pathname);
           const extension = getFileExtensionFromFiletype(collectionFiletype);
           itemPathname = `${itemPathname}${extension}`;
         }
@@ -1097,7 +1097,7 @@ const registerNetworkIpc = (mainWindow) => {
         return new Promise(async (resolve, reject) => {
           let itemPathname = path.join(collection?.pathname, relativeItemPathname);
           if (itemPathname && !hasRequestExtension(itemPathname)) {
-            const collectionFiletype = getCollectionFiletypeSync(collection?.pathname);
+            const collectionFiletype = getCollectionFormat(collection?.pathname);
             const extension = getFileExtensionFromFiletype(collectionFiletype);
             itemPathname = `${itemPathname}${extension}`;
           }

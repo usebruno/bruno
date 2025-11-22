@@ -54,7 +54,7 @@ class BruParserWorker {
     return queueForSize?.workerQueue ?? this.workerQueues[this.workerQueues.length - 1].workerQueue;
   }
 
-  private async enqueueTask({ data, taskType, format = 'bru' }: { data: any; taskType: 'parse' | 'stringify'; format?: 'bru' | 'yaml' }): Promise<any> {
+  private async enqueueTask({ data, taskType, format = 'bru' }: { data: any; taskType: 'parse' | 'stringify'; format?: 'bru' | 'yml' }): Promise<any> {
     const size = getSize(data);
     const workerQueue = this.getWorkerQueue(size);
     const workerScriptPath = path.join(__dirname, './workers/worker-script.js');
@@ -67,11 +67,11 @@ class BruParserWorker {
     });
   }
 
-  async parseRequest(data: any, format: 'bru' | 'yaml' = 'bru'): Promise<any> {
+  async parseRequest(data: any, format: 'bru' | 'yml' = 'bru'): Promise<any> {
     return this.enqueueTask({ data, taskType: 'parse', format });
   }
 
-  async stringifyRequest(data: any, format: 'bru' | 'yaml' = 'bru'): Promise<any> {
+  async stringifyRequest(data: any, format: 'bru' | 'yml' = 'bru'): Promise<any> {
     return this.enqueueTask({ data, taskType: 'stringify', format });
   }
 

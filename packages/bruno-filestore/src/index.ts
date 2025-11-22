@@ -1,39 +1,37 @@
+import type { BrunoCollection, BrunoItem, BrunoEnvironment } from '@usebruno/schema-types';
+
 import {
-  bruRequestToJson,
-  jsonRequestToBru,
-  bruCollectionToJson,
-  jsonCollectionToBru,
-  bruEnvironmentToJson,
-  jsonEnvironmentToBru
+  parseBruRequest,
+  parseBruCollection,
+  parseBruEnvironment,
+  stringifyBruRequest,
+  stringifyBruCollection,
+  stringifyBruEnvironment
 } from './formats/bru';
 import {
-  yamlRequestToJson,
-  jsonRequestToYaml,
-  yamlCollectionToJson,
-  jsonCollectionToYaml,
-  yamlFolderToJson,
-  jsonFolderToYaml,
-  yamlEnvironmentToJson,
-  jsonEnvironmentToYaml,
-  yamlOpenCollectionToJson,
-  jsonToYamlOpenCollection
-} from './formats/yaml';
+  parseYmlItem,
+  parseYmlCollection,
+  parseYmlFolder,
+  parseYmlEnvironment,
+  stringifyYmlItem,
+  stringifyYmlFolder,
+  stringifyYmlCollection,
+  stringifyYmlEnvironment
+} from './formats/yml';
 import { dotenvToJson } from '@usebruno/lang';
 import BruParserWorker from './workers';
 import {
   ParseOptions,
   StringifyOptions,
-  ParsedRequest,
-  ParsedCollection,
-  ParsedEnvironment
 } from './types';
 import { bruRequestParseAndRedactBodyData } from './formats/bru/utils/request-parse-and-redact-body-data';
 
+// request
 export const parseRequest = (content: string, options: ParseOptions = { format: 'bru' }): any => {
   if (options.format === 'bru') {
-    return bruRequestToJson(content);
-  } else if (options.format === 'yaml') {
-    return yamlRequestToJson(content);
+    return parseBruRequest(content);
+  } else if (options.format === 'yml') {
+    return parseYmlItem(content);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
@@ -45,17 +43,17 @@ export const parseRequestAndRedactBody = (content: string, options: ParseOptions
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
-export const stringifyRequest = (requestObj: ParsedRequest, options: StringifyOptions = { format: 'bru' }): string => {
+export const stringifyRequest = (requestObj: BrunoItem, options: StringifyOptions = { format: 'bru' }): string => {
   if (options.format === 'bru') {
-    return jsonRequestToBru(requestObj);
-  } else if (options.format === 'yaml') {
-    return jsonRequestToYaml(requestObj);
+    return stringifyBruRequest(requestObj);
+  } else if (options.format === 'yml') {
+    return stringifyYmlItem(requestObj);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
+// request via worker
 let globalWorkerInstance: BruParserWorker | null = null;
-
 const getWorkerInstance = (): BruParserWorker => {
   if (!globalWorkerInstance) {
     globalWorkerInstance = new BruParserWorker();
@@ -63,93 +61,70 @@ const getWorkerInstance = (): BruParserWorker => {
   return globalWorkerInstance;
 };
 
-export const detectFormatFromExtension = (filename: string): 'bru' | 'yaml' => {
-  return filename.toLowerCase().endsWith('.yml') ? 'yaml' : 'bru';
-};
-
-// Helper function to detect format from content (basic heuristic)
-export const detectFormatFromContent = (content: string): 'bru' | 'yaml' => {
-  const trimmed = content.trim();
-  // YAML typically starts with meta: or has key: value structure
-  if (trimmed.includes('meta:') && (trimmed.includes('http:') || trimmed.includes('graphql:'))) {
-    return 'yaml';
-  }
-  return 'bru';
-};
-
-export const parseRequestViaWorker = async (content: string, options?: { format?: 'bru' | 'yaml' | 'auto'; filename?: string }): Promise<any> => {
+export const parseRequestViaWorker = async (content: string, options: { format: 'bru' | 'yml'; filename?: string }): Promise<any> => {
   const fileParserWorker = getWorkerInstance();
-  let format: 'bru' | 'yaml' = 'bru';
 
-  if (options?.format === 'auto') {
-    if (options.filename) {
-      format = detectFormatFromExtension(options.filename);
-    } else {
-      format = detectFormatFromContent(content);
-    }
-  } else if (options?.format) {
-    format = options.format;
-  }
-
-  return await fileParserWorker.parseRequest(content, format);
+  return await fileParserWorker.parseRequest(content, options.format);
 };
 
-export const stringifyRequestViaWorker = async (requestObj: any, options?: { format?: 'bru' | 'yaml' }): Promise<string> => {
+export const stringifyRequestViaWorker = async (requestObj: any, options: { format: 'bru' | 'yml' }): Promise<string> => {
   const fileParserWorker = getWorkerInstance();
-  const format = options?.format || 'bru';
-  return await fileParserWorker.stringifyRequest(requestObj, format);
+  return await fileParserWorker.stringifyRequest(requestObj, options.format);
 };
 
+// collection
 export const parseCollection = (content: string, options: ParseOptions = { format: 'bru' }): any => {
   if (options.format === 'bru') {
-    return bruCollectionToJson(content);
-  } else if (options.format === 'yaml') {
-    return yamlCollectionToJson(content);
+    return parseBruCollection(content);
+  } else if (options.format === 'yml') {
+    return parseYmlCollection(content);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
-export const stringifyCollection = (collectionObj: ParsedCollection, options: StringifyOptions = { format: 'bru' }): string => {
+export const stringifyCollection = (collectionObj: BrunoCollection, brunoConfig: any, options: StringifyOptions = { format: 'bru' }): string => {
   if (options.format === 'bru') {
-    return jsonCollectionToBru(collectionObj, false);
-  } else if (options.format === 'yaml') {
-    return jsonCollectionToYaml(collectionObj);
+    return stringifyBruCollection(collectionObj, false);
+  } else if (options.format === 'yml') {
+    return stringifyYmlCollection(collectionObj, brunoConfig);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
+// folder
 export const parseFolder = (content: string, options: ParseOptions = { format: 'bru' }): any => {
   if (options.format === 'bru') {
-    return bruCollectionToJson(content);
-  } else if (options.format === 'yaml') {
-    return yamlFolderToJson(content);
+    return parseBruCollection(content);
+  } else if (options.format === 'yml') {
+    return parseYmlFolder(content);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
 export const stringifyFolder = (folderObj: any, options: StringifyOptions = { format: 'bru' }): string => {
   if (options.format === 'bru') {
-    return jsonCollectionToBru(folderObj, true);
-  } else if (options.format === 'yaml') {
-    return jsonFolderToYaml(folderObj);
+    return stringifyBruCollection(folderObj, true);
+  } else if (options.format === 'yml') {
+    return stringifyYmlFolder(folderObj);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
+// environment
 export const parseEnvironment = (content: string, options: ParseOptions = { format: 'bru' }): any => {
   if (options.format === 'bru') {
-    return bruEnvironmentToJson(content);
-  } else if (options.format === 'yaml') {
-    return yamlEnvironmentToJson(content);
+    return parseBruEnvironment(content);
+  } else if (options.format === 'yml') {
+    return parseYmlEnvironment(content);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
-export const stringifyEnvironment = (envObj: ParsedEnvironment, options: StringifyOptions = { format: 'bru' }): string => {
+export const stringifyEnvironment = (envObj: BrunoEnvironment, options: StringifyOptions = { format: 'bru' }): string => {
   if (options.format === 'bru') {
-    return jsonEnvironmentToBru(envObj);
-  } else if (options.format === 'yaml') {
-    return jsonEnvironmentToYaml(envObj);
+    return stringifyBruEnvironment(envObj);
+  } else if (options.format === 'yml') {
+    return stringifyYmlEnvironment(envObj);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
@@ -157,21 +132,6 @@ export const stringifyEnvironment = (envObj: ParsedEnvironment, options: Stringi
 
 export const parseDotEnv = (content: string): Record<string, string> => {
   return dotenvToJson(content);
-};
-
-/**
- * Parse opencollection.yml (root collection configuration file)
- * Combines bruno.json + collection.yml into a single file for YAML collections
- */
-export const parseOpenCollection = (content: string): any => {
-  return yamlOpenCollectionToJson(content);
-};
-
-/**
- * Stringify opencollection.yml from bruno.json + collection root
- */
-export const stringifyOpenCollection = (brunoConfig: any, collectionRoot: any = {}): string => {
-  return jsonToYamlOpenCollection(brunoConfig, collectionRoot);
 };
 
 export { BruParserWorker };

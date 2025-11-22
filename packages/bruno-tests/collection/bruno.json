@@ -3,7 +3,7 @@
   "name": "bruno-testbench",
   "type": "collection",
   "proxy": {
-    "enabled": false,
+    "enabled": "global",
     "protocol": "http",
     "hostname": "{{proxyHostname}}",
     "port": 4000,
@@ -15,17 +15,41 @@
     "bypassProxy": ""
   },
   "scripts": {
-    "moduleWhitelist": ["crypto", "buffer", "form-data"],
+    "moduleWhitelist": [
+      "crypto",
+      "buffer",
+      "form-data"
+    ],
     "filesystemAccess": {
       "allow": true
     }
   },
   "clientCertificates": {
     "enabled": true,
-    "certs": []
+    "certs": [
+      {
+        "domain": "we",
+        "type": "cert",
+        "certFilePath": "../../../../../Downloads/BRU-2127.html",
+        "keyFilePath": "../../../../../Downloads/BRU-2127.html",
+        "passphrase": ""
+      },
+      {
+        "domain": "w",
+        "type": "pfx",
+        "pfxFilePath": "../../../../../Downloads/BRU-2127.html",
+        "passphrase": "w"
+      }
+    ]
   },
   "presets": {
     "requestType": "http",
     "requestUrl": "http://localhost:6000"
-  }
+  },
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "size": 0.08416271209716797,
+  "filesCount": 154
 }
