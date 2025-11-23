@@ -26,11 +26,11 @@ const StyledWrapper = styled.div`
   }
 
   .method-label {
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .status-code {
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .url-text {
@@ -54,7 +54,7 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       color: ${(props) => props.theme.text};
-      font-weight: 600;
+      font-weight: 500;
 
       span {
         margin-left: 0.5rem;
@@ -138,7 +138,7 @@ const StyledWrapper = styled.div`
   table {
     width: 100%;
     border-collapse: collapse;
-    font-weight: 600;
+    font-weight: 500;
     table-layout: fixed;
 
     thead,

@@ -101,7 +101,7 @@ const StyledWrapper = styled.div`
   }
 
   .empty-title {
-    font-weight: 600;
+    font-weight: 500;
     margin: 0 0 4px 0;
     font-size: var(--font-size-body);
     color: ${(props) => props.theme.text};

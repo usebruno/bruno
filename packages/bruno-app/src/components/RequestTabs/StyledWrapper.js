@@ -39,7 +39,6 @@ const Wrapper = styled.div`
 
       &.active {
         background: ${(props) => props.theme.requestTabs.active.bg};
-        font-weight: 500;
       }
 
       &.active {

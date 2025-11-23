@@ -99,7 +99,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     font-size: var(--font-size-xs);
-    font-weight: 600;
+    font-weight: 500;
     color: ${(props) => props.theme.console.titleColor};
     text-transform: uppercase;
     letter-spacing: 0.5px;

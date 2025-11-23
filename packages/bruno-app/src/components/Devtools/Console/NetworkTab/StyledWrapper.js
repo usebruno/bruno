@@ -85,7 +85,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     font-size: var(--font-size-xs);
-    font-weight: 600;
+    font-weight: 500;
     color: ${(props) => props.theme.console.titleColor};
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -127,7 +127,7 @@ const StyledWrapper = styled.div`
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 500;
     color: white;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -135,7 +135,7 @@ const StyledWrapper = styled.div`
   }
 
   .status-badge {
-    font-weight: 600;
+    font-weight: 500;
     font-size: var(--font-size-sm);
   }
 

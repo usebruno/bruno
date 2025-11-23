@@ -22,7 +22,7 @@ const StyledWrapper = styled.div`
     }
 
     thead th {
-      font-weight: 600;
+      font-weight: 500;
       padding: 10px;
       text-align: left;
     }

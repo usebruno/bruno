@@ -146,7 +146,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
               {environments && environments.length > 0 ? (
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between items-center mb-2 pb-1">
-                    <h3 className="font-semibold text-theme">
+                    <h3 className="font-medium text-theme">
                       {environmentType === 'global' ? 'Global Environments' : 'Collection Environments'}
                     </h3>
                     <button
@@ -175,7 +175,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
               ) : (
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between items-center mb-2 pb-1">
-                    <h3 className="font-semibold text-theme">
+                    <h3 className="font-medium text-theme">
                       {environmentType === 'global' ? 'Global Environments' : 'Collection Environments'}
                     </h3>
                   </div>

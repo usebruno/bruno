@@ -112,7 +112,7 @@ const StyledWrapper = styled.div`
     h4 {
       margin: 0 0 12px 0;
       font-size: var(--font-size-body);
-      font-weight: 600;
+      font-weight: 500;
       color: ${(props) => props.theme.console.titleColor};
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -132,7 +132,7 @@ const StyledWrapper = styled.div`
 
     label {
       font-size: var(--font-size-xs);
-      font-weight: 600;
+      font-weight: 500;
       color: ${(props) => props.theme.console.titleColor};
       text-transform: uppercase;
       letter-spacing: 0.5px;

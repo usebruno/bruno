@@ -117,7 +117,7 @@ const WSMessageItem = ({ message, inFocus }) => {
       >
         <div className="flex min-w-0 shrink">
           <span
-            className={classnames('font-semibold flex items-center gap-1',
+            className={classnames('font-medium flex items-center gap-1',
               {
                 'text-green-700': isIncoming,
                 'text-yellow-700': isOutgoing,

@@ -319,7 +319,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             }}
           >
             <div>
-              <label htmlFor="requestName" className="block font-semibold">
+              <label htmlFor="requestName" className="block font-medium">
                 Type
               </label>
 
@@ -406,7 +406,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
               </div>
             </div>
             <div className="mt-4">
-              <label htmlFor="requestName" className="block font-semibold">
+              <label htmlFor="requestName" className="block font-medium">
                 Request Name
               </label>
               <input
@@ -434,7 +434,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             {showFilesystemName && (
               <div className="mt-4">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="filename" className="flex items-center font-semibold">
+                  <label htmlFor="filename" className="flex items-center font-medium">
                     File Name <small className="font-normal text-muted ml-1">(on filesystem)</small>
                     <Help width="300">
                       <p>Bruno saves each request as a file in your collection's folder.</p>
@@ -491,7 +491,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             {formik.values.requestType !== 'from-curl' ? (
               <>
                 <div className="mt-4">
-                  <label htmlFor="request-url" className="block font-semibold">
+                  <label htmlFor="request-url" className="block font-medium">
                     URL
                   </label>
                   <div className="flex items-center mt-2 ">
@@ -534,7 +534,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             ) : (
               <div className="mt-4">
                 <div className="flex justify-between">
-                  <label htmlFor="request-url" className="block font-semibold">
+                  <label htmlFor="request-url" className="block font-medium">
                     cURL Command
                   </label>
                   <Dropdown className="dropdown" onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">

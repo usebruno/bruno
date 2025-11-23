@@ -163,7 +163,7 @@ const Wrapper = styled.div`
     h3 {
       color: ${(props) => props.theme.dropdown.primaryText};
       font-size: 1rem;
-      font-weight: 600;
+      font-weight: 500;
       margin-bottom: 0.5rem;
       line-height: 1.4;
     }

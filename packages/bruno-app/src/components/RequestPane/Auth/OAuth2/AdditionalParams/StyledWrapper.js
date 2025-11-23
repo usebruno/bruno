@@ -15,7 +15,6 @@ const StyledWrapper = styled.div`
       &.active {
         background-color: ${(props) => props.theme.mode === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)'};
         color: ${(props) => props.theme.mode === 'dark' ? '#6366f1' : '#4f46e5'};
-        font-weight: 500;
       }
     }
   }
@@ -23,7 +22,7 @@ const StyledWrapper = styled.div`
   table {
     width: 100%;
     border-collapse: collapse;
-    font-weight: 600;
+    font-weight: 500;
     table-layout: fixed;
 
     thead,

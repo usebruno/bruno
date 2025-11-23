@@ -124,7 +124,7 @@ const SaveRequestsModal = ({ onClose }) => {
     >
       <div className="flex items-center">
         <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
-        <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
+        <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
       </div>
       <p className="mt-4">
         Do you want to save the changes you made to the following{' '}

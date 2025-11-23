@@ -73,7 +73,7 @@ const Wrapper = styled.div`
     background-color: ${(props) => props.theme.modal.title.bg};
     font-size: var(--font-size-sm);
     padding: 12px;
-    font-weight: 600;
+    font-weight: 500;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
 

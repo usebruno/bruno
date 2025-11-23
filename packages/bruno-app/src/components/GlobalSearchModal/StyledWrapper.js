@@ -236,23 +236,23 @@ const StyledWrapper = styled.div`
     &.unary {
       color: #27ae60;
       background: rgba(39, 174, 96, 0.12);
-      font-weight: 600;
+      font-weight: 500;
     }
     &.client-streaming {
       color: #2980b9;
       background: rgba(41, 128, 185, 0.12);
-      font-weight: 600;
+      font-weight: 500;
     }
     &.server-streaming {
       color: #f39c12;
       background: rgba(243, 156, 18, 0.12);
-      font-weight: 600;
+      font-weight: 500;
     }
     &.bidirectional-streaming,
     &.bidi-streaming {
       color: #8e44ad;
       background: rgba(142, 68, 173, 0.12);
-      font-weight: 600;
+      font-weight: 500;
     }
   }
   .result-type {

@@ -60,7 +60,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
       >
         <div className="space-y-4">
           <div>
-            <label htmlFor="exampleName" className="block font-semibold">
+            <label htmlFor="exampleName" className="block font-medium">
               Example Name<span className="text-red-600">*</span>
             </label>
             <input
@@ -81,7 +81,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
           </div>
 
           <div>
-            <label htmlFor="exampleDescription" className="block font-semibold">
+            <label htmlFor="exampleDescription" className="block font-medium">
               Description
             </label>
             <textarea

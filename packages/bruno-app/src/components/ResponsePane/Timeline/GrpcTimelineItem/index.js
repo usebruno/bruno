@@ -115,7 +115,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'message':
         return (
           <div className="mt-2 bg-orange-50 dark:bg-orange-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-orange-700 dark:text-orange-400">Message</div>
+            <div className="font-medium mb-1 text-orange-700 dark:text-orange-400">Message</div>
             <pre className="text-xs bg-white dark:bg-gray-800 p-2 rounded overflow-auto max-h-[200px]">
                 {typeof eventData === 'string' 
                   ? eventData 
@@ -127,7 +127,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'metadata':
         return (
           <div className="mt-2 bg-blue-50 dark:bg-blue-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-blue-700 dark:text-blue-400">Metadata Headers</div>
+            <div className="font-medium mb-1 text-blue-700 dark:text-blue-400">Metadata Headers</div>
             {response.metadata && response.metadata.length > 0 ? (
               <div className="grid grid-cols-2 gap-1">
                 {response.metadata.map((header, idx) => (
@@ -147,7 +147,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For message responses, show the response data
         return (
           <div className="mt-2 bg-green-50 dark:bg-green-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-green-700 dark:text-green-400">
+            <div className="font-medium mb-1 text-green-700 dark:text-green-400">
               Response Message #{(response?.responses?.length) || 0}
             </div>
             {response?.responses && response.responses.length > 0 ? (
@@ -174,7 +174,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             
             {response.trailers && response.trailers.length > 0 && (
               <>
-                <div className="font-semibold mt-2 mb-1 text-purple-700 dark:text-purple-400">Trailers</div>
+                <div className="font-medium mt-2 mb-1 text-purple-700 dark:text-purple-400">Trailers</div>
                 <div className="grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
@@ -192,7 +192,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For error events, show error details
         return (
           <div className="mt-2 bg-red-50 dark:bg-red-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-red-700 dark:text-red-400">Error</div>
+            <div className="font-medium mb-1 text-red-700 dark:text-red-400">Error</div>
             <div className="mb-2">{response.error || 'Unknown error'}</div>
             
             <div className="flex items-center gap-2">
@@ -201,7 +201,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             
             {response.trailers && response.trailers.length > 0 && (
               <>
-                <div className="font-semibold mt-2 mb-1 text-red-700 dark:text-red-400">Error Metadata</div>
+                <div className="font-medium mt-2 mb-1 text-red-700 dark:text-red-400">Error Metadata</div>
                 <div className="grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
@@ -219,7 +219,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For end events, show summary
         return (
           <div className="mt-2 bg-gray-50 dark:bg-gray-700/30 rounded p-2">
-            <div className="font-semibold mb-1">Stream Ended</div>
+            <div className="font-medium mb-1">Stream Ended</div>
             <div>
               Total messages: {(response?.responses?.length) || 0}
             </div>
@@ -230,7 +230,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For cancel events, show cancellation info
         return (
           <div className="mt-2 bg-amber-50 dark:bg-amber-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-amber-700 dark:text-amber-400">Stream Cancelled</div>
+            <div className="font-medium mb-1 text-amber-700 dark:text-amber-400">Stream Cancelled</div>
             <div>{response.statusDescription || 'The gRPC stream was cancelled'}</div>
           </div>
         );

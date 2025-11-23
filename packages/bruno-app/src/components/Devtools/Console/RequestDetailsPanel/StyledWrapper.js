@@ -112,7 +112,7 @@ const StyledWrapper = styled.div`
     h4 {
       margin: 0;
       font-size: var(--font-size-body);
-      font-weight: 600;
+      font-weight: 500;
       color: ${(props) => props.theme.console.titleColor};
       padding-bottom: 4px;
       border-bottom: 1px solid ${(props) => props.theme.console.border};
@@ -132,7 +132,7 @@ const StyledWrapper = styled.div`
 
     .label {
       font-size: var(--font-size-xs);
-      font-weight: 600;
+      font-weight: 500;
       color: ${(props) => props.theme.console.countColor};
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -171,7 +171,7 @@ const StyledWrapper = styled.div`
         
         td {
           padding: 8px 12px;
-          font-weight: 600;
+          font-weight: 500;
           color: ${(props) => props.theme.console.titleColor};
           text-transform: uppercase;
           font-size: var(--font-size-xs);
@@ -209,7 +209,7 @@ const StyledWrapper = styled.div`
   .header-name,
   .timeline-phase {
     color: ${(props) => props.theme.console.countColor};
-    font-weight: 600;
+    font-weight: 500;
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     min-width: 120px;
   }
