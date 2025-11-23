@@ -77,7 +77,8 @@ async function setup() {
     execCommand('npm run build:bruno-converters', 'Building bruno-converters');
     execCommand('npm run build:bruno-requests', 'Building bruno-requests');
     execCommand('npm run build:bruno-filestore', 'Building bruno-filestore');
-
+    execCommand('npm run build:schema-types', 'Building schema-types');
+    
     // Bundle JS sandbox libraries
     execCommand(
       'npm run sandbox:bundle-libraries --workspace=packages/bruno-js',

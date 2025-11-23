@@ -13,7 +13,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
-    "build": "rollup -c",
+    "build": "rollup -c && tsc --emitDeclarationOnly",
     "watch": "rollup -c -w",
     "test": "jest",
     "test:watch": "jest --watch",

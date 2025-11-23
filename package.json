@@ -62,6 +62,7 @@
     "build:bruno-converters": "npm run build --workspace=packages/bruno-converters",
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
+    "build:schema-types": "npm run build --workspace=packages/bruno-schema-types",
     "build:electron": "node ./scripts/build-electron.js",
     "build:electron:mac": "./scripts/build-electron.sh mac",
     "build:electron:win": "./scripts/build-electron.sh win",
