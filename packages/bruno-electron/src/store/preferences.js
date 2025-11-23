@@ -1,6 +1,7 @@
 const Yup = require('yup');
 const Store = require('electron-store');
 const { get, merge } = require('lodash');
+const { execSync } = require('child_process');
 
 /**
  * The preferences are stored in the electron store 'preferences.json'.
@@ -176,8 +177,49 @@ const preferencesUtil = {
   getResponsePaneOrientation: () => {
     return get(getPreferences(), 'layout.responsePaneOrientation', 'horizontal');
   },
+  loadUserEnv: () => {
+    if (process.platform === 'win32') {
+      return {};
+    }
+
+    try {
+      // Run login + interactive shell to load ~/.zshenv, ~/.zprofile, ~/.zshrc
+      const shell = process.env.SHELL || '/bin/sh';
+      const output = execSync(`${shell} -l -i -c env`, {
+        encoding: 'utf8',
+        timeout: 10000, // 10 second timeout
+        maxBuffer: 10 * 1024 * 1024 // 10MB max buffer
+      });
+
+      return output
+        .split('\n')
+        .filter(Boolean)
+        .reduce((env, line) => {
+          const [key, ...rest] = line.split('=');
+          if (key && rest.length) env[key] = rest.join('=');
+          return env;
+        }, {});
+    } catch (err) {
+      console.error('Failed to load user env:', err);
+      return {};
+    }
+  },
   getSystemProxyEnvVariables: () => {
-    const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;
+    const userEnv = preferencesUtil.loadUserEnv();
+
+    const environmentVariables = {
+      ...process.env, // default
+      ...userEnv // user overrides system
+    };
+    const {
+      http_proxy,
+      HTTP_PROXY,
+      https_proxy,
+      HTTPS_PROXY,
+      no_proxy,
+      NO_PROXY
+    } = environmentVariables;
+
     return {
       http_proxy: http_proxy || HTTP_PROXY,
       https_proxy: https_proxy || HTTPS_PROXY,
