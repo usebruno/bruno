@@ -26,7 +26,7 @@ const SecuritySettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
-      <div className='font-semibold mt-2'>JavaScript Sandbox</div>
+      <div className="font-medium mt-2">JavaScript Sandbox</div>
 
       <div className='mt-4'>
       The collection might include JavaScript code in Variables, Scripts, Tests, and Assertions.

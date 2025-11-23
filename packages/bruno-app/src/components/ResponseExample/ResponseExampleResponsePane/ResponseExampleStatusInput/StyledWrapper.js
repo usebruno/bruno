@@ -70,7 +70,7 @@ const StyledWrapper = styled.div`
       }
 
       .status {
-        font-weight: 600;
+        font-weight: 500;
         color: inherit;
         margin-right: 0.5rem;
         min-width: 40px;

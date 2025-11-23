@@ -12,7 +12,7 @@ export const SharedButton = ({ children, className, onClick }) => {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded bg-transparent px-2.5 py-2 w-fit text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
+      className={`rounded bg-transparent px-2.5 py-2 w-fit text-xs font-medium text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
         ${className}`}
     >
       {children}
@@ -24,7 +24,7 @@ const DefaultTab = ({ setTab }) => {
   return (
     <div className="text-center items-center flex flex-col">
       <IconFileAlert size={64} strokeWidth={1} />
-      <span className="font-semibold mt-2">No Global Environments found</span>
+      <span className="font-medium mt-2">No Global Environments found</span>
       <div className="flex items-center justify-center mt-6">
         <SharedButton onClick={() => setTab('create')}>
           <span>Create Global Environment</span>

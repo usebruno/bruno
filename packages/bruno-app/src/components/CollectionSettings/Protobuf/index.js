@@ -112,7 +112,7 @@ const ProtobufSettings = ({ collection }) => {
       <div className="mb-6" data-testid="protobuf-proto-files-section">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
-            <label className="font-semibold flex items-center" htmlFor="protoFiles">
+            <label className="font-medium flex items-center" htmlFor="protoFiles">
               Proto Files (
               {protoFiles.length}
               )
@@ -219,7 +219,7 @@ const ProtobufSettings = ({ collection }) => {
       <div className="mb-6" data-testid="protobuf-import-paths-section">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
-            <label className="font-semibold flex items-center" htmlFor="importPaths">
+            <label className="font-medium flex items-center" htmlFor="importPaths">
               Import Paths (
               {importPaths.length}
               )

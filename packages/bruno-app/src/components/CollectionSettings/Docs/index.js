@@ -8,7 +8,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconEdit, IconX, IconFileText } from '@tabler/icons';
+import { IconEdit, IconX, IconBook2 } from '@tabler/icons'; // Changed icon import to IconBook2
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
@@ -49,7 +49,7 @@ const Docs = ({ collection }) => {
     <StyledWrapper className="h-full w-full relative flex flex-col">
       <div className='flex flex-row w-full justify-between items-center mb-4'>
         <div className='text-lg font-medium flex items-center gap-2'>
-          <IconFileText size={20} strokeWidth={1.5} />
+          <IconBook2 size={20} strokeWidth={1.5} />
           Documentation
         </div>
         <div className='flex flex-row gap-2 items-center justify-center'>

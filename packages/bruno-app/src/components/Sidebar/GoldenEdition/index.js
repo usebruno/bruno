@@ -121,7 +121,7 @@ const GoldenEdition = ({ onClose }) => {
       <Modal size="sm" title={'Golden Edition'} handleCancel={onClose} hideFooter={true}>
         <div className={`flex flex-col w-full ${themeBasedContainerClassNames}`}>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Golden Edition</h3>
+            <h3 className="text-lg font-medium">Golden Edition</h3>
             <a
               onClick={() => {
                 goldenEditionBuyClick();

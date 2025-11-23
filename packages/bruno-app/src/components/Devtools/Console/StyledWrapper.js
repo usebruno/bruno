@@ -333,7 +333,7 @@ const StyledWrapper = styled.div`
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 500;
     color: white;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -437,7 +437,7 @@ const StyledWrapper = styled.div`
 
   .log-level {
     font-size: 9px;
-    font-weight: 600;
+    font-weight: 500;
     padding: 2px 4px;
     border-radius: 2px;
     text-transform: uppercase;

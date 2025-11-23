@@ -31,7 +31,7 @@ const StyledWrapper = styled.div`
     
     thead {
       td {
-        font-weight: 600;
+        font-weight: 500;
         font-size: var(--font-size-sm);
         text-transform: uppercase;
         letter-spacing: 0.5px;

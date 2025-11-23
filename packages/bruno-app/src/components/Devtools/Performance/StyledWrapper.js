@@ -35,7 +35,7 @@ const StyledWrapper = styled.div`
     h3 {
       margin: 0 0 4px 0;
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 500;
       color: ${(props) => props.theme.console.titleColor};
     }
 
@@ -52,7 +52,7 @@ const StyledWrapper = styled.div`
     h2 {
       margin: 0 0 8px 0;
       font-size: var(--font-size-body);
-      font-weight: 600;
+      font-weight: 500;
       color: ${(props) => props.theme.console.titleColor};
     }
   }
@@ -86,7 +86,7 @@ const StyledWrapper = styled.div`
 
   .resource-value {
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 500;
     color: ${(props) => props.theme.console.titleColor};
     margin-bottom: 2px;
   }

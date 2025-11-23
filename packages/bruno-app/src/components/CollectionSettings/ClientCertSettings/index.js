@@ -146,7 +146,7 @@ const ClientCertSettings = ({ collection }) => {
     <StyledWrapper className="w-full h-full">
       <div className="text-xs mb-4 text-muted">Add client certificates to be used for specific domains.</div>
 
-      <h1 className="font-semibold">Client Certificates</h1>
+      <h1 className="font-medium">Client Certificates</h1>
       <ul className="mt-4">
         {!clientCertConfig.length
           ? 'No client certificates added'
@@ -169,7 +169,7 @@ const ClientCertSettings = ({ collection }) => {
           ))}
       </ul>
 
-      <h1 className="font-semibold mt-8 mb-2">Add Client Certificate</h1>
+      <h1 className="font-medium mt-8 mb-2">Add Client Certificate</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="domain">

@@ -155,13 +155,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
       >
         <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label htmlFor="collectionName" className="block font-semibold">
+            <label htmlFor="collectionName" className="block font-medium">
               Name
             </label>
             <div className="mt-2">{collectionName}</div>
 
             <>
-              <label htmlFor="collectionLocation" className="font-semibold mt-4 flex items-center">
+              <label htmlFor="collectionLocation" className="font-medium mt-4 flex items-center">
                 Location
                 <Help>
                   <p>Bruno stores your collections on your computer's filesystem.</p>
@@ -198,7 +198,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
           {isOpenApi && (
             <div className="mt-4 flex gap-4 items-center">
               <div>
-                <label htmlFor="groupingType" className="block font-semibold mt-4">
+                <label htmlFor="groupingType" className="block font-medium mt-4">
                   Folder arrangement
                 </label>
                 <p className="text-gray-600 dark:text-gray-400 mt-1 mb-2">

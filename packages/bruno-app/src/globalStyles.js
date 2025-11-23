@@ -288,7 +288,7 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-name {
     font-size: var(--font-size-body);
     color: ${(props) => props.theme.codemirror.variable.info.color};
-    font-weight: 600;
+    font-weight: 500;
   }
 
   /* Scope Badge */

@@ -51,7 +51,7 @@ const StyledWrapper = styled.div`
 
   .error-count-inline {
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 500;
     color: ${(props) => props.theme.colors.text.danger};
     background: ${(props) => props.theme.colors.bg.danger}20;
     padding: 1px 4px;

@@ -158,7 +158,7 @@ const ResponseExampleTopBar = ({
       <div className="max-w-full">
         <div className="flex items-start justify-between gap-6 md:flex-row flex-col">
           <div className="flex-1 min-w-0">
-            <h2 className="response-example-title font-semibold mb-2 leading-tight" data-testid="response-example-title">
+            <h2 className="response-example-title font-medium mb-2 leading-tight" data-testid="response-example-title">
               <span className="opacity-60">{item.name}</span>
               {' / '}
               <span>{example.name}</span>
