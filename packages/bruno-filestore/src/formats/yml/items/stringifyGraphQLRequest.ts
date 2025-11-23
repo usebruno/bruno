@@ -106,8 +106,9 @@ export default (item: BrunoItem): string => {
       ocRequest.settings.encodeUrl = true;
     }
 
-    if(isNumber(httpSettings?.timeout)) {
-      ocRequest.settings.timeout = httpSettings.timeout;
+    const timeout = httpSettings?.timeout;
+    if(isNumber(timeout)) {
+      ocRequest.settings.timeout = timeout;
     } else {
       // todo: we are defaulting to 0 for now as bruno config does not yet support inherit for timeout
       // update this when bruno config supports inherit for timeout
@@ -124,8 +125,9 @@ export default (item: BrunoItem): string => {
       ocRequest.settings.followRedirects = true;
     }
 
-    if(isNumber(httpSettings?.maxRedirects)) {
-      ocRequest.settings.maxRedirects = httpSettings.maxRedirects;
+    const maxRedirects = httpSettings?.maxRedirects;
+    if(isNumber(maxRedirects)) {
+      ocRequest.settings.maxRedirects = maxRedirects;
     } else {
       // todo: we are defaulting to 5 for now as bruno config does not yet support inherit for maxRedirects
       // update this when bruno config supports inherit for maxRedirects

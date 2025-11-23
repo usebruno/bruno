@@ -35,7 +35,7 @@ const CreateCollection = ({ onClose }) => {
       collectionName: '',
       collectionFolderName: '',
       collectionLocation: defaultLocation,
-      filetype: 'yaml'
+      format: 'yml'
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
@@ -51,10 +51,10 @@ const CreateCollection = ({ onClose }) => {
         })
         .required('folder name is required'),
       collectionLocation: Yup.string().min(1, 'location is required').required('location is required'),
-      filetype: Yup.string().oneOf(['bru', 'yaml'], 'invalid filetype').required('filetype is required')
+      format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('format is required')
     }),
     onSubmit: (values) => {
-      dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation, values.filetype))
+      dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation, values.format))
         .then(() => {
           toast.success('Collection created!');
           dispatch(toggleSidebarCollapse());
@@ -227,7 +227,7 @@ const CreateCollection = ({ onClose }) => {
 
               {showAdvanced && (
                 <div className="mt-4">
-                  <label htmlFor="filetype" className="flex items-center font-semibold">
+                  <label htmlFor="format" className="flex items-center font-semibold">
                     File Format
                     <Help width="300">
                       <p>
@@ -242,17 +242,17 @@ const CreateCollection = ({ onClose }) => {
                     </Help>
                   </label>
                   <select
-                    id="filetype"
-                    name="filetype"
+                    id="format"
+                    name="format"
                     className="block textbox mt-2 w-full"
-                    value={formik.values.filetype}
+                    value={formik.values.format}
                     onChange={formik.handleChange}
                   >
                     <option value="yaml">OpenCollection (YAML)</option>
                     <option value="bru">BRU Format (.bru)</option>
                   </select>
-                  {formik.touched.filetype && formik.errors.filetype ? (
-                    <div className="text-red-500">{formik.errors.filetype}</div>
+                  {formik.touched.format && formik.errors.format ? (
+                    <div className="text-red-500">{formik.errors.format}</div>
                   ) : null}
                 </div>
               )}

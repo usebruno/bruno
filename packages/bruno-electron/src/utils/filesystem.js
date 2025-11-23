@@ -162,25 +162,15 @@ const searchForFiles = (dir, extension) => {
   return results;
 };
 
-const searchForBruFiles = (dir) => {
-  return searchForFiles(dir, '.bru');
-};
-
-const searchForRequestFiles = (dir, filetype = 'bru') => {
-  if (filetype === 'yaml') {
-    return searchForFiles(dir, '.yml');
-  }
-  return searchForFiles(dir, '.bru');
-};
-
 // Search for request files based on collection filetype by reading config
-const searchForCollectionRequestFiles = (dir) => {
-  try {
-    const collectionFiletype = getCollectionFormat(dir);
-    return searchForRequestFiles(dir, collectionFiletype);
-  } catch (error) {
-    console.warn('Error reading collection filetype, defaulting to bru:', error);
-    return searchForRequestFiles(dir, 'bru');
+const searchForRequestFiles = (dir) => {
+  const format = getCollectionFormat(dir);
+  if (format === 'yml') {
+    return searchForFiles(dir, '.yml');
+  } else if (format === 'bru') {
+    return searchForFiles(dir, '.bru');
+  } else {
+    throw new Error(`Invalid format: ${format}`);
   }
 };
 
@@ -219,15 +209,6 @@ const generateUniqueName = (baseName, checkExists) => {
   return uniqueName;
 };
 
-const getFileExtensionFromFiletype = (filetype) => {
-  return filetype === 'yaml' ? '.yml' : '.bru';
-};
-
-const detectFileFormat = (pathname) => {
-  if (!pathname || typeof pathname !== 'string') return 'bru';
-  return pathname.toLowerCase().endsWith('.yml') ? 'yaml' : 'bru';
-};
-
 const getCollectionFormat = (collectionPath) => {
   const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
   if (fs.existsSync(ocYmlPath)) {
@@ -240,14 +221,6 @@ const getCollectionFormat = (collectionPath) => {
   }
 
   throw new Error(`No collection configuration found at: ${collectionPath}`);
-};
-
-const isFileTypeCompatible = (filename, collectionFiletype) => {
-  const ext = path.extname(filename).toLowerCase();
-  if (collectionFiletype === 'yaml') {
-    return ext === '.yml';
-  }
-  return ext === '.bru';
 };
 
 const validateName = (name) => {
@@ -460,9 +433,7 @@ module.exports = {
   browseFiles,
   chooseFileToSave,
   searchForFiles,
-  searchForBruFiles,
   searchForRequestFiles,
-  searchForCollectionRequestFiles,
   sanitizeName,
   isWindowsOS,
   safeToRename,
@@ -477,8 +448,5 @@ module.exports = {
   getPaths,
   isLargeFile,
   generateUniqueName,
-  getFileExtensionFromFiletype,
-  detectFileFormat,
-  getCollectionFormat,
-  isFileTypeCompatible
+  getCollectionFormat
 };

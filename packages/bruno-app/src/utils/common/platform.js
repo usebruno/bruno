@@ -10,9 +10,8 @@ export const isElectron = () => {
   return window.ipcRenderer ? true : false;
 };
 
-export const resolveRequestFilename = (name, filetype = 'bru') => {
-  const extension = filetype === 'yaml' ? '.yml' : '.bru';
-  return `${trim(name)}${extension}`;
+export const resolveRequestFilename = (name, extension = 'bru') => {
+  return `${trim(name)}.${extension}`;
 };
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {

@@ -288,8 +288,8 @@ const parseBruFileMeta = (data) => {
   }
 }
 
-// Parse YAML file meta information
-const parseYamlFileMeta = (data) => {
+// Parse YML file meta information
+const parseYmlFileMeta = (data) => {
   try {
     const yaml = require('js-yaml');
     const parsed = yaml.load(data);
@@ -342,8 +342,8 @@ const parseYamlFileMeta = (data) => {
 
 // Format-aware meta parsing function
 const parseFileMeta = (data, format = 'bru') => {
-  if (format === 'yaml') {
-    return parseYamlFileMeta(data);
+  if (format === 'yml') {
+    return parseYmlFileMeta(data);
   } else {
     return parseBruFileMeta(data);
   }

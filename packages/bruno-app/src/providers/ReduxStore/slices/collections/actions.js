@@ -108,7 +108,7 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
 
     itemSchema
       .validate(itemToSave)
-      .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
+      .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave, collection.format))
       .then(() => {
         if (!saveSilently) {
           toast.success('Request saved successfully');
@@ -142,7 +142,8 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
         if (itemIsValid) {
           itemsToSave.push({
             item: itemToSave,
-            pathname: item.pathname
+            pathname: item.pathname,
+            format: collection.format
           });
         }
       }
@@ -176,7 +177,7 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave)
+      .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig)
       .then(() => {
         toast.success('Collection Settings saved successfully');
         dispatch(saveCollectionDraft({ collectionUid }));
@@ -210,7 +211,8 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
 
     const folderData = {
       name: folder.name,
-      pathname: folder.pathname,
+      folderPathname: folder.pathname,
+      collectionPathname: collection.pathname,
       root: folderRootToSave
     };
 
@@ -247,10 +249,10 @@ export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState
 
         let savePromises = [];
 
-        savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave));
+        savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig));
 
         if (collectionCopy.draft?.brunoConfig) {
-          savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', collectionCopy.draft.brunoConfig, collectionCopy.pathname, collectionDraft.collectionUid));
+          savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', collectionCopy.draft.brunoConfig, collectionCopy.pathname, collectionCopy.root));
         }
 
         Promise.all(savePromises)
@@ -288,7 +290,8 @@ export const saveMultipleFolders = (folderDrafts) => (dispatch, getState) => {
         const folderRootToSave = transformFolderRootToSave(folder);
         const folderData = {
           name: folder.name,
-          pathname: folder.pathname,
+          folderPathname: folder.pathname,
+          collectionPathname: collection.pathname,
           root: folderRootToSave
         };
 
@@ -683,7 +686,7 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
         const fullName = path.join(collection.pathname, directoryName);
         const { ipcRenderer } = window;
 
-        const folderBruJsonData = {
+        const folderData = {
           meta: {
             name: folderName,
             seq: items?.length + 1
@@ -696,7 +699,7 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
         };
 
         ipcRenderer
-          .invoke('renderer:new-folder', { pathname: fullName, folderBruJsonData })
+          .invoke('renderer:new-folder', { pathname: fullName, folderData, format: collection.format })
           .then(resolve)
           .catch((error) => {
             toast.error('Failed to create a new folder!');
@@ -716,7 +719,7 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
           const fullName = path.join(currentItem.pathname, directoryName);
           const { ipcRenderer } = window;
 
-          const folderBruJsonData = {
+          const folderData = {
             meta: {
               name: folderName,
               seq: items?.length + 1
@@ -729,7 +732,7 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
           };
 
           ipcRenderer
-            .invoke('renderer:new-folder', { pathname: fullName, folderBruJsonData })
+            .invoke('renderer:new-folder', { pathname: fullName, folderData, format: collection.format })
             .then(resolve)
             .catch((error) => {
               toast.error('Failed to create a new folder!');
@@ -847,7 +850,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
     }
 
     const parentItem = findParentItemInCollection(collectionCopy, itemUid);
-    const filename = resolveRequestFilename(newFilename, collection.filetype);
+    const filename = resolveRequestFilename(newFilename, collection.format);
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
     set(itemToSave, 'name', trim(newName));
     set(itemToSave, 'filename', trim(filename));
@@ -864,7 +867,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
 
         itemSchema
           .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
+          .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, collection.format))
           .then(resolve)
           .catch(reject);
 
@@ -893,7 +896,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
 
         itemSchema
           .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+          .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave, collection.format))
           .then(resolve)
           .catch(reject);
 
@@ -978,7 +981,7 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
         itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
         await itemSchema.validate(itemToSave);
-        await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave);
+        await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
 
         dispatch(insertTaskIntoQueue({
           uid: uuid(),
@@ -1242,7 +1245,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     };
 
     // itemUid is null when we are creating a new request at the root level
-    const resolvedFilename = resolveRequestFilename(filename, collection.filetype);
+    const resolvedFilename = resolveRequestFilename(filename, collection.format);
     if (!itemUid) {
       const reqWithSameNameExists = find(
         collection.items,
@@ -1256,7 +1259,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer
-          .invoke('renderer:new-request', fullName, item)
+          .invoke('renderer:new-request', fullName, item, collection.format)
           .then(() => {
             // task middleware will track this and open the new request in a new tab once request is created
             dispatch(
@@ -1286,7 +1289,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const fullName = path.join(currentItem.pathname, resolvedFilename);
           const { ipcRenderer } = window;
           ipcRenderer
-            .invoke('renderer:new-request', fullName, item)
+            .invoke('renderer:new-request', fullName, item, collection.format)
             .then(() => {
               // task middleware will track this and open the new request in a new tab once request is created
               dispatch(
@@ -1345,7 +1348,7 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
 
     // itemUid is null when we are creating a new request at the root level
     const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
-    const resolvedFilename = resolveRequestFilename(filename, collection.filetype);
+    const resolvedFilename = resolveRequestFilename(filename, collection.format);
 
     if (!parentItem) {
       return reject(new Error('Parent item not found'));
@@ -1363,7 +1366,7 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
     const fullName = path.join(parentItem.pathname, resolvedFilename);
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:new-request', fullName, item)
+      .invoke('renderer:new-request', fullName, item, collection.format)
       .then(() => {
         // task middleware will track this and open the new request in a new tab once request is created
         dispatch(insertTaskIntoQueue({
@@ -1415,7 +1418,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
 
     // itemUid is null when we are creating a new request at the root level
     const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
-    const resolvedFilename = resolveRequestFilename(filename, collection.filetype);
+    const resolvedFilename = resolveRequestFilename(filename, collection.format);
 
     if (!parentItem) {
       return reject(new Error('Parent item not found'));
@@ -1433,7 +1436,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
     const fullName = path.join(parentItem.pathname, resolvedFilename);
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:new-request', fullName, item)
+      .invoke('renderer:new-request', fullName, item, collection.format)
       .then(() => {
         // task middleware will track this and open the new request in a new tab once request is created
         dispatch(insertTaskIntoQueue({
@@ -1724,8 +1727,16 @@ const updateVariableInFile = (pathname, variable, scopeType, collectionUid, item
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+
     ipcRenderer
-      .invoke('renderer:update-variable-in-file', pathname, variable, scopeType)
+      .invoke('renderer:update-variable-in-file', pathname, variable, scopeType, collectionCopy.root, collectionCopy.format)
       .then(() => {
         // Update Redux state to reflect the change
         if (scopeType === 'request') {
@@ -1820,7 +1831,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             ? { ...variable, value: newValue }
             : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
 
-          const collectionFilePath = scopeCollection.filetype === 'yaml'
+          const collectionFilePath = scopecollection.format === 'yml'
             ? path.join(scopeCollection.pathname, 'opencollection.yml')
             : path.join(scopeCollection.pathname, 'collection.bru');
 
@@ -1835,8 +1846,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             ? { ...variable, value: newValue }
             : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
 
-          const extension = collection.filetype === 'yaml' ? 'yml' : 'bru';
-          const folderFilePath = path.join(folder.pathname, `folder.${extension}`);
+          const folderFilePath = path.join(folder.pathname, `folder.${collection.format}`);
 
           updatePromise = updateVariableInFile(folderFilePath, variableToSave, 'folder', collectionUid, folder.uid);
           successMessage = `Variable "${variableName}" ${variable ? 'updated' : 'created'}`;
@@ -2049,12 +2059,12 @@ export const saveCollectionSettings = (collectionUid, brunoConfig = null) => (di
     const savePromises = [];
 
     // Save collection.bru file
-    savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave));
+    savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig));
 
     // Save bruno.json if brunoConfig is provided or if there's a brunoConfig draft
     const brunoConfigToSave = brunoConfig || (collectionCopy.draft && collectionCopy.draft.brunoConfig);
     if (brunoConfigToSave) {
-      savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', brunoConfigToSave, collectionCopy.pathname, collectionUid));
+      savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', brunoConfigToSave, collectionCopy.pathname, collectionCopy.root));
     }
 
     Promise.all(savePromises)
@@ -2082,7 +2092,7 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
 
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:update-bruno-config', brunoConfig, collection.pathname, collectionUid)
+      .invoke('renderer:update-bruno-config', brunoConfig, collection.pathname, collectionCopy.root)
       .then(resolve)
       .catch(reject);
   });
@@ -2119,12 +2129,12 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
   });
 };
 
-export const createCollection = (collectionName, collectionFolderName, collectionLocation, filetype = 'bru') => () => {
+export const createCollection = (collectionName, collectionFolderName, collectionLocation, format = 'bru') => () => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
     ipcRenderer
-      .invoke('renderer:create-collection', collectionName, collectionFolderName, collectionLocation, filetype)
+      .invoke('renderer:create-collection', collectionName, collectionFolderName, collectionLocation, format)
       .then(resolve)
       .catch(reject);
   });

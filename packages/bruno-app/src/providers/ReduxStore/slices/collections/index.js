@@ -133,8 +133,8 @@ export const collectionsSlice = createSlice({
       // values can be 'unmounted', 'mounting', 'mounted'
       collection.mountStatus = 'unmounted';
 
-      // Add filetype property from brunoConfig for easy access
-      collection.filetype = collection.brunoConfig?.filetype || 'bru';
+      // Add format property from brunoConfig for easy access
+      collection.format = collection.brunoConfig?.format || 'bru';
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection

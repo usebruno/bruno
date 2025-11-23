@@ -2,9 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
-const { isDirectory, normalizeAndResolvePath, getCollectionStats } = require('../utils/filesystem');
+const { isDirectory, getCollectionStats } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
+const { parseCollection } = require('@usebruno/filestore');
 
 // todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
@@ -32,14 +33,15 @@ const validateSchema = async (config) => {
 
 const getCollectionConfigFile = async (pathname) => {
   // Check for opencollection.yml first
-  const ocYamlPath = path.join(pathname, 'opencollection.yml');
-  if (fs.existsSync(ocYamlPath)) {
+  const ocYmlPath = path.join(pathname, 'opencollection.yml');
+  if (fs.existsSync(ocYmlPath)) {
     try {
-      const { parseOpenCollection } = require('@usebruno/filestore');
-      const ocContent = fs.readFileSync(ocYamlPath, 'utf8');
-      const parsed = parseOpenCollection(ocContent);
+      const content = fs.readFileSync(ocYmlPath, 'utf8');
+      const {
+        brunoConfig
+      } = parseCollection(parseCollection);
       const config = parsed.brunoConfig;
-      await validateSchema(config);
+      await validateSchema(brunoConfig);
       return config;
     } catch (err) {
       throw new Error(`Unable to parse opencollection.yml: ${err.message}`);
@@ -113,12 +115,6 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
-
-      // Mark if this is an OpenCollection
-      const ocYamlPath = path.join(collectionPath, 'opencollection.yml');
-      if (fs.existsSync(ocYamlPath)) {
-        brunoConfig.isOpenCollection = true;
-      }
 
       win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);

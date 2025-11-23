@@ -2,7 +2,7 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
 const json = require('@rollup/plugin-json');
-const dts = require('rollup-plugin-dts');
+const dts = require('rollup-plugin-dts').default;
 const { terser } = require('rollup-plugin-terser');
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 
@@ -62,5 +62,10 @@ module.exports = [
       terser(),
     ],
     external: ['@usebruno/lang', 'lodash', 'yaml', 'ajv', 'worker_threads', 'path', 'fs']
+  },
+  {
+    input: 'src/index.ts',
+    output: [{ file: 'dist/index.d.ts', format: 'es' }],
+    plugins: [dts({ tsconfig: './tsconfig.json' })]
   }
 ];
