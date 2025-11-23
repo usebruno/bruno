@@ -4,7 +4,7 @@ import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
-import { IconChevronRight, IconDots } from '@tabler/icons';
+import { IconChevronRight, IconDots, IconSettings, IconPlus } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -156,18 +156,20 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref}>
-        <IconDots size={22} />
+      <div title="More options" ref={ref} className="menu-icon-trigger mr-1" onClick={(e) => e.stopPropagation()}>
+        <IconDots size={18} />
       </div>
     );
   });
 
   const iconClassName = classnames({
-    'rotate-90': !itemIsCollapsed
+    'rotate-90': !itemIsCollapsed,
+    'chevron-icon': true
   });
 
   const examplesIconClassName = classnames({
-    'rotate-90': examplesExpanded
+    'rotate-90': examplesExpanded,
+    'chevron-icon': true
   });
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
@@ -185,12 +187,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     );
   };
 
-  const handleClick = (event) => {
-    if (event && event.detail != 1) return;
-    //scroll to the active tab
-    setTimeout(scrollToTheActiveTab, 50);
+  const handleItemClick = (event) => {
     const isRequest = isItemARequest(item);
     if (isRequest) {
+      if (event && event.detail != 1) return;
+      // scroll to the active tab
+      setTimeout(scrollToTheActiveTab, 50);
       dispatch(hideHomePage());
       if (isTabForItemPresent) {
         dispatch(
@@ -209,22 +211,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         })
       );
     } else {
-      dispatch(
-        addTab({
-          uid: item.uid,
-          collectionUid: collectionUid,
-          type: 'folder-settings',
-        })
-      );
-      if(item.collapsed) {
-        dispatch(
-          toggleCollectionItem({
-            itemUid: item.uid,
-            collectionUid: collectionUid
-          })
-        );
-      }
+      handleFolderCollapse(event);
     }
+  };
+
+  const handleSettingsClick = (e) => {
+    e.stopPropagation();
+    dispatch(addTab({
+      uid: item.uid,
+      collectionUid: collectionUid,
+      type: 'folder-settings'
+    }));
   };
 
   const handleFolderCollapse = (e) => {
@@ -434,14 +431,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           ref.current = node;
           drag(drop(node));
         }}
+        onClick={handleItemClick}
+        onDoubleClick={handleDoubleClick}
+        onContextMenu={handleRightClick}
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => (
                 <div
-                  onClick={handleClick}
-                  onContextMenu={handleRightClick}
-                  onDoubleClick={handleDoubleClick}
                   className="indent-block"
                   key={i}
                   style={{ width: 16, minWidth: 16, height: '100%' }}
@@ -453,31 +450,28 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           <div
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{ paddingLeft: 8 }}
-            onClick={handleClick}
-            onContextMenu={handleRightClick}
-            onDoubleClick={handleDoubleClick}
           >
             <div style={{ width: 16, minWidth: 16 }}>
               {isFolder ? (
-                <IconChevronRight
-                  size={16}
-                  strokeWidth={2}
-                  className={iconClassName}
-                  style={{ color: 'rgb(160 160 160)' }}
-                  onClick={handleFolderCollapse}
-                  onDoubleClick={handleFolderDoubleClick}
-                  data-testid="folder-chevron"
-                />
+                <span title={itemIsCollapsed ? 'Expand Folder' : 'Collapse Folder'}>
+                  <IconChevronRight
+                    size={16}
+                    strokeWidth={2}
+                    className={iconClassName}
+                    data-testid="folder-chevron"
+                  />
+                </span>
               ) : hasExamples ? (
-                <IconChevronRight
-                  size={16}
-                  strokeWidth={2}
-                  className={examplesIconClassName}
-                  style={{ color: 'rgb(160 160 160)' }}
-                  onClick={handleExamplesCollapse}
-                  onDoubleClick={handleExamplesDoubleClick}
-                  data-testid="request-item-chevron"
-                />
+                <span title={examplesExpanded ? 'Collapse Examples' : 'Expand Examples'}>
+                  <IconChevronRight
+                    size={16}
+                    strokeWidth={2}
+                    className={examplesIconClassName}
+                    onClick={handleExamplesCollapse}
+                    onDoubleClick={handleExamplesDoubleClick}
+                    data-testid="request-item-chevron"
+                  />
+                </span>
               ) : null}
             </div>
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
@@ -487,7 +481,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               </span>
             </div>
           </div>
-          <div className="menu-icon pr-2">
+          <div className="menu-icon pr-2 flex items-center">
+            {isFolder && (
+              <>
+                {/* <div title="New Request" className="new-request-icon mr-1" onClick={(e) => { e.stopPropagation(); setNewRequestModalOpen(true); }}>
+                  <IconPlus size={18} strokeWidth={1.5} />
+                </div> */}
+                <div title="Folder Settings" className="settings-icon mr-1" onClick={handleSettingsClick}>
+                  <IconSettings size={18} strokeWidth={1.5} />
+                </div>
+              </>
+            )}
             <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
               {isFolder && (
                 <>
@@ -559,7 +563,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   className="dropdown-item"
                   onClick={(e) => {
                     dropdownTippyRef.current.hide();
-                    handleClick(null);
+                    handleItemClick(null);
                     handleRun();
                   }}
                 >

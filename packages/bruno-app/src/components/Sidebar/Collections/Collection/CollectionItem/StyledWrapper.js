@@ -5,13 +5,35 @@ const Wrapper = styled.div`
   .menu-icon {
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
 
-    .dropdown {
+    .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
       div[aria-expanded='true'] {
         visibility: visible;
       }
       div[aria-expanded='false'] {
         visibility: hidden;
       }
+    }
+    
+    .settings-icon, .new-request-icon, .menu-icon-trigger {
+      display: none;
+      width: 24px;
+      height: 24px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      &:hover {
+        color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+        background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
+      }
+    }
+  }
+
+  .chevron-icon {
+    color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+    border-radius: 4px;
+    &:hover {
+        color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+        background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
     }
   }
 
@@ -24,6 +46,8 @@ const Wrapper = styled.div`
     cursor: pointer;
     user-select: none;
     position: relative;
+    border-radius: 4px;
+    margin: 0 4px;
 
     /* Common styles for drop indicators */
     &::before,
@@ -97,10 +121,13 @@ const Wrapper = styled.div`
     &.item-hovered {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
-        .dropdown {
+        .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
           div[aria-expanded='false'] {
             visibility: visible;
           }
+        }
+        .settings-icon, .new-request-icon, .menu-icon-trigger {
+          display: flex;
         }
       }
     }

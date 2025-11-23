@@ -125,8 +125,8 @@ const ExampleItem = ({ example, item, collection }) => {
 
   const MenuIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} data-testid="response-example-menu-icon">
-        <IconDots size={22} />
+      <div ref={ref} data-testid="response-example-menu-icon" className="menu-icon-trigger mr-1" onClick={(e) => e.stopPropagation()}>
+        <IconDots size={18} />
       </div>
     );
   });

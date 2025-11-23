@@ -6,12 +6,25 @@ const StyledWrapper = styled.div`
   .menu-icon {
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
 
-    .dropdown {
+    .dropdown, .menu-icon-trigger {
       div[aria-expanded='true'] {
         visibility: visible;
       }
       div[aria-expanded='false'] {
         visibility: hidden;
+      }
+    }
+
+    .menu-icon-trigger {
+      display: none;
+      width: 24px;
+      height: 24px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      &:hover {
+        color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+        background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
       }
     }
   }

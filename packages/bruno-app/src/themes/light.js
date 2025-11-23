@@ -70,7 +70,9 @@ const lightTheme = {
     },
 
     dropdownIcon: {
-      color: 'rgb(110 110 110)'
+      color: 'rgb(110 110 110)',
+      hoverColor: 'rgb(50 50 50)',
+      hoverBg: 'rgba(0, 0, 0, 0.05)'
     }
   },
 

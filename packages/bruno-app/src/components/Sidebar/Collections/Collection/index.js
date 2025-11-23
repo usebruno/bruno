@@ -4,7 +4,7 @@ import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
-import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
+import { IconChevronRight, IconDots, IconLoader2, IconSettings, IconPlus } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
@@ -47,8 +47,8 @@ const Collection = ({ collection, searchText }) => {
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
   const MenuIcon = forwardRef((_props, ref) => {
     return (
-      <div ref={ref} className="pr-2">
-        <IconDots size={22} />
+      <div ref={ref} className="menu-icon-trigger mr-1" onClick={(e) => e.stopPropagation()} title="More options">
+        <IconDots size={18} />
       </div>
     );
   });
@@ -81,40 +81,31 @@ const Collection = ({ collection, searchText }) => {
     'rotate-90': !collectionIsCollapsed
   });
 
-  const handleClick = (event) => {
-    if (event.detail != 1) return;
-    // Check if the click came from the chevron icon
-    const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
-    setTimeout(scrollToTheActiveTab, 50);
-    
-    ensureCollectionIsMounted();
-
-    if(collection.collapsed) {
-      dispatch(toggleCollection(collection.uid));
-    }
-  
-    if(!isChevronClick) {
-      dispatch(hideHomePage()); // @TODO Playwright tests are often stuck on home page, rather than collection settings tab. Revisit for a proper fix.
-      dispatch(
-        addTab({
-          uid: collection.uid,
-          collectionUid: collection.uid,
-          type: 'collection-settings',
-        })
-      );
-    }
-  };
-
-  const handleDoubleClick = (_event) => {
-    dispatch(makeTabPermanent({ uid: collection.uid }))
-  };
-
   const handleCollectionCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
     ensureCollectionIsMounted();
     dispatch(toggleCollection(collection.uid));
   }
+
+  const handleSettingsClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (e.detail != 1) return;
+    setTimeout(scrollToTheActiveTab, 50);
+    dispatch(hideHomePage()); // @TODO Playwright tests are often stuck on home page, rather than collection settings tab. Revisit for a proper fix.
+    dispatch(addTab({
+      uid: collection.uid,
+      collectionUid: collection.uid,
+      type: 'collection-settings'
+    }));
+  };
+
+  const handleSettingsDoubleClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dispatch(makeTabPermanent({ uid: collection.uid }));
+  };
 
   // prevent the parent's double-click handler from firing
   const handleCollectionDoubleClick = (e) => {
@@ -248,27 +239,44 @@ const Collection = ({ collection, searchText }) => {
           collectionRef.current = node;
           drag(drop(node));
         }}
+        onClick={handleCollectionCollapse}
+        onDoubleClick={handleCollectionDoubleClick}
+        onContextMenu={handleRightClick}
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
-          onClick={handleClick}
-          onDoubleClick={handleDoubleClick}
-          onContextMenu={handleRightClick}
         >
-          <IconChevronRight
-            size={16}
-            strokeWidth={2}
-            className={`chevron-icon ${iconClassName}`}
-            style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
-            onClick={handleCollectionCollapse}
-            onDoubleClick={handleCollectionDoubleClick}
-          />
+          <span title={collectionIsCollapsed ? 'Expand Collection' : 'Collapse Collection'} className={`chevron-icon ml-1 ${iconClassName}`}>
+            <IconChevronRight
+              size={16}
+              strokeWidth={2}
+              style={{ width: 16, minWidth: 16 }}
+            />
+          </span>
           <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div className="collection-actions" data-testid="collection-actions">
+        <div className="collection-actions flex items-center" data-testid="collection-actions">
+          {/* <div
+              className="new-request-icon mr-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowNewRequestModal(true);
+              }}
+              title="New Request"
+            >
+              <IconPlus size={18} strokeWidth={1.5} />
+            </div> */}
+          <div
+            className="settings-icon mr-1"
+            onClick={handleSettingsClick}
+            onDoubleClick={handleSettingsDoubleClick}
+            title="Collection Settings"
+          >
+            <IconSettings size={18} strokeWidth={1.5} />
+          </div>
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div
               className="dropdown-item"
