@@ -23,16 +23,85 @@ const Wrapper = styled.div`
       .collection-actions {
         visibility: visible;
         background-color: transparent !important;
+        .collection-menu-icon {
+          visibility: visible;
+        }
       }
     }
 
     &.item-hovered {
       border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       border-bottom: 2px solid transparent;
+      .collection-actions {
+        visibility: visible;
+        .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
+          div[aria-expanded='false'] {
+            visibility: visible;
+          }
+        }
+        .settings-icon, .new-request-icon, .menu-icon-trigger {
+          display: flex;
+        }
+        .collection-menu-icon {
+          visibility: visible;
+        }
+      }
+    }
+
+    .collection-actions {
+      color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+
+      .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
+        div[aria-expanded='true'] {
+          visibility: visible;
+        }
+        div[aria-expanded='false'] {
+          visibility: hidden;
+        }
+      }
+
+      .settings-icon, .new-request-icon, .menu-icon-trigger {
+        display: none;
+        width: 24px;
+        height: 24px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        &:hover {
+          color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+          background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
+        }
+      }
+
+      .collection-menu-icon {
+        visibility: hidden;
+      }
+    }
+
+    .chevron-icon {
+      color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+      border-radius: 4px;
+      &:hover {
+          color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+          background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
+      }
     }
 
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      .collection-actions {
+        .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
+          div[aria-expanded='false'] {
+            visibility: visible;
+          }
+        }
+        .settings-icon, .new-request-icon, .menu-icon-trigger {
+          display: flex;
+        }
+        .collection-menu-icon {
+          visibility: visible;
+        }
+      }
     }
 
     div.tippy-box {
