@@ -248,7 +248,7 @@ const CreateCollection = ({ onClose }) => {
                     value={formik.values.format}
                     onChange={formik.handleChange}
                   >
-                    <option value="yaml">OpenCollection (YAML)</option>
+                    <option value="yml">OpenCollection (YAML)</option>
                     <option value="bru">BRU Format (.bru)</option>
                   </select>
                   {formik.touched.format && formik.errors.format ? (

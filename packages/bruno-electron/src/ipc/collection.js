@@ -159,7 +159,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         const uid = generateUidBasedOnHash(dirPath);
-        const brunoConfig = {
+        let brunoConfig = {
           version: '1',
           name: collectionName,
           type: 'collection',
@@ -171,6 +171,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             meta: {
               name: collectionName
             }
+          };
+          // For YAML collections, set opencollection instead of version
+          brunoConfig = {
+            opencollection: '1.0.0',
+            name: collectionName,
+            type: 'collection',
+            ignore: ['node_modules', '.git']
           };
           const content = stringifyCollection(collectionRoot, brunoConfig, { format });
           await writeFile(path.join(dirPath, 'opencollection.yml'), content);
