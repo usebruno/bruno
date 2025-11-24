@@ -73,9 +73,7 @@ const RequestTabPanel = () => {
 
   const screenWidth = useSelector((state) => state.app.screenWidth);
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const [leftPaneWidth, setLeftPaneWidth] = useState(
-    focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2
-  ); // 2.2 is intentional to make both panes appear to be of equal width
+  const [leftPaneWidth, setLeftPaneWidth] = useState(focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2); // 2.2 is intentional to make both panes appear to be of equal width
   const [topPaneHeight, setTopPaneHeight] = useState(focusedTab?.requestPaneHeight || MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -141,12 +139,10 @@ const RequestTabPanel = () => {
       setDragging(false);
       if (!isVerticalLayout) {
         const mainRect = mainSectionRef.current.getBoundingClientRect();
-        dispatch(
-          updateRequestPaneTabWidth({
-            uid: activeTabUid,
-            requestPaneWidth: e.clientX - mainRect.left
-          })
-        );
+        dispatch(updateRequestPaneTabWidth({
+          uid: activeTabUid,
+          requestPaneWidth: e.clientX - mainRect.left
+        }));
       }
     }
   };

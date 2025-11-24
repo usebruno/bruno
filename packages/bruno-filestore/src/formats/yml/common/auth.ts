@@ -230,14 +230,14 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
         placement: auth.placement === 'query' ? 'queryparams' : (auth.placement === 'header' ? 'header' : null)
       };
       break;
-    
+
     case 'oauth2':
       brunoAuth.mode = 'oauth2';
       brunoAuth.oauth2 = toBrunoOAuth2(auth);
       break;
 
     default:
-      console.warn("toBrunoAuth failed: Unsupported auth type");
+      console.warn('toBrunoAuth failed: Unsupported auth type');
       break;
   }
 

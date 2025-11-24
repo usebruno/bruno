@@ -3,9 +3,7 @@ import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable } from '@opencollection/types/common/variables';
 import { stringifyYml } from './utils';
 
-const toOpenCollectionEnvironmentVariables = (
-  variables: BrunoEnvironmentVariable[]
-): Variable[] | undefined => {
+const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariable[]): Variable[] | undefined => {
   if (!variables?.length) {
     return undefined;
   }

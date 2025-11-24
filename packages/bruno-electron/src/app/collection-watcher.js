@@ -51,7 +51,7 @@ const isEnvironmentsFolder = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const envDirectory = path.join(collectionPath, 'environments');
 
-  return dirname === envDirectory
+  return dirname === envDirectory;
 };
 
 const isFolderRootFile = (pathname, collectionPath) => {
@@ -272,7 +272,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
       // in yml format, opencollection.yml also contains the bruno config
-      if(format === 'yml') {
+      if (format === 'yml') {
         // Transform the config to add exists metadata for protobuf files and import paths
         brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
@@ -416,13 +416,13 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const folderFilePath = path.join(pathname, `folder.${format}`);
 
   try {
-    if(fs.existsSync(folderFilePath)) {
+    if (fs.existsSync(folderFilePath)) {
       let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
       let folderData = await parseFolder(folderFileContent, { format });
       name = folderData?.meta?.name || name;
       seq = folderData?.meta?.seq;
     }
-  } catch(error) {
+  } catch (error) {
     console.error(`Error occured while parsing folder.${format} file`);
     console.error(error);
   }

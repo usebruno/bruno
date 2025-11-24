@@ -97,27 +97,27 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   // settings
   if (ocRequest.settings) {
     const settings: BrunoHttpItemSettings = {};
-    
+
     if (typeof ocRequest.settings.encodeUrl === 'boolean') {
       settings.encodeUrl = ocRequest.settings.encodeUrl;
     } else {
       settings.encodeUrl = true;
     }
-    
+
     if (typeof ocRequest.settings.timeout === 'number') {
       settings.timeout = ocRequest.settings.timeout;
-    } else if(ocRequest.settings.timeout === 'inherit') {
+    } else if (ocRequest.settings.timeout === 'inherit') {
       settings.timeout = 'inherit';
     } else {
       settings.timeout = 0;
     }
-    
+
     if (typeof ocRequest.settings.followRedirects === 'boolean') {
       settings.followRedirects = ocRequest.settings.followRedirects;
     } else {
       settings.followRedirects = true;
     }
-    
+
     if (typeof ocRequest.settings.maxRedirects === 'number') {
       settings.maxRedirects = ocRequest.settings.maxRedirects;
     } else {

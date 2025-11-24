@@ -91,7 +91,7 @@ export const toOpenCollectionAssertions = (assertions: BrunoKeyValue[] | null | 
 
   const ocAssertions: Assertion[] = assertions.map((assertion: BrunoKeyValue): Assertion => {
     const { operator, value } = parseAssertionOperator(assertion.value || '');
-    
+
     const ocAssertion: Assertion = {
       expression: assertion.name || '',
       operator,
@@ -144,4 +144,3 @@ export const toBrunoAssertions = (assertions: Assertion[] | null | undefined): B
 
   return brunoAssertions.length > 0 ? brunoAssertions : undefined;
 };
-

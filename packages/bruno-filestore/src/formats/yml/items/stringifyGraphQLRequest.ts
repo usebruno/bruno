@@ -97,9 +97,9 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     // settings
     const httpSettings = item.settings as BrunoHttpItemSettings | undefined;
     ocRequest.settings = {} as GraphQLRequestSettings;
-    if(httpSettings?.encodeUrl === true) {
+    if (httpSettings?.encodeUrl === true) {
       ocRequest.settings.encodeUrl = true;
-    } else if(httpSettings?.encodeUrl === false) {
+    } else if (httpSettings?.encodeUrl === false) {
       ocRequest.settings.encodeUrl = false;
     } else {
       // todo: we are defaulting to true for now as bruno config does not yet support inherit for encodeUrl
@@ -108,7 +108,7 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     }
 
     const timeout = httpSettings?.timeout;
-    if(isNumber(timeout)) {
+    if (isNumber(timeout)) {
       ocRequest.settings.timeout = timeout;
     } else {
       // todo: we are defaulting to 0 for now as bruno config does not yet support inherit for timeout
@@ -116,9 +116,9 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
       ocRequest.settings.timeout = 0;
     }
 
-    if(httpSettings?.followRedirects === true) {
+    if (httpSettings?.followRedirects === true) {
       ocRequest.settings.followRedirects = true;
-    } else if(httpSettings?.followRedirects === false) {
+    } else if (httpSettings?.followRedirects === false) {
       ocRequest.settings.followRedirects = false;
     } else {
       // todo: we are defaulting to true for now as bruno config does not yet support inherit for followRedirects
@@ -127,7 +127,7 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     }
 
     const maxRedirects = httpSettings?.maxRedirects;
-    if(isNumber(maxRedirects)) {
+    if (isNumber(maxRedirects)) {
       ocRequest.settings.maxRedirects = maxRedirects;
     } else {
       // todo: we are defaulting to 5 for now as bruno config does not yet support inherit for maxRedirects

@@ -4,9 +4,7 @@ import type { Variable } from '@opencollection/types/common/variables';
 import { parseYml } from './utils';
 import { uuid } from '../../utils';
 
-const toBrunoEnvironmentVariables = (
-  variables: Variable[] | null | undefined
-): BrunoEnvironmentVariable[] => {
+const toBrunoEnvironmentVariables = (variables: Variable[] | null | undefined): BrunoEnvironmentVariable[] => {
   if (!variables?.length) {
     return [];
   }

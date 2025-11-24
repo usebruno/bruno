@@ -4,19 +4,19 @@ import type { HttpHeader } from '@opencollection/types/requests/http';
 import { uuid } from '../../../utils';
 
 export const toOpenCollectionHttpHeaders = (headers: BrunoFolderRequest['headers']): HttpHeader[] | undefined => {
-  if(!headers?.length) {
+  if (!headers?.length) {
     return undefined;
   }
 
   const ocHeaders = headers.map((header: BrunoKeyValue): HttpHeader => {
     const httpHeader: HttpHeader = {
       name: header.name || '',
-      value: header.value || '',
+      value: header.value || ''
     };
-    if(header?.description?.trim().length) {
+    if (header?.description?.trim().length) {
       httpHeader.description = header.description;
     }
-    if(header.enabled === false) {
+    if (header.enabled === false) {
       httpHeader.disabled = true;
     }
     return httpHeader;

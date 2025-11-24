@@ -1755,7 +1755,7 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
  * @param {string} collectionUid - Collection UID
  * @param {string} itemUid - Item/Folder UID (for request/folder)
  */
-const updateVariableInFile = (pathname, variable, scopeType, collectionUid, itemUid) => (dispatch) => {
+const updateVariableInFile = (pathname, variable, scopeType, collectionUid, itemUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
@@ -1863,7 +1863,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             ? { ...variable, value: newValue }
             : { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true };
 
-          const collectionFilePath = scopecollection.format === 'yml'
+          const collectionFilePath = scopeCollection.format === 'yml'
             ? path.join(scopeCollection.pathname, 'opencollection.yml')
             : path.join(scopeCollection.pathname, 'collection.bru');
 
@@ -2124,7 +2124,7 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
 
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:update-bruno-config', brunoConfig, collection.pathname, collectionCopy.root)
+      .invoke('renderer:update-bruno-config', brunoConfig, collection.pathname, collection.root)
       .then(resolve)
       .catch(reject);
   });

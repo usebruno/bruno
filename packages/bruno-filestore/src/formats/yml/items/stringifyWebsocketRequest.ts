@@ -47,7 +47,7 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
           type: (msg.type as 'text' | 'json' | 'xml' | 'binary') || 'text',
           data: msg.content || ''
         };
-        if(message.data.trim().length) {
+        if (message.data.trim().length) {
           ocRequest.message = message;
         }
       }

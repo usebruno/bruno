@@ -66,7 +66,7 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
 
         return formEntry;
       }) || [];
-      
+
       const formBody: FormUrlEncodedBody = {
         type: 'form-urlencoded',
         ...(formEntries.length > 0 && { data: formEntries })
@@ -91,7 +91,7 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
 
         return multipartEntry;
       }) || [];
-      
+
       const multipartBody: MultipartFormBody = {
         type: 'multipart-form',
         ...(multipartEntries.length > 0 && { data: multipartEntries })
@@ -106,7 +106,7 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
           selected: file.selected ?? false
         };
       }) || [];
-      
+
       const fileBody: FileBody = {
         type: 'file',
         ...(fileEntries.length > 0 && { data: fileEntries })
@@ -232,4 +232,3 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
 
   return brunoBody;
 };
-

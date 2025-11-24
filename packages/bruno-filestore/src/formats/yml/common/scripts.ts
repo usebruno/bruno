@@ -1,12 +1,10 @@
-import { Scripts } from "@opencollection/types/common/scripts";
-import { FolderRequest as BrunoFolderRequest } from "@usebruno/schema-types/collection/folder";
-import { HttpRequest as BrunoHttpRequest } from "@usebruno/schema-types/requests/http";
-import { WebSocketRequest as BrunoWebSocketRequest } from "@usebruno/schema-types/requests/websocket";
-import { GrpcRequest as BrunoGrpcRequest } from "@usebruno/schema-types/requests/grpc";
+import { Scripts } from '@opencollection/types/common/scripts';
+import { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
+import { HttpRequest as BrunoHttpRequest } from '@usebruno/schema-types/requests/http';
+import { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
+import { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
 
-export const toOpenCollectionScripts = (
-  request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined
-): Scripts | undefined => {
+export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined): Scripts | undefined => {
   const ocScripts: Scripts = {};
 
   if (request?.script?.req?.trim().length) {
@@ -22,8 +20,8 @@ export const toOpenCollectionScripts = (
   return Object.keys(ocScripts).length > 0 ? ocScripts : undefined;
 };
 
-export const toBrunoScripts = (scripts: Scripts | null | undefined): { 
-  script?: { req?: string; res?: string }; 
+export const toBrunoScripts = (scripts: Scripts | null | undefined): {
+  script?: { req?: string; res?: string };
   tests?: string;
 } | undefined => {
   if (!scripts) {

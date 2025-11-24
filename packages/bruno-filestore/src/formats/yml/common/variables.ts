@@ -1,11 +1,9 @@
-import { Variable } from "@opencollection/types/common/variables";
-import { FolderRequest as BrunoFolderRequest } from "@usebruno/schema-types/collection/folder";
-import { Variable as BrunoVariable, Variables as BrunoVariables } from "@usebruno/schema-types/common/variables";
+import { Variable } from '@opencollection/types/common/variables';
+import { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
+import { Variable as BrunoVariable, Variables as BrunoVariables } from '@usebruno/schema-types/common/variables';
 import { uuid } from '../../../utils';
 
-export const toOpenCollectionVariables = (
-  variables: BrunoFolderRequest['vars'] | BrunoVariables | null | undefined
-): Variable[] | undefined => {
+export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] | BrunoVariables | null | undefined): Variable[] | undefined => {
   // Handle folder variables (has req/res structure)
   const varsArray = variables && 'req' in variables ? variables.req : variables as BrunoVariables;
 

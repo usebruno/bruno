@@ -13,7 +13,7 @@ const {
   stringifyCollection,
   parseFolder,
   stringifyFolder,
-  stringifyEnvironment,
+  stringifyEnvironment
 } = require('@usebruno/filestore');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
@@ -228,7 +228,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const uid = generateUidBasedOnHash(dirPath);
       const format = getCollectionFormat(previousPath);
 
-      if(format === 'yml') {
+      if (format === 'yml') {
         const content = fs.readFileSync('opencollection.yml', 'utf8');
         const {
           brunoConfig,
@@ -280,7 +280,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const format = getCollectionFormat(collectionPathname);
 
-      if(format === 'yml') {
+      if (format === 'yml') {
         const content = fs.readFileSync('opencollection.yml', 'utf8');
         const {
           brunoConfig,
@@ -290,7 +290,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         brunoConfig.name = newName;
 
         const newContent = stringifyCollection(collectionRoot, brunoConfig, { format });
-        await writeFile(path.join(dirPath, 'opencollection.yml'), newContent);
+        await writeFile(path.join(collectionPathname, 'opencollection.yml'), newContent);
       } else if (format === 'bru') {
         const content = fs.readFileSync('bruno.json', 'utf8');
         const brunoConfig = JSON.parse(content);
@@ -1134,7 +1134,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
       const format = getCollectionFormat(collectionPath);
 
-      if(format === 'bru') {
+      if (format === 'bru') {
         const brunoConfigPath = path.join(collectionPath, 'bruno.json');
         const content = await stringifyJson(transformedBrunoConfig);
         await writeFile(brunoConfigPath, content);

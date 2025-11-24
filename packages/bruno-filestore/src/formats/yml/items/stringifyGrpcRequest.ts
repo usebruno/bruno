@@ -73,7 +73,7 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
       // update this when bruno app supports multiple messages
       if (messages.length) {
         const message: GrpcMessage = messages[0].content || '';
-        if(message.trim().length) {
+        if (message.trim().length) {
           ocRequest.message = message;
         }
       }

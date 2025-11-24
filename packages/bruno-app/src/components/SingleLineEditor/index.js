@@ -94,7 +94,7 @@ class SingleLineEditor extends Component {
       this.editor,
       autoCompleteOptions
     );
-    
+
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);

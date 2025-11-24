@@ -37,9 +37,7 @@ const mapSendIn = (sendIn?: string | null): OAuth2AdditionalParameter['placement
   }
 };
 
-const mapAdditionalParameters = (
-  params?: BrunoOAuthAdditionalParameter[] | null
-): OAuth2AdditionalParameter[] | undefined => {
+const mapAdditionalParameters = (params?: BrunoOAuthAdditionalParameter[] | null): OAuth2AdditionalParameter[] | undefined => {
   if (!Array.isArray(params) || params.length === 0) {
     return undefined;
   }
@@ -98,18 +96,18 @@ const buildTokenConfig = (oauth: BrunoOAuth2): OAuth2TokenConfig | undefined => 
 
   isNonEmptyString(oauth.credentialsId) && (tokenConfig.id = oauth.credentialsId);
 
-  if(!isNonEmptyString(oauth.tokenPlacement)) {
+  if (!isNonEmptyString(oauth.tokenPlacement)) {
     // default to header
     tokenConfig.placement = { header: '' };
   }
 
-  if(oauth.tokenPlacement === 'header') {
+  if (oauth.tokenPlacement === 'header') {
     tokenConfig.placement = {
       header: oauth.tokenHeaderPrefix as string
     };
   }
 
-  if(oauth.tokenPlacement === 'url') {
+  if (oauth.tokenPlacement === 'url') {
     tokenConfig.placement = {
       query: oauth.tokenQueryKey as string
     };
@@ -305,16 +303,14 @@ const reversePlacementMapping = (placement?: OAuth2AdditionalParameter['placemen
   }
 };
 
-const reverseAdditionalParameters = (
-  params?: OAuth2AdditionalParameter[]
-): BrunoOAuthAdditionalParameter[] | null => {
+const reverseAdditionalParameters = (params?: OAuth2AdditionalParameter[]): BrunoOAuthAdditionalParameter[] | null => {
   if (!Array.isArray(params) || params.length === 0) {
     return null;
   }
 
   const mapped = params.map((param): BrunoOAuthAdditionalParameter => {
     const sendIn = reversePlacementMapping(param.placement);
-    
+
     return {
       name: param.name || null,
       value: param.value || null,
@@ -363,7 +359,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
       if (oauth.credentials?.clientSecret) brunoOAuth.clientSecret = oauth.credentials.clientSecret;
       if (oauth.credentials?.placement) brunoOAuth.credentialsPlacement = oauth.credentials.placement;
       if (oauth.scope) brunoOAuth.scope = oauth.scope;
-      
+
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
       if (oauth.tokenConfig?.placement) {
@@ -555,4 +551,3 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
   return brunoOAuth;
 };
-

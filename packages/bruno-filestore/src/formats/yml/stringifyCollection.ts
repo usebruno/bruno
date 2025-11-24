@@ -14,8 +14,8 @@ import type { Auth } from '@opencollection/types/common/auth';
 const hasCollectionConfig = (brunoConfig: any): boolean => {
   // protobuf
   const hasProtobuf = (
-    brunoConfig.protobuf?.protofFiles?.length > 0 ||
-    brunoConfig.protobuf?.importPaths?.length > 0
+    brunoConfig.protobuf?.protofFiles?.length > 0
+    || brunoConfig.protobuf?.importPaths?.length > 0
   );
 
   // proxy
@@ -25,45 +25,41 @@ const hasCollectionConfig = (brunoConfig: any): boolean => {
   const hasClientCertificates = brunoConfig.clientCertificates?.certs?.length > 0;
 
   return hasProtobuf || hasProxy || hasClientCertificates;
-}
+};
 
 const hasRequestDefaults = (collectionRoot: any): boolean => {
   const requestRoot = collectionRoot?.request;
 
-  return Boolean(
-    (requestRoot?.headers?.length)
+  return Boolean((requestRoot?.headers?.length)
     || (requestRoot?.vars?.req?.length)
     || hasRequestScripts(collectionRoot)
-    || hasRequestAuth(collectionRoot)
-  );
-}
+    || hasRequestAuth(collectionRoot));
+};
 
 const hasRequestAuth = (collectionRoot: any): boolean => {
-  return Boolean(
-    (collectionRoot.request?.auth?.mode !== 'none')
-  );
-}
+  return Boolean((collectionRoot.request?.auth?.mode !== 'none'));
+};
 
 const hasRequestScripts = (collectionRoot: any): boolean => {
   return (collectionRoot.request?.script?.req)
     || (collectionRoot.request?.script?.res)
     || (collectionRoot.request?.tests);
-}
+};
 
 const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
   try {
     const oc: OpenCollection = {};
 
     oc.info = {
-      name: brunoConfig.name || 'Untitled Collection',
-    }
-    oc.opencollection = "1.0.0";
+      name: brunoConfig.name || 'Untitled Collection'
+    };
+    oc.opencollection = '1.0.0';
 
     // collection config
-    if(hasCollectionConfig(brunoConfig)) {
+    if (hasCollectionConfig(brunoConfig)) {
       oc.config = {};
 
-      if(brunoConfig.protobuf?.protofFiles?.length) {
+      if (brunoConfig.protobuf?.protofFiles?.length) {
         oc.config.protobuf = {
           protoFiles: brunoConfig.protobuf.protofFiles.map((protoFile: any): ProtoFileItem => ({
             type: 'file' as const,
@@ -71,33 +67,33 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
           })),
           importPaths: brunoConfig.protobuf.importPaths.map((importPath: any): ProtoFileImportPath => ({
             path: importPath.path,
-            disabled: importPath.disabled,
+            disabled: importPath.disabled
           }))
         };
       }
 
       // proxy
-      if(brunoConfig.proxy?.enabled) {
-        if(brunoConfig.proxy.enabled === 'global') {
-          oc.config.proxy = "inherit"
+      if (brunoConfig.proxy?.enabled) {
+        if (brunoConfig.proxy.enabled === 'global') {
+          oc.config.proxy = 'inherit';
         } else {
           oc.config.proxy = {
             protocol: brunoConfig.proxy.protocol,
             hostname: brunoConfig.proxy.hostname,
-            port: brunoConfig.proxy.port,
-          }
+            port: brunoConfig.proxy.port
+          };
 
-          if(brunoConfig.proxy.auth?.enabled) {
+          if (brunoConfig.proxy.auth?.enabled) {
             oc.config.proxy.auth = {
               username: brunoConfig.proxy.auth.username,
               password: brunoConfig.proxy.auth.password
-            }
+            };
           }
         }
       }
 
       // client certificates
-      if(brunoConfig.clientCertificates?.certs?.length) {
+      if (brunoConfig.clientCertificates?.certs?.length) {
         oc.config.clientCertificates = brunoConfig.clientCertificates.certs
           .map((cert: any): ClientCertificate | null => {
             if (cert.type === 'pem') {
@@ -127,48 +123,48 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     }
 
     // request defaults
-    if(hasRequestDefaults(collectionRoot)) {
+    if (hasRequestDefaults(collectionRoot)) {
       oc.request = {};
 
       // headers
-      if(collectionRoot.request?.headers?.length) {
+      if (collectionRoot.request?.headers?.length) {
         const ocHeaders: HttpHeader[] | undefined = toOpenCollectionHttpHeaders(collectionRoot.request?.headers);
-        if(ocHeaders) {
+        if (ocHeaders) {
           oc.request.headers = ocHeaders;
         }
       }
 
       // auth
-      if(hasRequestAuth(collectionRoot)) {
+      if (hasRequestAuth(collectionRoot)) {
         const ocAuth: Auth | undefined = toOpenCollectionAuth(collectionRoot.request?.auth);
-        if(ocAuth) {
+        if (ocAuth) {
           oc.request.auth = ocAuth;
         }
       }
 
       // variables
-      if(collectionRoot.request?.vars?.req?.length) {
+      if (collectionRoot.request?.vars?.req?.length) {
         const ocVariables: Variable[] | undefined = toOpenCollectionVariables(collectionRoot.request?.vars);
-        if(ocVariables) {
+        if (ocVariables) {
           oc.request.variables = ocVariables;
         }
       }
 
       // scripts
-      if(hasRequestScripts(collectionRoot)) {
+      if (hasRequestScripts(collectionRoot)) {
         const ocScripts: Scripts | undefined = toOpenCollectionScripts(collectionRoot.request);
-        if(ocScripts) {
+        if (ocScripts) {
           oc.request.scripts = ocScripts;
         }
       }
     }
 
     // docs
-    if(collectionRoot.docs?.trim().length) {
+    if (collectionRoot.docs?.trim().length) {
       oc.docs = {
         content: collectionRoot.docs,
         type: 'text/markdown'
-      }
+      };
     }
 
     // bundled
@@ -176,7 +172,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
 
     // extensions
     oc.extensions = {};
-    if(brunoConfig.ignore?.length) {
+    if (brunoConfig.ignore?.length) {
       const ignoreList: string[] = [];
       brunoConfig.ignore.forEach((ignore: string) => {
         ignoreList.push(ignore);
