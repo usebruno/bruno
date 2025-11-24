@@ -189,17 +189,36 @@ export const renderVarInfo = (token, options) => {
     // Detect variable scope
     scopeInfo = getVariableScope(variableName, collection, item);
 
-    // If variable doesn't exist in any scope, default to creating it at request level
+    // If variable doesn't exist in any scope, determine scope based on context
     if (!scopeInfo) {
       if (item) {
-        // Create as request variable if we have an item context
+        // Determine if item is a folder or request
+        const isFolder = item.type === 'folder';
+
+        if (isFolder) {
+          // We're in folder settings - create as folder variable
+          scopeInfo = {
+            type: 'folder',
+            value: '', // Empty value for new variable
+            data: { folder: item, variable: null } // variable is null since it doesn't exist yet
+          };
+        } else {
+          // We're in a request - create as request variable
+          scopeInfo = {
+            type: 'request',
+            value: '', // Empty value for new variable
+            data: { item, variable: null } // variable is null since it doesn't exist yet
+          };
+        }
+      } else if (collection) {
+        // No item context but we have collection - create as collection variable
         scopeInfo = {
-          type: 'request',
-          value: '', // Empty value for new variable
-          data: { item, variable: null } // variable is null since it doesn't exist yet
+          type: 'collection',
+          value: '',
+          data: { collection, variable: null }
         };
       } else {
-        // If no item context, show as undefined
+        // No context at all, show as undefined
         scopeInfo = {
           type: 'undefined',
           value: '',

@@ -32,7 +32,7 @@ export const TabsTrigger = ({ value: triggerValue, children, className = '' }) =
   return (
     <button
       onClick={() => onValueChange(triggerValue)}
-      className={`inline-flex items-center justify-center rounded-[4px] p-[8px] text-sm whitespace-nowrap transition-all cursor-pointer border border-transparent hover:opacity-90 ${className}`}
+      className={`inline-flex items-center justify-center rounded-[4px] p-[8px] text-xs whitespace-nowrap transition-all cursor-pointer border border-transparent hover:opacity-90 ${className}`}
       style={{
         background: isActive ? theme.tabs.secondary.active.bg : 'transparent',
         color: isActive ? theme.tabs.secondary.active.color : theme.tabs.secondary.inactive.color
