@@ -768,7 +768,7 @@ export const renameItem =
       const { ipcRenderer } = window;
 
       const renameName = async () => {
-        return ipcRenderer.invoke('renderer:rename-item-name', { itemPath: item.pathname, newName }).catch((err) => {
+          return ipcRenderer.invoke('renderer:rename-item-name', { itemPath: item.pathname, newName, collectionPathname: collection.pathname }).catch((err) => {
           toast.error('Failed to rename the item name');
           console.error(err);
           throw new Error('Failed to rename the item name');
@@ -781,12 +781,12 @@ export const renameItem =
         if (item.type === 'folder') {
           newPath = path.join(dirname, trim(newFilename));
         } else {
-          const filename = resolveRequestFilename(newFilename);
+            const filename = resolveRequestFilename(newFilename, collection.format);
           newPath = path.join(dirname, filename);
         }
 
         return ipcRenderer
-          .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename })
+            .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename, collectionPathname: collection.pathname })
           .catch((err) => {
             toast.error('Failed to rename the file');
             console.error(err);
@@ -1094,7 +1094,7 @@ export const handleCollectionItemDrop =
           items: draggedItemDirectoryItemsWithoutDraggedItem
         });
         if (reorderedSourceItems?.length) {
-          await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
+            await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems, collectionUid: sourceCollectionUid || collectionUid }));
         }
       }
 
@@ -1116,7 +1116,7 @@ export const handleCollectionItemDrop =
         });
 
         if (reorderedTargetItems?.length) {
-          await dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems }));
+            await dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems, collectionUid }));
         }
       }
     };
@@ -1133,7 +1133,7 @@ export const handleCollectionItemDrop =
       });
 
       if (reorderedItems?.length) {
-        await dispatch(updateItemsSequences({ itemsToResequence: reorderedItems }));
+          await dispatch(updateItemsSequences({ itemsToResequence: reorderedItems, collectionUid }));
       }
     };
 
@@ -1169,12 +1169,19 @@ export const handleCollectionItemDrop =
   };
 
 export const updateItemsSequences =
-  ({ itemsToResequence }) =>
+  ({ itemsToResequence, collectionUid }) =>
   (dispatch, getState) => {
     return new Promise((resolve, reject) => {
+        const state = getState();
+        const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+        if (!collection) {
+          return reject(new Error('Collection not found'));
+        }
+
       const { ipcRenderer } = window;
 
-      ipcRenderer.invoke('renderer:resequence-items', itemsToResequence).then(resolve).catch(reject);
+        ipcRenderer.invoke('renderer:resequence-items', itemsToResequence, collection.pathname).then(resolve).catch(reject);
     });
   };
 
@@ -1231,10 +1238,15 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           text: null,
           xml: null,
           sparql: null,
-          multipartForm: null,
-          formUrlEncoded: null,
-          file: null
+          multipartForm: [],
+          formUrlEncoded: [],
+          file: []
         },
+        vars: {
+          req: [],
+          res: []
+        },
+        assertions: [],
         auth: auth ?? {
           mode: 'inherit'
         }
@@ -1342,7 +1354,17 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
         },
         auth: auth ?? {
           mode: 'inherit'
-        }
+        },
+        vars: {
+          req: [],
+          res: []
+        },
+        script: {
+          req: null,
+          res: null
+        },
+        assertions: [],
+        tests: null
       }
     };
 
@@ -1412,7 +1434,17 @@ export const newWsRequest = (params) => (dispatch, getState) => {
         },
         auth: auth ?? {
           mode: 'inherit'
-        }
+        },
+        vars: {
+          req: [],
+          res: []
+        },
+        script: {
+          req: null,
+          res: null
+        },
+        assertions: [],
+        tests: null
       }
     };
 

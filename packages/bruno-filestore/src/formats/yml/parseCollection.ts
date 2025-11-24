@@ -17,6 +17,7 @@ export default (ymlString: string): ParsedCollection => {
 
     // bruno config
     const brunoConfig: Record<string, any> = {
+      opencollection: oc.opencollection || '1.0.0',
       name: oc.info?.name || 'Untitled Collection',
       type: 'collection',
       ignore: []
@@ -114,8 +115,14 @@ export default (ymlString: string): ParsedCollection => {
       collectionRoot.request = {
         headers: null,
         auth: null,
-        script: null,
-        vars: null,
+        script: {
+          req: null,
+          res: null
+        },
+        vars: {
+          req: [],
+          res: []
+        },
         tests: null
       };
 
@@ -134,14 +141,19 @@ export default (ymlString: string): ParsedCollection => {
       if (variables) {
         collectionRoot.request.vars = {
           req: variables,
-          res: null
+          res: []
         };
       }
 
       // scripts
       const scripts = toBrunoScripts(oc.request.scripts);
-      if (scripts?.script) {
-        collectionRoot.request.script = scripts.script;
+      if (scripts?.script && collectionRoot.request.script) {
+        if (scripts.script.req) {
+          collectionRoot.request.script.req = scripts.script.req;
+        }
+        if (scripts.script.res) {
+          collectionRoot.request.script.res = scripts.script.res;
+        }
       }
       if (scripts?.tests) {
         collectionRoot.request.tests = scripts.tests;

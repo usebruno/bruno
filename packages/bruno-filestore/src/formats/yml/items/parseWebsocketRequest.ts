@@ -16,9 +16,15 @@ export default (ocRequest: WebSocketRequest): BrunoItem => {
       mode: 'ws',
       ws: []
     },
-    script: null,
-    vars: null,
-    assertions: null,
+    script: {
+      req: null,
+      res: null
+    },
+    vars: {
+      req: [],
+      res: []
+    },
+    assertions: [],
     tests: null,
     docs: null
   };
@@ -37,8 +43,13 @@ export default (ocRequest: WebSocketRequest): BrunoItem => {
 
   // scripts
   const scripts = toBrunoScripts(ocRequest.scripts);
-  if (scripts?.script) {
-    brunoRequest.script = scripts.script;
+  if (scripts?.script && brunoRequest.script) {
+    if (scripts.script.req) {
+      brunoRequest.script.req = scripts.script.req;
+    }
+    if (scripts.script.res) {
+      brunoRequest.script.res = scripts.script.res;
+    }
   }
   if (scripts?.tests) {
     brunoRequest.tests = scripts.tests;
@@ -49,7 +60,7 @@ export default (ocRequest: WebSocketRequest): BrunoItem => {
   if (variables) {
     brunoRequest.vars = {
       req: variables,
-      res: null
+      res: []
     };
   }
 

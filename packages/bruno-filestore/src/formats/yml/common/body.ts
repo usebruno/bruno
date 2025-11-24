@@ -130,10 +130,10 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
       text: null,
       xml: null,
       sparql: null,
-      formUrlEncoded: null,
-      multipartForm: null,
+      formUrlEncoded: [],
+      multipartForm: [],
       graphql: null,
-      file: null
+      file: []
     };
   }
 
@@ -143,10 +143,10 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
     text: null,
     xml: null,
     sparql: null,
-    formUrlEncoded: null,
-    multipartForm: null,
+    formUrlEncoded: [],
+    multipartForm: [],
     graphql: null,
-    file: null
+    file: []
   };
 
   switch (body.type) {

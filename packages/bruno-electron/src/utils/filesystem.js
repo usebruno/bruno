@@ -163,8 +163,8 @@ const searchForFiles = (dir, extension) => {
 };
 
 // Search for request files based on collection filetype by reading config
-const searchForRequestFiles = (dir) => {
-  const format = getCollectionFormat(dir);
+const searchForRequestFiles = (dir, collectionPath = null) => {
+  const format = getCollectionFormat(collectionPath || dir);
   if (format === 'yml') {
     return searchForFiles(dir, '.yml');
   } else if (format === 'bru') {

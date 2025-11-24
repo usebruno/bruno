@@ -26,8 +26,8 @@ export default (ymlString: string): FolderRoot => {
         headers: [],
         auth: null,
         script: {
-          req: '',
-          res: ''
+          req: null,
+          res: null
         },
         vars: {
           req: [],
@@ -59,8 +59,13 @@ export default (ymlString: string): FolderRoot => {
 
       // scripts
       const scripts = toBrunoScripts(ocFolder.request.scripts);
-      if (scripts?.script) {
-        folderRoot.request.script = scripts.script;
+      if (scripts?.script && folderRoot.request.script) {
+        if (scripts.script.req) {
+          folderRoot.request.script.req = scripts.script.req;
+        }
+        if (scripts.script.res) {
+          folderRoot.request.script.res = scripts.script.res;
+        }
       }
       if (scripts?.tests) {
         folderRoot.request.tests = scripts.tests;

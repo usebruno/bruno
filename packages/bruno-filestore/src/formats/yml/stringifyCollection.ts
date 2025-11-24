@@ -19,7 +19,7 @@ const hasCollectionConfig = (brunoConfig: any): boolean => {
   );
 
   // proxy
-  const hasProxy = !!brunoConfig.proxy.enabled;
+  const hasProxy = !!brunoConfig.proxy?.enabled;
 
   // client certificates
   const hasClientCertificates = brunoConfig.clientCertificates?.certs?.length > 0;

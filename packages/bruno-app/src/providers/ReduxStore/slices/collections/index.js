@@ -134,7 +134,12 @@ export const collectionsSlice = createSlice({
       collection.mountStatus = 'unmounted';
 
       // Add format property from brunoConfig for easy access
-      collection.format = collection.brunoConfig?.format || 'bru';
+      // YAML collections have 'opencollection' field, BRU collections have 'version' field
+      if (collection.brunoConfig?.opencollection) {
+        collection.format = 'yml';
+      } else {
+        collection.format = collection.brunoConfig?.format || 'bru';
+      }
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection

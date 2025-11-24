@@ -11,7 +11,10 @@ const { parseCollection } = require('@usebruno/filestore');
 const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
-  version: Yup.string().oneOf(['1']).required('type is required')
+  // For BRU format collections
+  version: Yup.string().oneOf(['1']).notRequired(),
+  // For YAML format collections (opencollection)
+  opencollection: Yup.string().notRequired()
 });
 
 const readConfigFile = async (pathname) => {
@@ -39,10 +42,9 @@ const getCollectionConfigFile = async (pathname) => {
       const content = fs.readFileSync(ocYmlPath, 'utf8');
       const {
         brunoConfig
-      } = parseCollection(parseCollection);
-      const config = parsed.brunoConfig;
+      } = parseCollection(content, { format: 'yml' });
       await validateSchema(brunoConfig);
-      return config;
+      return brunoConfig;
     } catch (err) {
       throw new Error(`Unable to parse opencollection.yml: ${err.message}`);
     }

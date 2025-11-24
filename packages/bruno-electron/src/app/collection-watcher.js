@@ -610,15 +610,15 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
-
-  const folderBruFilePath = path.join(pathname, `folder.bru`);
+  const format = getCollectionFormat(collectionPath);
+  const folderFilePath = path.join(pathname, `folder.${format}`);
 
   let name = path.basename(pathname);
 
-  if (fs.existsSync(folderBruFilePath)) {
-    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
-    let folderBruData = await parseFolder(folderBruFileContent);
-    name = folderBruData?.meta?.name || name;
+  if (fs.existsSync(folderFilePath)) {
+    let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+    let folderData = await parseFolder(folderFileContent, { format });
+    name = folderData?.meta?.name || name;
   }
 
   const directory = {
