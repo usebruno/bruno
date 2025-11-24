@@ -145,7 +145,8 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
   }
 
   if (credentialsPlacement === 'basic_auth_header') {
-    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret!}`).toString('base64')}`;
+    const secret = clientSecret ?? '';
+    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
 
   if (credentialsPlacement !== 'basic_auth_header') {
@@ -246,7 +247,8 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
   }
 
   if (credentialsPlacement === 'basic_auth_header') {
-    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret!}`).toString('base64')}`;
+    const secret = clientSecret ?? '';
+    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
 
   if (credentialsPlacement !== 'basic_auth_header') {
