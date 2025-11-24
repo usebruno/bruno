@@ -1,9 +1,11 @@
+export type FileFormat = 'bru' | 'yml';
+
 export interface ParseOptions {
-  format?: 'bru' | 'yml';
+  format?: FileFormat;
 }
 
 export interface StringifyOptions {
-  format?: 'bru' | 'yml';
+  format?: FileFormat;
 }
 
 export interface WorkerTask {

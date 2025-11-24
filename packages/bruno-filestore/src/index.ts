@@ -23,6 +23,7 @@ import BruParserWorker from './workers';
 import {
   ParseOptions,
   StringifyOptions,
+  FileFormat
 } from './types';
 import { bruRequestParseAndRedactBodyData } from './formats/bru/utils/request-parse-and-redact-body-data';
 
@@ -61,13 +62,13 @@ const getWorkerInstance = (): BruParserWorker => {
   return globalWorkerInstance;
 };
 
-export const parseRequestViaWorker = async (content: string, options: { format: 'bru' | 'yml'; filename?: string }): Promise<any> => {
+export const parseRequestViaWorker = async (content: string, options: { format: FileFormat; filename?: string }): Promise<any> => {
   const fileParserWorker = getWorkerInstance();
 
   return await fileParserWorker.parseRequest(content, options.format);
 };
 
-export const stringifyRequestViaWorker = async (requestObj: any, options: { format: 'bru' | 'yml' }): Promise<string> => {
+export const stringifyRequestViaWorker = async (requestObj: any, options: { format: FileFormat }): Promise<string> => {
   const fileParserWorker = getWorkerInstance();
   return await fileParserWorker.stringifyRequest(requestObj, options.format);
 };
