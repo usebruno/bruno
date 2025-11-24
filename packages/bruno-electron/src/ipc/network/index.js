@@ -605,9 +605,9 @@ const registerNetworkIpc = (mainWindow) => {
 
     const runRequestByItemPathname = async (relativeItemPathname) => {
       return new Promise(async (resolve, reject) => {
+        const format = getCollectionFormat(collection.pathname);
         let itemPathname = path.join(collection.pathname, relativeItemPathname);
-        if (itemPathname && !hasRequestExtension(itemPathname)) {
-          const format = getCollectionFormat(collection.pathname);
+        if (itemPathname && !hasRequestExtension(itemPathname, format)) {
           itemPathname = `${itemPathname}.${format}`;
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
@@ -1094,9 +1094,9 @@ const registerNetworkIpc = (mainWindow) => {
 
       const runRequestByItemPathname = async (relativeItemPathname) => {
         return new Promise(async (resolve, reject) => {
+          const format = getCollectionFormat(collection.pathname);
           let itemPathname = path.join(collection.pathname, relativeItemPathname);
-          if (itemPathname && !hasRequestExtension(itemPathname)) {
-            const format = getCollectionFormat(collection.pathname);
+          if (itemPathname && !hasRequestExtension(itemPathname, format)) {
             itemPathname = `${itemPathname}.${format}`;
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));

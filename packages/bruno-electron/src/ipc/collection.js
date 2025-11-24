@@ -679,7 +679,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const format = getCollectionFormat(collectionPathname);
-      if (!hasRequestExtension(itemPath)) {
+      if (!hasRequestExtension(itemPath, format)) {
         throw new Error(`path: ${itemPath} is not a valid request file`);
       }
 
@@ -755,7 +755,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         return newPath;
       }
 
-      if (!hasRequestExtension(oldPath)) {
+      if (!hasRequestExtension(oldPath, format)) {
         throw new Error(`path: ${oldPath} is not a valid request file`);
       }
 

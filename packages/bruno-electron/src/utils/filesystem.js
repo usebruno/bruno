@@ -96,8 +96,14 @@ const hasBruExtension = (filename) => {
   return ['bru'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 
-const hasRequestExtension = (filename) => {
+const hasRequestExtension = (filename, format = null) => {
   if (!filename || typeof filename !== 'string') return false;
+
+  if (format) {
+    const ext = format === 'yml' ? 'yml' : 'bru';
+    return filename.toLowerCase().endsWith(`.${ext}`);
+  }
+
   return ['bru', 'yml'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 

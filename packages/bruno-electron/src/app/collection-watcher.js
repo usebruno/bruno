@@ -316,9 +316,9 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     }
   }
 
-  if (hasRequestExtension(pathname)) {
+  const format = getCollectionFormat(collectionPath);
+  if (hasRequestExtension(pathname, format)) {
     watcher.addFileToProcessing(collectionUid, pathname);
-    const format = getCollectionFormat(collectionPath);
 
     const file = {
       meta: {
@@ -555,9 +555,9 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
-  if (hasRequestExtension(pathname)) {
+  const format = getCollectionFormat(collectionPath);
+  if (hasRequestExtension(pathname, format)) {
     try {
-      const format = getCollectionFormat(collectionPath);
       const file = {
         meta: {
           collectionUid,
@@ -591,7 +591,8 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
 
-  if (hasRequestExtension(pathname)) {
+  const format = getCollectionFormat(collectionPath);
+  if (hasRequestExtension(pathname, format)) {
     const basename = path.basename(pathname);
     const dirname = path.dirname(pathname);
 
