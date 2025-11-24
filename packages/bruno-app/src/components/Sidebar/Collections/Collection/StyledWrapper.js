@@ -18,12 +18,12 @@ const Wrapper = styled.div`
       border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       border-bottom: 2px solid transparent;
       .collection-actions {
-        .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
+        .dropdown, .settings-icon, .new-request-icon, .collection-dropdown-icon {
           div[aria-expanded='false'] {
             visibility: visible;
           }
         }
-        .settings-icon, .new-request-icon, .menu-icon-trigger {
+        .settings-icon, .new-request-icon, .collection-dropdown-icon {
           display: flex;
         }
       }
@@ -32,7 +32,7 @@ const Wrapper = styled.div`
     .collection-actions {
       color: ${(props) => props.theme.sidebar.dropdownIcon.color};
 
-      .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
+      .dropdown, .settings-icon, .new-request-icon, .collection-dropdown-icon {
         div[aria-expanded='true'] {
           visibility: visible;
         }
@@ -41,7 +41,7 @@ const Wrapper = styled.div`
         }
       }
 
-      .settings-icon, .new-request-icon, .menu-icon-trigger {
+      .settings-icon, .new-request-icon, .collection-dropdown-icon {
         display: none;
         width: 24px;
         height: 24px;
@@ -67,12 +67,12 @@ const Wrapper = styled.div`
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .collection-actions {
-        .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
+        .dropdown, .settings-icon, .new-request-icon, .collection-dropdown-icon {
           div[aria-expanded='false'] {
             visibility: visible;
           }
         }
-        .settings-icon, .new-request-icon, .menu-icon-trigger {
+        .settings-icon, .new-request-icon, .collection-dropdown-icon {
           display: flex;
         }
       }
