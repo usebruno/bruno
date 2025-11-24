@@ -5,7 +5,7 @@ import SingleLineEditor from 'components/SingleLineEditor/index';
 import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
 import { wsConnectOnly, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { getPropertyFromDraftOrRequest } from 'utils/collections';
@@ -14,6 +14,9 @@ import { hasRequestChanges } from 'utils/collections';
 import { closeWsConnection, isWsConnectionActive } from 'utils/network/index';
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
+import { interpolateUrl } from 'utils/url';
+import { getAllVariables } from 'utils/collections';
+import useDebounce from 'hooks/useDebounce';
 
 const WsQueryUrl = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -21,31 +24,62 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const [isConnectionActive, setIsConnectionActive] = useState(false);
   // TODO: reaper, better state for connecting
   const [isConnecting, setIsConnecting] = useState(false);
-  const url = getPropertyFromDraftOrRequest(item, 'request.url');
   const response = item.draft ? get(item, 'draft.response', {}) : get(item, 'response', {});
   const saveShortcut = isMacOS() ? '⌘S' : 'Ctrl+S';
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   const showConnectingPulse = isConnecting && response.status !== 'CLOSED';
+  const lastInterpolatedUrlRef = useRef(null);
+  const previousActiveStateRef = useRef(false);
 
-  // Check connection status
+  const allVariables = useMemo(() => {
+    return getAllVariables(collection, item);
+  }, [collection, item]);
+
+  const url = getPropertyFromDraftOrRequest(item, 'request.url');
+
+  // Compute interpolated URL directly (no state update in useMemo)
+  const interpolatedURL = useMemo(() => {
+    if (!url) return '';
+    return interpolateUrl({ url, variables: allVariables }) || '';
+  }, [url, allVariables]);
+
+  // Debounce interpolated URL to avoid excessive reconnections
+  const debouncedInterpolatedURL = useDebounce(interpolatedURL, 400);
+
+  // Check connection status and store interpolated URL when connection becomes active
   useEffect(() => {
     const checkConnectionStatus = async () => {
       try {
         const result = await isWsConnectionActive(item.uid);
         const active = Boolean(result.isActive);
+        const wasActive = previousActiveStateRef.current;
+
         setIsConnectionActive(active);
         setIsConnecting(false);
+
+        // Store interpolated URL when connection becomes active
+        if (active && !wasActive && debouncedInterpolatedURL) {
+          lastInterpolatedUrlRef.current = debouncedInterpolatedURL;
+        }
+
+        // Reset stored URL when connection becomes inactive
+        if (!active && wasActive) {
+          lastInterpolatedUrlRef.current = null;
+        }
+
+        previousActiveStateRef.current = active;
       } catch (error) {
         setIsConnectionActive(false);
         setIsConnecting(false);
+        previousActiveStateRef.current = false;
       }
     };
 
     checkConnectionStatus();
     const interval = setInterval(checkConnectionStatus, 2000);
     return () => clearInterval(interval);
-  }, [item.uid]);
+  }, [item.uid, debouncedInterpolatedURL]);
 
   const onUrlChange = (value) => {
     closeWsConnection(item.uid);
@@ -88,6 +122,37 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const onSave = (finalValue) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
+
+  // Detect interpolated URL changes and reconnect if connection is active
+  useEffect(() => {
+    // Skip if connection is not active or URL is empty
+    if (!isConnectionActive || !debouncedInterpolatedURL) {
+      return;
+    }
+
+    // Skip if this is the initial URL (stored when connection became active)
+    if (lastInterpolatedUrlRef.current === null) {
+      lastInterpolatedUrlRef.current = debouncedInterpolatedURL;
+      return;
+    }
+
+    // If interpolated URL changed, disconnect and reconnect
+    if (debouncedInterpolatedURL !== lastInterpolatedUrlRef.current) {
+      const handleReconnect = async () => {
+        try {
+          // Close existing connection
+          closeWsConnection(item.uid).then(() => {
+            dispatch(wsConnectOnly(item, collection.uid));
+          }).finally(() => {
+            lastInterpolatedUrlRef.current = debouncedInterpolatedURL;
+          });
+        } catch (error) {
+          console.error('Failed to reconnect WebSocket after URL change:', error);
+        }
+      };
+      handleReconnect();
+    }
+  }, [debouncedInterpolatedURL, isConnectionActive, item.uid, collection.uid, dispatch]);
 
   return (
     <StyledWrapper>
