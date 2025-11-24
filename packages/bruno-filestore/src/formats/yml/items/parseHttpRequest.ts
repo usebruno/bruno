@@ -10,7 +10,7 @@ import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { uuid } from '../utils';
 
-export default (ocRequest: HttpRequest): BrunoItem => {
+const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const brunoRequest: BrunoHttpRequest = {
     url: ocRequest.url || '',
     method: ocRequest.method || 'GET',
@@ -188,3 +188,4 @@ export default (ocRequest: HttpRequest): BrunoItem => {
   return brunoItem;
 };
 
+export default parseHttpRequest;

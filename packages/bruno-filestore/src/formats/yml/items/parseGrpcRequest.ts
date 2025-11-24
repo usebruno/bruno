@@ -28,7 +28,7 @@ const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): Bruno
   return brunoMetadata.length ? brunoMetadata : undefined;
 };
 
-export default (ocRequest: GrpcRequest): BrunoItem => {
+const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   const brunoRequest: BrunoGrpcRequest = {
     url: ocRequest.url || '',
     method: ocRequest.method || '',
@@ -115,3 +115,4 @@ export default (ocRequest: GrpcRequest): BrunoItem => {
   return brunoItem;
 };
 
+export default parseGrpcRequest;

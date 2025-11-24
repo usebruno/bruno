@@ -14,7 +14,7 @@ import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 
-export default (item: BrunoItem): string => {
+const stringifyGraphQLRequest = (item: BrunoItem): string => {
   try {
     const ocRequest: GraphQLRequest = {
       type: 'graphql'
@@ -146,3 +146,4 @@ export default (item: BrunoItem): string => {
   }
 };
 
+export default stringifyGraphQLRequest;

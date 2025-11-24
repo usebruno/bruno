@@ -9,7 +9,7 @@ import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { uuid } from '../utils';
 
-export default (ocRequest: GraphQLRequest): BrunoItem => {
+const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   const brunoRequest: BrunoHttpRequest = {
     url: ocRequest.url || '',
     method: ocRequest.method || 'POST',
@@ -130,3 +130,4 @@ export default (ocRequest: GraphQLRequest): BrunoItem => {
   return brunoItem;
 };
 
+export default parseGraphQLRequest;

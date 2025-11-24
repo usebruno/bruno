@@ -56,8 +56,15 @@ const isEnvironmentsFolder = (pathname, collectionPath) => {
 
 const isFolderRootFile = (pathname, collectionPath) => {
   const basename = path.basename(pathname);
+  const format = getCollectionFormat(collectionPath);
 
-  return basename === 'folder.bru' || basename === 'folder.yml';
+  if (format === 'yml') {
+    return basename === 'folder.yml';
+  } else if (format === 'bru') {
+    return basename === 'folder.bru';
+  }
+
+  return false;
 };
 
 const isCollectionRootFile = (pathname, collectionPath) => {
@@ -504,7 +511,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       win.webContents.send('main:collection-tree-updated', 'change', file);
 
       // in yml format, opencollection.yml also contains the bruno config
-      if(format === 'yml') {
+      if (format === 'yml') {
         // Transform the config to add exists metadata for protobuf files and import paths
         brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 

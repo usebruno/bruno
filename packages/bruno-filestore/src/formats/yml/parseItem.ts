@@ -7,7 +7,7 @@ import parseGrpcRequest from './items/parseGrpcRequest';
 import parseWebsocketRequest from './items/parseWebsocketRequest';
 import parseScript from './items/parseScript';
 
-export default (ymlString: string): BrunoItem => {
+const parseItem = (ymlString: string): BrunoItem => {
   try {
     const ocItem: Item = parseYml(ymlString);
 
@@ -43,3 +43,4 @@ export default (ymlString: string): BrunoItem => {
   }
 };
 
+export default parseItem;

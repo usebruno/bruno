@@ -12,7 +12,7 @@ import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 
-export default (item: BrunoItem): string => {
+const stringifyGrpcRequest = (item: BrunoItem): string => {
   try {
     const ocRequest: GrpcRequest = {
       type: 'grpc'
@@ -119,3 +119,4 @@ export default (item: BrunoItem): string => {
   }
 };
 
+export default stringifyGrpcRequest;

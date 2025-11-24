@@ -50,7 +50,7 @@ const hasRequestScripts = (collectionRoot: any): boolean => {
     || (collectionRoot.request?.tests);
 }
 
-export default (collectionRoot: any, brunoConfig: any): string => {
+const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
   try {
     const oc: OpenCollection = {};
 
@@ -190,3 +190,5 @@ export default (collectionRoot: any, brunoConfig: any): string => {
     throw error;
   }
 };
+
+export default stringifyCollection;

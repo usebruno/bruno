@@ -2,7 +2,7 @@ import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { Script } from '@opencollection/types/collection/item';
 import { uuid } from '../utils';
 
-export default (ocScript: Script): BrunoItem => {
+const parseScript = (ocScript: Script): BrunoItem => {
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'js',
@@ -22,3 +22,4 @@ export default (ocScript: Script): BrunoItem => {
   return brunoItem;
 };
 
+export default parseScript;

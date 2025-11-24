@@ -80,20 +80,30 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
-const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
+const findCollectionPathByItemPath = (filePath, lastOpenedCollections) => {
   const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
   const lastOpenedPaths = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
 
   // Combine both currently watched collections and last opened collections
-  // todo: remove the lastOpenedPaths from the list
-  // todo: have a proper way to validate the path without the active watcher logic
   const allCollectionPaths = [...new Set([...openCollectionPaths, ...lastOpenedPaths])];
 
-  const isValid = allCollectionPaths.some((collectionPath) => {
-    return filePath.startsWith(collectionPath + path.sep) || filePath === collectionPath;
-  });
+  // Find the collection path that contains this file
+  // Sort by length descending to find the most specific (deepest) match first
+  const sortedPaths = allCollectionPaths.sort((a, b) => b.length - a.length);
 
-  if (!isValid) {
+  for (const collectionPath of sortedPaths) {
+    if (filePath.startsWith(collectionPath + path.sep) || filePath === collectionPath) {
+      return collectionPath;
+    }
+  }
+
+  return null;
+};
+
+const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
+  const collectionPath = findCollectionPathByItemPath(filePath, lastOpenedCollections);
+
+  if (!collectionPath) {
     throw new Error(`Path: ${filePath} should be inside a collection`);
   }
 }
@@ -335,11 +345,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // new request
-  ipcMain.handle('renderer:new-request', async (event, pathname, request, format) => {
+  ipcMain.handle('renderer:new-request', async (event, pathname, request) => {
     try {
       if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
+
+      const collectionPath = findCollectionPathByItemPath(pathname, lastOpenedCollections);
+      if (!collectionPath) {
+        throw new Error('Collection not found for the given pathname');
+      }
+      const format = getCollectionFormat(collectionPath);
+
       // For the actual filename part, we want to be strict
       const baseFilename = request?.filename?.replace(`.${format}`, '');
       if (!validateName(baseFilename)) {

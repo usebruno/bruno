@@ -5,7 +5,7 @@ import stringifyGrpcRequest from './items/stringifyGrpcRequest';
 import stringifyWebsocketRequest from './items/stringifyWebsocketRequest';
 import stringifyScript from './items/stringifyScript';
 
-export default (item: BrunoItem): string => {
+const stringifyItem = (item: BrunoItem): string => {
   try {
     switch (item.type) {
       case 'http-request':
@@ -34,3 +34,4 @@ export default (item: BrunoItem): string => {
     throw error;
   }
 };
+export default stringifyItem;

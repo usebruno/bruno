@@ -11,7 +11,7 @@ import { toOpenCollectionHttpHeaders } from '../common/headers';
 import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionScripts } from '../common/scripts';
 
-export default (item: BrunoItem): string => {
+const stringifyWebsocketRequest = (item: BrunoItem): string => {
   try {
     const ocRequest: WebSocketRequest = {
       type: 'websocket'
@@ -87,3 +87,4 @@ export default (item: BrunoItem): string => {
   }
 };
 
+export default stringifyWebsocketRequest;

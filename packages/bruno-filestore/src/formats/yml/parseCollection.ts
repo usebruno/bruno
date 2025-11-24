@@ -11,7 +11,7 @@ interface ParsedCollection {
   brunoConfig: Record<string, any>;
 }
 
-export default (ymlString: string): ParsedCollection => {
+const parseCollection = (ymlString: string): ParsedCollection => {
   try {
     const oc: OpenCollection = parseYml(ymlString);
 
@@ -179,3 +179,4 @@ export default (ymlString: string): ParsedCollection => {
   }
 };
 
+export default parseCollection;

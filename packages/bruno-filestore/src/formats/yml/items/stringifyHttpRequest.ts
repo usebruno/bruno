@@ -16,7 +16,7 @@ import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 import { isNumber } from '../utils';
 
-export default (item: BrunoItem): string => {
+const stringifyHttpRequest = (item: BrunoItem): string => {
   try {
     const ocRequest: HttpRequest = {
       type: 'http'
@@ -198,3 +198,4 @@ export default (item: BrunoItem): string => {
   }
 };
 
+export default stringifyHttpRequest;

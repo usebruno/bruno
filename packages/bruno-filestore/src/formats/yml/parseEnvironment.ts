@@ -23,7 +23,7 @@ const toBrunoEnvironmentVariables = (
   });
 };
 
-export default (ymlString: string): BrunoEnvironment => {
+const parseEnvironment = (ymlString: string): BrunoEnvironment => {
   try {
     const ocEnvironment: Environment = parseYml(ymlString);
 
@@ -40,3 +40,4 @@ export default (ymlString: string): BrunoEnvironment => {
   }
 };
 
+export default parseEnvironment;

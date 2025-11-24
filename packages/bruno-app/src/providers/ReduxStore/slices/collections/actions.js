@@ -867,7 +867,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
 
         itemSchema
           .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, collection.format))
+          .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
           .then(resolve)
           .catch(reject);
 
@@ -896,7 +896,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
 
         itemSchema
           .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave, collection.format))
+          .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
           .then(resolve)
           .catch(reject);
 
@@ -1271,7 +1271,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer
-          .invoke('renderer:new-request', fullName, item, collection.format)
+          .invoke('renderer:new-request', fullName, item)
           .then(() => {
             // task middleware will track this and open the new request in a new tab once request is created
             dispatch(
@@ -1301,7 +1301,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const fullName = path.join(currentItem.pathname, resolvedFilename);
           const { ipcRenderer } = window;
           ipcRenderer
-            .invoke('renderer:new-request', fullName, item, collection.format)
+            .invoke('renderer:new-request', fullName, item)
             .then(() => {
               // task middleware will track this and open the new request in a new tab once request is created
               dispatch(
@@ -1388,7 +1388,7 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
     const fullName = path.join(parentItem.pathname, resolvedFilename);
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:new-request', fullName, item, collection.format)
+      .invoke('renderer:new-request', fullName, item)
       .then(() => {
         // task middleware will track this and open the new request in a new tab once request is created
         dispatch(insertTaskIntoQueue({
@@ -1468,7 +1468,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
     const fullName = path.join(parentItem.pathname, resolvedFilename);
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:new-request', fullName, item, collection.format)
+      .invoke('renderer:new-request', fullName, item)
       .then(() => {
         // task middleware will track this and open the new request in a new tab once request is created
         dispatch(insertTaskIntoQueue({

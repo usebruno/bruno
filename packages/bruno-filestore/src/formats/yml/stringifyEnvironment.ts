@@ -36,7 +36,7 @@ const toOpenCollectionEnvironmentVariables = (
   return ocVariables.length > 0 ? ocVariables : undefined;
 };
 
-export default (environment: BrunoEnvironment): string => {
+const stringifyEnvironment = (environment: BrunoEnvironment): string => {
   try {
     const ocEnvironment: Environment = {
       name: environment.name
@@ -56,3 +56,4 @@ export default (environment: BrunoEnvironment): string => {
     throw error;
   }
 };
+export default stringifyEnvironment;

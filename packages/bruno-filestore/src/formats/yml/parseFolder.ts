@@ -7,7 +7,7 @@ import { toBrunoVariables } from './common/variables';
 import { toBrunoScripts } from './common/scripts';
 import { isNonEmptyString } from './utils';
 
-export default (ymlString: string): FolderRoot => {
+const parseFolder = (ymlString: string): FolderRoot => {
   try {
     const ocFolder: Folder = parseYml(ymlString);
 
@@ -84,3 +84,4 @@ export default (ymlString: string): FolderRoot => {
   }
 };
 
+export default parseFolder;

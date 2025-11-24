@@ -35,7 +35,7 @@ const hasRequestScripts = (folderRoot: FolderRoot): boolean => {
   );
 }
 
-export default (folderRoot: FolderRoot): string => {
+const stringifyFolder = (folderRoot: FolderRoot): string => {
   try {
     const ocFolder: Folder = {
       type: 'folder'
@@ -95,3 +95,4 @@ export default (folderRoot: FolderRoot): string => {
     throw error;
   }
 };
+export default stringifyFolder;
