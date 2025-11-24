@@ -2,6 +2,7 @@ import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@use
 import { uuid } from 'utils/common';
 import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
+import { hexy as hexdump } from 'hexy';
 import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
@@ -380,9 +381,17 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          item.response = null;
+          if (item.response?.stream?.running) {
+            item.response.stream.running = null;
+
+            const startTimestamp = item.requestSent.timestamp;
+            item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
+            item.response.data = [{ type: 'info', timestamp: Date.now(), message: 'Connection Closed' }].concat(item.response.data);
+          } else {
+            item.response = null;
+            item.requestUid = null;
+          }
           item.cancelTokenUid = null;
-          item.requestUid = null;
           item.requestStartTime = null;
         }
       }
@@ -395,7 +404,7 @@ export const collectionsSlice = createSlice({
         if (item) {
           item.requestState = 'received';
           item.response = action.payload.response;
-          item.cancelTokenUid = null;
+          item.cancelTokenUid = item.response.stream?.running ? item.cancelTokenUid : null;
           item.requestStartTime = null;
 
           if (!collection.timeline) {
@@ -590,6 +599,11 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
+          if (item.response && item.response.stream?.running) {
+            item.response.data = '';
+            item.response.size = 0;
+            return;
+          }
           item.response = null;
         }
       }
@@ -1714,6 +1728,7 @@ export const collectionsSlice = createSlice({
     addVar: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const type = action.payload.type;
+      const varData = action.payload.var || {};
 
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
@@ -1727,10 +1742,10 @@ export const collectionsSlice = createSlice({
             item.draft.request.vars.req = item.draft.request.vars.req || [];
             item.draft.request.vars.req.push({
               uid: uuid(),
-              name: '',
-              value: '',
-              local: false,
-              enabled: true
+              name: varData.name || '',
+              value: varData.value || '',
+              local: varData.local === true,
+              enabled: varData.enabled !== false
             });
           } else if (type === 'response') {
             item.draft.request.vars = item.draft.request.vars || {};
@@ -2051,6 +2066,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       const type = action.payload.type;
+      const varData = action.payload.var || {};
       if (folder) {
         if (!folder.draft) {
           folder.draft = cloneDeep(folder.root);
@@ -2059,9 +2075,9 @@ export const collectionsSlice = createSlice({
           const vars = get(folder, 'draft.request.vars.req', []);
           vars.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            enabled: true
+            name: varData.name || '',
+            value: varData.value || '',
+            enabled: varData.enabled !== false
           });
           set(folder, 'draft.request.vars.req', vars);
         } else if (type === 'response') {
@@ -2256,6 +2272,7 @@ export const collectionsSlice = createSlice({
     addCollectionVar: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const type = action.payload.type;
+      const varData = action.payload.var || {};
       if (collection) {
         if (!collection.draft) {
           collection.draft = {
@@ -2266,9 +2283,9 @@ export const collectionsSlice = createSlice({
           const vars = get(collection, 'draft.root.request.vars.req', []);
           vars.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            enabled: true
+            name: varData.name || '',
+            value: varData.value || '',
+            enabled: varData.enabled !== false
           });
           set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
@@ -2277,6 +2294,7 @@ export const collectionsSlice = createSlice({
             uid: uuid(),
             name: '',
             value: '',
+            local: false,
             enabled: true
           });
           set(collection, 'draft.root.request.vars.res', vars);
@@ -2936,7 +2954,25 @@ export const collectionsSlice = createSlice({
         set(folder, 'draft.request.auth.mode', action.payload.mode);
       }
     },
+    streamDataReceived: (state, action) => {
+      const { itemUid, collectionUid, data } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+        if (data.data) {
+          item.response.data ||= [];
+          item.response.data = [{
+            type: 'incoming',
+            message: data.data,
+            messageHexdump: hexdump(data.data),
+            timestamp: Date.now()
+          }].concat(item.response.data);
+        }
+        item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        item.response.size = data.data?.length + (item.response.size || 0);
+      }
+    },
     addRequestTag: (state, action) => {
       const { tag, collectionUid, itemUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -3298,6 +3334,7 @@ export const {
   updateRequestDocs,
   updateFolderDocs,
   moveCollection,
+  streamDataReceived,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
   collectionGetOauth2CredentialsByUrl,

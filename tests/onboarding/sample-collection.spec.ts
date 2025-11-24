@@ -101,7 +101,7 @@ test.describe('Onboarding', () => {
     await closeOption.click();
     
     // Handle the confirmation dialog - click the 'Close' button to confirm
-    const confirmCloseButton = page.getByRole('button', { name: 'Close' });
+    const confirmCloseButton = page.locator('.bruno-modal').getByRole('button', { name: 'Close' });
     await expect(confirmCloseButton).toBeVisible();
     await confirmCloseButton.click();
     

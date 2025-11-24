@@ -3,6 +3,7 @@
     "target": "ES6",
     "esModuleInterop": true,
     "strict": true,
+    "lib": ["es2021"],
     "skipLibCheck": true,
     "jsx": "react",
     "module": "ESNext",
