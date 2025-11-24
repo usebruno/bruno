@@ -342,15 +342,15 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
     clientSecret: null,
     scope: null,
     state: null,
-    pkce: null,
+    pkce: false, // Default to false for all grant types
     credentialsPlacement: null,
     credentialsId: null,
     tokenPlacement: null,
     tokenHeaderPrefix: null,
     tokenQueryKey: null,
     refreshTokenUrl: null,
-    autoRefreshToken: null,
-    autoFetchToken: null,
+    autoRefreshToken: false, // Default to false
+    autoFetchToken: true, // Default to true
     additionalParameters: null
   };
 
@@ -376,18 +376,24 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
         }
       }
 
-      // settings
-      if (oauth.settings?.autoFetchToken !== undefined) brunoOAuth.autoFetchToken = oauth.settings.autoFetchToken;
-      if (oauth.settings?.autoRefreshToken !== undefined) brunoOAuth.autoRefreshToken = oauth.settings.autoRefreshToken;
-
       // additional parameters
       if (oauth.additionalParameters) {
-        brunoOAuth.additionalParameters = {};
+        const tempParams: Record<string, any> = {};
         if (oauth.additionalParameters.accessTokenRequest) {
-          brunoOAuth.additionalParameters.token = reverseAdditionalParameters(oauth.additionalParameters.accessTokenRequest);
+          const tokenParams = reverseAdditionalParameters(oauth.additionalParameters.accessTokenRequest);
+          if (tokenParams) {
+            tempParams.token = tokenParams;
+          }
         }
         if (oauth.additionalParameters.refreshTokenRequest) {
-          brunoOAuth.additionalParameters.refresh = reverseAdditionalParameters(oauth.additionalParameters.refreshTokenRequest);
+          const refreshParams = reverseAdditionalParameters(oauth.additionalParameters.refreshTokenRequest);
+          if (refreshParams) {
+            tempParams.refresh = refreshParams;
+          }
+        }
+        // Only set additionalParameters if there are actual parameters
+        if (Object.keys(tempParams).length > 0) {
+          brunoOAuth.additionalParameters = tempParams;
         }
       }
       break;
@@ -415,18 +421,24 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
         }
       }
 
-      // settings
-      if (oauth.settings?.autoFetchToken !== undefined) brunoOAuth.autoFetchToken = oauth.settings.autoFetchToken;
-      if (oauth.settings?.autoRefreshToken !== undefined) brunoOAuth.autoRefreshToken = oauth.settings.autoRefreshToken;
-
       // additional parameters
       if (oauth.additionalParameters) {
-        brunoOAuth.additionalParameters = {};
+        const tempParams: Record<string, any> = {};
         if (oauth.additionalParameters.accessTokenRequest) {
-          brunoOAuth.additionalParameters.token = reverseAdditionalParameters(oauth.additionalParameters.accessTokenRequest);
+          const tokenParams = reverseAdditionalParameters(oauth.additionalParameters.accessTokenRequest);
+          if (tokenParams) {
+            tempParams.token = tokenParams;
+          }
         }
         if (oauth.additionalParameters.refreshTokenRequest) {
-          brunoOAuth.additionalParameters.refresh = reverseAdditionalParameters(oauth.additionalParameters.refreshTokenRequest);
+          const refreshParams = reverseAdditionalParameters(oauth.additionalParameters.refreshTokenRequest);
+          if (refreshParams) {
+            tempParams.refresh = refreshParams;
+          }
+        }
+        // Only set additionalParameters if there are actual parameters
+        if (Object.keys(tempParams).length > 0) {
+          brunoOAuth.additionalParameters = tempParams;
         }
       }
       break;
@@ -442,7 +454,6 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
       if (oauth.credentials?.placement) brunoOAuth.credentialsPlacement = oauth.credentials.placement;
       if (oauth.scope) brunoOAuth.scope = oauth.scope;
       if (oauth.state) brunoOAuth.state = oauth.state;
-      if (oauth.pkce?.enabled !== undefined) brunoOAuth.pkce = oauth.pkce.enabled;
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
@@ -456,21 +467,30 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
         }
       }
 
-      // settings
-      if (oauth.settings?.autoFetchToken !== undefined) brunoOAuth.autoFetchToken = oauth.settings.autoFetchToken;
-      if (oauth.settings?.autoRefreshToken !== undefined) brunoOAuth.autoRefreshToken = oauth.settings.autoRefreshToken;
-
       // additional parameters
       if (oauth.additionalParameters) {
-        brunoOAuth.additionalParameters = {};
+        const tempParams: Record<string, any> = {};
         if (oauth.additionalParameters.authorizationRequest) {
-          brunoOAuth.additionalParameters.authorization = reverseAdditionalParameters(oauth.additionalParameters.authorizationRequest);
+          const authParams = reverseAdditionalParameters(oauth.additionalParameters.authorizationRequest);
+          if (authParams) {
+            tempParams.authorization = authParams;
+          }
         }
         if (oauth.additionalParameters.accessTokenRequest) {
-          brunoOAuth.additionalParameters.token = reverseAdditionalParameters(oauth.additionalParameters.accessTokenRequest);
+          const tokenParams = reverseAdditionalParameters(oauth.additionalParameters.accessTokenRequest);
+          if (tokenParams) {
+            tempParams.token = tokenParams;
+          }
         }
         if (oauth.additionalParameters.refreshTokenRequest) {
-          brunoOAuth.additionalParameters.refresh = reverseAdditionalParameters(oauth.additionalParameters.refreshTokenRequest);
+          const refreshParams = reverseAdditionalParameters(oauth.additionalParameters.refreshTokenRequest);
+          if (refreshParams) {
+            tempParams.refresh = refreshParams;
+          }
+        }
+        // Only set additionalParameters if there are actual parameters
+        if (Object.keys(tempParams).length > 0) {
+          brunoOAuth.additionalParameters = tempParams;
         }
       }
       break;
@@ -495,19 +515,42 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
         }
       }
 
-      // settings
-      if (oauth.settings?.autoFetchToken !== undefined) brunoOAuth.autoFetchToken = oauth.settings.autoFetchToken;
-
       // additional parameters
-      if (oauth.additionalParameters?.authorizationRequest) {
-        brunoOAuth.additionalParameters = {
-          authorization: reverseAdditionalParameters(oauth.additionalParameters.authorizationRequest)
-        };
+      if (oauth.additionalParameters) {
+        const tempParams: Record<string, any> = {};
+        if (oauth.additionalParameters.authorizationRequest) {
+          const authParams = reverseAdditionalParameters(oauth.additionalParameters.authorizationRequest);
+          if (authParams) {
+            tempParams.authorization = authParams;
+          }
+        }
+        // Only set additionalParameters if there are actual parameters
+        if (Object.keys(tempParams).length > 0) {
+          brunoOAuth.additionalParameters = tempParams;
+        }
       }
       break;
 
     default:
       return null;
+  }
+
+  if (oauth.settings?.autoFetchToken !== undefined) {
+    brunoOAuth.autoFetchToken = oauth.settings.autoFetchToken;
+  }
+  if (oauth.settings?.autoRefreshToken !== undefined) {
+    brunoOAuth.autoRefreshToken = oauth.settings.autoRefreshToken;
+  }
+
+  if (brunoOAuth.grantType === 'authorization_code' && oauth.flow === 'authorization_code') {
+    const authCodeFlow = oauth as OAuth2AuthorizationCodeFlow;
+    if (authCodeFlow.pkce?.enabled !== undefined) {
+      brunoOAuth.pkce = authCodeFlow.pkce.enabled;
+    }
+  }
+
+  if (brunoOAuth.additionalParameters === null) {
+    delete brunoOAuth.additionalParameters;
   }
 
   return brunoOAuth;

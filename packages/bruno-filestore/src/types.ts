@@ -1,11 +1,11 @@
-export type FileFormat = 'bru' | 'yml';
+export type CollectionFormat = 'bru' | 'yml';
 
 export interface ParseOptions {
-  format?: FileFormat;
+  format?: CollectionFormat;
 }
 
 export interface StringifyOptions {
-  format?: FileFormat;
+  format?: CollectionFormat;
 }
 
 export interface WorkerTask {

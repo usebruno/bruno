@@ -1,13 +1,13 @@
 import { parentPort } from 'node:worker_threads';
 import { parseBruRequest, stringifyBruRequest } from '../formats/bru';
 import { parseYmlItem, stringifyYmlItem } from '../formats/yml';
-import { FileFormat } from '../types';
+import { CollectionFormat } from '../types';
 
 interface WorkerMessage {
   taskType: 'parse' | 'stringify';
   data: {
     data: any;
-    format?: FileFormat;
+    format?: CollectionFormat;
   };
 }
 
