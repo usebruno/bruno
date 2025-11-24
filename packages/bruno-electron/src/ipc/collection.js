@@ -286,6 +286,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+
   // create environment
   ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables) => {
     try {
