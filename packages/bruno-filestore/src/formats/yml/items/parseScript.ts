@@ -1,6 +1,6 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { Script } from '@opencollection/types/collection/item';
-import { uuid } from '../utils';
+import { uuid } from '../../../utils';
 
 const parseScript = (ocScript: Script): BrunoItem => {
   const brunoItem: BrunoItem = {

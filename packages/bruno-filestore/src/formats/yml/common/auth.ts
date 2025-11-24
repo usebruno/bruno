@@ -9,7 +9,7 @@ import type {
   AuthWsse
 } from '@opencollection/types/common/auth';
 import type { Auth as BrunoAuth } from '@usebruno/schema-types/common/auth';
-import { isString } from '../utils';
+import { isString } from '../../../utils';
 import { toOpenCollectionOAuth2, toBrunoOAuth2 } from './auth-oauth2';
 
 const buildAwsV4Auth = (config?: BrunoAuth['awsv4']): AuthAwsV4 => {

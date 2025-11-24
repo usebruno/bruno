@@ -1,6 +1,6 @@
 import type { HttpRequestParam as BrunoHttpRequestParam } from '@usebruno/schema-types/requests/http';
 import type { HttpRequestParam } from '@opencollection/types/requests/http';
-import { uuid } from '../utils';
+import { uuid } from '../../../utils';
 
 export const toOpenCollectionParams = (params: BrunoHttpRequestParam[] | null | undefined): HttpRequestParam[] | undefined => {
   if (!params?.length) {

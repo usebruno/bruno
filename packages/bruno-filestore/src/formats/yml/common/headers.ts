@@ -1,7 +1,7 @@
 import type { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import type { HttpHeader } from '@opencollection/types/requests/http';
-import { uuid } from '../utils';
+import { uuid } from '../../../utils';
 
 export const toOpenCollectionHttpHeaders = (headers: BrunoFolderRequest['headers']): HttpHeader[] | undefined => {
   if(!headers?.length) {

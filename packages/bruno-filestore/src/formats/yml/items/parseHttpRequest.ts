@@ -8,7 +8,7 @@ import { toBrunoBody } from '../common/body';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { uuid } from '../utils';
+import { uuid } from '../../../utils';
 
 const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const brunoRequest: BrunoHttpRequest = {

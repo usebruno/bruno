@@ -6,7 +6,7 @@ import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Assertion } from '@opencollection/types/common/assertions';
 import type { HttpRequestParam, HttpHeader, HttpRequestBody } from '@opencollection/types/requests/http';
-import { stringifyYml, isNonEmptyString } from '../utils';
+import { stringifyYml } from '../utils';
 import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionHttpHeaders } from '../common/headers';
 import { toOpenCollectionParams } from '../common/params';
@@ -14,7 +14,7 @@ import { toOpenCollectionBody } from '../common/body';
 import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
-import { isNumber } from '../utils';
+import { isNumber, isNonEmptyString } from '../../../utils';
 
 const stringifyHttpRequest = (item: BrunoItem): string => {
   try {

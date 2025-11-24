@@ -6,8 +6,7 @@ import { toBrunoAuth } from '../common/auth';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { uuid } from '../utils';
-import { isNonEmptyString } from '../utils';
+import { isNonEmptyString, uuid } from '../../../utils';
 
 const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): BrunoKeyValue[] | undefined => {
   if (!metadata?.length) {

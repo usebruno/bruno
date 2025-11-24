@@ -10,7 +10,7 @@ import type {
   FileBodyEntry
 } from '@opencollection/types/requests/http';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
-import { uuid } from '../utils';
+import { uuid } from '../../../utils';
 
 export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefined): HttpRequestBody | undefined => {
   if (!body) {

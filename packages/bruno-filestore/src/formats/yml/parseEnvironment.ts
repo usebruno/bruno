@@ -1,7 +1,8 @@
 import type { Environment as BrunoEnvironment, EnvironmentVariable as BrunoEnvironmentVariable } from '@usebruno/schema-types/collection/environment';
 import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable } from '@opencollection/types/common/variables';
-import { parseYml, uuid } from './utils';
+import { parseYml } from './utils';
+import { uuid } from '../../utils';
 
 const toBrunoEnvironmentVariables = (
   variables: Variable[] | null | undefined

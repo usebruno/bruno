@@ -1,7 +1,7 @@
 import { Variable } from "@opencollection/types/common/variables";
 import { FolderRequest as BrunoFolderRequest } from "@usebruno/schema-types/collection/folder";
 import { Variable as BrunoVariable, Variables as BrunoVariables } from "@usebruno/schema-types/common/variables";
-import { uuid } from '../utils';
+import { uuid } from '../../../utils';
 
 export const toOpenCollectionVariables = (
   variables: BrunoFolderRequest['vars'] | BrunoVariables | null | undefined

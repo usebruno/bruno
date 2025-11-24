@@ -7,7 +7,7 @@ import { toBrunoParams } from '../common/params';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { uuid } from '../utils';
+import { uuid } from '../../../utils';
 
 const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   const brunoRequest: BrunoHttpRequest = {

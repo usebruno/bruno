@@ -1,6 +1,6 @@
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import type { Assertion } from '@opencollection/types/common/assertions';
-import { uuid } from '../utils';
+import { uuid } from '../../../utils';
 
 const OPERATORS = [
   'eq',

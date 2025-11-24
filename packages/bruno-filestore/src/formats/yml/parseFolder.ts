@@ -5,7 +5,7 @@ import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
 import { toBrunoScripts } from './common/scripts';
-import { isNonEmptyString } from './utils';
+import { isNonEmptyString } from '../../utils';
 
 const parseFolder = (ymlString: string): FolderRoot => {
   try {
