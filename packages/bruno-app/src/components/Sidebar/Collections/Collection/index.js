@@ -447,6 +447,7 @@ const Collection = ({ collection, searchText }) => {
         onClick={handleCollectionCollapse}
         onDoubleClick={handleCollectionDoubleClick}
         onContextMenu={handleRightClick}
+        data-testid="collection-row"
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
@@ -482,6 +483,7 @@ const Collection = ({ collection, searchText }) => {
             onClick={handleSettingsClick}
             onDoubleClick={handleSettingsDoubleClick}
             title="Collection Settings"
+            data-testid="collection-settings-icon"
           >
             <IconSettings size={18} strokeWidth={1.5} />
           </ActionIcon>

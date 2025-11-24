@@ -682,7 +682,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 <ActionIcon title="New Request" className="new-request-icon mr-1" onClick={(e) => { e.stopPropagation(); setNewRequestModalOpen(true); }}>
                   <IconPlus size={18} strokeWidth={1.5} />
                 </ActionIcon>
-                <ActionIcon title="Folder Settings" className="settings-icon mr-1" onClick={handleSettingsClick}>
+                <ActionIcon title="Folder Settings" className="settings-icon mr-1" onClick={handleSettingsClick} data-testid="folder-settings-icon">
                   <IconSettings size={18} strokeWidth={1.5} />
                 </ActionIcon>
               </>
