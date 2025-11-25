@@ -1,5 +1,6 @@
 import get from 'lodash/get';
 import { mockDataFunctions } from '@usebruno/common';
+import { PROMPT_VARIABLE_TEXT_PATTERN } from '@usebruno/common/utils';
 
 const CodeMirror = require('codemirror');
 
@@ -31,8 +32,8 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
             if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
 
-              // Prompt variable: starts with '?'
-              if (word.startsWith('?')) {
+              // Prompt variable: starts with '?', no leading/trailing spaces, no braces
+              if (PROMPT_VARIABLE_TEXT_PATTERN.test(word)) {
                 return `variable-prompt`;
               }
 
