@@ -942,15 +942,26 @@ const registerNetworkIpc = (mainWindow) => {
         await runPostScripts();
       }
 
+      // Regenerate dataBuffer from response.data in case it was modified by post-response/test scripts
+      // This ensures dataBuffer matches the potentially modified response.data from res.setBody()
+      let finalDataBuffer;
+      if (response.data === null || response.data === undefined) {
+        finalDataBuffer = Buffer.from('');
+      } else if (typeof response.data === 'string') {
+        finalDataBuffer = Buffer.from(response.data);
+      } else {
+        finalDataBuffer = Buffer.from(safeStringifyJSON(response.data) || '');
+      }
+
       return {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
-        dataBuffer: response.dataBuffer.toString('base64'),
         stream: isResponseStream ? axiosDataStream : null,
         cancelTokenUid: cancelTokenUid,
-        size: Buffer.byteLength(response.dataBuffer),
+        dataBuffer: finalDataBuffer.toString('base64'),
+        size: Buffer.byteLength(finalDataBuffer),
         duration: responseTime ?? 0,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         timeline: response.timeline
