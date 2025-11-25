@@ -32,7 +32,7 @@ const Wrapper = styled.div`
       padding-left: 12px;
       padding-right: 4px;
       cursor: pointer;
-      font-size: 0.75rem;
+      font-size: var(--font-size-sm);
       height: 30px;
       align-items: center;
       justify-content: center;

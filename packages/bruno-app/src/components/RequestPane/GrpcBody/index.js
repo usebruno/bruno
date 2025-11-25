@@ -159,7 +159,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
           {isCollapsed
             ? <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
             : <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />}
-          <span className="font-medium text-sm">{`Message ${canClientStream ? index + 1 : ''}`}</span>
+          <span className="font-medium">{`Message ${canClientStream ? index + 1 : ''}`}</span>
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <ToolHint text="Format JSON with proper indentation and spacing" toolhintId={`prettify-msg-${index}`}>
@@ -287,7 +287,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
               className="flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
             >
               <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">Add First Message</span>
+              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add First Message</span>
             </button>
           </ToolHint>
         </div>
@@ -330,7 +330,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
               data-testid="grpc-add-message-button"
             >
               <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">Add Message</span>
+              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add Message</span>
             </button>
           </ToolHint>
         </div>

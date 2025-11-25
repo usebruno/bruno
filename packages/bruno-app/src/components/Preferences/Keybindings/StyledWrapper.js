@@ -12,16 +12,17 @@ const StyledWrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 1rem;
+      font-size: var(--font-size-body);
       user-select: none;
     }
 
     td {
       padding: 4px 8px;
+      font-size: var(--font-size-sm);
     }
 
     thead th {
-      font-weight: 600;
+      font-weight: 500;
       padding: 10px;
       text-align: left;
     }

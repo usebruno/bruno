@@ -26,12 +26,12 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 8px;
     color: ${(props) => props.theme.console.titleColor};
-    font-size: 13px;
+    font-size: var(--font-size-body);
     font-weight: 500;
 
     .request-time {
       color: ${(props) => props.theme.console.countColor};
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       font-weight: 400;
     }
   }
@@ -73,7 +73,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
 
     &:hover {
@@ -111,8 +111,8 @@ const StyledWrapper = styled.div`
 
     h4 {
       margin: 0;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: var(--font-size-body);
+      font-weight: 500;
       color: ${(props) => props.theme.console.titleColor};
       padding-bottom: 4px;
       border-bottom: 1px solid ${(props) => props.theme.console.border};
@@ -131,15 +131,15 @@ const StyledWrapper = styled.div`
     gap: 2px;
 
     .label {
-      font-size: 11px;
-      font-weight: 600;
+      font-size: var(--font-size-xs);
+      font-weight: 500;
       color: ${(props) => props.theme.console.countColor};
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .value {
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       color: ${(props) => props.theme.console.messageColor};
       font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
       word-break: break-all;
@@ -160,7 +160,7 @@ const StyledWrapper = styled.div`
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       background: ${(props) => props.theme.console.headerBg};
 
       thead {
@@ -171,10 +171,10 @@ const StyledWrapper = styled.div`
         
         td {
           padding: 8px 12px;
-          font-weight: 600;
+          font-weight: 500;
           color: ${(props) => props.theme.console.titleColor};
           text-transform: uppercase;
-          font-size: 11px;
+          font-size: var(--font-size-xs);
           letter-spacing: 0.5px;
           border-bottom: 1px solid ${(props) => props.theme.console.border};
         }
@@ -209,7 +209,7 @@ const StyledWrapper = styled.div`
   .header-name,
   .timeline-phase {
     color: ${(props) => props.theme.console.countColor};
-    font-weight: 600;
+    font-weight: 500;
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     min-width: 120px;
   }
@@ -234,7 +234,7 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
     padding: 12px;
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     line-height: 1.4;
     color: ${(props) => props.theme.console.messageColor};
     overflow: auto;
@@ -249,7 +249,7 @@ const StyledWrapper = styled.div`
     text-align: center;
     color: ${(props) => props.theme.console.emptyColor};
     font-style: italic;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     background: ${(props) => props.theme.console.headerBg};
     border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 4px;
@@ -285,7 +285,7 @@ const StyledWrapper = styled.div`
       
       > div {
         color: ${(props) => props.theme.console.buttonColor};
-        font-size: 12px !important;
+        font-size: var(--font-size-sm) !important;
         padding: 6px 12px !important;
         border-radius: 4px;
         transition: all 0.2s ease;
@@ -336,7 +336,7 @@ const StyledWrapper = styled.div`
       
       pre {
         color: ${(props) => props.theme.console.messageColor} !important;
-        font-size: 11px !important;
+        font-size: var(--font-size-xs) !important;
         line-height: 1.4 !important;
         padding: 12px !important;
       }

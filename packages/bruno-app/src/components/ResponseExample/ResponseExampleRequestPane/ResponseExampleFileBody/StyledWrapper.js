@@ -4,7 +4,7 @@ const Wrapper = styled.div`
   table {
     width: 100%;
     border-collapse: collapse;
-    font-weight: 600;
+    font-weight: 500;
     table-layout: fixed;
 
     thead,
@@ -14,7 +14,7 @@ const Wrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
+      font-size: var(--font-size-body);
       user-select: none;
     }
     td {
@@ -23,7 +23,7 @@ const Wrapper = styled.div`
     }
 
   .btn-add-param {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body);
   }
 
   input[type='text'] {
@@ -49,7 +49,7 @@ const Wrapper = styled.div`
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     color: ${(props) => props.theme.colors.text.muted};
     

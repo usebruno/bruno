@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   label {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-body);
   }
   .single-line-editor-wrapper {
     max-width: 400px;

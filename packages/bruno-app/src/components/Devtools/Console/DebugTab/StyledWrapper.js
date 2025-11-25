@@ -22,12 +22,12 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 8px;
     color: ${(props) => props.theme.console.titleColor};
-    font-size: 13px;
+    font-size: var(--font-size-body);
     font-weight: 500;
 
     .error-count {
       color: ${(props) => props.theme.console.countColor};
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       font-weight: 400;
     }
   }
@@ -73,12 +73,12 @@ const StyledWrapper = styled.div`
 
     p {
       margin: 0;
-      font-size: 14px;
+      font-size: var(--font-size-body);
       font-weight: 500;
     }
 
     span {
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       opacity: 0.7;
     }
   }
@@ -98,8 +98,8 @@ const StyledWrapper = styled.div`
     padding: 8px 16px;
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
     color: ${(props) => props.theme.console.titleColor};
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -121,7 +121,7 @@ const StyledWrapper = styled.div`
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     cursor: pointer;
     transition: background-color 0.1s ease;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     align-items: center;
 
     &:hover {
@@ -149,13 +149,13 @@ const StyledWrapper = styled.div`
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
   }
 
   .error-time {
     color: ${(props) => props.theme.console.timestampColor};
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     text-align: right;
   }
 `;

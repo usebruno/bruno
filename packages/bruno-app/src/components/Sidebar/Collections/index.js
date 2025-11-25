@@ -32,7 +32,7 @@ const Collections = () => {
 
       <div className="mt-3 relative collection-filter px-2">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="text-gray-500 sm:text-sm">
+          <span className="text-gray-500">
             <IconSearch size={16} strokeWidth={1.5} />
           </span>
         </div>
@@ -45,7 +45,7 @@ const Collections = () => {
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
-          className="block w-full pl-7 py-1 sm:text-sm"
+          className="block w-full pl-7 py-1"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value.toLowerCase())}
         />

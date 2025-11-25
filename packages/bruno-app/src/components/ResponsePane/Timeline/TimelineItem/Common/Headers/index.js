@@ -28,7 +28,7 @@ const HeadersBlock = ({ headers, type }) => {
 const Headers = ({ headers, type }) => {
   if (Array.isArray(headers)) {
     return (
-      <div className="mt-1 text-sm">
+      <div className="mt-1">
         {headers.map((header, index) => (
           <pre key={index} className="mb-1 whitespace-pre-wrap">
             {type === 'request' ? '>' : '<'}&nbsp;<span className="opacity-60">{header?.name}:</span>
@@ -39,7 +39,7 @@ const Headers = ({ headers, type }) => {
     );
   } else {
     return (
-      <div className="mt-1 text-sm">
+      <div className="mt-1">
         {Object.entries(headers).map(([key, value], index) => (
           <pre key={index} className="mb-1 whitespace-pre-wrap">
             {type === 'request' ? '>' : '<'}&nbsp;<span className="opacity-60">{key}:</span>

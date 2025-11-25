@@ -67,7 +67,7 @@ const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
       >
         <form className="bruno-form" onSubmit={e => e.preventDefault()}>
           <div>
-            <label htmlFor="name" className="block font-semibold">
+            <label htmlFor="name" className="block font-medium">
               Environment Name
             </label>
             <div className="flex items-center mt-2">

@@ -83,7 +83,7 @@ const TitleBar = () => {
       ) : null}
 
       <div className="flex items-center">
-        <button className="bruno-logo flex items-center gap-2 text-sm font-medium" onClick={handleTitleClick}>
+        <button className="bruno-logo flex items-center gap-2 font-medium" onClick={handleTitleClick}>
           <span aria-hidden>
             <Bruno width={30} />
           </span>

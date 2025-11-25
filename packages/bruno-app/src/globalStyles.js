@@ -257,7 +257,7 @@ const GlobalStyle = createGlobalStyle`
     border-radius: 0.375rem;
     box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
     box-sizing: border-box;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     line-height: 1.25rem;
     margin: 0;
     min-width: 18.1875rem;
@@ -295,9 +295,9 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-name {
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     color: ${(props) => props.theme.codemirror.variable.info.color};
-    font-weight: 600;
+    font-weight: 500;
   }
 
   /* Scope Badge */
@@ -306,7 +306,7 @@ const GlobalStyle = createGlobalStyle`
     padding: 0.125rem 0.375rem;
     background: #D977061A;
     border-radius: 0.25rem;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     color: #D97706;
     letter-spacing: 0.03125rem;
   }
@@ -326,7 +326,7 @@ const GlobalStyle = createGlobalStyle`
   /* Value Display (Read-only) */
   .CodeMirror-brunoVarInfo .var-value-display {
     padding: 0.375rem 1.5rem 0.375rem 0.5rem;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     font-family: Inter, sans-serif;
     font-weight: 400;
     word-break: break-word;
@@ -349,7 +349,7 @@ const GlobalStyle = createGlobalStyle`
     height: 100%;
     min-height: 1.75rem;
     max-height: 11.125rem;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     font-family: Inter, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
@@ -384,7 +384,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror pre {
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     font-family: Inter, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
@@ -399,7 +399,7 @@ const GlobalStyle = createGlobalStyle`
     padding: 0;
     max-width: 13.1875rem;
     line-height: 1.25rem;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     font-family: Inter, sans-serif;
     font-weight: 400;
     word-break: break-all;
@@ -419,7 +419,7 @@ const GlobalStyle = createGlobalStyle`
     width: 17.1875rem;
     max-width: 13.1875rem;
     padding: 0.375rem 1.5rem 0.375rem 0.5rem;
-    font-size: 0.875rem;
+    font-size: var(--font-size-body);
     font-family: Inter, sans-serif;
     font-weight: 400;
     word-break: break-all;
@@ -468,7 +468,7 @@ const GlobalStyle = createGlobalStyle`
 
   /* Read-only Note */
   .CodeMirror-brunoVarInfo .var-readonly-note {
-    font-size: 0.625rem;
+    font-size: var(--font-size-xs);
     color: ${(props) => props.theme.colors.text.muted};
     opacity: 0.6;
     margin-top: 0.25rem;

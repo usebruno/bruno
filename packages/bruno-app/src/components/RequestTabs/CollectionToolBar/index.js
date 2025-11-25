@@ -44,7 +44,7 @@ const CollectionToolBar = ({ collection }) => {
   return (
     <StyledWrapper>
       <div className="header-container flex items-center p-2 px-3">
-        <div className="flex flex-1 items-center gap-1">
+        <div className="flex flex-1 items-center gap-1 cursor-pointer hover:underline" onClick={viewCollectionSettings}>
           <span className="p-2 max-w-[32px]">
             <IconBox size={18} strokeWidth={1.5} />
           </span>

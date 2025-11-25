@@ -26,16 +26,17 @@ const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2
             {!hideTimestamp && (
               <>
                 <pre className="opacity-70">[{new Date(timestamp).toISOString()}]</pre>
-                <span className="text-sm text-gray-400 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                <span className="text-gray-400 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap">
                   <RelativeTime timestamp={timestamp} />
                 </span>
               </>
             )}
           </div>
         </div>
-        <div className="truncate text-sm mt-1">{url}</div>
+        <div className="truncate mt-1">{url}</div>
       </div>
-      {isCollapsed && (<div className="text-sm overflow-hidden">
+      {isCollapsed && (
+        <div className="overflow-hidden">
         {/* Tabs */}
         <div className="tabs-switcher flex mb-4">
           <button
@@ -77,7 +78,8 @@ const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2
             <Network logs={response?.timeline} />
           )}
         </div>
-      </div>)}
+        </div>
+      )}
     </div>
   );
 };

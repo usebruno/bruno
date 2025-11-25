@@ -10,7 +10,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.sidebar.bg};
     border-top: 1px solid ${(props) => props.theme.statusBar.border};
     color: ${(props) => props.theme.statusBar.color};
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     user-select: none;
     position: relative;
   }
@@ -51,7 +51,7 @@ const StyledWrapper = styled.div`
 
   .error-count-inline {
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 500;
     color: ${(props) => props.theme.colors.text.danger};
     background: ${(props) => props.theme.colors.bg.danger}20;
     padding: 1px 4px;

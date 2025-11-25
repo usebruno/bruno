@@ -48,7 +48,9 @@
   --font-family-mono: 'Fira Code', monospace;
   --font-size-hint: .75rem;
   --font-size-inline-code: .8125rem;
-  --font-size-body: .8rem;
+  --font-size-body: 0.8125rem; /* 13px */
+  --font-size-sm: 0.75rem;     /* 12px */
+  --font-size-xs: 0.6875rem;   /* 11px */
   --font-size-h4: 1.125rem;
   --font-size-h3: 1.375rem;
   --font-size-h2: 1.8125rem;
@@ -99,7 +101,9 @@
   --font-family-mono: 'Fira Code', monospace;
   --font-size-hint: .75rem;
   --font-size-inline-code: .8125rem;
-  --font-size-body: .9375rem;
+  --font-size-body: 0.8125rem; /* 13px */
+  --font-size-sm: 0.75rem;     /* 12px */
+  --font-size-xs: 0.6875rem;   /* 11px */
   --font-size-h4: 1.125rem;
   --font-size-h3: 1.375rem;
   --font-size-h2: 1.8125rem;
@@ -154,7 +158,7 @@ body {
 }
 
 body {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-body);
 }
 
 body::-webkit-scrollbar,
