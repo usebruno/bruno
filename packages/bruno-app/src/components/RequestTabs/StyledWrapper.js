@@ -25,21 +25,21 @@ const Wrapper = styled.div`
 
     li {
       display: inline-flex;
-      min-width: 100px;
       max-width: 180px;
       flex: 1 0 auto;
-      border-right: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
+      // border-right: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
       list-style: none;
-      padding: 6px 12px;
+      padding-left: 12px;
+      padding-right: 4px;
       cursor: pointer;
-      font-size: 0.8125rem;
-      height: 36px;
+      font-size: 0.75rem;
+      height: 30px;
       align-items: center;
       justify-content: center;
       color: ${(props) => props.theme.sidebar.muted};
-      background: transparent;
-      transition: all 0.2s ease;
-
+      background: ${(props) => props.theme.requestTabs?.bg};
+      border-radius: 4px;
+      
       .tab-container {
         width: 100%;
         white-space: nowrap;
@@ -47,27 +47,32 @@ const Wrapper = styled.div`
         text-overflow: ellipsis;
       }
 
-      &.active {
-        background: ${(props) => props.theme.bg};
-        font-weight: 500;
-        border-top: 2px solid #fa7d09;
-        border-bottom: 1px solid transparent;
-        color: ${(props) => props.theme.text};
-        margin-bottom: -1px;
-        z-index: 1;
+      .tab-method {
+        opacity: 0.7;
       }
 
       &.active {
+        font-weight: 500;
+        color: ${(props) => props.theme.text};
+        z-index: 1;
+        background: ${(props) => props.theme.requestTabs?.active?.bg};
+
         .close-icon-container .close-icon {
           display: block;
+        }
+
+        .tab-method {
+          opacity: 1;
         }
       }
 
       &:hover {
-        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
         color: ${(props) => props.theme.text};
         .close-icon-container .close-icon {
           display: block;
+        }
+        .tab-method {
+          opacity: 1;
         }
       }
 

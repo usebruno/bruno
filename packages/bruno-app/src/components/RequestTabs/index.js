@@ -78,7 +78,8 @@ const RequestTabs = () => {
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center px-3 w-full overflow-hidden tabs-bar">
+          <div className="flex items-center justify-between px-3 w-full overflow-hidden tabs-bar">
+            <div className="flex items-center w-full">
             <ul role="tablist">
               <li className="select-none short-tab" onClick={leftSlide}>
                 <div className="flex items-center">
@@ -92,7 +93,8 @@ const RequestTabs = () => {
                 </div>
               </li> */}
             </ul>
-            <ul role="tablist" className="flex-1 w-full" ref={tabsRef}>
+              <div className="flex items-center gap-2 w-full">
+                <ul role="tablist" className="flex items-center gap-2" ref={tabsRef}>
               {collectionRequestTabs && collectionRequestTabs.length
                 ? collectionRequestTabs.map((tab, index) => {
                     return (
@@ -123,25 +125,30 @@ const RequestTabs = () => {
                 : null}
             </ul>
 
+                <ul role="tablist">
+                  <li className="select-none short-tab" id="create-new-tab" onClick={createNewTab}>
+                    <div className="flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        fill="currentColor"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                      </svg>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
             <ul role="tablist">
               <li className="select-none short-tab" onClick={rightSlide}>
                 <div className="flex items-center">
                   <IconChevronRight size={16} strokeWidth={1.5} />
                 </div>
               </li>
-              <li className="select-none short-tab" id="create-new-tab" onClick={createNewTab}>
-                <div className="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                  >
-                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-                  </svg>
-                </div>
-              </li>
+
               {/* Moved to post mvp */}
               {/* <li className="select-none new-tab choose-request">
                 <div className="flex items-center">

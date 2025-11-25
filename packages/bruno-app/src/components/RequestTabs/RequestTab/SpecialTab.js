@@ -1,7 +1,7 @@
 import React from 'react';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
-import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
+import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock, IconX } from '@tabler/icons';
 
 const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
   const getTabInfo = (type, tabName) => {
@@ -58,12 +58,15 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
   };
 
   return (
-    <>
-      <div className="flex items-center tab-label pl-2">{getTabInfo(type, tabName)}</div>
-      <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
-        {hasDraft ? <DraftTabIcon /> : <CloseTabIcon />}
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center tab-name">
+        {getTabInfo(type, tabName)}
+        {hasDraft ? <DraftTabIcon /> : null}
       </div>
-    </>
+      <div className="flex items-center justify-center close-icon-container" onClick={(e) => handleCloseClick(e)}>
+        <IconX size={12} strokeWidth={2} />
+      </div>
+    </div>
   );
 };
 

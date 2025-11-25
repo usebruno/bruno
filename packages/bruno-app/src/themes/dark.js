@@ -265,10 +265,10 @@ const darkTheme = {
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(204, 204, 204)',
-      hoverBg: '#1e1e1e'
+      hoverBg: 'rgba(255, 255, 255, 0.1)'
     },
     active: {
-      bg: '#3D3D3D'
+      bg: '#37373D'
     },
     shortTab: {
       color: '#ccc',

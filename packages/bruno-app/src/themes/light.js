@@ -261,15 +261,15 @@ const lightTheme = {
 
   requestTabs: {
     color: 'rgb(52, 52, 52)',
-    bg: '#f7f7f7',
+    bg: '#e7e7e7',
     bottomBorder: '#d3d3d3',
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(76 76 76)',
-      hoverBg: 'rgb(234, 234, 234)'
+      hoverBg: 'rgba(0, 0, 0, 0.05)'
     },
     active: {
-      bg: '#e7e7e7'
+      bg: '#e0e0e0'
     },
     shortTab: {
       color: 'rgb(117 117 117)',
