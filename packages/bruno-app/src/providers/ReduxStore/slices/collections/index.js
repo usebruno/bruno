@@ -201,6 +201,14 @@ export const collectionsSlice = createSlice({
       const targetItemIndex = state.collections.findIndex((i) => i.uid === targetItem.uid); // Find target item
       state.collections.splice(targetItemIndex, 0, draggedItem); // Insert dragged-item above target-item
     },
+    updateFolderSort: (state, action) => {
+      const { collectionUid, sortMode } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.folderSort = sortMode;
+      }
+    },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -3218,6 +3226,7 @@ export const {
   renameCollection,
   removeCollection,
   sortCollections,
+  updateFolderSort,
   updateLastAction,
   updateSettingsSelectedTab,
   updatedFolderSettingsSelectedTab,

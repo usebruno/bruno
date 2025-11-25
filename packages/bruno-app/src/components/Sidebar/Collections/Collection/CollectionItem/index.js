@@ -34,7 +34,7 @@ import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { calculateDraggedItemNewPathname, getInitialExampleName } from 'utils/collections/index';
-import { sortByNameThenSequence } from 'utils/common/index';
+import { sortItemsBySortMode } from 'utils/common/index';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
@@ -74,6 +74,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: 'collection-item',
     item: { ...item, sourceCollectionUid: collectionUid },
+    canDrag: () => {
+      // Disable dragging folders in alphabetical mode
+      if (isItemAFolder(item) && collection?.folderSort === 'alphabetical') {
+        return false;
+      }
+      return true; // Allow dragging requests always, and folders in manual mode
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -123,6 +130,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'collection-item',
+    canDrop: (draggedItem) => {
+      // Prevent drops on folders in alphabetical mode
+      if (isItemAFolder(item) && collection?.folderSort === 'alphabetical') {
+        return false;
+      }
+      return canItemBeDropped({ draggedItem, targetItem: item, dropType });
+    },
     hover: (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
@@ -290,11 +304,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     dispatch(makeTabPermanent({ uid: item.uid }));
   };
 
-    // Sort items by their "seq" property.
-  const sortItemsBySequence = (items = []) => {
-    return items.sort((a, b) => a.seq - b.seq);
-  };
-
   const handleShowInFolder = () => {
     dispatch(showInFolder(item.pathname)).catch((error) => {
       console.error('Error opening the folder', error);
@@ -346,9 +355,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setCreateExampleModalOpen(false);
   };
 
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
-  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
- 
+  const folderItems = sortItemsBySortMode(filter(item.items, (i) => isItemAFolder(i)), collection?.folderSort || 'manual', true);
+  const requestItems = sortItemsBySortMode(filter(item.items, (i) => isItemARequest(i)), collection?.folderSort || 'manual', false);
+
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();

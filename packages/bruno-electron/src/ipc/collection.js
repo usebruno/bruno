@@ -118,7 +118,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           version: '1',
           name: collectionName,
           type: 'collection',
-          ignore: ['node_modules', '.git']
+          ignore: ['node_modules', '.git'],
+          folderSort: 'manual'
         };
         const content = await stringifyJson(brunoConfig);
         await writeFile(path.join(dirPath, 'bruno.json'), content);
@@ -932,6 +933,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const brunoConfigPath = path.join(collectionPath, 'bruno.json');
       const content = await stringifyJson(transformedBrunoConfig);
       await writeFile(brunoConfigPath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Update folder sort mode
+  ipcMain.handle('renderer:update-folder-sort', async (event, collectionPath, sortMode) => {
+    try {
+      const brunoJsonPath = path.join(collectionPath, 'bruno.json');
+      const content = await fs.promises.readFile(brunoJsonPath, 'utf8');
+      const brunoConfig = JSON.parse(content);
+
+      brunoConfig.folderSort = sortMode;
+
+      const updatedContent = await stringifyJson(brunoConfig);
+      await writeFile(brunoJsonPath, updatedContent);
+
+      return { success: true };
     } catch (error) {
       return Promise.reject(error);
     }

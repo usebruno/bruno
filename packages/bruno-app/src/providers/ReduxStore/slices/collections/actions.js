@@ -32,6 +32,7 @@ import {
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
+  updateFolderSort as _updateFolderSort,
   updateCollectionMountStatus,
   moveCollection,
   requestCancelled,
@@ -1180,6 +1181,30 @@ export const updateItemsSequences =
       ipcRenderer.invoke('renderer:resequence-items', itemsToResequence).then(resolve).catch(reject);
     });
   };
+
+export const updateFolderSort = (collectionUid, sortMode) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    // Update Redux state first
+    dispatch(_updateFolderSort({
+      collectionUid,
+      sortMode
+    }));
+
+    // Persist to bruno.json
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:update-folder-sort', collection.pathname, sortMode)
+      .then(resolve)
+      .catch(reject);
+  });
+};
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
   const {
