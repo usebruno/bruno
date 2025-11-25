@@ -233,14 +233,14 @@ export const renderVarInfo = (token, options) => {
   const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'undefined';
 
   // Get raw value from scope
-  const rawValue = scopeInfo?.value || '';
+  const rawValue = scopeInfo.value || '';
 
   // Check if variable should be masked:
   const isSecret = scopeInfo.type !== 'undefined' ? isVariableSecret(scopeInfo) : false;
   const hasSecretReferences = containsSecretVariableReferences(rawValue, collection, item);
   const shouldMaskValue = isSecret || hasSecretReferences;
 
-  const isMasked = options?.variables?.maskedEnvVariables?.includes(variableName);
+  const isMasked = options.variables?.maskedEnvVariables?.includes(variableName);
 
   const into = document.createElement('div');
   into.className = 'bruno-var-info-container';
@@ -266,7 +266,7 @@ export const renderVarInfo = (token, options) => {
   into.appendChild(header);
 
   // Check if variable name is valid (only for non-process.env variables)
-  const isValidVariableName = scopeInfo?.type === 'process.env' || variableNameRegex.test(variableName);
+  const isValidVariableName = scopeInfo.type === 'process.env' || variableNameRegex.test(variableName);
 
   // Show warning if variable name is invalid
   if (!isValidVariableName) {
@@ -521,17 +521,17 @@ export const renderVarInfo = (token, options) => {
     valueContainer.appendChild(iconsContainer);
 
     // Read-only note
-    if (scopeInfo?.type === 'process.env') {
+    if (scopeInfo.type === 'process.env') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
-    } else if (scopeInfo?.type === 'runtime') {
+    } else if (scopeInfo.type === 'runtime') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'Set by scripts (read-only)';
       into.appendChild(readOnlyNote);
-    } else if (scopeInfo?.type === 'undefined') {
+    } else if (scopeInfo.type === 'undefined') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'No active environment';
