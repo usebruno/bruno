@@ -29,8 +29,6 @@ const {
   sanitizeName,
   isWSLPath,
   safeToRename,
-  safeParseJson,
-  safeStringifyJSON,
   getSubDirectories,
   isWindowsOS,
   readDir,
@@ -51,7 +49,7 @@ const {
   generateUniqueName
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
-const { generateUidBasedOnHash, stringifyJson } = require('../utils/common');
+const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
@@ -107,42 +105,6 @@ const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
     throw new Error(`Path: ${filePath} should be inside a collection`);
   }
 }
-
-const getCollectionFiletype = async (filePath, lastOpenedCollections) => {
-  try {
-    const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
-    const lastOpenedPaths = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
-    const allCollectionPaths = [...new Set([...openCollectionPaths, ...lastOpenedPaths])];
-
-    // Find the collection root for this file
-    const collectionPath = allCollectionPaths.find((collectionPath) => {
-      return filePath.startsWith(collectionPath + path.sep) || filePath === collectionPath;
-    });
-
-    if (!collectionPath) {
-      return 'bru'; // default to bru if not in any collection
-    }
-
-    // Check for opencollection.yml first
-    const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
-    if (fs.existsSync(ocYmlPath)) {
-      return 'yaml';
-    }
-
-    // Fall back to bruno.json
-    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
-    if (fs.existsSync(brunoJsonPath)) {
-      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
-      const brunoConfig = JSON.parse(brunoJsonContent);
-      return brunoConfig.filetype || 'bru';
-    }
-
-    return 'bru';
-  } catch (error) {
-    console.warn('Error determining collection filetype:', error);
-    return 'bru'; // default to bru on error
-  }
-};
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // create collection
