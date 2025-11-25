@@ -7,6 +7,7 @@ import { useTheme } from 'providers/Theme';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader, moveRequestHeader, setRequestHeaders } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
@@ -140,7 +141,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MultiLineEditor
                         value={header.value}
                         theme={storedTheme}
                         onSave={onSave}

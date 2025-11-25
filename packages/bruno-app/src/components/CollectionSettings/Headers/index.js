@@ -12,6 +12,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
@@ -130,7 +131,7 @@ const Headers = ({ collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MultiLineEditor
                         value={header.value}
                         theme={storedTheme}
                         onSave={handleSave}

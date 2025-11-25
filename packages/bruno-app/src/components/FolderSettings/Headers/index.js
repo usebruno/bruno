@@ -7,6 +7,7 @@ import { useTheme } from 'providers/Theme';
 import { addFolderHeader, updateFolderHeader, deleteFolderHeader, setFolderHeaders } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
@@ -128,7 +129,7 @@ const Headers = ({ collection, folder }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MultiLineEditor
                         value={header.value}
                         theme={storedTheme}
                         onSave={handleSave}
