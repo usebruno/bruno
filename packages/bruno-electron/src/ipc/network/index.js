@@ -145,6 +145,8 @@ const configureRequest = async (
 
   request.maxRedirects = 0;
 
+  const preserveDotSegments = request.settings?.preserveDotSegments;
+
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
@@ -160,6 +162,30 @@ const configureRequest = async (
     delete request.ntlmConfig;
   }
 
+  const addQueryParamPreservingPath = (targetUrl, key, value) => {
+    if (!targetUrl || !key) {
+      return targetUrl;
+    }
+
+    if (!preserveDotSegments) {
+      try {
+        const urlObj = new URL(targetUrl);
+        urlObj.searchParams.set(key, value);
+        return urlObj.toString();
+      } catch (err) {
+        // fall back to string-based approach below
+      }
+    }
+
+    const [urlWithoutHash, ...hashParts] = targetUrl.split('#');
+    const hash = hashParts.length ? `#${hashParts.join('#')}` : '';
+    const separator = urlWithoutHash.includes('?')
+      ? (urlWithoutHash.endsWith('?') || urlWithoutHash.endsWith('&') ? '' : '&')
+      : '?';
+
+    return `${urlWithoutHash}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}${hash}`;
+  };
+
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
@@ -173,12 +199,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
       case 'implicit':
@@ -189,12 +210,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
       case 'client_credentials':
@@ -205,12 +221,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
       case 'password':
@@ -221,12 +232,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
     }
@@ -279,14 +285,10 @@ const configureRequest = async (
 
   // Add API key to the URL
   if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
-    const urlObj = new URL(request.url);
-
     // Interpolate key and value as they can be variables before adding to the URL.
     const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
     const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
-
-    urlObj.searchParams.set(key, value);
-    request.url = urlObj.toString();
+    request.url = addQueryParamPreservingPath(request.url, key, value);
   }
 
   // Remove pathParams, already in URL (Issue #2439)

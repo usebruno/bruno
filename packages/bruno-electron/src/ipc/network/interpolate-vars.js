@@ -38,6 +38,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
+  const preserveDotSegments = request?.settings?.preserveDotSegments;
+
   const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
@@ -152,59 +154,118 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (request?.pathParams?.length) {
     let url = request.url;
     const urlSearchRaw = getRawQueryString(request.url)
+
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
 
-    try {
-      url = new URL(url);
-    } catch (e) {
-      throw { message: 'Invalid URL format', originalError: e.message };
-    }
+    if (preserveDotSegments) {
+      const originMatch = url.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+/);
+      if (!originMatch) {
+        throw { message: 'Invalid URL format', originalError: 'Invalid URL format' };
+      }
 
-    const urlPathnameInterpolatedWithPathParams = url.pathname
-      .split('/')
-      .filter((path) => path !== '')
-      .map((path) => {
-        // traditional path parameters
-        if (path.startsWith(':')) {
-          const paramName = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
-          if (!existingPathParam) {
-            return '/' + path;
+      const origin = originMatch[0];
+      const pathAndAfter = url.slice(origin.length);
+      const pathname = (pathAndAfter.split(/[?#]/)[0] || '');
+      const hasLeadingSlash = pathname.startsWith('/');
+      const endsWithSlash = pathname.endsWith('/');
+      const interpolatedSegments = pathname
+        .split('/')
+        .filter((segment) => segment !== '')
+        .map((segment) => {
+          if (segment.startsWith(':')) {
+            const paramName = segment.slice(1);
+            const existingPathParam = request.pathParams.find((param) => param.name === paramName);
+            return existingPathParam ? existingPathParam.value : segment;
           }
-          return '/' + existingPathParam.value;
-        }
 
-        // for OData-style parameters (parameters inside parentheses)
-        // Check if path matches valid OData syntax:
-        // 1. EntitySet('key') or EntitySet(key)
-        // 2. EntitySet(Key1=value1,Key2=value2)
-        // 3. Function(param=value)
-        if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
-          const paramRegex = /[:](\w+)/g;
-          let match;
-          let result = path;
-          while ((match = paramRegex.exec(path))) {
-            if (match[1]) {
-              let name = match[1].replace(/[')"`]+$/, '');
-              name = name.replace(/^[('"`]+/, '');
-              if (name) {
-                const existingPathParam = request.pathParams.find((param) => param.name === name);
-                if (existingPathParam) {
-                  result = result.replace(':' + match[1], existingPathParam.value);
+          if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+            const paramRegex = /[:](\w+)/g;
+            let match;
+            let result = segment;
+            while ((match = paramRegex.exec(segment))) {
+              if (match[1]) {
+                let name = match[1].replace(/[')"`]+$/, '');
+                name = name.replace(/^[('"`]+/, '');
+                if (name) {
+                  const existingPathParam = request.pathParams.find((param) => param.name === name);
+                  if (existingPathParam) {
+                    result = result.replace(':' + match[1], existingPathParam.value);
+                  }
                 }
               }
             }
+            return result;
           }
-          return '/' + result;
-        }
-        return '/' + path;
-      })
-      .join('');
 
-    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
+          return segment;
+        })
+        .join('/');
+
+      let rebuiltPath = interpolatedSegments;
+      if (hasLeadingSlash) {
+        rebuiltPath = `/${rebuiltPath}`;
+      }
+      if (!rebuiltPath && hasLeadingSlash) {
+        rebuiltPath = '/';
+      }
+      if (endsWithSlash && rebuiltPath && !rebuiltPath.endsWith('/')) {
+        rebuiltPath += '/';
+      }
+
+      request.url = origin + rebuiltPath + urlSearchRaw;
+    } else {
+      try {
+        url = new URL(url);
+      } catch (e) {
+        throw { message: 'Invalid URL format', originalError: e.message };
+      }
+
+      const urlPathnameInterpolatedWithPathParams = url.pathname
+        .split('/')
+        .filter((path) => path !== '')
+        .map((path) => {
+          // traditional path parameters
+          if (path.startsWith(':')) {
+            const paramName = path.slice(1);
+            const existingPathParam = request.pathParams.find((param) => param.name === paramName);
+            if (!existingPathParam) {
+              return '/' + path;
+            }
+            return '/' + existingPathParam.value;
+          }
+
+          // for OData-style parameters (parameters inside parentheses)
+          // Check if path matches valid OData syntax:
+          // 1. EntitySet('key') or EntitySet(key)
+          // 2. EntitySet(Key1=value1,Key2=value2)
+          // 3. Function(param=value)
+          if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
+            const paramRegex = /[:](\w+)/g;
+            let match;
+            let result = path;
+            while ((match = paramRegex.exec(path))) {
+              if (match[1]) {
+                let name = match[1].replace(/[')"`]+$/, '');
+                name = name.replace(/^[('"`]+/, '');
+                if (name) {
+                  const existingPathParam = request.pathParams.find((param) => param.name === name);
+                  if (existingPathParam) {
+                    result = result.replace(':' + match[1], existingPathParam.value);
+                  }
+                }
+              }
+            }
+            return '/' + result;
+          }
+          return '/' + path;
+        })
+        .join('');
+
+      const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
+      request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
+    }
   }
 
   if (request.proxy) {
