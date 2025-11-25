@@ -9,16 +9,17 @@ const StyledWrapper = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100px;
   }
 
   .close-icon-container {
+    height: 20px;
+    width: 20px;
+    min-width: 20px;
     min-height: 20px;
-    min-width: 24px;
-    margin-left: 4px;
-    border-radius: 3px;
+    border-radius: 4px;
 
     .close-icon {
-      display: none;
       color: ${(props) => props.theme.requestTabs.icon.color};
       width: 8px;
       padding-bottom: 6px;

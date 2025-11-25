@@ -18,15 +18,19 @@ const GlobalStyle = createGlobalStyle`
     white-space: nowrap;
     outline: none;
     box-shadow: none;
-    border-radius: 3px;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
   }
 
   .btn-sm {
-    padding: .215rem .6rem .215rem .6rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8125rem;
   }
 
   .btn-xs {
-    padding: .2rem .4rem .2rem .4rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
   }
 
   .btn-md {
@@ -173,29 +177,34 @@ const GlobalStyle = createGlobalStyle`
   // (macos scrollbar styling is the ideal style reference)
   @media not all and (pointer: coarse) {
     * {
-      scrollbar-color: ${(props) => props.theme.scrollbar.color};
+      /* scrollbar-color: ${(props) => props.theme.scrollbar.color}; */
     }
     
     *::-webkit-scrollbar {
-      width: 5px;
+      width: 8px;
+      height: 8px;
     }
     
     *::-webkit-scrollbar-track {
       background: transparent;
-      border-radius: 5px;
     }
     
     *::-webkit-scrollbar-thumb {
       background-color: ${(props) => props.theme.scrollbar.color};
-      border-radius: 14px;
-      border: 3px solid ${(props) => props.theme.scrollbar.color};
+      border-radius: 4px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background-color: ${(props) => props.theme.scrollbar.hoverColor || props.theme.scrollbar.color};
     }
   }
 
   // Utility class for scrollbars that are hidden by default and shown on hover
   .scrollbar-hover {
     scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
+    /* scrollbar-color: transparent transparent; */
 
     &::-webkit-scrollbar {
       width: 5px;
@@ -215,7 +224,7 @@ const GlobalStyle = createGlobalStyle`
     }
 
     &:hover {
-      scrollbar-color: ${(props) => props.theme.scrollbar.color} transparent;
+      /* scrollbar-color: ${(props) => props.theme.scrollbar.color} transparent; */
       
       &::-webkit-scrollbar-thumb {
         background-color: ${(props) => props.theme.scrollbar.color};

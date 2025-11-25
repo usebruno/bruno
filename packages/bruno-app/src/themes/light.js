@@ -48,6 +48,7 @@ const lightTheme = {
     muted: '#4b5563',
     bg: '#F3F3F3',
     dragbar: 'rgb(200, 200, 200)',
+    bottomBorder: '#d3d3d3',
 
     badge: {
       bg: '#e1e1e1'
@@ -70,7 +71,9 @@ const lightTheme = {
     },
 
     dropdownIcon: {
-      color: 'rgb(110 110 110)'
+      color: 'rgb(110 110 110)',
+      hoverColor: 'rgb(50 50 50)',
+      hoverBg: 'rgba(0, 0, 0, 0.05)'
     }
   },
 
@@ -258,15 +261,15 @@ const lightTheme = {
 
   requestTabs: {
     color: 'rgb(52, 52, 52)',
-    bg: '#f7f7f7',
-    bottomBorder: '#efefef',
+    bg: '#e7e7e7',
+    bottomBorder: '#d3d3d3',
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(76 76 76)',
-      hoverBg: 'rgb(234, 234, 234)'
+      hoverBg: 'rgba(0, 0, 0, 0.05)'
     },
     active: {
-      bg: '#e7e7e7'
+      bg: '#e0e0e0'
     },
     shortTab: {
       color: 'rgb(117 117 117)',
@@ -324,7 +327,8 @@ const lightTheme = {
   },
 
   scrollbar: {
-    color: 'rgb(152 151 149)'
+    color: 'transparent',
+    hoverColor: 'rgb(152 151 149)'
   },
 
   dragAndDrop: {

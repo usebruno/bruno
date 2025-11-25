@@ -17,11 +17,11 @@ import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
-import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
+import { IconX } from '@tabler/icons';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
@@ -232,7 +232,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const method = getMethodText(item);
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-1">
+    <StyledWrapper className="flex items-center justify-between gap-3 tab-container">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
@@ -269,7 +269,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className={`flex items-baseline tab-label pl-2 ${tab.preview ? "italic" : ""}`}
+        className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {
@@ -282,11 +282,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
+        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: '0.625rem', fontWeight: '500' }}>
           {method}
         </span>
-        <span className="ml-1 tab-name" title={item.name}>
-          {item.name}
+        <span className="ml-2 flex items-center gap-1">
+          <span className="tab-name" title={item.name}>
+            {item.name}
+          </span>
+          <span>
+            {hasChanges ? <DraftTabIcon /> : null}
+          </span>
         </span>
         <RequestTabMenu
           onDropdownCreate={onDropdownCreate}
@@ -299,7 +304,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       </div>
       <div
-        className="flex px-2 close-icon-container"
+        className="flex items-center justify-center close-icon-container"
         onClick={(e) => {
           if (!hasChanges) {
             isWS && closeWsConnection(item.uid);
@@ -311,11 +316,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           setShowConfirmClose(true);
         }}
       >
-        {!hasChanges ? (
-          <CloseTabIcon />
-        ) : (
-          <DraftTabIcon />
-        )}
+        <IconX size={12} strokeWidth={2} />
       </div>
     </StyledWrapper>
   );
@@ -350,7 +351,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
       }
 
       dispatch(closeTabs({ tabUids: [tabUid] }));
-    } catch (err) {}
+    } catch (err) { }
   }
 
   function handleRevertChanges(event) {
@@ -369,7 +370,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
           collectionUid: collection.uid
         }));
       }
-    } catch (err) {}
+    } catch (err) { }
   }
 
   function handleCloseOtherTabs(event) {

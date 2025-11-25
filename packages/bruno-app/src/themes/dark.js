@@ -48,6 +48,7 @@ const darkTheme = {
     muted: '#9d9d9d',
     bg: '#252526',
     dragbar: '#666666',
+    bottomBorder: '#444',
 
     badge: {
       bg: '#3D3D3D'
@@ -70,7 +71,9 @@ const darkTheme = {
     },
 
     dropdownIcon: {
-      color: '#ccc'
+      color: '#ccc',
+      hoverColor: '#fff',
+      hoverBg: 'rgba(255, 255, 255, 0.1)'
     }
   },
 
@@ -262,10 +265,10 @@ const darkTheme = {
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(204, 204, 204)',
-      hoverBg: '#1e1e1e'
+      hoverBg: 'rgba(255, 255, 255, 0.1)'
     },
     active: {
-      bg: '#3D3D3D'
+      bg: '#37373D'
     },
     shortTab: {
       color: '#ccc',
@@ -323,7 +326,8 @@ const darkTheme = {
   },
 
   scrollbar: {
-    color: 'rgb(52 51 49)'
+    color: 'transparent',
+    hoverColor: 'rgb(80, 80, 80)'
   },
 
   dragAndDrop: {
