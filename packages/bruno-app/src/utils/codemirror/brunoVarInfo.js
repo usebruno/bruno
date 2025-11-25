@@ -634,6 +634,10 @@ if (!SERVER_RENDERED) {
       // Find the opening {{ before the cursor
       let start = token.start;
       while (start > 0 && !line.substring(start - 2, start).includes('{{')) {
+        // Stop if we encounter }} - we've gone past the start of our variable
+        if (line.substring(start - 2, start) === '}}') {
+          break;
+        }
         start--;
       }
       if (line.substring(start - 2, start) === '{{') {
@@ -643,6 +647,10 @@ if (!SERVER_RENDERED) {
       // Find the closing }} after the cursor
       let end = token.end;
       while (end < line.length && !line.substring(end, end + 2).includes('}}')) {
+        // Stop if we encounter {{ - we've gone past the end of our variable
+        if (line.substring(end, end + 2) === '{{') {
+          break;
+        }
         end++;
       }
       if (line.substring(end, end + 2) === '}}') {
