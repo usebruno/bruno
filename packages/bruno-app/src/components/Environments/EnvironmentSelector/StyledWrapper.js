@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   .current-environment {
     border-radius: 4px;
-    padding: 0.15rem 0.4rem;
+    padding: 0.25rem 0.5rem;
     user-select: none;
     background-color: transparent;
     border: 1px solid ${(props) => props.theme.dropdown.selectedColor};

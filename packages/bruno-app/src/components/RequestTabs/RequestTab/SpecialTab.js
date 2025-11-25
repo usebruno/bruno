@@ -59,7 +59,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
 
   return (
     <div className="flex items-center justify-between gap-2">
-      <div className="flex items-center tab-name">
+      <div className="flex items-center tab-name gap-1">
         {getTabInfo(type, tabName)}
         {hasDraft ? <DraftTabIcon /> : null}
       </div>
