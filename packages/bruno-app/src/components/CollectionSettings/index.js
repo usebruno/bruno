@@ -95,7 +95,7 @@ const CollectionSettings = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden">
+    <StyledWrapper className="flex flex-col h-full relative overflow-hidden">
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
           Overview
@@ -108,36 +108,36 @@ const CollectionSettings = ({ collection }) => {
           Vars
           {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
         </div>
-        <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
+        <div className={getTabClassname('auth')} style={{ gap: 0 }} role="tab" onClick={() => setTab('auth')}>
           Auth
           {authMode !== 'none' && <StatusDot />}
         </div>
-        <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
+        <div className={getTabClassname('script')} style={{ gap: 0 }} role="tab" onClick={() => setTab('script')}>
           Script
           {hasScripts && <StatusDot />}
         </div>
-        <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
+        <div className={getTabClassname('tests')} style={{ gap: 0 }} role="tab" onClick={() => setTab('tests')}>
           Tests
           {hasTests && <StatusDot />}
         </div>
-        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
+        <div className={getTabClassname('presets')} style={{ gap: 0 }} role="tab" onClick={() => setTab('presets')}>
           Presets
           {hasPresets && <StatusDot />}
         </div>
-        <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
+        <div className={getTabClassname('proxy')} style={{ gap: 0 }} role="tab" onClick={() => setTab('proxy')}>
           Proxy
           {Object.keys(proxyConfig).length > 0 && proxyEnabled && <StatusDot />}
         </div>
-        <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
+        <div className={getTabClassname('clientCert')} style={{ gap: 0 }} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
           {clientCertConfig.length > 0 && <StatusDot />}
         </div>
-        <div className={getTabClassname('protobuf')} role="tab" onClick={() => setTab('protobuf')}>
+        <div className={getTabClassname('protobuf')} style={{ gap: 0 }} role="tab" onClick={() => setTab('protobuf')}>
           Protobuf
           {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
         </div>
       </div>
-      <section className="mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
+      <section className="h-full overflow-auto px-6">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };

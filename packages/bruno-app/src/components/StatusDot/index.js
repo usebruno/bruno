@@ -3,11 +3,11 @@ import DotIcon from 'components/Icons/Dot';
 
 const StatusDot = ({ type = 'default' }) => (
   <sup
-    className={`ml-[.125rem] opacity-80 font-medium ${
-      type === 'error' ? 'text-red-500' : ''
+    className={`opacity-80 font-medium ${
+      type === 'error' ? 'text-red-500' : 'text-green-500'
     }`}
   >
-    <DotIcon width="10" />
+    <DotIcon width="12" />
   </sup>
 );
 

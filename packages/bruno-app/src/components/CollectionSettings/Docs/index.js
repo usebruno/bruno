@@ -47,8 +47,8 @@ const Docs = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full relative flex flex-col">
-      <div className='flex flex-row w-full justify-between items-center mb-4'>
-        <div className='text-lg font-medium flex items-center gap-2'>
+      <div className="flex flex-row w-full justify-between items-center mb-6">
+        <div className="text-base font-medium flex items-center gap-2">
           <IconBook2 size={20} strokeWidth={1.5} />
           Documentation
         </div>
@@ -81,8 +81,8 @@ const Docs = ({ collection }) => {
           fontSize={get(preferences, 'font.codeFontSize')}
         />
       ) : (
-        <div className='h-full overflow-auto pl-1'>
-          <div className='h-[1px] min-h-[500px]'>
+        <div className="h-full overflow-auto">
+          <div className="min-h-[500px]">
             {
               docs?.length > 0 ?
                 <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />

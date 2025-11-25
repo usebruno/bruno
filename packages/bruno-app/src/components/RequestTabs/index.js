@@ -93,7 +93,7 @@ const RequestTabs = () => {
                 </div>
               </li> */}
             </ul>
-              <div className="flex items-center gap-2 w-full">
+              <div className="flex items-center gap-2 w-full pl-2">
                 <ul role="tablist" className="flex items-center gap-2" ref={tabsRef}>
               {collectionRequestTabs && collectionRequestTabs.length
                 ? collectionRequestTabs.map((tab, index) => {
