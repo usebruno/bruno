@@ -282,7 +282,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 'var(--font-size-sm)', fontWeight: '500' }}>
+        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: '10px', fontWeight: '500' }}>
           {method}
         </span>
         <span className="ml-2 flex items-center gap-1">
