@@ -445,7 +445,6 @@ test.describe('Variable Tooltip', () => {
       const bodyEditor = page.locator('.CodeMirror').last();
       await bodyEditor.click();
 
-      // Set the value directly to avoid auto-completion issues
       await bodyEditor.evaluate((el: any) => {
         const cm = el.CodeMirror;
         cm.setValue('{\n  "userId": "{{user id}}"\n}');
@@ -457,7 +456,7 @@ test.describe('Variable Tooltip', () => {
       const invalidVar = bodyEditor.locator('.cm-variable-invalid, .cm-variable-valid').filter({ hasText: 'user id' }).first();
       await invalidVar.hover();
 
-      // Verify tooltip shows warning and hides input/copy button
+      // Verify tooltip shows warning and hides input
       const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
       await expect(tooltip).toBeVisible();
       await expect(tooltip.locator('.var-name')).toContainText('user id');
