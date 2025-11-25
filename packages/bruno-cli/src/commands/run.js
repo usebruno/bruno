@@ -140,8 +140,8 @@ const builder = async (yargs) => {
       type: 'string'
     })
     .option('sandbox', {
-      describe: 'Javascript sandbox to use; available sandboxes are "developer" (default) or "safe"',
-      default: 'developer',
+      describe: 'Javascript sandbox to use; available sandboxes are "safe" (default) or "developer"',
+      default: 'safe',
       type: 'string'
     })
     .option('output', {
