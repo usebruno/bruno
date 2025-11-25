@@ -55,7 +55,7 @@ const darkTheme = {
     },
 
     search: {
-      border: '1px solid transparent',
+      border: '1px solid #444',
       bg: '#3D3D3D'
     },
 

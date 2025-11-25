@@ -55,7 +55,7 @@ const lightTheme = {
     },
 
     search: {
-      border: '1px solid rgb(211 211 211)',
+      border: '1px solid #d3d3d3',
       bg: '#fff'
     },
 

@@ -33,7 +33,7 @@ const Wrapper = styled.div`
       input {
         border: ${(props) => props.theme.sidebar.search.border};
         border-radius: 4px;
-        background-color: ${(props) => props.theme.sidebar.search.bg};
+        background-color: ${(props) => props.theme.bg};
         padding: 0.375rem 2rem 0.375rem 2rem;
         transition: all 0.2s ease;
         font-size: 0.8125rem;
