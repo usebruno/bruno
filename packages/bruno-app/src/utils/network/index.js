@@ -345,3 +345,15 @@ export const isWsConnectionActive = async (requestId) => {
     ipcRenderer.invoke('renderer:ws:is-connection-active', requestId).then(resolve).catch(reject);
   });
 };
+
+/**
+ * Get the connection status of a WebSocket connection
+ * @param {string} requestId - The request ID to get the connection status of
+ * @returns {Promise<Object>} - The result of the get operation
+ */
+export const getWsConnectionStatus = async (requestId) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:ws:connection-status', requestId).then(resolve).catch(reject);
+  });
+};
