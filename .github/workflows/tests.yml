@@ -94,7 +94,7 @@ jobs:
         run: |
           cd packages/bruno-tests/collection
           npm install
-          node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
+          node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer
 
       - name: Publish Test Report
         uses: EnricoMi/publish-unit-test-result-action@v2
