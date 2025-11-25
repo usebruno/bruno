@@ -87,12 +87,24 @@ const createPreserveDotSegmentsAdapter = () => {
         };
 
         const req = transport.request(requestOptions, (res) => {
+          if (config.responseType === 'stream') {
+            resolve({
+              data: res,
+              status: res.statusCode,
+              statusText: res.statusMessage,
+              headers: res.headers,
+              config,
+              request: req
+            });
+            return;
+          }
+
           const chunks = [];
           res.on('data', (chunk) => chunks.push(chunk));
           res.on('end', () => {
             const responseData = Buffer.concat(chunks);
             resolve({
-              data: config.responseType === 'stream' ? res : responseData,
+              data: responseData,
               status: res.statusCode,
               statusText: res.statusMessage,
               headers: res.headers,
@@ -100,6 +112,7 @@ const createPreserveDotSegmentsAdapter = () => {
               request: req
             });
           });
+          res.on('aborted', () => reject(new Error('Response aborted')));
         });
 
         req.on('error', (err) => reject(err));
@@ -124,10 +137,10 @@ const createPreserveDotSegmentsAdapter = () => {
 
         const data = config.data;
         if (data && typeof data.pipe === 'function') {
+          data.on('error', reject);
           data.pipe(req);
         } else if (data) {
-          req.write(data);
-          req.end();
+          req.end(data);
         } else {
           req.end();
         }
