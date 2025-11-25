@@ -581,7 +581,7 @@ if (!SERVER_RENDERED) {
     const target = e.target || e.srcElement;
 
     // Prevent new tooltips if one is already active
-    if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined || activePopup !== null) {
+    if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
       return;
     }
     // Show popover for both valid and invalid variables
