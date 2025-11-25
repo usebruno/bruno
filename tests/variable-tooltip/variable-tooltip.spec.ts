@@ -415,4 +415,54 @@ test.describe('Variable Tooltip', () => {
       expect(varValueContent).toContain('secret-key-123');
     });
   });
+
+  test('should handle invalid variable names with warning', async ({ page, createTmpDir }) => {
+    const collectionName = 'invalid-var-test';
+
+    await test.step('Setup collection and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('invalid-var-collection'), {
+        openWithSandboxMode: 'safe'
+      });
+
+      // Create request using utility method
+      await createRequest(page, 'Invalid Var Test', collectionName);
+
+      // Set the URL
+      await page.locator('.collection-item-name').filter({ hasText: 'Invalid Var Test' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com');
+      await page.keyboard.press('Control+s');
+    });
+
+    await test.step('Test invalid variable name with space', async () => {
+      await page.getByRole('tab', { name: 'Body' }).click();
+
+      // Select JSON body mode
+      await page.locator('.body-mode-selector').click();
+      await page.locator('.dropdown-item').filter({ hasText: 'JSON' }).click();
+
+      const bodyEditor = page.locator('.CodeMirror').last();
+      await bodyEditor.click();
+
+      // Set the value directly to avoid auto-completion issues
+      await bodyEditor.evaluate((el: any) => {
+        const cm = el.CodeMirror;
+        cm.setValue('{\n  "userId": "{{user id}}"\n}');
+      });
+      await page.keyboard.press('Control+s');
+
+      // Hover over the invalid variable
+      await page.mouse.move(0, 0);
+      const invalidVar = bodyEditor.locator('.cm-variable-invalid, .cm-variable-valid').filter({ hasText: 'user id' }).first();
+      await invalidVar.hover();
+
+      // Verify tooltip shows warning and hides input/copy button
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-name')).toContainText('user id');
+      await expect(tooltip.locator('.var-warning-note')).toBeVisible();
+      await expect(tooltip.locator('.var-value-editable-display')).not.toBeVisible();
+    });
+  });
 });

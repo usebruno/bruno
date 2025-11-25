@@ -13,6 +13,7 @@ import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { variableNameRegex } from 'utils/common/regex';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -264,6 +265,20 @@ export const renderVarInfo = (token, options) => {
   header.appendChild(scopeBadge);
   into.appendChild(header);
 
+  // Check if variable name is valid (only for non-process.env variables)
+  const isValidVariableName = scopeInfo?.type === 'process.env' || variableNameRegex.test(variableName);
+
+  // Show warning if variable name is invalid
+  if (!isValidVariableName) {
+    const warningNote = document.createElement('div');
+    warningNote.className = 'var-warning-note';
+    warningNote.textContent = 'Invalid variable name! Variables must only contain alpha-numeric characters, "-", "_", "."';
+    into.appendChild(warningNote);
+
+    // Don't show value or any other content for invalid variable names
+    return into;
+  }
+
   // Value container with icons
   const valueContainer = document.createElement('div');
   valueContainer.className = 'var-value-container';
@@ -326,6 +341,17 @@ export const renderVarInfo = (token, options) => {
     // Store original value for comparison and track editing state
     let originalValue = rawValue;
     let isEditing = false;
+
+    cmEditor.setOption('extraKeys', {
+      'Enter': (cm) => {
+        // Enter: save and blur
+        cm.getInputField().blur();
+      },
+      'Shift-Enter': (cm) => {
+        // Shift+Enter: insert new line
+        cm.replaceSelection('\n', 'end');
+      }
+    });
 
     // Dynamically adjust editor height as content changes
     cmEditor.on('change', () => {
@@ -599,8 +625,43 @@ if (!SERVER_RENDERED) {
 
     const state = cm.state.brunoVarInfo;
     const options = state.options;
-    const token = cm.getTokenAt(pos, true);
+    let token = cm.getTokenAt(pos, true);
+
     if (token) {
+
+      const line = cm.getLine(pos.line);
+
+      // Find the opening {{ before the cursor
+      let start = token.start;
+      while (start > 0 && !line.substring(start - 2, start).includes('{{')) {
+        start--;
+      }
+      if (line.substring(start - 2, start) === '{{') {
+        start = start - 2;
+      }
+
+      // Find the closing }} after the cursor
+      let end = token.end;
+      while (end < line.length && !line.substring(end, end + 2).includes('}}')) {
+        end++;
+      }
+      if (line.substring(end, end + 2) === '}}') {
+        end = end + 2;
+      }
+
+      // Extract the full variable string including {{ and }}
+      const fullVariableString = line.substring(start, end);
+
+      // Only use the expanded string if it looks like a complete variable
+      if (fullVariableString.startsWith('{{') && fullVariableString.endsWith('}}')) {
+        token = {
+          ...token,
+          string: fullVariableString,
+          start: start,
+          end: end
+        };
+      }
+
       const brunoVarInfo = renderVarInfo(token, options);
       if (brunoVarInfo) {
         showPopup(cm, box, brunoVarInfo);
