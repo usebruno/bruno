@@ -297,7 +297,7 @@ const GlobalStyle = createGlobalStyle`
     padding: 0.125rem 0.375rem;
     background: #D977061A;
     border-radius: 0.25rem;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: #D97706;
     letter-spacing: 0.03125rem;
   }
@@ -463,6 +463,13 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.colors.text.muted};
     opacity: 0.6;
     margin-top: 0.25rem;
+  }
+
+  .CodeMirror-brunoVarInfo .var-warning-note {
+    font-size: 0.75rem;
+    color: #ef4444;
+    margin-top: 0.375rem;
+    line-height: 1.25rem;
   }
 
   .CodeMirror-hint-active {
