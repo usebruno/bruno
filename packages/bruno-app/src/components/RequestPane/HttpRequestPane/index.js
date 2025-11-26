@@ -16,17 +16,28 @@ import Settings from 'components/RequestPane/Settings';
 import Documentation from 'components/Documentation/index';
 import StatusDot from 'components/StatusDot';
 import Dropdown from 'components/Dropdown';
-import IconCaretDown from 'components/Icons/IconCaretDown';
+import { IconDots } from '@tabler/icons';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import StyledWrapper from './StyledWrapper';
 
 const DROPDOWN_WIDTH = 60;
-const TAB_MARGIN_RIGHT = 20;
-const BODY_MODE_PADDING = 20;
 const DEFAULT_TAB_ORDER = ['params', 'body', 'headers', 'auth', 'vars', 'script', 'assert', 'tests', 'docs', 'settings'];
 const CALCULATION_DELAY_DEFAULT = 50;
 const CALCULATION_DELAY_BODY_TAB = 150;
-const BODY_MODE_RENDER_DELAY = 200;
+const MULTIPLE_CONTENT_TABS = ['params', 'script', 'vars', 'auth', 'docs'];
+
+const TAB_PANELS = {
+  params: QueryParams,
+  body: RequestBody,
+  headers: RequestHeaders,
+  auth: Auth,
+  vars: Vars,
+  assert: Assertions,
+  script: Script,
+  tests: Tests,
+  docs: Documentation,
+  settings: Settings
+};
 
 const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -35,7 +46,6 @@ const HttpRequestPane = ({ item, collection }) => {
 
   const [visibleTabs, setVisibleTabs] = useState([]);
   const [overflowTabs, setOverflowTabs] = useState([]);
-  const [tabOrder, setTabOrder] = useState([]);
 
   const tabsContainerRef = useRef(null);
   const tabRefsMap = useRef({});
@@ -51,238 +61,151 @@ const HttpRequestPane = ({ item, collection }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const getPropertyFromDraftOrRequest = useCallback((propertyKey) => (item.draft ? get(item, `draft.${propertyKey}`, []) : get(item, propertyKey, [])),
+  // Helper to get property from draft or request
+  const getProperty = useCallback((key) => (item.draft ? get(item, `draft.${key}`, []) : get(item, key, [])),
     [item]);
 
-  const params = getPropertyFromDraftOrRequest('request.params');
-  const body = getPropertyFromDraftOrRequest('request.body');
-  const headers = getPropertyFromDraftOrRequest('request.headers');
-  const script = getPropertyFromDraftOrRequest('request.script');
-  const assertions = getPropertyFromDraftOrRequest('request.assertions');
-  const tests = getPropertyFromDraftOrRequest('request.tests');
-  const docs = getPropertyFromDraftOrRequest('request.docs');
-  const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
-  const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
-  const auth = getPropertyFromDraftOrRequest('request.auth');
-  const tags = getPropertyFromDraftOrRequest('tags');
+  const params = getProperty('request.params');
+  const body = getProperty('request.body');
+  const headers = getProperty('request.headers');
+  const script = getProperty('request.script');
+  const assertions = getProperty('request.assertions');
+  const tests = getProperty('request.tests');
+  const docs = getProperty('request.docs');
+  const requestVars = getProperty('request.vars.req');
+  const responseVars = getProperty('request.vars.res');
+  const auth = getProperty('request.auth');
+  const tags = getProperty('tags');
 
-  const activeParamsLength = useMemo(() => params.filter((param) => param.enabled).length, [params]);
-  const activeHeadersLength = useMemo(() => headers.filter((header) => header.enabled).length, [headers]);
-  const activeAssertionsLength = useMemo(() => assertions.filter((assertion) => assertion.enabled).length, [assertions]);
-  const activeVarsLength = useMemo(() =>
-    requestVars.filter((request) => request.enabled).length
-    + responseVars.filter((response) => response.enabled).length,
-  [requestVars, responseVars]);
-
-  const allTabsMetadata = useMemo(() => ({
-    params: {
-      key: 'params',
-      label: 'Params',
-      indicator: activeParamsLength > 0 ? <sup className="font-medium">{activeParamsLength}</sup> : null
-    },
-    body: {
-      key: 'body',
-      label: 'Body',
-      indicator: body.mode !== 'none' ? <StatusDot /> : null
-    },
-    headers: {
-      key: 'headers',
-      label: 'Headers',
-      indicator: activeHeadersLength > 0 ? <sup className="font-medium">{activeHeadersLength}</sup> : null
-    },
-    auth: {
-      key: 'auth',
-      label: 'Auth',
-      indicator: auth.mode !== 'none' ? <StatusDot /> : null
-    },
-    vars: {
-      key: 'vars',
-      label: 'Vars',
-      indicator: activeVarsLength > 0 ? <sup className="font-medium">{activeVarsLength}</sup> : null
-    },
-    script: {
-      key: 'script',
-      label: 'Script',
-      indicator:
-          script.req || script.res ? (
-            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ? (
-              <StatusDot type="error" />
-            ) : (
-              <StatusDot />
-            )
-          ) : null
-    },
-    assert: {
-      key: 'assert',
-      label: 'Assert',
-      indicator: activeAssertionsLength > 0 ? <sup className="font-medium">{activeAssertionsLength}</sup> : null
-    },
-    tests: {
-      key: 'tests',
-      label: 'Tests',
-      indicator:
-          tests && tests.length > 0 ? (
-            item.testScriptErrorMessage ? (
-              <StatusDot type="error" />
-            ) : (
-              <StatusDot />
-            )
-          ) : null
-    },
-    docs: {
-      key: 'docs',
-      label: 'Docs',
-      indicator: docs && docs.length > 0 ? <StatusDot /> : null
-    },
-    settings: {
-      key: 'settings',
-      label: 'Settings',
-      indicator: tags && tags.length > 0 ? <StatusDot /> : null
-    }
+  const activeCounts = useMemo(() => ({
+      params: params.filter((p) => p.enabled).length,
+    headers: headers.filter((h) => h.enabled).length,
+    assertions: assertions.filter((a) => a.enabled).length,
+    vars: requestVars.filter((r) => r.enabled).length + responseVars.filter((r) => r.enabled).length
   }),
-  [
-    activeParamsLength,
-    body.mode,
-    activeHeadersLength,
-    auth.mode,
-    activeVarsLength,
-    script,
-    item.preRequestScriptErrorMessage,
-    item.postResponseScriptErrorMessage,
-    activeAssertionsLength,
-    tests,
-    item.testScriptErrorMessage,
-    docs,
-    tags
-  ]);
+  [params, headers, assertions, requestVars, responseVars]);
 
-  const allTabs = useMemo(() => tabOrder.map((key) => allTabsMetadata[key]).filter(Boolean), [tabOrder, allTabsMetadata]);
-  const selectTab = useCallback((tabKey, fromDropdown = false) => {
-    dispatch(updateRequestPaneTab({
-      uid: item.uid,
-      requestPaneTab: tabKey
-    }));
-
-    if (fromDropdown && overflowTabs.some((t) => t.key === tabKey)) {
-      setTabOrder((prevOrder) => {
-        const newOrder = [...prevOrder];
-        const selectedTabIndex = newOrder.indexOf(tabKey);
-        const lastVisibleTab = visibleTabs[visibleTabs.length - 1];
-        const lastVisibleIndex = lastVisibleTab ? newOrder.indexOf(lastVisibleTab.key) : -1;
-
-        // Swap positions if both indices are valid
-        if (selectedTabIndex !== -1 && lastVisibleIndex !== -1) {
-          [newOrder[selectedTabIndex], newOrder[lastVisibleIndex]] = [
-            newOrder[lastVisibleIndex],
-            newOrder[selectedTabIndex]
-          ];
-        }
-
-        return newOrder;
-      });
+  const getIndicator = useCallback((tabKey) => {
+    switch (tabKey) {
+      case 'params':
+          return activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null;
+      case 'body':
+        return body.mode !== 'none' ? <StatusDot /> : null;
+      case 'headers':
+        return activeCounts.headers > 0 ? <sup className="font-medium">{activeCounts.headers}</sup> : null;
+      case 'auth':
+        return auth.mode !== 'none' ? <StatusDot /> : null;
+      case 'vars':
+        return activeCounts.vars > 0 ? <sup className="font-medium">{activeCounts.vars}</sup> : null;
+      case 'script':
+        return script.req || script.res ? (
+          item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ? (
+            <StatusDot type="error" />
+          ) : (
+            <StatusDot />
+          )
+          ) : null;
+        case 'assert':
+          return activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null;
+        case 'tests':
+          return tests?.length > 0 ? (
+          item.testScriptErrorMessage ? <StatusDot type="error" /> : <StatusDot />
+        ) : null;
+      case 'docs':
+        return docs?.length > 0 ? <StatusDot /> : null;
+      case 'settings':
+        return tags?.length > 0 ? <StatusDot /> : null;
+      default:
+        return null;
     }
+  },
+  [activeCounts, body.mode, auth.mode, script, item, tests, docs, tags]);
 
+  const TAB_LABELS = {
+    params: 'Params',
+    body: 'Body',
+    headers: 'Headers',
+    auth: 'Auth',
+    vars: 'Vars',
+    script: 'Script',
+    assert: 'Assert',
+    tests: 'Tests',
+    docs: 'Docs',
+    settings: 'Settings'
+  };
+
+  const allTabs = useMemo(() =>
+    DEFAULT_TAB_ORDER.map((key) => ({
+      key,
+      label: TAB_LABELS[key],
+      indicator: getIndicator(key)
+    })),
+  [getIndicator]);
+
+  const selectTab = useCallback((tabKey) => {
+    dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: tabKey }));
     dropdownTippyRef.current?.hide();
   },
-  [dispatch, item.uid, overflowTabs, visibleTabs]);
+  [dispatch, item.uid]);
 
   const calculateTabVisibility = useCallback(() => {
-    if (!tabsContainerRef.current || allTabs.length === 0) return;
+    if (!tabsContainerRef.current || !allTabs.length) return;
 
     const containerWidth = tabsContainerRef.current.offsetWidth;
     const activeTabKey = focusedTab.requestPaneTab;
+    const bodyModeWidth
+      = focusedTab.requestPaneTab === 'body' && bodyModeRef.current
+        ? bodyModeRef.current.offsetWidth + 20
+        : 0;
 
-    let bodyModeWidth = 0;
-    if (focusedTab.requestPaneTab === 'body') {
-      bodyModeWidth = bodyModeRef.current ? bodyModeRef.current.offsetWidth + BODY_MODE_PADDING : 0;
-    }
+    const availableWidth = containerWidth - bodyModeWidth - DROPDOWN_WIDTH;
+    const visible = [];
+    const overflow = [];
+    let currentWidth = 0;
 
-    const distributeTabsAcrossWidth = (availableWidth) => {
-      const visible = [];
-      const overflow = [];
-      let totalWidth = 0;
-      let activeTabIncluded = false;
+    for (const tab of allTabs) {
+      const tabElement = tabRefsMap.current[tab.key];
+      const tabWidth = tabElement ? tabElement.offsetWidth + 20 : 100;
 
-      allTabs.forEach((tab) => {
-        const tabElement = tabRefsMap.current[tab.key];
-        if (!tabElement) return;
-
-        const tabWidth = tabElement.offsetWidth + TAB_MARGIN_RIGHT;
-        const canFit = totalWidth + tabWidth <= availableWidth;
-        const isActiveTab = tab.key === activeTabKey;
-
-        if (canFit) {
-          visible.push(tab);
-          totalWidth += tabWidth;
-          if (isActiveTab) activeTabIncluded = true;
-        } else {
-          overflow.push(tab);
-        }
-      });
-
-      if (!activeTabIncluded && overflow.length > 0) {
-        const activeTab = overflow.find((tab) => tab.key === activeTabKey);
-        if (activeTab) {
-          const removedTab = visible.pop();
-          if (removedTab) {
-            overflow.unshift(removedTab);
-            overflow.splice(overflow.indexOf(activeTab), 1);
-            visible.push(activeTab);
-          }
-        }
+      if (currentWidth + tabWidth <= availableWidth && !overflow.length) {
+        visible.push(tab);
+        currentWidth += tabWidth;
+      } else {
+        overflow.push(tab);
       }
-
-      return { visible, overflow };
-    };
-
-    let result = distributeTabsAcrossWidth(containerWidth - bodyModeWidth - DROPDOWN_WIDTH);
-
-    if (result.overflow.length === 0) {
-      result = distributeTabsAcrossWidth(containerWidth - bodyModeWidth);
     }
 
-    setVisibleTabs(result.visible);
-    setOverflowTabs(result.overflow);
+    // Ensure active tab is always visible
+    const isActiveVisible = visible.some((t) => t.key === activeTabKey);
+    if (!isActiveVisible && overflow.length) {
+      const activeTabIndex = overflow.findIndex((t) => t.key === activeTabKey);
+      if (activeTabIndex !== -1) {
+        const [activeTab] = overflow.splice(activeTabIndex, 1);
+        const lastVisible = visible.pop();
+        if (lastVisible) overflow.unshift(lastVisible);
+        visible.push(activeTab);
+      }
+    }
+
+    setVisibleTabs(visible);
+    setOverflowTabs(overflow);
   }, [allTabs, focusedTab.requestPaneTab]);
 
-  const getTabPanel = useCallback((tab) => {
-    const commonProps = { item, collection };
-
-    switch (tab) {
-      case 'params':
-        return <QueryParams {...commonProps} />;
-      case 'body':
-        return <RequestBody {...commonProps} />;
-      case 'headers':
-        return <RequestHeaders {...commonProps} />;
-      case 'auth':
-        return <Auth {...commonProps} />;
-      case 'vars':
-        return <Vars {...commonProps} />;
-      case 'assert':
-        return <Assertions {...commonProps} />;
-      case 'script':
-        return <Script {...commonProps} />;
-      case 'tests':
-        return <Tests {...commonProps} />;
-      case 'docs':
-        return <Documentation {...commonProps} />;
-      case 'settings':
-        return <Settings {...commonProps} />;
-      default:
-        return <div className="mt-4">404 | Not found</div>;
-    }
-  },
-  [item, collection]);
+  const getTabPanel = useCallback(() => {
+    const Component = TAB_PANELS[focusedTab.requestPaneTab];
+    return Component ? <Component item={item} collection={collection} /> : <div className="mt-4">404 | Not found</div>;
+  }, [focusedTab.requestPaneTab, item, collection]);
 
   const renderTab = useCallback((tab, isInDropdown = false) => {
-    if (isInDropdown) {
-      return (
+    const isActive = tab.key === focusedTab.requestPaneTab;
+
+      if (isInDropdown) {
+        return (
         <div
           key={tab.key}
-          className={`dropdown-item ${tab.key === focusedTab.requestPaneTab ? 'active' : ''}`}
+          className={classnames('dropdown-item', { active: isActive })}
           role="tab"
-          onClick={() => selectTab(tab.key, true)}
+            onClick={() => selectTab(tab.key)}
         >
           <span className="flex items-center gap-1">
             {tab.label}
@@ -292,155 +215,105 @@ const HttpRequestPane = ({ item, collection }) => {
       );
     }
 
-    const tabClassName = classnames(`tab select-none ${tab.key}`, {
-      active: tab.key === focusedTab.requestPaneTab
-    });
-
     return (
       <div
         key={tab.key}
-        className={tabClassName}
+        className={classnames('tab select-none', tab.key, { active: isActive })}
         role="tab"
-        onClick={() => selectTab(tab.key, false)}
-        ref={(el) => {
-          if (el) {
-            tabRefsMap.current[tab.key] = el;
-          }
-        }}
+        onClick={() => selectTab(tab.key)}
+        ref={(el) => el && (tabRefsMap.current[tab.key] = el)}
       >
         {tab.label}
         {tab.indicator}
-      </div>
-    );
-  },
-  [focusedTab.requestPaneTab, selectTab]);
+        </div>
+      );
+    },
+    [focusedTab.requestPaneTab, selectTab]);
 
+  // Auto-select body tab if no params
   useEffect(() => {
-    if (tabOrder.length === 0) {
-      setTabOrder(DEFAULT_TAB_ORDER);
-    }
-  }, [tabOrder.length]);
-
-  useEffect(() => {
-    if (activeParamsLength === 0 && body.mode !== 'none') {
+    if (activeCounts.params === 0 && body.mode !== 'none') {
       selectTab('body');
     }
   }, []);
 
   useEffect(() => {
     const delay = focusedTab.requestPaneTab === 'body' ? CALCULATION_DELAY_BODY_TAB : CALCULATION_DELAY_DEFAULT;
-
-    const timeoutId = setTimeout(() => {
-      requestAnimationFrame(() => {
-        calculateTabVisibility();
-      });
-    }, delay);
-
+    const timeoutId = setTimeout(() => requestAnimationFrame(calculateTabVisibility), delay);
     return () => clearTimeout(timeoutId);
   }, [
     calculateTabVisibility,
-    activeParamsLength,
-    activeHeadersLength,
-    activeAssertionsLength,
-    activeVarsLength,
+    activeCounts,
     body.mode,
     auth.mode,
     script,
     tests,
     docs,
     tags,
-    focusedTab.requestPaneTab,
-    tabOrder
+    focusedTab.requestPaneTab
   ]);
 
+  // Observe container and body mode resize
   useEffect(() => {
-    let resizeTimeoutId = null;
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (resizeTimeoutId) {
-        cancelAnimationFrame(resizeTimeoutId);
-      }
-
-      resizeTimeoutId = requestAnimationFrame(() => {
-        calculateTabVisibility();
-      });
+    let timeoutId = null;
+    const observer = new ResizeObserver(() => {
+      if (timeoutId) cancelAnimationFrame(timeoutId);
+      timeoutId = requestAnimationFrame(calculateTabVisibility);
     });
 
-    if (tabsContainerRef.current) {
-      resizeObserver.observe(tabsContainerRef.current);
-    }
-
-    if (bodyModeRef.current) {
-      resizeObserver.observe(bodyModeRef.current);
-    }
+    if (tabsContainerRef.current) observer.observe(tabsContainerRef.current);
+    if (bodyModeRef.current) observer.observe(bodyModeRef.current);
 
     return () => {
-      if (resizeTimeoutId) {
-        cancelAnimationFrame(resizeTimeoutId);
-      }
-      resizeObserver.disconnect();
+      if (timeoutId) cancelAnimationFrame(timeoutId);
+      observer.disconnect();
     };
-  }, [calculateTabVisibility, focusedTab.requestPaneTab]);
+  }, [calculateTabVisibility]);
 
   useEffect(() => {
     if (focusedTab.requestPaneTab === 'body' && bodyModeRef.current) {
-      const timeoutId = setTimeout(() => {
-        requestAnimationFrame(() => {
-          calculateTabVisibility();
-        });
-      }, BODY_MODE_RENDER_DELAY);
-
+      const timeoutId = setTimeout(() => requestAnimationFrame(calculateTabVisibility), 150);
       return () => clearTimeout(timeoutId);
     }
   }, [focusedTab.requestPaneTab, calculateTabVisibility]);
 
-  const isMultipleContentTab = useMemo(() => ['params', 'script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab),
-    [focusedTab.requestPaneTab]);
+  const isMultipleContentTab = MULTIPLE_CONTENT_TABS.includes(focusedTab.requestPaneTab);
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div ref={tabsContainerRef} className="flex items-center tabs" role="tablist">
         <div style={{ visibility: 'hidden', position: 'absolute', display: 'flex', pointerEvents: 'none' }}>
-          {allTabs.map((tab) => {
-            const tabClassName = classnames(`tab select-none ${tab.key}`, {
-              active: tab.key === focusedTab.requestPaneTab
-            });
-
-            return (
-              <div
-                key={tab.key}
-                className={tabClassName}
-                ref={(el) => {
-                  if (el) {
-                    tabRefsMap.current[tab.key] = el;
-                  }
-                }}
-              >
-                {tab.label}
-                {tab.indicator}
-              </div>
-            );
-          })}
+          {allTabs.map((tab) => (
+            <div
+              key={tab.key}
+              className={classnames('tab select-none', tab.key, {
+                active: tab.key === focusedTab.requestPaneTab
+              })}
+              ref={(el) => el && (tabRefsMap.current[tab.key] = el)}
+            >
+              {tab.label}
+              {tab.indicator}
+            </div>
+          ))}
         </div>
 
-        {visibleTabs.map((tab) => renderTab(tab, false))}
+        {visibleTabs.map((tab) => renderTab(tab))}
 
         {overflowTabs.length > 0 && (
           <Dropdown
             icon={(
-              <div className="tab select-none flex items-center cursor-pointer" style={{ padding: '6px 8px' }}>
-                <IconCaretDown />
+              <div className="tab select-none flex items-center cursor-pointe !text-[#343434] rounded-md bg-[#f7f7f7] hover:bg-[#e0e0e0]" style={{ padding: '2px 8px' }}>
+                <IconDots size={18} />
               </div>
             )}
             placement="bottom-start"
-            onCreate={(instance) => {
-              dropdownTippyRef.current = instance;
-            }}
+            onCreate={(instance) => (dropdownTippyRef.current = instance)}
           >
             <div style={{ minWidth: '150px' }}>{overflowTabs.map((tab) => renderTab(tab, true))}</div>
           </Dropdown>
         )}
 
+        {/* Body mode selector */}
         {focusedTab.requestPaneTab === 'body' && (
           <div className="flex flex-grow justify-end items-center">
             <div ref={bodyModeRef}>
@@ -449,14 +322,10 @@ const HttpRequestPane = ({ item, collection }) => {
           </div>
         )}
       </div>
-      <section
-        className={classnames('flex w-full flex-1', {
-          'mt-5': !isMultipleContentTab
-        })}
-      >
-        <HeightBoundContainer>
-          {getTabPanel(focusedTab.requestPaneTab)}
-        </HeightBoundContainer>
+
+      {/* Tab content */}
+      <section className={classnames('flex w-full flex-1', { 'mt-3': !isMultipleContentTab })}>
+        <HeightBoundContainer>{getTabPanel()}</HeightBoundContainer>
       </section>
     </StyledWrapper>
   );
