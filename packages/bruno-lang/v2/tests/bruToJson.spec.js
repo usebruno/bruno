@@ -39,6 +39,60 @@ settings {
     });
   });
 
+  describe('body:grpc', () => {
+    it('parses message content with name and content', () => {
+      const input = `
+body:grpc {
+    name: message 1
+    content: '''
+      {"foo":"bar"}
+    ''' 
+}
+`;
+
+      const expected = {
+        body: {
+          mode: 'grpc',
+          grpc: [
+            {
+              content: '{"foo":"bar"}',
+              name: 'message 1'
+            }
+          ]
+        }
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(expected);
+    });
+
+    it('parses message with variables in content', () => {
+      const input = `
+body:grpc {
+    name: message 1
+    content: '''
+      {"id":{{userId}},"name":"{{userName}}"}
+    ''' 
+}
+`;
+
+      const expected = {
+        body: {
+          mode: 'grpc',
+          grpc: [
+            {
+              content: '{"id":{{userId}},"name":"{{userName}}"}',
+              name: 'message 1'
+            }
+          ]
+        }
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(expected);
+    });
+  });
+
   describe('multi-line values', () => {
     it('parses multi-line values in URL, headers, params, and vars', () => {
       const input = `
