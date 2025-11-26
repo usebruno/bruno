@@ -94,28 +94,32 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   });
 };
 
-export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, getState) => {
+
+export const saveRequest = (itemUid, collectionUid, saveSilently, notify = 1) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
+    return new Promise((resolve, reject) => {
+      if (!collection) {
+        return reject(new Error('Collection not found'));
+      }
 
-    const collectionCopy = cloneDeep(collection);
-    const item = findItemInCollection(collectionCopy, itemUid);
-    if (!item) {
-      return reject(new Error('Not able to locate item'));
-    }
+      const collectionCopy = cloneDeep(collection);
+      const item = findItemInCollection(collectionCopy, itemUid);
+      if (!item) {
+        return reject(new Error('Not able to locate item'));
+      }
 
-    const itemToSave = transformRequestToSaveToFilesystem(item);
-    const { ipcRenderer } = window;
+      const itemToSave = transformRequestToSaveToFilesystem(item);
+      const { ipcRenderer } = window;
 
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
       .then(() => {
+        if (notify === 1) {
+          toast.success('Request saved successfully');
+        }
         if (!saveSilently) {
           toast.success('Request saved successfully');
         }
