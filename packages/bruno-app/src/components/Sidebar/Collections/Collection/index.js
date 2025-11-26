@@ -4,7 +4,21 @@ import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
-import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
+import {
+  IconChevronRight,
+  IconDots,
+  IconLoader2,
+  IconFilePlus,
+  IconFolderPlus,
+  IconCopy,
+  IconClipboard,
+  IconPlayerPlay,
+  IconEdit,
+  IconShare,
+  IconFoldDown,
+  IconX,
+  IconSettings
+} from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
@@ -277,6 +291,9 @@ const Collection = ({ collection, searchText }) => {
                 setShowNewRequestModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconFilePlus size={16} strokeWidth={2} />
+              </span>
               New Request
             </div>
             <div
@@ -286,6 +303,9 @@ const Collection = ({ collection, searchText }) => {
                 setShowNewFolderModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconFolderPlus size={16} strokeWidth={2} />
+              </span>
               New Folder
             </div>
             <div
@@ -296,6 +316,9 @@ const Collection = ({ collection, searchText }) => {
                 setShowCloneCollectionModalOpen(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconCopy size={16} strokeWidth={2} />
+              </span>
               Clone
             </div>
             {hasCopiedItems && (
@@ -303,6 +326,9 @@ const Collection = ({ collection, searchText }) => {
                 className="dropdown-item"
                 onClick={handlePasteRequest}
               >
+                <span className="dropdown-icon">
+                  <IconClipboard size={16} strokeWidth={2} />
+                </span>
                 Paste
               </div>
             )}
@@ -314,6 +340,9 @@ const Collection = ({ collection, searchText }) => {
                 handleRun();
               }}
             >
+              <span className="dropdown-icon">
+                <IconPlayerPlay size={16} strokeWidth={2} />
+              </span>
               Run
             </div>
             <div
@@ -323,6 +352,9 @@ const Collection = ({ collection, searchText }) => {
                 setShowRenameCollectionModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconEdit size={16} strokeWidth={2} />
+              </span>
               Rename
             </div>
             <div
@@ -333,6 +365,9 @@ const Collection = ({ collection, searchText }) => {
                 setShowShareCollectionModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconShare size={16} strokeWidth={2} />
+              </span>
               Share
             </div>
             <div
@@ -342,6 +377,9 @@ const Collection = ({ collection, searchText }) => {
                 handleCollapseFullCollection();
               }}
             >
+              <span className="dropdown-icon">
+                <IconFoldDown size={16} strokeWidth={2} />
+              </span>
               Collapse
             </div>
             <div
@@ -351,15 +389,21 @@ const Collection = ({ collection, searchText }) => {
                 setShowRemoveCollectionModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconX size={16} strokeWidth={2} />
+              </span>
               Close
             </div>
             <div
-              className="dropdown-item"
+              className="dropdown-item border-top"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 viewCollectionSettings();
               }}
             >
+              <span className="dropdown-icon">
+                <IconSettings size={16} strokeWidth={2} />
+              </span>
               Settings
             </div>
           </Dropdown>

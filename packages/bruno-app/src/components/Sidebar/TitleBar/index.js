@@ -5,7 +5,7 @@ import CreateCollection from '../CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 
-import { IconDots } from '@tabler/icons';
+import { IconDots, IconPlus, IconFolder, IconDownload, IconDeviceDesktop } from '@tabler/icons';
 import { useState, forwardRef, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
@@ -90,6 +90,7 @@ const TitleBar = () => {
         </button>
         <div className="collection-dropdown flex flex-grow items-center justify-end">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
+            <div className="label-item">Collections</div>
             <div
               className="dropdown-item"
               onClick={(e) => {
@@ -97,6 +98,9 @@ const TitleBar = () => {
                 menuDropdownTippyRef.current.hide();
               }}
             >
+              <span className="dropdown-icon">
+                <IconPlus size={16} strokeWidth={2} />
+              </span>
               Create Collection
             </div>
             <div
@@ -106,7 +110,10 @@ const TitleBar = () => {
                 menuDropdownTippyRef.current.hide();
               }}
             >
-              Open Collection
+              <span className="dropdown-icon">
+                <IconFolder size={16} strokeWidth={2} />
+              </span>
+              Open
             </div>
             <div
               className="dropdown-item"
@@ -115,15 +122,46 @@ const TitleBar = () => {
                 setImportCollectionModalOpen(true);
               }}
             >
-              Import Collection
+              <span className="dropdown-icon">
+                <IconDownload size={16} strokeWidth={2} />
+              </span>
+              Import
+            </div>
+            <div className="label-item">API Specs</div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                setCreateCollectionModalOpen(true);
+                menuDropdownTippyRef.current.hide();
+              }}
+            >
+              <span className="dropdown-icon">
+                <IconPlus size={16} strokeWidth={2} />
+              </span>
+              Create Collection
             </div>
             <div
               className="dropdown-item"
+              onClick={(e) => {
+                handleOpenCollection();
+                menuDropdownTippyRef.current.hide();
+              }}
+            >
+              <span className="dropdown-icon">
+                <IconFolder size={16} strokeWidth={2} />
+              </span>
+              Open
+            </div>
+            <div
+              className="dropdown-item border-top"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
                 openDevTools();
               }}
             >
+              <span className="dropdown-icon">
+                <IconDeviceDesktop size={16} strokeWidth={2} />
+              </span>
               Devtools
             </div>
           </Dropdown>
