@@ -942,15 +942,19 @@ const registerNetworkIpc = (mainWindow) => {
         await runPostScripts();
       }
 
-      // Regenerate dataBuffer from response.data in case it was modified by post-response/test scripts
+      // Regenerate dataBuffer from response.data only if res.setBody() was called
       // This ensures dataBuffer matches the potentially modified response.data from res.setBody()
       let finalDataBuffer;
-      if (response.data === null || response.data === undefined) {
-        finalDataBuffer = Buffer.from('');
-      } else if (typeof response.data === 'string') {
-        finalDataBuffer = Buffer.from(response.data);
+      if (response._setBodyCalled) {
+        if (response.data === null || response.data === undefined) {
+          finalDataBuffer = Buffer.from('');
+        } else if (typeof response.data === 'string') {
+          finalDataBuffer = Buffer.from(response.data);
+        } else {
+          finalDataBuffer = Buffer.from(safeStringifyJSON(response.data) || '');
+        }
       } else {
-        finalDataBuffer = Buffer.from(safeStringifyJSON(response.data) || '');
+        finalDataBuffer = response.dataBuffer;
       }
 
       return {
