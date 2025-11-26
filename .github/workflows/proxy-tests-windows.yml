@@ -1,0 +1,207 @@
+name: Proxy Tests - Windows
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tests-for-windows:
+    name: Proxy Tests - Windows
+    timeout-minutes: 60
+    runs-on: windows-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: v22.17.0
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
+      
+      - name: Setup test server and run tests
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+
+          # Install node dependencies
+          Write-Host "Installing node dependencies..."
+          npm ci --legacy-peer-deps
+
+          # Build libraries
+          Write-Host "Building libraries..."
+          npm run build:graphql-docs
+          npm run build:bruno-query
+          npm run build:bruno-common
+          npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+          npm run build:bruno-converters
+          npm run build:bruno-requests
+          npm run build:bruno-filestore
+
+          # Setup Test Server
+          Write-Host "Setting up test server..."
+          Set-Location tests\proxy-settings\server
+          
+          Write-Host "running certificate setup"
+          node scripts/generate-certs.js
+
+          # Start test server
+          Write-Host "starting server in background"
+          Start-Process -FilePath "node" -ArgumentList "index.js" -PassThru -WindowStyle Hidden
+
+          # Return to root directory
+          Set-Location $env:GITHUB_WORKSPACE
+
+          # Run Proxy CLI tests for `proxy-false`
+          Write-Host "Running proxy-false collection tests..."
+          
+          Push-Location tests\proxy-settings\collections\proxy-false
+
+          $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run --reporter-json report.json" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+          if (-not (Select-String -Path "report.json" -Pattern '"status": "pass"' -Quiet)) {
+            Write-Host "Test failed: should not use proxy."
+            Pop-Location
+            exit 1
+          }
+
+          # Test with --noproxy flag (should still work)
+          Write-Host "Running with --noproxy flag..."
+          $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run --reporter-json report.json --noproxy" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+          if (-not (Select-String -Path "report.json" -Pattern '"status": "pass"' -Quiet)) {
+            Write-Host "Test failed: should not use proxy."
+            Pop-Location
+            exit 1
+          }
+
+          Pop-Location
+
+          # Run Proxy CLI tests for `proxy-object` with proxy turned `off`
+          Write-Host "Running proxy-object collection tests..."
+
+          Push-Location tests\proxy-settings\collections\proxy-object
+
+          $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run --reporter-json report.json" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+          if (-not (Select-String -Path "report.json" -Pattern '"status": "error"' -Quiet)) {
+            Write-Host "Test failed: proxy not turned on, should throw an error."
+            Pop-Location
+            exit 1
+          }
+
+          Pop-Location
+
+          # Run Proxy CLI tests for `proxy-inherit` with proxy turned `off`
+          Write-Host "Running proxy-inherit collection tests..."
+
+          Push-Location tests\proxy-settings\collections\proxy-inherit
+          
+          # Test with system proxy environment variables set
+          Write-Host "Running with HTTPS_PROXY environment variable..."
+          $env:HTTPS_PROXY = "http://127.0.0.1:8091"
+          $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run --reporter-json report.json" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+          Get-ChildItem Env:
+          Get-Content report.json
+          if (-not (Select-String -Path "report.json" -Pattern '"status": "error"' -Quiet)) {
+            Write-Host "Test failed: proxy not turned on, should throw an error."
+            $env:HTTPS_PROXY = ""
+            Pop-Location
+            exit 1
+          }
+          $env:HTTPS_PROXY = ""
+
+          Pop-Location
+
+          # Run Proxy E2E tests - Proxy OFF
+          Write-Host "Running Proxy E2E tests - Proxy OFF..."
+          npm run test:e2e:proxy-off
+
+
+          # Start proxy server on port `8091` for proxy-on tests
+          Write-Host "Starting proxy server for proxy-on tests..."
+          Push-Location tests\proxy-settings\server
+          
+          $process = Start-Process -FilePath "node" -ArgumentList "proxy.js" -PassThru -WindowStyle Hidden
+          $process.Id | Out-File -FilePath "proxy.pid" -Encoding ascii
+          
+          # Wait a bit for the server to be ready
+          Start-Sleep -Seconds 2
+          
+          # Verify the server is running
+          if (-not (Get-Process -Id $process.Id -ErrorAction SilentlyContinue)) {
+            Write-Host "Error: Proxy server failed to start"
+            Pop-Location
+            exit 1
+          }
+
+          Pop-Location
+
+          # Run Proxy CLI tests for `proxy-object` with proxy turned `on`
+          Write-Host "Running proxy-object collection tests..."
+
+          Push-Location tests\proxy-settings\collections\proxy-object
+
+          $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run --reporter-json report.json" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+          if (-not (Select-String -Path "report.json" -Pattern '"status": "pass"' -Quiet)) {
+            Write-Host "Test failed: error occurred while proxying request."
+            Pop-Location
+            exit 1
+          }
+
+          # Test with --noproxy flag (should disable collection proxy)
+          Write-Host "Running with --noproxy flag..."
+          $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run --reporter-json report.json --noproxy" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+          if (-not (Select-String -Path "report.json" -Pattern '"status": "pass"' -Quiet)) {
+            Write-Host "Test failed: should not use proxy."
+            Pop-Location
+            exit 1
+          }
+
+          Pop-Location
+
+          # Run Proxy CLI tests for `proxy-inherit` with proxy turned `on`
+          Write-Host "Running proxy-inherit collection tests..."
+
+          Push-Location tests\proxy-settings\collections\proxy-inherit
+
+          # Test with --noproxy flag (should disable system proxy)
+          Write-Host "Running with --noproxy flag..."
+          $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run --reporter-json report.json --noproxy" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+          if (-not (Select-String -Path "report.json" -Pattern '"status": "pass"' -Quiet)) {
+            Write-Host "Test failed: should not use proxy."
+            Pop-Location
+            exit 1
+          }
+          
+          # Test with system proxy environment variables set
+          Write-Host "Running with HTTPS_PROXY environment variable..."
+          $env:HTTPS_PROXY = "http://127.0.0.1:8091"
+          $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run --reporter-json report.json" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+          Get-ChildItem Env:
+          Get-Content report.json
+          if (-not (Select-String -Path "report.json" -Pattern '"status": "pass"' -Quiet)) {
+            Write-Host "Test failed: error occured while proxying request."
+            $env:HTTPS_PROXY = ""
+            Pop-Location
+            exit 1
+          }
+          $env:HTTPS_PROXY = ""
+
+          Pop-Location
+
+          # Run Proxy E2E tests - Proxy ON
+          Write-Host "Running Proxy E2E tests - Proxy ON..."
+          npm run test:e2e:proxy-on
+
+      - name: Upload Playwright Report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-proxy-windows
+          path: playwright-report/
+          retention-days: 30

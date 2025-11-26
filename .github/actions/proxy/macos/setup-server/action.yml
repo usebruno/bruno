@@ -1,0 +1,25 @@
+name: 'setup test server - macos'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Test Server
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        cd tests/proxy-settings/server
+        
+        echo "running certificate setup"
+        node scripts/generate-certs.js
+
+    - name: Start test server
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        cd tests/proxy-settings/server
+        
+        echo "starting server in background"
+        node index.js &
+        
+        echo "server started with PID: $!"
