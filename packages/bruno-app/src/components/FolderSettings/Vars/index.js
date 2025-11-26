@@ -4,6 +4,7 @@ import VarsTable from './VarsTable';
 import StyledWrapper from './StyledWrapper';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
+import DeprecationWarning from 'components/DeprecationWarning';
 
 const Vars = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -18,7 +19,10 @@ const Vars = ({ collection, folder }) => {
       </div>
       <div className="flex-1">
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <VarsTable folder={folder} collection={collection} vars={responseVars} varType="response" />
+        <DeprecationWarning message="Post response vars is deprecated and will be removed in the upcoming release" />
+        <div className="mt-2">
+          <VarsTable folder={folder} collection={collection} vars={responseVars} varType="response" />
+        </div>
       </div>
       <div className="mt-6">
         <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>

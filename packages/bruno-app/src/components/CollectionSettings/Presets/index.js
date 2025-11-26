@@ -4,6 +4,7 @@ import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
+import DeprecationWarning from 'components/DeprecationWarning';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -35,7 +36,8 @@ const PresetsSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <div className="text-xs mb-4 text-muted">
+      <DeprecationWarning message="Presets is deprecated and will be removed in the upcoming release" />
+      <div className="text-xs mb-4 mt-4 text-muted">
         These presets will be used as the default values for new requests in this collection.
       </div>
       <div className="bruno-form">

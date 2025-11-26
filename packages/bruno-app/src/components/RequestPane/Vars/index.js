@@ -2,6 +2,7 @@ import React from 'react';
 import get from 'lodash/get';
 import VarsTable from './VarsTable';
 import StyledWrapper from './StyledWrapper';
+import DeprecationWarning from 'components/DeprecationWarning';
 
 const Vars = ({ item, collection }) => {
   const requestVars = item.draft ? get(item, 'draft.request.vars.req') : get(item, 'request.vars.req');
@@ -15,7 +16,10 @@ const Vars = ({ item, collection }) => {
       </div>
       <div>
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <VarsTable item={item} collection={collection} vars={responseVars} varType="response" />
+        <DeprecationWarning message="Post response vars is deprecated and will be removed in the upcoming release" />
+        <div className="mt-2">
+          <VarsTable item={item} collection={collection} vars={responseVars} varType="response" />
+        </div>
       </div>
     </StyledWrapper>
   );
