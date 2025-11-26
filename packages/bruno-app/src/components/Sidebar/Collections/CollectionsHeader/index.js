@@ -6,6 +6,7 @@ import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import RemoveCollectionsModal from '../RemoveCollectionsModal';
 import StyledWrapper from './StyledWrapper';
 import ToolHint from 'components/ToolHint';
+import { openCollection } from 'providers/ReduxStore/slices/collections/actions';
 
 const CollectionsHeader = ({ setCreateCollectionModalOpen }) => {
   const dispatch = useDispatch();

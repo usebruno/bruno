@@ -1,22 +1,30 @@
+import { useState } from 'react';
 import StyledWrapper from "./StyledWrapper";
 import Docs from "../Docs";
 import Info from "./Info";
-import { IconBox } from '@tabler/icons';
 import RequestsNotLoaded from "./RequestsNotLoaded";
 
 const Overview = ({ collection }) => {
+  const [isDocsExpanded, setIsDocsExpanded] = useState(false);
+
+  const toggleDocsExpand = () => {
+    setIsDocsExpanded((prev) => !prev);
+  };
+
   return (
-    <div className="h-full">
-      <div className="grid grid-cols-5 gap-6 h-full">
-        <div className="col-span-2 flex flex-col gap-6">
-          <Info collection={collection} />
-          <RequestsNotLoaded collection={collection} />
+    <StyledWrapper $isDocsExpanded={isDocsExpanded}>
+      <div className="overview-flex">
+        <div className={`overview-left ${isDocsExpanded ? 'collapsed' : ''}`}>
+          <div className="overview-card">
+            <Info collection={collection} isCollapsed={isDocsExpanded} onExpand={toggleDocsExpand} />
+            {!isDocsExpanded && <RequestsNotLoaded collection={collection} />}
+          </div>
         </div>
-        <div className="col-span-3">
-          <Docs collection={collection} />
+        <div className="overview-right">
+          <Docs collection={collection} isExpanded={isDocsExpanded} onToggleExpand={toggleDocsExpand} />
         </div>
       </div>
-    </div>
+    </StyledWrapper>
   );
 }
 

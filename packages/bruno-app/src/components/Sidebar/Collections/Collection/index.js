@@ -92,6 +92,7 @@ const Collection = ({ collection, searchText }) => {
 
   const handleSettingsClick = (e) => {
     e.stopPropagation();
+    ensureCollectionIsMounted();
     dispatch(hideHomePage()); // @TODO Playwright tests are often stuck on home page, rather than collection settings tab. Revisit for a proper fix.
     dispatch(addTab({
       uid: collection.uid,

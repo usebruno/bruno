@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Tooltip as ReactToolHint } from 'react-tooltip';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
@@ -20,17 +20,17 @@ const ToolHint = ({
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
 
-  const toolhintBackgroundColor = appliedTheme?.sidebar.badge.bg || 'black';
+  const toolhintBackgroundColor = appliedTheme?.sidebar?.badge?.bg || 'black';
   const toolhintTextColor = appliedTheme?.text || 'white';
 
-  const combinedToolhintStyle = {
+  const combinedToolhintStyle = useMemo(() => ({
     ...tooltipStyle,
     fontSize: '0.75rem',
     padding: '0.25rem 0.5rem',
     zIndex: 9999,
     backgroundColor: toolhintBackgroundColor,
     color: toolhintTextColor
-  };
+  }), [tooltipStyle, toolhintBackgroundColor, toolhintTextColor]);
 
   const toolhintProps_final = anchorSelect
     ? { anchorSelect }

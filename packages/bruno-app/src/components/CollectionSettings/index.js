@@ -100,13 +100,13 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
           Overview
         </div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
+        <div className={getTabClassname('headers')} style={{ gap: 0 }} role="tab" onClick={() => setTab('headers')}>
           Headers
-          {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
+          {activeHeadersCount > 0 && <sup className="ml-1 font-medium text-green-500">{activeHeadersCount}</sup>}
         </div>
-        <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
+        <div className={getTabClassname('vars')} style={{ gap: 0 }} role="tab" onClick={() => setTab('vars')}>
           Vars
-          {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
+          {activeVarsCount > 0 && <sup className="ml-1 font-medium text-green-500">{activeVarsCount}</sup>}
         </div>
         <div className={getTabClassname('auth')} style={{ gap: 0 }} role="tab" onClick={() => setTab('auth')}>
           Auth
@@ -137,7 +137,7 @@ const CollectionSettings = ({ collection }) => {
           {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
         </div>
       </div>
-      <section className="h-full overflow-auto px-6">{getTabPanel(tab)}</section>
+      <section className="h-full overflow-auto px-6 pb-6">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };
