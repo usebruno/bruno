@@ -5,7 +5,6 @@ import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots, IconSettings, IconFolder, IconPlus } from '@tabler/icons';
-import ToolHint from 'components/ToolHint';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -491,25 +490,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           <div className="menu-icon pr-2 flex items-center">
             {isFolder && (
               <>
-                <ToolHint text="New Request" toolhintId={`new-request-${item.uid}`} place="bottom" delayShow={800}>
-                  <div
-                    className="new-request-icon mr-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setNewRequestModalOpen(true);
-                    }}
-                  >
-                    <IconPlus size={18} strokeWidth={1.5} />
-                  </div>
-                </ToolHint>
-                <ToolHint text="Folder Settings" toolhintId={`settings-${item.uid}`} place="bottom" delayShow={800}>
-                  <div className="settings-icon mr-1" onClick={handleSettingsClick}>
-                    <IconSettings size={18} strokeWidth={1.5} />
-                  </div>
-                </ToolHint>
+                <div
+                  className="new-request-icon mr-1"
+                  title="New Request"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNewRequestModalOpen(true);
+                  }}
+                >
+                  <IconPlus size={18} strokeWidth={1.5} />
+                </div>
+                <div className="settings-icon mr-1" title="Folder Settings" onClick={handleSettingsClick}>
+                  <IconSettings size={18} strokeWidth={1.5} />
+                </div>
               </>
             )}
-            <ToolHint text="More options" toolhintId={`menu-${item.uid}`} place="bottom" delayShow={800}>
+            <div title="More options">
               <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
                 {isFolder && (
                   <>
@@ -648,7 +644,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   Info
                 </div>
               </Dropdown>
-            </ToolHint>
+            </div>
           </div>
         </div>
       </div>

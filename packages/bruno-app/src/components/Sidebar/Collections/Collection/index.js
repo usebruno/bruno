@@ -5,7 +5,6 @@ import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2, IconSettings, IconBox, IconPlus } from '@tabler/icons';
-import ToolHint from 'components/ToolHint';
 import Dropdown from 'components/Dropdown';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
@@ -268,23 +267,20 @@ const Collection = ({ collection, searchText }) => {
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
         <div className="collection-actions flex items-center" data-testid="collection-actions">
-          <ToolHint text="New Request" toolhintId={`new-request-${collection.uid}`} place="bottom" delayShow={800}>
-            <div
-              className="new-request-icon mr-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowNewRequestModal(true);
-              }}
-            >
-              <IconPlus size={18} strokeWidth={1.5} />
-            </div>
-          </ToolHint>
-          <ToolHint text="Collection Settings" toolhintId={`settings-${collection.uid}`} place="bottom" delayShow={800}>
-            <div className="settings-icon mr-1" onClick={handleSettingsClick}>
-              <IconSettings size={18} strokeWidth={1.5} />
-            </div>
-          </ToolHint>
-          <ToolHint text="More options" toolhintId={`menu-${collection.uid}`} place="bottom" delayShow={800}>
+          <div
+            className="new-request-icon mr-1"
+            title="New Request"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNewRequestModal(true);
+            }}
+          >
+            <IconPlus size={18} strokeWidth={1.5} />
+          </div>
+          <div className="settings-icon mr-1" title="Collection Settings" onClick={handleSettingsClick}>
+            <IconSettings size={18} strokeWidth={1.5} />
+          </div>
+          <div title="More options">
             <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
               <div
                 className="dropdown-item"
@@ -379,7 +375,7 @@ const Collection = ({ collection, searchText }) => {
                 Settings
               </div>
             </Dropdown>
-          </ToolHint>
+          </div>
         </div>
       </div>
       <div className={`transition-container ${collectionIsCollapsed ? 'collapsed' : ''}`}>
