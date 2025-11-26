@@ -8,6 +8,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     padding: 8px;
     gap: 4px;
+    margin-bottom: 8px;
     background: ${(props) => props.theme.deprecationWarning.bg};
     border: 1px solid ${(props) => props.theme.deprecationWarning.border};
     border-radius: 6px;
