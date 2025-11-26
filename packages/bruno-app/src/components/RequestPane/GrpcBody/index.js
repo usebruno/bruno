@@ -41,8 +41,8 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 
     dispatch(updateRequestBody({
       content: currentMessages,
-            itemUid: item.uid,
-            collectionUid: collection.uid
+      itemUid: item.uid,
+      collectionUid: collection.uid
     }));
   };
 
