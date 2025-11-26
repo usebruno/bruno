@@ -30,6 +30,7 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-schema-types
           npm run build --workspace=packages/bruno-filestore
 
       - name: Lint Check
@@ -83,6 +84,7 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-schema-types
           npm run build --workspace=packages/bruno-filestore
 
       - name: Run Local Testbench
@@ -134,6 +136,7 @@ jobs:
         npm run sandbox:bundle-libraries --workspace=packages/bruno-js
         npm run build:bruno-converters
         npm run build:bruno-requests
+        npm run build:schema-types
         npm run build:bruno-filestore
 
     - name: Run Playwright tests
