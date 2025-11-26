@@ -28,14 +28,14 @@ export const getRunnerResultCounts = async (page: Page) => {
  */
 export const runCollection = async (page: Page, collectionName: string) => {
   // Ensure collection is visible and loaded
-  const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
+  const collectionContainer = page.getByTestId('collection-row').filter({ hasText: collectionName });
   await collectionContainer.waitFor({ state: 'visible' });
   // Wait a bit for the UI to stabilize
   await page.waitForTimeout(300);
 
   // Open collection actions menu
-  await collectionContainer.locator('.collection-actions').hover();
-  const icon = collectionContainer.locator('.collection-actions .icon');
+  await collectionContainer.hover();
+  const icon = collectionContainer.locator('.collection-actions .collection-dropdown-icon');
   await icon.waitFor({ state: 'visible', timeout: 5000 });
   await page.waitForTimeout(200); // Small delay to ensure hover state is stable
   await icon.click();
@@ -73,22 +73,11 @@ export const runCollection = async (page: Page, collectionName: string) => {
 export const setSandboxMode = async (page: Page, collectionName: string, mode: 'developer' | 'safe') => {
   // Click on the collection name - try sidebar first, then fall back to collection tab/name
   // First try sidebar collection name (more reliable)
-  const sidebarCollection = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
-  const sidebarExists = await sidebarCollection.count().then((count) => count > 0).catch(() => false);
+  const sidebarCollection = page.getByTestId('collection-row').filter({ hasText: collectionName });
 
-  if (sidebarExists) {
-    await sidebarCollection.click();
-  } else {
-    // Fall back to collection by title or text
-    const collectionByTitle = page.getByTitle(collectionName);
-    const collectionByText = page.getByText(collectionName);
-    const titleExists = await collectionByTitle.count().then((count) => count > 0).catch(() => false);
-    if (titleExists) {
-      await collectionByTitle.click();
-    } else {
-      await collectionByText.click();
-    }
-  }
+  await sidebarCollection.hover();
+  const collectionSettings = page.getByTestId('collection-settings-icon');
+  await collectionSettings.click();
 
   // Wait a moment for the UI to load
   await page.waitForTimeout(300);

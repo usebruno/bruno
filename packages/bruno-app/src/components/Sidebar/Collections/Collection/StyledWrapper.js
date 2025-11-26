@@ -5,9 +5,10 @@ const Wrapper = styled.div`
     height: 1.875rem;
     cursor: pointer;
     user-select: none;
-    padding-left: 8px;
     font-weight: 600;
     border: ${(props) => props.theme.dragAndDrop.borderStyle} transparent;
+    border-radius: 4px;
+    margin: 0 4px;
 
     .rotate-90 {
       transform: rotateZ(90deg);
@@ -17,16 +18,21 @@ const Wrapper = styled.div`
       border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       border-bottom: 2px solid transparent;
       .collection-actions {
-        .dropdown {
+        .dropdown, .settings-icon, .new-request-icon, .collection-dropdown-icon {
           div[aria-expanded='false'] {
             visibility: visible;
           }
+        }
+        .settings-icon, .new-request-icon, .collection-dropdown-icon {
+          display: flex;
         }
       }
     }
 
     .collection-actions {
-      .dropdown {
+      color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+
+      .dropdown, .settings-icon, .new-request-icon, .collection-dropdown-icon {
         div[aria-expanded='true'] {
           visibility: visible;
         }
@@ -35,19 +41,39 @@ const Wrapper = styled.div`
         }
       }
 
-      svg {
-        height: 22px;
-        color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+      .settings-icon, .new-request-icon, .collection-dropdown-icon {
+        display: none;
+        width: 24px;
+        height: 24px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        &:hover {
+          color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+          background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
+        }
+      }
+    }
+
+    .chevron-icon {
+      color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+      border-radius: 4px;
+      &:hover {
+          color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+          background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
       }
     }
 
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .collection-actions {
-        .dropdown {
+        .dropdown, .settings-icon, .new-request-icon, .collection-dropdown-icon {
           div[aria-expanded='false'] {
             visibility: visible;
           }
+        }
+        .settings-icon, .new-request-icon, .collection-dropdown-icon {
+          display: flex;
         }
       }
     }
