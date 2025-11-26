@@ -24,7 +24,10 @@ const initialState = {
       timeout: 0
     },
     font: {
-      codeFont: 'default'
+      codeFont: 'default',
+      codeFontSize: '14',
+      uiFont: 'Inter',
+      uiFontSize: '14'
     },
     general: {
       defaultCollectionLocation: ''

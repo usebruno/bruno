@@ -11,6 +11,8 @@ const Font = ({ close }) => {
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
   const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '14'));
+  const [uiFont, setUiFont] = useState(get(preferences, 'font.uiFont', 'Inter'));
+  const [uiFontSize, setUiFontSize] = useState(get(preferences, 'font.uiFontSize', '14'));
 
   const handleCodeFontChange = (event) => {
     setCodeFont(event.target.value);
@@ -22,13 +24,25 @@ const Font = ({ close }) => {
     setCodeFontSize(clampedSize);
   };
 
+  const handleUiFontChange = (event) => {
+    setUiFont(event.target.value);
+  };
+
+  const handleUiFontSizeChange = (event) => {
+    // Restrict to min/max value
+    const clampedSize = Math.max(1, Math.min(event.target.value, 32));
+    setUiFontSize(clampedSize);
+  };
+
   const handleSave = () => {
     dispatch(
       savePreferences({
         ...preferences,
         font: {
           codeFont,
-          codeFontSize
+          codeFontSize,
+          uiFont,
+          uiFontSize
         }
       })
     ).then(() => {
@@ -41,31 +55,60 @@ const Font = ({ close }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex flex-row gap-2 w-full">
-        <div className="w-4/5">
-          <label className="block">Code Editor Font</label>
-          <input
-            type="text"
-            className="block textbox mt-2 w-full"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            onChange={handleCodeFontChange}
-            defaultValue={codeFont}
-          />
+      <div className="flex flex-col gap-6 w-full">
+        <div className="flex flex-row gap-2 w-full">
+          <div className="w-4/5">
+            <label className="block">UI Font</label>
+            <input
+              type="text"
+              className="block textbox mt-2 w-full"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              onChange={handleUiFontChange}
+              defaultValue={uiFont}
+            />
+          </div>
+          <div className="w-1/5">
+            <label className="block">Font Size</label>
+            <input
+              type="number"
+              className="block textbox mt-2 w-full"
+              autoComplete="off"
+              autoCorrect="off"
+              inputMode="numeric"
+              onChange={handleUiFontSizeChange}
+              defaultValue={uiFontSize}
+            />
+          </div>
         </div>
-        <div className="w-1/5">
-          <label className="block">Font Size</label>
-          <input
-            type="number"
-            className="block textbox mt-2 w-full"
-            autoComplete="off"
-            autoCorrect="off"
-            inputMode="numeric"
-            onChange={handleCodeFontSizeChange}
-            defaultValue={codeFontSize}
-          />
+        <div className="flex flex-row gap-2 w-full">
+          <div className="w-4/5">
+            <label className="block">Code Editor Font</label>
+            <input
+              type="text"
+              className="block textbox mt-2 w-full"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              onChange={handleCodeFontChange}
+              defaultValue={codeFont}
+            />
+          </div>
+          <div className="w-1/5">
+            <label className="block">Font Size</label>
+            <input
+              type="number"
+              className="block textbox mt-2 w-full"
+              autoComplete="off"
+              autoCorrect="off"
+              inputMode="numeric"
+              onChange={handleCodeFontSizeChange}
+              defaultValue={codeFontSize}
+            />
+          </div>
         </div>
       </div>
 
