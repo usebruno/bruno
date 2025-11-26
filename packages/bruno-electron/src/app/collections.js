@@ -2,15 +2,19 @@ const fs = require('fs');
 const path = require('path');
 const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
-const { isDirectory, normalizeAndResolvePath, getCollectionStats } = require('../utils/filesystem');
+const { isDirectory, getCollectionStats } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
+const { parseCollection } = require('@usebruno/filestore');
 
 // todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
-  version: Yup.string().oneOf(['1']).required('type is required')
+  // For BRU format collections
+  version: Yup.string().oneOf(['1']).notRequired(),
+  // For YAML format collections (opencollection)
+  opencollection: Yup.string().notRequired()
 });
 
 const readConfigFile = async (pathname) => {
@@ -31,9 +35,25 @@ const validateSchema = async (config) => {
 };
 
 const getCollectionConfigFile = async (pathname) => {
+  // Check for opencollection.yml first
+  const ocYmlPath = path.join(pathname, 'opencollection.yml');
+  if (fs.existsSync(ocYmlPath)) {
+    try {
+      const content = fs.readFileSync(ocYmlPath, 'utf8');
+      const {
+        brunoConfig
+      } = parseCollection(content, { format: 'yml' });
+      await validateSchema(brunoConfig);
+      return brunoConfig;
+    } catch (err) {
+      throw new Error(`Unable to parse opencollection.yml: ${err.message}`);
+    }
+  }
+
+  // Fall back to bruno.json
   const configFilePath = path.join(pathname, 'bruno.json');
   if (!fs.existsSync(configFilePath)) {
-    throw new Error(`The collection is not valid (bruno.json not found)`);
+    throw new Error(`The collection is not valid (neither bruno.json nor opencollection.yml found)`);
   }
 
   const config = await readConfigFile(configFilePath);
