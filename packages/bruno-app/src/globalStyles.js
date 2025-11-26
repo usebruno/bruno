@@ -2,8 +2,6 @@ import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
   .CodeMirror-gutters {
-    background-color: ${(props) => props.theme.codemirror.gutter.bg} !important;
-    border-right: solid 1px ${(props) => props.theme.codemirror.border};
   }
 
   .text-link {

@@ -87,7 +87,7 @@ const RequestTabs = () => {
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center pl-4">
+          <div className="flex items-center pl-2">
             <ul role="tablist">
               {showChevrons ? (
                 <li className="select-none short-tab" onClick={leftSlide}>

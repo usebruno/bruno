@@ -21,18 +21,12 @@ const StyledWrapper = styled.div`
       display: none;
       color: ${(props) => props.theme.requestTabs.icon.color};
       width: 8px;
-      padding-bottom: 6px;
-      padding-top: 6px;
     }
 
     &:hover,
     &:hover .close-icon {
       color: ${(props) => props.theme.requestTabs.icon.hoverColor};
       background-color: ${(props) => props.theme.requestTabs.icon.hoverBg};
-    }
-
-    .has-changes-icon {
-      height: 24px;
     }
   }
 `;

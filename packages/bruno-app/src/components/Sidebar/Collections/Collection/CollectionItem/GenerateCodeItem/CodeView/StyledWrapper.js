@@ -14,8 +14,6 @@ const StyledWrapper = styled.div`
       padding: 0;
 
       .CodeMirror-gutters {
-        background: ${props => props.theme.codemirror.gutter.bg};
-        border-right: 1px solid ${props => props.theme.codemirror.border};
       }
 
       .CodeMirror-linenumber {
