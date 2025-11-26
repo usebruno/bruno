@@ -7,9 +7,6 @@
     "src",
     "package.json"
   ],
-  "peerDependencies": {
-    "@usebruno/vm2": "^3.9.13"
-  },
   "scripts": {
     "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
     "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js"
