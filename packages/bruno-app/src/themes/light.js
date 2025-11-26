@@ -480,6 +480,13 @@ const lightTheme = {
       }
     }
   },
+  deprecationWarning: {
+    bg: 'rgba(217, 31, 17, 0.1)',
+    border: 'rgba(217, 31, 17, 0.1)',
+    icon: '#D91F11',
+    text: '#343434'
+  },
+
   examples: {
     buttonBg: '#D977061A',
     buttonColor: '#D97706',
