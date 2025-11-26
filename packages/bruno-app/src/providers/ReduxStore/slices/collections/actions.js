@@ -970,13 +970,13 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
         const existingItems = targetItem ? targetItem.items : targetCollection.items;
 
         // Check for duplicate names and append counter if needed
-        while (find(existingItems, (i) => i.type !== 'folder' && trim(i.filename) === trim(resolveRequestFilename(newFilename)))) {
+        while (find(existingItems, (i) => i.type !== 'folder' && trim(i.filename) === trim(resolveRequestFilename(newFilename, targetCollection.format)))) {
           newName = `${copiedItem.name} (${counter})`;
           newFilename = `${sanitizeName(copiedItem.name)} (${counter})`;
           counter++;
         }
 
-        const filename = resolveRequestFilename(newFilename);
+        const filename = resolveRequestFilename(newFilename, targetCollection.format);
         const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
         set(itemToSave, 'name', trim(newName));
         set(itemToSave, 'filename', trim(filename));
@@ -1028,7 +1028,7 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
               items: directoryItemsWithoutDeletedItem
             });
             if (reorderedSourceItems?.length) {
-              await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
+              await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems, collectionUid }));
             }
           }
           resolve();

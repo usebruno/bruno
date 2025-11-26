@@ -138,12 +138,7 @@ const parseCollection = (ymlString: string): ParsedCollection => {
 
       // variables
       const variables = toBrunoVariables(oc.request.variables);
-      if (variables) {
-        collectionRoot.request.vars = {
-          req: variables,
-          res: []
-        };
-      }
+      collectionRoot.request.vars = variables;
 
       // scripts
       const scripts = toBrunoScripts(oc.request.scripts);

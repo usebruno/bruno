@@ -50,12 +50,7 @@ const parseFolder = (ymlString: string): FolderRoot => {
 
       // variables
       const variables = toBrunoVariables(ocFolder.request.variables);
-      if (variables) {
-        folderRoot.request.vars = {
-          req: variables,
-          res: []
-        };
-      }
+      folderRoot.request.vars = variables;
 
       // scripts
       const scripts = toBrunoScripts(ocFolder.request.scripts);

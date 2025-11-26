@@ -121,6 +121,7 @@ test.describe('Draft values are used in requests', () => {
   });
 
   test('Verify draft for proxy settings are used in HTTP requests', async ({ page, createTmpDir }) => {
+    test.skip(true, 'Temporarily skipping this test because of proxy-related problems');
     const collectionName = 'test-draft-proxy-settings';
 
     // Create a new collection

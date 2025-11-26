@@ -5,20 +5,34 @@ import { uuid } from '../../../utils';
 
 export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] | BrunoVariables | null | undefined): Variable[] | undefined => {
   // Handle folder variables (has req/res structure)
-  const varsArray = variables && 'req' in variables ? variables.req : variables as BrunoVariables;
+  const hasReqRes = variables && 'req' in variables;
+  const reqVars = hasReqRes ? variables.req : variables as BrunoVariables;
+  const resVars = hasReqRes && 'res' in variables ? variables.res : [];
 
-  if (!varsArray?.length) {
+  const allVars = [...(reqVars || []), ...(resVars || [])];
+
+  if (!allVars.length) {
     return undefined;
   }
 
-  const ocVariables: Variable[] = varsArray.map((v: BrunoVariable): Variable => {
+  const ocVariables: Variable[] = allVars.map((v: BrunoVariable, index: number): Variable => {
+    const isResVar = reqVars && index >= (reqVars?.length || 0);
     const variable: Variable = {
       name: v.name || '',
       value: v.value || ''
     };
-    if (v?.description?.trim().length) {
+
+    if (isResVar) {
+      const scopeMarker = '[post-response]';
+      if (v?.description?.trim().length) {
+        variable.description = `${scopeMarker} ${v.description}`;
+      } else {
+        variable.description = scopeMarker;
+      }
+    } else if (v?.description?.trim().length) {
       variable.description = v.description;
     }
+
     if (v.enabled === false) {
       variable.disabled = true;
     }
@@ -28,12 +42,18 @@ export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] 
   return ocVariables.length > 0 ? ocVariables : undefined;
 };
 
-export const toBrunoVariables = (variables: Variable[] | null | undefined): BrunoVariables | undefined => {
+export const toBrunoVariables = (variables: Variable[] | null | undefined): { req: BrunoVariables; res: BrunoVariables } => {
   if (!variables?.length) {
-    return undefined;
+    return { req: [], res: [] };
   }
 
-  const brunoVariables: BrunoVariables = variables.map((v: Variable): BrunoVariable => {
+  const scopeMarker = '[post-response]';
+  const reqVars: BrunoVariables = [];
+  const resVars: BrunoVariables = [];
+
+  variables.forEach((v: Variable) => {
+    const isPostResponse = typeof v.description === 'string' && v.description.startsWith(scopeMarker);
+
     const variable: BrunoVariable = {
       uid: uuid(),
       name: v.name || '',
@@ -42,8 +62,19 @@ export const toBrunoVariables = (variables: Variable[] | null | undefined): Brun
       local: false
     };
 
-    return variable;
+    if (isPostResponse) {
+      const cleanDesc = (v.description as string).substring(scopeMarker.length).trim();
+      if (cleanDesc) {
+        variable.description = cleanDesc;
+      }
+      resVars.push(variable);
+    } else {
+      if (v.description) {
+        variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
+      }
+      reqVars.push(variable);
+    }
   });
 
-  return brunoVariables.length > 0 ? brunoVariables : undefined;
+  return { req: reqVars, res: resVars };
 };

@@ -76,12 +76,7 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
 
   // variables
   const variables = toBrunoVariables(ocRequest.variables);
-  if (variables) {
-    brunoRequest.vars = {
-      req: variables,
-      res: []
-    };
-  }
+  brunoRequest.vars = variables;
 
   // assertions
   const assertions = toBrunoAssertions(ocRequest.assertions);

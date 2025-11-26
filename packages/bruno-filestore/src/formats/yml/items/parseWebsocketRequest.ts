@@ -57,12 +57,7 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
 
   // variables
   const variables = toBrunoVariables(ocRequest.variables);
-  if (variables) {
-    brunoRequest.vars = {
-      req: variables,
-      res: []
-    };
-  }
+  brunoRequest.vars = variables;
 
   // docs
   if (ocRequest.docs) {

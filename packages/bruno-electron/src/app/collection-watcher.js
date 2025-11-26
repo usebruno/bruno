@@ -262,10 +262,17 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
 
     try {
       let content = fs.readFileSync(pathname, 'utf8');
-      let {
-        collectionRoot,
-        brunoConfig
-      } = await parseCollection(content, { format });
+      let parsed = await parseCollection(content, { format });
+
+      let collectionRoot, brunoConfig;
+      if (format === 'yml') {
+        collectionRoot = parsed.collectionRoot;
+        brunoConfig = parsed.brunoConfig;
+      } else {
+        collectionRoot = parsed;
+        brunoConfig = undefined;
+      }
+
       file.data = collectionRoot;
 
       hydrateCollectionRootWithUuid(file.data);
@@ -501,10 +508,17 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let content = fs.readFileSync(pathname, 'utf8');
       let format = getCollectionFormat(collectionPath);
-      let {
-        collectionRoot,
-        brunoConfig
-      } = await parseCollection(content, { format });
+      let parsed = await parseCollection(content, { format });
+
+      let collectionRoot, brunoConfig;
+      if (format === 'yml') {
+        collectionRoot = parsed.collectionRoot;
+        brunoConfig = parsed.brunoConfig;
+      } else {
+        collectionRoot = parsed;
+        brunoConfig = undefined;
+      }
+
       file.data = collectionRoot;
 
       hydrateCollectionRootWithUuid(file.data);
