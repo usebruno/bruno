@@ -3,6 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   position: absolute;
   height: 100%;
+  width: calc(100% - 0.75rem);
   z-index: 1;
   background-color: ${(props) => props.theme.requestTabPanel.responseOverlayBg};
 
@@ -19,6 +20,15 @@ const StyledWrapper = styled.div`
     .loading-icon {
       transform: scaleY(-1);
       animation: rotateCounterClockwise 1s linear infinite;
+    }
+  }
+
+  // spinner and request time content looks better centered vertically in vertical layout
+  // while in horizontal layout, it looks better when the content is aligned to the top
+  &.vertical-layout {
+    div.overlay {
+      justify-content: center;
+      padding: 1rem;
     }
   }
 `;

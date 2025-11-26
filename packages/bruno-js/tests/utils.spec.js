@@ -1,11 +1,13 @@
 const { describe, it, expect } = require('@jest/globals');
-const { evaluateJsExpression, internalExpressionCache: cache, createResponseParser } = require('../src/utils');
+const { evaluateJsExpression, internalExpressionCache: cache, createResponseParser, cleanJson } = require('../src/utils');
 
 describe('utils', () => {
   describe('expression evaluation', () => {
     const context = {
       res: {
-        data: { pets: ['bruno', 'max'] }
+        data: { pets: ['bruno', 'max'] },
+        context: 'testContext',
+        __bruno__functionInnerContext: 0
       }
     };
 
@@ -45,32 +47,32 @@ describe('utils', () => {
     it('should identify top level variables', () => {
       const expr = 'res.data.pets[0].toUpperCase()';
       evaluateJsExpression(expr, context);
-      expect(cache.get(expr).toString()).toContain('let { res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res } = __bruno__functionInnerContext;');
     });
 
     it('should not duplicate variables', () => {
       const expr = 'res.data.pets[0] + res.data.pets[1]';
       evaluateJsExpression(expr, context);
-      expect(cache.get(expr).toString()).toContain('let { res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res } = __bruno__functionInnerContext;');
     });
 
     it('should exclude js keywords like true false from vars', () => {
       const expr = 'res.data.pets.length > 0 ? true : false';
       evaluateJsExpression(expr, context);
-      expect(cache.get(expr).toString()).toContain('let { res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res } = __bruno__functionInnerContext;');
     });
 
     it('should exclude numbers from vars', () => {
       const expr = 'res.data.pets.length + 10';
       evaluateJsExpression(expr, context);
-      expect(cache.get(expr).toString()).toContain('let { res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res } = __bruno__functionInnerContext;');
     });
 
     it('should pick variables from complex expressions', () => {
       const expr = 'res.data.pets.map(pet => pet.length)';
       const result = evaluateJsExpression(expr, context);
       expect(result).toEqual([5, 3]);
-      expect(cache.get(expr).toString()).toContain('let { res, pet } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res, pet } = __bruno__functionInnerContext;');
     });
 
     it('should be ok picking extra vars from strings', () => {
@@ -78,7 +80,7 @@ describe('utils', () => {
       const result = evaluateJsExpression(expr, context);
       expect(result).toBe('hello bruno');
       // extra var hello is harmless
-      expect(cache.get(expr).toString()).toContain('let { hello, res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { hello, res } = __bruno__functionInnerContext;');
     });
 
     it('should evaluate expressions referencing globals', () => {
@@ -112,6 +114,20 @@ describe('utils', () => {
 
       expect(result).toBe(startTime);
     });
+
+    it('should allow "context" as a var name', () => {
+      const expr = 'res["context"].toUpperCase()';
+      evaluateJsExpression(expr, context);
+      expect(cache.get(expr).toString()).toContain('let { res, context } = __bruno__functionInnerContext;');
+    });
+
+    it('should throw an error when we use "__bruno__functionInnerContext" as a var name', () => {
+      const expr = 'res["__bruno__functionInnerContext"].toUpperCase()';
+      expect(() => evaluateJsExpression(expr, context)).toThrow(SyntaxError);
+      expect(() => evaluateJsExpression(expr, context)).toThrow(
+        "Identifier '__bruno__functionInnerContext' has already been declared"
+      );
+    });
   });
 
   describe('response parser', () => {
@@ -135,6 +151,66 @@ describe('utils', () => {
     it('should allow json-query', () => {
       const value = res.jq('order.items[amount > 10].amount');
       expect(value).toBe(20);
+    });
+  });
+
+  describe('cleanJson', () => {
+    it('primitives should be kept as is', () => {
+      const input = {
+        number: 1,
+        string: 'hello world',
+        booleanFalse: false,
+        booleanTrue: true,
+        float: 2.1,
+        floatDeep: 2.2222222
+      };
+      expect(cleanJson(input)).toEqual(input);
+    });
+
+    it('functions are lost', () => {
+      const func = function (x, y) {
+        return x + y;
+      };
+
+      const input = {
+        func,
+        number: 1
+      };
+
+      expect(cleanJson(input)).toEqual({
+        number: 1
+      });
+    });
+
+    it('dates are serialized', () => {
+      const date = new Date();
+      const str = date.toISOString();
+
+      const input = {
+        date
+      };
+
+      expect(cleanJson(input)).toEqual({
+        date: str
+      });
+    });
+
+    it('typed arrays should be kept as is', () => {
+      const input = {
+        Int8Array: Int8Array.from(Buffer.from('hello world').toString()),
+        Uint8Array: Uint8Array.from(Buffer.from('hello world').toString()),
+        Uint8ClampedArray: Uint8ClampedArray.from(Buffer.from('hello world').toString()),
+        Int16Array: Int16Array.from(Buffer.from('hello world').toString()),
+        Uint16Array: Uint16Array.from(Buffer.from('hello world').toString()),
+        Int32Array: Int32Array.from(Buffer.from('hello world').toString()),
+        Uint32Array: Uint32Array.from(Buffer.from('hello world').toString()),
+        Float32Array: Float32Array.from(Buffer.from('hello world').toString()),
+        Float64Array: Float64Array.from(Buffer.from('hello world').toString()),
+        BigInt64Array: BigInt64Array.from(Buffer.from('123').toString()),
+        BigUint64Array: BigUint64Array.from(Buffer.from('234').toString())
+      };
+
+      expect(cleanJson(input)).toEqual(input);
     });
   });
 });

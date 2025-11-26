@@ -1,8 +1,6 @@
 import { createPortal } from 'react-dom';
 
-function Portal({ children, wrapperId }) {
-  wrapperId = wrapperId || 'bruno-app-body';
-
-  return createPortal(children, document.getElementById(wrapperId));
+function Portal({ children }) {
+  return createPortal(children, document.body);
 }
 export default Portal;

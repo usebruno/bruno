@@ -1,0 +1,66 @@
+meta {
+  name: array body
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{echo-host}}
+  body: formUrlEncoded
+  auth: inherit
+}
+
+script:pre-request {
+  req.setBody([
+    {name: "empty", value: ""},
+    {name: "null", value: null},
+    {name: "undefined", value: undefined},
+    {name: "zero", value: 0},
+    {name: "false", value: false},
+    {name: "", value: "empty_key"},
+    {name: "key", value: "value1"},
+    {name: "name", value: "bruno"},
+    {name: "key", value: "value2"},
+  ]);
+}
+
+tests {
+  test("req.setBody() with edge cases - request body", function() {
+    const data = req.getBody();
+    const expected = [
+      "empty=",
+      "null=",
+      "undefined=",
+      "zero=0",
+      "false=false",
+      "=empty_key",
+      "key=value1",
+      "name=bruno",
+      "key=value2"
+    ].join("&");
+    
+    expect(data).to.eql(expected);
+  });
+  
+  test("req.setBody() with edge cases - response body", function() {
+    const data = res.getBody();
+    const expected = [
+      "empty=",
+      "null=",
+      "undefined=",
+      "zero=0",
+      "false=false",
+      "=empty_key",
+      "key=value1",
+      "name=bruno",
+      "key=value2"
+    ].join("&");
+    
+    expect(data).to.eql(expected);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

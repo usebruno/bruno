@@ -6,17 +6,22 @@
  */
 
 import React from 'react';
-import isEqual from 'lodash/isEqual';
-import { getEnvironmentVariables } from 'utils/collections';
+import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
+import * as jsonlint from '@prantlf/jsonlint';
+import { JSHINT } from 'jshint';
+import stripJsonComments from 'strip-json-comments';
+import { getAllVariables } from 'utils/collections';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
+import CodeMirrorSearch from 'components/CodeMirrorSearch';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const CodeMirror = require('codemirror');
+window.jsonlint = jsonlint;
+window.JSHINT = JSHINT;
 
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-}
+const TAB_SIZE = 2;
 
 export default class CodeEditor extends React.Component {
   constructor(props) {
@@ -27,21 +32,40 @@ export default class CodeEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+    this.searchResultsCountElementId = 'search-results-count';
+
+    this.lintOptions = {
+      esversion: 11,
+      expr: true,
+      asi: true
+    };
+
+    this.state = {
+      searchBarVisible: false
+    };
   }
 
   componentDidMount() {
+    const variables = getAllVariables(this.props.collection, this.props.item);
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
-      lineWrapping: true,
-      tabSize: 2,
+      lineWrapping: this.props.enableLineWrapping ?? true,
+      tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
+      brunoVarInfo: this.props.enableBrunoVarInfo !== false ? {
+        variables,
+        collection: this.props.collection,
+        item: this.props.item
+      } : false,
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
       showCursorWhenSelecting: true,
       foldGutter: true,
-      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
+      lint: this.lintOptions,
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -66,15 +90,49 @@ export default class CodeEditor extends React.Component {
             this.props.onSave();
           }
         },
-        'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent',
-        Tab: function (cm) {
-          cm.replaceSelection('  ', 'end');
+        'Cmd-F': (cm) => {
+          if (!this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: true });
+          }
         },
+        'Ctrl-F': (cm) => {
+          if (!this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: true });
+          }
+        },
+        'Cmd-H': 'replace',
+        'Ctrl-H': 'replace',
+        Tab: function (cm) {
+          cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
+            ? cm.execCommand('indentMore')
+            : cm.replaceSelection('  ', 'end');
+        },
+        'Shift-Tab': 'indentLess',
+        'Ctrl-Space': 'autocomplete',
+        'Cmd-Space': 'autocomplete',
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
-        'Cmd-I': 'unfoldAll'
+        'Cmd-I': 'unfoldAll',
+        'Ctrl-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        },
+        'Cmd-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        },
+        'Esc': () => {
+          if (this.state.searchBarVisible) {
+            this.setState({ searchBarVisible: false });
+          }
+        }
       },
       foldOptions: {
         widget: (from, to) => {
@@ -102,9 +160,53 @@ export default class CodeEditor extends React.Component {
         }
       }
     }));
+    CodeMirror.registerHelper('lint', 'json', function (text) {
+      let found = [];
+      if (!window.jsonlint) {
+        if (window.console) {
+          window.console.error('Error: window.jsonlint not defined, CodeMirror JSON linting cannot run.');
+        }
+        return found;
+      }
+      let jsonlint = window.jsonlint.parser || window.jsonlint;
+      try {
+        jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
+      } catch (error) {
+        const { message, location } = error;
+        const line = location?.start?.line;
+        const column = location?.start?.column;
+        if (line && column) {
+          found.push({
+            from: CodeMirror.Pos(line - 1, column),
+            to: CodeMirror.Pos(line - 1, column),
+            message
+          });
+        }
+      }
+      return found;
+    });
+    
     if (editor) {
+      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+      editor.on('scroll', this.onScroll);
+      editor.scrollTo(null, this.props.initialScroll);
       this.addOverlay();
+
+      const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+      
+      // Setup AutoComplete Helper for all modes
+      const autoCompleteOptions = {
+        showHintsFor: this.props.showHintsFor,
+        getAllVariables: getAllVariablesHandler
+      };
+
+      this.brunoAutoCompleteCleanup = setupAutoComplete(
+        editor,
+        autoCompleteOptions
+      );
+
+      setupLinkAware(editor);
     }
   }
 
@@ -126,49 +228,98 @@ export default class CodeEditor extends React.Component {
     }
 
     if (this.editor) {
-      let variables = getEnvironmentVariables(this.props.collection);
+      let variables = getAllVariables(this.props.collection, this.props.item);
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
+      }
+
+      // Update collection and item when they change
+      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+        if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+          this.editor.options.brunoVarInfo.collection = this.props.collection;
+        }
+        if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+          this.editor.options.brunoVarInfo.item = this.props.item;
+        }
       }
     }
 
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
+
+    if (this.props.initialScroll !== prevProps.initialScroll) {
+      this.editor.scrollTo(null, this.props.initialScroll);
+    }
+
+    if (this.props.enableLineWrapping !== prevProps.enableLineWrapping) {
+      this.editor.setOption('lineWrapping', this.props.enableLineWrapping);
+    }
+
+    if (this.props.mode !== prevProps.mode) {
+      this.editor.setOption('mode', this.props.mode);
+    }
+
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly);
+    }
+
     this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {
     if (this.editor) {
+      this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
+      this.editor.off('scroll', this.onScroll);
       this.editor = null;
     }
   }
 
   render() {
+    if (this.editor) {
+      this.editor.refresh();
+    }
     return (
       <StyledWrapper
-        className="h-full w-full"
+        className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
         aria-label="Code Editor"
         font={this.props.font}
-        ref={(node) => {
-          this._node = node;
-        }}
-      />
+        fontSize={this.props.fontSize}
+      >
+        <CodeMirrorSearch
+          visible={this.state.searchBarVisible}
+          editor={this.editor}
+          onClose={() => this.setState({ searchBarVisible: false })}
+        />
+        <div
+          className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
+          ref={(node) => { this._node = node; }}
+          style={{ height: '100%', width: '100%' }}
+        />
+      </StyledWrapper>
     );
   }
 
   addOverlay = () => {
     const mode = this.props.mode || 'application/ld+json';
-    let variables = getEnvironmentVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, mode);
+    // Update brunoVarInfo with latest variables
+    if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+      this.editor.options.brunoVarInfo.variables = variables;
+    }
+
+    defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
 
+  onScroll = (event) => this.props.onScroll?.(event);
+
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
+      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);

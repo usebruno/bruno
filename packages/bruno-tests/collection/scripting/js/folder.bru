@@ -1,0 +1,28 @@
+meta {
+  name: js
+}
+
+headers {
+  folder-header: folder-header-value
+}
+
+script:pre-request {
+  // used by `scripting/js/folder-collection script-tests`
+  const shouldTestFolderScripts = bru.getVar('should-test-folder-scripts');
+  if(shouldTestFolderScripts) {
+   bru.setVar('folder-var-set-by-folder-script', 'folder-var-value-set-by-folder-script');
+  }
+}
+
+tests {
+  // used by `scripting/js/folder-collection script-tests`
+  const shouldTestFolderScripts = bru.getVar('should-test-folder-scripts');
+  const folderVar = bru.getVar("folder-var-set-by-folder-script");
+  if (shouldTestFolderScripts && folderVar) {
+    test("folder level test - should get the var that was set by the folder script", function() {
+      expect(folderVar).to.equal("folder-var-value-set-by-folder-script");
+    }); 
+    bru.setVar('folder-var-set-by-folder-script', null); 
+    bru.setVar('should-test-folder-scripts', null);
+  }
+}

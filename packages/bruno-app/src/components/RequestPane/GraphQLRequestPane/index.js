@@ -18,17 +18,22 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import Documentation from 'components/Documentation/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
+import Settings from 'components/RequestPane/Settings';
 
-const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
+const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const query = item.draft ? get(item, 'draft.request.body.graphql.query') : get(item, 'request.body.graphql.query');
+  const query = item.draft
+    ? get(item, 'draft.request.body.graphql.query', '')
+    : get(item, 'request.body.graphql.query', '');
   const variables = item.draft
     ? get(item, 'draft.request.body.graphql.variables')
     : get(item, 'request.body.graphql.variables');
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const [schema, setSchema] = useState(null);
+  const preferences = useSelector((state) => state.app.preferences);
 
   useEffect(() => {
     onSchemaLoad(schema);
@@ -61,14 +66,15 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         return (
           <QueryEditor
             collection={collection}
-            theme={storedTheme}
+            theme={displayedTheme}
             schema={schema}
-            width={leftPaneWidth}
             onSave={onSave}
             value={query}
             onRun={onRun}
             onEdit={onQueryChange}
             onClickReference={handleGqlClickReference}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
           />
         );
       }
@@ -95,6 +101,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
+      }
+      case 'settings': {
+        return <Settings item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -147,9 +156,14 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
         </div>
+        <div className={getTabClassname('settings')} role="tab" onClick={() => selectTab('settings')}>
+          Settings
+        </div>
         <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>
-      <section className="flex w-full mt-5">{getTabPanel(focusedTab.requestPaneTab)}</section>
+      <section className="flex w-full mt-5 flex-1 relative">
+        <HeightBoundContainer>{getTabPanel(focusedTab.requestPaneTab)}</HeightBoundContainer>
+      </section>
     </StyledWrapper>
   );
 };

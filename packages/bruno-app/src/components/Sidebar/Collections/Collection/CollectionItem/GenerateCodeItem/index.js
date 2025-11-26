@@ -1,81 +1,38 @@
 import Modal from 'components/Modal/index';
-import { useState } from 'react';
+import { useMemo } from 'react';
 import CodeView from './CodeView';
+import CodeViewToolbar from './CodeViewToolbar';
 import StyledWrapper from './StyledWrapper';
-import { isValidUrl } from 'utils/url/index';
-import get from 'lodash/get';
-import handlebars from 'handlebars';
-import { findEnvironmentInCollection } from 'utils/collections';
+import { isValidUrl } from 'utils/url';
+import { get } from 'lodash';
+import {
+  findEnvironmentInCollection
+} from 'utils/collections';
+import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
+import { getLanguages } from 'utils/codegenerator/targets';
+import { useSelector } from 'react-redux';
+import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { resolveInheritedAuth } from 'utils/auth';
 
-const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
-  if (!url || !url.length || typeof url !== 'string') {
-    return;
-  }
+const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/;
 
-  const template = handlebars.compile(url, { noEscape: true });
-
-  return template({
-    ...envVars,
-    ...collectionVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
+const validateURLWithVars = (url) => {
+  const isValid = isValidUrl(url);
+  const hasMissingInterpolations = TEMPLATE_VAR_PATTERN.test(url);
+  return isValid && !hasMissingInterpolations;
 };
 
-const languages = [
-  {
-    name: 'HTTP',
-    target: 'http',
-    client: 'http1.1'
-  },
-  {
-    name: 'JavaScript-Fetch',
-    target: 'javascript',
-    client: 'fetch'
-  },
-  {
-    name: 'Javascript-jQuery',
-    target: 'javascript',
-    client: 'jquery'
-  },
-  {
-    name: 'Javascript-axios',
-    target: 'javascript',
-    client: 'axios'
-  },
-  {
-    name: 'Python-Python3',
-    target: 'python',
-    client: 'python3'
-  },
-  {
-    name: 'Python-Requests',
-    target: 'python',
-    client: 'requests'
-  },
-  {
-    name: 'PHP',
-    target: 'php',
-    client: 'curl'
-  },
-  {
-    name: 'Shell-curl',
-    target: 'shell',
-    client: 'curl'
-  },
-  {
-    name: 'Shell-httpie',
-    target: 'shell',
-    client: 'httpie'
-  }
-];
+const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exampleUid = null }) => {
+  const languages = getLanguages();
+  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const generateCodePrefs = useSelector((state) => state.app.generateCode);
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+    globalEnvironments,
+    activeGlobalEnvironmentUid
+  });
+  const environment = findEnvironmentInCollection(collection, collection?.activeEnvironmentUid);
 
-const GenerateCodeItem = ({ collection, item, onClose }) => {
-  const url = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   let envVars = {};
   if (environment) {
     const vars = get(environment, 'variables', []);
@@ -85,58 +42,103 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     }, {});
   }
 
+  // Function to handle normal request data
+  const getNormalRequestData = () => {
+    const requestUrl = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+    const requestParams = get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params');
+
+    return {
+      url: requestUrl,
+      params: requestParams,
+      request: get(item, 'draft.request') !== undefined ? get(item, 'draft.request') : get(item, 'request')
+    };
+  };
+
+  // Function to handle request example data
+  const getExampleRequestData = () => {
+    if (!isExample || !exampleUid) {
+      return getNormalRequestData();
+    }
+
+    // Find the specific example - check both draft and non-draft examples
+    const examples = item.draft ? get(item, 'draft.examples', []) : get(item, 'examples', []);
+    const example = examples.find((e) => e.uid === exampleUid);
+
+    if (!example) {
+      return getNormalRequestData();
+    }
+
+    // Use example request data
+    const requestUrl = get(example, 'request.url');
+    const requestParams = get(example, 'request.params');
+    const requestData = get(example, 'request');
+
+    return {
+      url: requestUrl,
+      params: requestParams,
+      request: requestData
+    };
+  };
+
+  // Get the appropriate request data based on mode
+  const requestData = isExample ? getExampleRequestData() : getNormalRequestData();
+
+  const variables = useMemo(() => {
+    return getAllVariables({ ...collection, globalEnvironmentVariables }, item);
+  }, [collection, globalEnvironmentVariables, item]);
+
   const interpolatedUrl = interpolateUrl({
-    url,
-    envVars,
-    collectionVariables: collection.collectionVariables,
-    processEnvVars: collection.processEnvVariables
+    url: requestData.url,
+    variables
   });
-  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
+
+  // interpolate the path params
+  const finalUrl = interpolateUrlPathParams(
+    interpolatedUrl,
+    requestData.params
+  );
+
+  // Get the full language object based on current preferences
+  const selectedLanguage = useMemo(() => {
+    const fullName = generateCodePrefs.library === 'default'
+      ? generateCodePrefs.mainLanguage
+      : `${generateCodePrefs.mainLanguage}-${generateCodePrefs.library}`;
+
+    return languages.find(lang => lang.name === fullName) || languages[0];
+  }, [generateCodePrefs.mainLanguage, generateCodePrefs.library, languages]);
+
+  // Resolve auth inheritance
+  const resolvedRequest = resolveInheritedAuth(item, collection);
+
+  // Create the final item for code generation
+  const finalItem = {
+    ...item,
+    request: {
+      ...resolvedRequest,
+      ...requestData.request,
+      url: finalUrl
+    }
+  };
+
+  // Update modal title based on mode
+  const modalTitle = isExample ? `Generate Code - ${get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.name || 'Example'}` : 'Generate Code';
+
   return (
-    <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
+    <Modal size="lg" title={modalTitle} handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
-        <div className="flex w-full">
-          <div>
-            <div className="generate-code-sidebar">
-              {languages &&
-                languages.length &&
-                languages.map((language) => (
-                  <div
-                    key={language.name}
-                    className={
-                      language.name === selectedLanguage.name ? 'generate-code-item active' : 'generate-code-item'
-                    }
-                    onClick={() => setSelectedLanguage(language)}
-                  >
-                    <span className="capitalize">{language.name}</span>
-                  </div>
-                ))}
-            </div>
-          </div>
-          <div className="flex-grow p-4">
-            {isValidUrl(interpolatedUrl) ? (
+        <div className="code-generator">
+          <CodeViewToolbar />
+
+          <div className="editor-container">
+            {validateURLWithVars(finalUrl) ? (
               <CodeView
                 language={selectedLanguage}
-                item={{
-                  ...item,
-                  request:
-                    item.request.url !== ''
-                      ? {
-                          ...item.request,
-                          url: interpolatedUrl
-                        }
-                      : {
-                          ...item.draft.request,
-                          url: interpolatedUrl
-                        }
-                }}
+                item={finalItem}
               />
             ) : (
-              <div className="flex flex-col justify-center items-center w-full">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {interpolatedUrl}</h1>
-                  <p className="text-gray-500">Please check the URL and try again</p>
-                </div>
+              <div className="error-message">
+                <h1>Invalid URL: {finalUrl}</h1>
+                <p>Please check the URL and try again</p>
               </div>
             )}
           </div>

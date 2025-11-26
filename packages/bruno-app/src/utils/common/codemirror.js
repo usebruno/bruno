@@ -1,55 +1,110 @@
 import get from 'lodash/get';
-import isString from 'lodash/isString';
+import { mockDataFunctions } from '@usebruno/common';
+import { PROMPT_VARIABLE_TEXT_PATTERN } from '@usebruno/common/utils';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-}
+const CodeMirror = require('codemirror');
 
 const pathFoundInVariables = (path, obj) => {
   const value = get(obj, path);
-  return isString(value);
+  return value !== undefined;
 };
 
-export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
+/**
+ * Defines a custom CodeMirror mode for Bruno variables highlighting.
+ * This function creates a specialized mode that can highlight both Bruno template
+ * variables (in the format {{variable}}) and URL path parameters (in the format /:param).
+ * 
+ * @param {Object} _variables - The variables object containing data to validate against
+ * @param {string} mode - The base CodeMirror mode to extend (e.g., 'javascript', 'application/json')
+ * @param {boolean} highlightPathParams - Whether to highlight URL path parameters
+ * @param {boolean} highlightVariables - Whether to highlight template variables
+ * @returns {void} - Registers the mode with CodeMirror for later use
+ */
+export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams, highlightVariables) => {
   CodeMirror.defineMode('brunovariables', function (config, parserConfig) {
-    let variablesOverlay = {
-      token: function (stream, state) {
+    const { pathParams = {}, ...variables } = _variables || {};
+    const variablesOverlay = {
+      token: function (stream) {
         if (stream.match('{{', true)) {
           let ch;
           let word = '';
           while ((ch = stream.next()) != null) {
-            if (ch == '}' && stream.next() == '}') {
+            if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
-              let found = pathFoundInVariables(word, variables);
-              if (found) {
-                return 'variable-valid random-' + (Math.random() + 1).toString(36).substring(9);
-              } else {
-                return 'variable-invalid random-' + (Math.random() + 1).toString(36).substring(9);
+
+              // Prompt variable: starts with '?', no leading/trailing spaces, no braces
+              if (PROMPT_VARIABLE_TEXT_PATTERN.test(word)) {
+                return `variable-prompt`;
               }
-              // Random classname added so adjacent variables are not rendered in the same SPAN by CodeMirror.
+
+              // Check if it's a mock variable (starts with $) and exists in mockDataFunctions
+              const isMockVariable = word.startsWith('$') && mockDataFunctions.hasOwnProperty(word.substring(1));
+              const found = isMockVariable || pathFoundInVariables(word, variables);
+              const status = found ? 'valid' : 'invalid';
+              const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
+              return `variable-${status} ${randomClass}`;
             }
             word += ch;
           }
         }
-        while (stream.next() != null && !stream.match('{{', false)) {}
+        stream.skipTo('{{') || stream.skipToEnd();
         return null;
       }
     };
 
-    return CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
+    const urlPathParamsOverlay = {
+      token: function (stream) {
+        if (stream.match('/:', true)) {
+          let ch;
+          let word = '';
+          while ((ch = stream.next()) != null) {
+            if (ch === '/' || ch === '?' || ch === '&' || ch === '=') {
+              stream.backUp(1);
+              const found = pathFoundInVariables(word, pathParams);
+              const status = found ? 'valid' : 'invalid';
+              const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
+              return `variable-${status} ${randomClass}`;
+            }
+            word += ch;
+          }
+
+          // If we've consumed all characters and the word is not empty, it might be a path parameter at the end of the URL.
+          if (word) {
+            const found = pathFoundInVariables(word, pathParams);
+            const status = found ? 'valid' : 'invalid';
+            const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
+            return `variable-${status} ${randomClass}`;
+          }
+        }
+        stream.skipTo('/:') || stream.skipToEnd();
+        return null;
+      }
+    };
+
+    let baseMode = CodeMirror.getMode(config, parserConfig.backdrop || mode);
+
+    if (highlightVariables) {
+      baseMode = CodeMirror.overlayMode(baseMode, variablesOverlay);
+    }
+    if (highlightPathParams) {
+      baseMode = CodeMirror.overlayMode(baseMode, urlPathParamsOverlay);
+    }
+    return baseMode;
   });
 };
 
-export const getCodeMirrorModeBasedOnContentType = (contentType) => {
+export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
+  if (typeof body === 'object') {
+    return 'application/ld+json';
+  }
   if (!contentType || typeof contentType !== 'string') {
     return 'application/text';
   }
 
   if (contentType.includes('json')) {
     return 'application/ld+json';
+  } else if (contentType.includes('image')) {
+    return 'application/image';
   } else if (contentType.includes('xml')) {
     return 'application/xml';
   } else if (contentType.includes('html')) {
@@ -60,8 +115,6 @@ export const getCodeMirrorModeBasedOnContentType = (contentType) => {
     return 'application/xml';
   } else if (contentType.includes('yaml')) {
     return 'application/yaml';
-  } else if (contentType.includes('image')) {
-    return 'application/image';
   } else {
     return 'application/text';
   }

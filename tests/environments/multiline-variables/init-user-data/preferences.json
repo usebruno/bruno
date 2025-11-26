@@ -1,0 +1,28 @@
+{
+  "maximized": true,
+  "lastOpenedCollections": [
+    "{{projectRoot}}/tests/environments/multiline-variables/collection"
+  ],
+  "request": {
+    "sslVerification": false,
+    "customCaCertificate": {
+      "enabled": false,
+      "filePath": null
+    }
+  },
+  "font": {
+    "codeFont": "default"
+  },
+  "proxy": {
+    "enabled": false,
+    "protocol": "http",
+    "hostname": "",
+    "port": "",
+    "auth": {
+      "enabled": false,
+      "username": "",
+      "password": ""
+    },
+    "bypassProxy": ""
+  }
+}

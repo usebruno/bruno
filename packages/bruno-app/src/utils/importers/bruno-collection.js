@@ -1,43 +1,40 @@
-import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from './common';
 
-const readFile = (files) => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => resolve(e.target.result);
-    fileReader.onerror = (err) => reject(err);
-    fileReader.readAsText(files[0]);
-  });
+
+export const processBrunoCollection = async (jsonData) => {
+  try {
+    let collection = hydrateSeqInCollection(jsonData);
+    collection = updateUidsInCollection(collection);
+    collection = transformItemsInCollection(collection);
+    await validateSchema(collection);
+    return collection;
+  } catch (err) {
+    console.error('Error processing Bruno collection:', err);
+    throw new BrunoError('Import collection failed');
+  }
 };
 
-const parseJsonCollection = (str) => {
-  return new Promise((resolve, reject) => {
-    try {
-      let parsed = JSON.parse(str);
-      return resolve(parsed);
-    } catch (err) {
-      console.log(err);
-      reject(new BrunoError('Unable to parse the collection json file'));
-    }
-  });
-};
+export const isBrunoCollection = (data) => {
+  // Check for Bruno collection format
+  if (typeof data !== 'object' || data === null) {
+    return false;
+  }
 
-const importCollection = () => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
-      .then(readFile)
-      .then(parseJsonCollection)
-      .then(hydrateSeqInCollection)
-      .then(updateUidsInCollection)
-      .then(transformItemsInCollection)
-      .then(validateSchema)
-      .then((collection) => resolve(collection))
-      .catch((err) => {
-        console.log(err);
-        reject(new BrunoError('Import collection failed'));
-      });
-  });
-};
+  // Must have a version field that is a non-empty string
+  if (typeof data.version !== 'string' || !data.version.trim()) {
+    return false;
+  }
 
-export default importCollection;
+  // Must have a name field that is a non-empty string
+  if (typeof data.name !== 'string' || !data.name.trim()) {
+    return false;
+  }
+
+  // Must have an items array
+  if (!Array.isArray(data.items)) {
+    return false;
+  }
+
+  return true;
+};

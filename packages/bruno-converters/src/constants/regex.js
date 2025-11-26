@@ -1,0 +1,1 @@
+export const invalidVariableCharacterRegex = /[^\w-.]/g;

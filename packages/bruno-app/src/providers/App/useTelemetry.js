@@ -1,25 +1,25 @@
+/**
+ * Telemetry in bruno is just an anonymous visit counter (triggered once per day).
+ * The only details shared are:
+ *      - OS (ex: mac, windows, linux)
+ *      - Bruno Version (ex: 1.3.0)
+ * We don't track usage analytics / micro-interactions / crash logs / anything else.
+ */
+
 import { useEffect } from 'react';
-import getConfig from 'next/config';
 import { PostHog } from 'posthog-node';
 import platformLib from 'platform';
 import { uuid } from 'utils/common';
-import { isElectron } from 'utils/common/platform';
 
-const { publicRuntimeConfig } = getConfig();
-const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
+const posthogApiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
 let posthogClient = null;
 
 const isPlaywrightTestRunning = () => {
-  return publicRuntimeConfig.PLAYWRIGHT ? true : false;
+  return process.env.PLAYWRIGHT ? true : false;
 };
 
 const isDevEnv = () => {
-  return publicRuntimeConfig.ENV === 'dev';
-};
-
-// Todo support chrome and firefox extension
-const getPlatform = () => {
-  return isElectron() ? 'electron' : 'web';
+  return import.meta.env.MODE === 'development';
 };
 
 const getPosthogClient = () => {
@@ -42,7 +42,7 @@ const getAnonymousTrackingId = () => {
   return id;
 };
 
-const trackStart = () => {
+const trackStart = (version) => {
   if (isPlaywrightTestRunning()) {
     return;
   }
@@ -52,23 +52,24 @@ const trackStart = () => {
   }
 
   const trackingId = getAnonymousTrackingId();
-  const platform = getPlatform();
   const client = getPosthogClient();
   client.capture({
     distinctId: trackingId,
     event: 'start',
     properties: {
-      platform: platform,
-      os: platformLib.os.family
+      os: platformLib.os.family,
+      version: version
     }
   });
 };
 
-const useTelemetry = () => {
+const useTelemetry = ({ version }) => {
   useEffect(() => {
-    trackStart();
-    setInterval(trackStart, 24 * 60 * 60 * 1000);
-  }, []);
+    if (posthogApiKey && posthogApiKey.length) {
+      trackStart(version);
+      setInterval(trackStart, 24 * 60 * 60 * 1000);
+    }
+  }, [posthogApiKey]);
 };
 
 export default useTelemetry;

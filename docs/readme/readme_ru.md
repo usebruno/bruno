@@ -1,14 +1,33 @@
 <br />
-<img src="assets/images/logo-transparent.png" width="80"/>
+<img src="../../assets/images/logo-transparent.png" width="80"/>
 
 ### Bruno - IDE с открытым исходным кодом для изучения и тестирования API.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
+
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| **Русский**
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
 Bruno - новый и инновационный клиент API, направленный на революцию в установившейся ситуации, представленной Postman и подобными инструментами.
 
@@ -18,17 +37,17 @@ Bruno хранит ваши коллекции непосредственно в
 
 Bruno работает только в автономном режиме. Добавление облачной синхронизации в Bruno не планируется. Мы ценим конфиденциальность ваших данных и считаем, что они должны оставаться на вашем устройстве. Ознакомьтесь с нашим долгосрочным видением [здесь](https://github.com/usebruno/bruno/discussions/269)
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2.png) <br /><br />
 
 ### Работа на нескольких платформах 🖥️
 
-![bruno](assets/images/run-anywhere.png) <br /><br />
+![bruno](/assets/images/run-anywhere.png) <br /><br />
 
 ### Совместная работа через Git 👩‍💻🧑‍💻
 
 Или другая система контроля версий по вашему выбору
 
-![bruno](assets/images/version-control.png) <br /><br />
+![bruno](/assets/images/version-control.png) <br /><br />
 
 ### Важные ссылки 📌
 
@@ -74,4 +93,4 @@ Bruno работает только в автономном режиме. Доб
 
 ### Лицензия 📄
 
-[MIT](license.md)
+[MIT](../../license.md)

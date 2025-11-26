@@ -1,23 +1,34 @@
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
 import {
+  showPreferences,
+  updateCookies,
+  updatePreferences,
+  updateSystemProxyEnvVariables
+} from 'providers/ReduxStore/slices/app';
+import {
+  brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
   collectionChangeFileEvent,
-  collectionUnlinkFileEvent,
+  collectionRenamedEvent,
   collectionUnlinkDirectoryEvent,
   collectionUnlinkEnvFileEvent,
-  scriptEnvironmentUpdateEvent,
+  collectionUnlinkFileEvent,
   processEnvUpdateEvent,
-  collectionRenamedEvent,
-  runRequestEvent,
+  requestCancelled,
   runFolderEvent,
-  brunoConfigUpdateEvent
+  runRequestEvent,
+  scriptEnvironmentUpdateEvent,
+  streamDataReceived
 } from 'providers/ReduxStore/slices/collections';
-import { showPreferences, updatePreferences } from 'providers/ReduxStore/slices/app';
+import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
-import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
+import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
+import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
+import { collectionAddOauth2CredentialsByUrl, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
+import { addLog } from 'providers/ReduxStore/slices/logs';
+import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -80,6 +91,7 @@ const useIpcEvents = () => {
     };
 
     ipcRenderer.invoke('renderer:ready');
+
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
     const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
@@ -94,13 +106,21 @@ const useIpcEvents = () => {
       if (typeof error === 'string') {
         return toast.error(error || 'Something went wrong!');
       }
-      if (typeof message === 'object') {
+      if (typeof error === 'object') {
         return toast.error(error.message || 'Something went wrong!');
       }
     });
 
     const removeScriptEnvUpdateListener = ipcRenderer.on('main:script-environment-update', (val) => {
       dispatch(scriptEnvironmentUpdateEvent(val));
+    });
+
+    const removePersistentEnvVariablesUpdateListener = ipcRenderer.on('main:persistent-env-variables-update', (val) => {
+      dispatch(mergeAndPersistEnvironment(val));
+    });
+
+    const removeGlobalEnvironmentVariablesUpdateListener = ipcRenderer.on('main:global-environment-variables-update', (val) => {
+      dispatch(globalEnvironmentsUpdateEvent(val));
     });
 
     const removeCollectionRenamedListener = ipcRenderer.on('main:collection-renamed', (val) => {
@@ -121,18 +141,65 @@ const useIpcEvents = () => {
 
     const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
       console[val.type](...val.args);
+      dispatch(addLog({
+        type: val.type,
+        args: val.args,
+        timestamp: new Date().toISOString()
+      }));
+    });
+
+    const removeSystemResourcesListener = ipcRenderer.on('main:filesync-system-resources', (resourceData) => {
+      dispatch(updateSystemResources(resourceData));
     });
 
     const removeConfigUpdatesListener = ipcRenderer.on('main:bruno-config-update', (val) =>
       dispatch(brunoConfigUpdateEvent(val))
     );
 
-    const showPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
+    const removeShowPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
       dispatch(showPreferences(true));
     });
 
     const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {
       dispatch(updatePreferences(val));
+    });
+
+    const removeSystemProxyEnvUpdatesListener = ipcRenderer.on('main:load-system-proxy-env', (val) => {
+      dispatch(updateSystemProxyEnvVariables(val));
+    });
+
+    const removeCookieUpdateListener = ipcRenderer.on('main:cookies-update', (val) => {
+      dispatch(updateCookies(val));
+    });
+
+    const removeGlobalEnvironmentsUpdatesListener = ipcRenderer.on('main:load-global-environments', (val) => {
+      dispatch(updateGlobalEnvironments(val));
+    });
+
+    const removeSnapshotHydrationListener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot', (val) => {
+      dispatch(hydrateCollectionWithUiStateSnapshot(val));
+    });
+
+    const removeCollectionOauth2CredentialsUpdatesListener = ipcRenderer.on('main:credentials-update', (val) => {
+      const payload = {
+        ...val,
+        itemUid: val.itemUid || null,
+        folderUid: val.folderUid || null,
+        credentialsId: val.credentialsId || 'credentials'
+      };
+      dispatch(collectionAddOauth2CredentialsByUrl(payload));
+    });
+
+    const removeHttpStreamNewDataListener = ipcRenderer.on('main:http-stream-new-data', (val) => {
+      dispatch(streamDataReceived(val));
+    });
+
+    const removeHttpStreamEndListener = ipcRenderer.on('main:http-stream-end', (val) => {
+      dispatch(requestCancelled(val));
+    });
+
+    const removeCollectionLoadingStateListener = ipcRenderer.on('main:collection-loading-state-updated', (val) => {
+      dispatch(updateCollectionLoadingState(val));
     });
 
     return () => {
@@ -141,14 +208,25 @@ const useIpcEvents = () => {
       removeCollectionAlreadyOpenedListener();
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
+      removeGlobalEnvironmentVariablesUpdateListener();
       removeCollectionRenamedListener();
       removeRunFolderEventListener();
       removeRunRequestEventListener();
       removeProcessEnvUpdatesListener();
       removeConsoleLogListener();
       removeConfigUpdatesListener();
-      showPreferencesListener();
+      removeShowPreferencesListener();
       removePreferencesUpdatesListener();
+      removeCookieUpdateListener();
+      removeSystemProxyEnvUpdatesListener();
+      removeGlobalEnvironmentsUpdatesListener();
+      removeSnapshotHydrationListener();
+      removeCollectionOauth2CredentialsUpdatesListener();
+      removeHttpStreamNewDataListener();
+      removeHttpStreamEndListener();
+      removeCollectionLoadingStateListener();
+      removePersistentEnvVariablesUpdateListener();
+      removeSystemResourcesListener();
     };
   }, [isElectron]);
 };

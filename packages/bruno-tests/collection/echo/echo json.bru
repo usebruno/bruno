@@ -1,0 +1,47 @@
+meta {
+  name: echo json
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+headers {
+  foo: bar
+}
+
+auth:basic {
+  username: asd
+  password: j
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:pre-request {
+  bru.setVar("foo", "foo-world-2");
+}
+
+tests {
+  test("should return json", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "hello": "bruno"
+    });
+  });  
+}

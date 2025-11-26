@@ -1,0 +1,44 @@
+meta {
+  name: data types - request vars
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "boolean": false,
+    "number_1": 1,
+    "number_2": 0,
+    "number_3": -1,
+    "string": "bruno",
+    "array": [1, 2, 3, 4, 5],
+    "object": {
+      "hello": "bruno"
+    },
+    "null": null
+  }
+}
+
+assert {
+  req.body.boolean: isBoolean false
+  req.body.number_1: isNumber 1
+  req.body.undefined: isUndefined undefined
+  req.body.string: isString bruno
+  req.body.null: isNull null
+  req.body.array: isArray
+  req.body.boolean: eq false
+  req.body.number_1: eq 1
+  req.body.undefined: eq undefined
+  req.body.string: eq bruno
+  req.body.null: eq null
+  req.body.number_2: eq 0
+  req.body.number_3: eq -1
+  req.body.number_2: isNumber
+  req.body.number_3: isNumber
+}

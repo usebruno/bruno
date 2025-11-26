@@ -11,7 +11,7 @@ const AuthMode = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-  const authMode = get(collection, 'root.request.auth.mode');
+  const authMode = collection.draft?.root ? get(collection, 'draft.root.request.auth.mode') : get(collection, 'root.request.auth.mode');
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -56,10 +56,55 @@ const AuthMode = ({ collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('wsse');
+            }}
+          >
+            WSSE Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('bearer');
             }}
           >
             Bearer Token
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('digest');
+            }}
+          >
+            Digest Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('ntlm');
+            }}
+          >
+            NTLM Auth
+          </div>          
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('oauth2');
+            }}
+          >
+            OAuth 2.0
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('apikey');
+            }}
+          >
+            API Key
           </div>
           <div
             className="dropdown-item"

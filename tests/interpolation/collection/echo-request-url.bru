@@ -1,0 +1,18 @@
+meta {
+  name: echo-request-url
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/:path
+  auth: inherit
+}
+
+params:path {
+  path: some-data
+}
+
+settings {
+  encodeUrl: true
+}

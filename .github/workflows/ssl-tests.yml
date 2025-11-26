@@ -1,0 +1,91 @@
+name: SSL Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests-for-linux:
+    name: SSL Tests - Linux
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup Feature Dependencies
+        uses: ./.github/actions/ssl/linux/setup-feature-specific-deps
+
+      - name: Setup CA Certificates
+        uses: ./.github/actions/ssl/linux/setup-ca-certs
+
+      - name: Run Basic SSL CLI Tests
+        uses: ./.github/actions/ssl/linux/run-basic-ssl-cli-tests
+
+      - name: Run Custom CA Certs CLI Tests
+        uses: ./.github/actions/ssl/linux/run-custom-ca-certs-cli-tests
+
+      - name: Run Custom CA Certs E2E Tests
+        uses: ./.github/actions/ssl/linux/run-ssl-e2e-tests
+
+  tests-for-macos:
+    name: SSL Tests - macOS
+    timeout-minutes: 60
+    runs-on: macos-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup Feature Dependencies
+        uses: ./.github/actions/ssl/macos/setup-feature-specific-deps
+
+      - name: Setup CA Certificates
+        uses: ./.github/actions/ssl/macos/setup-ca-certs
+
+      - name: Run Basic SSL CLI Tests
+        uses: ./.github/actions/ssl/macos/run-basic-ssl-cli-tests
+
+      - name: Run Custom CA Certs CLI Tests
+        uses: ./.github/actions/ssl/macos/run-custom-ca-certs-cli-tests
+
+      - name: Run Custom CA Certs E2E Tests
+        uses: ./.github/actions/ssl/macos/run-ssl-e2e-tests
+
+  tests-for-windows:
+    name: SSL Tests - Windows
+    timeout-minutes: 60
+    runs-on: windows-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup CA Certificates
+        uses: ./.github/actions/ssl/windows/setup-ca-certs
+
+      - name: Run Basic SSL CLI Tests
+        uses: ./.github/actions/ssl/windows/run-basic-ssl-cli-tests
+
+      - name: Run Custom CA Certs CLI Tests
+        uses: ./.github/actions/ssl/windows/run-custom-ca-certs-cli-tests
+
+      - name: Run Custom CA Certs E2E Tests
+        uses: ./.github/actions/ssl/windows/run-ssl-e2e-tests

@@ -3,12 +3,15 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addVar, updateVar, deleteVar } from 'providers/ReduxStore/slices/collections';
+import { addVar, updateVar, deleteVar, moveVar } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
-import Tooltip from 'components/Tooltip';
+import MultiLineEditor from 'components/MultiLineEditor';
+import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
+import { variableNameRegex } from 'utils/common/regex';
+import Table from 'components/Table/index';
+import ReorderTable from 'components/ReorderTable/index';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
@@ -32,13 +35,10 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       case 'name': {
         const value = e.target.value;
 
-        if (/^(?!\d).*$/.test(value) === false) {
-          toast.error('Variable names must not start with a number!');
-          return;
-        }
-
-        if (/^\w*$/.test(value) === false) {
-          toast.error('Variable contains invalid character! Variables must only contain alpha-numeric characters.');
+        if (variableNameRegex.test(value) === false) {
+          toast.error(
+            'Variable contains invalid characters! Variables must only contain alpha-numeric characters, "-", "_", "."'
+          );
           return;
         }
 
@@ -75,36 +75,41 @@ const VarsTable = ({ item, collection, vars, varType }) => {
     );
   };
 
+  const handleVarDrag = ({ updateReorderedItem }) => {
+    dispatch(
+      moveVar({
+        type: varType,
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        updateReorderedItem
+      })
+    );
+  };
+
   return (
     <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Name</td>
-            {varType === 'request' ? (
-              <td>
-                <div className="flex items-center">
-                  <span>Value</span>
-                  <Tooltip text="You can write any valid JS Template Literal here" tooltipId="request-var" />
-                </div>
-              </td>
-            ) : (
-              <td>
-                <div className="flex items-center">
-                  <span>Expr</span>
-                  <Tooltip text="You can write any valid JS expression here" tooltipId="response-var" />
-                </div>
-              </td>
-            )}
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {vars && vars.length
+      <Table
+        headers={[
+          { name: 'Name', accessor: 'name', width: '40%' },
+          { name: varType === 'request' ? (
+              <div className="flex items-center">
+                <span>Value</span>
+              </div>
+          ) : (
+              <div className="flex items-center">
+                <span>Expr</span>
+                <InfoTip content="You can write any valid JS expression here" infotipId="response-var" />
+              </div>
+          ), accessor: 'value', width: '46%' },
+          { name: '', accessor: '', width: '14%' }
+        ]}
+      >
+        <ReorderTable updateReorderedItem={handleVarDrag}>
+        {vars && vars.length
             ? vars.map((_var) => {
                 return (
-                  <tr key={_var.uid}>
-                    <td>
+                  <tr key={_var.uid} data-uid={_var.uid}>
+                    <td className='flex relative'>
                       <input
                         type="text"
                         autoComplete="off"
@@ -117,7 +122,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MultiLineEditor
                         value={_var.value}
                         theme={storedTheme}
                         onSave={onSave}
@@ -134,6 +139,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         }
                         onRun={handleRun}
                         collection={collection}
+                        item={item}
                       />
                     </td>
                     <td>
@@ -154,8 +160,8 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                 );
               })
             : null}
-        </tbody>
-      </table>
+        </ReorderTable>
+      </Table>
       <button className="btn-add-var text-link pr-2 py-3 mt-2 select-none" onClick={handleAddVar}>
         + Add
       </button>

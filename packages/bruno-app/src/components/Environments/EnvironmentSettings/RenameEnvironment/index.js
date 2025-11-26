@@ -6,6 +6,7 @@ import { useFormik } from 'formik';
 import { renameEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
+import { validateName, validateNameError } from 'utils/common/regex';
 
 const RenameEnvironment = ({ onClose, environment, collection }) => {
   const dispatch = useDispatch();
@@ -18,10 +19,17 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
+        .max(255, 'Must be 255 characters or less')
+        .test('is-valid-filename', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
         .required('name is required')
     }),
     onSubmit: (values) => {
+      if (values.name === environment.name) {
+        return;
+      }
       dispatch(renameEnvironment(values.name, environment.uid, collection.uid))
         .then(() => {
           toast.success('Environment renamed successfully');
@@ -50,7 +58,7 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
           <div>
             <label htmlFor="name" className="block font-semibold">
               Environment Name

@@ -1,0 +1,54 @@
+meta {
+  name: data types
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "boolean": false,
+    "number": 1,
+    "string": "bruno",
+    "array": [1, 2, 3, 4, 5],
+    "object": {
+      "hello": "bruno"
+    },
+    "null": null
+  }
+}
+
+script:pre-request {
+  const reqBody = req.getBody();
+  
+  bru.setVar("dataTypeVarTest", {
+    ...reqBody,
+    "undefined": undefined
+  });
+}
+
+tests {
+  test("data types check via bru var", function() {
+    let v = bru.getVar("dataTypeVarTest");
+    v = {
+      ...v,
+      "undefined": undefined
+    };
+    expect(v).to.eql({
+      "boolean": false,
+      "number": 1,
+      "string": "bruno",
+      "array": [1, 2, 3, 4, 5],
+      "object": {
+        "hello": "bruno"
+      },
+      "null": null,
+      "undefined": undefined
+    })
+  });
+}

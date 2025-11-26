@@ -1,0 +1,96 @@
+{
+  "name": "bruno-with-examples",
+  "version": "1",
+  "items": [
+    {
+      "type": "http",
+      "name": "echo-request",
+      "seq": 1,
+      "request": {
+        "url": "https://testbench-sanity.usebruno.com/api/echo/json",
+        "method": "POST",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json",
+            "enabled": true
+          }
+        ],
+        "params": [],
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"message\": \"Hello World\",\n  \"timestamp\": \"{{$timestamp}}\"\n}",
+          "formUrlEncoded": [],
+          "multipartForm": [],
+          "file": []
+        },
+        "script": {
+          "req": "",
+          "res": ""
+        },
+        "vars": {
+          "req": [],
+          "res": []
+        },
+        "assertions": [],
+        "tests": "",
+        "docs": "",
+        "auth": {
+          "mode": "none"
+        }
+      },
+      "examples": [
+        {
+          "name": "example",
+          "description": "example description",
+          "type": "http",
+          "request": {
+            "url": "https://testbench-sanity.usebruno.com/api/echo/json",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "Content-Type",
+                "value": "application/json",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\n  \"message\": \"Hello World\",\n  \"timestamp\": \"{{$timestamp}}\"\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            }
+          },
+          "response": {
+            "status": "200",
+            "statusText": "OK",
+            "headers": [
+              {
+                "name": "content-type",
+                "value": "application/json; charset=utf-8",
+                "enabled": true
+              }
+            ],
+            "body": {
+              "type": "json",
+              "content": "{\n  \"message\": \"Hello World\",\n  \"timestamp\": \"1760611876\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "environments": [],
+  "activeEnvironmentUid": null,
+  "brunoConfig": {
+    "version": "1",
+    "name": "bruno-with-examples",
+    "type": "collection",
+    "ignore": [
+      "node_modules",
+      ".git"
+    ]
+  }
+}

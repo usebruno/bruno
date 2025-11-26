@@ -6,6 +6,12 @@ const StyledWrapper = styled.div`
   overflow-y: hidden;
   overflow-x: hidden;
 
+  &.read-only {
+    .CodeMirror-cursor {
+      display: none !important;
+    }
+  }
+
   .CodeMirror {
     background: transparent;
     height: 34px;
@@ -13,24 +19,24 @@ const StyledWrapper = styled.div`
     line-height: 30px;
     overflow: hidden;
 
-    .CodeMirror-vscrollbar {
-      display: none !important;
-    }
-
     .CodeMirror-scroll {
       overflow: hidden !important;
       padding-bottom: 50px !important;
     }
 
-    .CodeMirror-hscrollbar {
-      display: none !important;
-    }
+    .CodeMirror-vscrollbar,
+    .CodeMirror-hscrollbar,
     .CodeMirror-scrollbar-filler {
-      display: none !important;
+      display: none;
     }
 
     .CodeMirror-lines {
       padding: 0;
+
+      .CodeMirror-placeholder {
+        color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+        opacity:  ${(props) => props.theme.codemirror.placeholder.opacity} !important
+      }
     }
 
     .CodeMirror-cursor {
@@ -46,8 +52,11 @@ const StyledWrapper = styled.div`
 
     .CodeMirror-line {
       color: ${(props) => props.theme.text};
-      padding-left: 0;
-      padding-right: 0;
+      padding: 0;
+    }
+
+    .CodeMirror-selected {
+      background-color: rgba(212, 125, 59, 0.3);
     }
   }
 `;

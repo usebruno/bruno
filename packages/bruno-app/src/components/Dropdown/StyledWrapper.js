@@ -16,6 +16,7 @@ const Wrapper = styled.div`
     border-radius: 3px;
     max-height: 90vh;
     overflow-y: auto;
+    max-width: unset !important;
 
     .tippy-content {
       padding-left: 0;
@@ -36,12 +37,24 @@ const Wrapper = styled.div`
         padding: 0.35rem 0.6rem;
         cursor: pointer;
 
+        &.active {
+          color: ${(props) => props.theme.colors.text.yellow} !important;
+          .icon {
+            color: ${(props) => props.theme.colors.text.yellow} !important;
+          }
+        }
+
         .icon {
           color: ${(props) => props.theme.dropdown.iconColor};
         }
 
-        &:hover {
+        &:hover:not(:disabled) {
           background-color: ${(props) => props.theme.dropdown.hoverBg};
+        }
+
+        &:disabled {
+          cursor: not-allowed;
+          color: gray;
         }
 
         &.border-top {

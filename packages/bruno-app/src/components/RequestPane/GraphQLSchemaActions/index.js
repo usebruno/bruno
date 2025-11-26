@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, forwardRef } from 'react';
 import useGraphqlSchema from './useGraphqlSchema';
-import { IconBook, IconDownload, IconLoader2, IconCheckmark } from '@tabler/icons';
+import { IconBook, IconDownload, IconLoader2, IconRefresh } from '@tabler/icons';
 import get from 'lodash/get';
 import { findEnvironmentInCollection } from 'utils/collections';
 import Dropdown from '../../Dropdown';
 
 const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) => {
-  const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
+  const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
+  const pathname = item.draft ? get(item, 'draft.pathname', '') : get(item, 'pathname', '');
+  const uid = item.draft ? get(item, 'draft.uid', '') : get(item, 'uid', '');
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-  const request = item.draft ? item.draft.request : item.request;
+  const request = item.draft ? { ...item.draft.request, pathname, uid } : { ...item.request, pathname, uid };
 
   let {
     schema,
@@ -30,8 +32,8 @@ const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) =>
     return (
       <div ref={ref} className="dropdown-icon cursor-pointer flex hover:underline ml-2">
         {isSchemaLoading && <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} />}
-        {!isSchemaLoading && schema && <IconDownload size={18} strokeWidth={1.5} />}
-        {!isSchemaLoading && !schema && <IconCheckmark size={18} strokeWidth={1.5} />}
+        {!isSchemaLoading && schema && <IconRefresh size={18} strokeWidth={1.5} />}
+        {!isSchemaLoading && !schema && <IconDownload size={18} strokeWidth={1.5} />}
         <span className="ml-1">Schema</span>
       </div>
     );

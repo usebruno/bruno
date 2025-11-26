@@ -7,8 +7,8 @@ const lightTheme = {
   colors: {
     text: {
       green: '#047857',
-      danger: 'rgb(185, 28, 28)',
-      muted: '#4b5563',
+      danger: '#B91C1C',
+      muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
     },
@@ -20,7 +20,11 @@ const lightTheme = {
   input: {
     bg: 'white',
     border: '#ccc',
-    focusBorder: '#8b8b8b'
+    focusBorder: '#8b8b8b',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.8
+    }
   },
 
   menubar: {
@@ -32,6 +36,10 @@ const lightTheme = {
 
     name: {
       color: '#546de5'
+    },
+
+    runtime: {
+      color: 'rgb(0, 0, 0)'
     }
   },
 
@@ -75,10 +83,16 @@ const lightTheme = {
     color: 'rgb(48 48 48)',
     iconColor: 'rgb(75, 85, 99)',
     bg: '#fff',
-    hoverBg: '#e9e9e9',
+    hoverBg: '#e9ecef',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
     separator: '#e7e7e7',
-    labelBg: '#f3f3f3'
+    labelBg: '#f3f3f3',
+    selectedBg: '#D977060F',
+    selectedColor: '#D97706',
+    mutedText: '#9B9B9B',
+    primaryText: '#343434',
+    secondaryText: '#6B7280',
+    headingText: '#343434'
   },
 
   request: {
@@ -91,13 +105,18 @@ const lightTheme = {
       patch: '#ca7811',
       options: '#ca7811',
       head: '#ca7811'
-    }
+    },
+    grpc: '#6366f1',
+    ws: '#f59e0b',
+    gql: '#e535ab'
   },
 
   requestTabPanel: {
     url: {
       bg: '#f3f3f3',
-      icon: '#515151'
+      icon: '#515151',
+      iconDanger: '#d91f11',
+      errorHoverBg: '#fef2f2'
     },
     dragbar: {
       border: '#efefef',
@@ -110,7 +129,27 @@ const lightTheme = {
     responseStatus: 'rgb(117 117 117)',
     responseOk: '#047857',
     responseError: 'rgb(185, 28, 28)',
-    responseOverlayBg: 'rgba(255, 255, 255, 0.6)'
+    responsePending: '#1663bb',
+    responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
+    card: {
+      bg: '#fff',
+      border: '#f4f4f4',
+      hr: '#f4f4f4'
+    },
+    cardTable: {
+      border: '#efefef',
+      bg: '#fff',
+      table: {
+        thead: {
+          bg: 'rgb(249, 250, 251)',
+          color: 'rgb(75 85 99)'
+        }
+      }
+    },
+    graphqlDocsExplorer: {
+      bg: '#fff',
+      color: 'rgb(52, 52, 52)'
+    }
   },
 
   collection: {
@@ -137,6 +176,21 @@ const lightTheme = {
 
     sidebar: {
       bg: '#eaeaea'
+    }
+  },
+
+  notifications: {
+    bg: 'white',
+    list: {
+      bg: '#eaeaea',
+      borderRight: 'transparent',
+      borderBottom: '#d3d3d3',
+      hoverBg: '#e4e4e4',
+      active: {
+        border: '#546de5',
+        bg: '#dcdcdc',
+        hoverBg: '#dcdcdc'
+      }
     }
   },
 
@@ -177,13 +231,28 @@ const lightTheme = {
       color: '#9f9f9f',
       bg: '#efefef',
       border: 'rgb(234, 234, 234)'
+    },
+    danger: {
+      color: '#fff',
+      bg: '#dc3545',
+      border: '#dc3545'
     }
   },
 
   tabs: {
     active: {
-      color: 'rgb(50, 46, 44)',
-      border: '#546de5'
+      color: '#343434',
+      border: '#D97706'
+    },
+    secondary: {
+      active: {
+        bg: '#FFFFFF',
+        color: '#343434'
+      },
+      inactive: {
+        bg: '#ECECEE',
+        color: '#989898'
+      }
     }
   },
 
@@ -210,18 +279,33 @@ const lightTheme = {
   codemirror: {
     bg: 'white',
     border: '#efefef',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.75
+    },
     gutter: {
       bg: '#f3f3f3'
     },
     variable: {
       valid: '#047857',
       invalid: 'rgb(185, 28, 28)',
+      prompt: '#186ADE',
       info: {
-        color: 'rgb(52, 52, 52)',
-        bg: 'white',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)'
+        color: '#343434',
+        bg: '#FFFFFF',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
+        editorBg: '#F7F7F7',
+        iconColor: '#989898',
+        editorBorder: '#EFEFEF',
+        editorFocusBorder: '#989898',
+        editableDisplayHoverBg: 'rgba(0,0,0,0.02)',
+        border: '#EFEFEF',
+        editorBorder: '#EFEFEF'
       }
-    }
+    },
+    searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
+    searchMatch: '#B8860B',
+    searchMatchActive: '#DAA520'
   },
 
   table: {
@@ -237,6 +321,184 @@ const lightTheme = {
 
   plainGrid: {
     hoverBg: '#f4f4f4'
+  },
+
+  scrollbar: {
+    color: 'rgb(152 151 149)'
+  },
+
+  dragAndDrop: {
+    border: '#8b8b8b', // Using the same gray as focusBorder from input
+    borderStyle: '2px solid',
+    hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
+    transition: 'all 0.1s ease'
+  },
+
+  tooltip: {
+    bg: '#374151',
+    color: '#ffffff',
+    shortcutColor: '#f59e0b'
+  },
+
+  infoTip: {
+    bg: 'white',
+    border: '#e0e0e0',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+  },
+
+  statusBar: {
+    border: '#E9E9E9',
+    color: 'rgb(100, 100, 100)'
+  },
+  console: {
+    bg: '#f8f9fa',
+    headerBg: '#f8f9fa',
+    contentBg: '#ffffff',
+    border: '#dee2e6',
+    titleColor: '#212529',
+    countColor: '#6c757d',
+    buttonColor: '#495057',
+    buttonHoverBg: '#e9ecef',
+    buttonHoverColor: '#212529',
+    messageColor: '#212529',
+    timestampColor: '#6c757d',
+    emptyColor: '#6c757d',
+    logHoverBg: 'rgba(0, 0, 0, 0.03)',
+    resizeHandleHover: '#0d6efd',
+    resizeHandleActive: '#0d6efd',
+    dropdownBg: '#ffffff',
+    dropdownHeaderBg: '#f8f9fa',
+    optionHoverBg: '#f8f9fa',
+    optionLabelColor: '#212529',
+    optionCountColor: '#6c757d',
+    checkboxColor: '#0d6efd',
+    scrollbarTrack: '#f8f9fa',
+    scrollbarThumb: '#ced4da',
+    scrollbarThumbHover: '#adb5bd'
+  },
+
+  grpc: {
+    tabNav: {
+      container: {
+        bg: '#f5f5f5'
+      },
+      button: {
+        active: {
+          bg: '#ffffff',
+          color: '#000000'
+        },
+        inactive: {
+          bg: 'transparent',
+          color: '#525252'
+        }
+      }
+    },
+    importPaths: {
+      container: {
+        bg: '#ffffff'
+      },
+      header: {
+        text: '#838383',
+        button: {
+          color: '#838383',
+          hoverColor: '#343434'
+        }
+      },
+      error: {
+        bg: 'transparent',
+        text: '#B91C1C',
+        link: {
+          color: '#B91C1C',
+          hoverColor: '#dc2626'
+        }
+      },
+      item: {
+        bg: 'transparent',
+        hoverBg: 'rgba(0, 0, 0, 0.05)',
+        text: '#343434',
+        icon: '#838383',
+        checkbox: {
+          color: '#343434'
+        },
+        invalid: {
+          opacity: 0.6,
+          text: '#B91C1C'
+        }
+      },
+      empty: {
+        text: '#838383'
+      },
+      button: {
+        bg: '#e2e6ea',
+        color: '#212529',
+        border: '#dae0e5',
+        hoverBorder: '#696969'
+      }
+    },
+    protoFiles: {
+      container: {
+        bg: '#ffffff'
+      },
+      header: {
+        text: '#838383',
+        button: {
+          color: '#838383',
+          hoverColor: '#343434'
+        }
+      },
+      error: {
+        bg: 'transparent',
+        text: '#B91C1C',
+        link: {
+          color: '#B91C1C',
+          hoverColor: '#dc2626'
+        }
+      },
+      item: {
+        bg: 'transparent',
+        hoverBg: 'rgba(0, 0, 0, 0.05)',
+        selected: {
+          bg: 'rgba(217, 119, 6, 0.2)',
+          border: '#d97706'
+        },
+        text: '#343434',
+        secondaryText: '#838383',
+        icon: '#838383',
+        invalid: {
+          opacity: 0.6,
+          text: '#B91C1C'
+        }
+      },
+      empty: {
+        text: '#838383'
+      },
+      button: {
+        bg: '#e2e6ea',
+        color: '#212529',
+        border: '#dae0e5',
+        hoverBorder: '#696969'
+      }
+    }
+  },
+  examples: {
+    buttonBg: '#D977061A',
+    buttonColor: '#D97706',
+    buttonText: '#fff',
+    buttonIconColor: '#000',
+    border: '#efefef',
+    urlBar: {
+      border: '#efefef',
+      bg: '#F5F5F5'
+    },
+    table: {
+      thead: {
+        bg: '#f8f9fa',
+        color: '#212529'
+      }
+    },
+    checkbox: {
+      color: '#fff'
+    }
   }
 };
 

@@ -1,29 +1,15 @@
-const Handlebars = require('handlebars');
 const { forOwn, cloneDeep } = require('lodash');
+const { interpolate } = require('@usebruno/common');
 
-const interpolateEnvVars = (str, processEnvVars) => {
-  if (!str || !str.length || typeof str !== 'string') {
-    return str;
-  }
-
-  const template = Handlebars.compile(str, { noEscape: true });
-
-  return template({
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
-};
-
-const interpolateString = (str, { envVars, collectionVariables, processEnvVars }) => {
+const interpolateString = (str, { globalEnvironmentVariables, envVars, runtimeVariables, processEnvVars, promptVariables }) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
   }
 
   processEnvVars = processEnvVars || {};
-  collectionVariables = collectionVariables || {};
+  runtimeVariables = runtimeVariables || {};
+  globalEnvironmentVariables = globalEnvironmentVariables || {};
+  promptVariables = promptVariables || {};
 
   // we clone envVars because we don't want to modify the original object
   envVars = envVars ? cloneDeep(envVars) : {};
@@ -31,15 +17,21 @@ const interpolateString = (str, { envVars, collectionVariables, processEnvVars }
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
   forOwn(envVars, (value, key) => {
-    envVars[key] = interpolateEnvVars(value, processEnvVars);
+    envVars[key] = interpolate(value, {
+      process: {
+        env: {
+          ...processEnvVars
+        }
+      }
+    });
   });
 
-  const template = Handlebars.compile(str, { noEscape: true });
-
-  // collectionVariables take precedence over envVars
+  // runtimeVariables take precedence over envVars
   const combinedVars = {
+    ...globalEnvironmentVariables,
     ...envVars,
-    ...collectionVariables,
+    ...runtimeVariables,
+    ...promptVariables,
     process: {
       env: {
         ...processEnvVars
@@ -47,7 +39,7 @@ const interpolateString = (str, { envVars, collectionVariables, processEnvVars }
     }
   };
 
-  return template(combinedVars);
+  return interpolate(str, combinedVars);
 };
 
 module.exports = {

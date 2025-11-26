@@ -6,12 +6,33 @@ import { updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/colle
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import { IconWand } from '@tabler/icons';
+import toast from 'react-hot-toast';
+import { prettifyJsonString } from 'utils/common/index';
 
 const GraphQLVariables = ({ variables, item, collection }) => {
   const dispatch = useDispatch();
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  const onPrettify = () => {
+    if (!variables) return;
+    try {
+      const prettyVariables = prettifyJsonString(variables);
+      dispatch(
+        updateRequestGraphqlVariables({
+          variables: prettyVariables,
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        })
+      );
+      toast.success('Variables prettified');
+    } catch (error) {
+      console.error(error);
+      toast.error('Error occurred while prettifying GraphQL variables');
+    }
+  };
 
   const onEdit = (value) => {
     dispatch(
@@ -27,18 +48,28 @@ const GraphQLVariables = ({ variables, item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full">
+    <>
+      <button
+        className="btn-add-param text-link px-4 py-4 select-none absolute top-0 right-0 z-10"
+        onClick={onPrettify}
+        title={'Prettify'}
+      >
+        <IconWand size={20} strokeWidth={1.5} />
+      </button>
       <CodeEditor
         collection={collection}
         value={variables || ''}
-        theme={storedTheme}
+        theme={displayedTheme}
         font={get(preferences, 'font.codeFont', 'default')}
+        fontSize={get(preferences, 'font.codeFontSize')}
         onEdit={onEdit}
-        mode="javascript"
+        mode="application/json"
         onRun={onRun}
         onSave={onSave}
+        enableVariableHighlighting={true}
+        showHintsFor={['variables']}
       />
-    </StyledWrapper>
+    </>
   );
 };
 
