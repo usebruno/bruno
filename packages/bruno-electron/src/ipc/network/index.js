@@ -942,21 +942,6 @@ const registerNetworkIpc = (mainWindow) => {
         await runPostScripts();
       }
 
-      // Regenerate dataBuffer from response.data only if res.setBody() was called
-      // This ensures dataBuffer matches the potentially modified response.data from res.setBody()
-      let finalDataBuffer;
-      if (response._setBodyCalled) {
-        if (response.data === null || response.data === undefined) {
-          finalDataBuffer = Buffer.from('');
-        } else if (typeof response.data === 'string') {
-          finalDataBuffer = Buffer.from(response.data);
-        } else {
-          finalDataBuffer = Buffer.from(safeStringifyJSON(response.data) || '');
-        }
-      } else {
-        finalDataBuffer = response.dataBuffer;
-      }
-
       return {
         status: response.status,
         statusText: response.statusText,
@@ -964,8 +949,8 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         stream: isResponseStream ? axiosDataStream : null,
         cancelTokenUid: cancelTokenUid,
-        dataBuffer: finalDataBuffer.toString('base64'),
-        size: Buffer.byteLength(finalDataBuffer),
+        dataBuffer: response.dataBuffer.toString('base64'),
+        size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         timeline: response.timeline
