@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   label {
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   .single-line-editor-wrapper {

@@ -23,7 +23,7 @@ const StyledWrapper = styled.div`
   .CodeMirror {
     background: transparent;
     height: fit-content;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 30px;
     display: flex;
     flex-direction: column;

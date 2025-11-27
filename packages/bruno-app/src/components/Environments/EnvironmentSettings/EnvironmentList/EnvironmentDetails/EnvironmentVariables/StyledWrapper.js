@@ -27,7 +27,7 @@ const Wrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: var(--font-size-body);
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
     }
     thead td {
@@ -36,11 +36,11 @@ const Wrapper = styled.div`
   }
 
   .btn-add-param {
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   .tooltip-mod {
-    font-size: var(--font-size-xs) !important;
+    font-size: ${(props) => props.theme.font.size.xs} !important;
     width: 150px !important;
   }
 

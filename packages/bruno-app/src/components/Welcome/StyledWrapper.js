@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   .heading {
     color: ${(props) => props.theme.welcome.heading};
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   .muted {
@@ -34,7 +34,7 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
     background: ${(props) =>
       props.theme.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'};
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
     font-family: inherit;
     line-height: 1;

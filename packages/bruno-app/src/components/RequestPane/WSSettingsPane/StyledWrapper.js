@@ -13,7 +13,7 @@ const StyledWrapper = styled.div`
   }
 
   .tooltip-mod {
-    font-size: var(--font-size-xs) !important;
+    font-size: ${(props) => props.theme.font.size.xs} !important;
     width: 150px !important;
 
     & ul {

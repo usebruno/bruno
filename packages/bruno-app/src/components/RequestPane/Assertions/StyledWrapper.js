@@ -14,7 +14,7 @@ const Wrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: var(--font-size-body);
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
     }
     td {
@@ -27,7 +27,7 @@ const Wrapper = styled.div`
     }
 
   .btn-add-assertion {
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   input[type='text'] {

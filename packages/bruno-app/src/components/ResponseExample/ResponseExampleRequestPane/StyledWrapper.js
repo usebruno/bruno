@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  font-size: var(--font-size-body);
+  font-size: ${(props) => props.theme.font.size.base};
   height: 300px;
 
   .body-mode-selector {

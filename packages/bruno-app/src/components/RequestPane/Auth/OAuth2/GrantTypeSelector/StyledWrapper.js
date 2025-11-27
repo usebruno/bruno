@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  font-size: var(--font-size-body);
+  font-size: ${(props) => props.theme.font.size.base};
 
   .grant-type-mode-selector {
     padding: 0.5rem 0px;
@@ -47,7 +47,7 @@ const Wrapper = styled.div`
     fill: rgb(140 140 140);
   }
   label {
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
   }
 `;
 

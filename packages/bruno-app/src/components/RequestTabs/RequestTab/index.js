@@ -282,7 +282,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 'var(--font-size-sm)' }}>
+        <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
           {method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>

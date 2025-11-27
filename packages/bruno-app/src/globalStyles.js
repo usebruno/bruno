@@ -1,6 +1,11 @@
 import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
+
+  body {
+    font-size: ${(props) => props.theme.font.size.base};
+  }
+
   .CodeMirror-gutters {
     background-color: ${(props) => props.theme.codemirror.gutter.bg} !important;
     border-right: solid 1px ${(props) => props.theme.codemirror.border};
@@ -248,7 +253,7 @@ const GlobalStyle = createGlobalStyle`
     border-radius: 0.375rem;
     box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
     box-sizing: border-box;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.25rem;
     margin: 0;
     min-width: 18.1875rem;
@@ -286,7 +291,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-name {
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.codemirror.variable.info.color};
     font-weight: 500;
   }
@@ -297,7 +302,7 @@ const GlobalStyle = createGlobalStyle`
     padding: 0.125rem 0.375rem;
     background: #D977061A;
     border-radius: 0.25rem;
-    font-size: var(--font-size-sm);
+    font-size: ${(props) => props.theme.font.size.sm};
     color: #D97706;
     letter-spacing: 0.03125rem;
   }
@@ -317,7 +322,7 @@ const GlobalStyle = createGlobalStyle`
   /* Value Display (Read-only) */
   .CodeMirror-brunoVarInfo .var-value-display {
     padding: 0.375rem 1.5rem 0.375rem 0.5rem;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
     word-break: break-word;
@@ -340,7 +345,7 @@ const GlobalStyle = createGlobalStyle`
     height: 100%;
     min-height: 1.75rem;
     max-height: 11.125rem;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
@@ -375,7 +380,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror pre {
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
@@ -390,7 +395,7 @@ const GlobalStyle = createGlobalStyle`
     padding: 0;
     max-width: 13.1875rem;
     line-height: 1.25rem;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
     word-break: break-all;
@@ -410,7 +415,7 @@ const GlobalStyle = createGlobalStyle`
     width: 17.1875rem;
     max-width: 13.1875rem;
     padding: 0.375rem 1.5rem 0.375rem 0.5rem;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
     word-break: break-all;
@@ -459,7 +464,7 @@ const GlobalStyle = createGlobalStyle`
 
   /* Read-only Note */
   .CodeMirror-brunoVarInfo .var-readonly-note {
-    font-size: var(--font-size-xs);
+    font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.colors.text.muted};
     opacity: 0.6;
     margin-top: 0.25rem;

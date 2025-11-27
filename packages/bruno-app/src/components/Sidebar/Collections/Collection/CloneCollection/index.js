@@ -133,9 +133,6 @@ const CloneCollection = ({ onClose, collectionUid }) => {
           <div className="mt-1">
             <span
               className="text-link cursor-pointer hover:underline" onClick={browse}
-              style={{
-                fontSize: 'var(--font-size-body)'
-              }}
             >
               Browse
             </span>

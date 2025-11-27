@@ -14,7 +14,7 @@ const Wrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: var(--font-size-body);
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
     }
     td {
@@ -23,7 +23,7 @@ const Wrapper = styled.div`
     }
 
   .btn-add-param {
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   input[type='text'] {
@@ -49,7 +49,7 @@ const Wrapper = styled.div`
     background: none;
     border: none;
     cursor: pointer;
-    font-size: var(--font-size-sm);
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
     color: ${(props) => props.theme.colors.text.muted};
     

@@ -4,6 +4,17 @@ const lightTheme = {
   textLink: '#1663bb',
   bg: '#fff',
 
+  font: {
+    size: {
+      xs: '11px',
+      sm: '12px',
+      base: '13px',
+      md: '16px',
+      lg: '20px',
+      xl: '24px'
+    }
+  },
+
   colors: {
     text: {
       green: '#047857',

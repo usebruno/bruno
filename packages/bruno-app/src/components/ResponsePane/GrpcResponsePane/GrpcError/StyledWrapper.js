@@ -33,7 +33,7 @@ const StyledWrapper = styled.div`
 
   .error-message {
     font-family: monospace;
-    font-size: var(--font-size-xs);
+    font-size: ${(props) => props.theme.font.size.xs};
     line-height: 1.25rem;
     white-space: pre-wrap;
     word-break: break-all;

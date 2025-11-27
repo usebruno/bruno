@@ -7,7 +7,7 @@ const Wrapper = styled.div`
 
     thead {
       color: #777777;
-      font-size: var(--font-size-sm);
+      font-size: ${(props) => props.theme.font.size.sm};
       font-weight: 500;
       text-transform: uppercase;
     }

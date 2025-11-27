@@ -10,7 +10,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.sidebar.bg};
     border-top: 1px solid ${(props) => props.theme.statusBar.border};
     color: ${(props) => props.theme.statusBar.color};
-    font-size: var(--font-size-sm);
+    font-size: ${(props) => props.theme.font.size.sm};
     user-select: none;
     position: relative;
   }

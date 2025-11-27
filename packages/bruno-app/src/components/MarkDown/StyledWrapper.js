@@ -9,7 +9,7 @@ const StyledMarkdownBodyWrapper = styled.div`
     box-sizing: border-box;
     height: 100%;
     margin: 0 auto;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
 
     h1 {
       margin: 0.67em 0;

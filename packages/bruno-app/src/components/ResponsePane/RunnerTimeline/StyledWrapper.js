@@ -26,18 +26,18 @@ const StyledWrapper = styled.div`
 
   .url-text {
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     margin-top: 0.25rem;
   }
 
   .timestamp {
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   .meta-info {
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   .oauth-section {
@@ -119,7 +119,7 @@ const StyledWrapper = styled.div`
   }
     
   .request-label {
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     padding: 2px 6px;
     border-radius: 3px;
     margin-left: 8px;
@@ -139,7 +139,7 @@ const StyledWrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: var(--font-size-body);
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
     }
     td {

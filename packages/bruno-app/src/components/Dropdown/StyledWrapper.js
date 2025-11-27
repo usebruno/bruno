@@ -9,7 +9,7 @@ const Wrapper = styled.div`
 
   .tippy-box {
     min-width: 135px;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.dropdown.color};
     background-color: ${(props) => props.theme.dropdown.bg};
     box-shadow: ${(props) => props.theme.dropdown.shadow};

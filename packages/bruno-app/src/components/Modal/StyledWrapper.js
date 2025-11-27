@@ -71,7 +71,7 @@ const Wrapper = styled.div`
     text-transform: uppercase;
     color: ${(props) => props.theme.modal.title.color};
     background-color: ${(props) => props.theme.modal.title.bg};
-    font-size: var(--font-size-sm);
+    font-size: ${(props) => props.theme.font.size.sm};
     padding: 12px;
     font-weight: 500;
     border-top-left-radius: 4px;

@@ -9,7 +9,7 @@ const StyledWrapper = styled.div`
     border: 1px solid ${(props) => props.theme.modal.input.border};
     border-radius: 3px;
     padding: 0.35rem 0.6rem;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
     color: ${(props) => props.theme.text.primary};
     min-width: 120px;
@@ -60,7 +60,7 @@ const StyledWrapper = styled.div`
       margin: 0;
       cursor: pointer;
       transition: background-color 0.15s ease;
-      font-size: var(--font-size-body);
+      font-size: ${(props) => props.theme.font.size.base};
       color: ${(props) => props.theme.dropdown.primaryText};
       width: 100%;
       box-sizing: border-box;

@@ -380,16 +380,16 @@ export default function RunnerResults({ collection }) {
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
               type="button"
-              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors"
-              style={{ fontFamily: 'Inter', fontSize: 'var(--font-size-sm)', fontWeight: 500 }}
+              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
+              style={{ fontFamily: 'Inter', fontWeight: 500 }}
               onClick={runAgain}
             >
               Run Again
             </button>
             <button
               type="button"
-              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors"
-              style={{ fontFamily: 'Inter', fontSize: 'var(--font-size-sm)', fontWeight: 500 }}
+              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
+              style={{ fontFamily: 'Inter', fontWeight: 500 }}
               onClick={resetRunner}
             >
               Reset

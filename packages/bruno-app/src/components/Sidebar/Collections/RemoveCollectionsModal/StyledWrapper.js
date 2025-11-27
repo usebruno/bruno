@@ -28,7 +28,7 @@ const StyledWrapper = styled.div`
     background-color: ${(props) => props.theme.requestTabs.active.bg};
     border: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
     border-radius: 4px;
-    font-size: var(--font-size-sm);
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
     color: ${(props) => props.theme.text};
     white-space: nowrap;

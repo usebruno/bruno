@@ -41,7 +41,7 @@ const StyledWrapper = styled.div`
 
     p {
       margin: 0;
-      font-size: var(--font-size-body);
+      font-size: ${(props) => props.theme.font.size.base};
       color: ${(props) => props.theme.console.textMuted};
     }
   }
@@ -51,7 +51,7 @@ const StyledWrapper = styled.div`
 
     h2 {
       margin: 0 0 8px 0;
-      font-size: var(--font-size-body);
+      font-size: ${(props) => props.theme.font.size.base};
       font-weight: 500;
       color: ${(props) => props.theme.console.titleColor};
     }
@@ -80,7 +80,7 @@ const StyledWrapper = styled.div`
   }
 
   .resource-title {
-    font-size: var(--font-size-sm);
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
   }
 
@@ -92,7 +92,7 @@ const StyledWrapper = styled.div`
   }
 
   .resource-subtitle {
-    font-size: var(--font-size-xs);
+    font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.console.buttonColor};
   }
 
@@ -100,7 +100,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: var(--font-size-xs);
+    font-size: ${(props) => props.theme.font.size.xs};
     margin-top: 8px;
 
     &.up {

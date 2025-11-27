@@ -38,7 +38,7 @@ const StyledWrapper = styled.div`
     border: 1px solid ${props => props.theme.input.border};
     border-radius: 3px;
     color: ${props => props.theme.text};
-    font-size: var(--font-size-sm);
+    font-size: ${(props) => props.theme.font.size.sm};
     padding: 6px 28px 6px 10px;
     min-width: 140px;
     height: 32px;
@@ -75,7 +75,7 @@ const StyledWrapper = styled.div`
     border: 1px solid ${props => props.theme.input.border};
     border-radius: 3px;
     color: ${props => props.theme.text};
-    font-size: var(--font-size-sm);
+    font-size: ${(props) => props.theme.font.size.sm};
     cursor: pointer;
     transition: all 0.15s ease;
     display: flex;
@@ -99,7 +99,7 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 8px;
       cursor: pointer;
-      font-size: var(--font-size-body);
+      font-size: ${(props) => props.theme.font.size.base};
       color: ${props => props.theme.text};
 
       input[type="checkbox"] {

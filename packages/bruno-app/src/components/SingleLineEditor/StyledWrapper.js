@@ -15,7 +15,7 @@ const StyledWrapper = styled.div`
   .CodeMirror {
     background: transparent;
     height: 34px;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 30px;
     overflow: hidden;
 

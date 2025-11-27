@@ -27,7 +27,7 @@ const StyledWrapper = styled.div`
     border: none;
     outline: none;
     padding: 1px 2px;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     margin: 0 1px;
     height: 28px;
   }
@@ -50,7 +50,7 @@ const StyledWrapper = styled.div`
   .searchbar-result-count {
     min-width: 28px;
     text-align: center;
-    font-size: var(--font-size-xs);
+    font-size: ${(props) => props.theme.font.size.xs};
     color: #aaa;
     margin: 0 8px 0 1px; 
     white-space: nowrap;
@@ -74,7 +74,7 @@ const StyledWrapper = styled.div`
     color: inherit;
     border: none;
     outline: none;
-    font-size: var(--font-size-body);
+    font-size: ${(props) => props.theme.font.size.base};
     padding: 1px 2px;
     min-width: 80px;
   }

@@ -10,7 +10,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
   }
 
-  font-size: var(--font-size-body);
+  font-size: ${(props) => props.theme.font.size.base};
 
   .body-mode-selector {
     background: transparent;

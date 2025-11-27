@@ -48,7 +48,7 @@
   --font-family-mono: 'Fira Code', monospace;
   --font-size-hint: .75rem;
   --font-size-inline-code: .8125rem;
-  --font-size-body: 0.8125rem; /* 13px */
+  --font-size-base: 0.8125rem; /* 13px */
   --font-size-sm: 0.75rem;     /* 12px */
   --font-size-xs: 0.6875rem;   /* 11px */
   --font-size-h4: 1.125rem;
@@ -101,7 +101,7 @@
   --font-family-mono: 'Fira Code', monospace;
   --font-size-hint: .75rem;
   --font-size-inline-code: .8125rem;
-  --font-size-body: 0.8125rem; /* 13px */
+  --font-size-base: 0.8125rem; /* 13px */
   --font-size-sm: 0.75rem;     /* 12px */
   --font-size-xs: 0.6875rem;   /* 11px */
   --font-size-h4: 1.125rem;
@@ -155,10 +155,6 @@ body {
   letter-spacing: normal;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   overflow-x: hidden;
-}
-
-body {
-  font-size: var(--font-size-body);
 }
 
 body::-webkit-scrollbar,

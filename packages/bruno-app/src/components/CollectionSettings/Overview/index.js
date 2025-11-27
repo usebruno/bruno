@@ -9,6 +9,10 @@ const Overview = ({ collection }) => {
     <div className="h-full">
       <div className="grid grid-cols-5 gap-5 h-full">
         <div className="col-span-2">
+          <div className="text-lg font-medium flex items-center gap-2">
+            <IconBox size={20} stroke={1.5} />
+            {collection?.name}
+          </div>
           <Info collection={collection} />
           <RequestsNotLoaded collection={collection} />
         </div>

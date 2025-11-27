@@ -18,21 +18,8 @@ const Info = ({ collection }) => {
 
   return (
     <div className="w-full flex flex-col h-fit">
-      <div className="rounded-lg py-2">
+      <div className="rounded-lg py-6">
         <div className="grid gap-5">
-          {/* Collection Name Row */}
-          <div className="flex items-start">
-            <div className="flex-shrink-0 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-              <IconBox className="w-5 h-5 text-amber-500" stroke={1.5} />
-            </div>
-            <div className="ml-4">
-              <div className="font-medium">Collection</div>
-              <div className="mt-1 text-muted text-xs">
-                {collection?.name}
-              </div>
-            </div>
-          </div>
-
           {/* Location Row */}
           <div className="flex items-start">
             <div className="flex-shrink-0 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
