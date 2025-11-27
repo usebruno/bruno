@@ -22,7 +22,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
-const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
@@ -605,9 +605,10 @@ const registerNetworkIpc = (mainWindow) => {
 
     const runRequestByItemPathname = async (relativeItemPathname) => {
       return new Promise(async (resolve, reject) => {
-        let itemPathname = path.join(collection?.pathname, relativeItemPathname);
-        if (itemPathname && !itemPathname?.endsWith('.bru')) {
-          itemPathname = `${itemPathname}.bru`;
+        const format = getCollectionFormat(collection.pathname);
+        let itemPathname = path.join(collection.pathname, relativeItemPathname);
+        if (itemPathname && !hasRequestExtension(itemPathname, format)) {
+          itemPathname = `${itemPathname}.${format}`;
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if(_item) {
@@ -1093,9 +1094,10 @@ const registerNetworkIpc = (mainWindow) => {
 
       const runRequestByItemPathname = async (relativeItemPathname) => {
         return new Promise(async (resolve, reject) => {
-          let itemPathname = path.join(collection?.pathname, relativeItemPathname);
-          if (itemPathname && !itemPathname?.endsWith('.bru')) {
-            itemPathname = `${itemPathname}.bru`;
+          const format = getCollectionFormat(collection.pathname);
+          let itemPathname = path.join(collection.pathname, relativeItemPathname);
+          if (itemPathname && !hasRequestExtension(itemPathname, format)) {
+            itemPathname = `${itemPathname}.${format}`;
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if(_item) {
