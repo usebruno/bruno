@@ -17,7 +17,7 @@ import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
-import CloseTabIcon from './CloseTabIcon';
+import { IconX } from '@tabler/icons';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
@@ -269,7 +269,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className={`flex items-baseline tab-label pl-2 ${tab.preview ? "italic" : ""}`}
+        className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {
@@ -297,25 +297,27 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           dropdownTippyRef={dropdownTippyRef}
           dispatch={dispatch}
         />
-      </div>
-      <div
-        className="flex px-2 close-icon-container"
-        onClick={(e) => {
-          if (!hasChanges) {
-            isWS && closeWsConnection(item.uid);
-            return handleCloseClick(e);
-          };
+        <div className="close-gradient">
+          <div
+            className="close-icon-container"
+            onClick={(e) => {
+              if (!hasChanges) {
+                isWS && closeWsConnection(item.uid);
+                return handleCloseClick(e);
+              }
 
-          e.stopPropagation();
-          e.preventDefault();
-          setShowConfirmClose(true);
-        }}
-      >
-        {!hasChanges ? (
-          <CloseTabIcon />
-        ) : (
-          <DraftTabIcon />
-        )}
+              e.stopPropagation();
+              e.preventDefault();
+              setShowConfirmClose(true);
+            }}
+          >
+            {!hasChanges ? (
+              <IconX size={16} strokeWidth={2.5} className="currentColor" />
+            ) : (
+              <DraftTabIcon />
+            )}
+          </div>
+        </div>
       </div>
     </StyledWrapper>
   );

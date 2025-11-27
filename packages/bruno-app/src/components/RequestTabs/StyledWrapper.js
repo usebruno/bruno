@@ -18,12 +18,10 @@ const Wrapper = styled.div`
     li {
       display: inline-flex;
       max-width: 150px;
+      min-width: 50px;
       border: 1px solid transparent;
       list-style: none;
-      padding-top: 8px;
-      padding-bottom: 8px;
-      padding-left: 0;
-      padding-right: 0;
+      padding: 4px 6px;
       cursor: pointer;
       font-size: ${(props) => props.theme.font.size.base};
       height: 38px;
@@ -39,12 +37,6 @@ const Wrapper = styled.div`
 
       &.active {
         background: ${(props) => props.theme.requestTabs.active.bg};
-      }
-
-      &.active {
-        .close-icon-container .close-icon {
-          display: block;
-        }
       }
 
       &:hover {
