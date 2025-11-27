@@ -96,6 +96,17 @@ const hasBruExtension = (filename) => {
   return ['bru'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 
+const hasRequestExtension = (filename, format = null) => {
+  if (!filename || typeof filename !== 'string') return false;
+
+  if (format) {
+    const ext = format === 'yml' ? 'yml' : 'bru';
+    return filename.toLowerCase().endsWith(`.${ext}`);
+  }
+
+  return ['bru', 'yml'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
+};
+
 const createDirectory = async (dir) => {
   if (!dir) {
     throw new Error(`directory: path is null`);
@@ -157,8 +168,16 @@ const searchForFiles = (dir, extension) => {
   return results;
 };
 
-const searchForBruFiles = (dir) => {
-  return searchForFiles(dir, '.bru');
+// Search for request files based on collection filetype by reading config
+const searchForRequestFiles = (dir, collectionPath = null) => {
+  const format = getCollectionFormat(collectionPath || dir);
+  if (format === 'yml') {
+    return searchForFiles(dir, '.yml');
+  } else if (format === 'bru') {
+    return searchForFiles(dir, '.bru');
+  } else {
+    throw new Error(`Invalid format: ${format}`);
+  }
 };
 
 const sanitizeName = (name) => {
@@ -194,6 +213,20 @@ const generateUniqueName = (baseName, checkExists) => {
     uniqueName = `${baseName} copy ${counter}`;
   }
   return uniqueName;
+};
+
+const getCollectionFormat = (collectionPath) => {
+  const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+  if (fs.existsSync(ocYmlPath)) {
+    return 'yml';
+  }
+
+  const brunoJsonPath = path.join(collectionPath, 'bruno.json');
+  if (fs.existsSync(brunoJsonPath)) {
+    return 'bru';
+  }
+
+  throw new Error(`No collection configuration found at: ${collectionPath}`);
 };
 
 const validateName = (name) => {
@@ -297,7 +330,14 @@ const getSafePathToWrite = (filePath) => {
 
 async function safeWriteFile(filePath, data, options) {
   const safePath = getSafePathToWrite(filePath);
-  await fs.writeFile(safePath, data, options);
+
+  try {
+    const fsExtra = require('fs-extra');
+    fsExtra.outputFileSync(safePath, data, options);
+  } catch (err) {
+    console.error(`Error writing file at ${safePath}:`, err);
+    return Promise.reject(err);
+  }
 }
 
 function safeWriteFileSync(filePath, data) {
@@ -393,12 +433,13 @@ module.exports = {
   writeFile,
   hasJsonExtension,
   hasBruExtension,
+  hasRequestExtension,
   createDirectory,
   browseDirectory,
   browseFiles,
   chooseFileToSave,
   searchForFiles,
-  searchForBruFiles,
+  searchForRequestFiles,
   sanitizeName,
   isWindowsOS,
   safeToRename,
@@ -412,5 +453,6 @@ module.exports = {
   removePath,
   getPaths,
   isLargeFile,
-  generateUniqueName
+  generateUniqueName,
+  getCollectionFormat
 };

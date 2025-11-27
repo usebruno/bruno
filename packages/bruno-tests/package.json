@@ -26,7 +26,7 @@
     "express-basic-auth": "^1.2.1",
     "fast-xml-parser": "^5.0.8",
     "http-proxy": "^1.18.1",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "multer": "^1.4.5-lts.1",

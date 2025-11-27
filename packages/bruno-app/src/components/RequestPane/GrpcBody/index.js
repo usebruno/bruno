@@ -41,8 +41,8 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 
     dispatch(updateRequestBody({
       content: currentMessages,
-            itemUid: item.uid,
-            collectionUid: collection.uid
+      itemUid: item.uid,
+      collectionUid: collection.uid
     }));
   };
 
@@ -186,6 +186,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
                 onClick={onSend}
                 disabled={!isConnectionActive}
                 className={`p-1 rounded ${isConnectionActive ? 'hover:bg-zinc-200 dark:hover:bg-zinc-600' : 'opacity-50 cursor-not-allowed'} transition-colors`}
+                data-testid={`grpc-send-message-${index}`}
               >
                 <IconSend
                   size={16}
@@ -299,6 +300,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
       <div
         ref={messagesContainerRef}
         id="grpc-messages-container"
+        data-testid="grpc-messages-container"
         className={`flex-1 ${body.grpc.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'overflow-y-auto'} ${canClientSendMultipleMessages && 'pb-16'}`}
       >
         {body.grpc
@@ -325,6 +327,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
             <button
               onClick={addNewMessage}
               className="add-message-btn flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors shadow-md"
+              data-testid="grpc-add-message-button"
             >
               <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
               <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">Add Message</span>

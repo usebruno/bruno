@@ -124,8 +124,8 @@ test.describe('Import OpenAPI Collection with Examples', () => {
       await chevronIcon.click();
 
       // Check if examples are visible
-      const createdExample = page.locator('.collection-item-name').getByText('User Created');
-      const validationErrorExample = page.locator('.collection-item-name').getByText('Validation Error');
+      const createdExample = page.locator('.collection-item-name').getByText('User Created (Valid User)');
+      const validationErrorExample = page.locator('.collection-item-name').getByText('Validation Error (Invalid User)');
 
       await expect(createdExample).toBeVisible();
       await expect(validationErrorExample).toBeVisible();

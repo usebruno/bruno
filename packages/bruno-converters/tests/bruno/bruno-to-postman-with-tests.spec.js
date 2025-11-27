@@ -7,7 +7,7 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
     items: [
       {
         name: 'Request With Scripts and Tests',
-        type: 'http',
+        type: 'http-request',
         filename: 'request-with-scripts.bru',
         seq: 1,
         settings: {
