@@ -11,7 +11,7 @@ import { callIpc } from './common/ipc';
 export const openDevtoolsAndSwitchToTerminal = async (dispatch, cwd = null) => {
   // Open console if closed
   dispatch(openConsole());
-  
+
   // Switch to terminal tab
   dispatch(setActiveTab('terminal'));
 
@@ -34,14 +34,14 @@ export const getSessionID = () => {
 
 /**
  * Checks if we can write to the terminal
- * @returns {Promise<boolean|null>} 
+ * @returns {Promise<boolean|null>}
  *   - true if terminal is ready to execute a command immediately
  *   - false if there is a long running task
  *   - null if there is no session ID
  */
 export const canWriteToTerminal = async () => {
   const sessionId = getSessionID();
-  
+
   // Return null if no session ID exists
   if (!sessionId) {
     return null;

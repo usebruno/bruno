@@ -111,7 +111,7 @@ const createTerminalForSession = (sessionId) => {
       if (instance && instance.terminal) {
         try {
           instance.terminal.write(msg);
-      } catch (err) {
+        } catch (err) {
           console.warn('Failed to write terminal exit message:', err);
         }
       }
@@ -196,21 +196,21 @@ const TerminalTab = () => {
     try {
       const sessionList = await window.ipcRenderer.invoke('terminal:list-sessions');
       setSessions(sessionList);
-      
+
       // Use functional state updates to get the current activeSessionId
       setActiveSessionId((prevActiveSessionId) => {
         const activeId = currentActiveSessionId !== null ? currentActiveSessionId : prevActiveSessionId;
-        
+
         // Auto-select first session if none selected
         if (!activeId && sessionList.length > 0) {
           return sessionList[0].sessionId;
         }
-        
+
         // If active session no longer exists, select first available
-        if (activeId && !sessionList.find(s => s.sessionId === activeId)) {
+        if (activeId && !sessionList.find((s) => s.sessionId === activeId)) {
           return sessionList.length > 0 ? sessionList[0].sessionId : null;
         }
-        
+
         // Keep current selection if it still exists
         return activeId;
       });
@@ -256,7 +256,7 @@ const TerminalTab = () => {
 
       // Check if session already exists at this CWD
       const sessionList = await window.ipcRenderer.invoke('terminal:list-sessions');
-      const existingSession = sessionList.find(s => normalizePath(s.cwd) === normalizedCwd);
+      const existingSession = sessionList.find((s) => normalizePath(s.cwd) === normalizedCwd);
 
       if (existingSession) {
         // Switch to existing session
@@ -282,10 +282,10 @@ const TerminalTab = () => {
     try {
       window.ipcRenderer.send('terminal:kill', sessionId);
       cleanupTerminalInstance(sessionId);
-      
+
       // Load updated sessions (this will also handle active session switching)
       const updatedSessions = await loadSessions();
-      
+
       // If we closed the active session and there are no sessions left, clear selection
       if (activeSessionId === sessionId && updatedSessions.length === 0) {
         setActiveSessionId(null);
@@ -349,29 +349,29 @@ const TerminalTab = () => {
           window.addEventListener('resize', onResize);
 
           // Initial resize
-        setTimeout(() => {
-          try {
+          setTimeout(() => {
+            try {
               instance.fitAddon.fit();
               const { cols, rows } = instance.terminal;
               if (cols && rows && window.ipcRenderer) {
                 window.ipcRenderer.send('terminal:resize', activeSessionId, { cols, rows });
+              }
+            } catch (err) {
+              console.warn('Failed to perform initial resize:', err);
             }
-          } catch (err) {
-            console.warn('Failed to perform initial resize:', err);
-          }
-        }, 100);
+          }, 100);
 
-        return () => {
+          return () => {
             window.removeEventListener('resize', onResize);
 
             // Park terminal element when switching sessions
             if (instance.terminal && instance.terminal.element) {
-            const host = ensureParkingHost();
+              const host = ensureParkingHost();
               if (instance.terminal.element.parentElement !== host) {
                 host.appendChild(instance.terminal.element);
               }
-          }
-        };
+            }
+          };
         }
       }
     };
@@ -426,20 +426,20 @@ const TerminalTab = () => {
         {/* Right Terminal Display */}
         <div className="terminal-display-container">
           {!activeSessionId && window.ipcRenderer && (
-          <div className="terminal-loading">
-            <IconTerminal2 size={24} strokeWidth={1.5} />
+            <div className="terminal-loading">
+              <IconTerminal2 size={24} strokeWidth={1.5} />
               <span>No terminal session selected</span>
-          </div>
-        )}
-        <div
-          ref={terminalRef}
-          className="terminal-container"
-          style={{
-            height: '100%',
-            width: '100%',
+            </div>
+          )}
+          <div
+            ref={terminalRef}
+            className="terminal-container"
+            style={{
+              height: '100%',
+              width: '100%',
               display: activeSessionId ? 'block' : 'none'
-          }}
-        />
+            }}
+          />
         </div>
       </div>
     </StyledWrapper>
