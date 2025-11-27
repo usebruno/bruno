@@ -127,31 +127,6 @@ const TitleBar = () => {
               </span>
               Import
             </div>
-            <div className="label-item">API Specs</div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                setCreateCollectionModalOpen(true);
-                menuDropdownTippyRef.current.hide();
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconPlus size={16} strokeWidth={2} />
-              </span>
-              Create Collection
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                handleOpenCollection();
-                menuDropdownTippyRef.current.hide();
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconFolder size={16} strokeWidth={2} />
-              </span>
-              Open
-            </div>
             <div className="dropdown-separator"></div>
             <div
               className="dropdown-item"
