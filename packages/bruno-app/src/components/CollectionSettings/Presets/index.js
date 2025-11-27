@@ -9,7 +9,6 @@ import DeprecationWarning from 'components/DeprecationWarning';
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
   const initialPresets = { requestType: 'http', requestUrl: '' };
-  const deprecationWarningMessage = 'Presets is deprecated and will be removed in v3.0.0';
 
   // Get presets from draft.brunoConfig if it exists, otherwise from brunoConfig
   const currentPresets = collection.draft?.brunoConfig
@@ -37,7 +36,7 @@ const PresetsSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <DeprecationWarning message={deprecationWarningMessage} />
+      <DeprecationWarning featureName="Presets" learnMoreUrl="https://github.com/usebruno/bruno/discussions/6234" />
       <div className="text-xs mb-4 mt-4 text-muted">
         These presets will be used as the default values for new requests in this collection.
       </div>

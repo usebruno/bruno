@@ -4,6 +4,17 @@ const darkTheme = {
   textLink: '#569cd6',
   bg: '#1e1e1e',
 
+  font: {
+    size: {
+      xs: '0.6875rem', // 11px
+      sm: '0.75rem', // 12px
+      base: '0.8125rem', // 13px
+      md: '0.875rem', // 14px
+      lg: '1rem', // 16px
+      xl: '1.125rem' // 18px
+    }
+  },
+
   colors: {
     text: {
       green: 'rgb(11 178 126)',

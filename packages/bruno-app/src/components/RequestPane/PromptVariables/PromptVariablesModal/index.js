@@ -29,7 +29,7 @@ export default function PromptVariablesModal({ title = 'Input Required', prompts
           <div className="space-y-5 mt-2">
             {prompts.map((prompt, index) => (
               <div key={prompt} data-testid="prompt-variable-input-container">
-                <label htmlFor={`prompt-${index}`} className="block font-semibold">
+                <label htmlFor={`prompt-${index}`} className="block font-medium">
                   {prompt}
                 </label>
                 <input

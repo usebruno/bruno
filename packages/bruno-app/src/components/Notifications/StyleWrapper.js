@@ -59,7 +59,7 @@ const StyledWrapper = styled.div`
       }
 
       .notification-date {
-        font-size: 0.6875rem;
+        font-size: ${(props) => props.theme.font.size.xs};
       }
     }
   }
