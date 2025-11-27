@@ -47,18 +47,11 @@ test('should persist request with newlines across app restarts', async ({ create
 
   // Add Pre Request var with newlines
   await page.getByRole('tab', { name: 'Vars' }).click();
-  await page.locator('.btn-add-var').first().click();
-  const preReqRow = page.locator('table').first().locator('tbody tr').first();
+  await page.locator('.btn-add-var').click();
+  const preReqRow = page.locator('table tbody tr').first();
   await getTableCell(preReqRow, 0).locator('input[type="text"]').fill('preRequestVar');
   await getTableCell(preReqRow, 1).locator('.CodeMirror').click();
   await getTableCell(preReqRow, 1).locator('textarea').fill('pre\nRequest\nValue');
-
-  // Add Post Response var with newlines
-  await page.locator('.btn-add-var').last().click();
-  const postResRow = page.locator('table').nth(1).locator('tbody tr').first();
-  await getTableCell(postResRow, 0).locator('input[type="text"]').fill('postResponseVar');
-  await getTableCell(postResRow, 1).locator('.CodeMirror').click();
-  await getTableCell(postResRow, 1).locator('textarea').fill('post\nResponse\nValue');
 
   await page.keyboard.press('Meta+s');
   await app1.close();
@@ -80,8 +73,7 @@ test('should persist request with newlines across app restarts', async ({ create
 
   // Verify vars persisted
   await page2.getByRole('tab', { name: 'Vars' }).click();
-  await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(1);
-  await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(1);
+  await expect(page2.locator('table tbody tr')).toHaveCount(1);
 
   await app2.close();
 });
