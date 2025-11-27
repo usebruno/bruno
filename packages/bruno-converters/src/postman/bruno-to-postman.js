@@ -118,44 +118,33 @@ export const brunoToPostman = (collection) => {
 
   const generateCollectionVars = (collection) => {
     const pattern = /{{[^{}]+}}/g;
-    const varsSet = new Set(); // Use Set to track unique variable keys
-    const varsMap = new Map(); // Map to store variable objects by key
-
-    // Iterative traversal using a stack to avoid recursion
-    const stack = [collection];
-
-    while (stack.length > 0) {
-      const current = stack.pop();
-
-      if (current === null || current === undefined) {
-        continue;
+    const collectionVars = [];
+    const visit = (node) => {
+      if (!node) {
+        return;
       }
-
-      if (typeof current === 'string') {
-        // Extract variables from string using regex
-        const matches = current.matchAll(pattern);
+      if (typeof node === 'string') {
+        const matches = node.matchAll(pattern);
         matches.forEach((match) => {
           const varKey = match[0].replace(/{{|}}/g, '');
-          if (!varsSet.has(varKey)) {
-            varsSet.add(varKey);
-            varsMap.set(varKey, {
-              key: varKey,
-              value: '',
-              type: 'default'
-            });
-          }
+          collectionVars.push({
+            key: varKey,
+            value: '',
+            type: 'default'
+          });
         });
-      } else if (Array.isArray(current)) {
-        // Push array items onto stack
-        current.forEach((item) => stack.push(item));
-      } else if (typeof current === 'object') {
-        // Push object values onto stack
-        Object.values(current).forEach((value) => stack.push(value));
+      }
+      if (Array.isArray(node)) {
+        node.forEach((item) => visit(item));
+      }
+      if (typeof node === 'object') {
+        for (const value of Object.values(node)) {
+          visit(value);
+        }
       }
     }
 
-    // Convert Set to array
-    const listOfVars = Array.from(varsMap.values());
+    visit(collection);
 
     // Add request and response vars
     let reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
@@ -171,7 +160,7 @@ export const brunoToPostman = (collection) => {
     }));
 
     // Merge and deduplicate final result
-    const allVars = [...reqVars, ...resVars, ...listOfVars];
+    const allVars = [...reqVars, ...resVars, ...collectionVars];
     const finalVarsMap = new Map();
     allVars.forEach((v) => {
       if (!finalVarsMap.has(v.key)) {
