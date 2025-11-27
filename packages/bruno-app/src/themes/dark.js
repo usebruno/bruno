@@ -115,6 +115,7 @@ const darkTheme = {
     url: {
       bg: '#3D3D3D',
       icon: 'rgb(204, 204, 204)',
+      iconDanger: '#fa5343',
       errorHoverBg: '#4a2a2a'
     },
     dragbar: {
@@ -241,6 +242,16 @@ const darkTheme = {
     active: {
       color: '#CCCCCC',
       border: '#F59E0B'
+    },
+    secondary: {
+      active: {
+        bg: '#2D2D2D',
+        color: '#CCCCCC'
+      },
+      inactive: {
+        bg: '#3F3F3F',
+        color: '#CCCCCC'
+      }
     }
   },
 
@@ -277,10 +288,18 @@ const darkTheme = {
     variable: {
       valid: 'rgb(11 178 126)',
       invalid: '#f06f57',
+      prompt: '#3D8DF5',
       info: {
-        color: '#ce9178',
-        bg: 'rgb(48,48,49)',
-        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px'
+        color: '#FFFFFF',
+        bg: '#343434',
+        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
+        editorBg: '#292929',
+        iconColor: '#989898',
+        editorBorder: '#3D3D3D',
+        editorFocusBorder: '#CCCCCC',
+        editableDisplayHoverBg: 'rgba(255,255,255,0.03)',
+        border: '#4F4F4F',
+        editorBorder: '#3D3D3D'
       }
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.18)',
@@ -454,6 +473,13 @@ const darkTheme = {
       }
     }
   },
+  deprecationWarning: {
+    bg: 'rgba(250, 83, 67, 0.1)',
+    border: 'rgba(250, 83, 67, 0.1)',
+    icon: '#FA5343',
+    text: '#B8B8B8'
+  },
+
   examples: {
     buttonBg: '#F59E0B1A',
     buttonColor: '#F59E0B',

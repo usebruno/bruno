@@ -32,6 +32,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const {
     brunoConfig: { presets: collectionPresets = {} }
   } = collection;
+
   const [curlRequestTypeDetected, setCurlRequestTypeDetected] = useState(null);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
@@ -145,12 +146,13 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     onSubmit: (values) => {
       const isGrpcRequest = values.requestType === 'grpc-request';
       const isWsRequest = values.requestType === 'ws-request';
+      const filename = values.filename;
 
       if (isGrpcRequest) {
         dispatch(
           newGrpcRequest({
             requestName: values.requestName,
-            filename: values.filename,
+            filename: filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             collectionUid: collection.uid,
@@ -168,7 +170,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         dispatch(newWsRequest({
           requestName: values.requestName,
           requestMethod: values.requestMethod,
-          filename: values.filename,
+          filename: filename,
           requestType: values.requestType,
           requestUrl: values.requestUrl,
           collectionUid: collection.uid,
@@ -185,7 +187,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           newEphemeralHttpRequest({
             uid: uid,
             requestName: values.requestName,
-            filename: values.filename,
+            filename: filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
@@ -210,7 +212,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
-            filename: values.filename,
+            filename: filename,
             requestType: curlRequestTypeDetected,
             requestUrl: request.url,
             requestMethod: request.method,
@@ -231,7 +233,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
-            filename: values.filename,
+            filename: filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
@@ -476,15 +478,25 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       value={formik.values.filename || ''}
                       data-testid="file-name"
                     />
-                    <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.bru</span>
+                    <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{collection.format}</span>
                   </div>
                 ) : (
                   <div className="relative flex items-center justify-between gap-1 min-w-0">
                     <div
                       className="flex-1 min-w-0 truncate"
-                      title={formik.values.filename ? `${formik.values.filename}.bru` : ''}
+                      title={
+                        formik.values.filename
+                          ? `${formik.values.filename}.${collection.format}`
+                          : ''
+                      }
                     >
-                      <PathDisplay baseName={formik.values.filename ? `${formik.values.filename}.bru` : ''} />
+                      <PathDisplay
+                        baseName={
+                          formik.values.filename
+                            ? `${formik.values.filename}.${collection.format}`
+                            : ''
+                        }
+                      />
                     </div>
                   </div>
                 )}

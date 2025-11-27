@@ -1,4 +1,4 @@
-const { ipcRenderer, contextBridge, webUtils } = require('electron');
+const { ipcRenderer, contextBridge, webUtils, shell } = require('electron');
 
 contextBridge.exposeInMainWorld('ipcRenderer', {
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   getFilePath(file) {
     const path = webUtils.getPathForFile(file);
     return path;
-  }
+  },
+  openExternal: (url) => shell.openExternal(url)
 });

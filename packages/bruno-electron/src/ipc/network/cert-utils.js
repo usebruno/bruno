@@ -11,6 +11,7 @@ const { interpolateString } = require('./interpolate-string');
  */
 const getCertsAndProxyConfig = async ({
   collectionUid,
+  collection,
   request,
   envVars,
   runtimeVariables,
@@ -40,11 +41,13 @@ const getCertsAndProxyConfig = async ({
   httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;
   httpsAgentRequestFields['ca'] = caCertificates || [];
 
-  const brunoConfig = getBrunoConfig(collectionUid);
+  const { promptVariables } = collection;
+  const brunoConfig = getBrunoConfig(collectionUid, collection);
   const interpolationOptions = {
     globalEnvironmentVariables,
     envVars,
     runtimeVariables,
+    promptVariables,
     processEnvVars
   };
 

@@ -1,9 +1,25 @@
+import path from 'path';
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
+import fs from 'fs';
+
+const COLLECTION_PATH = path.join(__dirname, 'collection', 'bruno.json');
+const BACKUP_PATH = path.join(__dirname, 'collection', 'bruno.json.backup');
+import { execSync } from 'child_process';
 
 test.describe('manage protofile', () => {
+  test.beforeAll(async () => {
+    // Backup original file
+    if (fs.existsSync(COLLECTION_PATH)) {
+      fs.copyFileSync(COLLECTION_PATH, BACKUP_PATH);
+    }
+  });
+
   test.afterAll(async ({ pageWithUserData: page }) => {
+    // Close all collections
     await closeAllCollections(page);
+    // Reset the collection request file to the original state
+    execSync(`git checkout -- ${path.join(__dirname, 'collection', 'bruno.json')}`);
   });
 
   test('protofiles, import paths from bruno.json are visible in the protobuf settings', async ({ pageWithUserData: page }) => {
@@ -60,6 +76,9 @@ test.describe('manage protofile', () => {
 
     await expect(page.getByRole('cell', { name: '../protos/invalid-import-path', exact: true })).not.toBeVisible();
     await expect(invalidImportPathsMessage).not.toBeVisible();
+
+    // Save the changes to persist them to bruno.json
+    await page.getByRole('button', { name: 'Save' }).click();
   });
 
   test('order.proto loads methods successfully when selected', async ({ pageWithUserData: page }) => {
@@ -127,6 +146,9 @@ test.describe('manage protofile', () => {
     // Use test ID for checkbox
     const checkbox = page.getByRole('row', { name: 'Enable this import path types' }).getByTestId('protobuf-import-path-checkbox');
     await checkbox.click();
+
+    // Save the changes to persist them to bruno.json
+    await page.getByRole('button', { name: 'Save' }).click();
 
     // Now test that product.proto can load methods successfully
     await page.getByText('HelloService').click();

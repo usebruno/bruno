@@ -1,8 +1,14 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Import OpenAPI v3 YAML Collection', () => {
-  test('Import comprehensive OpenAPI v3 YAML successfully', async ({ page }) => {
+  test.afterEach(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('Import comprehensive OpenAPI v3 YAML successfully', async ({ page, createTmpDir }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-comprehensive.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
@@ -14,13 +20,6 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
 
     await page.setInputFiles('input[type="file"]', openApiFile);
 
-    // verify that the import settings modal appears
-    const settingsModal = page.getByTestId('import-settings-modal');
-    await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
-
-    // click the Import button in the settings modal footer
-    await settingsModal.getByRole('button', { name: 'Import' }).click();
-
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
@@ -31,7 +30,11 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
     // Wait for collection to appear in the location modal
     await expect(locationModal.getByText('Comprehensive API Test Collection')).toBeVisible();
 
-    // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    // Select a location and import
+    await page.locator('#collection-location').fill(await createTmpDir('comprehensive-test'));
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
+
+    // Verify the collection was imported successfully
+    await expect(page.locator('#sidebar-collection-name').getByText('Comprehensive API Test Collection')).toBeVisible();
   });
 });

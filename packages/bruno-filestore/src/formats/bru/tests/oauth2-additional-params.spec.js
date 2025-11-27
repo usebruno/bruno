@@ -1,5 +1,5 @@
 const { getOauth2AdditionalParameters } = require('../utils/oauth2-additional-params');
-const { bruRequestToJson, bruCollectionToJson } = require('../index');
+const { parseBruRequest, parseBruCollection } = require('../index');
 const { getBruJsonWithAdditionalParams } = require('./fixtures/oauth2-additional-params');
 
 describe('getOauth2AdditionalParameters', () => {

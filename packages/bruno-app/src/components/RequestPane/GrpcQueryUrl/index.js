@@ -129,11 +129,15 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     setProtoFilePath('');
     setIsReflectionMode(true);
 
-    dispatch(updateRequestProtoPath({
-      protoPath: '',
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
+    // Only update protoPath if it was previously set (to avoid creating unnecessary draft state)
+    const currentProtoPath = getPropertyFromDraftOrRequest(item, 'request.protoPath', '');
+    if (currentProtoPath) {
+      dispatch(updateRequestProtoPath({
+        protoPath: '',
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
+    }
 
     if (methods && methods.length > 0) {
       toast.success(`Loaded ${methods.length} gRPC methods from reflection`);
@@ -389,19 +393,21 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
           {isConnectionActive && isStreamingMethod && (
             <div className="connection-controls relative flex items-center h-full gap-3">
-              <div className="infotip" onClick={handleCancelConnection}>
+              <div className="infotip" onClick={handleCancelConnection} data-testid="grpc-cancel-connection-button">
                 <IconX color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className="cursor-pointer" />
                 <span className="infotip-text text-xs">Cancel</span>
               </div>
 
-            {isClientStreamingMethod && <div onClick={handleEndConnection}>
-                <IconCheck
-                  color={theme.colors.text.green}
-                  strokeWidth={2}
-                  size={22}
-                  className="cursor-pointer"
-                />
-              </div>}
+              {isClientStreamingMethod && (
+                <div onClick={handleEndConnection} data-testid="grpc-end-connection-button">
+                  <IconCheck
+                    color={theme.colors.text.green}
+                    strokeWidth={2}
+                    size={22}
+                    className="cursor-pointer"
+                  />
+                </div>
+              )}
             </div>
           )}
 
