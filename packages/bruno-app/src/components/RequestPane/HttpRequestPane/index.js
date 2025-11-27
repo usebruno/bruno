@@ -302,7 +302,7 @@ const HttpRequestPane = ({ item, collection }) => {
         {overflowTabs.length > 0 && (
           <Dropdown
             icon={(
-              <div className="tab select-none flex items-center cursor-pointe !text-[#343434] rounded-md bg-[#f7f7f7] hover:bg-[#e0e0e0]" style={{ padding: '2px 8px' }}>
+              <div className="tab more-tabs select-none flex items-center cursor-pointer rounded-md" style={{ padding: '2px 8px' }}>
                 <IconDots size={18} />
               </div>
             )}

@@ -1,6 +1,14 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  div.more-tabs {
+    color: ${(props) => props.theme.text} !important;
+    background-color: ${(props) => props.theme.requestTabs.bg} !important;
+    &:hover {
+      background-color: ${(props) => props.theme.requestTabs.icon.hoverBg} !important;
+    }
+  }
+
   div.tabs {
     min-height: 32px;
     
