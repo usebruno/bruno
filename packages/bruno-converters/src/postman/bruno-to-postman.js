@@ -142,7 +142,7 @@ export const brunoToPostman = (collection) => {
           visit(value);
         }
       }
-    }
+    };
 
     visit(collection);
 
