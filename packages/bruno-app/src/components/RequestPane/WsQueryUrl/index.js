@@ -7,7 +7,6 @@ import { useTheme } from 'providers/Theme';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import { getPropertyFromDraftOrRequest } from 'utils/collections';
 import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
 import { closeWsConnection, getWsConnectionStatus } from 'utils/network/index';
@@ -15,14 +14,13 @@ import StyledWrapper from './StyledWrapper';
 import { interpolateUrl } from 'utils/url';
 import { getAllVariables } from 'utils/collections';
 import useDebounce from 'hooks/useDebounce';
+import get from 'lodash/get';
 
 const useWsConnectionStatus = (requestId) => {
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   useEffect(() => {
     const checkConnectionStatus = async () => {
-      console.log('Request ID: ', requestId);
       const result = await getWsConnectionStatus(requestId);
-      console.log('Connection Status: ', result);
       setConnectionStatus(result?.status ?? 'disconnected');
     };
     checkConnectionStatus();
@@ -40,7 +38,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   const [connectionStatus, setConnectionStatus] = useWsConnectionStatus(item.uid);
-  const [url, setUrl] = useState(getPropertyFromDraftOrRequest(item, 'request.url'));
+  const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
 
   const allVariables = useMemo(() => {
     return getAllVariables(collection, item);
@@ -53,7 +51,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
 
   // Debounce interpolated URL to avoid excessive reconnections
   const debouncedInterpolatedURL = useDebounce(interpolatedURL, 400);
-  const previousDeboundedInterpolatedURL = useRef('');
+  const previousDeboundedInterpolatedURL = useRef(debouncedInterpolatedURL);
 
   const handleConnect = async () => {
     dispatch(wsConnectOnly(item, collection.uid));
@@ -98,17 +96,23 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  // Detect interpolated URL changes and reconnect if connection is active
-  useEffect(() => {
+  const handleUrlChange = (value) => {
+    const finalUrl = value?.trim() ?? value;
+    console.log('finalUrl: ', finalUrl);
     dispatch(requestUrlChanged({
       itemUid: item.uid,
       collectionUid: collection.uid,
-      url: debouncedInterpolatedURL
+      url: finalUrl
     }));
-    if (connectionStatus !== 'connected' && previousDeboundedInterpolatedURL.current !== debouncedInterpolatedURL)
-      return;
+  };
+
+  // Detect interpolated URL changes and reconnect if connection is active
+  useEffect(() => {
+    if (connectionStatus !== 'connected') return;
+    if (previousDeboundedInterpolatedURL.current === debouncedInterpolatedURL) return;
+    if (debouncedInterpolatedURL === '') return;
     handleReconnect();
-  }, [debouncedInterpolatedURL]);
+  }, [debouncedInterpolatedURL, connectionStatus]);
 
   return (
     <StyledWrapper>
@@ -120,7 +124,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
           <SingleLineEditor
             value={url}
             onSave={(finalValue) => onSave(finalValue)}
-            onChange={(value) => setUrl(value)}
+            onChange={handleUrlChange}
             placeholder="ws://localhost:8080 or wss://example.com"
             className="w-full"
             theme={displayedTheme}
