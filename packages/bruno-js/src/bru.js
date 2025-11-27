@@ -120,6 +120,15 @@ class Bru {
         throw new TypeError('minifyXml expects a string');
       }
     };
+
+    this.environment = {
+      getEnvName: () => {
+        return this.envVariables.__name__;
+      },
+      getGlobalEnvName: () => {
+        return this.globalEnvironmentVariables.__name__;
+      }
+    };
   }
 
   interpolate = (strOrObj) => {

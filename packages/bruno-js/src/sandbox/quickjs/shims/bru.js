@@ -161,6 +161,24 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getCollectionVar', getCollectionVar);
   getCollectionVar.dispose();
 
+  // Create environment object
+  let bruEnvironmentObject = vm.newObject();
+
+  let envGetEnvName = vm.newFunction('getEnvName', function () {
+    return marshallToVm(bru.environment.getEnvName(), vm);
+  });
+  vm.setProp(bruEnvironmentObject, 'getEnvName', envGetEnvName);
+  envGetEnvName.dispose();
+
+  let envGetGlobalEnvName = vm.newFunction('getGlobalEnvName', function () {
+    return marshallToVm(bru.environment.getGlobalEnvName(), vm);
+  });
+  vm.setProp(bruEnvironmentObject, 'getGlobalEnvName', envGetGlobalEnvName);
+  envGetGlobalEnvName.dispose();
+
+  vm.setProp(bruObject, 'environment', bruEnvironmentObject);
+  bruEnvironmentObject.dispose();
+
   let getTestResults = vm.newFunction('getTestResults', () => {
     const promise = vm.newPromise();
     bru

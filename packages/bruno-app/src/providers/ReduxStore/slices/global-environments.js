@@ -219,6 +219,12 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
 
     // add new env values
     Object.entries(globalEnvironmentVariables)?.forEach?.(([key, value]) => {
+      // __name__ is a private variable used to store the name of the global environment
+      // this is not a user defined variable and hence should not be added
+      if (key === '__name__') {
+        return;
+      }
+
       let isAnExistingVariable = variables?.find(v => v?.name == key)
       if (!isAnExistingVariable) {
         variables.push({
