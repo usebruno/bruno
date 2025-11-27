@@ -12,7 +12,7 @@ const Wrapper = styled.div`
     font-size: 0.8125rem;
     color: ${(props) => props.theme.dropdown.color};
     background-color: ${(props) => props.theme.dropdown.bg};
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
     border-radius: 10px;
     max-height: 90vh;
     overflow-y: auto;
@@ -80,15 +80,20 @@ const Wrapper = styled.div`
         }
 
         &.delete-item {
-          color: ${(props) => props.theme.colors.text.danger || '#ef4444'};
-          
+          color: ${(props) => props.theme.colors.text.danger};
           .dropdown-icon {
-            color: ${(props) => props.theme.colors.text.danger || '#ef4444'};
+            color: ${(props) => props.theme.colors.text.danger};
           }
           &:hover {
-            .dropdown-icon {
-              color: ${(props) => props.theme.text};
-            }
+            background-color: ${({ theme }) => {
+              const hex = theme.colors.text.danger.replace('#', '');
+              const r = parseInt(hex.substring(0, 2), 16);
+              const g = parseInt(hex.substring(2, 4), 16);
+              const b = parseInt(hex.substring(4, 6), 16);
+              return `rgba(${r}, ${g}, ${b}, 0.04)`; // 4% opacity
+            }} !important;
+
+            color: ${(props) => props.theme.colors.text.danger} !important;
           }
         }
 
