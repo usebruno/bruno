@@ -134,4 +134,55 @@ describe('WSL Path Utilities', () => {
       expect(normalizeAndResolvePath(input)).toBe(input);
     });
   });
+
+  describe('normalizeAndResolvePath with file:// URLs', () => {
+    it('should convert standard file:/// URLs (Unix-style)', () => {
+      const input = 'file:///home/user/file.bru';
+      const result = normalizeAndResolvePath(input);
+      expect(result).not.toContain('file:');
+      expect(result).toBeTruthy();
+    });
+
+    it('should handle file:// URLs without triple slash', () => {
+      const input = 'file://home/user/file.bru';
+      const result = normalizeAndResolvePath(input);
+      expect(result).not.toContain('file:');
+      expect(result).toBeTruthy();
+    });
+
+    it('should handle malformed file: prefix without slashes', () => {
+      const input = 'file:home/user/file.bru';
+      const result = normalizeAndResolvePath(input);
+      expect(result).not.toContain('file:');
+      expect(result).toBeTruthy();
+    });
+
+    it('should handle paths starting with /C: (incorrectly parsed Windows file URLs)', () => {
+      // This simulates the bug where file:///C:/path becomes /C:/path
+      const input = '/C:/Users/test/file.bru';
+      const result = normalizeAndResolvePath(input);
+
+      // On Windows, this should be converted to C:/Users/test/file.bru
+      // On Unix, path.resolve will make it absolute from root
+      expect(result).not.toStartWith('/C:');
+      expect(result).toBeTruthy();
+    });
+
+    it('should not modify regular filesystem paths', () => {
+      const path = require('path');
+      const input = path.join(__dirname, 'test.bru');
+      const result = normalizeAndResolvePath(input);
+
+      // Should resolve to absolute path but not break it
+      expect(path.isAbsolute(result)).toBe(true);
+      expect(result).toContain('test.bru');
+    });
+
+    it('should handle file URLs with special characters', () => {
+      const input = 'file:///home/user/my%20file.bru';
+      const result = normalizeAndResolvePath(input);
+      expect(result).not.toContain('file:');
+      expect(result).toBeTruthy();
+    });
+  });
 });
