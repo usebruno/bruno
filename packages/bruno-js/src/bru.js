@@ -126,7 +126,7 @@ class Bru {
         return this.envVariables.__name__;
       },
       getGlobalEnvName: () => {
-        return this.globalEnvironmentVariables.name;
+        return this.globalEnvironmentVariables.__name__;
       }
     };
   }

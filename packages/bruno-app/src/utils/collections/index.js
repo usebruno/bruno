@@ -1080,7 +1080,7 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
   }
   return {
     ...variables,
-    name: environment?.name
+    __name__: environment?.name
   };
 };
 
