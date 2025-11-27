@@ -58,7 +58,12 @@ async function runScriptInNodeVm({
       clearTimeout: global.clearTimeout,
       clearInterval: global.clearInterval,
       setImmediate: global.setImmediate,
-      clearImmediate: global.clearImmediate
+      clearImmediate: global.clearImmediate,
+      Error: global.Error,
+      TypeError: global.TypeError,
+      ReferenceError: global.ReferenceError,
+      SyntaxError: global.SyntaxError,
+      RangeError: global.RangeError
     };
 
     mixinTypedArrays(scriptContext);
