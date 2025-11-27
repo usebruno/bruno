@@ -12,8 +12,8 @@ const Wrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.dropdown.color};
     background-color: ${(props) => props.theme.dropdown.bg};
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
-    border-radius: 10px;
+    box-shadow: ${(props) => props.theme.shadow.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
     max-height: 90vh;
     overflow-y: auto;
     max-width: unset !important;
