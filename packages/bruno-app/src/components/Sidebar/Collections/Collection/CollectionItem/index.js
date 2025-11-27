@@ -36,6 +36,7 @@ import { isEqual } from 'lodash';
 import { calculateDraggedItemNewPathname, getInitialExampleName } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
@@ -614,6 +615,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   }}
                 >
                   Settings
+                </div>
+              )}
+              {isFolder && (
+                <div
+                  className="dropdown-item"
+                  onClick={async (e) => {
+                    dropdownTippyRef.current.hide();
+                    // Get folder pathname
+                    const folderCwd = item.pathname || collectionPathname;
+                    await openDevtoolsAndSwitchToTerminal(dispatch, folderCwd);
+                  }}
+                >
+                  Open in Terminal
                 </div>
               )}
               <div
