@@ -45,7 +45,8 @@ const Headers = ({ collection }) => {
     const header = cloneDeep(_header);
     switch (type) {
       case 'name': {
-        header.name = e.target.value;
+        // Strip newlines from header keys
+        header.name = e.target.value.replace(/[\r\n]/g, '');
         break;
       }
       case 'value': {
