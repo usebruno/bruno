@@ -26,58 +26,60 @@ const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2
             {!hideTimestamp && (
               <>
                 <pre className="opacity-70">[{new Date(timestamp).toISOString()}]</pre>
-                <span className="text-sm text-gray-400 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                <span className="text-gray-400 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap">
                   <RelativeTime timestamp={timestamp} />
                 </span>
               </>
             )}
           </div>
         </div>
-        <div className="truncate text-sm mt-1">{url}</div>
+        <div className="truncate mt-1">{url}</div>
       </div>
-      {isCollapsed && (<div className="text-sm overflow-hidden">
-        {/* Tabs */}
-        <div className="tabs-switcher flex mb-4">
-          <button
-            className={`mr-4 ${activeTab === 'request' ? 'active' : 'text-gray-400'}`}
-            onClick={() => setActiveTab('request')}
-          >
-            Request
-          </button>
-          <button
-            className={`mr-4 ${activeTab === 'response' ? 'active' : 'text-gray-400'}`}
-            onClick={() => setActiveTab('response')}
-          >
-            Response
-          </button>
-          {showNetworkLogs && (
+      {isCollapsed && (
+        <div className="overflow-hidden">
+          {/* Tabs */}
+          <div className="tabs-switcher flex mb-4">
             <button
-              className={`${activeTab === 'networkLogs' ? 'active' : 'text-gray-400'}`}
-              onClick={() => setActiveTab('networkLogs')}
+              className={`mr-4 ${activeTab === 'request' ? 'active' : 'text-gray-400'}`}
+              onClick={() => setActiveTab('request')}
             >
-              Network Logs
+              Request
             </button>
-          )}
+            <button
+              className={`mr-4 ${activeTab === 'response' ? 'active' : 'text-gray-400'}`}
+              onClick={() => setActiveTab('response')}
+            >
+              Response
+            </button>
+            {showNetworkLogs && (
+              <button
+                className={`${activeTab === 'networkLogs' ? 'active' : 'text-gray-400'}`}
+                onClick={() => setActiveTab('networkLogs')}
+              >
+                Network Logs
+              </button>
+            )}
+          </div>
+
+          {/* Tab Content */}
+          <div className="tab-content break-all">
+            {/* Request Tab */}
+            {activeTab === 'request' && (
+              <Request request={request} item={item} collection={collection} />
+            )}
+
+            {/* Response Tab */}
+            {activeTab === 'response' && (
+              <Response response={response} item={item} collection={collection} />
+            )}
+
+            {/* Network Logs Tab */}
+            {activeTab === 'networkLogs' && showNetworkLogs && (
+              <Network logs={response?.timeline} />
+            )}
+          </div>
         </div>
-
-        {/* Tab Content */}
-        <div className="tab-content break-all">
-          {/* Request Tab */}
-          {activeTab === 'request' && (
-            <Request request={request} item={item} collection={collection} />
-          )}
-
-          {/* Response Tab */}
-          {activeTab === 'response' && (
-            <Response response={response} item={item} collection={collection} />
-          )}
-
-          {/* Network Logs Tab */}
-          {activeTab === 'networkLogs' && showNetworkLogs && (
-            <Network logs={response?.timeline} />
-          )}
-        </div>
-      </div>)}
+      )}
     </div>
   );
 };

@@ -19,7 +19,7 @@ const SearchInput = ({
   return (
     <div className={`relative px-2 ${className}`}>
       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-        <span className="text-gray-500 sm:text-sm">
+        <span className="text-gray-500">
           <IconSearch size={16} strokeWidth={1.5} />
         </span>
       </div>
@@ -32,7 +32,7 @@ const SearchInput = ({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        className="block w-full pl-7 py-2 sm:text-sm rounded-md"
+        className="block w-full pl-7 py-2 rounded-md"
         value={searchText}
         onChange={handleChange}
         {...props}

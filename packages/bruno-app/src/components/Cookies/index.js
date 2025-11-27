@@ -14,7 +14,7 @@ const ClearDomainCookiesModal = ({ onClose, domain, onClear }) => (
   <Modal onClose={onClose} handleCancel={onClose} title="Clear Domain Cookies" hideFooter={true}>
     <div className="flex items-center font-normal">
       <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
-      <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
+      <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
     </div>
     <div className="font-normal mt-4">
       Are you sure you want to clear all cookies for the domain {domain}?
@@ -39,7 +39,7 @@ const DeleteCookieModal = ({ onClose, cookieName, onDelete }) => (
   <Modal onClose={onClose} handleCancel={onClose} title="Delete Cookie" hideFooter={true}>
     <div className="flex items-center font-normal">
       <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
-      <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
+      <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
     </div>
     <div className="font-normal mt-4">
       Are you sure you want to delete the cookie {cookieName}?
@@ -157,7 +157,7 @@ const CollectionProperties = ({ onClose }) => {
             // No cookies found
             <div className="flex items-center justify-center flex-col">
               <IconCookieOff size={48} strokeWidth={1.5} className="text-gray-500" />
-              <h2 className="text-lg font-semibold mt-4">No cookies found</h2>
+              <h2 className="text-lg font-medium mt-4">No cookies found</h2>
               <p className="text-gray-500 mt-2">Add cookies to get started</p>
               <button
                 type="submit"
@@ -175,7 +175,7 @@ const CollectionProperties = ({ onClose }) => {
             // No search results
             <div className="flex items-center justify-center flex-col">
               <IconSearch size={48} />
-              <h2 className="text-lg font-semibold mt-4">No search results</h2>
+              <h2 className="text-lg font-medium mt-4">No search results</h2>
               <p className="text-gray-500 mt-2">Try a different search term</p>
             </div>
           ) : (
@@ -219,13 +219,13 @@ const CollectionProperties = ({ onClose }) => {
                         <table className="w-full">
                           <thead>
                             <tr className="text-left border-b border-gray-200 dark:border-neutral-600 text-gray-700 dark:text-gray-300">
-                              <th className="py-2 px-4 font-semibold w-32">Name</th>
-                              <th className="py-2 px-4 font-semibold w-52">Value</th>
-                              <th className="py-2 px-4 font-semibold">Path</th>
-                              <th className="py-2 px-4 font-semibold">Expires</th>
-                              <th className="py-2 px-4 font-semibold text-center">Secure</th>
-                              <th className="py-2 px-4 font-semibold text-center">HTTP Only</th>
-                              <th className="py-2 px-4 font-semibold text-right w-24">Actions</th>
+                              <th className="py-2 px-4 font-medium w-32">Name</th>
+                              <th className="py-2 px-4 font-medium w-52">Value</th>
+                              <th className="py-2 px-4 font-medium">Path</th>
+                              <th className="py-2 px-4 font-medium">Expires</th>
+                              <th className="py-2 px-4 font-medium text-center">Secure</th>
+                              <th className="py-2 px-4 font-medium text-center">HTTP Only</th>
+                              <th className="py-2 px-4 font-medium text-right w-24">Actions</th>
                             </tr>
                           </thead>
                           <tbody>

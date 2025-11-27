@@ -210,7 +210,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       handleConfirm={onSubmit}
       customHeader={
         <div className="flex items-center justify-between w-full">
-          <h2 className="text-sm font-bold">{title}</h2>
+          <h2 className="font-bold">{title}</h2>
           <div className="ml-auto flex items-center ">
             <ToggleSwitch
               className="mr-2"
@@ -220,7 +220,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                 setIsRawMode(e.target.checked);
               }}
             />
-            <label className="text-sm font-normal mr-4 normal-case">Edit Raw</label>
+            <label className="font-normal mr-4 normal-case">Edit Raw</label>
           </div>
         </div>
       }
@@ -229,7 +229,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         {isRawMode ? (
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <label className="block text-sm">Set-Cookie String</label>
+              <label className="block">Set-Cookie String</label>
               <IconInfoCircle id="cookie-raw-info" size={16} strokeWidth={1.5} className="text-gray-400" />
               <Tooltip
                 anchorId="cookie-raw-info"
@@ -248,7 +248,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm mb-1">
+                <label className="block mb-1">
                   Domain<span className="text-red-600">*</span>{' '}
                 </label>
                 <input
@@ -262,11 +262,11 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   disabled={!!cookie}
                 />
                 {formik.touched.domain && formik.errors.domain && (
-                  <div className="text-red-500 text-sm mt-1">{formik.errors.domain}</div>
+                  <div className="text-red-500 mt-1">{formik.errors.domain}</div>
                 )}
               </div>
               <div>
-                <label className="block text-sm mb-1">Path</label>
+                <label className="block mb-1">Path</label>
                 <input
                   type="text"
                   name="path"
@@ -276,11 +276,11 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   disabled={!!cookie}
                 />
                 {formik.touched.path && formik.errors.path && (
-                  <div className="text-red-500 text-sm mt-1">{formik.errors.path}</div>
+                  <div className="text-red-500 mt-1">{formik.errors.path}</div>
                 )}
               </div>
               <div>
-                <label className="block text-sm mb-1">
+                <label className="block mb-1">
                   Key<span className="text-red-600">*</span>{' '}
                 </label>
                 <input
@@ -294,12 +294,12 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   disabled={!!cookie}
                 />
                 {formik.touched.key && formik.errors.key && (
-                  <div className="text-red-500 text-sm mt-1">{formik.errors.key}</div>
+                  <div className="text-red-500 mt-1">{formik.errors.key}</div>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm mb-1">
+                <label className="block mb-1">
                   Value<span className="text-red-600">*</span>{' '}
                 </label>
                 <input
@@ -312,7 +312,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   className="block textbox non-passphrase-input w-full"
                 />
                 {formik.touched.value && formik.errors.value && (
-                  <div className="text-red-500 text-sm mt-1">{formik.errors.value}</div>
+                  <div className="text-red-500 mt-1">{formik.errors.value}</div>
                 )}
               </div>
             </div>
@@ -320,7 +320,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             {/* Date Picker */}
             <div className="w-full flex items-end">
               <div>
-                <label className="block text-sm mb-1">Expiration ({moment.tz.guess()})</label>
+                <label className="block mb-1">Expiration ({moment.tz.guess()})</label>
                 <input
                   type="datetime-local"
                   name="expires"
@@ -332,7 +332,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   min={moment().format(moment.HTML5_FMT.DATETIME_LOCAL)}
                 />
                 {formik.touched.expires && formik.errors.expires && (
-                  <div className="text-red-500 text-sm mt-1">{formik.errors.expires}</div>
+                  <div className="text-red-500 mt-1">{formik.errors.expires}</div>
                 )}
               </div>
 
@@ -346,7 +346,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                     onChange={formik.handleChange}
                     className="mr-2"
                   />
-                  <span className="text-sm">Secure</span>
+                  <span>Secure</span>
                 </label>
 
                 <label className="flex items-center">
@@ -357,7 +357,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                     onChange={formik.handleChange}
                     className="mr-2"
                   />
-                  <span className="text-sm">HTTP Only</span>
+                  <span>HTTP Only</span>
                 </label>
               </div>
             </div>

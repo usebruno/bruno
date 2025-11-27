@@ -212,7 +212,7 @@ const ExampleItem = ({ example, item, collection }) => {
           confirmDisabled={!editName.trim()}
         >
           <div>
-            <label htmlFor="renameExampleName" className="block font-semibold">
+            <label htmlFor="renameExampleName" className="block font-medium">
               Example Name
             </label>
             <input

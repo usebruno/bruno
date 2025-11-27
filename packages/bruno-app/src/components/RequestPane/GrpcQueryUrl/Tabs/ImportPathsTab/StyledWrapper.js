@@ -13,7 +13,7 @@ const Wrapper = styled.div`
   }
 
   .header-text {
-    font-size: 0.75rem;
+    font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.grpc.importPaths.header.text};
   }
 
@@ -36,7 +36,7 @@ const Wrapper = styled.div`
     padding: 0.5rem;
     background-color: ${(props) => props.theme.grpc.importPaths.error.bg};
     border-radius: 0.25rem;
-    font-size: 0.75rem;
+    font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.grpc.importPaths.error.text};
   }
 
@@ -104,13 +104,13 @@ const Wrapper = styled.div`
   .item-text {
     display: flex;
     align-items: center;
-    font-size: 0.75rem;
+    font-size: ${(props) => props.theme.font.size.sm};
     white-space: nowrap;
   }
 
   .invalid-icon {
     color: ${(props) => props.theme.grpc.importPaths.item.invalid.text};
-    font-size: 0.75rem;
+    font-size: ${(props) => props.theme.font.size.sm};
     display: flex;
     align-items: center;
   }
@@ -121,7 +121,7 @@ const Wrapper = styled.div`
 
   .empty-text {
     color: ${(props) => props.theme.grpc.importPaths.empty.text};
-    font-size: 0.875rem;
+    font-size: ${(props) => props.theme.font.size.base};
     font-style: italic;
     text-align: center;
     padding: 0.5rem 0;
@@ -141,7 +141,7 @@ const Wrapper = styled.div`
     border: 1px solid ${(props) => props.theme.grpc.importPaths.button.border};
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
-    font-size: 0.875rem;
+    font-size: ${(props) => props.theme.font.size.base};
     cursor: pointer;
     transition: border-color 0.2s ease;
 
