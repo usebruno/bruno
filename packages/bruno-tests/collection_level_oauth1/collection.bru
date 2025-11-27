@@ -1,0 +1,28 @@
+headers {
+  x-collection-level: oauth1-test
+}
+
+auth {
+  mode: oauth1
+}
+
+auth:oauth1 {
+  consumer_key: {{oauth1_consumer_key}}
+  consumer_secret: {{oauth1_consumer_secret}}
+  signature_method: HMAC-SHA1
+  parameter_transmission: authorization_header
+  credentials_id: collection_oauth1_test_creds
+}
+
+script:post-response {
+  if(req.getAuthMode() == 'oauth1' && res.body.oauth_params) {
+    bru.setEnvVar('oauth_params_from_collection', JSON.stringify(res.body.oauth_params));
+  }
+}
+
+docs {
+  # Collection Level OAuth 1.0 Tests
+
+  This collection demonstrates OAuth 1.0 authentication configured at the collection level.
+  All requests in this collection inherit the OAuth 1.0 configuration unless explicitly overridden.
+}

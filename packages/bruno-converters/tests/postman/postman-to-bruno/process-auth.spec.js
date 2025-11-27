@@ -13,6 +13,7 @@ describe('processAuth', () => {
         awsv4: null,
         apikey: null,
         oauth2: null,
+        oauth1: null,
         digest: null
       }
     };

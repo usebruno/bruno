@@ -1,0 +1,31 @@
+meta {
+  name: 2-Legged OAuth 1.0 with HMAC-SHA512
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{oauth1_base_url}}/api/auth/oauth1/two_legged/resource
+  body: none
+  auth: oauth1
+}
+
+auth:oauth1 {
+  consumer_key: {{oauth1_consumer_key}}
+  consumer_secret: {{oauth1_consumer_secret}}
+  signature_method: HMAC-SHA512
+  parameter_transmission: authorization_header
+  credentials_id: oauth1_test_creds
+}
+
+assert {
+  res.status: eq 200
+  res.body.message: eq OAuth 1.0 2-legged authorization successful
+}
+
+tests {
+  test("should support HMAC-SHA512 signature", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().oauth_params.signature_method).to.equal('HMAC-SHA512');
+  });
+}

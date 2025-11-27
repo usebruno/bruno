@@ -1,0 +1,32 @@
+meta {
+  name: 2-Legged OAuth 1.0 with RSA-SHA256
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{oauth1_base_url}}/api/auth/oauth1/two_legged/resource
+  body: none
+  auth: oauth1
+}
+
+auth:oauth1 {
+  consumer_key: {{oauth1_consumer_key}}
+  consumer_secret: {{oauth1_consumer_secret}}
+  signature_method: RSA-SHA256
+  parameter_transmission: authorization_header
+  rsa_private_key: {{oauth1_rsa_private_key}}
+  credentials_id: oauth1_test_creds
+}
+
+assert {
+  res.status: eq 200
+  res.body.message: eq OAuth 1.0 2-legged authorization successful
+}
+
+tests {
+  test("should support RSA-SHA256 signature", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().oauth_params.signature_method).to.equal('RSA-SHA256');
+  });
+}
