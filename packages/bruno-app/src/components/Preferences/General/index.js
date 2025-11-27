@@ -9,7 +9,6 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import path from 'utils/common/path';
 import { IconTrash } from '@tabler/icons';
-import ToggleSwitch from 'components/ToggleSwitch';
 
 const General = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -107,12 +106,12 @@ const General = ({ close }) => {
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies
         },
-        general: {
-          defaultCollectionLocation: newPreferences.defaultCollectionLocation
-        },
         autoSave: {
           enabled: newPreferences.autoSave.enabled,
           interval: newPreferences.autoSave.interval
+        },
+        general: {
+          defaultCollectionLocation: newPreferences.defaultCollectionLocation
         }
       }))
       .then(() => {
@@ -146,195 +145,203 @@ const General = ({ close }) => {
       });
   };
 
-  // Reusable setting row component
-  const SettingRow = ({ label, isOn, onToggle, disabled }) => (
-    <div className={`setting-row flex items-center justify-between ${disabled ? 'opacity-50' : ''}`}>
-      <div className="flex flex-col">
-        <span className="font-medium text-sm">{label}</span>
-      </div>
-      <ToggleSwitch isOn={isOn} handleToggle={disabled ? undefined : onToggle} size="2xs" />
-    </div>
-  );
-
-  const isKeepDefaultCaDisabled = !formik.values.customCaCertificate.enabled || !formik.values.customCaCertificate.filePath;
-
   return (
     <StyledWrapper>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        {/* SSL & Certificates */}
-        <div className="settings-section">
-          <h3 className="section-title">Security</h3>
-
-          <SettingRow
-            label="SSL/TLS Certificate Verification"
-            isOn={formik.values.sslVerification}
-            onToggle={() => formik.setFieldValue('sslVerification', !formik.values.sslVerification)}
+        <div className="flex items-center my-2">
+          <input
+            id="sslVerification"
+            type="checkbox"
+            name="sslVerification"
+            checked={formik.values.sslVerification}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
           />
-
-          <SettingRow
-            label="Use Custom CA Certificate"
-            isOn={formik.values.customCaCertificate.enabled}
-            onToggle={() => formik.setFieldValue('customCaCertificate.enabled', !formik.values.customCaCertificate.enabled)}
-          />
-
-          {formik.values.customCaCertificate.enabled && (
-            <div className="ml-4 py-1">
-              {formik.values.customCaCertificate.filePath ? (
-                <span className="text-xs px-2 py-1 border rounded hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center max-w-max">
-                  {path.basename(formik.values.customCaCertificate.filePath)}
-                  <button
-                    type="button"
-                    tabIndex="-1"
-                    className="pl-1"
-                    onClick={deleteCaCertificate}
-                  >
-                    <IconTrash strokeWidth={1.5} size={14} />
-                  </button>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  tabIndex="-1"
-                  className="text-xs px-2 py-1 border rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-                  onClick={() => inputFileCaCertificateRef.current.click()}
-                >
-                  Select File
-                  <input
-                    id="caCertFilePath"
-                    type="file"
-                    name="customCaCertificate.filePath"
-                    className="hidden"
-                    ref={inputFileCaCertificateRef}
-                    onChange={addCaCertificate}
-                  />
-                </button>
-              )}
-            </div>
-          )}
-
-          <SettingRow
-            label="Keep Default CA Certificates"
-            isOn={formik.values.keepDefaultCaCertificates.enabled}
-            onToggle={() => formik.setFieldValue('keepDefaultCaCertificates.enabled', !formik.values.keepDefaultCaCertificates.enabled)}
-            disabled={isKeepDefaultCaDisabled}
-          />
+          <label className="block ml-2 select-none" htmlFor="sslVerification">
+            SSL/TLS Certificate Verification
+          </label>
         </div>
-
-        {/* Cookies */}
-        <div className="settings-section">
-          <h3 className="section-title">Cookies</h3>
-
-          <SettingRow
-            label="Store Cookies Automatically"
-            isOn={formik.values.storeCookies}
-            onToggle={() => formik.setFieldValue('storeCookies', !formik.values.storeCookies)}
+        <div className="flex items-center mt-2">
+          <input
+            id="customCaCertificateEnabled"
+            type="checkbox"
+            name="customCaCertificate.enabled"
+            checked={formik.values.customCaCertificate.enabled}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
           />
-
-          <SettingRow
-            label="Send Cookies Automatically"
-            isOn={formik.values.sendCookies}
-            onToggle={() => formik.setFieldValue('sendCookies', !formik.values.sendCookies)}
-          />
+          <label className="block ml-2 select-none" htmlFor="customCaCertificateEnabled">
+            Use Custom CA Certificate
+          </label>
         </div>
-
-        {/* Request Settings */}
-        <div className="settings-section">
-          <h3 className="section-title">Request</h3>
-
-          <div className="py-2">
-            <label className="font-medium text-sm block mb-1" htmlFor="timeout">
-              Timeout (ms)
-            </label>
-            <input
-              type="text"
-              name="timeout"
-              id="timeout"
-              className="block textbox w-24"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              onChange={formik.handleChange}
-              value={formik.values.timeout}
-            />
-            {formik.touched.timeout && formik.errors.timeout && (
-              <div className="text-red-500 text-sm mt-1">{formik.errors.timeout}</div>
-            )}
-          </div>
-        </div>
-
-        {/* Auto Save */}
-        <div className="settings-section">
-          <h3 className="section-title">Auto Save</h3>
-
-          <SettingRow
-            label="Enable Auto Save"
-            isOn={formik.values.autoSave.enabled}
-            onToggle={() => formik.setFieldValue('autoSave.enabled', !formik.values.autoSave.enabled)}
-          />
-
-          <div className={`py-2 ${!formik.values.autoSave.enabled ? 'opacity-50' : ''}`}>
-            <label className="font-medium text-sm block mb-1" htmlFor="autoSaveInterval">
-              Save Delay (ms)
-            </label>
-            <input
-              type="text"
-              name="autoSave.interval"
-              id="autoSaveInterval"
-              className="block textbox w-24"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              onChange={formik.handleChange}
-              value={formik.values.autoSave.interval}
-              disabled={!formik.values.autoSave.enabled}
-            />
-            {formik.touched.autoSave?.interval && formik.errors.autoSave?.interval && (
-              <div className="text-red-500 text-sm mt-1">{formik.errors.autoSave.interval}</div>
-            )}
-            {typeof formik.errors.autoSave === 'string' && (
-              <div className="text-red-500 text-sm mt-1">{formik.errors.autoSave}</div>
-            )}
-          </div>
-        </div>
-
-        {/* Storage */}
-        <div className="settings-section">
-          <h3 className="section-title">Storage</h3>
-
-          <div className="py-2">
-            <label className="font-medium text-sm block mb-1" htmlFor="defaultCollectionLocation">
-              Default Collection Location
-            </label>
-            <input
-              type="text"
-              name="defaultCollectionLocation"
-              className="block textbox w-full cursor-pointer"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              onChange={formik.handleChange}
-              value={formik.values.defaultCollectionLocation || ''}
-              onClick={browseDefaultLocation}
-              placeholder="Click to browse for default location"
-            />
-            <div className="mt-1">
-              <span
-                className="text-link cursor-pointer hover:underline text-sm"
-                onClick={browseDefaultLocation}
+        {formik.values.customCaCertificate.filePath ? (
+          <div
+            className={`flex items-center mt-2 pl-6 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
+          >
+            <span className="flex items-center border px-2 rounded-md">
+              {path.basename(formik.values.customCaCertificate.filePath)}
+              <button
+                type="button"
+                tabIndex="-1"
+                className="pl-1"
+                disabled={formik.values.customCaCertificate.enabled ? false : true}
+                onClick={deleteCaCertificate}
               >
-                Browse
-              </span>
-            </div>
-            {formik.touched.defaultCollectionLocation && formik.errors.defaultCollectionLocation && (
-              <div className="text-red-500 text-sm mt-1">{formik.errors.defaultCollectionLocation}</div>
-            )}
+                <IconTrash strokeWidth={1.5} size={14} />
+              </button>
+            </span>
+          </div>
+        ) : (
+          <div
+            className={`flex items-center mt-2 pl-6 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
+          >
+            <button
+              type="button"
+              tabIndex="-1"
+              className="flex items-center border px-2 rounded-md"
+              disabled={formik.values.customCaCertificate.enabled ? false : true}
+              onClick={() => inputFileCaCertificateRef.current.click()}
+            >
+              select file
+              <input
+                id="caCertFilePath"
+                type="file"
+                name="customCaCertificate.filePath"
+                className="hidden"
+                ref={inputFileCaCertificateRef}
+                disabled={formik.values.customCaCertificate.enabled ? false : true}
+                onChange={addCaCertificate}
+              />
+            </button>
+          </div>
+        )}
+        <div className="flex items-center mt-2">
+          <input
+            id="keepDefaultCaCertificatesEnabled"
+            type="checkbox"
+            name="keepDefaultCaCertificates.enabled"
+            checked={formik.values.keepDefaultCaCertificates.enabled}
+            onChange={formik.handleChange}
+            className={`mousetrap mr-0 ${formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? '' : 'opacity-25'}`}
+            disabled={formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? false : true}
+          />
+          <label
+            className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? '' : 'opacity-25'}`}
+            htmlFor="keepDefaultCaCertificatesEnabled"
+          >
+            Keep Default CA Certificates
+          </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="storeCookies"
+            type="checkbox"
+            name="storeCookies"
+            checked={formik.values.storeCookies}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="storeCookies">
+            Store Cookies automatically
+          </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="sendCookies"
+            type="checkbox"
+            name="sendCookies"
+            checked={formik.values.sendCookies}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="sendCookies">
+            Send Cookies automatically
+          </label>
+        </div>
+        <div className="flex flex-col mt-6">
+          <label className="block select-none" htmlFor="timeout">
+            Request Timeout (in ms)
+          </label>
+          <input
+            type="text"
+            name="timeout"
+            className="block textbox mt-2 w-16"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={formik.handleChange}
+            value={formik.values.timeout}
+          />
+        </div>
+        {formik.touched.timeout && formik.errors.timeout ? (
+          <div className="text-red-500">{formik.errors.timeout}</div>
+        ) : null}
+        <div className="flex items-center mt-6">
+          <input
+            id="autoSaveEnabled"
+            type="checkbox"
+            name="autoSave.enabled"
+            checked={formik.values.autoSave.enabled}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="autoSaveEnabled">
+            Enable Auto Save
+          </label>
+        </div>
+        <div className={`flex flex-col mt-2 ${!formik.values.autoSave.enabled ? 'opacity-50' : ''}`}>
+          <label className="block select-none" htmlFor="autoSaveInterval">
+            Save Delay (in ms)
+          </label>
+          <input
+            type="text"
+            name="autoSave.interval"
+            id="autoSaveInterval"
+            className="block textbox mt-2 w-24"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={formik.handleChange}
+            value={formik.values.autoSave.interval}
+            disabled={!formik.values.autoSave.enabled}
+          />
+        </div>
+        {formik.touched.autoSave?.interval && formik.errors.autoSave?.interval && (
+          <div className="text-red-500">{formik.errors.autoSave.interval}</div>
+        )}
+        <div className="flex flex-col mt-6">
+          <label className="block select-none default-collection-location-label" htmlFor="defaultCollectionLocation">
+            Default Collection Location
+          </label>
+          <input
+            type="text"
+            name="defaultCollectionLocation"
+            id="defaultCollectionLocation"
+            className="block textbox mt-2 w-full cursor-pointer default-collection-location-input"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={formik.handleChange}
+            value={formik.values.defaultCollectionLocation || ''}
+            onClick={browseDefaultLocation}
+            placeholder="Click to browse for default location"
+          />
+          <div className="mt-1">
+            <span
+              className="text-link cursor-pointer hover:underline default-collection-location-browse"
+              onClick={browseDefaultLocation}
+            >
+              Browse
+            </span>
           </div>
         </div>
-
-        <div className="mt-6">
+        {formik.touched.defaultCollectionLocation && formik.errors.defaultCollectionLocation ? (
+          <div className="text-red-500">{formik.errors.defaultCollectionLocation}</div>
+        ) : null}
+        <div className="mt-10">
           <button type="submit" className="submit btn btn-sm btn-secondary">
             Save
           </button>

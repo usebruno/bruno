@@ -34,14 +34,17 @@ test.describe('Autosave', () => {
       await page.locator('.status-bar button[data-trigger="preferences"]').click();
 
       const preferencesModal = page.locator('.bruno-modal-card').filter({ hasText: 'Preferences' });
+      await expect(preferencesModal).toBeVisible();
 
-      // Enable autosave toggle - click on the label inside the toggle switch
-      const autoSaveSection = preferencesModal.locator('.settings-section').filter({ hasText: 'Auto Save' });
-      const autoSaveToggle = autoSaveSection.locator('.setting-row').filter({ hasText: 'Enable Auto Save' });
-      await autoSaveToggle.locator('label').click();
+      // Enable autosave checkbox
+      const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
+      await autoSaveCheckbox.check();
 
       // Save preferences
       await preferencesModal.locator('button[type="submit"]').click();
+
+      // Wait for preferences to close
+      await expect(preferencesModal).not.toBeVisible();
     });
 
     await test.step('Make changes and verify autosave', async () => {
@@ -84,10 +87,9 @@ test.describe('Autosave', () => {
       const preferencesModal = page.locator('.bruno-modal-card').filter({ hasText: 'Preferences' });
       await expect(preferencesModal).toBeVisible();
 
-      // Disable autosave toggle - click on the label inside the toggle switch
-      const autoSaveSection = preferencesModal.locator('.settings-section').filter({ hasText: 'Auto Save' });
-      const autoSaveToggle = autoSaveSection.locator('.setting-row').filter({ hasText: 'Enable Auto Save' });
-      await autoSaveToggle.locator('label').click();
+      // Disable autosave checkbox
+      const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
+      await autoSaveCheckbox.uncheck();
 
       // Save preferences
       await preferencesModal.locator('button[type="submit"]').click();
