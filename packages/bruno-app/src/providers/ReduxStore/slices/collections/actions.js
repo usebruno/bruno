@@ -92,8 +92,8 @@ const generateUniqueName = (originalName, existingItems, isFolder) => {
     .filter((item) => isFolder ? item.type === 'folder' : item.type !== 'folder')
     .map((item) => {
       let filename = trim(item.filename);
-      // For requests, remove .bru extension
-      return isFolder ? filename : filename.replace(/\.bru$/, '');
+      // For requests, remove file extension (.bru, .yml, .yaml)
+      return isFolder ? filename : filename.replace(/\.(bru|yml|yaml)$/, '');
     });
 
   // Check if base name conflicts with existing items
@@ -887,7 +887,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
       const collectionPath = path.join(parentFolder.pathname, newFilename);
 
       const { ipcRenderer } = window;
-      ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
+      ipcRenderer.invoke('renderer:clone-folder', item, collectionPath, collection.pathname).then(resolve).catch(reject);
       return;
     }
 
@@ -995,26 +995,26 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
         const existingItems = targetItem ? targetItem.items : targetCollection.items;
 
-        // Handle folder paste
+        // Handle folder pasting
         if (isItemAFolder(copiedItem)) {
+          // Generate unique name for folder
           const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, true);
 
-          // Update folder metadata
           set(copiedItem, 'name', newName);
           set(copiedItem, 'filename', newFilename);
           set(copiedItem, 'root.meta.name', newName);
           set(copiedItem, 'root.meta.seq', existingItems?.length + 1);
 
-          const folderPath = path.join(targetParentPathname, newFilename);
+          const fullPathname = path.join(targetParentPathname, newFilename);
           const { ipcRenderer } = window;
 
-          // Use the same IPC call as cloneItem for folders
-          await ipcRenderer.invoke('renderer:clone-folder', copiedItem, folderPath);
+          await ipcRenderer.invoke('renderer:clone-folder', copiedItem, fullPathname, targetCollection.pathname);
         } else {
-          // Handle request paste
+          // Handle request pasting
+          // Generate unique name for request
           const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, false);
 
-          const filename = resolveRequestFilename(newFilename);
+          const filename = resolveRequestFilename(newFilename, targetCollection.format);
           const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
           set(itemToSave, 'name', trim(newName));
           set(itemToSave, 'filename', trim(filename));
@@ -1025,7 +1025,7 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
           itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
           await itemSchema.validate(itemToSave);
-          await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave);
+          await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
 
           dispatch(insertTaskIntoQueue({
             uid: uuid(),
