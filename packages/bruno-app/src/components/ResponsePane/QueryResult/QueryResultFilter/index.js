@@ -4,13 +4,19 @@ import { useRef } from 'react';
 import { useState } from 'react';
 import { Tooltip as ReactInfotip } from 'react-tooltip';
 
-const QueryResultFilter = ({ filter, onChange, mode }) => {
+const QueryResultFilter = ({ filter, onChange, mode, onExpandChange }) => {
   const inputRef = useRef(null);
   const [isExpanded, toggleExpand] = useState(false);
 
   const handleFilterClick = () => {
+    const newExpandedState = !isExpanded;
+
     // Toggle filter search bar
-    toggleExpand(!isExpanded);
+    toggleExpand(newExpandedState);
+    // Notify parent component of expand state change
+    if (onExpandChange) {
+      onExpandChange(newExpandedState);
+    }
     // Reset filter search input
     onChange({ target: { value: '' } });
     // Reset input value
@@ -60,7 +66,7 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        className={`block ml-14 p-2 py-1 sm:text-sm transition-all duration-200 ease-in-out border border-gray-300 rounded-md ${
+        className={`block p-2 py-1 sm:text-sm transition-all duration-200 ease-in-out border border-gray-300 rounded-md ${
           isExpanded ? 'w-full opacity-100 pointer-events-auto' : 'w-[0] opacity-0'
         }`}
         onChange={onChange}
