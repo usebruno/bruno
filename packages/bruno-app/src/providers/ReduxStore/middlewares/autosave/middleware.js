@@ -1,4 +1,5 @@
 import { saveRequest, saveCollectionSettings, saveFolderRoot } from '../../slices/collections/actions';
+import { flattenItems, isItemARequest, isItemAFolder } from 'utils/collections';
 
 const actionsToIntercept = [
   // Request-level actions
@@ -39,7 +40,7 @@ const actionsToIntercept = [
   'collections/deleteVar',
   'collections/moveVar',
   'collections/updateRequestDocs',
-  'collections/runRequestEvent', // TODO: This doesn't necessarily related to a draft state, need to rethink.
+  'collections/runRequestEvent',
 
   // Folder-level actions
   'collections/addFolderHeader',
@@ -76,6 +77,45 @@ const actionsToIntercept = [
 // Simple object to track pending save timers
 const pendingTimers = {};
 
+// Helper to schedule autosave for an item
+const scheduleAutoSave = (key, save, interval) => {
+  // Clear any existing timer for this entity
+  clearTimeout(pendingTimers[key]);
+
+  // Schedule a new save
+  pendingTimers[key] = setTimeout(() => {
+    save();
+    delete pendingTimers[key];
+  }, interval);
+};
+
+// Helper to find and schedule saves for all existing drafts
+const saveExistingDrafts = (dispatch, getState, interval) => {
+  const collections = getState().collections.collections;
+
+  collections.forEach((collection) => {
+    // Check collection-level draft
+    if (collection.draft) {
+      const key = `collection-${collection.uid}`;
+      scheduleAutoSave(key, () => dispatch(saveCollectionSettings(collection.uid, null, true)), interval);
+    }
+
+    // Check all items (requests and folders) for drafts
+    const allItems = flattenItems(collection.items);
+    allItems.forEach((item) => {
+      if (item.draft) {
+        if (isItemARequest(item)) {
+          const key = `request-${item.uid}`;
+          scheduleAutoSave(key, () => dispatch(saveRequest(item.uid, collection.uid, true)), interval);
+        } else if (isItemAFolder(item)) {
+          const key = `folder-${item.uid}`;
+          scheduleAutoSave(key, () => dispatch(saveFolderRoot(collection.uid, item.uid, true)), interval);
+        }
+      }
+    });
+  });
+};
+
 export const autosaveMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   // Let the action update the state first
   const result = next(action);
@@ -83,6 +123,12 @@ export const autosaveMiddleware = ({ dispatch, getState }) => (next) => (action)
   // Check if autosave is enabled
   const { autoSave } = getState().app.preferences;
   if (!autoSave?.enabled) return result;
+
+  // When autosave is enabled (or settings change), save any existing drafts
+  if (action.type === 'app/updatePreferences' && action.payload?.autoSave?.enabled) {
+    saveExistingDrafts(dispatch, getState, autoSave.interval);
+    return result;
+  }
 
   // Only handle actions that create dirty state
   if (!actionsToIntercept.includes(action.type)) return result;
@@ -108,15 +154,7 @@ export const autosaveMiddleware = ({ dispatch, getState }) => (next) => (action)
   }
 
   if (key && save) {
-    // Clear any existing timer for this entity
-    clearTimeout(pendingTimers[key]);
-
-    // Schedule a new save
-    pendingTimers[key] = setTimeout(() => {
-      console.log(`autosave: ${key}`);
-      save();
-      delete pendingTimers[key];
-    }, interval);
+    scheduleAutoSave(key, save, interval);
   }
 
   return result;
