@@ -76,11 +76,18 @@ const simpleTranslations = {
   // Info
   'pm.info.requestName': 'req.getName()',
 
-  // Request properties
+  // Request properties (pm.request.*)
   'pm.request.url': 'req.getUrl()',
   'pm.request.method': 'req.getMethod()',
   'pm.request.headers': 'req.getHeaders()',
   'pm.request.body': 'req.getBody()',
+
+  // Legacy/global request object (request.*)
+  'request.url': 'req.getUrl()',
+  'request.method': 'req.getMethod()',
+  'request.headers': 'req.getHeaders()',
+  'request.body': 'req.getBody()',
+  'request.name': 'req.getName()',
  
   // Response properties
   'pm.response.json': 'res.getBody',
