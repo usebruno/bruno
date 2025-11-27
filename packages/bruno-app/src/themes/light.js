@@ -486,12 +486,12 @@ const lightTheme = {
     icon: '#D91F11',
     text: '#343434'
   },
-  
-   preferences: {
+
+  preferences: {
     sidebar: {
       border: '#EFEFEF'
     }
-   },
+  },
 
   examples: {
     buttonBg: '#D977061A',

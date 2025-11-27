@@ -479,12 +479,12 @@ const darkTheme = {
     icon: '#FA5343',
     text: '#B8B8B8'
   },
-  
-   preferences: {
+
+  preferences: {
     sidebar: {
       border: '#444444'
     }
-   },
+  },
 
   examples: {
     buttonBg: '#F59E0B1A',
