@@ -98,7 +98,7 @@ test.describe('Open Multiple Collections', () => {
     await expect(page.locator('#sidebar-collection-name')).toHaveCount(0);
 
     // Verify invalid collection error
-    const invalidCollectionError = page.getByText('The collection is not valid (bruno.json not found)').first();
+    const invalidCollectionError = page.getByText('The collection is not valid').first();
     await expect(invalidCollectionError).toBeVisible();
 
     // Verify invalid path error

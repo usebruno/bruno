@@ -480,11 +480,18 @@ const lightTheme = {
       }
     }
   },
-  preferences: {
+  deprecationWarning: {
+    bg: 'rgba(217, 31, 17, 0.1)',
+    border: 'rgba(217, 31, 17, 0.1)',
+    icon: '#D91F11',
+    text: '#343434'
+  },
+  
+   preferences: {
     sidebar: {
       border: '#EFEFEF'
     }
-  },
+   },
 
   examples: {
     buttonBg: '#D977061A',

@@ -129,11 +129,15 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     setProtoFilePath('');
     setIsReflectionMode(true);
 
-    dispatch(updateRequestProtoPath({
-      protoPath: '',
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
+    // Only update protoPath if it was previously set (to avoid creating unnecessary draft state)
+    const currentProtoPath = getPropertyFromDraftOrRequest(item, 'request.protoPath', '');
+    if (currentProtoPath) {
+      dispatch(updateRequestProtoPath({
+        protoPath: '',
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
+    }
 
     if (methods && methods.length > 0) {
       toast.success(`Loaded ${methods.length} gRPC methods from reflection`);
