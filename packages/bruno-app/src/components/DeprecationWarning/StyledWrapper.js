@@ -26,6 +26,15 @@ const StyledWrapper = styled.div`
       font-size: 14px;
       line-height: 17px;
       color: ${(props) => props.theme.deprecationWarning.text};
+
+      a {
+        color: ${(props) => props.theme.textLink};
+        text-decoration: underline;
+
+        &:hover {
+          text-decoration: none;
+        }
+      }
     }
   }
 `;
