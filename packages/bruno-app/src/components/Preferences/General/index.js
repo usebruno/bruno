@@ -310,15 +310,15 @@ const General = ({ close }) => {
             <input
               type="text"
               name="defaultCollectionLocation"
-              id="defaultCollectionLocation"
               className="block textbox w-full cursor-pointer"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
+              onChange={formik.handleChange}
               value={formik.values.defaultCollectionLocation || ''}
               onClick={browseDefaultLocation}
-              placeholder="Click to select folder"
+              placeholder="Click to browse for default location"
             />
             <div className="mt-1">
               <span
