@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CodeEditor from 'components/CodeEditor';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
@@ -8,11 +8,23 @@ const BulkEditor = ({ params, onChange, onToggle, onSave, onRun }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
 
-  const parsedParams = useMemo(() => serializeBulkKeyValue(params), [params]);
+  const itemsText = useMemo(() => serializeBulkKeyValue(params), [params]);
+  // Editor local state
+  const [editorText, setEditorText] = useState(itemsText);
+
+  useEffect(() => {
+    if (serializeBulkKeyValue(parseBulkKeyValue(editorText || '')) !== itemsText) {
+      setEditorText(itemsText);
+    }
+  }, [editorText, itemsText]);
 
   const handleEdit = (value) => {
-    const parsed = parseBulkKeyValue(value);
-    onChange(parsed);
+    if (value === editorText) {
+      return;
+    }
+
+    setEditorText(value);
+    onChange(parseBulkKeyValue(value || ''));
   };
 
   return (
@@ -22,7 +34,7 @@ const BulkEditor = ({ params, onChange, onToggle, onSave, onRun }) => {
           mode="text/plain"
           theme={displayedTheme}
           font={preferences.codeFont || 'default'}
-          value={parsedParams}
+          value={editorText}
           onEdit={handleEdit}
           onSave={onSave}
           onRun={onRun}
