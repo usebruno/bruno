@@ -118,33 +118,56 @@ export const brunoToPostman = (collection) => {
 
   const generateCollectionVars = (collection) => {
     const pattern = /{{[^{}]+}}/g;
-    let listOfVars = [];
-
-    const findOccurrences = (obj, results) => {
-      if (typeof obj === 'object') {
-        if (Array.isArray(obj)) {
-          obj.forEach((item) => findOccurrences(item, results));
-        } else {
-          for (const key in obj) {
-            findOccurrences(obj[key], results);
-          }
-        }
-      } else if (typeof obj === 'string') {
-        obj.replace(pattern, (match) => {
-          results.push(match.replace(/{{|}}/g, ''));
+    const collectionVars = [];
+    const visit = (node) => {
+      if (!node) {
+        return;
+      }
+      if (typeof node === 'string') {
+        const matches = node.matchAll(pattern);
+        matches.forEach((match) => {
+          const varKey = match[0].replace(/{{|}}/g, '');
+          collectionVars.push({
+            key: varKey,
+            value: '',
+            type: 'default'
+          });
         });
+      }
+      if (Array.isArray(node)) {
+        node.forEach((item) => visit(item));
+      }
+      if (typeof node === 'object') {
+        for (const value of Object.values(node)) {
+          visit(value);
+        }
       }
     };
 
-    findOccurrences(collection, listOfVars);
+    visit(collection);
 
-    const finalArrayOfVars = [...new Set(listOfVars)];
-
-    return finalArrayOfVars.map((variable) => ({
-      key: variable,
-      value: '',
+    // Add request and response vars
+    let reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
+      key: v.name,
+      value: v.value,
       type: 'default'
     }));
+
+    let resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
+      key: v.name,
+      value: v.value,
+      type: 'default'
+    }));
+
+    // Merge and deduplicate final result
+    const allVars = [...reqVars, ...resVars, ...collectionVars];
+    const finalVarsMap = new Map();
+    allVars.forEach((v) => {
+      if (!finalVarsMap.has(v.key)) {
+        finalVarsMap.set(v.key, v);
+      }
+    });
+    return Array.from(finalVarsMap.values());
   };
   const generateEventSection = (item) => {
     const eventArray = [];
