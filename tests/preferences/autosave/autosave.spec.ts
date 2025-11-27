@@ -1,5 +1,5 @@
-import { test, expect } from '../../playwright';
-import { createCollection, closeAllCollections, createRequest } from '../utils/page';
+import { test, expect } from '../../../playwright';
+import { createCollection, closeAllCollections, createRequest } from '../../utils/page';
 
 test.describe('Autosave', () => {
   test.afterEach(async ({ page }) => {

@@ -319,7 +319,6 @@ const General = ({ close }) => {
               value={formik.values.defaultCollectionLocation || ''}
               onClick={browseDefaultLocation}
               placeholder="Click to select folder"
-              readOnly
             />
             <div className="mt-1">
               <span

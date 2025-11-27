@@ -6,7 +6,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.locator('.preferences-button').click();
 
     // verify the default location is pre-filled
-    const defaultLocationInput = page.locator('.default-collection-location-input');
+    const defaultLocationInput = page.locator('#defaultCollectionLocation');
     await expect(defaultLocationInput).toHaveValue('/tmp/bruno-collections');
 
     // close the preferences
@@ -21,7 +21,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.locator('.preferences-button').click();
 
     // clear the default location field
-    const defaultLocationInput = page.locator('.default-collection-location-input');
+    const defaultLocationInput = page.locator('#defaultCollectionLocation');
     await defaultLocationInput.clear();
 
     // save preferences
@@ -39,7 +39,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.locator('.preferences-button').click();
 
     // set a default location
-    const defaultLocationInput = page.locator('.default-collection-location-input');
+    const defaultLocationInput = page.locator('#defaultCollectionLocation');
 
     // fill the default location input
     await defaultLocationInput.fill('/tmp/bruno-collections');
