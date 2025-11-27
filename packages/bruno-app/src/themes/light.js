@@ -1,510 +1,468 @@
+import colors from './light-main';
+
 const lightTheme = {
-  brand: '#546de5',
-  text: 'rgb(52, 52, 52)',
-  textLink: '#1663bb',
-  bg: '#fff',
+  // Core colors
+  text: colors.text,
+  textLink: colors.textLink,
+  bg: colors.surface,
 
   colors: {
     text: {
-      green: '#047857',
-      danger: '#B91C1C',
-      muted: '#838383',
-      purple: '#8e44ad',
-      yellow: '#d97706'
+      green: colors.textSuccess,
+      danger: colors.textDanger,
+      muted: colors.textMuted,
+      purple: colors.methodPost,
+      yellow: colors.accent
     },
     bg: {
-      danger: '#dc3545'
+      danger: colors.danger
     }
   },
 
   input: {
-    bg: 'white',
-    border: '#ccc',
-    focusBorder: '#8b8b8b',
+    bg: colors.inputBg,
+    border: colors.inputBorder,
+    focusBorder: colors.inputFocusBorder,
     placeholder: {
-      color: '#a2a2a2',
+      color: colors.inputPlaceholder,
       opacity: 0.8
     }
   },
 
-  menubar: {
-    bg: 'rgb(44, 44, 44)'
-  },
-
   variables: {
-    bg: '#fff',
-
-    name: {
-      color: '#546de5'
-    },
-
     runtime: {
-      color: 'rgb(0, 0, 0)'
+      color: colors.black
     }
   },
 
   sidebar: {
-    color: 'rgb(52, 52, 52)',
-    muted: '#4b5563',
-    bg: '#F3F3F3',
-    dragbar: 'rgb(200, 200, 200)',
+    color: colors.text,
+    muted: colors.additional.sidebarColor,
+    bg: colors.surfaceElevated,
+    dragbar: colors.additional.sidebarDragbar,
 
     badge: {
-      bg: '#e1e1e1'
+      bg: colors.borderMid
     },
 
     search: {
-      border: '1px solid rgb(211 211 211)',
-      bg: '#fff'
+      border: colors.additional.sidebarSearchBorder,
+      bg: colors.surface
     },
 
     collection: {
       item: {
-        bg: '#e1e1e1',
-        hoverBg: '#e7e7e7',
-        indentBorder: 'solid 1px #e1e1e1',
+        bg: colors.borderMid,
+        hoverBg: colors.additional.sidebarItemHoverBg,
+        indentBorder: colors.additional.sidebarIndentBorder,
         active: {
-          indentBorder: 'solid 1px #d0d0d0'
+          indentBorder: colors.additional.sidebarIndentBorderActive
         }
       }
     },
 
     dropdownIcon: {
-      color: 'rgb(110 110 110)'
+      color: colors.additional.sidebarDropdownIconColor
     }
   },
 
   welcome: {
-    heading: '#737373',
-    muted: '#4b5563'
+    heading: colors.additional.welcomeHeading,
+    muted: colors.additional.welcomeMuted
   },
 
   dropdown: {
-    color: 'rgb(48 48 48)',
-    iconColor: 'rgb(75, 85, 99)',
-    bg: '#fff',
-    hoverBg: '#e9ecef',
-    shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
-    separator: '#e7e7e7',
-    labelBg: '#f3f3f3',
-    selectedBg: '#D977060F',
-    selectedColor: '#D97706',
-    mutedText: '#9B9B9B',
-    primaryText: '#343434',
-    secondaryText: '#6B7280',
-    headingText: '#343434'
+    color: colors.additional.dropdownColor,
+    iconColor: colors.additional.dropdownIconColor,
+    bg: colors.surface,
+    hoverBg: colors.additional.dropdownHoverBg,
+    shadow: colors.shadowLight,
+    separator: colors.borderSubtle,
+    labelBg: colors.surfaceElevated,
+    selectedBg: colors.accentSubtle,
+    selectedColor: colors.accentBorder,
+    mutedText: colors.additional.dropdownMutedText,
+    primaryText: colors.text,
+    secondaryText: colors.additional.dropdownSecondaryText
   },
 
   request: {
     methods: {
-      get: 'rgb(5, 150, 105)',
-      post: '#8e44ad',
-      put: '#ca7811',
-      delete: 'rgb(185, 28, 28)',
-      // customize these colors if needed
-      patch: '#ca7811',
-      options: '#ca7811',
-      head: '#ca7811'
+      get: colors.methodGet,
+      post: colors.methodPost,
+      put: colors.methodPut,
+      delete: colors.methodDelete,
+      patch: colors.methodPatch,
+      options: colors.methodOptions,
+      head: colors.methodHead
     },
-    grpc: '#6366f1',
-    ws: '#f59e0b',
-    gql: '#e535ab'
+    grpc: colors.requestGrpc,
+    ws: colors.requestWs,
+    gql: colors.requestGql
   },
 
   requestTabPanel: {
     url: {
-      bg: '#f3f3f3',
-      icon: '#515151',
-      iconDanger: '#d91f11',
-      errorHoverBg: '#fef2f2'
+      bg: colors.surfaceElevated,
+      icon: colors.additional.requestUrlIcon,
+      iconDanger: colors.additional.requestUrlIconDanger,
+      errorHoverBg: colors.additional.requestUrlErrorHoverBg
     },
     dragbar: {
-      border: '#efefef',
-      activeBorder: 'rgb(200, 200, 200)'
+      border: colors.border,
+      activeBorder: colors.additional.sidebarDragbar
     },
-    bodyModeSelect: {
-      color: '#efefef'
-    },
-    responseSendIcon: 'rgb(209, 213, 219)',
-    responseStatus: 'rgb(117 117 117)',
-    responseOk: '#047857',
-    responseError: 'rgb(185, 28, 28)',
-    responsePending: '#1663bb',
-    responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
+    responseSendIcon: colors.additional.requestSendIcon,
+    responseStatus: colors.additional.requestStatusColor,
+    responseOk: colors.success,
+    responseError: colors.error,
+    responsePending: colors.info,
+    responseOverlayBg: colors.overlayBg,
     card: {
-      bg: '#fff',
-      border: '#f4f4f4',
-      hr: '#f4f4f4'
+      bg: colors.surface,
+      border: colors.borderLight,
+      hr: colors.borderDivider
     },
     cardTable: {
-      border: '#efefef',
-      bg: '#fff',
+      border: colors.border,
       table: {
         thead: {
-          bg: 'rgb(249, 250, 251)',
-          color: 'rgb(75 85 99)'
+          bg: colors.additional.tableHeadBg,
+          color: colors.additional.tableHeadFgColor
         }
       }
     },
     graphqlDocsExplorer: {
-      bg: '#fff',
-      color: 'rgb(52, 52, 52)'
+      bg: colors.codeBg,
+      color: colors.text
     }
   },
 
   collection: {
     environment: {
-      bg: '#efefef',
-
       settings: {
-        bg: 'white',
+        bg: colors.surface,
         sidebar: {
-          bg: '#eaeaea',
-          borderRight: 'transparent'
+          bg: colors.additional.collectionSettingsSidebarBg,
+          borderRight: colors.transparent
         },
         item: {
-          border: '#546de5',
-          hoverBg: '#e4e4e4',
+          border: colors.brand,
+          hoverBg: colors.additional.notificationHoverBg,
           active: {
-            bg: '#dcdcdc',
-            hoverBg: '#dcdcdc'
+            bg: colors.additional.notificationActiveBg,
+            hoverBg: colors.additional.notificationActiveBg
           }
         },
-        gridBorder: '#f4f4f4'
+        gridBorder: colors.borderLight
       }
     },
 
     sidebar: {
-      bg: '#eaeaea'
+      bg: colors.additional.collectionSidebarBg
     }
   },
 
   notifications: {
-    bg: 'white',
+    bg: colors.surface,
     list: {
-      bg: '#eaeaea',
-      borderRight: 'transparent',
-      borderBottom: '#d3d3d3',
-      hoverBg: '#e4e4e4',
+      bg: colors.additional.notificationSidebarBg,
+      borderRight: colors.transparent,
+      borderBottom: colors.borderDark,
+      hoverBg: colors.additional.notificationHoverBg,
       active: {
-        border: '#546de5',
-        bg: '#dcdcdc',
-        hoverBg: '#dcdcdc'
+        border: colors.brand,
+        bg: colors.additional.notificationActiveBg,
+        hoverBg: colors.additional.notificationActiveBg
       }
     }
   },
 
   modal: {
     title: {
-      color: 'rgb(86 86 86)',
-      bg: '#f1f1f1',
-      iconColor: 'black'
+      color: colors.additional.modalTitleColor,
+      bg: colors.additional.modalTitleBg
     },
     body: {
-      color: 'rgb(52, 52, 52)',
-      bg: 'white'
+      color: colors.text,
+      bg: colors.surface
     },
     input: {
-      bg: 'white',
-      border: '#ccc',
-      focusBorder: '#8b8b8b'
+      bg: colors.inputBg,
+      border: colors.inputBorder,
+      focusBorder: colors.inputFocusBorder
     },
     backdrop: {
-      opacity: 0.4
+      opacity: colors.additional.modalBackdropOpacity
     }
   },
 
   button: {
     secondary: {
-      color: '#212529',
-      bg: '#e2e6ea',
-      border: '#dae0e5',
-      hoverBorder: '#696969'
+      color: colors.buttonSecondaryColor,
+      bg: colors.buttonSecondaryBg,
+      border: colors.buttonSecondaryBorder,
+      hoverBorder: colors.buttonSecondaryHoverBorder
     },
     close: {
-      color: '212529',
-      bg: 'white',
-      border: 'white',
-      hoverBorder: ''
+      color: colors.textSecondary,
+      bg: colors.surface,
+      border: colors.surface
     },
     disabled: {
-      color: '#9f9f9f',
-      bg: '#efefef',
-      border: 'rgb(234, 234, 234)'
+      color: colors.buttonDisabledColor,
+      bg: colors.buttonDisabledBg,
+      border: colors.buttonDisabledBorder
     },
     danger: {
-      color: '#fff',
-      bg: '#dc3545',
-      border: '#dc3545'
+      color: colors.white,
+      bg: colors.danger,
+      border: colors.danger
     }
   },
 
   tabs: {
     active: {
-      color: '#343434',
-      border: '#D97706'
+      color: colors.text,
+      border: colors.accent
     },
     secondary: {
       active: {
-        bg: '#FFFFFF',
-        color: '#343434'
+        bg: colors.surface,
+        color: colors.text
       },
       inactive: {
-        bg: '#ECECEE',
-        color: '#989898'
+        bg: colors.surfaceAlt3,
+        color: colors.additional.tabSecondaryInactiveColor
       }
     }
   },
 
   requestTabs: {
-    color: 'rgb(52, 52, 52)',
-    bg: '#f7f7f7',
-    bottomBorder: '#efefef',
+    color: colors.text,
+    bg: colors.surfaceSubtle,
+    bottomBorder: colors.border,
     icon: {
-      color: '#9f9f9f',
-      hoverColor: 'rgb(76 76 76)',
-      hoverBg: 'rgb(234, 234, 234)'
+      color: colors.additional.requestTabIconColor,
+      hoverColor: colors.additional.requestTabIconHoverColor,
+      hoverBg: colors.additional.requestTabIconHoverBg
     },
     active: {
-      bg: '#e7e7e7'
+      bg: colors.activeBg
     },
     shortTab: {
-      color: 'rgb(117 117 117)',
-      bg: 'white',
-      hoverColor: 'rgb(76 76 76)',
-      hoverBg: '#eaeaea'
+      color: colors.additional.requestTabShortTabColor,
+      bg: colors.surface,
+      hoverColor: colors.additional.requestTabIconHoverColor,
+      hoverBg: colors.additional.requestTabShortTabHoverBg
     }
   },
 
   codemirror: {
-    bg: 'white',
-    border: '#efefef',
+    bg: colors.codeBg,
+    border: colors.codeBorder,
     placeholder: {
-      color: '#a2a2a2',
+      color: colors.inputPlaceholder,
       opacity: 0.75
     },
     gutter: {
-      bg: '#f3f3f3'
+      bg: colors.codeGutter
     },
     variable: {
-      valid: '#047857',
-      invalid: 'rgb(185, 28, 28)',
-      prompt: '#186ADE',
+      valid: colors.textSuccess,
+      invalid: colors.error,
+      prompt: colors.additional.codemirrorPrompt,
       info: {
-        color: '#343434',
-        bg: '#FFFFFF',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
-        editorBg: '#F7F7F7',
-        iconColor: '#989898',
-        editorBorder: '#EFEFEF',
-        editorFocusBorder: '#989898',
-        editableDisplayHoverBg: 'rgba(0,0,0,0.02)',
-        border: '#EFEFEF',
-        editorBorder: '#EFEFEF'
+        color: colors.text,
+        bg: colors.surface,
+        boxShadow: colors.additional.codemirrorEditorBoxShadow,
+        editorBg: colors.additional.codemirrorEditorBg,
+        iconColor: colors.textSubtle,
+        editorBorder: colors.border,
+        editorFocusBorder: colors.textSubtle,
+        border: colors.border
       }
     },
-    searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
-    searchMatch: '#B8860B',
-    searchMatchActive: '#DAA520'
+    searchLineHighlightCurrent: colors.codeHighlight
   },
 
   table: {
-    border: '#efefef',
+    border: colors.border,
     thead: {
-      color: '#616161'
+      color: colors.additional.tableHeadColor
     },
-    striped: '#f3f3f3',
+    striped: colors.surfaceElevated,
     input: {
-      color: '#000000'
+      color: colors.black
     }
   },
 
   plainGrid: {
-    hoverBg: '#f4f4f4'
+    hoverBg: colors.borderLight
   },
 
   scrollbar: {
-    color: 'rgb(152 151 149)'
+    color: colors.scrollbar
   },
 
   dragAndDrop: {
-    border: '#8b8b8b', // Using the same gray as focusBorder from input
+    border: colors.inputFocusBorder,
     borderStyle: '2px solid',
-    hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
-    transition: 'all 0.1s ease'
-  },
-
-  tooltip: {
-    bg: '#374151',
-    color: '#ffffff',
-    shortcutColor: '#f59e0b'
+    hoverBg: colors.additional.dragDropHoverBg,
+    transition: colors.additional.dragDropTransition
   },
 
   infoTip: {
-    bg: 'white',
-    border: '#e0e0e0',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+    bg: colors.surface,
+    border: colors.additional.infoTipBorder,
+    boxShadow: colors.shadowMedium
   },
 
   statusBar: {
-    border: '#E9E9E9',
-    color: 'rgb(100, 100, 100)'
+    border: colors.additional.statusBarBorder,
+    color: colors.additional.statusBarColor
   },
+
   console: {
-    bg: '#f8f9fa',
-    headerBg: '#f8f9fa',
-    contentBg: '#ffffff',
-    border: '#dee2e6',
-    titleColor: '#212529',
-    countColor: '#6c757d',
-    buttonColor: '#495057',
-    buttonHoverBg: '#e9ecef',
-    buttonHoverColor: '#212529',
-    messageColor: '#212529',
-    timestampColor: '#6c757d',
-    emptyColor: '#6c757d',
-    logHoverBg: 'rgba(0, 0, 0, 0.03)',
-    resizeHandleHover: '#0d6efd',
-    resizeHandleActive: '#0d6efd',
-    dropdownBg: '#ffffff',
-    dropdownHeaderBg: '#f8f9fa',
-    optionHoverBg: '#f8f9fa',
-    optionLabelColor: '#212529',
-    optionCountColor: '#6c757d',
-    checkboxColor: '#0d6efd',
-    scrollbarTrack: '#f8f9fa',
-    scrollbarThumb: '#ced4da',
-    scrollbarThumbHover: '#adb5bd'
+    bg: colors.surface,
+    headerBg: colors.additional.consoleHeaderBg,
+    contentBg: colors.surface,
+    border: colors.borderDark,
+    titleColor: colors.textSecondary,
+    countColor: colors.textFaint,
+    buttonColor: colors.additional.consoleButtonColor,
+    buttonHoverBg: colors.additional.consoleButtonHoverBg,
+    buttonHoverColor: colors.textSecondary,
+    messageColor: colors.textSecondary,
+    timestampColor: colors.textFaint,
+    emptyColor: colors.textFaint,
+    logHoverBg: colors.hoverBg,
+    dropdownBg: colors.surface,
+    dropdownHeaderBg: colors.additional.consoleHeaderBg,
+    optionHoverBg: colors.additional.consoleHeaderBg,
+    optionLabelColor: colors.textSecondary,
+    optionCountColor: colors.textFaint,
+    checkboxColor: colors.additional.consoleCheckbox,
+    scrollbarThumb: colors.scrollbarThumb,
+    scrollbarThumbHover: colors.scrollbarThumbHover
   },
 
   grpc: {
     tabNav: {
       container: {
-        bg: '#f5f5f5'
+        bg: colors.additional.grpcTabNavBg
       },
       button: {
         active: {
-          bg: '#ffffff',
-          color: '#000000'
+          bg: colors.surface,
+          color: colors.black
         },
         inactive: {
-          bg: 'transparent',
-          color: '#525252'
+          bg: colors.transparent,
+          color: colors.additional.grpcTabNavInactiveColor
         }
       }
     },
     importPaths: {
       container: {
-        bg: '#ffffff'
+        bg: colors.surface
       },
       header: {
-        text: '#838383',
+        text: colors.textMuted,
         button: {
-          color: '#838383',
-          hoverColor: '#343434'
+          color: colors.textMuted,
+          hoverColor: colors.text
         }
       },
       error: {
-        bg: 'transparent',
-        text: '#B91C1C',
+        bg: colors.transparent,
+        text: colors.error,
         link: {
-          color: '#B91C1C',
-          hoverColor: '#dc2626'
+          color: colors.error,
+          hoverColor: colors.additional.grpcErrorHoverColor
         }
       },
       item: {
-        bg: 'transparent',
-        hoverBg: 'rgba(0, 0, 0, 0.05)',
-        text: '#343434',
-        icon: '#838383',
+        hoverBg: colors.hoverBgLight,
         checkbox: {
-          color: '#343434'
+          color: colors.text
         },
         invalid: {
           opacity: 0.6,
-          text: '#B91C1C'
+          text: colors.error
         }
       },
       empty: {
-        text: '#838383'
+        text: colors.textMuted
       },
       button: {
-        bg: '#e2e6ea',
-        color: '#212529',
-        border: '#dae0e5',
-        hoverBorder: '#696969'
+        bg: colors.buttonSecondaryBg,
+        color: colors.buttonSecondaryColor,
+        border: colors.buttonSecondaryBorder,
+        hoverBorder: colors.buttonSecondaryHoverBorder
       }
     },
     protoFiles: {
       container: {
-        bg: '#ffffff'
+        bg: colors.surface
       },
       header: {
-        text: '#838383',
+        text: colors.textMuted,
         button: {
-          color: '#838383',
-          hoverColor: '#343434'
+          color: colors.textMuted,
+          hoverColor: colors.text
         }
       },
       error: {
-        bg: 'transparent',
-        text: '#B91C1C',
+        bg: colors.transparent,
+        text: colors.error,
         link: {
-          color: '#B91C1C',
-          hoverColor: '#dc2626'
+          color: colors.error,
+          hoverColor: colors.additional.grpcErrorHoverColor
         }
       },
       item: {
-        bg: 'transparent',
-        hoverBg: 'rgba(0, 0, 0, 0.05)',
+        hoverBg: colors.hoverBgLight,
         selected: {
-          bg: 'rgba(217, 119, 6, 0.2)',
-          border: '#d97706'
+          bg: colors.accentSubtle,
+          border: colors.accentBorder
         },
-        text: '#343434',
-        secondaryText: '#838383',
-        icon: '#838383',
+        text: colors.text,
+        secondaryText: colors.textMuted,
         invalid: {
           opacity: 0.6,
-          text: '#B91C1C'
+          text: colors.error
         }
       },
       empty: {
-        text: '#838383'
+        text: colors.textMuted
       },
       button: {
-        bg: '#e2e6ea',
-        color: '#212529',
-        border: '#dae0e5',
-        hoverBorder: '#696969'
+        bg: colors.buttonSecondaryBg,
+        color: colors.buttonSecondaryColor,
+        border: colors.buttonSecondaryBorder,
+        hoverBorder: colors.buttonSecondaryHoverBorder
       }
     }
   },
-  deprecationWarning: {
-    bg: 'rgba(217, 31, 17, 0.1)',
-    border: 'rgba(217, 31, 17, 0.1)',
-    icon: '#D91F11',
-    text: '#343434'
-  },
 
   examples: {
-    buttonBg: '#D977061A',
-    buttonColor: '#D97706',
-    buttonText: '#fff',
-    buttonIconColor: '#000',
-    border: '#efefef',
+    buttonColor: colors.accent,
+    buttonText: colors.white,
+    buttonIconColor: colors.black,
+    border: colors.border,
     urlBar: {
-      border: '#efefef',
-      bg: '#F5F5F5'
+      border: colors.border,
+      bg: colors.additional.examplesUrlBarBg
     },
     table: {
       thead: {
-        bg: '#f8f9fa',
-        color: '#212529'
+        bg: colors.additional.examplesTableBg,
+        color: colors.textSecondary
       }
     },
     checkbox: {
-      color: '#fff'
+      color: colors.white
     }
   }
 };
