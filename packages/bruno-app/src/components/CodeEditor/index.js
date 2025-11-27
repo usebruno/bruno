@@ -47,9 +47,6 @@ export default class CodeEditor extends React.Component {
 
   componentDidMount() {
     const variables = getAllVariables(this.props.collection, this.props.item);
-    if (this.editor || !this._node) {
-      return;
-    }
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
