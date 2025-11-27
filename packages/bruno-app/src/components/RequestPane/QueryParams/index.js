@@ -27,7 +27,7 @@ const QueryParams = ({ item, collection }) => {
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
-  
+
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const handleAddQueryParam = () => {
@@ -213,26 +213,25 @@ const QueryParams = ({ item, collection }) => {
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
-              template is used in the URL. <br/> For example:
+              template is used in the URL. <br /> For example:
               <code className="font-mono mx-2">
                 https://example.com/v1/users/<span>:id</span>
               </code>
             </div>
           </InfoTip>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <td>Name</td>
-              <td>Value</td>
-            </tr>
-          </thead>
+        <Table
+          headers={[
+            { name: 'Name', accessor: 'name', width: '31%' },
+            { name: 'Value', accessor: 'value', width: '56%' }
+          ]}
+        >
           <tbody>
             {pathParams && pathParams.length
               ? pathParams.map((path, index) => {
                   return (
                     <tr key={path.uid}>
-                      <td>
+                      <td className="flex relative">
                         <input
                           type="text"
                           autoComplete="off"
@@ -269,7 +268,7 @@ const QueryParams = ({ item, collection }) => {
                 })
               : null}
           </tbody>
-        </table>
+        </Table>
         {!(pathParams && pathParams.length) ? <div className="title pr-2 py-3 mt-2 text-xs"></div> : null}
       </div>
     </StyledWrapper>
