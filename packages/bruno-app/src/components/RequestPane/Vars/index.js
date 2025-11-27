@@ -7,7 +7,6 @@ import DeprecationWarning from 'components/DeprecationWarning';
 const Vars = ({ item, collection }) => {
   const requestVars = item.draft ? get(item, 'draft.request.vars.req') : get(item, 'request.vars.req');
   const responseVars = item.draft ? get(item, 'draft.request.vars.res') : get(item, 'request.vars.res');
-  const deprecationWarningMessage = 'Post response vars is deprecated and will be removed in v3.0.0';
 
   return (
     <StyledWrapper className="w-full flex flex-col">
@@ -17,7 +16,11 @@ const Vars = ({ item, collection }) => {
       </div>
       <div>
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <DeprecationWarning message={deprecationWarningMessage} />
+        <DeprecationWarning>
+          Post Response Variables will be removed in <strong>v3.0.0</strong>. They are deprecated and will no longer be supported. Learn more in{' '}
+          <a href="https://github.com/usebruno/bruno" target="_blank" rel="noreferrer">this post</a> or contact us at{' '}
+          <a href="mailto:support@usebruno.com">support@usebruno.com</a> with questions.
+        </DeprecationWarning>
         <VarsTable item={item} collection={collection} vars={responseVars} varType="response" />
       </div>
     </StyledWrapper>
