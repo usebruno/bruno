@@ -5,7 +5,6 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
-import { usePreferences } from 'providers/Preferences/index';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 
@@ -20,7 +19,6 @@ class SingleLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
-    this.autoSaveInterval = null;
     this.readOnly = props.readOnly || false;
 
     this.state = {
@@ -102,7 +100,6 @@ class SingleLineEditor extends Component {
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
     this.addOverlay(variables);
-    this.startAutosave();
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
 
@@ -143,26 +140,6 @@ class SingleLineEditor extends Component {
     }
   };
 
-  startAutosave = () => {
-    if (this.props.autoSave && this.props.onSave) {
-      this.autoSaveInterval = setInterval(this.saveEditorContent, this.props.autoSaveInterval || 15000); // Default to 15 sec
-    }
-  };
-
-  clearAutosave = () => {
-    if (this.autoSaveInterval) {
-      clearInterval(this.autoSaveInterval);
-    }
-  };
-
-  saveEditorContent = () => {
-    if (this.props.onSave) {
-      const content = this.editor.getValue();
-      console.log(content);
-      this.props.onSave(content, 0);
-    }
-  };
-  
   _onPaste = (_, event) => this.props.onPaste?.(event);
 
   componentDidUpdate(prevProps) {
@@ -213,7 +190,6 @@ class SingleLineEditor extends Component {
   }
 
   componentWillUnmount() {
-    this.clearAutosave();
     if (this.editor) {
       if (this.editor?._destroyLinkAware) {
         this.editor._destroyLinkAware();

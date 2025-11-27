@@ -473,6 +473,12 @@ const darkTheme = {
       }
     }
   },
+  preferences: {
+    sidebar: {
+      border: '#444444'
+    }
+  },
+
   examples: {
     buttonBg: '#F59E0B1A',
     buttonColor: '#F59E0B',

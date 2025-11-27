@@ -28,6 +28,10 @@ const initialState = {
     },
     general: {
       defaultCollectionLocation: ''
+    },
+    autoSave: {
+      enabled: false,
+      interval: 1000
     }
   },
   generateCode: {

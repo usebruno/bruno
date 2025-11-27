@@ -480,6 +480,12 @@ const lightTheme = {
       }
     }
   },
+  preferences: {
+    sidebar: {
+      border: '#EFEFEF'
+    }
+  },
+
   examples: {
     buttonBg: '#D977061A',
     buttonColor: '#D97706',
