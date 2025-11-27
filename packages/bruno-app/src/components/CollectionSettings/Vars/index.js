@@ -20,11 +20,7 @@ const Vars = ({ collection }) => {
       </div>
       <div className="flex-1">
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <DeprecationWarning>
-          Post Response Variables will be removed in <strong>v3.0.0</strong>. They are deprecated and will no longer be supported. Learn more in{' '}
-          <a href="https://github.com/usebruno/bruno" target="_blank" rel="noreferrer">this post</a> or contact us at{' '}
-          <a href="mailto:support@usebruno.com">support@usebruno.com</a> with questions.
-        </DeprecationWarning>
+        <DeprecationWarning featureName="Post Response Variables" learnMoreUrl="https://github.com/usebruno/bruno/discussions/6231" />
         <VarsTable collection={collection} vars={responseVars} varType="response" />
       </div>
       <div className="mt-6">

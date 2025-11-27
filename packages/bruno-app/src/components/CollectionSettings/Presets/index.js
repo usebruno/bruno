@@ -36,11 +36,7 @@ const PresetsSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <DeprecationWarning>
-        Presets will be removed in <strong>v3.0.0</strong>. They are deprecated and will no longer be supported. Learn more in{' '}
-        <a href="https://github.com/usebruno/bruno" target="_blank" rel="noreferrer">this post</a> or contact us at{' '}
-        <a href="mailto:support@usebruno.com">support@usebruno.com</a> with questions.
-      </DeprecationWarning>
+      <DeprecationWarning featureName="Presets" learnMoreUrl="https://github.com/usebruno/bruno/discussions/6234" />
       <div className="text-xs mb-4 mt-4 text-muted">
         These presets will be used as the default values for new requests in this collection.
       </div>
