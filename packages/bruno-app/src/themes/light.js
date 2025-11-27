@@ -6,12 +6,12 @@ const lightTheme = {
 
   font: {
     size: {
-      xs: '11px',
-      sm: '12px',
-      base: '13px',
-      md: '16px',
-      lg: '20px',
-      xl: '24px'
+      xs: '0.6875rem', // 11px
+      sm: '0.75rem', // 12px
+      base: '0.8125rem', // 13px
+      md: '0.875rem', // 14px
+      lg: '1rem', // 16px
+      xl: '1.125rem' // 18px
     }
   },
 

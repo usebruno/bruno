@@ -124,22 +124,19 @@ class PreferencesStore {
     // Only migrate once if codeFont is 'default' (or not set) and codeFontSize is 14
     // This ensures the migration only happens once and doesn't override user's explicit choices
     // If user explicitly sets it to 14px after migration, it won't be migrated again
-    const fontSizeMigrated = get(preferences, '_migrations.fontSize14to13', false);
+    const fontSizeMigrated = get(preferences, '_migrations.codeFontSize14to13', false);
     if (!fontSizeMigrated) {
       const codeFont = get(preferences, 'font.codeFont', 'default');
       const codeFontSize = get(preferences, 'font.codeFontSize');
 
       // Only migrate if it's the old default combination (codeFont is default and size is 14)
       if (codeFont === 'default' && codeFontSize === 14) {
-        if (!preferences.font) {
-          preferences.font = {};
-        }
         preferences.font.codeFontSize = 13;
         // Mark migration as complete
         if (!preferences._migrations) {
           preferences._migrations = {};
         }
-        preferences._migrations.fontSize14to13 = true;
+        preferences._migrations.codeFontSize14to13 = true;
         // Save the migrated preferences back to the store
         this.store.set('preferences', preferences);
       }
