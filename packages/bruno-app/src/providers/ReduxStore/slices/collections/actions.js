@@ -1,5 +1,6 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
+import { REQUEST_TYPES } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -1023,7 +1024,9 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
         .then(async () => {
           // Reorder items in parent directory after deletion
           if (parentDirectoryItem.items) {
-            const directoryItemsWithoutDeletedItem = parentDirectoryItem.items.filter((i) => i.uid !== itemUid);
+            const requestAndFolderTypes = [...REQUEST_TYPES, 'folder'];
+            const directoryItemsWithOnlyRequestAndFolders = parentDirectoryItem.items.filter((i) => requestAndFolderTypes.includes(i.type));
+            const directoryItemsWithoutDeletedItem = directoryItemsWithOnlyRequestAndFolders.filter((i) => i.uid !== itemUid);
             const reorderedSourceItems = getReorderedItemsInSourceDirectory({
               items: directoryItemsWithoutDeletedItem
             });
