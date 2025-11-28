@@ -19,6 +19,7 @@ import CloneCollectionItem from 'components/Sidebar/Collections/Collection/Colle
 import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
+import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
@@ -269,7 +270,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className={`flex items-baseline tab-label pl-2 ${tab.preview ? "italic" : ""}`}
+        className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {
@@ -298,25 +299,19 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           dispatch={dispatch}
         />
       </div>
-      <div
-        className="flex px-2 close-icon-container"
+      <GradientCloseButton
+        hasChanges={hasChanges}
         onClick={(e) => {
           if (!hasChanges) {
             isWS && closeWsConnection(item.uid);
             return handleCloseClick(e);
-          };
+          }
 
           e.stopPropagation();
           e.preventDefault();
           setShowConfirmClose(true);
         }}
-      >
-        {!hasChanges ? (
-          <CloseTabIcon />
-        ) : (
-          <DraftTabIcon />
-        )}
-      </div>
+      />
     </StyledWrapper>
   );
 };

@@ -17,13 +17,11 @@ const Wrapper = styled.div`
 
     li {
       display: inline-flex;
+      min-width: 80px;
       max-width: 150px;
       border: 1px solid transparent;
       list-style: none;
-      padding-top: 8px;
-      padding-bottom: 8px;
-      padding-left: 0;
-      padding-right: 0;
+      padding: 8px 0;
       cursor: pointer;
       font-size: ${(props) => props.theme.font.size.base};
       height: 38px;
