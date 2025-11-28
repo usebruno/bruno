@@ -473,6 +473,13 @@ const darkTheme = {
       }
     }
   },
+  deprecationWarning: {
+    bg: 'rgba(250, 83, 67, 0.1)',
+    border: 'rgba(250, 83, 67, 0.1)',
+    icon: '#FA5343',
+    text: '#B8B8B8'
+  },
+
   examples: {
     buttonBg: '#F59E0B1A',
     buttonColor: '#F59E0B',

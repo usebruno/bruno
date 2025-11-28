@@ -1053,22 +1053,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const messageName = namePair ? namePair.value : '';
     const messageContent = contentPair ? contentPair.value : '';
     
-    try {
-      // Validate JSON by parsing (but don't modify the original string)
-      JSON.parse(messageContent);
-    } catch (error) {
-      console.error("Error validating gRPC message JSON:", error);
-      return {
-        body: {
-          mode: 'grpc',
-          grpc: [{
-            name: messageName,
-            content: '{}'
-          }]
-        }
-      };
-    }
-    
     return {
       body: {
         mode: 'grpc',
