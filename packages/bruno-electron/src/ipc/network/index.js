@@ -44,7 +44,6 @@ const HookManager = require('@usebruno/js/src/hook-manager');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
-
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -546,8 +545,7 @@ const registerNetworkIpc = (mainWindow) => {
     return hookManager;
   };
 
-  const runPreRequest = async (
-    request,
+  const runPreRequest = async (request,
     requestUid,
     envVars,
     collectionPath,
