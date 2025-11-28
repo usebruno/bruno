@@ -18,7 +18,7 @@ import Overview from './Overview/index';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
-  const tab = collection.settingsSelectedTab;
+  const tab = collection.settingsSelectedTab || 'overview';
   const setTab = (tab) => {
     dispatch(
       updateSettingsSelectedTab({
