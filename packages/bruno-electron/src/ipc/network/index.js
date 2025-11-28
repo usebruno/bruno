@@ -1,5 +1,4 @@
 const https = require('https');
-const http = require('http');
 const axios = require('axios');
 const path = require('path');
 const qs = require('qs');
@@ -41,114 +40,37 @@ const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
-const createPreserveDotSegmentsAdapter = () => {
-  return (config) => {
-    return new Promise((resolve, reject) => {
-      try {
-        const url = config.url || '';
-        const match = url.match(/^(https?):\/\/(\[[^\]]+\]|[^/?#]+)(\/?.*)$/i);
-        if (!match) {
-          return reject(new Error('Invalid URL format'));
-        }
-
-        const protocol = match[1].toLowerCase();
-        const hostPort = match[2];
-        const pathWithQuery = match[3] || '/';
-
-        let hostname = hostPort;
-        let port;
-        if (hostPort.startsWith('[') && hostPort.endsWith(']')) {
-          hostname = hostPort.slice(1, -1);
-          const portMatch = pathWithQuery.match(/^:(\d+)(\/.*)?$/);
-          if (portMatch) {
-            port = Number(portMatch[1]);
-          }
-        } else if (hostPort.includes(':')) {
-          const [hostPart, portPart] = hostPort.split(':');
-          hostname = hostPart;
-          port = Number(portPart);
-        }
-
-        const isHttps = protocol === 'https';
-        const transport = isHttps ? https : http;
-
-        const headers = config.headers || {};
-        const method = (config.method || 'get').toUpperCase();
-
-        const requestOptions = {
-          protocol: `${protocol}:`,
-          hostname,
-          port,
-          path: pathWithQuery || '/',
-          method,
-          headers,
-          rejectUnauthorized: isHttps ? config.httpsAgent?.options?.rejectUnauthorized : undefined,
-          agent: isHttps ? config.httpsAgent : config.httpAgent
-        };
-
-        const req = transport.request(requestOptions, (res) => {
-          if (config.responseType === 'stream') {
-            resolve({
-              data: res,
-              status: res.statusCode,
-              statusText: res.statusMessage,
-              headers: res.headers,
-              config,
-              request: req
-            });
-            return;
-          }
-
-          const chunks = [];
-          res.on('data', (chunk) => chunks.push(chunk));
-          res.on('end', () => {
-            const responseData = Buffer.concat(chunks);
-            resolve({
-              data: responseData,
-              status: res.statusCode,
-              statusText: res.statusMessage,
-              headers: res.headers,
-              config,
-              request: req
-            });
-          });
-          res.on('aborted', () => reject(new Error('Response aborted')));
-        });
-
-        req.on('error', (err) => reject(err));
-
-        if (config.timeout) {
-          req.setTimeout(config.timeout, () => {
-            req.destroy(new Error(`timeout of ${config.timeout}ms exceeded`));
-          });
-        }
-
-        if (config.signal) {
-          const abortHandler = () => {
-            req.destroy(new Error('Request aborted'));
-          };
-          if (config.signal.aborted) {
-            abortHandler();
-            return;
-          }
-          config.signal.addEventListener('abort', abortHandler, { once: true });
-          req.on('close', () => config.signal.removeEventListener('abort', abortHandler));
-        }
-
-        const data = config.data;
-        if (data && typeof data.pipe === 'function') {
-          data.on('error', reject);
-          data.pipe(req);
-        } else if (data) {
-          req.end(data);
-        } else {
-          req.end();
-        }
-      } catch (err) {
-        reject(err);
-      }
-    });
+const getRawPathHttpAdapter = (() => {
+  let adapterPromise;
+  return () => {
+    if (!adapterPromise) {
+      adapterPromise = import('./http-raw-path-adapter.mjs')
+        .then((mod) => {
+          const adapter = mod.default || mod;
+          return typeof adapter === 'function'
+            ? adapter
+            : (axios.getAdapter ? axios.getAdapter(['http', 'https']) : axios.defaults.adapter);
+        })
+        .catch(() => axios.getAdapter ? axios.getAdapter(['http', 'https']) : axios.defaults.adapter);
+    }
+    return adapterPromise;
   };
+})();
+
+const extractRawPath = (targetUrl) => {
+  if (!targetUrl || typeof targetUrl !== 'string') {
+    return undefined;
+  }
+
+  const afterHost = targetUrl.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+/, '');
+  if (afterHost === targetUrl) {
+    return undefined;
+  }
+
+  const [pathAndQuery] = afterHost.split('#');
+  const normalized = pathAndQuery?.length ? pathAndQuery : '/';
+
+  return normalized.startsWith('/') ? normalized : `/${normalized}`;
 };
 
 const saveCookies = (url, headers) => {
@@ -271,10 +193,6 @@ const configureRequest = async (
   if (request.ntlmConfig) {
     axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
     delete request.ntlmConfig;
-  }
-
-  if (preserveDotSegments) {
-    request.adapter = createPreserveDotSegmentsAdapter();
   }
 
   const addQueryParamPreservingPath = (targetUrl, key, value) => {
@@ -411,6 +329,14 @@ const configureRequest = async (
 
   // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
   delete request.apiKeyAuthValueForQueryParams;
+
+  if (preserveDotSegments) {
+    const rawPath = extractRawPath(request.url);
+    if (rawPath) {
+      request.rawPath = rawPath;
+      request.adapter = await getRawPathHttpAdapter();
+    }
+  }
 
   return axiosInstance;
 };
