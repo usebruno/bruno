@@ -52,6 +52,7 @@ export default class CodeEditor extends React.Component {
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
+      placeholder: '...',
       lineNumbers: true,
       lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
