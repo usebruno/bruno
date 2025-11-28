@@ -1,19 +1,50 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconBox, IconFolder, IconWorld, IconApi, IconShare } from '@tabler/icons';
+import { IconBox, IconFolder, IconWorld, IconApi, IconShare, IconDatabase } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
+import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
+import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
+import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
 
 const Info = ({ collection }) => {
+  const dispatch = useDispatch();
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
 
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
+  const [showCollectionEnvironmentModal, setShowCollectionEnvironmentModal] = useState(false);
+  const [showGlobalEnvironmentModal, setShowGlobalEnvironmentModal] = useState(false);
+
+  const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
+  const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
+
+  const collectionEnvironmentCount = collection.environments?.length || 0;
+  const globalEnvironmentCount = globalEnvironments?.length || 0;
 
   const handleToggleShowShareCollectionModal = (value) => (e) => {
     toggleShowShareCollectionModal(value);
+  };
+
+  const handleOpenCollectionEnvironmentModal = () => {
+    dispatch(updateEnvironmentSettingsModalVisibility(true));
+    setShowCollectionEnvironmentModal(true);
+  };
+
+  const handleCloseCollectionEnvironmentModal = () => {
+    setShowCollectionEnvironmentModal(false);
+    dispatch(updateEnvironmentSettingsModalVisibility(false));
+  };
+
+  const handleOpenGlobalEnvironmentModal = () => {
+    setShowGlobalEnvironmentModal(true);
+  };
+
+  const handleCloseGlobalEnvironmentModal = () => {
+    setShowGlobalEnvironmentModal(false);
   };
 
   return (
@@ -39,9 +70,22 @@ const Info = ({ collection }) => {
               <IconWorld className="w-5 h-5 text-green-500" stroke={1.5} />
             </div>
             <div className="ml-4">
-              <div className="font-medium">Environments</div>
-              <div className="mt-1 text-muted text-xs">
-                {collection.environments?.length || 0} environment{collection.environments?.length !== 1 ? 's' : ''} configured
+              <div className="font-medium text-sm">Environments</div>
+              <div className="mt-1 flex flex-col gap-1">
+                <div
+                  className="text-sm text-link cursor-pointer hover:underline"
+                  onClick={handleOpenCollectionEnvironmentModal}
+                >
+                  <IconDatabase className="w-4 h-4 inline mr-1" stroke={1.5} />
+                  {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
+                </div>
+                <div
+                  className="text-sm text-link cursor-pointer hover:underline"
+                  onClick={handleOpenGlobalEnvironmentModal}
+                >
+                  <IconWorld className="w-4 h-4 inline mr-1" stroke={1.5} />
+                  {globalEnvironmentCount} global environment{globalEnvironmentCount !== 1 ? 's' : ''}
+                </div>
               </div>
             </div>
           </div>
@@ -75,6 +119,15 @@ const Info = ({ collection }) => {
           {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
+      {showCollectionEnvironmentModal && <EnvironmentSettings collection={collection} onClose={handleCloseCollectionEnvironmentModal} />}
+      {showGlobalEnvironmentModal && (
+        <GlobalEnvironmentSettings
+          globalEnvironments={globalEnvironments}
+          collection={collection}
+          activeGlobalEnvironmentUid={activeGlobalEnvironmentUid}
+          onClose={handleCloseGlobalEnvironmentModal}
+        />
+      )}
     </div>
   );
 };
