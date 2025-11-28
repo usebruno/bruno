@@ -2,6 +2,7 @@ const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
 const { createBrunoRequestShim } = require('./bruno-request');
 const { createBrunoResponseShim } = require('./bruno-response');
+const uuid = require('uuid');
 
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
@@ -470,6 +471,71 @@ const addBruShimToContext = (vm, bru) => {
     // Store handler handles to keep them alive
     const handlerHandles = new Map();
 
+    /**
+     * Creates a hook function that registers a handler with the native hook system.
+     * This helper eliminates code duplication across different hook types.
+     *
+     * @param {string} handlerIdPrefix - Prefix for the unique handler ID
+     * @param {Function} nativeHookRegister - Function to register with native hooks (e.g., bru.hooks.onBeforeRequest)
+     * @param {boolean} validateHandler - Whether to validate handler is a function (default: true)
+     * @returns {Function} VM function that can be registered as a hook
+     */
+    const createHookFunction = (handlerIdPrefix, nativeHookRegister, validateHandler = true) => {
+      return vm.newFunction(handlerIdPrefix, function (handler) {
+        // Validate handler if required
+        if (validateHandler && vm.typeof(handler) !== 'function') {
+          throw new Error('Handler must be a function');
+        }
+
+        // Create unique handler ID
+        const handlerId = `${handlerIdPrefix}-${uuid.v4()}`;
+
+        // Try to duplicate the handle to own a reference
+        let handlerHandle;
+        try {
+          handlerHandle = handler.dup ? handler.dup() : handler;
+        } catch (e) {
+          handlerHandle = handler;
+        }
+
+        // Store the handle to keep it alive
+        handlerHandles.set(handlerId, handlerHandle);
+
+        // Create native handler that executes the stored handle
+        const nativeHandler = (data) => {
+          const vmInstance = bru._quickjsVm || vm;
+          const storedHandle = handlerHandles.get(handlerId);
+          if (!storedHandle || !vmInstance) {
+            return;
+          }
+          executeHandler(storedHandle, vmInstance, data);
+        };
+
+        // Register with native hook system
+        const unhook = nativeHookRegister(nativeHandler);
+
+        // Create unhook function
+        const unhookFn = vm.newFunction('unhook', () => {
+          unhook();
+
+          // Clean up handler handle
+          if (handlerHandles.has(handlerId)) {
+            const storedHandle = handlerHandles.get(handlerId);
+            try {
+              if (storedHandle && storedHandle.dispose) {
+                storedHandle.dispose();
+              }
+            } catch (e) {
+              // Ignore disposal errors
+            }
+            handlerHandles.delete(handlerId);
+          }
+        });
+
+        return unhookFn;
+      });
+    };
+
     const onFn = vm.newFunction('on', (pattern, handler) => {
       const dumpedPattern = vm.dump(pattern);
 
@@ -480,7 +546,7 @@ const addBruShimToContext = (vm, bru) => {
 
       // IMPORTANT: Create a unique ID for this handler and store the handle
       // This keeps the handle alive even after the script execution completes
-      const handlerId = `${dumpedPattern}-${Date.now()}-${Math.random()}`;
+      const handlerId = `${dumpedPattern}-${uuid.v4()}`;
 
       // Try to use dup() if available, otherwise just store the handle
       // The handle must be kept alive in our storage
@@ -540,84 +606,12 @@ const addBruShimToContext = (vm, bru) => {
 
     // Add convenience methods for hooks
     if (bru.hooks && typeof bru.hooks.onBeforeRequest === 'function') {
-      let onBeforeRequest = vm.newFunction('onBeforeRequest', function (handler) {
-        // Use the same handler storage mechanism as the generic 'on' method
-        const handlerId = `beforeRequest-${Date.now()}-${Math.random()}`;
-        let handlerHandle;
-        try {
-          handlerHandle = handler.dup ? handler.dup() : handler;
-        } catch (e) {
-          handlerHandle = handler;
-        }
-        handlerHandles.set(handlerId, handlerHandle);
-
-        const nativeHandler = (data) => {
-          const vmInstance = bru._quickjsVm || vm;
-          const storedHandle = handlerHandles.get(handlerId);
-          if (!storedHandle || !vmInstance) {
-            return;
-          }
-          executeHandler(storedHandle, vmInstance, data);
-        };
-
-        const unhook = bru.hooks.onBeforeRequest(nativeHandler);
-        const unhookFn = vm.newFunction('unhook', () => {
-          unhook();
-          if (handlerHandles.has(handlerId)) {
-            const storedHandle = handlerHandles.get(handlerId);
-            try {
-              if (storedHandle && storedHandle.dispose) {
-                storedHandle.dispose();
-              }
-            } catch (e) {
-              // Ignore disposal errors
-            }
-            handlerHandles.delete(handlerId);
-          }
-        });
-        return unhookFn;
-      });
+      const onBeforeRequest = createHookFunction('onBeforeRequest', (nativeHandler) => bru.hooks.onBeforeRequest(nativeHandler), false);
       onBeforeRequest.consume((handle) => vm.setProp(hooksObject, 'onBeforeRequest', handle));
     }
 
     if (bru.hooks && typeof bru.hooks.onAfterResponse === 'function') {
-      let onAfterResponse = vm.newFunction('onAfterResponse', function (handler) {
-        // Use the same handler storage mechanism as the generic 'on' method
-        const handlerId = `afterResponse-${Date.now()}-${Math.random()}`;
-        let handlerHandle;
-        try {
-          handlerHandle = handler.dup ? handler.dup() : handler;
-        } catch (e) {
-          handlerHandle = handler;
-        }
-        handlerHandles.set(handlerId, handlerHandle);
-
-        const nativeHandler = (data) => {
-          const vmInstance = bru._quickjsVm || vm;
-          const storedHandle = handlerHandles.get(handlerId);
-          if (!storedHandle || !vmInstance) {
-            return;
-          }
-          executeHandler(storedHandle, vmInstance, data);
-        };
-
-        const unhook = bru.hooks.onAfterResponse(nativeHandler);
-        const unhookFn = vm.newFunction('unhook', () => {
-          unhook();
-          if (handlerHandles.has(handlerId)) {
-            const storedHandle = handlerHandles.get(handlerId);
-            try {
-              if (storedHandle && storedHandle.dispose) {
-                storedHandle.dispose();
-              }
-            } catch (e) {
-              // Ignore disposal errors
-            }
-            handlerHandles.delete(handlerId);
-          }
-        });
-        return unhookFn;
-      });
+      const onAfterResponse = createHookFunction('onAfterResponse', (nativeHandler) => bru.hooks.onAfterResponse(nativeHandler), false);
       onAfterResponse.consume((handle) => vm.setProp(hooksObject, 'onAfterResponse', handle));
     }
 
@@ -628,88 +622,10 @@ const addBruShimToContext = (vm, bru) => {
     if (bru?.runner?.hooks) {
       const runnerHooksObject = vm.newObject();
 
-      // onCollectionRunStart - uses the same handler storage mechanism
-      let onCollectionRunStart = vm.newFunction('onCollectionRunStart', function (handler) {
-        if (vm.typeof(handler) !== 'function') {
-          throw new Error('Handler must be a function');
-        }
-        const handlerId = `collectionRunStart-${Date.now()}-${Math.random()}`;
-        let handlerHandle;
-        try {
-          handlerHandle = handler.dup ? handler.dup() : handler;
-        } catch (e) {
-          handlerHandle = handler;
-        }
-        handlerHandles.set(handlerId, handlerHandle);
-
-        const nativeHandler = (data) => {
-          const vmInstance = bru._quickjsVm || vm;
-          const storedHandle = handlerHandles.get(handlerId);
-          if (!storedHandle || !vmInstance) {
-            return;
-          }
-          executeHandler(storedHandle, vmInstance, data);
-        };
-
-        const unhook = bru.runner.hooks.onCollectionRunStart(nativeHandler);
-        const unhookFn = vm.newFunction('unhook', () => {
-          unhook();
-          if (handlerHandles.has(handlerId)) {
-            const storedHandle = handlerHandles.get(handlerId);
-            try {
-              if (storedHandle && storedHandle.dispose) {
-                storedHandle.dispose();
-              }
-            } catch (e) {
-              // Ignore disposal errors
-            }
-            handlerHandles.delete(handlerId);
-          }
-        });
-        return unhookFn;
-      });
+      const onCollectionRunStart = createHookFunction('onCollectionRunStart', (nativeHandler) => bru.runner.hooks.onCollectionRunStart(nativeHandler), true);
       onCollectionRunStart.consume((handle) => vm.setProp(runnerHooksObject, 'onCollectionRunStart', handle));
 
-      // onCollectionRunEnd - uses the same handler storage mechanism
-      let onCollectionRunEnd = vm.newFunction('onCollectionRunEnd', function (handler) {
-        if (vm.typeof(handler) !== 'function') {
-          throw new Error('Handler must be a function');
-        }
-        const handlerId = `collectionRunEnd-${Date.now()}-${Math.random()}`;
-        let handlerHandle;
-        try {
-          handlerHandle = handler.dup ? handler.dup() : handler;
-        } catch (e) {
-          handlerHandle = handler;
-        }
-        handlerHandles.set(handlerId, handlerHandle);
-
-        const nativeHandler = (data) => {
-          const vmInstance = bru._quickjsVm || vm;
-          const storedHandle = handlerHandles.get(handlerId);
-          if (!storedHandle || !vmInstance) {
-            return;
-          }
-          executeHandler(storedHandle, vmInstance, data);
-        };
-
-        const unhook = bru.runner.hooks.onCollectionRunEnd(nativeHandler);
-        const unhookFn = vm.newFunction('unhook', () => {
-          unhook();
-          if (handlerHandles.has(handlerId)) {
-            const storedHandle = handlerHandles.get(handlerId);
-            try {
-              if (storedHandle && storedHandle.dispose) {
-                storedHandle.dispose();
-              }
-            } catch (e) {
-              // Ignore disposal errors
-            }
-            handlerHandles.delete(handlerId);
-          }
-        });
-        return unhookFn;
-      });
+      const onCollectionRunEnd = createHookFunction('onCollectionRunEnd', (nativeHandler) => bru.runner.hooks.onCollectionRunEnd(nativeHandler), true);
       onCollectionRunEnd.consume((handle) => vm.setProp(runnerHooksObject, 'onCollectionRunEnd', handle));
 
       vm.setProp(bruRunnerObject, 'hooks', runnerHooksObject);
