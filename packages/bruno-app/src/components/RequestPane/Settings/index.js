@@ -14,7 +14,8 @@ const DEFAULT_SETTINGS = {
   encodeUrl: false,
   followRedirects: true,
   maxRedirects: 5,
-  timeout: 'inherit'
+  timeout: 'inherit',
+  preserveDotSegments: false
 };
 
 const Settings = ({ item, collection }) => {
@@ -26,7 +27,7 @@ const Settings = ({ item, collection }) => {
 
   const rawSettings = getPropertyFromDraftOrRequest('settings');
   const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
-  const { encodeUrl, followRedirects, maxRedirects, timeout } = settings;
+  const { encodeUrl, followRedirects, maxRedirects, timeout, preserveDotSegments } = settings;
 
   // Reusable function to update settings
   const updateSetting = useCallback((settingUpdate) => {
@@ -44,6 +45,9 @@ const Settings = ({ item, collection }) => {
 
   const onToggleFollowRedirects = useCallback(() =>
     updateSetting({ followRedirects: !followRedirects }), [followRedirects, updateSetting]);
+
+  const onTogglePreserveDotSegments = useCallback(() =>
+    updateSetting({ preserveDotSegments: !preserveDotSegments }), [preserveDotSegments, updateSetting]);
 
   const onMaxRedirectsChange = useCallback((e) => {
     const value = e.target.value;
@@ -115,6 +119,16 @@ const Settings = ({ item, collection }) => {
               onChange={onToggleUrlEncoding}
               label="URL Encoding"
               description="Automatically encode query parameters in the URL"
+              size="medium"
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <ToggleSelector
+              checked={preserveDotSegments}
+              onChange={onTogglePreserveDotSegments}
+              label="Preserve ../ Segments"
+              description="Keep dot-segments in paths instead of normalizing them"
               size="medium"
             />
           </div>

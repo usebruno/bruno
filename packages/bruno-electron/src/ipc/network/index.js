@@ -40,6 +40,39 @@ const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
+const getRawPathHttpAdapter = (() => {
+  let adapterPromise;
+  return () => {
+    if (!adapterPromise) {
+      adapterPromise = import('./http-raw-path-adapter.mjs')
+        .then((mod) => {
+          const adapter = mod.default || mod;
+          return typeof adapter === 'function'
+            ? adapter
+            : (axios.getAdapter ? axios.getAdapter(['http', 'https']) : axios.defaults.adapter);
+        })
+        .catch(() => axios.getAdapter ? axios.getAdapter(['http', 'https']) : axios.defaults.adapter);
+    }
+    return adapterPromise;
+  };
+})();
+
+const extractRawPath = (targetUrl) => {
+  if (!targetUrl || typeof targetUrl !== 'string') {
+    return undefined;
+  }
+
+  const afterHost = targetUrl.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+/, '');
+  if (afterHost === targetUrl) {
+    return undefined;
+  }
+
+  const [pathAndQuery] = afterHost.split('#');
+  const normalized = pathAndQuery?.length ? pathAndQuery : '/';
+
+  return normalized.startsWith('/') ? normalized : `/${normalized}`;
+};
+
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -145,6 +178,8 @@ const configureRequest = async (
 
   request.maxRedirects = 0;
 
+  const preserveDotSegments = request.settings?.preserveDotSegments;
+
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
@@ -160,6 +195,30 @@ const configureRequest = async (
     delete request.ntlmConfig;
   }
 
+  const addQueryParamPreservingPath = (targetUrl, key, value) => {
+    if (!targetUrl || !key) {
+      return targetUrl;
+    }
+
+    if (!preserveDotSegments) {
+      try {
+        const urlObj = new URL(targetUrl);
+        urlObj.searchParams.set(key, value);
+        return urlObj.toString();
+      } catch (err) {
+        // fall back to string-based approach below
+      }
+    }
+
+    const [urlWithoutHash, ...hashParts] = targetUrl.split('#');
+    const hash = hashParts.length ? `#${hashParts.join('#')}` : '';
+    const separator = urlWithoutHash.includes('?')
+      ? (urlWithoutHash.endsWith('?') || urlWithoutHash.endsWith('&') ? '' : '&')
+      : '?';
+
+    return `${urlWithoutHash}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}${hash}`;
+  };
+
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
@@ -173,12 +232,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
       case 'implicit':
@@ -189,12 +243,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
       case 'client_credentials':
@@ -205,12 +254,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
       case 'password':
@@ -221,12 +265,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
     }
@@ -279,14 +318,10 @@ const configureRequest = async (
 
   // Add API key to the URL
   if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
-    const urlObj = new URL(request.url);
-
     // Interpolate key and value as they can be variables before adding to the URL.
     const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
     const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
-
-    urlObj.searchParams.set(key, value);
-    request.url = urlObj.toString();
+    request.url = addQueryParamPreservingPath(request.url, key, value);
   }
 
   // Remove pathParams, already in URL (Issue #2439)
@@ -294,6 +329,14 @@ const configureRequest = async (
 
   // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
   delete request.apiKeyAuthValueForQueryParams;
+
+  if (preserveDotSegments) {
+    const rawPath = extractRawPath(request.url);
+    if (rawPath) {
+      request.rawPath = rawPath;
+      request.adapter = await getRawPathHttpAdapter();
+    }
+  }
 
   return axiosInstance;
 };
