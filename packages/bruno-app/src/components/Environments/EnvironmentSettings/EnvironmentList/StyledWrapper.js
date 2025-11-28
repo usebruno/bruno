@@ -23,6 +23,10 @@ const StyledWrapper = styled.div`
     padding: 8px 10px;
     border-left: solid 2px transparent;
     text-decoration: none;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
     &:hover {
       text-decoration: none;

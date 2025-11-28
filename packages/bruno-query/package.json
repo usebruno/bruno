@@ -15,6 +15,7 @@
     "test": "jest",
     "prebuild": "npm run clean",
     "build": "rollup -c",
+    "watch": "rollup -c -w",
     "prepack": "npm run test && npm run build"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
-import interpolate from './interpolate';
+export { mockDataFunctions } from './utils/faker-functions';
+export { default as interpolate } from './interpolate';
+export { default as isRequestTagsIncluded } from './tags';
 
-export default {
-  interpolate
-};
+export * as utils from './utils';

@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "declaration": true,
+    "declarationMap": true,
+    "allowJs": true,
+    "checkJs": false,
+    "types": ["node"],
+    "lib": ["ES2020"],
+    "typeRoots": ["../../node_modules/@types", "./node_modules/@types", "./src/types"],
+    "baseUrl": "../..",
+    "paths": {
+      "@usebruno/schema-types": ["packages/bruno-schema-types/dist/index.d.ts"],
+      "@usebruno/schema-types/*": ["packages/bruno-schema-types/dist/*"],
+      "@opencollection/types": ["node_modules/@opencollection/types/dist/opencollection.d.ts"],
+      "@opencollection/types/*": ["node_modules/@opencollection/types/dist/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

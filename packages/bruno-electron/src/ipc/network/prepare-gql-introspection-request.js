@@ -3,9 +3,9 @@ const { interpolate } = require('@usebruno/common');
 const { getIntrospectionQuery } = require('graphql');
 const { setAuthHeaders } = require('./prepare-request');
 
-const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
+const prepareGqlIntrospectionRequest = (endpoint, resolvedVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {
-    endpoint = interpolate(endpoint, envVars);
+    endpoint = interpolate(endpoint, resolvedVars);
   }
 
   const queryParams = {
@@ -16,7 +16,7 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRo
     method: 'POST',
     url: endpoint,
     headers: {
-      ...mapHeaders(request.headers, get(collectionRoot, 'request.headers', [])),
+      ...mapHeaders(request.headers, get(collectionRoot, 'request.headers', []), resolvedVars),
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
@@ -26,19 +26,20 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRo
   return setAuthHeaders(axiosRequest, request, collectionRoot);
 };
 
-const mapHeaders = (requestHeaders, collectionHeaders) => {
+const mapHeaders = (requestHeaders, collectionHeaders, resolvedVars) => {
   const headers = {};
 
-  each(requestHeaders, (h) => {
+  // Add collection headers first
+  each(collectionHeaders, (h) => {
     if (h.enabled) {
-      headers[h.name] = h.value;
+      headers[h.name] = interpolate(h.value, resolvedVars);
     }
   });
 
-  // collection headers
-  each(collectionHeaders, (h) => {
+  // Then add request headers, which will overwrite if names overlap
+  each(requestHeaders, (h) => {
     if (h.enabled) {
-      headers[h.name] = h.value;
+      headers[h.name] = interpolate(h.value, resolvedVars);
     }
   });
 

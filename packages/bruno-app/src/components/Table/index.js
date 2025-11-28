@@ -63,15 +63,15 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
     [activeColumnIndex, columns, minColumnWidth]
   );
 
-  const handleMouseUp = useCallback(() => {
-    setActiveColumnIndex(null);
-    removeListeners();
-  }, [removeListeners]);
-
   const removeListeners = useCallback(() => {
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('mouseup', removeListeners);
   }, [handleMouseMove]);
+
+  const handleMouseUp = useCallback(() => {
+    setActiveColumnIndex(null);
+    removeListeners?.();
+  }, [removeListeners]);
 
   useEffect(() => {
     if (activeColumnIndex !== null) {
@@ -86,7 +86,7 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
   return (
     <StyledWrapper columns={columns}>
       <div className="relative">
-        <table ref={tableRef} className="px-4 inherit left-[4px]">
+        <table ref={tableRef} className="inherit">
           <thead>
             <tr>
               {columns.map(({ ref, name }, i) => (

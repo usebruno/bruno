@@ -4,6 +4,7 @@ const Wrapper = styled.div`
   table {
     width: 100%;
     border-collapse: collapse;
+    font-weight: 500;
     table-layout: fixed;
 
     thead,
@@ -13,36 +14,28 @@ const Wrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
-      font-weight: 600;
     }
     td {
       padding: 6px 10px;
-
-      &:nth-child(1) {
-        width: 30%;
       }
 
-      &:nth-child(4) {
-        width: 70px;
-      }
-
-      select {
+    select {
         background-color: transparent;
       }
     }
-  }
 
   .btn-add-assertion {
-    font-size: 0.8125rem;
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   input[type='text'] {
     width: 100%;
     border: solid 1px transparent;
     outline: none !important;
-    background-color: inherit;
+    color: ${(props) => props.theme.table.input.color};
+    background: transparent;
 
     &:focus {
       outline: none !important;

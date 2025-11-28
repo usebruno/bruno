@@ -2,7 +2,6 @@ import React from 'react';
 import { uuid } from 'utils/common';
 import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
-import GlobalEnvironmentSelector from 'components/GlobalEnvironments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 import ToolHint from 'components/ToolHint';
@@ -35,7 +34,7 @@ const CollectionToolBar = ({ collection }) => {
   const viewCollectionSettings = () => {
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: collection.uid,
         collectionUid: collection.uid,
         type: 'collection-settings'
       })
@@ -44,10 +43,10 @@ const CollectionToolBar = ({ collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex items-center p-2">
+      <div className="flex items-center py-2 px-4">
         <div className="flex flex-1 items-center cursor-pointer hover:underline" onClick={viewCollectionSettings}>
           <IconFiles size={18} strokeWidth={1.5} />
-          <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
+          <span className="ml-2 mr-4 font-medium">{collection?.name}</span>
         </div>
         <div className="flex flex-3 items-center justify-end">
           <span className="mr-2">
@@ -69,9 +68,8 @@ const CollectionToolBar = ({ collection }) => {
             </ToolHint>
           </span>
           <span>
-            <GlobalEnvironmentSelector />
+            <EnvironmentSelector collection={collection} />
           </span>
-          <EnvironmentSelector collection={collection} />
         </div>
       </div>
     </StyledWrapper>

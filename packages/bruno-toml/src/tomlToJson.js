@@ -24,6 +24,10 @@ const tomlToJson = (toml) => {
     }
   };
 
+  if (json.tags && json.tags.length) {
+    formattedJson.tags = get(json, 'tags', []);
+  }
+
   if (json.headers) {
     formattedJson.headers = [];
 
@@ -75,6 +79,12 @@ const tomlToJson = (toml) => {
     if (json.script['tests']) {
       formattedJson.tests = stripNewlineAtEnd(json.script['tests']);
     }
+  }
+
+  if (json.settings && Object.keys(json.settings).length > 0) {
+    formattedJson.settings = {
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+    };
   }
 
   return formattedJson;

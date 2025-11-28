@@ -3,13 +3,14 @@ import get from 'lodash/get';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
 
 const Font = ({ close }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
-  const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '14'));
+  const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '13'));
 
   const handleCodeFontChange = (event) => {
     setCodeFont(event.target.value);
@@ -31,7 +32,10 @@ const Font = ({ close }) => {
         }
       })
     ).then(() => {
+      toast.success('Preferences saved successfully')
       close();
+    }).catch(() => {
+      toast.error('Failed to save preferences')
     });
   };
 

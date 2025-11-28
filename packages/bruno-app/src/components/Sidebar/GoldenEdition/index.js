@@ -8,7 +8,7 @@ import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme/index';
 
 let posthogClient = null;
-const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
+const posthogApiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
 const getPosthogClient = () => {
   if (posthogClient) {
     return posthogClient;
@@ -85,7 +85,7 @@ const GoldenEdition = ({ onClose }) => {
     });
   };
 
-  const goldenEditonIndividuals = [
+  const goldenEditionIndividuals = [
     'Inbuilt Bru File Explorer',
     'Visual Git (Like Gitlens for Vscode)',
     'GRPC, Websocket, SocketIO, MQTT',
@@ -97,7 +97,7 @@ const GoldenEdition = ({ onClose }) => {
     'Custom Themes'
   ];
 
-  const goldenEditonOrganizations = [
+  const goldenEditionOrganizations = [
     'Centralized License Management',
     'Integration with Secret Managers',
     'Private Collection Registry',
@@ -121,14 +121,14 @@ const GoldenEdition = ({ onClose }) => {
       <Modal size="sm" title={'Golden Edition'} handleCancel={onClose} hideFooter={true}>
         <div className={`flex flex-col w-full ${themeBasedContainerClassNames}`}>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Golden Edition</h3>
+            <h3 className="text-lg font-medium">Golden Edition</h3>
             <a
               onClick={() => {
                 goldenEditionBuyClick();
                 window.open('https://www.usebruno.com/pricing', '_blank');
               }}
               target="_blank"
-              className="flex text-white bg-yellow-600 hover:bg-yellow-700 font-medium rounded-lg text-sm px-4 py-2 text-center cursor-pointer"
+              className="flex text-white bg-yellow-600 hover:bg-yellow-700 font-medium rounded-lg px-4 py-2 text-center cursor-pointer"
             >
               <IconHeart size={18} strokeWidth={1.5} /> <span className="ml-2">Buy</span>
             </a>
@@ -138,8 +138,8 @@ const GoldenEdition = ({ onClose }) => {
               <div className="my-4">
                 <span className="text-3xl font-extrabold">$19</span>
               </div>
-              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex text-sm">One Time Payment</p>
-              <p className="text-sm">perpetual license for 2 devices, with 2 years of updates</p>
+              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex">One Time Payment</p>
+              <p>perpetual license for 2 devices, with 2 years of updates</p>
             </div>
           ) : (
             <div>
@@ -147,8 +147,8 @@ const GoldenEdition = ({ onClose }) => {
                 <span className="text-3xl font-extrabold">$49</span>
                 <span className="ml-2">/&nbsp;user</span>
               </div>
-              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex text-sm">One Time Payment</p>
-              <p className="text-sm">perpetual license with 2 years of updates</p>
+              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex">One Time Payment</p>
+              <p>perpetual license with 2 years of updates</p>
             </div>
           )}
           <div
@@ -179,7 +179,7 @@ const GoldenEdition = ({ onClose }) => {
             </li>
             {pricingOption === 'individuals' ? (
               <>
-                {goldenEditonIndividuals.map((item, index) => (
+                {goldenEditionIndividuals.map((item, index) => (
                   <li className="flex items-center space-x-3" key={index}>
                     <CheckIcon />
                     <span>{item}</span>
@@ -192,7 +192,7 @@ const GoldenEdition = ({ onClose }) => {
                   <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
                   <span>Everything in the Individual Plan</span>
                 </li>
-                {goldenEditonOrganizations.map((item, index) => (
+                {goldenEditionOrganizations.map((item, index) => (
                   <li className="flex items-center space-x-3" key={index}>
                     <CheckIcon />
                     <span>{item}</span>

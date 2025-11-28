@@ -2,14 +2,13 @@ import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-}
+const CodeMirror = require('codemirror');
 
 class MultiLineEditor extends Component {
   constructor(props) {
@@ -20,6 +19,11 @@ class MultiLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
+    this.readOnly = props.readOnly || false;
+
+    this.state = {
+      maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
+    };
   }
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
@@ -30,18 +34,16 @@ class MultiLineEditor extends Component {
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
+      placeholder: this.props.placeholder,
       mode: 'brunovariables',
-      brunoVarInfo: {
-        variables
-      },
-      scrollbarStyle: null,
+      brunoVarInfo: this.props.enableBrunoVarInfo !== false ? {
+        variables,
+        collection: this.props.collection,
+        item: this.props.item
+      } : false,
+      readOnly: this.props.readOnly,
       tabindex: 0,
       extraKeys: {
-        Enter: () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
         'Ctrl-Enter': () => {
           if (this.props.onRun) {
             this.props.onRun();
@@ -51,14 +53,6 @@ class MultiLineEditor extends Component {
           if (this.props.onRun) {
             this.props.onRun();
           }
-        },
-        'Alt-Enter': () => {
-          this.editor.setValue(this.editor.getValue() + '\n');
-          this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
-        },
-        'Shift-Enter': () => {
-          this.editor.setValue(this.editor.getValue() + '\n');
-          this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
         },
         'Cmd-S': () => {
           if (this.props.onSave) {
@@ -77,17 +71,32 @@ class MultiLineEditor extends Component {
         'Shift-Tab': false
       }
     });
-    if (this.props.autocomplete) {
-      this.editor.on('keyup', (cm, event) => {
-        if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.keyCode != 13) {
-          /*Enter - do not open autocomplete list just after item has been selected in it*/
-          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.anyword, { autocomplete: this.props.autocomplete });
-        }
-      });
-    }
+
+
+    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
+    
+    // Setup AutoComplete Helper
+    const autoCompleteOptions = {
+      showHintsFor: ['variables'],
+      getAllVariables: getAllVariablesHandler,
+      getAnywordAutocompleteHints
+    };
+
+    this.brunoAutoCompleteCleanup = setupAutoComplete(
+      this.editor,
+      autoCompleteOptions
+    );
+
+    setupLinkAware(this.editor);
+    
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
+
+    // Initialize masking if this is a secret field
+    this.setState({ maskInput: this.props.isSecret });
+    this._enableMaskedEditor(this.props.isSecret);
   }
 
   _onEdit = () => {
@@ -95,6 +104,22 @@ class MultiLineEditor extends Component {
       this.cachedValue = this.editor.getValue();
       if (this.props.onChange) {
         this.props.onChange(this.cachedValue);
+      }
+    }
+  };
+
+  /** Enable or disable masking the rendered content of the editor */
+  _enableMaskedEditor = (enabled) => {
+    if (typeof enabled !== 'boolean') return;
+
+    if (enabled == true) {
+      if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
+      this.maskedEditor.enable();
+    } else {
+      if (this.maskedEditor) {
+        this.maskedEditor.disable();
+        this.maskedEditor.destroy();
+        this.maskedEditor = null;
       }
     }
   };
@@ -107,34 +132,96 @@ class MultiLineEditor extends Component {
 
     let variables = getAllVariables(this.props.collection, this.props.item);
     if (!isEqual(variables, this.variables)) {
-      this.editor.options.brunoVarInfo.variables = variables;
+      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+        this.editor.options.brunoVarInfo.variables = variables;
+      }
       this.addOverlay(variables);
+    }
+
+    // Update collection and item when they change
+    if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+      if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+        this.editor.options.brunoVarInfo.collection = this.props.collection;
+      }
+      if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+        this.editor.options.brunoVarInfo.item = this.props.item;
+      }
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
+    }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
     }
-    if (this.editorRef?.current) {
-      this.editorRef.current.scrollTo(0, 10000);
+    if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
+      // If the secret flag has changed, update the editor to reflect the change
+      this._enableMaskedEditor(this.props.isSecret);
+      // also set the maskInput flag to the new value
+      this.setState({ maskInput: this.props.isSecret });
+    }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly || false);
     }
     this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {
+    if (this.brunoAutoCompleteCleanup) {
+      this.brunoAutoCompleteCleanup();
+    }
+    if (this.editor?._destroyLinkAware) {
+      this.editor._destroyLinkAware();
+    }
+    if (this.maskedEditor) {
+      this.maskedEditor.destroy();
+      this.maskedEditor = null;
+    }
     this.editor.getWrapperElement().remove();
   }
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
+    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', false, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 
+  /**
+   * @brief Toggle the visibility of the secret value
+   */
+  toggleVisibleSecret = () => {
+    const isVisible = !this.state.maskInput;
+    this.setState({ maskInput: isVisible });
+    this._enableMaskedEditor(isVisible);
+  };
+
+  /**
+   * @brief Eye icon to show/hide the secret value
+   * @returns ReactComponent The eye icon
+   */
+  secretEye = (isSecret) => {
+    return isSecret === true ? (
+      <button className="mx-2" onClick={() => this.toggleVisibleSecret()}>
+        {this.state.maskInput === true ? (
+          <IconEyeOff size={18} strokeWidth={2} />
+        ) : (
+          <IconEye size={18} strokeWidth={2} />
+        )}
+      </button>
+    ) : null;
+  };
+
   render() {
-    return <StyledWrapper ref={this.editorRef} className="single-line-editor"></StyledWrapper>;
+    const wrapperClass = `multi-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`;
+    return (
+      <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
+        <StyledWrapper ref={this.editorRef} className={wrapperClass} />
+        {this.secretEye(this.props.isSecret)}
+      </div>
+    );
   }
 }
 export default MultiLineEditor;

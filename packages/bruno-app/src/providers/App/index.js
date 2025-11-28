@@ -6,13 +6,13 @@ import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
 import StyledWrapper from './StyledWrapper';
+import { version } from '../../../package.json';
 
 export const AppContext = React.createContext();
 
 export const AppProvider = (props) => {
-  useTelemetry();
+  useTelemetry({ version });
   useIpcEvents();
-
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -37,13 +37,21 @@ export const AppProvider = (props) => {
   }, []);
 
   return (
-    <AppContext.Provider {...props} value="appProvider">
+    <AppContext.Provider {...props} value={{ version }}>
       <StyledWrapper>
         <ConfirmAppClose />
         {props.children}
       </StyledWrapper>
     </AppContext.Provider>
   );
+};
+
+export const useApp = () => {
+  const context = React.useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
 };
 
 export default AppProvider;

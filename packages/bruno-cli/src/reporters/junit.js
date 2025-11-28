@@ -15,7 +15,7 @@ const makeJUnitOutput = async (results, outputPath) => {
     const totalTests = assertionTestCount + testCount;
 
     const suite = {
-      '@name': result.suitename,
+      '@name': result.name,
       '@errors': 0,
       '@failures': 0,
       '@skipped': 0,
@@ -62,7 +62,10 @@ const makeJUnitOutput = async (results, outputPath) => {
         suite.testcase.push(testcase);
       });
 
-    if (result.error) {
+    if (result?.skipped) {
+      suite['@skipped'] = 1;
+    }
+    else if (result.error) {
       suite['@errors'] = 1;
       suite['@tests'] = 1;
       suite.testcase = [

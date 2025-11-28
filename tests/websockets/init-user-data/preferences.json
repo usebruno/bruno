@@ -1,0 +1,9 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+      "{{projectRoot}}/tests/websockets/fixtures/collection"
+  ],
+  "beta": {
+      "websocket": true
+  }
+}

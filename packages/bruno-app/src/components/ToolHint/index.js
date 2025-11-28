@@ -6,12 +6,16 @@ import { useTheme } from 'providers/Theme';
 const ToolHint = ({
   text,
   toolhintId,
+  anchorSelect,
   children,
   tooltipStyle = {},
   place = 'top',
+  hidden = false,
   offset,
+  positionStrategy,
   theme = null,
-  className = ''
+  className = '',
+  delayShow = 200
 }) => {
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
@@ -28,17 +32,26 @@ const ToolHint = ({
     color: toolhintTextColor
   };
 
+  const toolhintProps_final = anchorSelect
+    ? { anchorSelect }
+    : { anchorId: toolhintId };
+
   return (
     <>
-      <span id={toolhintId} className={className}>{children}</span>
+      {!anchorSelect && <span id={toolhintId} className={className}>{children}</span>}
+      {anchorSelect && children}
+
       <StyledWrapper theme={appliedTheme}>
         <ReactToolHint
-          anchorId={toolhintId}
-          html={text}
+          {...toolhintProps_final}
+          content={anchorSelect ? undefined : text}
           className="toolhint"
           offset={offset}
           place={place}
+          hidden={hidden}
+          positionStrategy={positionStrategy}
           noArrow={true}
+          delayShow={delayShow}
           style={combinedToolhintStyle}
         />
       </StyledWrapper>

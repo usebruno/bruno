@@ -1,15 +1,13 @@
 import React from 'react';
-import path from 'path';
+import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { IconX } from '@tabler/icons';
 import { isWindowsOS } from 'utils/common/platform';
-import slash from 'utils/common/slash';
 
-const FilePickerEditor = ({ value, onChange, collection }) => {
-  value = value || [];
+const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = false, readOnly = false }) => {
   const dispatch = useDispatch();
-  const filenames = value
+  const filenames = (isSingleFilePicker ? [value] : value || [])
     .filter((v) => v != null && v != '')
     .map((v) => {
       const separator = isWindowsOS() ? '\\' : '/';
@@ -20,7 +18,7 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
   const title = filenames.map((v) => `- ${v}`).join('\n');
 
   const browse = () => {
-    dispatch(browseFiles())
+    dispatch(browseFiles([], [!isSingleFilePicker ? "multiSelections": ""]))
       .then((filePaths) => {
         // If file is in the collection's directory, then we use relative path
         // Otherwise, we use the absolute path
@@ -28,13 +26,13 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
           const collectionDir = collection.pathname;
 
           if (filePath.startsWith(collectionDir)) {
-            return path.relative(slash(collectionDir), slash(filePath));
+            return path.relative(collectionDir, filePath);
           }
 
           return filePath;
         });
 
-        onChange(filePaths);
+        onChange(isSingleFilePicker ? filePaths[0] : filePaths);
       })
       .catch((error) => {
         console.error(error);
@@ -42,31 +40,35 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
   };
 
   const clear = () => {
-    onChange([]);
+    onChange(isSingleFilePicker ? '' : []);
   };
 
   const renderButtonText = (filenames) => {
     if (filenames.length == 1) {
       return filenames[0];
     }
-    return filenames.length + ' files selected';
+    return filenames.length + ' file(s) selected';
   };
+
+  const buttonClass = `btn btn-secondary px-1 ${readOnly ? 'view-mode' : 'edit-mode'}`;
 
   return filenames.length > 0 ? (
     <div
-      className="btn btn-secondary px-1"
+      className={buttonClass}
       style={{ fontWeight: 400, width: '100%', textOverflow: 'ellipsis', overflowX: 'hidden' }}
       title={title}
     >
-      <button className="align-middle" onClick={clear}>
-        <IconX size={18} />
-      </button>
-      &nbsp;
+      {!readOnly && (
+        <button className="align-middle" onClick={clear}>
+          <IconX size={18} />
+        </button>
+      )}
+      {!readOnly && <>&nbsp;</>}
       {renderButtonText(filenames)}
     </div>
   ) : (
-    <button className="btn btn-secondary px-1" style={{ width: '100%' }} onClick={browse}>
-      Select Files
+    <button className={buttonClass} style={{ width: '100%' }} onClick={!readOnly ? browse : undefined} disabled={readOnly}>
+      {isSingleFilePicker ? 'Select File' : 'Select Files'}
     </button>
   );
 };

@@ -5,6 +5,7 @@ const Wrapper = styled.div`
 
   aside {
     background-color: ${(props) => props.theme.sidebar.bg};
+    overflow: hidden;
 
     .collection-title {
       line-height: 1.5;
@@ -41,7 +42,7 @@ const Wrapper = styled.div`
     }
   }
 
-  div.drag-sidebar {
+  div.sidebar-drag-handle {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -50,11 +51,18 @@ const Wrapper = styled.div`
     background-color: transparent;
     width: 6px;
     right: -3px;
+    transition: opacity 0.2s ease;
+
+    div.drag-request-border {
+      width: 1px;
+      height: 100%;
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.border};
+    }
 
     &:hover div.drag-request-border {
-      width: 2px;
+      width: 1px;
       height: 100%;
-      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar};
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.activeBorder};
     }
   }
 `;

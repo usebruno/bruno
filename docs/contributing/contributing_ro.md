@@ -64,11 +64,11 @@ find . -type f -name "package-lock.json" -delete
 ### Testarea
 
 ```shell
-# bruno-schema
+# executați teste bruno-schema
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# executați teste peste toate spațiile de lucru
+npm test --workspaces --if-present
 ```
 
 ### Crearea unui Pull Request

@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast';
 import { createSlice } from '@reduxjs/toolkit';
 import { getAppInstallDate } from 'utils/common/platform';
-
+import semver from 'semver';
 const getReadNotificationIds = () => {
   try {
     let readNotificationIdsString = window.localStorage.getItem('bruno.notifications.read');
@@ -9,6 +9,7 @@ const getReadNotificationIds = () => {
     return readNotificationIds;
   } catch (err) {
     toast.error('An error occurred while fetching read notifications');
+    return [];
   }
 };
 
@@ -26,6 +27,26 @@ const initialState = {
   readNotificationIds: getReadNotificationIds() || []
 };
 
+export const filterNotificationsByVersion = (notifications, currentVersion) => {
+  try {
+    if (!notifications) return [];
+
+    if (!currentVersion) return notifications;
+
+    return notifications.filter(notification => {
+      const { minVersion, maxVersion } = notification;
+      if (!minVersion && !maxVersion) return true;
+      if (!minVersion) return semver.lte(currentVersion, maxVersion);
+      if (!maxVersion) return semver.gte(currentVersion, minVersion);
+
+      return semver.gte(currentVersion, minVersion) && semver.lte(currentVersion, maxVersion);
+    });
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
 export const notificationSlice = createSlice({
   name: 'notifications',
   initialState,
@@ -34,7 +55,6 @@ export const notificationSlice = createSlice({
       state.loading = action.payload.fetching;
     },
     setNotifications: (state, action) => {
-      console.log('notifications', notifications);
       let notifications = action.payload.notifications || [];
       let readNotificationIds = state.readNotificationIds;
 
@@ -58,14 +78,16 @@ export const notificationSlice = createSlice({
       });
     },
     markNotificationAsRead: (state, action) => {
-      if (state.readNotificationIds.includes(action.payload.notificationId)) return;
+      const { notificationId } = action.payload;
+
+      if (state.readNotificationIds.includes(notificationId)) return;
 
       const notification = state.notifications.find(
-        (notification) => notification.id === action.payload.notificationId
+        (notification) => notification.id === notificationId
       );
       if (!notification) return;
 
-      state.readNotificationIds.push(action.payload.notificationId);
+      state.readNotificationIds.push(notificationId);
       setReadNotificationsIds(state.readNotificationIds);
       notification.read = true;
     },
@@ -84,13 +106,14 @@ export const notificationSlice = createSlice({
 export const { setNotifications, setFetchingStatus, markNotificationAsRead, markAllNotificationsAsRead } =
   notificationSlice.actions;
 
-export const fetchNotifications = () => (dispatch, getState) => {
+export const fetchNotifications = ({currentVersion}) => (dispatch, getState) => {
   return new Promise((resolve) => {
     const { ipcRenderer } = window;
     dispatch(setFetchingStatus(true));
     ipcRenderer
       .invoke('renderer:fetch-notifications')
       .then((notifications) => {
+        notifications = filterNotificationsByVersion(notifications, currentVersion);
         dispatch(setNotifications({ notifications }));
         dispatch(setFetchingStatus(false));
         resolve(notifications);

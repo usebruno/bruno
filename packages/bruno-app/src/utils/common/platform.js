@@ -1,7 +1,6 @@
 import trim from 'lodash/trim';
-import path from 'path';
-import slash from './slash';
 import platform from 'platform';
+import path from './path';
 
 export const isElectron = () => {
   if (!window) {
@@ -11,24 +10,14 @@ export const isElectron = () => {
   return window.ipcRenderer ? true : false;
 };
 
-export const resolveRequestFilename = (name) => {
-  return `${trim(name)}.bru`;
+export const resolveRequestFilename = (name, extension = 'bru') => {
+  return `${trim(name)}.${extension}`;
 };
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
-  // convert to unix style path
-  pathname = slash(pathname);
-  rootPath = slash(rootPath);
 
   const relativePath = path.relative(rootPath, pathname);
   return relativePath ? relativePath.split(path.sep) : [];
-};
-
-export const getDirectoryName = (pathname) => {
-  // convert to unix style path
-  pathname = slash(pathname);
-
-  return path.dirname(pathname);
 };
 
 export const isWindowsOS = () => {
@@ -44,8 +33,6 @@ export const isMacOS = () => {
 
   return osFamily.includes('os x');
 };
-
-export const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';
 
 export const getAppInstallDate = () => {
   let dateString = localStorage.getItem('bruno.installedOn');

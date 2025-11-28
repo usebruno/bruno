@@ -7,8 +7,10 @@ import Dropdown from '../../Dropdown';
 
 const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) => {
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
+  const pathname = item.draft ? get(item, 'draft.pathname', '') : get(item, 'pathname', '');
+  const uid = item.draft ? get(item, 'draft.uid', '') : get(item, 'uid', '');
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-  const request = item.draft ? item.draft.request : item.request;
+  const request = item.draft ? { ...item.draft.request, pathname, uid } : { ...item.request, pathname, uid };
 
   let {
     schema,
@@ -38,7 +40,7 @@ const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) =>
   });
 
   return (
-    <div className="flex flex-grow justify-end items-center" style={{ fontSize: 13 }}>
+    <div className="flex flex-grow justify-end items-center">
       <div className="flex items-center cursor-pointer hover:underline" onClick={toggleDocs}>
         <IconBook size={18} strokeWidth={1.5} />
         <span className="ml-1">Docs</span>

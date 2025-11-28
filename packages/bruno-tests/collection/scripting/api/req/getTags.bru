@@ -1,0 +1,33 @@
+meta {
+  name: getTags
+  type: http
+  seq: 11
+  tags: [
+    api
+    test
+    tags
+  ]
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Test getTags() function
+  const tags = req.getTags();
+  bru.setVar('request-tags', tags);
+}
+
+tests {
+  test("req.getTags() should return array of tags", function() {
+    const tags = bru.getVar('request-tags');
+    expect(tags).to.be.an('array');
+    expect(tags).to.include('api');
+    expect(tags).to.include('test');
+    expect(tags).to.include('tags');
+    expect(tags.length).to.be.equal(3);
+  });
+}

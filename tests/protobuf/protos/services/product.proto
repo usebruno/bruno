@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package product;
+
+import "product-message.proto";
+
+service Product {
+  rpc CreateProduct (ProductItem) returns (ProductItem);
+  rpc ReadProduct (ProductId) returns (ProductItem);
+  rpc ReadProducts (VoidParam) returns (ProductItems);
+  rpc UpdateProduct(ProductItem) returns (ProductItem);
+  rpc DeleteProduct (ProductId) returns (DeleteProductResponse);
+  rpc CreateExampleProduct (VoidParam) returns (ProductItem);
+  
+  // Server Streaming: Stream product updates to client
+  rpc WatchProductUpdates (ProductId) returns (stream ProductUpdate);
+  
+  // Client Streaming: Batch create products
+  rpc BatchCreateProducts (stream ProductItem) returns (ProductBatchResponse);
+  
+  // Bidirectional Streaming: Real-time price monitoring
+  rpc MonitorProductPrices (stream PriceAlert) returns (stream PriceUpdate);
+}

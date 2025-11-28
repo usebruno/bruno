@@ -70,11 +70,11 @@ find . -type f -name "package-lock.json" -delete
 ### Testing (পরীক্ষা)
 
 ```bash
-# bruno-schema
+# ব্রুনো-স্কিমা পরীক্ষা চালান
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# সমস্ত কর্মক্ষেত্রে পরীক্ষা চালান
+npm test --workspaces --if-present
 ```
 
 ### Raising Pull Request (পুল অনুরোধ উত্থাপন)

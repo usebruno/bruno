@@ -39,6 +39,14 @@ const Wrapper = styled.div`
       color: ${(props) => props.theme.colors.text.muted};
     }
   }
+  
+  .skipped-request {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .button-sm {
+    font-size: ${(props) => props.theme.font.size.sm};
+  }
 `;
 
 export default Wrapper;

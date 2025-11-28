@@ -1,11 +1,20 @@
 import React from 'react';
 import CloseTabIcon from './CloseTabIcon';
+import DraftTabIcon from './DraftTabIcon';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
 
-const SpecialTab = ({ handleCloseClick, type, tabName }) => {
+const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
   const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
+        return (
+          <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
+            <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
+            <span className="ml-1 leading-6">Collection</span>
+          </div>
+        );
+      }
+      case 'collection-overview': {
         return (
           <>
             <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
@@ -23,7 +32,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName }) => {
       }
       case 'folder-settings': {
         return (
-          <div className="flex items-center flex-nowrap overflow-hidden">
+          <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
             <IconFolder size={18} strokeWidth={1.5} className="text-yellow-600 min-w-[18px]" />
             <span className="ml-1 leading-6 truncate">{tabName || 'Folder'}</span>
           </div>
@@ -52,7 +61,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName }) => {
     <>
       <div className="flex items-center tab-label pl-2">{getTabInfo(type, tabName)}</div>
       <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
-        <CloseTabIcon />
+        {hasDraft ? <DraftTabIcon /> : <CloseTabIcon />}
       </div>
     </>
   );

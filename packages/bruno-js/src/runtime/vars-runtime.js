@@ -2,6 +2,7 @@ const _ = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsExpression, createResponseParser } = require('../utils');
+const { cleanJson } = require('../utils');
 
 const { executeQuickJsVm } = require('../sandbox/quickjs');
 
@@ -25,12 +26,17 @@ class VarsRuntime {
 
   runPostResponseVars(vars, request, response, envVariables, runtimeVariables, collectionPath, processEnvVars) {
     const requestVariables = request?.requestVariables || {};
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
+    const collectionVariables = request?.collectionVariables || {};
+    const folderVariables = request?.folderVariables || {};
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, requestVariables);
+    const promptVariables = request?.promptVariables || {};
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, undefined, promptVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
@@ -68,6 +74,8 @@ class VarsRuntime {
     return {
       envVariables,
       runtimeVariables,
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       error
     };
   }

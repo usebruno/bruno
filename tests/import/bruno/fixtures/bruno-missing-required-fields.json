@@ -1,0 +1,2939 @@
+{
+  "name": "bruno-testbench",
+  "items": [
+    {
+      "type": "http",
+      "name": "aaaaa",
+      "seq": 2,
+      "request": {
+        "url": "https://reqres.in/api/users/1",
+        "method": "PUT",
+        "headers": [
+          {
+            "name": "Accept",
+            "value": "application/json",
+            "enabled": true
+          },
+          {
+            "name": "Cookie",
+            "value": "session-id=abc123",
+            "enabled": true
+          }
+        ],
+        "params": [],
+        "body": {
+          "mode": "none",
+          "formUrlEncoded": [],
+          "multipartForm": [],
+          "file": []
+        },
+        "script": {
+          "req": "console.log(req.getCookie());"
+        },
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": "",
+        "auth": {
+          "mode": "none"
+        }
+      }
+    },
+    {
+      "type": "folder",
+      "name": "auth",
+      "root": {
+        "meta": {
+          "name": "auth"
+        }
+      },
+      "items": [
+        {
+          "type": "folder",
+          "name": "basic",
+          "root": {
+            "meta": {
+              "name": "basic"
+            }
+          },
+          "items": [
+            {
+              "type": "folder",
+              "name": "via auth",
+              "root": {
+                "meta": {
+                  "name": "via auth"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "Basic Auth 200",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/api/auth/basic/protected",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "200",
+                        "enabled": true,
+                        "uid": "YLpcflD1RLvdkSSvAYimh"
+                      },
+                      {
+                        "name": "res.body.message",
+                        "value": "Authentication successful",
+                        "enabled": true,
+                        "uid": "oqRPDS5d7CLIqBQ5OCEko"
+                      }
+                    ],
+                    "tests": "",
+                    "docs": "",
+                    "auth": {
+                      "mode": "basic",
+                      "basic": {
+                        "username": "bruno",
+                        "password": "{{basic_auth_password}}"
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "Basic Auth 400",
+                  "seq": 2,
+                  "request": {
+                    "url": "{{host}}/api/auth/basic/protected",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "401",
+                        "enabled": true,
+                        "uid": "WsBvjaJuowT05ri9A8Qc5"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "Unauthorized",
+                        "enabled": true,
+                        "uid": "VW1wyd6hu74Yyfzhn0RuQ"
+                      }
+                    ],
+                    "tests": "",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "via script",
+              "root": {
+                "meta": {
+                  "name": "via script"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "Basic Auth 200",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/api/auth/basic/protected",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "const username = \"bruno\";\nconst password = \"della\";\n\nconst authString = `${username}:${password}`;\nconst encodedAuthString = require('btoa')(authString);\n\nreq.setHeader(\"Authorization\", `Basic ${encodedAuthString}`);"
+                    },
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "5p6vUUMuLxbA7KnYnXrkT"
+                      },
+                      {
+                        "name": "res.body.message",
+                        "value": "Authentication successful",
+                        "enabled": true,
+                        "uid": "Tk43KT6Hyf3h8Jfeyk2XD"
+                      }
+                    ],
+                    "tests": "",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "Basic Auth 401",
+                  "seq": 2,
+                  "request": {
+                    "url": "{{host}}/api/auth/basic/protected",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "const username = \"bruno\";\nconst password = \"invalid\";\n\nconst authString = `${username}:${password}`;\nconst encodedAuthString = require('btoa')(authString);\n\nreq.setHeader(\"Authorization\", `Basic ${encodedAuthString}`);"
+                    },
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "401",
+                        "enabled": true,
+                        "uid": "dLnctBQFSISlaooCYzp5C"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "Unauthorized",
+                        "enabled": true,
+                        "uid": "iWPqym01ksxrDV1gfuhWv"
+                      }
+                    ],
+                    "tests": "",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "bearer",
+          "root": {
+            "meta": {
+              "name": "bearer"
+            }
+          },
+          "items": [
+            {
+              "type": "folder",
+              "name": "via auth",
+              "root": {
+                "meta": {
+                  "name": "via auth"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "Bearer Auth 200",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/api/auth/bearer/protected",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "res": "bru.setEnvVar(\"foo\", \"bar\");"
+                    },
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "200",
+                        "enabled": true,
+                        "uid": "F01gjRjDDQefuLn2Vcyed"
+                      },
+                      {
+                        "name": "res.body.message",
+                        "value": "Authentication successful",
+                        "enabled": true,
+                        "uid": "Hmw3BpVyz9tDBEcdA88O0"
+                      }
+                    ],
+                    "tests": "",
+                    "docs": "",
+                    "auth": {
+                      "mode": "bearer",
+                      "bearer": {
+                        "token": "{{bearer_auth_token}}"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "via headers",
+              "root": {
+                "meta": {
+                  "name": "via headers"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "Bearer Auth 200",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/api/auth/bearer/protected",
+                    "method": "GET",
+                    "headers": [
+                      {
+                        "name": "Authorization",
+                        "value": "Bearer your_secret_token",
+                        "enabled": true
+                      }
+                    ],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "res": "bru.setEnvVar(\"foo\", \"bar\");"
+                    },
+                    "vars": {
+                      "req": [
+                        {
+                          "name": "a-c",
+                          "value": "foo",
+                          "enabled": true,
+                          "local": false
+                        }
+                      ]
+                    },
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "200",
+                        "enabled": true,
+                        "uid": "VDQ7l9zN9WfS3lEGsJ0aw"
+                      },
+                      {
+                        "name": "res.body.message",
+                        "value": "Authentication successful",
+                        "enabled": true,
+                        "uid": "0n8UMinkhzOuRJCCABVz9"
+                      }
+                    ],
+                    "tests": "",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "cookie",
+          "root": {
+            "meta": {
+              "name": "cookie"
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "Check",
+              "seq": 2,
+              "request": {
+                "url": "{{host}}/api/auth/cookie/protected",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Login",
+              "seq": 1,
+              "request": {
+                "url": "{{host}}/api/auth/cookie/login",
+                "method": "POST",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "inherit auth",
+          "root": {
+            "meta": {
+              "name": "inherit auth"
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "inherit Bearer Auth 200",
+              "seq": 2,
+              "request": {
+                "url": "{{host}}/api/auth/bearer/protected",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {
+                  "res": "bru.setEnvVar(\"foo\", \"bar\");"
+                },
+                "vars": {},
+                "assertions": [
+                  {
+                    "name": "res.status",
+                    "value": "200",
+                    "enabled": true,
+                    "uid": "G6vVLMAqfvpa4aBtQ3WSG"
+                  },
+                  {
+                    "name": "res.body.message",
+                    "value": "Authentication successful",
+                    "enabled": true,
+                    "uid": "QItzfaevVVrycFox5jTlS"
+                  }
+                ],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "echo",
+      "root": {
+        "meta": {
+          "name": "echo"
+        }
+      },
+      "items": [
+        {
+          "type": "http",
+          "name": "echo bigint",
+          "seq": 6,
+          "request": {
+            "url": "{{host}}/api/echo/json",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "foo",
+                "value": "bar",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\n  \"hello\": 990531470713421825,\n  \"decimal\": 1.0,\n  \"decimal2\": 1.00,\n  \"decimal3\": 1.00200,\n  \"decimal4\": 0.00\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "lCoGpuLOpVmXPfGzJqbTB"
+              }
+            ],
+            "tests": "// todo: add tests once lossless json echo server is ready",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "echo bom json",
+          "seq": 1,
+          "request": {
+            "url": "{{host}}/api/echo/bom-json-test",
+            "method": "GET",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "none",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "echo form-url-encoded",
+          "seq": 9,
+          "request": {
+            "url": "{{echo-host}}",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "formUrlEncoded",
+              "formUrlEncoded": [
+                {
+                  "name": "form-data-key",
+                  "value": "{{form-data-key}}",
+                  "enabled": true
+                },
+                {
+                  "name": "form-data-stringified-object",
+                  "value": "{{form-data-stringified-object}}",
+                  "enabled": true
+                }
+              ],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {
+              "req": "let obj = JSON.stringify({foo:123});\nbru.setVar('form-data-key', 'form-data-value');\nbru.setVar('form-data-stringified-object', obj);"
+            },
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.body",
+                "value": "eq form-data-key=form-data-value&form-data-stringified-object=%7B%22foo%22%3A123%7D",
+                "enabled": true,
+                "uid": "V0MSBvq2iFun9gIWfgqtQ"
+              }
+            ],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "echo json",
+          "seq": 2,
+          "request": {
+            "url": "{{host}}/api/echo/json",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "foo",
+                "value": "bar",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\n  \"hello\": \"bruno\"\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {
+              "req": "bru.setVar(\"foo\", \"foo-world-2\");"
+            },
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "FFVx1w4MstKeQfQR66Xy8"
+              }
+            ],
+            "tests": "test(\"should return json\", function() {\n  const data = res.getBody();\n  expect(res.getBody()).to.eql({\n    \"hello\": \"bruno\"\n  });\n});\n",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "echo multipart via scripting",
+          "seq": 10,
+          "request": {
+            "url": "{{echo-host}}",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "multipartForm",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {
+              "req": "const FormData = require(\"form-data\");\nconst form = new FormData();\nform.append('form-data-key', 'form-data-value');\nreq.setBody(form);"
+            },
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.body",
+                "value": "contains form-data-value",
+                "enabled": true,
+                "uid": "USCnLx51IlWz6HrLxlR1r"
+              }
+            ],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "echo multipart",
+          "seq": 8,
+          "request": {
+            "url": "{{echo-host}}",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "multipartForm",
+              "formUrlEncoded": [],
+              "multipartForm": [
+                {
+                  "type": "text",
+                  "name": "form-data-key",
+                  "value": "{{form-data-key}}",
+                  "enabled": true
+                },
+                {
+                  "type": "text",
+                  "name": "form-data-stringified-object",
+                  "value": "{{form-data-stringified-object}}",
+                  "enabled": true
+                },
+                {
+                  "type": "file",
+                  "name": "file",
+                  "value": [
+                    "bruno.png"
+                  ],
+                  "enabled": true
+                }
+              ],
+              "file": []
+            },
+            "script": {
+              "req": "let obj = JSON.stringify({foo:123});\nbru.setVar('form-data-key', 'form-data-value');\nbru.setVar('form-data-stringified-object', obj);"
+            },
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.body",
+                "value": "contains form-data-value",
+                "enabled": true,
+                "uid": "L5wrs8CJKD7skDazamdTZ"
+              },
+              {
+                "name": "res.body",
+                "value": "contains {\"foo\":123}",
+                "enabled": true,
+                "uid": "2rPiaUFbPuWPq0ew6dqVd"
+              }
+            ],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "echo plaintext",
+          "seq": 3,
+          "request": {
+            "url": "{{host}}/api/echo/text",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "text",
+              "text": "hello",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "cW2RamEi0zqLmn84SjUoh"
+              }
+            ],
+            "tests": "test(\"should return plain text\", function() {\n  const data = res.getBody();\n  expect(res.getBody()).to.eql(\"hello\");\n});\n",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "echo xml parsed-self closing tags-",
+          "seq": 6,
+          "request": {
+            "url": "{{host}}/api/echo/xml-parsed",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "xml",
+              "xml": "<hello>\n  <world>bruno</world>\n  <world/>\n</hello>",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "lIbw7OdlPxbNUKdShGNvi"
+              }
+            ],
+            "tests": "test(\"should return parsed xml\", function() {\n  const data = res.getBody();\n  expect(res.getBody()).to.eql({\n    \"hello\": {\n      \"world\": [\n        \"bruno\",\n        \"\"\n      ]\n    }\n  });\n});\n",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "echo xml parsed",
+          "seq": 4,
+          "request": {
+            "url": "{{host}}/api/echo/xml-parsed",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "xml",
+              "xml": "<hello>\n  <world>bruno</world>\n</hello>",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "5yr5fbjrAre0Cp0C3PY4c"
+              }
+            ],
+            "tests": "test(\"should return parsed xml\", function() {\n  const data = res.getBody();\n  expect(res.getBody()).to.eql({\n    \"hello\": {\n      \"world\": [\"bruno\"]\n    }\n  });\n});\n",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "echo xml raw",
+          "seq": 5,
+          "request": {
+            "url": "{{host}}/api/echo/xml-raw",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "xml",
+              "xml": "<hello><world>bruno</world></hello>",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "graphql",
+      "root": {
+        "meta": {
+          "name": "graphql"
+        }
+      },
+      "items": [
+        {
+          "type": "graphql",
+          "name": "spacex",
+          "seq": 1,
+          "request": {
+            "url": "https://spacex-production.up.railway.app/",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "{\n  company {\n    ceo\n  }\n}\n"
+              },
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "P99wa88sX4L4Zat94bHzz"
+              }
+            ],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "lib",
+      "root": {
+        "meta": {
+          "name": "lib"
+        }
+      }
+    },
+    {
+      "type": "http",
+      "name": "ping",
+      "seq": 1,
+      "request": {
+        "url": "{{host}}/ping",
+        "method": "GET",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "none",
+          "formUrlEncoded": [],
+          "multipartForm": [],
+          "file": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": "",
+        "auth": {
+          "mode": "none"
+        }
+      }
+    },
+    {
+      "type": "folder",
+      "name": "preview",
+      "root": {
+        "meta": {
+          "name": "preview"
+        }
+      },
+      "items": [
+        {
+          "type": "folder",
+          "name": "html",
+          "root": {
+            "meta": {
+              "name": "html"
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "bruno",
+              "seq": 1,
+              "request": {
+                "url": "https://www.github.com",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {
+                  "req": "console.log(req.getCookie());\n\nconsole.log(req.getHeaders());"
+                },
+                "vars": {},
+                "assertions": [
+                  {
+                    "name": "res.status",
+                    "value": "eq 200",
+                    "enabled": true,
+                    "uid": "2bpXrsR3q5MBpkXbO1vfS"
+                  }
+                ],
+                "tests": "test(\"should return parsed xml\", function() {\n  const headers = res.getHeaders();\n  expect(headers['content-type']).to.eql(\"text/html; charset=utf-8\");\n});\n",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "image",
+          "root": {
+            "meta": {
+              "name": "image"
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "bruno",
+              "seq": 1,
+              "request": {
+                "url": "https://www.usebruno.com/images/landing-2.png",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "test(\"should return parsed xml\", function() {\n  const headers = res.getHeaders();\n  expect(headers['content-type']).to.eql(\"image/png\");\n});\n",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "redirects",
+      "root": {
+        "meta": {
+          "name": "redirects"
+        }
+      },
+      "items": [
+        {
+          "type": "http",
+          "name": "Disable Redirect",
+          "seq": 1,
+          "request": {
+            "url": "{{host}}/redirect-to-ping",
+            "method": "GET",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "none",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {
+              "req": "req.setMaxRedirects(0);"
+            },
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "302",
+                "enabled": true,
+                "uid": "Bs0jGEFFNAyyRBx6DILEN"
+              }
+            ],
+            "tests": "test(\"should disable redirect to ping\", function() {\n  const data = res.getBody();\n  expect(data).to.equal('Found. Redirecting to /ping');\n});",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "Test Redirect",
+          "seq": 2,
+          "request": {
+            "url": "{{host}}/redirect-to-ping",
+            "method": "GET",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "none",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "200",
+                "enabled": true,
+                "uid": "nNRcxeANwM6VBEXR1qoM0"
+              },
+              {
+                "name": "res.body",
+                "value": "pong",
+                "enabled": true,
+                "uid": "3Y5SHtNsQHK0glgikD1IU"
+              }
+            ],
+            "tests": "test(\"should redirect to ping\", function() {\n  const data = res.getBody();\n  expect(data).to.equal('pong');\n});",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "scripting",
+      "root": {
+        "meta": {
+          "name": "scripting"
+        }
+      },
+      "items": [
+        {
+          "type": "folder",
+          "name": "api",
+          "root": {
+            "meta": {
+              "name": "api"
+            }
+          },
+          "items": [
+            {
+              "type": "folder",
+              "name": "bru",
+              "root": {
+                "meta": {
+                  "name": "bru"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "getEnvName",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "const envName = bru.getEnvName();\nbru.setVar(\"testEnvName\", envName);"
+                    },
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"should get env name in scripts\", function() {\n  const testEnvName = bru.getVar(\"testEnvName\");\n  expect(testEnvName).to.equal(\"Prod\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getEnvVar",
+                  "seq": 2,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"should get env var in scripts\", function() {\n  const host = bru.getEnvVar(\"host\")\n  expect(host).to.equal(\"https://testbench-sanity.usebruno.com\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getProcessEnv",
+                  "seq": 6,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"bru.getProcessEnv()\", function() {\n  const v = bru.getProcessEnv(\"PROC_ENV_VAR\");\n  expect(v).to.equal(\"woof\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getVar",
+                  "seq": 5,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"should get var in scripts\", function() {\n  const testSetVar = bru.getVar(\"testSetVar\");\n  expect(testSetVar).to.equal(\"bruno-test-87267\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "setEnvVar",
+                  "seq": 3,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "res": "bru.setEnvVar(\"testSetEnvVar\", \"bruno-29653\")"
+                    },
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"should set env var in scripts\", function() {\n  const testSetEnvVar = bru.getEnvVar(\"testSetEnvVar\")\n  expect(testSetEnvVar).to.equal(\"bruno-29653\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "setVar",
+                  "seq": 4,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "res": "bru.setVar(\"testSetVar\", \"bruno-test-87267\")"
+                    },
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"should get var in scripts\", function() {\n  const testSetVar = bru.getVar(\"testSetVar\");\n  expect(testSetVar).to.equal(\"bruno-test-87267\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "req",
+              "root": {
+                "meta": {
+                  "name": "req"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "getBody",
+                  "seq": 9,
+                  "request": {
+                    "url": "{{host}}/api/echo/json",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "{\n  \"hello\": \"bruno\"\n}",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "7VvXmRWwUdGYbvrQaeDMD"
+                      }
+                    ],
+                    "tests": "test(\"req.getBody()\", function() {\n  const data = res.getBody();\n  expect(data).to.eql({\n    \"hello\": \"bruno\"\n  });\n});\n",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getHeader",
+                  "seq": 5,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [
+                      {
+                        "name": "bruno",
+                        "value": "is-awesome",
+                        "enabled": true
+                      }
+                    ],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "HssG2g6gUaWaBFFanCozP"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "eq pong",
+                        "enabled": true,
+                        "uid": "50NSDIeXgRr0TcXEdquci"
+                      }
+                    ],
+                    "tests": "test(\"req.getHeader(name)\", function() {\n  const h = req.getHeader('bruno');\n  expect(h).to.equal(\"is-awesome\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getHeaders",
+                  "seq": 7,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [
+                      {
+                        "name": "bruno",
+                        "value": "is-awesome",
+                        "enabled": true
+                      },
+                      {
+                        "name": "della",
+                        "value": "is-beautiful",
+                        "enabled": true
+                      }
+                    ],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "9NDZWAvBS23WJAZsKl9SS"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "eq pong",
+                        "enabled": true,
+                        "uid": "f9ULUob9jYiABYuEzfmgC"
+                      }
+                    ],
+                    "tests": "test(\"req.getHeaders()\", function() {\n  const h = req.getHeaders();\n  expect(h.bruno).to.equal(\"is-awesome\");\n  expect(h.della).to.equal(\"is-beautiful\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getMethod",
+                  "seq": 3,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "EpNcKUgCYzdg8KrOLqaCX"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "eq pong",
+                        "enabled": true,
+                        "uid": "qFqcLtNYbZ9nqhiwvS3Qk"
+                      }
+                    ],
+                    "tests": "test(\"req.getMethod()()\", function() {\n  const method = req.getMethod();\n  expect(method).to.equal(\"GET\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getUrl",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "VaiDs2JU1NM8prTc59GdX"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "eq pong",
+                        "enabled": true,
+                        "uid": "4vC9zp5XBajbYKDYM4oFN"
+                      }
+                    ],
+                    "tests": "test(\"req.getUrl()\", function() {\n  const url = req.getUrl();\n  expect(url).to.equal(\"https://testbench-sanity.usebruno.com/ping\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "setBody",
+                  "seq": 10,
+                  "request": {
+                    "url": "{{host}}/api/echo/json",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "{\n  \"hello\": \"bruno\"\n}",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "req.setBody({\n  \"bruno\": \"is awesome\"\n});"
+                    },
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "EGlBavIEZ2j0s2aczQxAP"
+                      }
+                    ],
+                    "tests": "test(\"req.setBody()\", function() {\n  const data = res.getBody();\n  expect(data).to.eql({\n    \"bruno\": \"is awesome\"\n  });\n});\n",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "setHeader",
+                  "seq": 6,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [
+                      {
+                        "name": "bruno",
+                        "value": "is-awesome",
+                        "enabled": true
+                      }
+                    ],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "req.setHeader('bruno', 'is-the-future');"
+                    },
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "J9AUIh6CbTnIxlCyKqqq7"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "eq pong",
+                        "enabled": true,
+                        "uid": "sb6dpEtw8SYyeXVqEz3OA"
+                      }
+                    ],
+                    "tests": "test(\"req.setHeader(name)\", function() {\n  const h = req.getHeader('bruno');\n  expect(h).to.equal(\"is-the-future\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "setHeaders",
+                  "seq": 8,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [
+                      {
+                        "name": "bruno",
+                        "value": "is-awesome",
+                        "enabled": true
+                      },
+                      {
+                        "name": "della",
+                        "value": "is-beautiful",
+                        "enabled": true
+                      }
+                    ],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "req.setHeaders({\n  \"content-type\": \"application/text\",\n  \"transaction-id\": \"foobar\"\n});"
+                    },
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "1djJxGMAwmAHF2ruhdQQO"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "eq pong",
+                        "enabled": true,
+                        "uid": "sqvBwQilTBWnFDoIBAC4T"
+                      }
+                    ],
+                    "tests": "test(\"req.setHeaders()\", function() {\n  const h = req.getHeaders();\n  expect(h['content-type']).to.equal(\"application/text\");\n  expect(h['transaction-id']).to.equal(\"foobar\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "setMethod",
+                  "seq": 4,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "req.setMethod(\"GET\");"
+                    },
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "3eRRXHvWErUAC2IiBto7B"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "eq pong",
+                        "enabled": true,
+                        "uid": "UAqBwv3S2607RXzgC6S1i"
+                      }
+                    ],
+                    "tests": "test(\"req.setMethod()()\", function() {\n  const method = req.getMethod();\n  expect(method).to.equal(\"GET\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "setUrl",
+                  "seq": 2,
+                  "request": {
+                    "url": "{{host}}/ping/invalid",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "req.setUrl(\"https://testbench-sanity.usebruno.com/ping\");"
+                    },
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "sGLaBON85rqipc1VP8R3W"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "eq pong",
+                        "enabled": true,
+                        "uid": "SPVLRHys6RQh1GbRWnPpT"
+                      }
+                    ],
+                    "tests": "test(\"req.setUrl()\", function() {\n  const url = req.getUrl();\n  expect(url).to.equal(\"https://testbench-sanity.usebruno.com/ping\");\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "res",
+              "root": {
+                "meta": {
+                  "name": "res"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "getBody",
+                  "seq": 4,
+                  "request": {
+                    "url": "{{host}}/api/echo/json",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "{\n  \"hello\": \"bruno\"\n}",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "rQe4gitaooPrQkEqD6AvL"
+                      }
+                    ],
+                    "tests": "test(\"res.getBody()\", function() {\n  const data = res.getBody();\n  expect(data).to.eql({\n    \"hello\": \"bruno\"\n  });\n});\n",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getHeader",
+                  "seq": 2,
+                  "request": {
+                    "url": "{{host}}/api/echo/json",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "{\n  \"hello\": \"bruno\"\n}",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "LOem8LkfWBML3yI1Kh3ZU"
+                      }
+                    ],
+                    "tests": "test(\"res.getHeader(name)\", function() {\n  const server = res.getHeader('x-powered-by');\n  expect(server).to.eql('Express');\n});\n",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getHeaders",
+                  "seq": 3,
+                  "request": {
+                    "url": "{{host}}/api/echo/json",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "{\n  \"hello\": \"bruno\"\n}",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "qF8ASpikHJzQLRS0ZqNkA"
+                      }
+                    ],
+                    "tests": "test(\"res.getHeaders(name)\", function() {\n  const h = res.getHeaders();\n  expect(h['x-powered-by']).to.eql('Express');\n  expect(h['content-length']).to.eql('17');\n});\n",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getResponseTime",
+                  "seq": 5,
+                  "request": {
+                    "url": "{{host}}/api/echo/json",
+                    "method": "POST",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "json",
+                      "json": "{\n  \"hello\": \"bruno\"\n}",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "pqN8P939S4dfZ1Bmuemi7"
+                      }
+                    ],
+                    "tests": "test(\"res.getResponseTime()\", function() {\n  const responseTime = res.getResponseTime();\n  expect(typeof responseTime).to.eql(\"number\");\n  expect(responseTime > 0).to.be.true;\n});\n",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                },
+                {
+                  "type": "http",
+                  "name": "getStatus",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {},
+                    "vars": {},
+                    "assertions": [
+                      {
+                        "name": "res.status",
+                        "value": "eq 200",
+                        "enabled": true,
+                        "uid": "0DqeIPuHtcmaULlYG9eWu"
+                      },
+                      {
+                        "name": "res.body",
+                        "value": "eq pong",
+                        "enabled": true,
+                        "uid": "WZDxwKadXkDkK3Ea1VMKW"
+                      }
+                    ],
+                    "tests": "test(\"res.getStatus()\", function() {\n  const status = res.getStatus()\n  expect(status).to.equal(200);\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "inbuilt modules",
+          "root": {
+            "meta": {
+              "name": "inbuilt modules"
+            }
+          },
+          "items": [
+            {
+              "type": "folder",
+              "name": "axios",
+              "root": {
+                "meta": {
+                  "name": "axios"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "axios-pre-req-script",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "const axios = require(\"axios\");\n\nconst url = \"https://testbench-sanity.usebruno.com/api/echo/json\";\nconst response = await axios.post(url, {\n  \"hello\": \"bruno\"\n});\n\nreq.setBody(response.data);\nreq.setMethod(\"POST\");\nreq.setUrl(url);"
+                    },
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"req.getBody()\", function() {\n  const data = res.getBody();\n  expect(data).to.eql({\n    \"hello\": \"bruno\"\n  });\n});\n",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "crypto-js",
+              "root": {
+                "meta": {
+                  "name": "crypto-js"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "crypto-js-pre-request-script",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "var CryptoJS = require(\"crypto-js\");\n\n// Encrypt\nvar ciphertext = CryptoJS.AES.encrypt('my message', 'secret key 123').toString();\n\n// Decrypt\nvar bytes  = CryptoJS.AES.decrypt(ciphertext, 'secret key 123');\nvar originalText = bytes.toString(CryptoJS.enc.Utf8);\n\nbru.setVar('crypto-test-message', originalText);"
+                    },
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"crypto message\", function() {\n  const data = bru.getVar('crypto-test-message');\n  bru.setVar('crypto-test-message', null);\n  expect(data).to.eql('my message');\n});\n",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "nanoid",
+              "root": {
+                "meta": {
+                  "name": "nanoid"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "nanoid",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "const { nanoid } = require(\"nanoid\");\n \nbru.setVar(\"nanoid-test-id\", nanoid());"
+                    },
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"nanoid var\", function() {\n  const id = bru.getVar('nanoid-test-id');\n  let isValidNanoid = /^[a-zA-Z0-9_-]{21}$/.test(id)\n  bru.setVar('nanoid-test-id', null);\n  expect(isValidNanoid).to.eql(true);\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "uuid",
+              "root": {
+                "meta": {
+                  "name": "uuid"
+                }
+              },
+              "items": [
+                {
+                  "type": "http",
+                  "name": "uuid",
+                  "seq": 1,
+                  "request": {
+                    "url": "{{host}}/ping",
+                    "method": "GET",
+                    "headers": [],
+                    "params": [],
+                    "body": {
+                      "mode": "none",
+                      "formUrlEncoded": [],
+                      "multipartForm": [],
+                      "file": []
+                    },
+                    "script": {
+                      "req": "const { v4 } = require(\"uuid\");\n \nbru.setVar(\"uuid-test-id\", v4());"
+                    },
+                    "vars": {},
+                    "assertions": [],
+                    "tests": "test(\"uuid var\", function() {\n  const id = bru.getVar('uuid-test-id');\n  let isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);\n  bru.setVar('uuid-test-id', null);\n  expect(isValidUuid).to.eql(true);\n});",
+                    "docs": "",
+                    "auth": {
+                      "mode": "none"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "js",
+          "root": {
+            "meta": {
+              "name": "js"
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "data types - request vars",
+              "seq": 3,
+              "request": {
+                "url": "{{host}}/api/echo/json",
+                "method": "POST",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n  \"boolean\": false,\n  \"number_1\": 1,\n  \"number_2\": 0,\n  \"number_3\": -1,\n  \"string\": \"bruno\",\n  \"array\": [1, 2, 3, 4, 5],\n  \"object\": {\n    \"hello\": \"bruno\"\n  },\n  \"null\": null\n}",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [
+                  {
+                    "name": "req.body.boolean",
+                    "value": "isBoolean false",
+                    "enabled": true,
+                    "uid": "SgXkeY8p7ahXIq2kA9FzA"
+                  },
+                  {
+                    "name": "req.body.number_1",
+                    "value": "isNumber 1",
+                    "enabled": true,
+                    "uid": "lhS17xvEP5jzHGP2Uqfg9"
+                  },
+                  {
+                    "name": "req.body.undefined",
+                    "value": "isUndefined undefined",
+                    "enabled": true,
+                    "uid": "bFTk8cAUAzNnrvUhbNeyC"
+                  },
+                  {
+                    "name": "req.body.string",
+                    "value": "isString bruno",
+                    "enabled": true,
+                    "uid": "ohANzzhuM8E8egvoVy20M"
+                  },
+                  {
+                    "name": "req.body.null",
+                    "value": "isNull null",
+                    "enabled": true,
+                    "uid": "r6W6I7ATDVswqkAf7Kl1k"
+                  },
+                  {
+                    "name": "req.body.array",
+                    "value": "isArray",
+                    "enabled": true,
+                    "uid": "fFUuv0vldfqaAGPjhfmdl"
+                  },
+                  {
+                    "name": "req.body.boolean",
+                    "value": "eq false",
+                    "enabled": true,
+                    "uid": "eXPS2R19qWsPGm6usEogu"
+                  },
+                  {
+                    "name": "req.body.number_1",
+                    "value": "eq 1",
+                    "enabled": true,
+                    "uid": "WCKmMIqsFPwocy6LZmCcc"
+                  },
+                  {
+                    "name": "req.body.undefined",
+                    "value": "eq undefined",
+                    "enabled": true,
+                    "uid": "7fJRYC8ELm68Uc5CaB7B8"
+                  },
+                  {
+                    "name": "req.body.string",
+                    "value": "eq bruno",
+                    "enabled": true,
+                    "uid": "fXTl58gxhAUrUM8SZFxLW"
+                  },
+                  {
+                    "name": "req.body.null",
+                    "value": "eq null",
+                    "enabled": true,
+                    "uid": "yUhXaWTPJaUYU4zerBABN"
+                  },
+                  {
+                    "name": "req.body.number_2",
+                    "value": "eq 0",
+                    "enabled": true,
+                    "uid": "WWCCm6i8GzyNBH6xiQGAP"
+                  },
+                  {
+                    "name": "req.body.number_3",
+                    "value": "eq -1",
+                    "enabled": true,
+                    "uid": "G73JIdrxSUDpc33EfAZGW"
+                  },
+                  {
+                    "name": "req.body.number_2",
+                    "value": "isNumber",
+                    "enabled": true,
+                    "uid": "Dp5pdDeMEulfPB3ZDdjl4"
+                  },
+                  {
+                    "name": "req.body.number_3",
+                    "value": "isNumber",
+                    "enabled": true,
+                    "uid": "fWghLNcBbslVF2OJMSS6x"
+                  }
+                ],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "data types",
+              "seq": 2,
+              "request": {
+                "url": "{{host}}/api/echo/json",
+                "method": "POST",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n  \"boolean\": false,\n  \"number\": 1,\n  \"string\": \"bruno\",\n  \"array\": [1, 2, 3, 4, 5],\n  \"object\": {\n    \"hello\": \"bruno\"\n  },\n  \"null\": null\n}",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {
+                  "req": "const reqBody = req.getBody();\n\nbru.setVar(\"dataTypeVarTest\", {\n  ...reqBody,\n  \"undefined\": undefined\n});"
+                },
+                "vars": {},
+                "assertions": [],
+                "tests": "test(\"data types check via bru var\", function() {\n  let v = bru.getVar(\"dataTypeVarTest\");\n  v = {\n    ...v,\n    \"undefined\": undefined\n  };\n  expect(v).to.eql({\n    \"boolean\": false,\n    \"number\": 1,\n    \"string\": \"bruno\",\n    \"array\": [1, 2, 3, 4, 5],\n    \"object\": {\n      \"hello\": \"bruno\"\n    },\n    \"null\": null,\n    \"undefined\": undefined\n  })\n});",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "setTimeout",
+              "seq": 1,
+              "request": {
+                "url": "{{host}}/ping",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {
+                  "req": "bru.setVar(\"test-js-set-timeout\", \"\");\nawait new Promise((resolve, reject) => {\n  setTimeout(() => {\n    bru.setVar(\"test-js-set-timeout\", \"bruno\");\n    resolve();\n  }, 1000);\n});\n\nconst v = bru.getVar(\"test-js-set-timeout\");\nbru.setVar(\"test-js-set-timeout\", v + \"-is-awesome\");\n"
+                },
+                "vars": {},
+                "assertions": [],
+                "tests": "test(\"setTimeout()\", function() {\n  const v = bru.getVar(\"test-js-set-timeout\")\n  expect(v).to.eql(\"bruno-is-awesome\");\n});",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "local modules",
+          "root": {
+            "meta": {
+              "name": "local modules"
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "invalid and valid module imports",
+              "seq": 3,
+              "request": {
+                "url": "{{host}}/ping",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {
+                  "req": "try {\n  bru.setVar('invalid_module_error_thrown', false);\n  // should throw an error\n  const invalid = require(\"./lib/invalid\");\n}\ncatch(error) {\n  bru.setVar('invalid_module_error_thrown', true);\n}\n\n\ntry {\n  bru.setVar('valid_module_no_error', true);\n  // should not throw an error\n  const math = require(\"./lib/math\");\n}\ncatch(error) {\n  bru.setVar('valid_module_no_error', false);\n}"
+                },
+                "vars": {},
+                "assertions": [
+                  {
+                    "name": "invalid_module_error_thrown",
+                    "value": "eq true",
+                    "enabled": true,
+                    "uid": "wdZ0MsGXmW7tRiX4VtQaT"
+                  },
+                  {
+                    "name": "valid_module_no_error",
+                    "value": "eq true",
+                    "enabled": true,
+                    "uid": "A7hwDplpc0qDp5Bk46AMJ"
+                  }
+                ],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "sum -without js extn-",
+              "seq": 2,
+              "request": {
+                "url": "{{host}}/api/echo/json",
+                "method": "POST",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n  \"a\": 1,\n  \"b\": 2\n}",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {
+                  "req": "const math = require(\"./lib/math\");\nconsole.log(math, 'math');\n\nconst body = req.getBody();\nbody.sum = math.sum(body.a, body.b);\nbody.areaOfCircle = math.areaOfCircle(2);\n\nreq.setBody(body);"
+                },
+                "vars": {},
+                "assertions": [
+                  {
+                    "name": "res.status",
+                    "value": "eq 200",
+                    "enabled": true,
+                    "uid": "R6TRM5HoxKGuC5dHFvYdH"
+                  }
+                ],
+                "tests": "test(\"should return json\", function() {\n  const data = res.getBody();\n  expect(res.getBody()).to.eql({\n    \"a\": 1,\n    \"b\": 2,\n    \"sum\": 3,\n    \"areaOfCircle\": 12.56\n  });\n});",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "sum",
+              "seq": 1,
+              "request": {
+                "url": "{{host}}/api/echo/json",
+                "method": "POST",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n  \"a\": 1,\n  \"b\": 2\n}",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {
+                  "req": "const math = require(\"./lib/math.js\");  \nconst body = req.getBody();\nbody.sum = math.sum(body.a, body.b);\n\nreq.setBody(body);"
+                },
+                "vars": {},
+                "assertions": [
+                  {
+                    "name": "res.status",
+                    "value": "eq 200",
+                    "enabled": true,
+                    "uid": "UXDIZRejDajw3j0oYHhij"
+                  }
+                ],
+                "tests": "test(\"should return json\", function() {\n  const data = res.getBody();\n  expect(res.getBody()).to.eql({\n    \"a\": 1,\n    \"b\": 2,\n    \"sum\": 3\n  });\n});\n\ntest(\"should return json\", function() {\n  const data = res.getBody();\n  expect(res.getBody()).to.eql({\n    \"a\": 1,\n    \"b\": 2,\n    \"sum\": 3\n  });\n});\n\ntest(\"should return json\", function() {\n  const data = res.getBody();\n  expect(res.getBody()).to.eql({\n    \"a\": 1,\n    \"b\": 2,\n    \"sum\": 3\n  });\n});",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "npm modules",
+          "root": {
+            "meta": {
+              "name": "npm modules"
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "fakerjs",
+              "seq": 1,
+              "request": {
+                "url": "{{host}}/api/echo/json",
+                "method": "POST",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n  \"hello\": \"bruno\"\n}",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {
+                  "req": "const { faker } = require('@faker-js/faker');\nconst uuid = faker.string.uuid();\n\nconst data = req.getBody();\ndata.uuid = uuid;\n\nreq.setBody(data);"
+                },
+                "vars": {},
+                "assertions": [
+                  {
+                    "name": "res.status",
+                    "value": "eq 200",
+                    "enabled": true,
+                    "uid": "ZVuM9BByoo5XFCtUYTwfP"
+                  }
+                ],
+                "tests": "test(\"should return json\", function() {\n  const data = res.getBody();\n  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n  const isUUID = (inputString) => {\n    return uuidRegex.test(inputString);\n  };\n  \n  expect(data.hello).to.equal(\"bruno\");\n  expect(isUUID(data.uuid)).to.be.true;\n});\n",
+                "docs": "",
+                "auth": {
+                  "mode": "none"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "string interpolation",
+      "root": {
+        "request": {
+          "vars": {
+            "req": [
+              {
+                "name": "folder_pre_var",
+                "value": "folder_pre_var_value",
+                "enabled": true,
+                "local": false,
+                "uid": "OHd64NVOj1HQV2PLqRzy8"
+              },
+              {
+                "name": "folder_pre_var_2",
+                "value": "{{env.var1}}",
+                "enabled": true,
+                "local": false,
+                "uid": "J12VEAvPGi3R0wBKXy2jK"
+              }
+            ]
+          }
+        },
+        "meta": {
+          "name": "string interpolation"
+        }
+      },
+      "items": [
+        {
+          "type": "http",
+          "name": "env vars",
+          "seq": 2,
+          "request": {
+            "url": "{{host}}/api/echo/json",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\n  \"envVar1\": \"{{env.var1}}\",\n  \"envVar2\": \"{{env-var2}}\"\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "mxXvAcLVxfpRpGqh76ugy"
+              }
+            ],
+            "tests": "test(\"should return json\", function() {\n  expect(res.getBody()).to.eql({\n    \"envVar1\": \"envVar1\",\n    \"envVar2\": \"envVar2\"\n  });\n});\n",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "missing values",
+          "seq": 1,
+          "request": {
+            "url": "{{host}}/api/echo/json?foo={{undefinedVar}}",
+            "method": "POST",
+            "headers": [],
+            "params": [
+              {
+                "name": "foo",
+                "value": "{{undefinedVar}}",
+                "type": "query",
+                "enabled": true
+              }
+            ],
+            "body": {
+              "mode": "json",
+              "json": "{\n  \"hello\": \"{{undefinedVar2}}\"\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "nzPl7aN2MK9uc3SKEepG0"
+              }
+            ],
+            "tests": "test(\"should return json\", function() {\n  const url = req.getUrl();\n  const query = url.split(\"?\")[1];\n  expect(query).to.equal(\"foo={{undefinedVar}}\");\n\n  const data = res.getBody();\n  expect(res.getBody()).to.eql({\n    \"hello\": \"{{undefinedVar2}}\"\n  });\n});\n",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "process env vars",
+          "seq": 4,
+          "request": {
+            "url": "{{host}}/api/echo/json",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\n  \"bark\": \"{{bark}}\",\n  \"bark2\": \"{{process.env.PROC_ENV_VAR}}\"\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "T1m34pWveQfE4Aao7Xqlt"
+              }
+            ],
+            "tests": "test(\"should return json\", function() {\n  expect(res.getBody()).to.eql({\n    \"bark\": \"woof\",\n    \"bark2\": \"woof\"\n  });\n});\n",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "runtime vars",
+          "seq": 3,
+          "request": {
+            "url": "{{host}}/api/echo/text",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "text",
+              "json": "{\n  \"envVar1\": \"{{env.var1}}\",\n  \"envVar2\": \"{{env-var2}}\"\n}",
+              "text": "Hi, I am {{rUser.full_name}},\nI am {{rUser.age}} years old.\nMy favorite food is {{rUser.fav-food[0]}} and {{rUser.fav-food[1]}}.\nI like attention: {{rUser.want.attention}}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {
+              "req": "bru.setVar(\"rUser\", {\n  full_name: 'Bruno',\n  age: 4,\n  'fav-food': ['egg', 'meat'],\n  'want.attention': true\n});"
+            },
+            "vars": {},
+            "assertions": [
+              {
+                "name": "res.status",
+                "value": "eq 200",
+                "enabled": true,
+                "uid": "xe4IAIu4EXYOYiXmKU374"
+              }
+            ],
+            "tests": "test(\"should return json\", function() {\n  const expectedResponse = `Hi, I am Bruno,\nI am 4 years old.\nMy favorite food is egg and meat.\nI like attention: true`;\n  expect(res.getBody()).to.equal(expectedResponse);\n});\n",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "activeEnvironmentUid": "s4jJkWbb9017JXdVqOxLR",
+  "environments": [
+    {
+      "variables": [
+        {
+          "name": "host",
+          "value": "http://localhost:8080",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "bearer_auth_token",
+          "value": "your_secret_token",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "basic_auth_password",
+          "value": "della",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "client_id",
+          "value": "client_id_1",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "client_secret",
+          "value": "client_secret_1",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "auth_url",
+          "value": "http://localhost:8080/api/auth/oauth2/authorization_code/authorize",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "callback_url",
+          "value": "http://localhost:8080/api/auth/oauth2/authorization_code/callback",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "access_token_url",
+          "value": "http://localhost:8080/api/auth/oauth2/authorization_code/token",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "passwordCredentials_username",
+          "value": "foo",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "passwordCredentials_password",
+          "value": "bar",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "github_authorize_url",
+          "value": "https://github.com/login/oauth/authorize",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "github_access_token_url",
+          "value": "https://github.com/login/oauth/access_token",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "google_auth_url",
+          "value": "https://accounts.google.com/o/oauth2/auth",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "google_access_token_url",
+          "value": "https://accounts.google.com/o/oauth2/token",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "google_scope",
+          "value": "https://www.googleapis.com/auth/userinfo.email",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "github_client_secret",
+          "value": "",
+          "enabled": true,
+          "secret": true,
+          "type": "text"
+        },
+        {
+          "name": "github_client_id",
+          "value": "",
+          "enabled": true,
+          "secret": true,
+          "type": "text"
+        },
+        {
+          "name": "google_client_id",
+          "value": "",
+          "enabled": true,
+          "secret": true,
+          "type": "text"
+        },
+        {
+          "name": "google_client_secret",
+          "value": "",
+          "enabled": true,
+          "secret": true,
+          "type": "text"
+        },
+        {
+          "name": "github_authorization_code",
+          "value": "",
+          "enabled": true,
+          "secret": true,
+          "type": "text"
+        },
+        {
+          "name": "passwordCredentials_access_token",
+          "value": "",
+          "enabled": true,
+          "secret": true,
+          "type": "text"
+        },
+        {
+          "name": "client_credentials_access_token",
+          "value": "",
+          "enabled": true,
+          "secret": true,
+          "type": "text"
+        },
+        {
+          "name": "authorization_code_access_token",
+          "value": "",
+          "enabled": true,
+          "secret": true,
+          "type": "text"
+        },
+        {
+          "name": "github_access_token",
+          "value": "",
+          "enabled": true,
+          "secret": true,
+          "type": "text"
+        }
+      ],
+      "name": "Local"
+    },
+    {
+      "variables": [
+        {
+          "name": "host",
+          "value": "https://testbench-sanity.usebruno.com",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "bearer_auth_token",
+          "value": "your_secret_token",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "basic_auth_password",
+          "value": "della",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "env.var1",
+          "value": "envVar1",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "env-var2",
+          "value": "envVar2",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "bark",
+          "value": "{{process.env.PROC_ENV_VAR}}",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "foo",
+          "value": "bar",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "testSetEnvVar",
+          "value": "bruno-29653",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "echo-host",
+          "value": "https://echo.usebruno.com",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        }
+      ],
+      "name": "Prod"
+    }
+  ],
+  "root": {
+    "request": {
+      "auth": {
+        "mode": "bearer",
+        "bearer": {
+          "token": "{{bearer_auth_token}}"
+        }
+      },
+      "headers": [
+        {
+          "name": "check",
+          "value": "again",
+          "enabled": true,
+          "uid": "wbTRFykhPHZwnzVUTd1gr"
+        },
+        {
+          "name": "token",
+          "value": "{{collection_pre_var_token}}",
+          "enabled": true,
+          "uid": "YGZ16VXf9NusINngKeXqn"
+        }
+      ],
+      "vars": {
+        "req": [
+          {
+            "name": "collection_pre_var",
+            "value": "collection_pre_var_value",
+            "enabled": true,
+            "local": false,
+            "uid": "HI7DgTPA1gBLB6lIl1t3O"
+          },
+          {
+            "name": "collection_pre_var_token",
+            "value": "{{request_pre_var_token}}",
+            "enabled": true,
+            "local": false,
+            "uid": "FoDj77i1KoZ6Koq9oavPy"
+          }
+        ]
+      }
+    },
+    "docs": "# bruno-testbench 🐶\n\nThis is a test collection that I am using to test various functionalities around bruno"
+  },
+  "brunoConfig": {
+    "version": "1",
+    "name": "bruno-testbench",
+    "type": "collection",
+    "proxy": {
+      "enabled": false,
+      "protocol": "http",
+      "hostname": "{{proxyHostname}}",
+      "port": 4000,
+      "auth": {
+        "enabled": false,
+        "username": "anoop"
+      },
+      "bypassProxy": ""
+    },
+    "scripts": {
+      "moduleWhitelist": [
+        "crypto",
+        "buffer",
+        "form-data"
+      ],
+      "filesystemAccess": {
+        "allow": true
+      }
+    },
+    "clientCertificates": {
+      "enabled": true,
+      "certs": []
+    },
+    "presets": {
+      "requestType": "http",
+      "requestUrl": "http://localhost:6000"
+    },
+    "ignore": [
+      "node_modules",
+      ".git"
+    ],
+    "size": 0.026633262634277344,
+    "filesCount": 96
+  }
+}

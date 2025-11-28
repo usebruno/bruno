@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: https://www.usebruno.com/images/landing-2.png
+  url: https://www.usebruno.com/favicon.ico
   body: none
   auth: none
 }
@@ -13,7 +13,7 @@ get {
 tests {
   test("should return parsed xml", function() {
     const headers = res.getHeaders();
-    expect(headers['content-type']).to.eql("image/png");
+    expect(headers['content-type']).to.eql("image/x-icon");
   });
   
 }
