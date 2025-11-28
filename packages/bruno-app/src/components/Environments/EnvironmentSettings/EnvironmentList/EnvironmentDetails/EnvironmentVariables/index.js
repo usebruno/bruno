@@ -17,11 +17,14 @@ import { Tooltip } from 'react-tooltip';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'utils/collections';
 import { sensitiveFields } from './constants';
+import useLocalStorage from 'hooks/useLocalStorage';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
+  const [nameColumnWidth, setNameColumnWidth] = useLocalStorage('bruno.environmentVariables.columnWidths.name', 25);
+  const columnWidthRef = useRef(nameColumnWidth);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   let _collection = cloneDeep(collection);
@@ -115,6 +118,11 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     setIsModified(formik.dirty);
   }, [formik.dirty]);
 
+  // Keep ref in sync with state
+  React.useEffect(() => {
+    columnWidthRef.current = nameColumnWidth;
+  }, [nameColumnWidth]);
+
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
     const id = uuid();
@@ -170,14 +178,49 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     formik.resetForm({ originalEnvironmentVariables });
   };
 
+  const handleResize = React.useCallback((e) => {
+    e.preventDefault();
+    const table = e.currentTarget.closest('table');
+    if (!table) return;
+
+    const nameColumnCells = table.querySelectorAll('.name-column');
+    const tableBounds = table.getBoundingClientRect();
+    const startX = e.clientX;
+    const initialWidth = columnWidthRef.current;
+    const tableWidth = tableBounds.width;
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaPercent = (deltaX / tableWidth) * 100;
+      const newWidth = Math.max(15, Math.min(60, initialWidth + deltaPercent));
+
+      columnWidthRef.current = newWidth;
+      nameColumnCells.forEach((cell) => {
+        cell.style.width = `${newWidth}%`;
+      });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      setNameColumnWidth(columnWidthRef.current);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [setNameColumnWidth]);
+
   return (
-    <StyledWrapper className="w-full mt-6 mb-6">
+    <StyledWrapper className="w-full mt-6 mb-6" nameColumnWidth={nameColumnWidth}>
       <div className="h-[50vh] overflow-y-auto w-full">
         <table className="environment-variables">
           <thead>
             <tr>
               <td className="text-center">Enabled</td>
-              <td>Name</td>
+              <td className="name-column">
+                Name
+                <div className="resize-handle" onMouseDown={handleResize} />
+              </td>
               <td>Value</td>
               <td className="text-center">Secret</td>
               <td></td>
@@ -195,22 +238,21 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                     onChange={formik.handleChange}
                   />
                 </td>
-                <td>
-                  <div className="flex items-center">
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      className="mousetrap"
-                      id={`${index}.name`}
-                      name={`${index}.name`}
-                      value={variable.name}
-                      onChange={formik.handleChange}
-                    />
-                    <ErrorMessage name={`${index}.name`} />
-                  </div>
+                <td className="name-column">
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    className="mousetrap"
+                    id={`${index}.name`}
+                    name={`${index}.name`}
+                    value={variable.name}
+                    onChange={formik.handleChange}
+                  />
+                  <ErrorMessage name={`${index}.name`} />
+                  <div className="resize-handle" onMouseDown={handleResize} />
                 </td>
                 <td className="flex flex-row flex-nowrap items-center">
                   <div className="overflow-hidden grow w-full relative">
