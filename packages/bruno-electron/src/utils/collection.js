@@ -4,6 +4,9 @@ const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
+const { HooksRuntime } = require('@usebruno/js');
+const HookManager = require('@usebruno/js').HookManager;
+const decomment = require('decomment');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -174,6 +177,117 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   } else {
     request.tests = compact([request?.tests || '', ...combinedTests.reverse(), collectionTests]).join(os.EOL);
   }
+};
+
+/**
+ * Extract hooks from collection, folders, and request for registration.
+ * Unlike mergeScripts, this returns separate hooks for each level to allow
+ * one-time registration at each level.
+ *
+ * @param {object} collection - Collection object
+ * @param {object} request - Request object (prepared request, may not have hooks)
+ * @param {array} requestTreePath - Path from collection to request
+ * @returns {object} Object containing hooks at each level
+ */
+const extractHooks = (collection, request, requestTreePath) => {
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
+
+  const folderHooks = [];
+  let requestHooks = '';
+
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderRoot = i?.draft || i?.root;
+      const hooks = get(folderRoot, 'request.script.hooks', '');
+      if (hooks && hooks.trim() !== '') {
+        folderHooks.push({
+          folderUid: i.pathname, // Use pathname as unique identifier
+          hooks: hooks
+        });
+      }
+    } else if (i.type !== 'folder') {
+      // This is the request item - get hooks from it
+      const itemRoot = i?.draft || i?.root || i;
+      requestHooks = get(itemRoot, 'request.script.hooks', '') || '';
+    }
+  }
+
+  // Fallback: try to get from request object if not found in tree path
+  if (!requestHooks) {
+    requestHooks = get(request, 'script.hooks', '') || get(request, 'hooks', '') || '';
+  }
+
+  return {
+    collectionHooks,
+    folderHooks,
+    requestHooks
+  };
+};
+
+/**
+ * Hook event names used throughout the application.
+ * This object is frozen to prevent accidental modifications and improve maintainability.
+ */
+const HOOK_EVENTS = Object.freeze({
+  BEFORE_REQUEST: 'beforeRequest',
+  AFTER_RESPONSE: 'afterResponse',
+  COLLECTION_RUN_START: 'collectionRunStart',
+  COLLECTION_RUN_END: 'collectionRunEnd'
+});
+
+/**
+ * Get or create HookManager for a specific level (collection, folder, or request)
+ * @param {Map} hookManagersMap - Map storing HookManagers by key
+ * @param {string} uid - Unique identifier (collectionUid, folderUid, or requestUid)
+ * @param {string} hooksFile - Hooks file content for this level
+ * @param {object} options - Options for hook registration
+ * @param {object} options.request - Request object
+ * @param {object} options.envVars - Environment variables
+ * @param {object} options.runtimeVariables - Runtime variables
+ * @param {string} options.collectionPath - Collection path
+ * @param {function} options.onConsoleLog - Console log callback
+ * @param {object} options.processEnvVars - Process environment variables
+ * @param {object} options.scriptingConfig - Scripting configuration
+ * @param {function} options.runRequestByItemPathname - Function to run requests
+ * @param {string} options.collectionName - Collection name
+ * @returns {Promise<HookManager>} HookManager instance for this level
+ */
+const getOrCreateHookManager = async (hookManagersMap, uid, hooksFile, options) => {
+  // Return existing HookManager if already created
+  if (hookManagersMap.has(uid)) {
+    return hookManagersMap.get(uid);
+  }
+
+  // Create new HookManager and register hooks
+  const hookManager = new HookManager();
+  hookManagersMap.set(uid, hookManager);
+
+  if (hooksFile && hooksFile.trim()) {
+    const hooksRuntime = new HooksRuntime({ runtime: options.scriptingConfig?.runtime });
+    try {
+      await hooksRuntime.runHooks({
+        hooksFile: decomment(hooksFile),
+        hookManager,
+        request: options.request || {},
+        envVariables: options.envVars || options.envVariables || {},
+        runtimeVariables: options.runtimeVariables || {},
+        collectionPath: options.collectionPath,
+        onConsoleLog: options.onConsoleLog,
+        processEnvVars: options.processEnvVars || {},
+        scriptingConfig: options.scriptingConfig || {},
+        runRequestByItemPathname: options.runRequestByItemPathname,
+        collectionName: options.collectionName
+      });
+    } catch (error) {
+      console.error(`Error registering hooks for ${uid}:`, error);
+      if (options.onConsoleLog) {
+        options.onConsoleLog('error', [`Error registering hooks for ${uid}: ${error.message}`]);
+      }
+    }
+  }
+
+  return hookManager;
 };
 
 const flattenItems = (items = []) => {
@@ -701,5 +815,8 @@ module.exports = {
   getEnvVars,
   getFormattedCollectionOauth2Credentials,
   sortByNameThenSequence,
-  resolveInheritedSettings
+  resolveInheritedSettings,
+  extractHooks,
+  HOOK_EVENTS,
+  getOrCreateHookManager
 };

@@ -279,7 +279,8 @@ export const stringifyBruCollection = (json: any, isFolder?: boolean): string =>
       headers: _.get(json, 'request.headers', []),
       script: {
         req: _.get(json, 'request.script.req', ''),
-        res: _.get(json, 'request.script.res', '')
+        res: _.get(json, 'request.script.res', ''),
+        hooks: _.get(json, 'request.script.hooks', '')
       },
       vars: {
         req: _.get(json, 'request.vars.req', []),

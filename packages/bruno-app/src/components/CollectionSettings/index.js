@@ -29,7 +29,7 @@ const CollectionSettings = ({ collection }) => {
   };
 
   const root = collection?.draft?.root || collection?.root;
-  const hasScripts = root?.request?.script?.res || root?.request?.script?.req;
+  const hasScripts = root?.request?.script?.res || root?.request?.script?.req || root?.request?.script?.hooks;
   const hasTests = root?.request?.tests;
   const hasDocs = root?.docs;
 
