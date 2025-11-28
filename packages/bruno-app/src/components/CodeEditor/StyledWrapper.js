@@ -18,6 +18,11 @@ const StyledWrapper = styled.div`
     flex-direction: column-reverse;
   }
 
+  .CodeMirror-placeholder {
+    color: ${(props) => props.theme.text} !important;
+    opacity: 0.5 !important;
+  }
+
   .CodeMirror-linenumber {
     text-align: left !important;
     padding-left: 3px !important;
