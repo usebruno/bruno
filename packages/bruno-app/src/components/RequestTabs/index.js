@@ -53,7 +53,7 @@ const RequestTabs = () => {
 
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
   const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
-  const tabsWidth = collectionRequestTabs.length * 160 + 34; // 34: (+)icon
+  const tabsWidth = collectionRequestTabs.length * 150 + 34; // 34: (+)icon
   const showChevrons = maxTablistWidth < tabsWidth;
 
   const leftSlide = () => {

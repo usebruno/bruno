@@ -1,6 +1,5 @@
 import React from 'react';
-import CloseTabIcon from './CloseTabIcon';
-import DraftTabIcon from './DraftTabIcon';
+import GradientCloseButton from './GradientCloseButton';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
 
 const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
@@ -58,12 +57,10 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
   };
 
   return (
-    <>
-      <div className="flex items-center tab-label pl-2">{getTabInfo(type, tabName)}</div>
-      <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
-        {hasDraft ? <DraftTabIcon /> : <CloseTabIcon />}
-      </div>
-    </>
+    <div className="flex items-center tab-label w-full">
+      {getTabInfo(type, tabName)}
+      <GradientCloseButton hasChanges={hasDraft} onClick={(e) => handleCloseClick(e)} />
+    </div>
   );
 };
 

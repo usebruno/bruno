@@ -17,8 +17,9 @@ import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
-import { IconX } from '@tabler/icons';
+import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
+import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
@@ -297,28 +298,20 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           dropdownTippyRef={dropdownTippyRef}
           dispatch={dispatch}
         />
-        <div className="close-gradient">
-          <div
-            className="close-icon-container"
-            onClick={(e) => {
-              if (!hasChanges) {
-                isWS && closeWsConnection(item.uid);
-                return handleCloseClick(e);
-              }
-
-              e.stopPropagation();
-              e.preventDefault();
-              setShowConfirmClose(true);
-            }}
-          >
-            {!hasChanges ? (
-              <IconX size={16} strokeWidth={2.5} className="currentColor" />
-            ) : (
-              <DraftTabIcon />
-            )}
-          </div>
-        </div>
       </div>
+      <GradientCloseButton
+        hasChanges={hasChanges}
+        onClick={(e) => {
+          if (!hasChanges) {
+            isWS && closeWsConnection(item.uid);
+            return handleCloseClick(e);
+          }
+
+          e.stopPropagation();
+          e.preventDefault();
+          setShowConfirmClose(true);
+        }}
+      />
     </StyledWrapper>
   );
 };

@@ -17,11 +17,11 @@ const Wrapper = styled.div`
 
     li {
       display: inline-flex;
+      min-width: 80px;
       max-width: 150px;
-      min-width: 50px;
       border: 1px solid transparent;
       list-style: none;
-      padding: 4px 6px;
+      padding: 8px 0;
       cursor: pointer;
       font-size: ${(props) => props.theme.font.size.base};
       height: 38px;
@@ -37,6 +37,12 @@ const Wrapper = styled.div`
 
       &.active {
         background: ${(props) => props.theme.requestTabs.active.bg};
+      }
+
+      &.active {
+        .close-icon-container .close-icon {
+          display: block;
+        }
       }
 
       &:hover {
