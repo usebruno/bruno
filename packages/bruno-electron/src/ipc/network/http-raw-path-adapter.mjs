@@ -1,5 +1,9 @@
 'use strict';
 
+// axios 1.8.3 http adapter copied verbatim, with a single change:
+// the path source uses `config.rawPath || (parsed.pathname + parsed.search)`
+// so dot-segments are preserved when provided.
+
 import utils from 'axios/unsafe/utils.js';
 import settle from 'axios/unsafe/core/settle.js';
 import buildFullPath from 'axios/unsafe/core/buildFullPath.js';
