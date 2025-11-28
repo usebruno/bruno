@@ -160,13 +160,15 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     }
 
     if (preserveDotSegments) {
-      const originMatch = url.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+/);
-      if (!originMatch) {
-        throw { message: 'Invalid URL format', originalError: 'Invalid URL format' };
+      let urlObj;
+      try {
+        urlObj = new URL(url);
+      } catch (e) {
+        throw { message: 'Invalid URL format', originalError: e.message };
       }
 
-      const origin = originMatch[0];
-      const pathAndAfter = url.slice(origin.length);
+      const origin = urlObj.origin;
+      const pathAndAfter = url.slice(origin.length) || '/';
       const pathname = (pathAndAfter.split(/[?#]/)[0] || '');
       const hasLeadingSlash = pathname.startsWith('/');
       const endsWithSlash = pathname.endsWith('/');
