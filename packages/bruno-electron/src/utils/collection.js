@@ -132,6 +132,24 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   }
 };
 
+/**
+ * Wraps a script in an IIFE closure to isolate its scope
+ * @param {string} script - The script code to wrap
+ * @returns {string} The wrapped script
+ */
+const wrapScriptInClosure = (script) => {
+  if (!script || script.trim() === '') {
+    return '';
+  }
+
+  // Wrap script in async IIFE to create isolated scope
+  // This prevents variable re-declaration errors and allows early returns
+  // to only affect the current script segment
+  return `await (async () => {
+${script}
+})();`;
+};
+
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
@@ -161,18 +179,51 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     }
   }
 
-  request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+  // Wrap each script segment in its own closure and join them
+  // This allows each script to run separately with its own scope,
+  // preventing variable re-declaration errors and allowing early returns
+  // to only affect that specific script segment
+  const preReqScripts = compact([
+    collectionPreReqScript,
+    ...combinedPreReqScript,
+    request?.script?.req || ''
+  ]);
+  request.script.req = compact(preReqScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
 
+  // Handle post-response scripts based on scriptFlow
   if (scriptFlow === 'sequential') {
-    request.script.res = compact([collectionPostResScript, ...combinedPostResScript, request?.script?.res || '']).join(os.EOL);
+    const postResScripts = compact([
+      collectionPostResScript,
+      ...combinedPostResScript,
+      request?.script?.res || ''
+    ]);
+    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   } else {
-    request.script.res = compact([request?.script?.res || '', ...combinedPostResScript.reverse(), collectionPostResScript]).join(os.EOL);
+    // Reverse order for non-sequential flow
+    const postResScripts = compact([
+      request?.script?.res || '',
+      ...combinedPostResScript.reverse(),
+      collectionPostResScript
+    ]);
+    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
 
+  // Handle tests based on scriptFlow
   if (scriptFlow === 'sequential') {
-    request.tests = compact([collectionTests, ...combinedTests, request?.tests || '']).join(os.EOL);
+    const testScripts = compact([
+      collectionTests,
+      ...combinedTests,
+      request?.tests || ''
+    ]);
+    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   } else {
-    request.tests = compact([request?.tests || '', ...combinedTests.reverse(), collectionTests]).join(os.EOL);
+    // Reverse order for non-sequential flow
+    const testScripts = compact([
+      request?.tests || '',
+      ...combinedTests.reverse(),
+      collectionTests
+    ]);
+    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
 };
 
