@@ -48,6 +48,7 @@ const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
+const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/deeplink');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
@@ -72,6 +73,51 @@ setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 const menu = Menu.buildFromTemplate(menuTemplate);
 
 let mainWindow;
+let appProtocolUrl;
+
+// Register custom protocol handler (must be called before app is ready)
+// In dev mode, we need to pass the Electron executable path and script path
+let isCustomProtocolSet;
+if (isDev) {
+  // In development, use the current Electron executable path and the main script path
+  const mainScriptPath = path.resolve(__dirname, 'index.js');
+
+  // First, try to remove any existing protocol handler to avoid conflicts
+  try {
+    app.removeAsDefaultProtocolClient('bruno');
+  } catch (error) {
+    // Ignore errors when removing protocol handler
+  }
+
+  // Now register this dev instance as the protocol handler
+  isCustomProtocolSet = app.setAsDefaultProtocolClient('bruno', process.execPath, [mainScriptPath]);
+} else {
+  // In production, Electron will use the app's executable automatically
+  isCustomProtocolSet = app.setAsDefaultProtocolClient('bruno');
+}
+
+if (!isCustomProtocolSet) {
+  console.warn('[Protocol Registration] Failed to register bruno:// protocol handler');
+}
+
+appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
+
+// Handle protocol URLs (macOS)
+if (process.platform === 'darwin') {
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    appProtocolUrl = url || appProtocolUrl;
+    handleAppProtocolUrl(appProtocolUrl, mainWindow);
+  });
+}
+
+// Handle protocol URLs when app is already running (Windows/Linux)
+if (process.platform === 'win32' || process.platform === 'linux') {
+  app.on('second-instance', (event, argv) => {
+    appProtocolUrl = getAppProtocolUrlFromArgv(argv) || appProtocolUrl;
+    handleAppProtocolUrl(appProtocolUrl, mainWindow);
+  });
+}
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
@@ -168,6 +214,12 @@ app.on('ready', async () => {
     event.preventDefault();
     if (/^(http:\/\/|https:\/\/)/.test(url)) {
       require('electron').shell.openExternal(url);
+    }
+  });
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (appProtocolUrl) {
+      handleAppProtocolUrl(appProtocolUrl, mainWindow);
     }
   });
 

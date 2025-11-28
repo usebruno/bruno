@@ -20,7 +20,8 @@ const defaultPreferences = {
     },
     storeCookies: true,
     sendCookies: true,
-    timeout: 0
+    timeout: 0,
+    useSystemBrowser: false
   },
   font: {
     codeFont: 'default',
@@ -64,7 +65,8 @@ const preferencesSchema = Yup.object().shape({
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
-    timeout: Yup.number()
+    timeout: Yup.number(),
+    useSystemBrowser: Yup.boolean()
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable(),
@@ -194,6 +196,9 @@ const preferencesUtil = {
   },
   shouldSendCookies: () => {
     return get(getPreferences(), 'request.sendCookies', true);
+  },
+  shouldUseSystemBrowser: () => {
+    return get(getPreferences(), 'request.useSystemBrowser', false);
   },
   getResponsePaneOrientation: () => {
     return get(getPreferences(), 'layout.responsePaneOrientation', 'horizontal');
