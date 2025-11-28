@@ -36,7 +36,8 @@ const defaultPreferences = {
       username: '',
       password: ''
     },
-    bypassProxy: ''
+    bypassProxy: '',
+    pacUrl: ''
   },
   layout: {
     responsePaneOrientation: 'horizontal'
@@ -71,10 +72,11 @@ const preferencesSchema = Yup.object().shape({
     codeFontSize: Yup.number().min(1).max(32).nullable()
   }),
   proxy: Yup.object({
-    mode: Yup.string().oneOf(['off', 'on', 'system']),
+    mode: Yup.string().oneOf(['off', 'on', 'system', 'pac']),
     protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string().max(1024),
     port: Yup.number().min(1).max(65535).nullable(),
+    pacUrl: Yup.string().optional().max(2048).nullable(),
     auth: Yup.object({
       enabled: Yup.boolean(),
       username: Yup.string().max(1024),
