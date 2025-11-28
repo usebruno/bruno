@@ -9,12 +9,13 @@ import globalEnvironmentsReducer from './slices/global-environments';
 import logsReducer from './slices/logs';
 import performanceReducer from './slices/performance';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
+import { autosaveMiddleware } from './middlewares/autosave/middleware';
 
 const isDevEnv = () => {
   return import.meta.env.MODE === 'development';
 };
 
-let middleware = [tasksMiddleware.middleware, draftDetectMiddleware];
+let middleware = [tasksMiddleware.middleware, draftDetectMiddleware, autosaveMiddleware];
 if (isDevEnv()) {
   middleware = [...middleware, debugMiddleware.middleware];
 }

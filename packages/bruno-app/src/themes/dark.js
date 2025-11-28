@@ -545,6 +545,12 @@ const darkTheme = {
     text: '#B8B8B8'
   },
 
+  preferences: {
+    sidebar: {
+      border: '#444444'
+    }
+  },
+
   examples: {
     buttonBg: '#d9a3421A',
     buttonColor: '#d9a342',
