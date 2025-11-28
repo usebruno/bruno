@@ -15,12 +15,7 @@ assert {
 }
 
 tests {
-  const { doesUint8ArraysWorkAsExpected, getRandomValuesFunction, isUint8Array } = require('./scripting/inbuilt modules/utils.js');
-  
-  if (!doesUint8ArraysWorkAsExpected()) {
-    console.warn('Uint8Array does not work as expected in vm2');
-    return;
-  }
+  const { getRandomValuesFunction, isUint8Array } = require('./scripting/inbuilt modules/utils.js');
   
   // check if Uint8Array work as expected
   test("should get random values", function() {
