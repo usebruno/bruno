@@ -52,7 +52,8 @@ const grammar = ohm.grammar(`Bru {
 
    // Multiline text block surrounded by '''
   multilinetextblockdelimiter = "'''"
-  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter st* contenttypeannotation?
+  contenttypeannotation = "@contentType(" (~")" any)* ")"
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
@@ -65,7 +66,8 @@ const grammar = ohm.grammar(`Bru {
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = list | multilinetextblock | valuechar*
+  value = list | multilinetextblock | singlelinevalue
+  singlelinevalue = valuechar*
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -211,7 +213,7 @@ const mapRequestParams = (pairList = [], type) => {
 
 const multipartExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
-    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/s);
     if (match != null && match.length > 2) {
       pair.value = match[1];
       pair.contentType = match[2];
@@ -370,25 +372,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
-  value(chars) {
-    if (chars.ctorName === 'list') {
-      return chars.ast;
-    }
-    try {
-      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
-      if (isMultiline) {
-        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
-        return multilineString
-          .split('\n')
-          .map((line) => line.slice(4))
-          .join('\n');
-      }
-      return chars.sourceString ? chars.sourceString.trim() : '';
-    } catch (err) {
-      console.error(err);
-    }
-    return chars.sourceString ? chars.sourceString.trim() : '';
-  },
   assertdictionary(_1, _2, pairlist, _3) {
     return pairlist.ast;
   },
@@ -436,9 +419,19 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   multilinetextblockdelimiter(_) {
     return '';
   },
-  multilinetextblock(_1, content, _2) {
-    // Join all the content between the triple quotes and trim it
-    return content.sourceString.trim();
+  multilinetextblock(_1, content, _2, _3, contentType) {
+    const multilineString = content.sourceString
+      .split('\n')
+      .map((line) => line.slice(4))
+      .join('\n');
+
+    if (!contentType.sourceString) {
+      return multilineString;
+    }
+    return `${multilineString} ${contentType.sourceString}`;
+  },
+  singlelinevalue(chars) {
+    return chars.sourceString?.trim() || '';
   },
   _iter(...elements) {
     return elements.map((e) => e.ast);
