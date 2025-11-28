@@ -21,7 +21,7 @@ import {
 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, updateFolderSort } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -41,7 +41,7 @@ import { areItemsLoading } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
-import { sortByNameThenSequence } from 'utils/common/index';
+import { sortItemsBySortMode } from 'utils/common/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -232,13 +232,9 @@ const Collection = ({ collection, searchText }) => {
       'collection-focused-in-tab': isCollectionFocused
     });
 
-  // we need to sort request items by seq property
-  const sortItemsBySequence = (items = []) => {
-    return items.sort((a, b) => a.seq - b.seq);
-  };
-
-  const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i)));
-  const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i)));
+  // Sort items based on collection's folder sort mode
+  const requestItems = sortItemsBySortMode(filter(collection.items, (i) => isItemARequest(i)), collection.folderSort || 'manual', false);
+  const folderItems = sortItemsBySortMode(filter(collection.items, (i) => isItemAFolder(i)), collection.folderSort || 'manual', true);
 
   return (
     <StyledWrapper className="flex flex-col" id={`collection-${collection.name.replace(/\s+/g, '-').toLowerCase()}`}>
@@ -394,6 +390,24 @@ const Collection = ({ collection, searchText }) => {
                 <IconSettings size={16} strokeWidth={2} />
               </span>
               Settings
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(_e) => {
+                menuDropdownTippyRef.current.hide();
+                const newMode = collection.folderSort === 'alphabetical' ? 'manual' : 'alphabetical';
+                const modeLabel = newMode === 'alphabetical' ? 'Alphabetical (A→Z)' : 'Manual';
+                dispatch(updateFolderSort(collection.uid, newMode))
+                  .then(() => {
+                    toast.success(`Folder sorting: ${modeLabel}`);
+                  })
+                  .catch((err) => {
+                    toast.error('Failed to update folder sort mode');
+                    console.error(err);
+                  });
+              }}
+            >
+              Sort Folders: {collection.folderSort === 'alphabetical' ? 'A→Z' : 'Manual'}
             </div>
             <div
               className="dropdown-item"

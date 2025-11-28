@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-const { sortByNameThenSequence } = require('./index');
+const { sortByNameThenSequence, sortByNameOnly, sortItemsBySortMode } = require('./index');
 
 describe('sortByNameThenSequence', () => {
   describe('Basic functionality', () => {
@@ -369,6 +369,206 @@ describe('sortByNameThenSequence', () => {
         { name: 'folder_6', seq: 0 },
         { name: 'folder_9', seq: -1 }
       ]);
+    });
+  });
+});
+
+describe('sortByNameOnly', () => {
+  describe('Basic functionality', () => {
+    it('should return an empty array when given an empty array', () => {
+      const items = [];
+      const result = sortByNameOnly(items);
+      expect(result).toEqual([]);
+    });
+
+    it('should not mutate the original array', () => {
+      const items = [
+        { name: 'Zebra' },
+        { name: 'Apple' }
+      ];
+      const originalItems = JSON.parse(JSON.stringify(items));
+      sortByNameOnly(items);
+      expect(items).toEqual(originalItems);
+    });
+  });
+
+  describe('Alphabetical sorting', () => {
+    it('should sort folders alphabetically ignoring seq property', () => {
+      const folders = [
+        { name: 'Zebra', seq: 1 },
+        { name: 'Apple', seq: 2 },
+        { name: 'Banana', seq: 3 }
+      ];
+      const result = sortByNameOnly(folders);
+      expect(result.map((f) => f.name)).toEqual(['Apple', 'Banana', 'Zebra']);
+    });
+
+    it('should handle case-insensitive sorting', () => {
+      const folders = [
+        { name: 'zebra' },
+        { name: 'Apple' },
+        { name: 'BANANA' }
+      ];
+      const result = sortByNameOnly(folders);
+      expect(result.map((f) => f.name)).toEqual(['Apple', 'BANANA', 'zebra']);
+    });
+
+    it('should handle numeric names naturally', () => {
+      const folders = [
+        { name: 'Item 10' },
+        { name: 'Item 2' },
+        { name: 'Item 1' },
+        { name: 'Item 20' }
+      ];
+      const result = sortByNameOnly(folders);
+      expect(result.map((f) => f.name)).toEqual(['Item 1', 'Item 2', 'Item 10', 'Item 20']);
+    });
+
+    it('should handle mixed alphanumeric names', () => {
+      const folders = [
+        { name: 'folder_10' },
+        { name: 'folder_2' },
+        { name: 'folder_1' }
+      ];
+      const result = sortByNameOnly(folders);
+      expect(result.map((f) => f.name)).toEqual(['folder_1', 'folder_2', 'folder_10']);
+    });
+
+    it('should handle special characters', () => {
+      const folders = [
+        { name: '_config' },
+        { name: 'api' },
+        { name: '.hidden' },
+        { name: 'utils' }
+      ];
+      const result = sortByNameOnly(folders);
+      // localeCompare treats underscore before dot in most locales
+      expect(result.map((f) => f.name)).toEqual(['_config', '.hidden', 'api', 'utils']);
+    });
+
+    it('should handle empty or missing names gracefully', () => {
+      const folders = [
+        { name: 'Valid' },
+        { name: '' },
+        { name: null },
+        { name: undefined }
+      ];
+      const result = sortByNameOnly(folders);
+      expect(result[0].name).toBe('Valid');
+      expect(result.length).toBe(4);
+    });
+  });
+});
+
+describe('sortItemsBySortMode', () => {
+  describe('Alphabetical mode for folders', () => {
+    it('should use alphabetical sort when mode is alphabetical', () => {
+      const folders = [
+        { name: 'C', seq: 1 },
+        { name: 'A', seq: 2 },
+        { name: 'B', seq: 3 }
+      ];
+      const result = sortItemsBySortMode(folders, 'alphabetical', true);
+      expect(result.map((f) => f.name)).toEqual(['A', 'B', 'C']);
+    });
+
+    it('should ignore seq property in alphabetical mode', () => {
+      const folders = [
+        { name: 'Zebra', seq: 1 },
+        { name: 'Apple', seq: 99 }
+      ];
+      const result = sortItemsBySortMode(folders, 'alphabetical', true);
+      expect(result.map((f) => f.name)).toEqual(['Apple', 'Zebra']);
+    });
+  });
+
+  describe('Manual mode for folders', () => {
+    it('should respect seq when mode is manual', () => {
+      const folders = [
+        { name: 'C', seq: 2 },
+        { name: 'A', seq: 1 },
+        { name: 'B', seq: 3 }
+      ];
+      const result = sortItemsBySortMode(folders, 'manual', true);
+      expect(result.map((f) => f.name)).toEqual(['A', 'C', 'B']);
+    });
+
+    it('should use sortByNameThenSequence for manual mode', () => {
+      const folders = [
+        { name: 'D', seq: 2 },
+        { name: 'C' },
+        { name: 'B' },
+        { name: 'A', seq: 1 }
+      ];
+      const result = sortItemsBySortMode(folders, 'manual', true);
+      // Should sort alphabetically first, then apply seq
+      expect(result[0].name).toBe('A'); // seq: 1
+      expect(result[1].name).toBe('D'); // seq: 2
+    });
+  });
+
+  describe('Default behavior', () => {
+    it('should default to manual mode when sortMode is not specified', () => {
+      const folders = [
+        { name: 'C', seq: 2 },
+        { name: 'A', seq: 1 }
+      ];
+      const result = sortItemsBySortMode(folders, undefined, true);
+      expect(result.map((f) => f.name)).toEqual(['A', 'C']);
+    });
+
+    it('should default to manual mode when sortMode is null', () => {
+      const folders = [
+        { name: 'B', seq: 2 },
+        { name: 'A', seq: 1 }
+      ];
+      const result = sortItemsBySortMode(folders, null, true);
+      expect(result.map((f) => f.name)).toEqual(['A', 'B']);
+    });
+  });
+
+  describe('Requests (isFolder = false)', () => {
+    it('should always sort by seq for requests regardless of sortMode', () => {
+      const requests = [
+        { name: 'Z Request', seq: 1 },
+        { name: 'A Request', seq: 2 }
+      ];
+      const result = sortItemsBySortMode(requests, 'alphabetical', false);
+      expect(result.map((r) => r.name)).toEqual(['Z Request', 'A Request']);
+      expect(result[0].seq).toBe(1);
+      expect(result[1].seq).toBe(2);
+    });
+
+    it('should sort requests by seq in manual mode', () => {
+      const requests = [
+        { name: 'Request B', seq: 2 },
+        { name: 'Request A', seq: 1 }
+      ];
+      const result = sortItemsBySortMode(requests, 'manual', false);
+      expect(result[0].seq).toBe(1);
+      expect(result[1].seq).toBe(2);
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should handle empty array', () => {
+      const result = sortItemsBySortMode([], 'alphabetical', true);
+      expect(result).toEqual([]);
+    });
+
+    it('should handle single item', () => {
+      const folders = [{ name: 'Only' }];
+      const result = sortItemsBySortMode(folders, 'alphabetical', true);
+      expect(result).toEqual([{ name: 'Only' }]);
+    });
+
+    it('should handle items without names', () => {
+      const folders = [
+        { name: null },
+        { name: 'Valid' }
+      ];
+      const result = sortItemsBySortMode(folders, 'alphabetical', true);
+      expect(result.length).toBe(2);
     });
   });
 });
