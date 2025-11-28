@@ -765,7 +765,7 @@ const registerNetworkIpc = (mainWindow) => {
         try {
           // Create req object for hook callbacks (res is not available yet)
           const req = new BrunoRequest(request);
-          hookManager.call(HOOK_EVENTS.BEFORE_REQUEST, { request, req, collection, collectionUid });
+          await hookManager.call(HOOK_EVENTS.BEFORE_REQUEST, { request, req, collection, collectionUid });
         } catch (error) {
           console.error('Error calling pre-request hooks:', error);
           onConsoleLog?.('error', [`Error calling pre-request hooks: ${error.message}`]);
@@ -943,7 +943,7 @@ const registerNetworkIpc = (mainWindow) => {
           // Create req and res objects for hook callbacks
           const req = new BrunoRequest(request);
           const res = new BrunoResponse(response);
-          hookManager.call(HOOK_EVENTS.AFTER_RESPONSE, { request, response, req, res, collection, collectionUid });
+          await hookManager.call(HOOK_EVENTS.AFTER_RESPONSE, { request, response, req, res, collection, collectionUid });
         } catch (error) {
           console.error('Error calling post-response hooks:', error);
           onConsoleLog?.('error', [`Error calling post-response hooks: ${error.message}`]);
@@ -1464,7 +1464,7 @@ const registerNetworkIpc = (mainWindow) => {
             for (const hookManager of allHookManagers) {
               try {
                 const req = new BrunoRequest(request);
-                hookManager.call(HOOK_EVENTS.BEFORE_REQUEST, { request, req, collection, collectionUid });
+                await hookManager.call(HOOK_EVENTS.BEFORE_REQUEST, { request, req, collection, collectionUid });
               } catch (error) {
                 console.error('Error calling pre-request hooks:', error);
               }
@@ -1701,7 +1701,7 @@ const registerNetworkIpc = (mainWindow) => {
               try {
                 const req = new BrunoRequest(request);
                 const res = new BrunoResponse(response);
-                hookManager.call(HOOK_EVENTS.AFTER_RESPONSE, { request, response, req, res, collection, collectionUid });
+                await hookManager.call(HOOK_EVENTS.AFTER_RESPONSE, { request, response, req, res, collection, collectionUid });
               } catch (error) {
                 console.error('Error calling post-response hooks:', error);
               }
@@ -1898,7 +1898,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (isCollectionRun) {
           const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
           if (collectionHookManager) {
-            collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_END, { collection, collectionUid });
+            await collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_END, { collection, collectionUid });
           }
         }
 
@@ -1919,7 +1919,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (isCollectionRun) {
           const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
           if (collectionHookManager) {
-            collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_END, { collection, collectionUid });
+            await collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_END, { collection, collectionUid });
           }
         }
 

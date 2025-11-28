@@ -554,7 +554,7 @@ const handler = async function (argv) {
     // Call collectionRunStart hook before starting to run requests
     if (collectionHookManager) {
       try {
-        collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_START, { collection });
+        await collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_START, { collection });
       } catch (error) {
         console.error('Error calling collectionRunStart hooks:', error);
       }
@@ -699,7 +699,7 @@ const handler = async function (argv) {
     // Call collectionRunEnd hook after all requests are done
     if (collectionHookManager) {
       try {
-        collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_END, { collection });
+        await collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_END, { collection });
       } catch (error) {
         console.error('Error calling collectionRunEnd hooks:', error);
       }

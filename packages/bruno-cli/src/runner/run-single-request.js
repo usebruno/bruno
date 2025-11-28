@@ -221,7 +221,7 @@ const runSingleRequest = async function (
     for (const hookManager of allHookManagers) {
       try {
         const req = new BrunoRequest(request);
-        hookManager.call(HOOK_EVENTS.BEFORE_REQUEST, { request, req, collection });
+        await hookManager.call(HOOK_EVENTS.BEFORE_REQUEST, { request, req, collection });
       } catch (error) {
         console.error('Error calling beforeRequest hooks:', error);
       }
@@ -664,7 +664,7 @@ const runSingleRequest = async function (
       try {
         const req = new BrunoRequest(request);
         const res = new BrunoResponse(response);
-        hookManager.call(HOOK_EVENTS.AFTER_RESPONSE, { request, response, req, res, collection });
+        await hookManager.call(HOOK_EVENTS.AFTER_RESPONSE, { request, response, req, res, collection });
       } catch (error) {
         console.error('Error calling afterResponse hooks:', error);
       }

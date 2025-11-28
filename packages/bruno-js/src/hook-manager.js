@@ -28,10 +28,12 @@ class HookManager {
 
   /**
    * Call all registered handlers for the given pattern(s)
+   * Supports both sync and async handlers - all handlers are awaited
    * @param {string|string[]} pattern - Event pattern(s) to trigger
    * @param {*} data - Data to pass to handlers
+   * @returns {Promise<void>} Promise that resolves when all handlers complete
    */
-  call(pattern, data) {
+  async call(pattern, data) {
     if (typeof pattern !== 'string' && !Array.isArray(pattern)) {
       throw new TypeError('Pattern must be a string or an array of strings.');
     }
@@ -42,7 +44,7 @@ class HookManager {
     // If wildcard is in the list, only call wildcard handlers and return early
     if (patternHasStar && this.listeners['*']) {
       for (const handler of this.listeners['*']) {
-        callHandler(handler, data, '*');
+        await callHandler(handler, data, '*');
       }
       return;
     }
@@ -51,13 +53,13 @@ class HookManager {
     for (const ptn of patternList) {
       if (ptn === '*' && this.listeners[ptn]) {
         for (const handler of this.listeners[ptn]) {
-          callHandler(handler, data, ptn);
+          await callHandler(handler, data, ptn);
         }
         return;
       }
       if (!this.listeners[ptn]) continue;
       for (const handler of this.listeners[ptn]) {
-        callHandler(handler, data, ptn);
+        await callHandler(handler, data, ptn);
       }
     }
   }
@@ -157,11 +159,20 @@ class HookManager {
 
 /**
  * Safely call a handler function with error handling
+ * Supports both sync and async handlers
  * @private
+ * @param {Function} handler - Handler function to call
+ * @param {*} data - Data to pass to handler
+ * @param {string} event - Event name for error reporting
+ * @returns {Promise<void>} Promise that resolves when handler completes
  */
-function callHandler(handler, data, event) {
+async function callHandler(handler, data, event) {
   try {
-    handler(data);
+    const result = handler(data);
+    // If handler returns a Promise, await it
+    if (result && typeof result.then === 'function') {
+      await result;
+    }
   } catch (error) {
     console.error(`Failed to execute handler for event: '${event}' with handler: '${handler?.name ?? 'anonymous'}'`, error);
   }
