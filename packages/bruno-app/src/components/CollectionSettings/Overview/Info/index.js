@@ -29,24 +29,6 @@ const Info = ({ collection }) => {
     toggleShowShareCollectionModal(value);
   };
 
-  const handleOpenCollectionEnvironmentModal = () => {
-    dispatch(updateEnvironmentSettingsModalVisibility(true));
-    setShowCollectionEnvironmentModal(true);
-  };
-
-  const handleCloseCollectionEnvironmentModal = () => {
-    setShowCollectionEnvironmentModal(false);
-    dispatch(updateEnvironmentSettingsModalVisibility(false));
-  };
-
-  const handleOpenGlobalEnvironmentModal = () => {
-    setShowGlobalEnvironmentModal(true);
-  };
-
-  const handleCloseGlobalEnvironmentModal = () => {
-    setShowGlobalEnvironmentModal(false);
-  };
-
   return (
     <div className="w-full flex flex-col h-fit">
       <div className="rounded-lg py-6">
@@ -74,14 +56,17 @@ const Info = ({ collection }) => {
               <div className="mt-1 flex flex-col gap-1">
                 <div
                   className="text-sm text-link cursor-pointer hover:underline"
-                  onClick={handleOpenCollectionEnvironmentModal}
+                  onClick={() => {
+                    dispatch(updateEnvironmentSettingsModalVisibility(true));
+                    setShowCollectionEnvironmentModal(true);
+                  }}
                 >
                   <IconDatabase className="w-4 h-4 inline mr-1" stroke={1.5} />
                   {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
                 </div>
                 <div
                   className="text-sm text-link cursor-pointer hover:underline"
-                  onClick={handleOpenGlobalEnvironmentModal}
+                  onClick={() => setShowGlobalEnvironmentModal(true)}
                 >
                   <IconWorld className="w-4 h-4 inline mr-1" stroke={1.5} />
                   {globalEnvironmentCount} global environment{globalEnvironmentCount !== 1 ? 's' : ''}
@@ -119,13 +104,21 @@ const Info = ({ collection }) => {
           {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
-      {showCollectionEnvironmentModal && <EnvironmentSettings collection={collection} onClose={handleCloseCollectionEnvironmentModal} />}
+      {showCollectionEnvironmentModal && (
+        <EnvironmentSettings
+          collection={collection}
+          onClose={() => {
+            setShowCollectionEnvironmentModal(false);
+            dispatch(updateEnvironmentSettingsModalVisibility(false));
+          }}
+        />
+      )}
       {showGlobalEnvironmentModal && (
         <GlobalEnvironmentSettings
           globalEnvironments={globalEnvironments}
           collection={collection}
           activeGlobalEnvironmentUid={activeGlobalEnvironmentUid}
-          onClose={handleCloseGlobalEnvironmentModal}
+          onClose={() => setShowGlobalEnvironmentModal(false)}
         />
       )}
     </div>
