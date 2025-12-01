@@ -733,6 +733,22 @@ const runSingleRequest = async function (
         logResults(testResults, 'Tests');
       } catch (error) {
         console.error('Test script execution error:', error);
+
+        const partialResults = error?.partialResults?.results || [];
+        testResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Test Script Error',
+            error: error.message || 'An error occurred while executing the test script.'
+          }
+        ];
+
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        logResults(testResults, 'Tests');
       }
     }
 

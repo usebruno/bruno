@@ -443,6 +443,26 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
+  const appendTestScriptErrorResult = (testResults, error) => {
+    if (!error) {
+      return testResults;
+    }
+
+    const results = [
+      ...(testResults?.results || []),
+      {
+        status: 'fail',
+        description: 'Test Script Error',
+        error: error.message || 'An error occurred while executing the test script.'
+      }
+    ];
+
+    return {
+      ...(testResults || {}),
+      results
+    };
+  };
+
   const runPreRequest = async (
     request,
     requestUid,
@@ -936,6 +956,8 @@ const registerNetworkIpc = (mainWindow) => {
               };
             }
           }
+
+          testResults = appendTestScriptErrorResult(testResults, testError);
 
           !runInBackground && mainWindow.webContents.send('main:run-request-event', {
             type: 'test-results',
@@ -1615,6 +1637,8 @@ const registerNetworkIpc = (mainWindow) => {
                   };
                 }
               }
+
+              testResults = appendTestScriptErrorResult(testResults, testError);
 
               if (testResults?.nextRequestName !== undefined) {
                 nextRequestName = testResults.nextRequestName;
