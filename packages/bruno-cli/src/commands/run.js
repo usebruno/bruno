@@ -102,7 +102,7 @@ const printRunSummary = (results) => {
 };
 
 const getJsSandboxRuntime = (sandbox) => {
-  return sandbox === 'safe' ? 'quickjs' : 'vm2';
+  return sandbox === 'safe' ? 'quickjs' : 'nodevm';
 };
 
 const builder = async (yargs) => {

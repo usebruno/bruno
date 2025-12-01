@@ -4,7 +4,22 @@ import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
-import { IconChevronRight, IconDots } from '@tabler/icons';
+import {
+  IconChevronRight,
+  IconDots,
+  IconFilePlus,
+  IconFolderPlus,
+  IconPlayerPlay,
+  IconEdit,
+  IconCopy,
+  IconClipboard,
+  IconCode,
+  IconPhoto,
+  IconFolder,
+  IconTrash,
+  IconSettings,
+  IconInfoCircle
+} from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -528,6 +543,18 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           </div>
           <div className="menu-icon pr-2">
             <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setItemInfoModalOpen(true);
+                }}
+              >
+                <span className="dropdown-icon">
+                  <IconInfoCircle size={16} strokeWidth={2} />
+                </span>
+                Info
+              </div>
               {isFolder && (
                 <>
                   <div
@@ -537,6 +564,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                       setNewRequestModalOpen(true);
                     }}
                   >
+                    <span className="dropdown-icon">
+                      <IconFilePlus size={16} strokeWidth={2} />
+                    </span>
                     New Request
                   </div>
                   <div
@@ -546,6 +576,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                       setNewFolderModalOpen(true);
                     }}
                   >
+                    <span className="dropdown-icon">
+                      <IconFolderPlus size={16} strokeWidth={2} />
+                    </span>
                     New Folder
                   </div>
                   <div
@@ -555,6 +588,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                       setRunCollectionModalOpen(true);
                     }}
                   >
+                    <span className="dropdown-icon">
+                      <IconPlayerPlay size={16} strokeWidth={2} />
+                    </span>
                     Run
                   </div>
                 </>
@@ -563,24 +599,21 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 className="dropdown-item"
                 onClick={(e) => {
                   dropdownTippyRef.current.hide();
-                  setRenameItemModalOpen(true);
-                }}
-              >
-                Rename
-              </div>
-              <div
-                className="dropdown-item"
-                onClick={(e) => {
-                  dropdownTippyRef.current.hide();
                   setCloneItemModalOpen(true);
                 }}
               >
+                <span className="dropdown-icon">
+                  <IconCopy size={16} strokeWidth={2} />
+                </span>
                 Clone
               </div>
               <div
                 className="dropdown-item"
                 onClick={handleCopyItem}
               >
+                <span className="dropdown-icon">
+                    <IconCopy size={16} strokeWidth={2} />
+                </span>
                 Copy
               </div>
               {isFolder && hasCopiedItems && (
@@ -588,21 +621,36 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   className="dropdown-item"
                   onClick={handlePasteItem}
                 >
+                  <span className="dropdown-icon">
+                    <IconClipboard size={16} strokeWidth={2} />
+                  </span>
                   Paste
                 </div>
               )}
-              {!isFolder && (
-                <div
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    dropdownTippyRef.current.hide();
-                    handleClick(null);
-                    handleRun();
-                  }}
-                >
-                  Run
-                </div>
-              )}
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setRenameItemModalOpen(true);
+                }}
+              >
+                <span className="dropdown-icon">
+                  <IconEdit size={16} strokeWidth={2} />
+                </span>
+                Rename
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  handleShowInFolder();
+                }}
+              >
+                <span className="dropdown-icon">
+                  <IconFolder size={16} strokeWidth={2} />
+                </span>
+                Show in Folder
+              </div>
               {!isFolder && (item.type === 'http-request' || item.type === 'graphql-request') && (
                 <div
                   className="dropdown-item"
@@ -610,6 +658,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                     handleGenerateCode(e);
                   }}
                 >
+                  <span className="dropdown-icon">
+                    <IconCode size={16} strokeWidth={2} />
+                  </span>
                   Generate Code
                 </div>
               )}
@@ -621,27 +672,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                     setCreateExampleModalOpen(true);
                   }}
                 >
+                  <span className="dropdown-icon">
+                    <IconPhoto size={16} strokeWidth={2} />
+                  </span>
                   Create Example
                 </div>
               )}
-              <div
-                className="dropdown-item"
-                onClick={(e) => {
-                  dropdownTippyRef.current.hide();
-                  handleShowInFolder();
-                }}
-              >
-                Show in Folder
-              </div>
-              <div
-                className="dropdown-item delete-item"
-                onClick={(e) => {
-                  dropdownTippyRef.current.hide();
-                  setDeleteItemModalOpen(true);
-                }}
-              >
-                Delete
-              </div>
+              <div className="dropdown-separator"></div>
               {isFolder && (
                 <div
                   className="dropdown-item"
@@ -650,17 +687,23 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                     viewFolderSettings();
                   }}
                 >
+                  <span className="dropdown-icon">
+                    <IconSettings size={16} strokeWidth={2} />
+                  </span>
                   Settings
                 </div>
               )}
               <div
-                className="dropdown-item item-info"
+                className="dropdown-item delete-item"
                 onClick={(e) => {
                   dropdownTippyRef.current.hide();
-                  setItemInfoModalOpen(true);
+                  setDeleteItemModalOpen(true);
                 }}
               >
-                Info
+                <span className="dropdown-icon">
+                  <IconTrash size={16} strokeWidth={2} />
+                </span>
+                Delete
               </div>
             </Dropdown>
           </div>

@@ -15,6 +15,7 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import CodeMirrorSearch from 'components/CodeMirrorSearch';
 
 const CodeMirror = require('codemirror');
@@ -37,7 +38,8 @@ export default class CodeEditor extends React.Component {
     this.lintOptions = {
       esversion: 11,
       expr: true,
-      asi: true
+      asi: true,
+      highlightLines: true
     };
 
     this.state = {
@@ -50,6 +52,7 @@ export default class CodeEditor extends React.Component {
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
+      placeholder: '...',
       lineNumbers: true,
       lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
@@ -64,7 +67,7 @@ export default class CodeEditor extends React.Component {
       matchBrackets: true,
       showCursorWhenSelecting: true,
       foldGutter: true,
-      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
+      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
       lint: this.lintOptions,
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
@@ -207,6 +210,9 @@ export default class CodeEditor extends React.Component {
       );
 
       setupLinkAware(editor);
+
+      // Setup lint error tooltip on line number hover
+      this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
     }
   }
 
@@ -272,6 +278,10 @@ export default class CodeEditor extends React.Component {
       this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
       this.editor.off('scroll', this.onScroll);
+
+      // Clean up lint error tooltip
+      this.cleanupLintErrorTooltip?.();
+
       this.editor = null;
     }
   }

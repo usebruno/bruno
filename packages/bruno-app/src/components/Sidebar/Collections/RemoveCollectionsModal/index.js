@@ -180,7 +180,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
       className={`${showAllCollections ? 'show-less-link' : 'show-more-link'} w-fit flex items-center mt-2 cursor-pointer`}
       onClick={() => setShowAllCollections(!showAllCollections)}
     >
-      <span className="text-sm text-link">
+      <span className="text-link">
         {showAllCollections ? 'Show less' : `Show ${hiddenCollectionsCount} more`}
       </span>
     </span>
@@ -201,7 +201,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
             <>
               <div className="flex items-center font-normal">
                 <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
-                <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
+                <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
               </div>
               <div className="font-normal mt-4">
                 Do you want to save changes you made to the following{' '}

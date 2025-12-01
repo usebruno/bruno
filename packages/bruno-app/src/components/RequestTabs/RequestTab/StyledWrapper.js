@@ -34,6 +34,10 @@ const StyledWrapper = styled.div`
     .has-changes-icon {
       height: 24px;
     }
+
+    .tab-method {
+      font-size: ${(props) => props.theme.font.size.sm};
+    }
   }
 `;
 

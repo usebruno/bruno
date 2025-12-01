@@ -11,7 +11,6 @@ const Vars = ({ collection }) => {
   const requestVars = collection.draft?.root ? get(collection, 'draft.root.request.vars.req', []) : get(collection, 'root.request.vars.req', []);
   const responseVars = collection.draft?.root ? get(collection, 'draft.root.request.vars.res', []) : get(collection, 'root.request.vars.res', []);
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
-  const deprecationWarningMessage = 'Post response vars is deprecated and will be removed in v3.0.0';
 
   return (
     <StyledWrapper className="w-full flex flex-col">
@@ -21,7 +20,7 @@ const Vars = ({ collection }) => {
       </div>
       <div className="flex-1">
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <DeprecationWarning message={deprecationWarningMessage} />
+        <DeprecationWarning featureName="Post Response Variables" learnMoreUrl="https://github.com/usebruno/bruno/discussions/6231" />
         <VarsTable collection={collection} vars={responseVars} varType="response" />
       </div>
       <div className="mt-6">

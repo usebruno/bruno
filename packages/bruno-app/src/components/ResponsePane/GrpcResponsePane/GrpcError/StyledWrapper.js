@@ -26,14 +26,14 @@ const StyledWrapper = styled.div`
   }
 
   .error-title {
-    font-weight: 600;
+    font-weight: 500;
     margin-bottom: 0.375rem;
     color: ${(props) => props.theme.colors.text.danger};
   }
 
   .error-message {
     font-family: monospace;
-    font-size: 0.6875rem;
+    font-size: ${(props) => props.theme.font.size.xs};
     line-height: 1.25rem;
     white-space: pre-wrap;
     word-break: break-all;

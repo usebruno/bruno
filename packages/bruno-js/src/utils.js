@@ -128,7 +128,7 @@ const createResponseParser = (response = {}) => {
 };
 
 /**
- * Objects that are created inside vm2 execution context result in an serialization error when sent to the renderer process
+ * Objects that are created inside developer mode execution context result in an serialization error when sent to the renderer process
  * Error sending from webFrameMain:  Error: Failed to serialize arguments
  *    at s.send (node:electron/js2c/browser_init:169:631)
  *    at g.send (node:electron/js2c/browser_init:165:2156)
