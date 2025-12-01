@@ -93,7 +93,9 @@ const buildUrlWithPathParams = (targetUrl, pathParams, preserveDotSegments) => {
   try {
     parsed = new URL(url);
   } catch (e) {
-    throw { message: 'Invalid URL format', originalError: e.message };
+    const error = new Error('Invalid URL format');
+    error.originalError = e.message;
+    throw error;
   }
 
   if (!preserveDotSegments) {
