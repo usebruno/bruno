@@ -49,7 +49,7 @@ const EventTypeColors = {
   cancel: "border-amber-500/20"
 };
 
-const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, item, collection, width }) => {
+const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, item }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const toggleCollapse = () => setIsCollapsed(prev => !prev);
   
@@ -83,7 +83,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                   {Object.entries(effectiveRequest.headers).map(([key, value], idx) => (
                     <div key={idx} className="contents">
                       <div className="text-xs font-medium overflow-hidden text-ellipsis">{key}:</div>
-                      <div className="text-xs overflow-hidden text-ellipsis">{value}</div>
+                      <div className="text-xs overflow-hidden text-ellipsis">{typeof value === 'string' ? value : '[Buffer Buffer]'}</div>
                     </div>
                   ))}
                 </div>
@@ -115,7 +115,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'message':
         return (
           <div className="mt-2 bg-orange-50 dark:bg-orange-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-orange-700 dark:text-orange-400">Message</div>
+            <div className="font-medium mb-1 text-orange-700 dark:text-orange-400">Message</div>
             <pre className="text-xs bg-white dark:bg-gray-800 p-2 rounded overflow-auto max-h-[200px]">
                 {typeof eventData === 'string' 
                   ? eventData 
@@ -127,7 +127,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'metadata':
         return (
           <div className="mt-2 bg-blue-50 dark:bg-blue-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-blue-700 dark:text-blue-400">Metadata Headers</div>
+            <div className="font-medium mb-1 text-blue-700 dark:text-blue-400">Metadata Headers</div>
             {response.metadata && response.metadata.length > 0 ? (
               <div className="grid grid-cols-2 gap-1">
                 {response.metadata.map((header, idx) => (
@@ -138,7 +138,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                 ))}
               </div>
             ) : (
-              <div className="text-sm italic text-gray-500">No metadata headers</div>
+              <div className="italic text-gray-500">No metadata headers</div>
             )}
           </div>
         );
@@ -147,15 +147,15 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For message responses, show the response data
         return (
           <div className="mt-2 bg-green-50 dark:bg-green-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-green-700 dark:text-green-400">
-              Response Message #{(response.responses.length || 0)}
+            <div className="font-medium mb-1 text-green-700 dark:text-green-400">
+              Response Message #{(response?.responses?.length) || 0}
             </div>
-            {response.responses && response.responses.length > 0 ? (
+            {response?.responses && response.responses.length > 0 ? (
               <pre className="text-xs bg-white dark:bg-gray-800 p-2 rounded overflow-auto max-h-[200px]">
                 {JSON.stringify(response.responses[response.responses.length - 1], null, 2)}
               </pre>
             ) : (
-              <div className="text-sm italic text-gray-500">Empty message</div>
+              <div className="italic text-gray-500">Empty message</div>
             )}
           </div>
         );
@@ -169,12 +169,12 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             </div>
             
             {response.statusDescription && (
-              <div className="text-sm mb-2">{response.statusDescription}</div>
+              <div className="mb-2">{response.statusDescription}</div>
             )}
             
             {response.trailers && response.trailers.length > 0 && (
               <>
-                <div className="font-semibold text-sm mt-2 mb-1 text-purple-700 dark:text-purple-400">Trailers</div>
+                <div className="font-medium mt-2 mb-1 text-purple-700 dark:text-purple-400">Trailers</div>
                 <div className="grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
@@ -192,8 +192,8 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For error events, show error details
         return (
           <div className="mt-2 bg-red-50 dark:bg-red-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-red-700 dark:text-red-400">Error</div>
-            <div className="text-sm mb-2">{response.error || "Unknown error"}</div>
+            <div className="font-medium mb-1 text-red-700 dark:text-red-400">Error</div>
+            <div className="mb-2">{response.error || 'Unknown error'}</div>
             
             <div className="flex items-center gap-2">
               <Status statusCode={statusCode} statusText={statusText} />
@@ -201,7 +201,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             
             {response.trailers && response.trailers.length > 0 && (
               <>
-                <div className="font-semibold text-sm mt-2 mb-1 text-red-700 dark:text-red-400">Error Metadata</div>
+                <div className="font-medium mt-2 mb-1 text-red-700 dark:text-red-400">Error Metadata</div>
                 <div className="grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
@@ -219,9 +219,9 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For end events, show summary
         return (
           <div className="mt-2 bg-gray-50 dark:bg-gray-700/30 rounded p-2">
-            <div className="font-semibold mb-1">Stream Ended</div>
-            <div className="text-sm">
-              Total messages: {response.responses.length || 0}
+            <div className="font-medium mb-1">Stream Ended</div>
+            <div>
+              Total messages: {(response?.responses?.length) || 0}
             </div>
           </div>
         );
@@ -230,8 +230,8 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For cancel events, show cancellation info
         return (
           <div className="mt-2 bg-amber-50 dark:bg-amber-900/10 rounded p-2">
-            <div className="font-semibold mb-1 text-amber-700 dark:text-amber-400">Stream Cancelled</div>
-            <div className="text-sm">{response.statusDescription || "The gRPC stream was cancelled"}</div>
+            <div className="font-medium mb-1 text-amber-700 dark:text-amber-400">Stream Cancelled</div>
+            <div>{response.statusDescription || 'The gRPC stream was cancelled'}</div>
           </div>
         );
         
@@ -245,7 +245,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       <div className={`flex items-center gap-2 cursor-pointer`} onClick={toggleCollapse}>
         {isCollapsed ? <IconChevronRight size={16} strokeWidth={1.5} /> : <IconChevronDown size={16} strokeWidth={1.5} />}
         {eventIcon}
-        <span className="font-medium text-sm">{eventName}</span>
+        <span className="font-medium">{eventName}</span>
         {eventType === 'request' && effectiveRequest.methodType && (
           <span className="px-2 py-0.5 text-xs rounded bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300">
             {effectiveRequest.methodType}

@@ -39,7 +39,7 @@ const ProtoFileDropdown = ({
       return;
     }
 
-    const { success: addSuccess, relativePath, alreadyExists, error: addError } = await protoFileManagement.addProtoFileToCollection(filePath);
+    const { success: addSuccess, relativePath, alreadyExists, error: addError } = await protoFileManagement.addProtoFileFromRequest(filePath);
     if (!addSuccess) {
       if (addError) {
         toast.error(`Failed to add proto file: ${addError.message}`);
@@ -91,7 +91,7 @@ const ProtoFileDropdown = ({
       return;
     }
 
-    const { success: addSuccess, error: addError } = await protoFileManagement.addImportPathToCollection(directoryPath);
+    const { success: addSuccess, error: addError } = await protoFileManagement.addImportPathFromRequest(directoryPath);
     if (!addSuccess) {
       if (addError) {
         toast.error(`Failed to add import path: ${addError.message}`);
@@ -103,7 +103,7 @@ const ProtoFileDropdown = ({
   };
 
   const handleToggleImportPath = async (index) => {
-    const { success, enabled, error } = await protoFileManagement.toggleImportPath(index);
+    const { success, enabled, error } = await protoFileManagement.toggleImportPathFromRequest(index);
     if (!success) {
       if (error) {
         toast.error(`Failed to toggle import path: ${error.message}`);
@@ -147,7 +147,7 @@ const ProtoFileDropdown = ({
         <div className="max-h-fit overflow-y-auto w-[30rem]">
           <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700" data-testid="grpc-mode-toggle">
             <div className="flex items-center justify-between">
-              <span className="text-sm">Mode</span>
+              <span>Mode</span>
               <div className="flex items-center gap-2">
                 <span className={`text-xs ${!isReflectionMode ? 'font-medium' : 'text-neutral-500'}`} style={{ color: !isReflectionMode ? theme.colors.text.yellow : undefined }}>
                   Proto File
@@ -203,7 +203,7 @@ const ProtoFileDropdown = ({
 
           {isReflectionMode && (
             <div className="px-3 py-2">
-              <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+              <div className="text-neutral-600 dark:text-neutral-400 mb-2">
                 Using server reflection to discover gRPC methods.
               </div>
             </div>

@@ -86,11 +86,11 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
       <StyledWrapper>
         <Modal size="md" title="New Folder" hideFooter={true} handleCancel={onClose}>
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
-            <label htmlFor="folderName" className="block font-semibold">
+            <label htmlFor="folderName" className="block font-medium">
               Folder Name
             </label>
             <input
-              id="collection-name"
+              id="folder-name"
               type="text"
               name="folderName"
               ref={inputRef}
@@ -112,7 +112,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
             {showFilesystemName && (
               <div className="mt-4">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="directoryName" className="flex items-center font-semibold">
+                  <label htmlFor="directoryName" className="flex items-center font-medium">
                     Folder Name <small className='font-normal text-muted ml-1'>(on filesystem)</small>
                     <Help width="300">
                       <p>

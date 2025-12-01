@@ -166,7 +166,6 @@ describe('Url Utils - parsePathParams', () => {
     const params = parsePathParams('https://example.com/start/1:2:AHLS-HASD/form');
     expect(params).toEqual([]);
   });
-
 });
 
 describe('Url Utils - URN parsing', () => {

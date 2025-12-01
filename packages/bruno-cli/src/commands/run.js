@@ -102,7 +102,7 @@ const printRunSummary = (results) => {
 };
 
 const getJsSandboxRuntime = (sandbox) => {
-  return sandbox === 'safe' ? 'quickjs' : 'vm2';
+  return sandbox === 'safe' ? 'quickjs' : 'nodevm';
 };
 
 const builder = async (yargs) => {
@@ -546,7 +546,7 @@ const handler = async function (argv) {
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
-      const { pathname } = requestItem;
+      const { name, pathname } = requestItem;
 
       const start = process.hrtime();
       const result = await runSingleRequest(
@@ -576,7 +576,8 @@ const handler = async function (argv) {
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: pathname.replace('.bru', '')
+        suitename: pathname.replace('.bru', ''),
+        name
       });
 
       if (reporterSkipAllHeaders) {
@@ -655,6 +656,9 @@ const handler = async function (argv) {
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
+    // Extract environment name from envVars if available
+    const environmentName = envVars?.__name__ || null;
+
     const formatKeys = Object.keys(formats);
     if (formatKeys && formatKeys.length > 0) {
       const outputJson = {
@@ -665,7 +669,7 @@ const handler = async function (argv) {
       const reporters = {
         'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path, runCompletionTime),
+        html: (path) => makeHtmlOutput(outputJson, path, runCompletionTime, environmentName)
       }
 
       for (const formatter of Object.keys(formats))

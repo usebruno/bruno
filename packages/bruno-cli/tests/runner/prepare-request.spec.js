@@ -559,7 +559,7 @@ describe('prepare-request: prepareRequest', () => {
               selected: true
             }]
           }
-        },
+        }
       };
 
       const result = await prepareRequest(item);

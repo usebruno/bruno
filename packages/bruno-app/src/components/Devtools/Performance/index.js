@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import {
@@ -6,13 +6,44 @@ import {
   IconDatabase,
   IconClock,
   IconServer,
-  IconChartLine,
+  IconChartLine
 } from '@tabler/icons';
 
 const Performance = () => {
-  const { systemResources } = useSelector(state => state.performance);
+  const { systemResources } = useSelector((state) => state.performance);
 
-  const formatBytes = bytes => {
+  useEffect(() => {
+    const { ipcRenderer } = window;
+
+    if (!ipcRenderer) {
+      console.warn('IPC Renderer not available');
+      return;
+    }
+
+    const startMonitoring = async () => {
+      try {
+        await ipcRenderer.invoke('renderer:start-system-monitoring', 2000);
+      } catch (error) {
+        console.error('Failed to start system monitoring:', error);
+      }
+    };
+
+    const stopMonitoring = async () => {
+      try {
+        await ipcRenderer.invoke('renderer:stop-system-monitoring');
+      } catch (error) {
+        console.error('Failed to stop system monitoring:', error);
+      }
+    };
+
+    startMonitoring();
+
+    return () => {
+      stopMonitoring();
+    };
+  }, []);
+
+  const formatBytes = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -20,7 +51,7 @@ const Performance = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatUptime = seconds => {
+  const formatUptime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);

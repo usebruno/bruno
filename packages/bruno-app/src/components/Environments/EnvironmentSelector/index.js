@@ -11,9 +11,8 @@ import EnvironmentListContent from './EnvironmentListContent/index';
 import EnvironmentSettings from '../EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
 import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
-import ImportEnvironment from '../EnvironmentSettings/ImportEnvironment';
+import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import CreateGlobalEnvironment from 'components/GlobalEnvironments/EnvironmentSettings/CreateEnvironment';
-import ImportGlobalEnvironment from 'components/GlobalEnvironments/EnvironmentSettings/ImportEnvironment';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 
@@ -243,7 +242,8 @@ const EnvironmentSelector = ({ collection }) => {
       )}
 
       {showImportGlobalModal && (
-        <ImportGlobalEnvironment
+        <ImportEnvironmentModal
+          type="global"
           onClose={() => setShowImportGlobalModal(false)}
           onEnvironmentCreated={() => {
             setShowGlobalSettings(true);
@@ -262,7 +262,8 @@ const EnvironmentSelector = ({ collection }) => {
       )}
 
       {showImportCollectionModal && (
-        <ImportEnvironment
+        <ImportEnvironmentModal
+          type="collection"
           collection={collection}
           onClose={() => setShowImportCollectionModal(false)}
           onEnvironmentCreated={() => {

@@ -123,7 +123,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         // traditional path parameters
         if (path.startsWith(':')) {
           const paramName = path.slice(1);
-          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
           if (!existingPathParam) {
             return '/' + path;
           }

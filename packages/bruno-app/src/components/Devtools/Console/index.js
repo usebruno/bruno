@@ -13,7 +13,7 @@ import {
   IconChevronDown,
   IconTerminal2,
   IconNetwork,
-  IconDashboard,
+  IconDashboard
 } from '@tabler/icons';
 import { 
   closeConsole, 
@@ -84,7 +84,7 @@ const LogMessage = ({ message, args }) => {
                 name={false}
                 style={{
                   backgroundColor: 'transparent',
-                  fontSize: '12px',
+                  fontSize: '${(props) => props.theme.font.size.sm}',
                   fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
                 }}
               />

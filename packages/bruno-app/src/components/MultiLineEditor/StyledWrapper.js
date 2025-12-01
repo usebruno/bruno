@@ -9,20 +9,21 @@ const StyledWrapper = styled.div`
   &.read-only {
     .CodeMirror .CodeMirror-lines {
       cursor: not-allowed !important;
-      user-select: none !important;
-      -webkit-user-select: none !important;
-      -ms-user-select: none !important;
     }
 
     .CodeMirror-line {
       color: ${(props) => props.theme.colors.text.muted} !important;
+    }
+
+    .CodeMirror-cursor {
+      display: none !important;
     }
   }
 
   .CodeMirror {
     background: transparent;
     height: fit-content;
-    font-size: 14px;
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 30px;
     display: flex;
     flex-direction: column;

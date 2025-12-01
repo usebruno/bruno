@@ -19,16 +19,69 @@ const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = r
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
-const { createFormData, buildFormUrlEncodedPayload } = require('../utils/form-data');
+const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const { getCACertificates } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
-const { encodeUrl } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
+};
+
+const getCACertHostRegex = (domain) => {
+  return '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+};
+
+/**
+ * Extract prompt variables from a request
+ * Tries to respect the hierarchy of the variables and avoid unnecessary prompts as much as possible
+ * Note: TO BE CALLED ONLY AFTER THE PREPARE REQUEST
+ *
+ * @param {*} request - request object built by prepareRequest
+ * @returns {string[]} An array of extracted prompt variables
+ */
+const extractPromptVariablesForRequest = ({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig }) => {
+  const { vars, collectionVariables, folderVariables, requestVariables, ...requestObj } = request;
+
+  const allVariables = {
+    ...envVariables,
+    ...collectionVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
+    process: {
+      env: {
+        ...processEnvVars
+      }
+    }
+  };
+
+  const prompts = extractPromptVariables(requestObj);
+  prompts.push(...extractPromptVariables(allVariables));
+
+  const interpolationOptions = {
+    envVars: envVariables,
+    runtimeVariables,
+    processEnvVars
+  };
+
+  // client certificate config
+  const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+  for (let clientCert of clientCertConfig) {
+    const domain = interpolateString(clientCert?.domain, interpolationOptions);
+    if (domain) {
+      const hostRegex = getCACertHostRegex(domain);
+      if (request.url.match(hostRegex)) {
+        prompts.push(...extractPromptVariables(clientCert));
+      }
+    }
+  }
+
+  // return unique prompt variables
+  return Array.from(new Set(prompts));
 };
 
 const runSingleRequest = async function (
@@ -73,6 +126,39 @@ const runSingleRequest = async function (
     let postResponseTestResults = [];
 
     request = await prepareRequest(item, collection);
+
+    // Detect prompt variables before proceeding
+    const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });
+
+    if (promptVars.length > 0) {
+      const errorMsg = `Prompt variables detected in request. CLI execution is not supported for requests with prompt variables. \nPrompts: ${promptVars.join(', ')}`;
+      console.log(chalk.yellow(stripExtension(relativeItemPathname) + ' Skipped:') + chalk.dim(` (${errorMsg})`));
+      return {
+        test: {
+          filename: relativeItemPathname
+        },
+        request: {
+          method: request.method,
+          url: request.url,
+          headers: request.headers,
+          data: request.data
+        },
+        response: {
+          status: 'skipped',
+          statusText: errorMsg,
+          data: null,
+          responseTime: 0
+        },
+        error: null,
+        status: 'skipped',
+        skipped: true,
+        assertionResults: [],
+        testResults: [],
+        preRequestTestResults: [],
+        postResponseTestResults: [],
+        shouldStopRunnerExecution
+      };
+    }
 
     request.__bruno__executionMode = 'cli';
 
@@ -172,7 +258,7 @@ const runSingleRequest = async function (
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {
-        const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+        const hostRegex = getCACertHostRegex(domain);
         if (request.url.match(hostRegex)) {
           if (type === 'cert') {
             try {
@@ -332,8 +418,14 @@ const runSingleRequest = async function (
     const contentTypeHeader = Object.keys(request.headers).find(
       name => name.toLowerCase() === 'content-type'
     );
+
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
-      request.data = buildFormUrlEncodedPayload(request.data);
+      if (Array.isArray(request.data)) {
+        request.data = buildFormUrlEncodedPayload(request.data);
+      } else if (typeof request.data !== 'string') {
+        request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
+      }
+      // if `data` is of string type - return as-is (assumes already encoded)
     }
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
@@ -528,7 +620,7 @@ const runSingleRequest = async function (
           envVariables,
           runtimeVariables,
           collectionPath,
-          null,
+          onConsoleLog,
           processEnvVars,
           scriptingConfig,
           runSingleRequestByPathname,
@@ -576,7 +668,7 @@ const runSingleRequest = async function (
           envVariables,
           runtimeVariables,
           collectionPath,
-          null,
+          onConsoleLog,
           processEnvVars,
           scriptingConfig,
           runSingleRequestByPathname,
