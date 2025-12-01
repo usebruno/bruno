@@ -423,7 +423,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   // Keyboard shortcuts handler
   const handleKeyDown = (e) => {
     // Detect Mac by checking both metaKey and platform
-    const isMac = e.metaKey || (navigator.userAgent && navigator.userAgent.indexOf('Mac') !== -1);
+    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
     const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
 
     if (isModifierPressed && e.key.toLowerCase() === 'c') {
