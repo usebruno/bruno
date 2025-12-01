@@ -340,32 +340,71 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   };
 
   each(_operationObject.parameters || [], (param) => {
-    if (param.in === 'query') {
-      brunoRequestItem.request.params.push({
-        uid: uuid(),
-        name: param.name,
-        value: '',
-        description: param.description || '',
-        enabled: param.required,
-        type: 'query'
+    // Check if parameter schema is an object type with properties
+    // If so, expand the properties into individual parameters
+    const isObjectSchema = param.schema && param.schema.properties;
+
+    if (isObjectSchema) {
+      // Expand object schema properties into individual parameters
+      each(param.schema.properties, (prop, propName) => {
+        const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
+
+        if (param.in === 'query') {
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: propName,
+            value: '',
+            description: prop.description || '',
+            enabled: isRequired,
+            type: 'query'
+          });
+        } else if (param.in === 'path') {
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: propName,
+            value: '',
+            description: prop.description || '',
+            enabled: isRequired,
+            type: 'path'
+          });
+        } else if (param.in === 'header') {
+          brunoRequestItem.request.headers.push({
+            uid: uuid(),
+            name: propName,
+            value: '',
+            description: prop.description || '',
+            enabled: isRequired
+          });
+        }
       });
-    } else if (param.in === 'path') {
-      brunoRequestItem.request.params.push({
-        uid: uuid(),
-        name: param.name,
-        value: '',
-        description: param.description || '',
-        enabled: param.required,
-        type: 'path'
-      });
-    } else if (param.in === 'header') {
-      brunoRequestItem.request.headers.push({
-        uid: uuid(),
-        name: param.name,
-        value: '',
-        description: param.description || '',
-        enabled: param.required
-      });
+    } else {
+      if (param.in === 'query') {
+        brunoRequestItem.request.params.push({
+          uid: uuid(),
+          name: param.name,
+          value: '',
+          description: param.description || '',
+          enabled: param.required,
+          type: 'query'
+        });
+      } else if (param.in === 'path') {
+        brunoRequestItem.request.params.push({
+          uid: uuid(),
+          name: param.name,
+          value: '',
+          description: param.description || '',
+          enabled: param.required,
+          type: 'path'
+        });
+      } else if (param.in === 'header') {
+        brunoRequestItem.request.headers.push({
+          uid: uuid(),
+          name: param.name,
+          value: '',
+          description: param.description || '',
+          enabled: param.required
+        });
+      }
     }
   });
 
