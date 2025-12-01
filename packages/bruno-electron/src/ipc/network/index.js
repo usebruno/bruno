@@ -1,3 +1,4 @@
+const http = require('http');
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
@@ -39,6 +40,53 @@ const { getCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
+
+const extractRawPath = (targetUrl) => {
+  if (!targetUrl || typeof targetUrl !== 'string') {
+    return undefined;
+  }
+
+  const afterHost = targetUrl.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+/, '');
+  if (afterHost === targetUrl) {
+    return undefined;
+  }
+
+  const [pathAndQuery] = afterHost.split('#');
+  const normalized = pathAndQuery?.length ? pathAndQuery : '/';
+
+  return normalized.startsWith('/') ? normalized : `/${normalized}`;
+};
+
+const isAbsolutePath = (value) => typeof value === 'string' && /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(value);
+
+const buildRawPathTransport = ({ rawPath, targetOrigin }) => {
+  const [rawPathBase, rawPathQuery] = rawPath.split('?');
+
+  return {
+    request: (options, cb) => {
+      const queryFromOptions = (() => {
+        if (typeof options.path !== 'string') {
+          return rawPathQuery ? `?${rawPathQuery}` : '';
+        }
+
+        const idx = options.path.indexOf('?');
+        if (idx === -1) {
+          return rawPathQuery ? `?${rawPathQuery}` : '';
+        }
+
+        return options.path.slice(idx);
+      })();
+
+      const rawPathWithQuery = `${rawPathBase}${queryFromOptions}`;
+      const useProxyPath = isAbsolutePath(options.path) && targetOrigin;
+      const nextPath = useProxyPath ? `${targetOrigin}${rawPathWithQuery}` : rawPathWithQuery;
+      const isHttpsRequest = /^https:?/.test(options.protocol || '');
+      const transport = isHttpsRequest ? https : http;
+
+      return transport.request({ ...options, path: nextPath }, cb);
+    }
+  };
+};
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -142,6 +190,8 @@ const configureRequest = async (
 
   request.maxRedirects = 0;
 
+  const preserveDotSegments = request.settings?.preserveDotSegments;
+
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
@@ -157,6 +207,30 @@ const configureRequest = async (
     delete request.ntlmConfig;
   }
 
+  const addQueryParamPreservingPath = (targetUrl, key, value) => {
+    if (!targetUrl || !key) {
+      return targetUrl;
+    }
+
+    if (!preserveDotSegments) {
+      try {
+        const urlObj = new URL(targetUrl);
+        urlObj.searchParams.set(key, value);
+        return urlObj.toString();
+      } catch (err) {
+        // fall back to string-based approach below
+      }
+    }
+
+    const [urlWithoutHash, ...hashParts] = targetUrl.split('#');
+    const hash = hashParts.length ? `#${hashParts.join('#')}` : '';
+    const separator = urlWithoutHash.includes('?')
+      ? (urlWithoutHash.endsWith('?') || urlWithoutHash.endsWith('&') ? '' : '&')
+      : '?';
+
+    return `${urlWithoutHash}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}${hash}`;
+  };
+
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
@@ -170,12 +244,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
       case 'implicit':
@@ -186,12 +255,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
       case 'client_credentials':
@@ -202,12 +266,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
       case 'password':
@@ -218,12 +277,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token);
         }
         break;
     }
@@ -276,14 +330,10 @@ const configureRequest = async (
 
   // Add API key to the URL
   if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
-    const urlObj = new URL(request.url);
-
     // Interpolate key and value as they can be variables before adding to the URL.
     const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
     const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
-
-    urlObj.searchParams.set(key, value);
-    request.url = urlObj.toString();
+    request.url = addQueryParamPreservingPath(request.url, key, value);
   }
 
   // Remove pathParams, already in URL (Issue #2439)
@@ -291,6 +341,21 @@ const configureRequest = async (
 
   // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
   delete request.apiKeyAuthValueForQueryParams;
+
+  if (preserveDotSegments) {
+    const rawPath = extractRawPath(request.url);
+    if (rawPath) {
+      try {
+        const { origin } = new URL(request.url);
+        request.transport = buildRawPathTransport({
+          rawPath,
+          targetOrigin: origin
+        });
+      } catch (err) {
+        // If the URL cannot be parsed, fall back to default behavior
+      }
+    }
+  }
 
   return axiosInstance;
 };
