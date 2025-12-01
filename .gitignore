@@ -53,7 +53,7 @@ bruno.iml
 /blob-report/
 
 # packages
-packages/bruno-filestore
-packages/bruno-requests
-packages/bruno-schema-types
-packages/bruno-converters
+packages/bruno-filestore/dist
+packages/bruno-requests/dist
+packages/bruno-schema-types/dist
+packages/bruno-converters/dist
