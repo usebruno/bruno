@@ -225,7 +225,7 @@ const multipartExtractContentType = (pair) => {
 
 const fileExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
-    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/s);
     if (match && match.length > 2) {
       pair.value = match[1].trim();
       pair.contentType = match[2].trim();
