@@ -17,6 +17,7 @@ import StyledWrapper from './StyledWrapper';
 import { IconWand } from '@tabler/icons';
 
 import onHasCompletion from './onHasCompletion';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
 
 const CodeMirror = require('codemirror');
 
@@ -138,6 +139,8 @@ export default class QueryEditor extends React.Component {
       editor.on('beforeChange', this._onBeforeChange);
     }
     this.addOverlay();
+
+    setupLinkAware(editor);
   }
 
   componentDidUpdate(prevProps) {
@@ -170,6 +173,9 @@ export default class QueryEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      if (this.editor?._destroyLinkAware) {
+        this.editor._destroyLinkAware();
+      }
       this.editor.off('change', this._onEdit);
       this.editor.off('keyup', this._onKeyUp);
       this.editor.off('hasCompletion', this._onHasCompletion);

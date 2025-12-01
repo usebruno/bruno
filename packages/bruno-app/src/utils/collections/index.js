@@ -1161,11 +1161,12 @@ export const getAllVariables = (collection, item) => {
   const pathParams = getPathParams(item);
   const { globalEnvironmentVariables = {} } = collection;
 
-  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {} } = collection;
   const mergedVariables = {
     ...folderVariables,
     ...requestVariables,
-    ...runtimeVariables
+    ...runtimeVariables,
+    ...promptVariables
   };
 
   const mergedVariablesGlobal = {
@@ -1174,6 +1175,7 @@ export const getAllVariables = (collection, item) => {
     ...folderVariables,
     ...requestVariables,
     ...runtimeVariables,
+    ...promptVariables
   }
 
   const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
@@ -1194,6 +1196,7 @@ export const getAllVariables = (collection, item) => {
     ...requestVariables,
     ...oauth2CredentialVariables,
     ...runtimeVariables,
+    ...promptVariables,
     pathParams: {
       ...pathParams
     },
@@ -1204,6 +1207,44 @@ export const getAllVariables = (collection, item) => {
       }
     }
   };
+};
+
+// Merge headers from collection, folders, and request
+export const mergeHeaders = (collection, request, requestTreePath) => {
+  let headers = new Map();
+
+  // Add collection headers first
+  const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
+  collectionHeaders.forEach((header) => {
+    if (header.enabled) {
+      headers.set(header.name, header);
+    }
+  });
+
+  // Add folder headers next, traversing from root to leaf
+  if (requestTreePath && requestTreePath.length > 0) {
+    for (let i of requestTreePath) {
+      if (i.type === 'folder') {
+        const folderHeaders = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'root.request.headers', []);
+        folderHeaders.forEach((header) => {
+          if (header.enabled) {
+            headers.set(header.name, header);
+          }
+        });
+      }
+    }
+  }
+
+  // Add request headers last (they take precedence)
+  const requestHeaders = request.headers || [];
+  requestHeaders.forEach((header) => {
+    if (header.enabled) {
+      headers.set(header.name, header);
+    }
+  });
+
+  // Convert Map back to array
+  return Array.from(headers.values());
 };
 
 export const maskInputValue = (value) => {
@@ -1239,15 +1280,21 @@ const mergeVars = (collection, requestTreePath = []) => {
     }
   });
   for (let i of requestTreePath) {
+    if (!i) {
+      continue;
+    }
+
     if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.req', []);
+      // Check draft first, then fall back to root
+      const folderRoot = i.draft || i.root;
+      let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderVariables[_var.name] = _var.value;
         }
       });
     } else {
-      let vars = get(i, 'request.vars.req', []);
+      let vars = i.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           requestVariables[_var.name] = _var.value;
@@ -1480,8 +1527,9 @@ export const getVariableScope = (variableName, collection, item) => {
   }
 
   // 1. Check Request Variables (highest priority)
-  if (item && item.request && item.request.vars && item.request.vars.req) {
-    const requestVar = item.request.vars.req.find((v) => v.name === variableName && v.enabled);
+  if (item) {
+    const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
+    const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
     if (requestVar) {
       return {
         type: 'request',
@@ -1495,8 +1543,14 @@ export const getVariableScope = (variableName, collection, item) => {
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   for (let i = requestTreePath.length - 1; i >= 0; i--) {
     const pathItem = requestTreePath[i];
+    if (!pathItem) {
+      continue;
+    }
+
     if (pathItem.type === 'folder') {
-      const folderVars = get(pathItem, 'root.request.vars.req', []);
+      // Check draft first, then fall back to root
+      const folderRoot = pathItem.draft || pathItem.root;
+      const folderVars = get(folderRoot, 'request.vars.req', []);
       const folderVar = folderVars.find((v) => v.name === variableName && v.enabled);
       if (folderVar) {
         return {
@@ -1524,7 +1578,9 @@ export const getVariableScope = (variableName, collection, item) => {
   }
 
   // 4. Check Collection Variables
-  const collectionVars = get(collection, 'root.request.vars.req', []);
+  // Check draft first, then fall back to root
+  const collectionRoot = (collection.draft && collection.draft.root) || collection.root || {};
+  const collectionVars = get(collectionRoot, 'request.vars.req', []);
   const collectionVar = collectionVars.find((v) => v.name === variableName && v.enabled);
   if (collectionVar) {
     return {

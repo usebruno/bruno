@@ -9,7 +9,7 @@ const StyledWrapper = styled.div`
 
     .CodeMirror {
       height: 100%;
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       line-height: 1.5;
       padding: 0;
 
@@ -20,7 +20,7 @@ const StyledWrapper = styled.div`
 
       .CodeMirror-linenumber {
         color: ${props => props.theme.colors.text.muted};
-        font-size: 11px;
+        font-size: ${(props) => props.theme.font.size.xs};
         padding: 0 3px 0 5px;
       }
 

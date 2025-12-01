@@ -60,12 +60,12 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        className={`block ml-14 p-2 py-1 sm:text-sm transition-all duration-200 ease-in-out border border-gray-300 rounded-md ${
+        className={`block ml-14 p-2 py-1 transition-all duration-200 ease-in-out border border-gray-300 rounded-md ${
           isExpanded ? 'w-full opacity-100 pointer-events-auto' : 'w-[0] opacity-0'
         }`}
         onChange={onChange}
       />
-      <div className="text-gray-500 sm:text-sm cursor-pointer pointer-events-auto" id="request-filter-icon" onClick={handleFilterClick}>
+      <div className="text-gray-500 cursor-pointer pointer-events-auto" id="request-filter-icon" onClick={handleFilterClick}>
         {isExpanded ? <IconX size={20} strokeWidth={1.5} /> : <IconFilter size={20} strokeWidth={1.5} />}
       </div>
     </div>
