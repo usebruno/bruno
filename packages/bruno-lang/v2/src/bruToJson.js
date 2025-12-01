@@ -470,9 +470,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     if (settings.preserveDotSegments !== undefined) {
-      parsedSettings.preserveDotSegments = typeof settings.preserveDotSegments === 'boolean'
-        ? settings.preserveDotSegments
-        : settings.preserveDotSegments === 'true';
+      parsedSettings.preserveDotSegments = typeof settings.preserveDotSegments === 'boolean' ? settings.preserveDotSegments : settings.preserveDotSegments === 'true';
     }
 
     // Parse maxRedirects as number
