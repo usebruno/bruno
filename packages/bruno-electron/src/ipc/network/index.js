@@ -1,3 +1,4 @@
+const http = require('http');
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
@@ -40,23 +41,6 @@ const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
-const getRawPathHttpAdapter = (() => {
-  let adapterPromise;
-  return () => {
-    if (!adapterPromise) {
-      adapterPromise = import('./http-raw-path-adapter.mjs')
-        .then((mod) => {
-          const adapter = mod.default || mod;
-          return typeof adapter === 'function'
-            ? adapter
-            : (axios.getAdapter ? axios.getAdapter(['http', 'https']) : axios.defaults.adapter);
-        })
-        .catch(() => axios.getAdapter ? axios.getAdapter(['http', 'https']) : axios.defaults.adapter);
-    }
-    return adapterPromise;
-  };
-})();
-
 const extractRawPath = (targetUrl) => {
   if (!targetUrl || typeof targetUrl !== 'string') {
     return undefined;
@@ -71,6 +55,37 @@ const extractRawPath = (targetUrl) => {
   const normalized = pathAndQuery?.length ? pathAndQuery : '/';
 
   return normalized.startsWith('/') ? normalized : `/${normalized}`;
+};
+
+const isAbsolutePath = (value) => typeof value === 'string' && /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(value);
+
+const buildRawPathTransport = ({ rawPath, targetOrigin }) => {
+  const [rawPathBase, rawPathQuery] = rawPath.split('?');
+
+  return {
+    request: (options, cb) => {
+      const queryFromOptions = (() => {
+        if (typeof options.path !== 'string') {
+          return rawPathQuery ? `?${rawPathQuery}` : '';
+        }
+
+        const idx = options.path.indexOf('?');
+        if (idx === -1) {
+          return rawPathQuery ? `?${rawPathQuery}` : '';
+        }
+
+        return options.path.slice(idx);
+      })();
+
+      const rawPathWithQuery = `${rawPathBase}${queryFromOptions}`;
+      const useProxyPath = isAbsolutePath(options.path) && targetOrigin;
+      const nextPath = useProxyPath ? `${targetOrigin}${rawPathWithQuery}` : rawPathWithQuery;
+      const isHttpsRequest = /^https:?/.test(options.protocol || '');
+      const transport = isHttpsRequest ? https : http;
+
+      return transport.request({ ...options, path: nextPath }, cb);
+    }
+  };
 };
 
 const saveCookies = (url, headers) => {
@@ -333,8 +348,15 @@ const configureRequest = async (
   if (preserveDotSegments) {
     const rawPath = extractRawPath(request.url);
     if (rawPath) {
-      request.rawPath = rawPath;
-      request.adapter = await getRawPathHttpAdapter();
+      try {
+        const { origin } = new URL(request.url);
+        request.transport = buildRawPathTransport({
+          rawPath,
+          targetOrigin: origin
+        });
+      } catch (err) {
+        // If the URL cannot be parsed, fall back to default behavior
+      }
     }
   }
 
