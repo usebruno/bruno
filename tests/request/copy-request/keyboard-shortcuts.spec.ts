@@ -45,7 +45,6 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
 
     // Verify paste success
     await expect(page.getByText(/pasted successfully/i).first()).toBeVisible();
-    await page.waitForTimeout(1000);
 
     // Verify the pasted request appears
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toHaveCount(2);
@@ -87,7 +86,6 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
 
     // Verify paste success
     await expect(page.getByText(/pasted successfully/i).first()).toBeVisible();
-    await page.waitForTimeout(1000);
 
     // Verify the pasted folder appears
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toHaveCount(2);

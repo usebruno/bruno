@@ -50,7 +50,6 @@ test.describe('Copy and Paste Requests', () => {
     await folder.locator('.menu-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Paste' }).click();
 
-    await page.waitForTimeout(2000);
     await expect(page.locator('.collection-item-name').filter({ hasText: 'original-request' })).toHaveCount(3);
   });
 

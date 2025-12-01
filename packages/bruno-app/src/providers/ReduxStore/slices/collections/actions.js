@@ -1003,7 +1003,7 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
           set(copiedItem, 'name', newName);
           set(copiedItem, 'filename', newFilename);
           set(copiedItem, 'root.meta.name', newName);
-          set(copiedItem, 'root.meta.seq', existingItems?.length + 1);
+          set(copiedItem, 'root.meta.seq', (existingItems?.length ?? 0) + 1);
 
           const fullPathname = path.join(targetParentPathname, newFilename);
           const { ipcRenderer } = window;
@@ -1058,7 +1058,7 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
       const { ipcRenderer } = window;
 
       ipcRenderer
-        .invoke('renderer:delete-item', item.pathname, item.type)
+        .invoke('renderer:delete-item', item.pathname, item.type, collection.pathname)
         .then(async () => {
           // Reorder items in parent directory after deletion
           if (parentDirectoryItem.items) {
