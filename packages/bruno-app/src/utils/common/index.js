@@ -254,6 +254,44 @@ export const sortByNameThenSequence = items => {
   return sortedItems.flat();
 };
 
+/**
+ * Sort items alphabetically by name only, ignoring seq property
+ * Uses locale-aware, case-insensitive natural sorting
+ * @param {Array} items - Items to sort
+ * @returns {Array} - Sorted items
+ */
+export const sortByNameOnly = (items) => {
+  return [...items].sort((a, b) => {
+    if (!a.name || !b.name) return 0;
+    return a.name.localeCompare(b.name, undefined, {
+      numeric: true, // Handle numbers naturally (e.g., "item2" before "item10")
+      sensitivity: 'base' // Case-insensitive, ignore accents
+    });
+  });
+};
+
+/**
+ * Sort items based on collection's folder sort mode
+ * @param {Array} items - Items to sort (folders or requests)
+ * @param {string} sortMode - 'manual' or 'alphabetical'
+ * @param {boolean} isFolder - If true, respects sortMode. If false (requests), always uses seq
+ * @returns {Array} - Sorted items
+ */
+export const sortItemsBySortMode = (items, sortMode = 'manual', isFolder = false) => {
+  // Requests always sort by sequence
+  if (!isFolder) {
+    return items.sort((a, b) => a.seq - b.seq);
+  }
+
+  // Folders: respect sortMode
+  if (sortMode === 'alphabetical') {
+    return sortByNameOnly(items);
+  }
+
+  // Default: manual ordering with seq (current behavior)
+  return sortByNameThenSequence(items);
+};
+
 // Memory threshold to prevent crashes when decoding large buffers
 const LARGE_BUFFER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
 
