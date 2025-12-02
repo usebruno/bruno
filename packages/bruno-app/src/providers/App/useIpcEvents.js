@@ -164,7 +164,7 @@ const useIpcEvents = () => {
     const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {
       dispatch(updatePreferences(val));
       // Restore sidebar width from preferences if available
-      if (val?.layout?.leftSidebarWidth) {
+      if (val?.layout && val.layout.leftSidebarWidth != null) {
         dispatch(updateLeftSidebarWidth({
           leftSidebarWidth: val.layout.leftSidebarWidth
         }));

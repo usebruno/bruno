@@ -47,7 +47,9 @@ const Sidebar = () => {
         })
       );
       // Save sidebar width to preferences
-      dispatch(saveSidebarWidth(asideWidth));
+      if (asideWidth !== leftSidebarWidth) {
+        dispatch(saveSidebarWidth(asideWidth));
+      }
     }
   };
   const handleDragbarMouseDown = (e) => {

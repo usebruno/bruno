@@ -142,24 +142,16 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
 };
 
 export const saveSidebarWidth = (leftSidebarWidth) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    const currentPreferences = getState().app.preferences;
+  const currentPreferences = getState().app.preferences;
+  const updatedPreferences = {
+    ...currentPreferences,
+    layout: {
+      ...currentPreferences.layout,
+      leftSidebarWidth
+    }
+  };
 
-    const updatedPreferences = {
-      ...currentPreferences,
-      layout: {
-        ...currentPreferences.layout,
-        leftSidebarWidth
-      }
-    };
-
-    ipcRenderer
-      .invoke('renderer:save-preferences', updatedPreferences)
-      .then(() => dispatch(updatePreferences(updatedPreferences)))
-      .then(resolve)
-      .catch(reject);
-  });
+  return dispatch(savePreferences(updatedPreferences));
 };
 
 export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
