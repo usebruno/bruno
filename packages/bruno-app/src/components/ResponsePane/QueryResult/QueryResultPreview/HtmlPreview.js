@@ -1,5 +1,6 @@
 import React from 'react';
-import { escapeHtml, isValidHtml, isValidHtmlSnippet } from 'utils/common/index';
+import { isValidHtml } from 'utils/common/index';
+import { escapeHtml, isValidHtmlSnippet } from 'utils/response/index';
 
 const HtmlPreview = React.memo(({ data, baseUrl }) => {
   if (isValidHtml(data) || isValidHtmlSnippet(data)) {

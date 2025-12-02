@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import find from 'lodash/find';
@@ -11,11 +11,11 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
 GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
-import ReactJson from 'react-json-view';
 import XmlPreview from './XmlPreview';
 import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
+import JsonPreview from './JsonPreview';
 
 const QueryResultPreview = ({
   selectedTab,
@@ -85,7 +85,7 @@ const QueryResultPreview = ({
       return <HtmlPreview data={data} baseUrl={baseUrl} />;
     }
     case 'preview-image': {
-      return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />;
+      return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} />;
     }
     case 'preview-pdf': {
       return (
@@ -107,23 +107,7 @@ const QueryResultPreview = ({
       return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
     case 'preview-json': {
-      return (
-        <ReactJson
-          src={data}
-          theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
-          collapsed={1}
-          displayDataTypes={false}
-          displayObjectSize={true}
-          enableClipboard={true}
-          name={false}
-          style={{
-            backgroundColor: 'transparent',
-            fontSize: '12px',
-            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-            padding: '16px'
-          }}
-        />
-      );
+      return <JsonPreview data={data} displayedTheme={displayedTheme} />;
     }
 
     case 'preview-text': {

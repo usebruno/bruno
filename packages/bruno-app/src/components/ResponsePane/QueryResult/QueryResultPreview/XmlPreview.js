@@ -1,3 +1,4 @@
+import ErrorAlert from 'components/ErrorAlert/index';
 import React, { useState, useMemo } from 'react';
 
 // The expected "data" prop must be an XML string.
@@ -18,9 +19,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
   // Check for parsing error
   if (parsedData && typeof parsedData === 'object' && parsedData.error) {
     return (
-      <div className="font-mono text-[12px] leading-[20px] p-5 overflow-auto text-black dark:text-white">
-        <ErrorNode message={parsedData.error} />
-      </div>
+      <ErrorAlert title="Cannot preview as XML" message={parsedData.error} />
     );
   }
 
@@ -34,9 +33,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
 
   if (!isValidTreeData(parsedData)) {
     return (
-      <div className="font-mono text-[12px] leading-[20px] p-4 overflow-auto text-black dark:text-white">
-        <ErrorNode message="Data cannot be rendered as a tree. Expected a valid XML string." />
-      </div>
+      <ErrorAlert title="Cannot preview as XML" message="Data cannot be rendered as a tree. Expected a valid XML string." />
     );
   }
 
@@ -52,9 +49,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
     } else if (keys.length === 0) {
       // Empty object with no children
       return (
-        <div className="font-mono text-[12px] leading-[20px] p-4 overflow-auto text-black dark:text-white">
-          <ErrorNode message="Cannot render XML tree. Root object is empty." />
-        </div>
+        <ErrorAlert title="Cannot preview as XML" message="Cannot render XML tree. Root object is empty." />
       );
     }
   }
@@ -72,28 +67,6 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
   );
 }
 
-// Error node component to display error messages in tree format
-const ErrorNode = ({ message }) => {
-  return (
-    <div>
-      <div className="flex items-center mb-1">
-        <span className="text-[#666] dark:text-[#569cd6] mr-2">▼</span>
-        <span className="text-black dark:text-[#d4d4d4]">"ERROR"</span>
-        <span className="text-[#666] dark:text-[#808080] mx-2">:</span>
-        <span className="text-[#666] dark:text-[#808080]">{`{`}</span>
-        <span className="text-[#999] dark:text-[#6a9955] ml-2 italic text-[12px]">1 item</span>
-      </div>
-      <div className="ml-6 mb-1">
-        <span className="text-black dark:text-[#d4d4d4]">"message"</span>
-        <span className="text-[#666] dark:text-[#808080] mx-2">:</span>
-        <span className="text-[#c41a16] dark:text-[#ce9178]">"{message}"</span>
-      </div>
-      <div className="flex items-center">
-        <span className="text-[#666] dark:text-[#808080]">{`}`}</span>
-      </div>
-    </div>
-  );
-};
 
 const XmlNode = ({
   node,
