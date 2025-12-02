@@ -1,33 +1,46 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
-import { IconCopy } from '@tabler/icons';
+import { IconCopy, IconCheck } from '@tabler/icons';
 
 const ResponseCopy = ({ item }) => {
   const response = item.response || {};
+  const [copied, setCopied] = useState(false);
 
-  const copyResponse = () => {
+  useEffect(() => {
+    if (copied) {
+      const timer = setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copied]);
+
+  const copyResponse = async () => {
     try {
-    const textToCopy = typeof response.data === 'string'
-      ? response.data
-      : JSON.stringify(response.data, null, 2);
+      const textToCopy = typeof response.data === 'string'
+        ? response.data
+        : JSON.stringify(response.data, null, 2);
 
-    navigator.clipboard.writeText(textToCopy).then(() => {
+      await navigator.clipboard.writeText(textToCopy);
       toast.success('Response copied to clipboard');
-    }).catch(() => {
-        toast.error('Failed to copy response');
-    });
+      setCopied(true);
     } catch (error) {
-    toast.error('Failed to copy response');
+      toast.error('Failed to copy response');
     }
   };
 
   return (
     <StyledWrapper className="ml-2 flex items-center">
       <button onClick={copyResponse} disabled={!response.data} title="Copy response to clipboard">
-        <IconCopy size={16} strokeWidth={1.5} />
+        {copied ? (
+          <IconCheck size={16} strokeWidth={1.5} />
+        ) : (
+          <IconCopy size={16} strokeWidth={1.5} />
+        )}
       </button>
     </StyledWrapper>
   );
 };
+
 export default ResponseCopy;
