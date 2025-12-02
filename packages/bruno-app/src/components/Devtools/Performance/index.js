@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import {
@@ -6,11 +6,22 @@ import {
   IconDatabase,
   IconClock,
   IconServer,
-  IconChartLine
+  IconChevronDown
 } from '@tabler/icons';
+
+const getProcessOptions = (processes) => {
+  return [
+    { value: 'cumulative', label: 'Cumulative (All Processes)' },
+    ...(processes ?? []).map((process) => ({
+      value: String(process.pid),
+      label: `PID ${process.pid}${process.title ? ` - ${process.title}` : ''}${process.type ? ` (${process.type})` : ''}`
+    }))
+  ];
+};
 
 const Performance = () => {
   const { systemResources } = useSelector((state) => state.performance);
+  const [selectedPid, setSelectedPid] = useState('cumulative');
 
   useEffect(() => {
     const { ipcRenderer } = window;
@@ -82,46 +93,139 @@ const Performance = () => {
     </div>
   );
 
+  // Get process options for dropdown
+  const processOptions = useMemo(() => getProcessOptions(systemResources.processes), [systemResources.processes]);
+
+  // Get selected process data
+  const selectedProcess = useMemo(() => {
+    if (selectedPid === 'cumulative') {
+      return null; // Show cumulative view
+    }
+    const processes = systemResources.processes || [];
+    return processes.find((p) => String(p.pid) === selectedPid) || null;
+  }, [selectedPid, systemResources.processes]);
+
+  // Reset to cumulative if selected PID no longer exists
+  useEffect(() => {
+    if (selectedPid !== 'cumulative' && !selectedProcess) {
+      setSelectedPid('cumulative');
+    }
+  }, [selectedPid, selectedProcess]);
+
+  const renderCumulativeView = () => (
+    <div className="system-resources">
+      <h2>System Resources</h2>
+      <div className="resource-cards">
+        <SystemResourceCard
+          icon={IconCpu}
+          title="CPU Usage"
+          value={`${systemResources.cpu.toFixed(1)}%`}
+          subtitle="Total CPU usage"
+          color={systemResources.cpu > 80 ? 'danger' : systemResources.cpu > 60 ? 'warning' : 'success'}
+        />
+
+        <SystemResourceCard
+          icon={IconDatabase}
+          title="Memory Usage"
+          value={formatBytes(systemResources.memory)}
+          subtitle="Total memory usage"
+          color={systemResources.memory > (500 * 1024 * 1024) ? 'danger' : 'default'}
+        />
+
+        <SystemResourceCard
+          icon={IconClock}
+          title="Uptime"
+          value={formatUptime(systemResources.uptime)}
+          subtitle="Process runtime"
+          color="info"
+        />
+
+        <SystemResourceCard
+          icon={IconServer}
+          title="Process ID"
+          value={systemResources.pid || 'N/A'}
+          subtitle="Main process PID"
+          color="default"
+        />
+      </div>
+    </div>
+  );
+
+  const renderProcessView = (process) => {
+    if (!process) return null;
+
+    // Calculate uptime for individual process
+    const processUptime = process.creationTime
+      ? (new Date() - new Date(process.creationTime)) / 1000
+      : 0;
+
+    return (
+      <div className="system-resources">
+        <h2>System Resources</h2>
+        <div className="resource-cards">
+          <SystemResourceCard
+            icon={IconCpu}
+            title="CPU Usage"
+            value={`${process.cpu.toFixed(1)}%`}
+            subtitle="Current CPU usage"
+            color={process.cpu > 80 ? 'danger' : process.cpu > 60 ? 'warning' : 'success'}
+          />
+
+          <SystemResourceCard
+            icon={IconDatabase}
+            title="Memory Usage"
+            value={formatBytes(process.memory)}
+            subtitle="Current memory usage"
+            color={process.memory > (500 * 1024 * 1024) ? 'danger' : 'default'}
+          />
+
+          <SystemResourceCard
+            icon={IconClock}
+            title="Uptime"
+            value={formatUptime(processUptime)}
+            subtitle="Process runtime"
+            color="info"
+          />
+
+          <SystemResourceCard
+            icon={IconServer}
+            title="Process ID"
+            value={process.pid}
+            subtitle="Process PID"
+            color="default"
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <StyledWrapper>
       <div className="tab-content">
-        <div className="tab-content-area">
-          <div className="system-resources">
-            <h2>System Resources</h2>
-            <div className="resource-cards">
-              <SystemResourceCard
-                icon={IconCpu}
-                title="CPU Usage"
-                value={`${systemResources.cpu.toFixed(1)}%`}
-                subtitle="Current process"
-                color={systemResources.cpu > 80 ? 'danger' : systemResources.cpu > 60 ? 'warning' : 'success'}
-              />
-
-              <SystemResourceCard
-                icon={IconDatabase}
-                title="Memory Usage"
-                value={formatBytes(systemResources.memory)}
-                subtitle="Current process"
-                color={systemResources.memory > 500 * 1024 * 1024 ? 'danger' : 'default'}
-              />
-
-              <SystemResourceCard
-                icon={IconClock}
-                title="Uptime"
-                value={formatUptime(systemResources.uptime)}
-                subtitle="Process runtime"
-                color="info"
-              />
-
-              <SystemResourceCard
-                icon={IconServer}
-                title="Process ID"
-                value={systemResources.pid || 'N/A'}
-                subtitle="Current PID"
-                color="default"
-              />
+        <div className="performance-header">
+          <div className="performance-selector-wrapper">
+            <label htmlFor="process-selector" className="performance-selector-label">
+              View:
+            </label>
+            <div className="performance-selector">
+              <select
+                id="process-selector"
+                value={selectedPid}
+                onChange={(e) => setSelectedPid(e.target.value)}
+                className="performance-select"
+              >
+                {processOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <IconChevronDown size={16} className="performance-select-icon" />
             </div>
           </div>
+        </div>
+        <div className="tab-content-area">
+          {selectedPid === 'cumulative' ? renderCumulativeView() : renderProcessView(selectedProcess)}
         </div>
       </div>
     </StyledWrapper>
