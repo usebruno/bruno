@@ -67,7 +67,6 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
   );
 }
 
-
 const XmlNode = ({
   node,
   nodeName = '',
