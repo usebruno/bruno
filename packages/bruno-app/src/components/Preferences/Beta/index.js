@@ -8,14 +8,16 @@ import toast from 'react-hot-toast';
 import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
 
-// Beta features configuration
-const BETA_FEATURES = [
-  {
-    id: 'nodevm',
-    label: 'Node VM Runtime',
-    description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
-  }
-];
+/**
+ * Add beta features here.
+ * Example:
+ * {
+ *   id: 'nodevm',
+ *   label: 'Node VM Runtime',
+ *   description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
+ * }
+ */
+const BETA_FEATURES = [];
 
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -76,9 +78,9 @@ const Beta = ({ close }) => {
         <div className="mb-6">
           <div className="flex items-center mb-2">
             <IconFlask size={20} className="mr-2 text-orange-500" />
-            <h2 className="text-lg font-semibold">Beta Features</h2>
+            <h2 className="text-lg font-medium">Beta Features</h2>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-wrap">
+          <p className="text-gray-500 dark:text-gray-400 mb-4 text-wrap">
             Beta features are experimental previews that may change before full release. Try them and share feedback.
           </p>
         </div>

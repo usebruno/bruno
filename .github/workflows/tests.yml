@@ -13,7 +13,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
@@ -67,7 +67,7 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
@@ -96,7 +96,7 @@ jobs:
         run: |
           cd packages/bruno-tests/collection
           npm install
-          node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
+          node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer
 
       - name: Publish Test Report
         uses: EnricoMi/publish-unit-test-result-action@v2
@@ -110,7 +110,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-node@v5
       with:
         node-version: v22.11.x
@@ -142,7 +142,7 @@ jobs:
     - name: Run Playwright tests
       run: |
         xvfb-run npm run test:e2e
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       if: ${{ !cancelled() }}
       with:
         name: playwright-report

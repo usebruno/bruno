@@ -40,7 +40,7 @@ const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) =>
   });
 
   return (
-    <div className="flex flex-grow justify-end items-center" style={{ fontSize: 13 }}>
+    <div className="flex flex-grow justify-end items-center">
       <div className="flex items-center cursor-pointer hover:underline" onClick={toggleDocs}>
         <IconBook size={18} strokeWidth={1.5} />
         <span className="ml-1">Docs</span>

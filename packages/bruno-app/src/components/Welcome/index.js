@@ -68,10 +68,10 @@ const Welcome = () => {
       <div aria-hidden className="">
         <Bruno width={50} />
       </div>
-      <div className="text-xl font-semibold select-none">bruno</div>
+      <div className="text-xl font-medium select-none">bruno</div>
       <div className="mt-4">{t('WELCOME.ABOUT_BRUNO')}</div>
 
-      <div className="uppercase font-semibold heading mt-10">{t('COMMON.COLLECTIONS')}</div>
+      <div className="uppercase font-medium heading mt-10">{t('COMMON.COLLECTIONS')}</div>
       <div className="mt-4 flex items-center collection-options select-none">
         <button
           className="flex items-center"
@@ -101,7 +101,7 @@ const Welcome = () => {
         </button>
       </div>
 
-      <div className="uppercase font-semibold heading mt-10 pt-6">{t('WELCOME.LINKS')}</div>
+      <div className="uppercase font-medium heading mt-10 pt-6">{t('WELCOME.LINKS')}</div>
       <div className="mt-4 flex flex-col collection-options select-none">
         <div className="flex items-center mt-2">
           <a

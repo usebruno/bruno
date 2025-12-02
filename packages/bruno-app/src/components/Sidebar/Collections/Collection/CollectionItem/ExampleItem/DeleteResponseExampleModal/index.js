@@ -28,7 +28,7 @@ const DeleteResponseExampleModal = ({ onClose, example, item, collection }) => {
         handleCancel={onClose}
         confirmButtonClass="btn-danger"
       >
-        Are you sure you want to delete the example <span className="font-semibold">{example.name}</span>?
+        Are you sure you want to delete the example <span className="font-medium">{example.name}</span>?
       </Modal>
     </Portal>
   );

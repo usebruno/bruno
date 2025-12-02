@@ -112,7 +112,7 @@ const ProtobufSettings = ({ collection }) => {
       <div className="mb-6" data-testid="protobuf-proto-files-section">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
-            <label className="font-semibold text-sm flex items-center" htmlFor="protoFiles">
+            <label className="font-medium flex items-center" htmlFor="protoFiles">
               Proto Files (
               {protoFiles.length}
               )
@@ -156,7 +156,7 @@ const ProtobufSettings = ({ collection }) => {
                   <td colSpan="3" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
                     <div className="flex flex-col items-center">
                       <IconFile size={24} className="text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">No proto files added</span>
+                      <span className="text-gray-500 dark:text-gray-400">No proto files added</span>
                     </div>
                   </td>
                 </tr>
@@ -169,7 +169,7 @@ const ProtobufSettings = ({ collection }) => {
                       <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
                         <div className="flex items-center">
                           <IconFile size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
-                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100" data-testid="protobuf-proto-file-name">
+                          <span className="font-medium text-gray-900 dark:text-gray-100" data-testid="protobuf-proto-file-name">
                             {getBasename(collection.pathname, file.path)}
                           </span>
                           {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
@@ -219,7 +219,7 @@ const ProtobufSettings = ({ collection }) => {
       <div className="mb-6" data-testid="protobuf-import-paths-section">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
-            <label className="font-semibold text-sm flex items-center" htmlFor="importPaths">
+            <label className="font-medium flex items-center" htmlFor="importPaths">
               Import Paths (
               {importPaths.length}
               )
@@ -265,7 +265,7 @@ const ProtobufSettings = ({ collection }) => {
                   <td colSpan="4" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
                     <div className="flex flex-col items-center">
                       <IconFolder size={24} className="text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">No import paths added</span>
+                      <span className="text-gray-500 dark:text-gray-400">No import paths added</span>
                     </div>
                   </td>
                 </tr>
@@ -288,7 +288,7 @@ const ProtobufSettings = ({ collection }) => {
                       <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
                         <div className="flex items-center">
                           <IconFolder size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
-                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
                             {getBasename(collection.pathname, importPath.path)}
                           </span>
                           {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
