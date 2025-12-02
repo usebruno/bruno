@@ -7,7 +7,14 @@ import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { uuid } from '../../../utils';
 
-const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
+interface WebSocketRequestWithSettings extends WebSocketRequest {
+  settings?: {
+    timeout?: number;
+    keepAliveInterval?: number;
+  };
+}
+
+const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoItem => {
   const brunoRequest: BrunoWebSocketRequest = {
     url: ocRequest.url || '',
     headers: toBrunoHttpHeaders(ocRequest.headers) || [],
@@ -64,6 +71,21 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
     brunoRequest.docs = ocRequest.docs;
   }
 
+  // settings
+  const wsSettings: Record<string, number> = {
+    timeout: 0,
+    keepAliveInterval: 0
+  };
+
+  if (ocRequest.settings) {
+    if (typeof ocRequest.settings.timeout === 'number') {
+      wsSettings.timeout = ocRequest.settings.timeout;
+    }
+    if (typeof ocRequest.settings.keepAliveInterval === 'number') {
+      wsSettings.keepAliveInterval = ocRequest.settings.keepAliveInterval;
+    }
+  }
+
   // bruno item
   const brunoItem: BrunoItem = {
     uid: uuid(),
@@ -72,7 +94,7 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
     name: ocRequest.name || 'Untitled Request',
     tags: ocRequest.tags || [],
     request: brunoRequest,
-    settings: null,
+    settings: wsSettings as any,
     fileContent: null,
     root: null,
     items: [],

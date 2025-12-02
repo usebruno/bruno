@@ -31,7 +31,7 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   const brunoRequest: BrunoGrpcRequest = {
     url: ocRequest.url || '',
     method: ocRequest.method || '',
-    methodType: ocRequest.methodType || null,
+    methodType: ocRequest.methodType || '',
     protoPath: ocRequest.protoFilePath || null,
     headers: toBrunoGrpcMetadata(ocRequest.metadata) || [],
     auth: toBrunoAuth(ocRequest.auth),
@@ -97,7 +97,7 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     name: ocRequest.name || 'Untitled Request',
     tags: ocRequest.tags || [],
     request: brunoRequest,
-    settings: null,
+    settings: {},
     fileContent: null,
     root: null,
     items: [],
