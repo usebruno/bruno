@@ -37,6 +37,25 @@ const General = ({ close }) => {
       .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
         return value === undefined || Number(value) >= 0;
       }),
+    autoSave: Yup.object({
+      enabled: Yup.boolean(),
+      interval: Yup.mixed()
+        .transform((value, originalValue) => {
+          return originalValue === '' ? undefined : value;
+        })
+        .test('isNumber', 'Save Delay must be a number', (value) => {
+          return value === undefined || !isNaN(value);
+        })
+        .test('isValidInterval', 'Save Delay must be at least 500ms', (value) => {
+          return value === undefined || Number(value) >= 500;
+        })
+    }).test('intervalRequired', 'Save Delay is required when Auto Save is enabled', (value) => {
+      // If autosave is enabled, interval must be provided
+      if (value.enabled && (value.interval === undefined || value.interval === '')) {
+        return false;
+      }
+      return true;
+    }),
     defaultCollectionLocation: Yup.string().max(1024)
   });
 
@@ -53,6 +72,10 @@ const General = ({ close }) => {
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
       sendCookies: get(preferences, 'request.sendCookies', true),
+      autoSave: {
+        enabled: get(preferences, 'autoSave.enabled', false),
+        interval: get(preferences, 'autoSave.interval', 1000)
+      },
       defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', '')
     },
     validationSchema: preferencesSchema,
@@ -83,12 +106,16 @@ const General = ({ close }) => {
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies
         },
+        autoSave: {
+          enabled: newPreferences.autoSave.enabled,
+          interval: newPreferences.autoSave.interval
+        },
         general: {
           defaultCollectionLocation: newPreferences.defaultCollectionLocation
         }
       }))
       .then(() => {
-        toast.success('Preferences saved successfully')
+        toast.success('Preferences saved successfully');
         close();
       })
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -250,6 +277,40 @@ const General = ({ close }) => {
         {formik.touched.timeout && formik.errors.timeout ? (
           <div className="text-red-500">{formik.errors.timeout}</div>
         ) : null}
+        <div className="flex items-center mt-6">
+          <input
+            id="autoSaveEnabled"
+            type="checkbox"
+            name="autoSave.enabled"
+            checked={formik.values.autoSave.enabled}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="autoSaveEnabled">
+            Enable Auto Save
+          </label>
+        </div>
+        <div className={`flex flex-col mt-2 ${!formik.values.autoSave.enabled ? 'opacity-50' : ''}`}>
+          <label className="block select-none" htmlFor="autoSaveInterval">
+            Save Delay (in ms)
+          </label>
+          <input
+            type="text"
+            name="autoSave.interval"
+            id="autoSaveInterval"
+            className="block textbox mt-2 w-24"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={formik.handleChange}
+            value={formik.values.autoSave.interval}
+            disabled={!formik.values.autoSave.enabled}
+          />
+        </div>
+        {formik.touched.autoSave?.interval && formik.errors.autoSave?.interval && (
+          <div className="text-red-500">{formik.errors.autoSave.interval}</div>
+        )}
         <div className="flex flex-col mt-6">
           <label className="block select-none default-collection-location-label" htmlFor="defaultCollectionLocation">
             Default Collection Location
@@ -257,6 +318,7 @@ const General = ({ close }) => {
           <input
             type="text"
             name="defaultCollectionLocation"
+            id="defaultCollectionLocation"
             className="block textbox mt-2 w-full cursor-pointer default-collection-location-input"
             autoComplete="off"
             autoCorrect="off"

@@ -10,14 +10,12 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
-import { usePreferences } from 'providers/Preferences/index';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
-  const autoSavePreference = usePreferences().preferences.request.autoSave;
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const isMac = isMacOS();
@@ -35,8 +33,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     setMethodSelectorWidth(el.offsetWidth);
   }, [method]);
 
-  const onSave = (notify = 1) => {
-    dispatch(saveRequest(item.uid, collection.uid, notify));
+  const onSave = () => {
+    dispatch(saveRequest(item.uid, collection.uid));
   };
 
   const onUrlChange = (value) => {
@@ -120,7 +118,6 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           highlightPathParams={true}
           item={item}
           showNewlineArrow={true}
-          autoSave={autoSavePreference}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div

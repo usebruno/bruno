@@ -70,6 +70,7 @@ npm run build:bruno-query
 npm run build:bruno-common
 npm run build:bruno-converters
 npm run build:bruno-requests
+npm run build:schema-types
 npm run build:bruno-filestore
 
 # bundle js sandbox libraries
