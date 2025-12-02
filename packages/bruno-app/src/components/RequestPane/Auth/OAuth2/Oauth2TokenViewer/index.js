@@ -44,13 +44,13 @@ const TokenSection = ({ title, token }) => {
             <IconChevronRight size={18} className="text-gray-500" />
           }
           <div className="flex flex-row justify-between w-full">
-            <h3 className="text-sm font-medium">{title}</h3>
+            <h3 className="font-medium">{title}</h3>
             {decodedToken?.exp && <ExpiryTimer expiresIn={decodedToken?.exp} />}
           </div>
         </div>
       </div>
       {isExpanded && (
-        <div className="p-3 text-sm">
+        <div className="p-3">
           <div className="relative group">
             <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
@@ -163,7 +163,7 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
           </div>
         )     
       ) : (
-        <div className="text-sm text-gray-500 dark:text-gray-400">No token found</div>
+        <div className="text-gray-500 dark:text-gray-400">No token found</div>
       )}
     </StyledWrapper>
   );

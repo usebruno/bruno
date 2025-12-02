@@ -1,5 +1,5 @@
 import map from 'lodash/map';
-import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from '../common';
+import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, isItemARequest } from '../common';
 
 /**
  * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.
@@ -178,15 +178,18 @@ export const brunoToPostman = (collection) => {
         exec.push(...testsBlock.split('\n'));
       }
 
-      eventArray.push({
-        listen: 'test',
-        script: {
-          type: 'text/javascript',
-          packages: {},
-          requests: {},
-          exec: exec
-        }
-      });
+      // Only push the event if exec has content
+      if (exec.length > 0) {
+        eventArray.push({
+          listen: 'test',
+          script: {
+            type: 'text/javascript',
+            packages: {},
+            requests: {},
+            exec: exec
+          }
+        });
+      }
     }
     return eventArray;
   };
@@ -464,7 +467,7 @@ export const brunoToPostman = (collection) => {
           item: generateItemSection(item.items),
           ...(folderEvents.length ? { event: folderEvents } : {})
         };
-      } else {
+      } else if (isItemARequest(item)) {
         const requestEvents = generateEventSection(item.request);
         const postmanItem = {
           name: item.name || 'Untitled Request',
@@ -479,7 +482,8 @@ export const brunoToPostman = (collection) => {
 
         return postmanItem;
       }
-    });
+      return null;
+    }).filter(Boolean);
   };
   const collectionToExport = {};
   collectionToExport.info = generateInfoSection();

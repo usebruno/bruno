@@ -32,7 +32,7 @@ const FullscreenLoader = ({ isLoading }) => {
       <div className="flex flex-col items-center p-8 rounded-lg bg-white dark:bg-zinc-800 shadow-lg max-w-md text-center">
         <IconLoader2 className="animate-spin h-12 w-12 mb-4" strokeWidth={1.5} />
         <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50 mb-2">{loadingMessage}</h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-zinc-500 dark:text-zinc-400">
           This may take a moment depending on the collection size
         </p>
       </div>

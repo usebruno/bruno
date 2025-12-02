@@ -1,4 +1,5 @@
-const { flattenDataForDotNotation } = require('../../src/utils/common');
+const { flattenDataForDotNotation, parseDataFromRequest } = require('../../src/utils/common');
+const FormData = require('form-data');
 
 describe('utils: flattenDataForDotNotation', () => {
   test('Flatten a simple object with dot notation', () => {
@@ -81,5 +82,25 @@ describe('utils: flattenDataForDotNotation', () => {
     };
   
     expect(flattenDataForDotNotation(input)).toEqual(expectedOutput);
+  });
+});
+
+describe('utils: parseDataFromRequest', () => {
+  test('should format multipart FormData', () => {
+    const formData = new FormData();
+    formData._boundary = 'boundary123';
+    const request = {
+      data: formData,
+      _originalMultipartData: [
+        { name: 'description', type: 'text', value: 'dfv' },
+        { name: 'file', type: 'file', value: ['Dumy.xml'] }
+      ],
+      headers: {}
+    };
+
+    const result = parseDataFromRequest(request);
+    expect(result.data).toContain('name: description');
+    expect(result.data).toContain('value: dfv');
+    expect(result.data).toContain('value: [File: Dumy.xml]');
   });
 });

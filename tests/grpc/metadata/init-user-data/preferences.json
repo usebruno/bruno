@@ -1,5 +1,5 @@
 {
-  "maximized": true,
+  "maximized": false,
   "lastOpenedCollections": [
     "{{projectRoot}}/tests/grpc/metadata/fixtures/collection"
   ],

@@ -6,13 +6,13 @@ import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { deleteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { recursivelyGetAllItemUids } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
 
 const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const onConfirm = () => {
     dispatch(deleteItem(item.uid, collectionUid)).then(() => {
-
       if (isFolder) {
         // close all tabs that belong to the folder
         // including the folder itself and its children
@@ -30,6 +30,9 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
           })
         );
       }
+    }).catch((error) => {
+      console.error('Error deleting item', error);
+      toast.error(error?.message || 'Error deleting item');
     });
     onClose();
   };
@@ -43,7 +46,7 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
         handleConfirm={onConfirm}
         handleCancel={onClose}
       >
-        Are you sure you want to delete <span className="font-semibold">{item.name}</span> ?
+        Are you sure you want to delete <span className="font-medium">{item.name}</span> ?
       </Modal>
     </StyledWrapper>
   );

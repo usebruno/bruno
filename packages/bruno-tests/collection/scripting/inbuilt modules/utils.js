@@ -1,19 +1,6 @@
-const doesUint8ArraysWorkAsExpected = () => {
-  try {
-    const util = require('node:util');
-    // node:vm - true
-    // vm2 - false
-    return util.types.isUint8Array(new Uint8Array(32));
-  }
-  catch (err) {
-    // safe mode [quickjs], will work as expected
-    return true;
-  }
-}
-
 const isUint8Array = (val) => {
   try {
-    // developer mode [node:vm and vm2]
+    // developer mode [node:vm]
     const util = require('node:util');
     return util.types.isUint8Array(val);
   }
@@ -25,7 +12,7 @@ const isUint8Array = (val) => {
 
 const getRandomValuesFunction = (typedArray) => {
   try {
-    // developer mode [node:vm and vm2]
+    // developer mode [node:vm]
     const crypto = require('node:crypto');
     return crypto.getRandomValues(typedArray);
   }
@@ -37,7 +24,7 @@ const getRandomValuesFunction = (typedArray) => {
 
 const randomBytesFunction = (num) => {
   try {
-    // developer mode [node:vm and vm2]
+    // developer mode [node:vm]
     const crypto = require('node:crypto');
     return crypto.randomBytes(num);
   }
@@ -49,7 +36,6 @@ const randomBytesFunction = (num) => {
 
 
 module.exports = {
-  doesUint8ArraysWorkAsExpected,
   isUint8Array,
   getRandomValuesFunction,
   randomBytesFunction
