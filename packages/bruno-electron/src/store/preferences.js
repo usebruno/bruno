@@ -47,6 +47,10 @@ const defaultPreferences = {
   },
   general: {
     defaultCollectionLocation: ''
+  },
+  autoSave: {
+    enabled: false,
+    interval: 1000
   }
 };
 
@@ -90,6 +94,10 @@ const preferencesSchema = Yup.object().shape({
   }),
   general: Yup.object({
     defaultCollectionLocation: Yup.string().max(1024).nullable()
+  }),
+  autoSave: Yup.object({
+    enabled: Yup.boolean(),
+    interval: Yup.number().min(100)
   })
 });
 

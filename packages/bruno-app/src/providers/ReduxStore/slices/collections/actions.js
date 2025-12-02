@@ -94,7 +94,7 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   });
 };
 
-export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, getState) => {
+export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -116,7 +116,7 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave, collection.format))
       .then(() => {
-        if (!saveSilently) {
+        if (!silent) {
           toast.success('Request saved successfully');
         }
         dispatch(
@@ -196,7 +196,7 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState) => {
+export const saveFolderRoot = (collectionUid, folderUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const folder = findItemInCollection(collection, folderUid);
@@ -225,7 +225,9 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)
       .then(() => {
-        toast.success('Folder Settings saved successfully');
+        if (!silent) {
+          toast.success('Folder Settings saved successfully');
+        }
         // If there was a draft, save it to root and clear the draft
         if (folder.draft) {
           dispatch(saveFolderDraft({ collectionUid, folderUid }));
@@ -2128,7 +2130,7 @@ export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   });
 };
 
-export const saveCollectionSettings = (collectionUid, brunoConfig = null) => (dispatch, getState) => {
+export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -2156,7 +2158,9 @@ export const saveCollectionSettings = (collectionUid, brunoConfig = null) => (di
 
     Promise.all(savePromises)
       .then(() => {
-        toast.success('Collection Settings saved successfully');
+        if (!silent) {
+          toast.success('Collection Settings saved successfully');
+        }
         dispatch(saveCollectionDraft({ collectionUid }));
       })
       .then(resolve)
