@@ -6,6 +6,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { preferencesUtil } = require('../store/preferences');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
+const { getPacResolver } = require('../../../bruno-common/src/net/pac-resolver');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -296,7 +297,7 @@ function createTimelineAgentClass(BaseAgentClass) {
   };
 }
 
-function setupProxyAgents({
+async function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
   proxyConfig,
@@ -380,6 +381,42 @@ function setupProxyAgents({
     } else {
       const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
       requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+    }
+  } else if (proxyMode === 'pac') {
+    const pacUrl = get(proxyConfig, 'pacUrl');
+    console.log('PAC proxy mode with URL:', pacUrl);
+    if (pacUrl) {
+      try {
+        const resolver = await getPacResolver({ pacUrl: get(proxyConfig, 'pacUrl') });
+        const directives = await resolver.resolve(requestConfig.url);
+        if (directives && directives.length) {
+          const first = directives[0];
+          timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` });
+          if (/^DIRECT/i.test(first)) {
+            const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
+            requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+            return;
+          }
+          if (/^(PROXY|HTTP)\s+/i.test(first)) {
+            const hostPort = first.split(/\s+/)[1];
+            const proxyUri = `http://${hostPort}`;
+            const TimelineHttpsProxyAgent = createTimelineAgentClass(PatchedHttpsProxyAgent);
+            requestConfig.httpAgent = new HttpProxyAgent(proxyUri);
+            requestConfig.httpsAgent = new TimelineHttpsProxyAgent({ proxy: proxyUri, ...tlsOptions }, timeline);
+            return;
+          }
+          if (/^SOCKS/i.test(first)) {
+            const hostPort = first.split(/\s+/)[1];
+            const proxyUri = `socks5://${hostPort}`;
+            const TimelineSocksProxyAgent = createTimelineAgentClass(SocksProxyAgent);
+            requestConfig.httpAgent = new TimelineSocksProxyAgent({ proxy: proxyUri }, timeline);
+            requestConfig.httpsAgent = new TimelineSocksProxyAgent({ proxy: proxyUri, ...tlsOptions }, timeline);
+            return;
+          }
+        }
+      } catch (err) {
+        timeline.push({ timestamp: new Date(), type: 'error', message: `PAC resolution failed: ${err.message}` });
+      }
     }
   } else {
     const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
