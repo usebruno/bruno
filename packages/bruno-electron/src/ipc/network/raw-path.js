@@ -178,7 +178,7 @@ const buildRawPathTransport = (targetUrl) => {
       const rawPathWithQuery = `${rawPathBase}${queryFromOptions}`;
       const useProxyPath = isAbsolutePath(options.path) && origin;
       const nextPath = useProxyPath ? `${origin}${rawPathWithQuery}` : rawPathWithQuery;
-      const isHttpsRequest = /^https:?/.test(options.protocol || '');
+      const isHttpsRequest = /^https:/.test(options.protocol || '');
       const transport = isHttpsRequest ? https : http;
 
       return transport.request({ ...options, path: nextPath }, cb);
