@@ -130,6 +130,14 @@ export const autosaveMiddleware = ({ dispatch, getState }) => (next) => (action)
     return result;
   }
 
+  if (action.type === 'app/updatePreferences' && action.payload?.autoSave?.enabled === false) {
+    Object.keys(pendingTimers).forEach((key) => {
+      clearTimeout(pendingTimers[key]);
+      delete pendingTimers[key];
+    });
+    return result;
+  }
+
   // Only handle actions that create dirty state
   if (!actionsToIntercept.includes(action.type)) return result;
 

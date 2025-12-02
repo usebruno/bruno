@@ -46,8 +46,8 @@ const General = ({ close }) => {
         .test('isNumber', 'Save Delay must be a number', (value) => {
           return value === undefined || !isNaN(value);
         })
-        .test('isValidInterval', 'Save Delay must be at least 500ms', (value) => {
-          return value === undefined || Number(value) >= 500;
+        .test('isValidInterval', 'Save Delay must be at least 100ms', (value) => {
+          return value === undefined || Number(value) >= 100;
         })
     }).test('intervalRequired', 'Save Delay is required when Auto Save is enabled', (value) => {
       // If autosave is enabled, interval must be provided
@@ -308,6 +308,9 @@ const General = ({ close }) => {
             disabled={!formik.values.autoSave.enabled}
           />
         </div>
+        {formik.touched.autoSave && formik.errors.autoSave && typeof formik.errors.autoSave === 'string' && (
+          <div className="text-red-500">{formik.errors.autoSave}</div>
+        )}
         {formik.touched.autoSave?.interval && formik.errors.autoSave?.interval && (
           <div className="text-red-500">{formik.errors.autoSave.interval}</div>
         )}
