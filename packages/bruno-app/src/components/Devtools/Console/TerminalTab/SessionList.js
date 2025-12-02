@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconTerminal, IconPlus, IconX } from '@tabler/icons';
+import { IconTerminal, IconX } from '@tabler/icons';
 import styled from 'styled-components';
 import ToolHint from 'components/ToolHint/index';
 
@@ -117,13 +117,13 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
         const { name } = getSessionDisplayInfo(session);
         return (
           <ToolHint
+            key={session.sessionId}
             text={getFullPath(session)}
             toolhintId={`session-path-${session.sessionId}`}
             place="bottom-start"
             delayShow={100}
           >
             <div
-              key={session.sessionId}
               className={`session-list-item ${activeSessionId === session.sessionId ? 'active' : ''}`}
               onClick={() => onSelectSession(session.sessionId)}
             >

@@ -163,10 +163,7 @@ app.on('ready', async () => {
   mainWindow.on('unmaximize', () => saveMaximized(false));
   mainWindow.on('close', (e) => {
     e.preventDefault();
-    // Clean up terminal sessions for this window
-    if (terminalManager) {
-      terminalManager.cleanup(mainWindow.webContents);
-    }
+    terminalManager.cleanup(mainWindow.webContents);
     ipcMain.emit('main:start-quit-flow');
   });
 
@@ -237,9 +234,10 @@ app.on('before-quit', () => {
   // Stop system monitoring
   systemMonitor.stop();
 
-  // Clean up terminal sessions
-  if (terminalManager) {
+  try {
     terminalManager.killAll();
+  } catch (err) {
+    console.error('Failed to kill all terminals on quit', err);
   }
 });
 

@@ -1,6 +1,5 @@
 import { openConsole, setActiveTab } from 'providers/ReduxStore/slices/logs';
 import { getSessionId } from 'components/Devtools/Console/TerminalTab';
-import { callIpc } from './common/ipc';
 
 /**
  * Opens the devtools console and switches to the terminal tab
@@ -30,29 +29,4 @@ export const openDevtoolsAndSwitchToTerminal = async (dispatch, cwd = null) => {
  */
 export const getSessionID = () => {
   return getSessionId();
-};
-
-/**
- * Checks if we can write to the terminal
- * @returns {Promise<boolean|null>}
- *   - true if terminal is ready to execute a command immediately
- *   - false if there is a long running task
- *   - null if there is no session ID
- */
-export const canWriteToTerminal = async () => {
-  const sessionId = getSessionID();
-
-  // Return null if no session ID exists
-  if (!sessionId) {
-    return null;
-  }
-
-  try {
-    // Check if there's an active process running
-    const result = await callIpc('terminal:has-active-process', sessionId);
-    return !result?.hasActiveProcess; // true if no active process, false if active process
-  } catch (error) {
-    console.error('Failed to check terminal status:', error);
-    return false; // On error, assume we can't write (conservative approach)
-  }
 };

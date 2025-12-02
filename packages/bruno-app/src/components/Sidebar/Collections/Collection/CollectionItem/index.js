@@ -18,7 +18,8 @@ import {
   IconFolder,
   IconTrash,
   IconSettings,
-  IconInfoCircle
+  IconInfoCircle,
+  IconTerminal2
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -667,6 +668,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                     await openDevtoolsAndSwitchToTerminal(dispatch, folderCwd);
                   }}
                 >
+                  <span className="dropdown-icon">
+                    <IconTerminal2 size={16} strokeWidth={2} />
+                  </span>
                   Open in Terminal
                 </div>
               )}
