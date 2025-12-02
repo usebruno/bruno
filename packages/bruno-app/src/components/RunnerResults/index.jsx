@@ -3,16 +3,13 @@ import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
-import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
-import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconLoader2 } from '@tabler/icons';
+import { resetCollectionRunner, updateRunnerTagsDetails } from 'providers/ReduxStore/slices/collections';
+import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading, getRequestItemsForCollectionRun } from 'utils/collections';
+import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
-import { areItemsLoading } from 'utils/collections';
 import RunnerTags from './RunnerTags/index';
 import RunConfigurationPanel from './RunConfigurationPanel';
-import { getRequestItemsForCollectionRun } from 'utils/collections/index';
-import { updateRunnerTagsDetails } from 'providers/ReduxStore/slices/collections/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
   let relativePath = path.relative(fullPath, pathname);
@@ -42,48 +39,60 @@ const anyTestFailed = (item) => {
     item.postResponseTestStatus === 'fail';
 };
 
+// === Centralized filters definition ===
+const FILTERS = {
+  all: {
+    label: 'All',
+    predicate: () => true,
+    resultFilter: (results) => results
+  },
+  passed: {
+    label: 'Passed',
+    predicate: (item) => allTestsPassed(item),
+    resultFilter: (results) => results?.filter((r) => r.status === 'pass')
+  },
+  failed: {
+    label: 'Failed',
+    predicate: (item) => anyTestFailed(item),
+    resultFilter: (results) => results?.filter((r) => ['fail', 'error'].includes(r.status))
+  },
+  skipped: {
+    label: 'Skipped',
+    predicate: (item) => item.status === 'skipped',
+    resultFilter: (results) => results
+  }
+};
+
+// === Reusable filter button ===
+const FilterButton = ({ label, count, active, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 pb-2 ${
+      active
+        ? 'text-[#343434] dark:text-[#CCCCCC] border-[#F59E0B]'
+        : 'text-[#989898] dark:text-[#CCCCCC80] border-transparent'
+    }`}
+    style={{ fontFamily: 'Inter', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+  >
+    {label}
+    <span
+      className="px-[4.5px] py-[2px] rounded-[2px] bg-[#F7F7F7] dark:bg-[#242424] border border-[#EFEFEF] dark:border-[#92929233] text-[#989898] dark:text-inherit"
+      style={{ borderWidth: '1px', fontFamily: 'Inter', fontSize: '10px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+    >
+      {count}
+    </span>
+  </button>
+);
+
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
   const [delay, setDelay] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('all');
   const [selectedRequestItems, setSelectedRequestItems] = useState([]);
   const [configureMode, setConfigureMode] = useState(false);
-
   // ref for the runner output body
   const runnerBodyRef = useRef();
-
-  const autoScrollRunnerBody = () => {
-    if (runnerBodyRef?.current) {
-      // mimics the native terminal scroll style
-      runnerBodyRef.current.scrollTo(0, 100000);
-    }
-  };
-
-  useEffect(() => {
-    if (!collection.runnerResult) {
-      setSelectedItem(null);
-    }
-    autoScrollRunnerBody();
-  }, [collection, setSelectedItem]);
-
-  useEffect(() => {
-    const runnerInfo = get(collection, 'runnerResult.info', {});
-    if (runnerInfo.status === 'running') {
-      setConfigureMode(false);
-    }
-  }, [collection.runnerResult]);
-
-  useEffect(() => {
-    const savedConfiguration = get(collection, 'runnerConfiguration', null);
-    if (savedConfiguration) {
-      if (savedConfiguration.selectedRequestItems && configureMode) {
-        setSelectedRequestItems(savedConfiguration.selectedRequestItems);
-      }
-      if (savedConfiguration.delay !== undefined && delay === null) {
-        setDelay(savedConfiguration.delay);
-      }
-    }
-  }, [collection.runnerConfiguration, configureMode, delay]);
 
   const collectionCopy = cloneDeep(collection);
   const runnerInfo = get(collection, 'runnerResult.info', {});
@@ -125,6 +134,63 @@ export default function RunnerResults({ collection }) {
       return newItem;
     })
     .filter(Boolean);
+
+  const activeFilterConfig = FILTERS[activeFilter];
+  const filteredItems = items.filter(activeFilterConfig.predicate);
+
+  const filterTestResults = (results) => {
+    if (!results || !Array.isArray(results)) return [];
+    return activeFilterConfig.resultFilter(results);
+  };
+
+  const autoScrollRunnerBody = () => {
+    if (runnerBodyRef?.current) {
+      const element = runnerBodyRef.current;
+      const scrollThreshold = 100; // pixels from bottom to consider "at bottom"
+      const isNearBottom
+        = element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
+
+      // Only auto-scroll if user is already near the bottom
+      if (isNearBottom) {
+        // mimics the native terminal scroll style
+        element.scrollTo(0, 100000);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!collection.runnerResult) {
+      setSelectedItem(null);
+    }
+    autoScrollRunnerBody();
+  }, [collection, setSelectedItem]);
+
+  useEffect(() => {
+    // Auto-scroll when items are added or updated during execution
+    // Only scrolls if user is already at/near the bottom
+    if (filteredItems.length > 0) {
+      autoScrollRunnerBody();
+    }
+  }, [filteredItems]);
+
+  useEffect(() => {
+    const runnerInfo = get(collection, 'runnerResult.info', {});
+    if (runnerInfo.status === 'running') {
+      setConfigureMode(false);
+    }
+  }, [collection.runnerResult]);
+
+  useEffect(() => {
+    const savedConfiguration = get(collection, 'runnerConfiguration', null);
+    if (savedConfiguration) {
+      if (savedConfiguration.selectedRequestItems && configureMode) {
+        setSelectedRequestItems(savedConfiguration.selectedRequestItems);
+      }
+      if (savedConfiguration.delay !== undefined && delay === null) {
+        setDelay(savedConfiguration.delay);
+      }
+    }
+  }, [collection.runnerConfiguration, configureMode, delay]);
 
   const ensureCollectionIsMounted = () => {
     if(collection.mountStatus === 'mounted'){
@@ -192,14 +258,14 @@ export default function RunnerResults({ collection }) {
   }, [tagsEnabled]);
 
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
-  const passedRequests = items.filter(allTestsPassed);
-  const failedRequests = items.filter(anyTestFailed);
+  const filterCounts = {
+    all: items.length,
+    passed: items.filter(allTestsPassed).length,
+    failed: items.filter(anyTestFailed).length,
+    skipped: items.filter((i) => i.status === 'skipped').length
+  };
 
-  const skippedRequests = items.filter((item) => {
-    return item.status === 'skipped';
-  });
   let isCollectionLoading = areItemsLoading(collection);
-
   if (!items || !items.length) {
     return (
       <StyledWrapper className="pl-4 overflow-hidden h-full">
@@ -212,7 +278,7 @@ export default function RunnerResults({ collection }) {
             <div className="mt-6">
               You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
               {isCollectionLoading && (
-                <span className="ml-2 text-sm text-gray-500">
+                <span className="ml-2 text-gray-500">
                   (Loading...)
                 </span>
               )}
@@ -285,27 +351,57 @@ export default function RunnerResults({ collection }) {
 
   return (
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
-      <div className="flex items-center my-6 flex-row">
-        <div className="font-medium title flex items-center">
-          Runner
-          <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+      {/* Filter Bar and Actions */}
+      <div className="flex items-center justify-between mb-4 pt-[14px] gap-4">
+        <div className="flex items-stretch rounded-lg border border-[#EFEFEF] dark:border-[#92929233] max-h-[35px] flex-shrink-0" style={{ borderWidth: '1px' }}>
+          <div className="flex items-center px-3 py-2 rounded-l-lg bg-[#F3F3F3] dark:bg-[#2B2D2F]">
+            <span className="text-gray-600 dark:text-gray-400" style={{ fontFamily: 'Inter', fontWeight: 400 }}>
+              Filter by:
+            </span>
+          </div>
+          <div className="flex items-center gap-5 px-3 pt-2 pb-0 rounded-r-lg bg-transparent dark:bg-transparent">
+            {Object.entries(FILTERS).map(([key, { label }]) => (
+              <FilterButton
+                key={key}
+                label={label}
+                count={filterCounts[key]}
+                active={activeFilter === key}
+                onClick={() => setActiveFilter(key)}
+              />
+            ))}
+          </div>
         </div>
-        {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid && (
-          <button className="btn btn-sm btn-danger" onClick={cancelExecution}>
-            Cancel Execution
-          </button>
-        )}
+
+        {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid ? (
+          <div className="flex items-center flex-shrink-0">
+            <button className="btn btn-sm btn-danger" onClick={cancelExecution}>Cancel Execution</button>
+          </div>
+        ) : runnerInfo.status === 'ended' ? (
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
+              style={{ fontFamily: 'Inter', fontWeight: 500 }}
+              onClick={runAgain}
+            >
+              Run Again
+            </button>
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
+              style={{ fontFamily: 'Inter', fontWeight: 500 }}
+              onClick={resetRunner}
+            >
+              Reset
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex gap-4 h-[calc(100vh_-_10rem)] overflow-hidden">
         <div
-          className={`flex flex-col overflow-y-auto ${selectedItem || (configureMode && !selectedItem && !runnerInfo.status === 'running') ? 'w-1/2' : 'w-full'}`}
-          ref={runnerBodyRef}
+          className="flex flex-col w-1/2"
         >
-          <div className="pb-2 font-medium test-summary">
-            Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped:{' '}
-            {skippedRequests.length}
-          </div>
           {tagsEnabled && areTagsAdded && (
             <div className="pb-2 text-xs flex flex-row gap-1">
               Tags:
@@ -326,8 +422,8 @@ export default function RunnerResults({ collection }) {
             : null}
 
           {/* Items list */}
-          <div className="overflow-y-auto flex-1">
-            {items.map((item) => {
+          <div className="overflow-y-auto flex-1 " ref={runnerBodyRef}>
+            {filteredItems.map((item) => {
               return (
                 <div key={item.uid}>
                   <div className="item-path mt-2">
@@ -371,7 +467,7 @@ export default function RunnerResults({ collection }) {
 
                     <ul className="pl-8">
                       {item.preRequestTestResults
-                        ? item.preRequestTestResults.map((result) => (
+                        ? filterTestResults(item.preRequestTestResults).map((result) => (
                           <li key={result.uid}>
                             {result.status === 'pass' ? (
                               <span className="test-success flex items-center">
@@ -391,7 +487,7 @@ export default function RunnerResults({ collection }) {
                         ))
                         : null}
                       {item.postResponseTestResults
-                        ? item.postResponseTestResults.map((result) => (
+                        ? filterTestResults(item.postResponseTestResults).map((result) => (
                           <li key={result.uid}>
                             {result.status === 'pass' ? (
                               <span className="test-success flex items-center">
@@ -411,7 +507,7 @@ export default function RunnerResults({ collection }) {
                         ))
                         : null}
                       {item.testResults
-                        ? item.testResults.map((result) => (
+                        ? filterTestResults(item.testResults).map((result) => (
                           <li key={result.uid}>
                             {result.status === 'pass' ? (
                               <span className="test-success flex items-center">
@@ -430,7 +526,7 @@ export default function RunnerResults({ collection }) {
                           </li>
                         ))
                         : null}
-                      {item.assertionResults?.map((result) => (
+                      {filterTestResults(item.assertionResults).map((result) => (
                         <li key={result.uid}>
                           {result.status === 'pass' ? (
                             <span className="test-success flex items-center">
@@ -454,42 +550,50 @@ export default function RunnerResults({ collection }) {
               );
             })}
           </div>
-
-          {runnerInfo.status === 'ended' ? (
-            <div className="mt-2 mb-4">
-              <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runAgain}>
-                Run Again
-              </button>
-              <button type="submit" className="submit btn btn-sm btn-secondary mt-6 ml-3" disabled={shouldDisableCollectionRun} onClick={runCollection}>
-                Run Collection
-              </button>
-              <button className="btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
-                Reset
-              </button>
-            </div>
-          ) : null}
         </div>
+
         {selectedItem ? (
           <div className="flex flex-1 w-[50%] overflow-y-auto">
             <div className="flex flex-col w-full overflow-hidden">
-              <div className="flex items-center mb-4 font-medium">
-                <span className="mr-2">{selectedItem.displayName}</span>
-                <span>
-                  {allTestsPassed(selectedItem) ?
-                    <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
-                    : null}
-                  {anyTestFailed(selectedItem) ?
-                    <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
-                    : null}
-                  {selectedItem.status === 'skipped' ?
-                    <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
-                    : null}
-                </span>
+              <div className="flex items-center justify-between mb-4 font-medium">
+                <div className="flex items-center">
+                  <span className="mr-2">{selectedItem.displayName}</span>
+                  <span>
+                    {allTestsPassed(selectedItem)
+                      ? <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
+                      : null}
+                    {anyTestFailed(selectedItem)
+                      ? <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
+                      : null}
+                    {selectedItem.status === 'skipped'
+                      ? <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
+                      : null}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedItem(null)}
+                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer flex items-center justify-center"
+                  title="Close"
+                  aria-label="Close response view"
+                >
+                  <IconX size={16} strokeWidth={1.5} />
+                </button>
               </div>
               <ResponsePane item={selectedItem} collection={collection} />
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex flex-1 w-[50%] overflow-y-auto">
+            <div className="flex flex-col w-full h-full items-center justify-center text-center">
+              <div className="mb-4 text-gray-400 dark:text-gray-500">
+                <IconExternalLink size={64} strokeWidth={1.5} />
+              </div>
+              <p className="text-gray-600 dark:text-gray-400">
+                Click on the status code to view the response
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </StyledWrapper>
   );

@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
-const { cleanJson } = require('../../utils');
+const { mixinTypedArrays } = require('../mixins/typed-arrays');
 
 class ScriptError extends Error {
   constructor(error, script) {
@@ -36,6 +36,8 @@ async function runScriptInNodeVm({
   }
 
   try {
+    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
+
     // Create script context with all necessary variables
     const scriptContext = {
       // Bruno context
@@ -57,8 +59,15 @@ async function runScriptInNodeVm({
       clearTimeout: global.clearTimeout,
       clearInterval: global.clearInterval,
       setImmediate: global.setImmediate,
-      clearImmediate: global.clearImmediate
+      clearImmediate: global.clearImmediate,
+      Error: global.Error,
+      TypeError: global.TypeError,
+      ReferenceError: global.ReferenceError,
+      SyntaxError: global.SyntaxError,
+      RangeError: global.RangeError
     };
+
+    mixinTypedArrays(scriptContext);
 
     // Create shared cache for local modules
     const localModuleCache = new Map();
@@ -69,7 +78,8 @@ async function runScriptInNodeVm({
       collectionPath,
       scriptContext,
       currentModuleDir: collectionPath,
-      localModuleCache
+      localModuleCache,
+      allowScriptFilesystemAccess
     });
 
     // Execute the script in an isolated VM context
@@ -97,6 +107,7 @@ async function runScriptInNodeVm({
  * @param {Object} options.scriptContext - Script execution context
  * @param {string} options.currentModuleDir - Current module directory for relative imports
  * @param {Map} options.localModuleCache - Cache for loaded local modules
+ * @param {boolean} options.allowScriptFilesystemAccess - Whether to allow fs module access
  * @returns {Function} Custom require function
  */
 function createCustomRequire({
@@ -104,7 +115,8 @@ function createCustomRequire({
   collectionPath,
   scriptContext,
   currentModuleDir = collectionPath,
-  localModuleCache = new Map()
+  localModuleCache = new Map(),
+  allowScriptFilesystemAccess = false
 }) {
   const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
   const additionalContextRootsAbsolute = lodash
@@ -119,17 +131,42 @@ function createCustomRequire({
       return loadLocalModule({ moduleName, collectionPath, scriptContext, localModuleCache, currentModuleDir });
     }
 
+    // Helper function to check if a module is the fs module or a submodule
+    const isFsModule = (module) => {
+      if (!module) return false;
+      const fsModule = require('fs');
+      // Check if it's the fs module itself
+      if (module === fsModule) return true;
+      // Check if it's fs/promises submodule
+      if (module === fsModule.promises) return true;
+      // Check if it's fs/promises by comparing with require('fs/promises')
+      try {
+        if (module === require('fs/promises')) return true;
+      } catch {
+        // fs/promises might not be available in all Node versions
+      }
+      return false;
+    };
+
     // First try to require as a native/npm module
     try {
-      return require(moduleName);
-    } catch {
-      // If that fails, try to resolve from additionalContextRoots
-      try {
-        const modulePath = require.resolve(moduleName, { paths: additionalContextRootsAbsolute });
-        return require(modulePath);
-      } catch (error) {
-        throw new Error(`Could not resolve module "${moduleName}": ${error.message}\n\nThis most likely means you did not install the module under "additionalContextRoots" using a package manager like npm.\n\nThese are your current "additionalContextRoots":\n${additionalContextRootsAbsolute.map(root => `  - ${root}`).join('\n') || '  - No "additionalContextRoots" defined'}`);
+      const requiredModulePath = require.resolve(moduleName, { paths: [...additionalContextRootsAbsolute, ...module.paths] });
+      const requiredModule = require(requiredModulePath);
+
+      // Block filesystem module access if filesystem access is not allowed
+      if (!allowScriptFilesystemAccess && isFsModule(requiredModule)) {
+        throw new Error('Filesystem access is not allowed. Enable "filesystemAccess.allow" in scripting config to use the fs module.');
       }
+
+      return requiredModule;
+    } catch (requireError) {
+      // Re-throw if it's our filesystem access error
+      if (requireError.message && requireError.message.includes('Enable "filesystemAccess.allow"')) {
+        throw requireError;
+      }
+
+      // If that fails, try to resolve from additionalContextRoots
+      throw new Error(`Could not resolve module "${moduleName}": ${requireError.message}\n\nThis most likely means you did not install the module under the collection or the "additionalContextRoots" using a package manager like npm.\n\nThese are your current "additionalContextRoots":\n${additionalContextRootsAbsolute.map((root) => `  - ${root}`).join('\n') || '  - No "additionalContextRoots" defined'}`);
     }
   };
 }
@@ -194,11 +231,12 @@ function loadLocalModule({
     __dirname: moduleDir,
     // Create a custom require function for this module that resolves relative to its directory
     require: createCustomRequire({
-      scriptingConfig: scriptContext.scriptingConfig || {}, 
-      collectionPath, 
-      scriptContext, 
-      currentModuleDir: moduleDir, 
-      localModuleCache
+      scriptingConfig: scriptContext.scriptingConfig || {},
+      collectionPath,
+      scriptContext,
+      currentModuleDir: moduleDir,
+      localModuleCache,
+      allowScriptFilesystemAccess: get(scriptContext.scriptingConfig, 'filesystemAccess.allow', false)
     })
   };
 

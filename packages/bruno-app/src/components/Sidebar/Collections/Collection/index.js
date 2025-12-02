@@ -4,13 +4,28 @@ import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
-import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
+import {
+  IconChevronRight,
+  IconDots,
+  IconLoader2,
+  IconFilePlus,
+  IconFolderPlus,
+  IconCopy,
+  IconClipboard,
+  IconPlayerPlay,
+  IconEdit,
+  IconShare,
+  IconFoldDown,
+  IconX,
+  IconSettings
+} from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
@@ -36,12 +51,13 @@ const Collection = ({ collection, searchText }) => {
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [dropType, setDropType] = useState(null);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
   
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
-  
+  const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
   const MenuIcon = forwardRef((_props, ref) => {
@@ -146,6 +162,38 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
+  const handlePasteItem = () => {
+    menuDropdownTippyRef.current.hide();
+    dispatch(pasteItem(collection.uid, null))
+      .then(() => {
+        toast.success('Item pasted successfully');
+      })
+      .catch((err) => {
+        toast.error(err ? err.message : 'An error occurred while pasting the item');
+      });
+  };
+
+  // Keyboard shortcuts handler for collection
+  const handleKeyDown = (e) => {
+    // Detect Mac by checking both metaKey and platform
+    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
+    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
+
+    if (isModifierPressed && e.key.toLowerCase() === 'v') {
+      e.preventDefault();
+      e.stopPropagation();
+      handlePasteItem();
+    }
+  };
+
+  const handleFocus = () => {
+    setIsKeyboardFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsKeyboardFocused(false);
+  };
+
   const isCollectionItem = (itemType) => {
     return itemType === 'collection-item';
   };
@@ -201,9 +249,10 @@ const Collection = ({ collection, searchText }) => {
   }
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-      'item-hovered': isOver && dropType === 'adjacent', // For collection-to-collection moves (show line)
-      'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
-      'collection-focused-in-tab': isCollectionFocused
+    'item-hovered': isOver && dropType === 'adjacent', // For collection-to-collection moves (show line)
+    'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
+    'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
+    'collection-keyboard-focused': isKeyboardFocused
     });
 
   // we need to sort request items by seq property
@@ -236,6 +285,10 @@ const Collection = ({ collection, searchText }) => {
           collectionRef.current = node;
           drag(drop(node));
         }}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
@@ -265,6 +318,9 @@ const Collection = ({ collection, searchText }) => {
                 setShowNewRequestModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconFilePlus size={16} strokeWidth={2} />
+              </span>
               New Request
             </div>
             <div
@@ -274,17 +330,10 @@ const Collection = ({ collection, searchText }) => {
                 setShowNewFolderModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconFolderPlus size={16} strokeWidth={2} />
+              </span>
               New Folder
-            </div>
-            <div
-              className="dropdown-item"
-              data-testid="clone-collection"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                setShowCloneCollectionModalOpen(true);
-              }}
-            >
-              Clone
             </div>
             <div
               className="dropdown-item"
@@ -294,8 +343,35 @@ const Collection = ({ collection, searchText }) => {
                 handleRun();
               }}
             >
+              <span className="dropdown-icon">
+                <IconPlayerPlay size={16} strokeWidth={2} />
+              </span>
               Run
             </div>
+            <div
+              className="dropdown-item"
+              data-testid="clone-collection"
+              onClick={(_e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowCloneCollectionModalOpen(true);
+              }}
+            >
+              <span className="dropdown-icon">
+                <IconCopy size={16} strokeWidth={2} />
+              </span>
+              Clone
+            </div>
+            {hasCopiedItems && (
+              <div
+                className="dropdown-item"
+                onClick={handlePasteItem}
+              >
+                <span className="dropdown-icon">
+                  <IconClipboard size={16} strokeWidth={2} />
+                </span>
+                Paste
+              </div>
+            )}
             <div
               className="dropdown-item"
               onClick={(_e) => {
@@ -303,6 +379,9 @@ const Collection = ({ collection, searchText }) => {
                 setShowRenameCollectionModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconEdit size={16} strokeWidth={2} />
+              </span>
               Rename
             </div>
             <div
@@ -313,6 +392,9 @@ const Collection = ({ collection, searchText }) => {
                 setShowShareCollectionModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconShare size={16} strokeWidth={2} />
+              </span>
               Share
             </div>
             <div
@@ -322,7 +404,23 @@ const Collection = ({ collection, searchText }) => {
                 handleCollapseFullCollection();
               }}
             >
+              <span className="dropdown-icon">
+                <IconFoldDown size={16} strokeWidth={2} />
+              </span>
               Collapse
+            </div>
+            <div className="dropdown-separator"></div>
+            <div
+              className="dropdown-item"
+              onClick={(_e) => {
+                menuDropdownTippyRef.current.hide();
+                viewCollectionSettings();
+              }}
+            >
+              <span className="dropdown-icon">
+                <IconSettings size={16} strokeWidth={2} />
+              </span>
+              Settings
             </div>
             <div
               className="dropdown-item"
@@ -331,16 +429,10 @@ const Collection = ({ collection, searchText }) => {
                 setShowRemoveCollectionModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconX size={16} strokeWidth={2} />
+              </span>
               Close
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                viewCollectionSettings();
-              }}
-            >
-              Settings
             </div>
           </Dropdown>
         </div>

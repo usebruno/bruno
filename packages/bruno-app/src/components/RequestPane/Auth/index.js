@@ -9,6 +9,7 @@ import WsseAuth from './WsseAuth';
 import NTLMAuth from './NTLMAuth';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useDispatch } from 'react-redux';
 
 import ApiKeyAuth from './ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
@@ -27,6 +28,7 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
 };
 
 const Auth = ({ item, collection }) => {
+  const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   
@@ -37,13 +39,14 @@ const Auth = ({ item, collection }) => {
 
   // Save function for request level
   const save = () => {
-    return saveRequest(item.uid, collection.uid);
+    return dispatch(saveRequest(item.uid, collection.uid));
   };
 
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
 
-    const collectionAuth = get(collection, 'root.request.auth');
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    const collectionAuth = get(collectionRoot, 'request.auth');
     let effectiveSource = {
       type: 'collection',
       name: 'Collection',

@@ -50,4 +50,4 @@ const registerFilesystemIpc = (mainWindow) => {
   });
 };
 
-module.exports = registerFilesystemIpc; 
+module.exports = registerFilesystemIpc;

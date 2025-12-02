@@ -186,7 +186,7 @@ const handleValue = (value, state, request) => {
  * Set header from value
  */
 const setHeader = (request, value) => {
-  const [headerName, headerValue] = value.split(/: (.+)/);
+  const [headerName, headerValue] = value.split(/:\s*(.+)/);
   request.headers[headerName] = headerValue;
 };
 

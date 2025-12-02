@@ -27,7 +27,7 @@ const Icon = forwardRef(function IconComponent(
         <input
           ref={inputRef}
           type="text"
-          className="font-medium px-2 w-full focus:bg-transparent"
+          className="px-2 w-full focus:bg-transparent"
           value={inputValue}
           onChange={handleInputChange}
           onBlur={handleBlur}
@@ -46,7 +46,7 @@ const Icon = forwardRef(function IconComponent(
         className="cursor-pointer flex items-center text-left w-full"
       >
         <span
-          className="font-medium px-2 truncate method-span"
+          className="px-2 truncate method-span"
           id="create-new-request-method"
           title={inputValue}
         >

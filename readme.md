@@ -29,6 +29,7 @@
 | [日本語](docs/readme/readme_ja.md)
 | [ქართული](docs/readme/readme_ka.md)
 | [Nederlands](docs/readme/readme_nl.md)
+| [فارسی](docs/readme/readme_fa.md)
 
 Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
 
@@ -52,17 +53,18 @@ We strive to strike a harmonious balance between [open-source principles and sus
 You can explore our [paid versions](https://www.usebruno.com/pricing) to see if there are additional features that you or your team may find useful! <br/>
 
 ## Table of Contents
+
 - [Installation](#installation)
 - [Features](#features)
   - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
-  - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-)
+  - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-%E2%80%8D%E2%80%8D)
 - [Important Links 📌](#important-links-)
 - [Showcase 🎥](#showcase-)
 - [Share Testimonials 📣](#share-testimonials-)
 - [Publishing to New Package Managers](#publishing-to-new-package-managers)
 - [Stay in touch 🌐](#stay-in-touch-)
 - [Trademark](#trademark)
-- [Contribute 👩‍💻🧑‍💻](#contribute-)
+- [Contribute 👩‍💻🧑‍💻](#contribute-%E2%80%8D%E2%80%8D)
 - [Authors](#authors)
 - [License 📄](#license-)
 
@@ -91,6 +93,9 @@ snap install bruno
 
 # On Linux via Flatpak
 flatpak install com.usebruno.Bruno
+
+# On Arch Linux via AUR
+yay -S bruno
 
 # On Linux via Apt
 sudo mkdir -p /etc/apt/keyrings

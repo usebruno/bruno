@@ -4,7 +4,8 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { IconPlus, IconTrash, IconAdjustmentsHorizontal } from '@tabler/icons';
 import { cloneDeep } from "lodash";
-import SingleLineEditor from "components/SingleLineEditor/index";
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from "./StyledWrapper";
 import Table from "components/Table/index";
 
@@ -169,7 +170,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span className="font-medium text-gray-800 dark:text-gray-200">
           Additional Parameters
         </span>
       </div>
@@ -205,7 +206,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
                 />
               </td>
               <td>
-                <SingleLineEditor
+                <MultiLineEditor
                   value={param?.value || ''}
                   theme={storedTheme}
                   onChange={(value) => handleUpdateAdditionalParam({ 
@@ -278,7 +279,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
         onClick={addButtonDisabled ? null : handleAddNewAdditionalParam}
       >
         <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
-        <span className="ml-1 text-sm text-gray-500">Add Parameter</span>
+        <span className="ml-1 text-gray-500">Add Parameter</span>
       </div>
     </StyledWrapper>
   )

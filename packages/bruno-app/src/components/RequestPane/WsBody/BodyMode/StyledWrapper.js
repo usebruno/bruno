@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  font-size: 0.8125rem;
+  font-size: ${(props) => props.theme.font.size.base};
 
   .body-mode-selector {
     background: transparent;

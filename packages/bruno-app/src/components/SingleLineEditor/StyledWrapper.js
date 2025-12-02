@@ -6,10 +6,16 @@ const StyledWrapper = styled.div`
   overflow-y: hidden;
   overflow-x: hidden;
 
+  &.read-only {
+    .CodeMirror-cursor {
+      display: none !important;
+    }
+  }
+
   .CodeMirror {
     background: transparent;
     height: 34px;
-    font-size: 14px;
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 30px;
     overflow: hidden;
 

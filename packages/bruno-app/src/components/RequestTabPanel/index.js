@@ -9,8 +9,7 @@ import ResponsePane from 'components/ResponsePane';
 import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
-import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl/index';
 import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
@@ -29,9 +28,12 @@ import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
 import FolderNotFound from './FolderNotFound';
+import ExampleNotFound from './ExampleNotFound';
 import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
+import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
+import ResponseExample from 'components/ResponseExample';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -68,15 +70,9 @@ const RequestTabPanel = () => {
   });
 
   let collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
-
-  const screenWidth = useSelector((state) => state.app.screenWidth);
-  let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const [leftPaneWidth, setLeftPaneWidth] = useState(
-    focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2
-  ); // 2.2 is intentional to make both panes appear to be of equal width
-  const [topPaneHeight, setTopPaneHeight] = useState(focusedTab?.requestPaneHeight || MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const { left: leftPaneWidth, top: topPaneHeight, reset: resetPaneBoundaries, setTop: setTopPaneHeight, setLeft: setLeftPaneWidth } = useTabPaneBoundaries(activeTabUid);
 
   // Not a recommended pattern here to have the child component
   // make a callback to set state, but treating this as an exception
@@ -95,22 +91,6 @@ const RequestTabPanel = () => {
     }
   };
 
-  useEffect(() => {
-    // Initialize vertical heights when switching to vertical layout
-    if (mainSectionRef.current) {
-      const mainRect = mainSectionRef.current.getBoundingClientRect();
-      if (isVerticalLayout) {
-        const initialHeight = mainRect.height / 2;
-        setTopPaneHeight(initialHeight);
-        // In vertical mode, set leftPaneWidth to full container width
-        setLeftPaneWidth(mainRect.width);
-      } else {
-        // In horizontal mode, set to roughly half width
-        setLeftPaneWidth((screenWidth - asideWidth) / 2.2);
-      }
-    }
-  }, [isVerticalLayout, screenWidth, asideWidth]);
-
   const handleMouseMove = (e) => {
     if (dragging && mainSectionRef.current) {
       e.preventDefault();
@@ -128,40 +108,22 @@ const RequestTabPanel = () => {
         if (newWidth < MIN_LEFT_PANE_WIDTH || newWidth > mainRect.width - MIN_RIGHT_PANE_WIDTH) {
           return;
         }
+
         setLeftPaneWidth(newWidth);
       }
     }
   };
 
   const handleMouseUp = (e) => {
-    if (dragging && mainSectionRef.current) {
+    if (dragging) {
       e.preventDefault();
       setDragging(false);
-      if (!isVerticalLayout) {
-        const mainRect = mainSectionRef.current.getBoundingClientRect();
-        dispatch(
-          updateRequestPaneTabWidth({
-            uid: activeTabUid,
-            requestPaneWidth: e.clientX - mainRect.left
-          })
-        );
-      }
     }
   };
 
   const handleDragbarMouseDown = (e) => {
     e.preventDefault();
     setDragging(true);
-
-    if (isVerticalLayout) {
-      const dragBar = e.currentTarget;
-      const dragBarRect = dragBar.getBoundingClientRect();
-      dragOffset.current.y = e.clientY - dragBarRect.top;
-    } else {
-      const dragBar = e.currentTarget;
-      const dragBarRect = dragBar.getBoundingClientRect();
-      dragOffset.current.x = e.clientX - dragBarRect.left;
-    }
   };
 
   useEffect(() => {
@@ -184,6 +146,16 @@ const RequestTabPanel = () => {
 
   if (!collection || !collection.uid) {
     return <div className="pb-4 px-4">Collection not found!</div>;
+  }
+
+  if (focusedTab.type === 'response-example') {
+    const item = findItemInCollection(collection, focusedTab.itemUid);
+    const example = item?.examples?.find((ex) => ex.uid === focusedTab.uid);
+
+    if (!example) {
+      return <ExampleNotFound itemUid={focusedTab.itemUid} exampleUid={focusedTab.uid} />;
+    }
+    return <ResponseExample item={item} collection={collection} example={example} />;
   }
 
   const item = findItemInCollection(collection, activeTabUid);
@@ -251,11 +223,17 @@ const RequestTabPanel = () => {
       return;
     }
 
-    dispatch(sendRequest(item, collection.uid)).catch((err) =>
-      toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-        duration: 5000
-      })
-    );
+    if (item.response?.stream?.running) {
+      dispatch(cancelRequest(item.cancelTokenUid, item, collection)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        }));
+    } else if (item.requestState !== 'sending' && item.requestState !== 'queued') {
+      dispatch(sendRequest(item, collection.uid)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        }));
+    }
   };
 
   // TODO: reaper, improve selection of panes
@@ -311,7 +289,14 @@ const RequestTabPanel = () => {
           </div>
         </section>
 
-        <div className="dragbar-wrapper" onMouseDown={handleDragbarMouseDown}>
+        <div
+          className="dragbar-wrapper"
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            resetPaneBoundaries();
+          }}
+          onMouseDown={handleDragbarMouseDown}
+        >
           <div className="dragbar-handle" />
         </div>
 

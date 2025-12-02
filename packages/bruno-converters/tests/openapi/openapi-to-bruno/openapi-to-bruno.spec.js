@@ -234,6 +234,32 @@ servers:
       expect(result.items[0].root.request.auth.mode).toBe('inherit');
     });
   });
+
+  it('should handle requestBody with empty content object (undefined mimeType)', () => {
+    const openApiWithEmptyContent = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with empty requestBody content'
+paths:
+  /test:
+    post:
+      summary: 'Test endpoint with empty content'
+      operationId: 'testEndpoint'
+      requestBody:
+        content: {}
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithEmptyContent);
+    expect(result.items[0].request.body.mode).toBe('none');
+    expect(result.items[0].request.body.json).toBe(null);
+    expect(result.items[0].request.body.text).toBe(null);
+    expect(result.items[0].request.body.xml).toBe(null);
+  });
 });
 
 const openApiCollectionString = `
@@ -269,7 +295,7 @@ components:
         type: "string"
         default: "value2"
 servers:
-  - url: "https://httpbin.org"
+  - url: "https://echo.usebruno.com"
 `;
 
 const expectedOutput = {
@@ -284,7 +310,7 @@ const expectedOutput = {
           "secret": false,
           "type": "text",
           "uid": "mockeduuidvalue123456",
-          "value": "https://httpbin.org",
+          value: 'https://echo.usebruno.com'
         },
       ],
     },

@@ -10,6 +10,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
           if (response?.error) {
             resolve(response)
           }
+
           resolve({
             state: 'success',
             data: response.data,
@@ -20,7 +21,8 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
             status: response.status,
             statusText: response.statusText,
             duration: response.duration,
-            timeline: response.timeline
+            timeline: response.timeline,
+            stream: response.stream
           });
         })
         .catch((err) => reject(err));
@@ -241,25 +243,45 @@ export const connectWS = async (item, collection, environment, runtimeVariables,
   });
 };
 
-export const sendWsRequest = (item, collection, environment, runtimeVariables) => {
-  return new Promise(async (resolve, reject) => {
-    const ensureConnection = async () => {
-      const connectionStatus = await isWsConnectionActive(item.uid);
-      if (!connectionStatus.isActive) {
-        await connectWS(item, collection, environment, runtimeVariables, { connectOnly: true });
-      }
-    };
-    const { request } = item.draft ? item.draft : item;
-    queueWsMessage(item, collection.uid, request.body.ws[0].content)
-      .then((initialState) => {
-        // Return an initial state object to update the UI
-        // The real response data will be handled by event listeners
-        resolve({
-          ...initialState
-        });
-      })
-      .catch((err) => reject(err));
-    await ensureConnection();
+export const sendWsRequest = async (item, collection, environment, runtimeVariables) => {
+  const ensureConnection = async () => {
+    const connectionStatus = await isWsConnectionActive(item.uid);
+    if (!connectionStatus.isActive) {
+      await connectWS(item, collection, environment, runtimeVariables, { connectOnly: true });
+    }
+  };
+
+  await ensureConnection();
+
+  // Use queueWsMessage helper to queue all messages with proper variable interpolation
+  const result = await queueWsMessage(item, collection, environment, runtimeVariables, null);
+
+  if (result.success) {
+    return {};
+  } else {
+    throw new Error(result.error || 'Failed to queue messages');
+  }
+};
+
+/**
+ * Queues a message to an existing WebSocket connection with variable interpolation
+ * @param {Object} item - The request item
+ * @param {Object} collection - The collection object
+ * @param {Object} environment - The environment variables
+ * @param {Object} runtimeVariables - The runtime variables
+ * @param {string} messageContent - The message content to queue (or null to queue all messages)
+ * @returns {Promise<Object>} - The result of the queue operation
+ */
+export const queueWsMessage = async (item, collection, environment, runtimeVariables, messageContent) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:ws:queue-message', {
+      item,
+      collection,
+      environment,
+      runtimeVariables,
+      messageContent
+    }).then(resolve).catch(reject);
   });
 };
 
@@ -284,20 +306,6 @@ export const startWsConnection = async (item, collection, environment, runtimeVa
       .catch((err) => {
         reject(err);
       });
-  });
-};
-
-/**
- * Sends a message to an existing WebSocket connection
- * @param {string} requestId - The request ID to send a message to
- * @param {string} collectionUid - The collection ID the message is for
- * @param {*} message - The message
- * @returns {Promise<Object>} - The result of the send operation
- */
-export const queueWsMessage = async (item, collectionUid, message) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:ws:queue-message', item.uid, collectionUid, message).then(resolve).catch(reject);
   });
 };
 
