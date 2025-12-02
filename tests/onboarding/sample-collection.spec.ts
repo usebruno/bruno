@@ -87,23 +87,22 @@ test.describe('Onboarding', () => {
     const page = await app.firstWindow();
     
     // First launch - sample collection should be created
-    const sampleCollection = page.locator('.collection-name').filter({ hasText: 'Sample API Collection' });
+    const sampleCollection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'Sample API Collection' });
     await expect(sampleCollection).toBeVisible();
     
-    // User closes the sample collection (hover on the collection and open context menu)
+    // User removes the sample collection from workspace (hover on the collection and open context menu)
     await sampleCollection.hover();
     await sampleCollection.locator('.collection-actions .icon').click();
 
     
-    // Close the sample collection
-    const closeOption = page.locator('.dropdown-item').getByText('Close');
-    await expect(closeOption).toBeVisible();
-    await closeOption.click();
+    // Remove the sample collection
+    const removeOption = page.locator('.dropdown-item').getByText('Remove');
+    await expect(removeOption).toBeVisible();
+    await removeOption.click();
     
-    // Handle the confirmation dialog - click the 'Close' button to confirm
-    const confirmCloseButton = page.locator('.bruno-modal').getByRole('button', { name: 'Close' });
-    await expect(confirmCloseButton).toBeVisible();
-    await confirmCloseButton.click();
+    // Confirm removal in the modal
+    const removeModal = page.getByRole('dialog').filter({ has: page.getByText('Remove Collection') });
+    await removeModal.getByRole('button', { name: 'Remove' }).click();
     
     // Verify collection is closed (no longer visible in sidebar)
     await expect(sampleCollection).not.toBeVisible();

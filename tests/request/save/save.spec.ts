@@ -9,11 +9,14 @@ const isRequestSaved = async (saveButton: Locator) => {
 };
 
 const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Promise<string>) => {
-  await page.locator('.dropdown-icon').click();
-  await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
+  await page.locator('.plus-icon-button').click();
+  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
   await page.getByLabel('Name').fill('source-collection');
-  await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  const locationInput = page.getByLabel('Location');
+  if (await locationInput.isVisible()) {
+    await locationInput.fill(await createTmpDir('source-collection'));
+  }
+  await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
   await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
   await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
   await page.getByLabel('Safe Mode').check();

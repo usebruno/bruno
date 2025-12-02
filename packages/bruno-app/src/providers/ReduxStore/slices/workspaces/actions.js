@@ -27,15 +27,15 @@ const transformCollection = async (collection, type) => {
       return postmanToBruno(collection);
     }
     case 'insomnia': {
-      const { insomniaToBruno } = await import('utils/importers/insomnia-collection');
-      return insomniaToBruno(collection);
+      const { convertInsomniaToBruno } = await import('utils/importers/insomnia-collection');
+      return convertInsomniaToBruno(collection);
     }
     case 'openapi': {
-      const { openapiToBruno } = await import('utils/importers/openapi-collection');
-      return openapiToBruno(collection);
+      const { convertOpenapiToBruno } = await import('utils/importers/openapi-collection');
+      return convertOpenapiToBruno(collection);
     }
     case 'wsdl': {
-      const { wsdlToBruno } = await import('utils/importers/wsdl-collection');
+      const { wsdlToBruno } = await import('@usebruno/converters');
       return wsdlToBruno(collection);
     }
     default:

@@ -288,6 +288,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowNewRequestModal(true);
               }}
             >
@@ -300,6 +301,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowNewFolderModal(true);
               }}
             >

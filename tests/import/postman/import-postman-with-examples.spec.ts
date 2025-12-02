@@ -35,7 +35,8 @@ test.describe('Import Postman Collection with Examples', () => {
     }, { importDir });
 
     await test.step('Open import collection modal', async () => {
-      await page.getByRole('button', { name: 'Import Collection' }).click();
+      await page.locator('.plus-icon-button').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
     });
 
     await test.step('Wait for import modal and verify title', async () => {
@@ -47,10 +48,10 @@ test.describe('Import Postman Collection with Examples', () => {
     await test.step('Upload Postman collection file using hidden file input', async () => {
       // The "choose a file" button triggers a hidden file input, so we can directly set files on it
       await page.setInputFiles('input[type="file"]', postmanFile);
-    });
 
-    await test.step('Wait for file processing to complete', async () => {
-      await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      // Wait for location modal to appear after file processing
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     });
 
     await test.step('Verify no parsing errors occurred', async () => {
@@ -61,22 +62,22 @@ test.describe('Import Postman Collection with Examples', () => {
     });
 
     await test.step('Verify location selection modal appears', async () => {
-      const locationModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     });
 
     await test.step('Verify collection name appears in location modal', async () => {
-      const locationModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await expect(locationModal.getByText('collection with examples')).toBeVisible();
     });
 
     await test.step('Click Browse link to select collection folder', async () => {
-      const locationModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await locationModal.getByText('Browse').click();
     });
 
     await test.step('Complete import by clicking import button', async () => {
-      const locationModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await locationModal.getByRole('button', { name: 'Import' }).click();
     });
 

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const fsExtra = require('fs-extra');
 const { ipcMain, dialog } = require('electron');
 const { createDirectory, sanitizeName } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
@@ -114,6 +115,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       validateWorkspacePath(workspacePath);
 
       const workspaceConfig = readWorkspaceConfig(workspacePath);
+      validateWorkspaceConfig(workspaceConfig);
+
       const workspaceUid = generateUidBasedOnHash(workspacePath);
 
       lastOpenedWorkspaces.add(workspacePath, workspaceConfig);
@@ -350,7 +353,6 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       // Delete collection files if it's a workspace collection
       if (result.shouldDeleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {
-        const fsExtra = require('fs-extra');
         await fsExtra.remove(collectionPath);
       }
 

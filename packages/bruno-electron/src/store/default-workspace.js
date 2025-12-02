@@ -72,6 +72,7 @@ class DefaultWorkspaceManager {
         const workspaceYmlPath = path.join(newWorkspacePath, 'workspace.yml');
         if (!fs.existsSync(workspaceYmlPath)) {
           this.defaultWorkspacePath = null;
+          return null;
         } else {
           return {
             workspacePath: newWorkspacePath,

@@ -29,11 +29,10 @@ const TitleBar = ({ showSearch, setShowSearch }) => {
     return sortWorkspaces(workspaces, preferences);
   }, [workspaces, preferences]);
 
-  const [importedCollection, setImportedCollection] = useState(null);
+  const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
-  const [importType, setImportType] = useState(null);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
 
   const toTitleCase = (str) => {
@@ -45,43 +44,31 @@ const TitleBar = ({ showSearch, setShowSearch }) => {
       .join(' ');
   };
 
-  const handleImportCollection = ({ rawData, type, environment }) => {
-    setImportedCollection(rawData);
-    setImportType(type);
+  const handleImportCollection = ({ rawData, type }) => {
     setImportCollectionModalOpen(false);
 
-    if (activeWorkspace) {
+    if (activeWorkspace && activeWorkspace.type !== 'default') {
       dispatch(importCollectionInWorkspace(rawData, activeWorkspace.uid, undefined, type))
         .catch((err) => {
           toast.error('An error occurred while importing the collection');
         });
     } else {
+      setImportData({ rawData, type });
       setImportCollectionLocationModalOpen(true);
     }
   };
 
-  const handleImportCollectionLocation = (collectionLocation, selectedCollections) => {
-    const isMultipleImport = importType && (importType === 'multiple' || importType === 'bulk');
-    const collectionsToImport = !isMultipleImport ? importedCollection : importedCollection.filter((collection) =>
-      selectedCollections.includes(collection.uid));
-
-    const collectionsArray = Array.isArray(collectionsToImport) ? collectionsToImport : [collectionsToImport];
-    if (collectionsArray.length === 0 || (collectionsArray.length === 1 && !collectionsArray[0])) {
-      toast.error('Please select at least one collection to import.');
-      return;
-    }
-
-    setImportCollectionLocationModalOpen(false);
-
-    if (activeWorkspace) {
-      dispatch(importCollectionInWorkspace(collectionsToImport, activeWorkspace.uid, collectionLocation))
-        .catch((err) => {
-          console.error(err);
-          toast.error('An error occurred while importing the collection');
-        });
-    } else {
-      dispatch(importCollection(collectionsToImport, collectionLocation));
-    }
+  const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
+    dispatch(importCollection(convertedCollection, collectionLocation))
+      .then(() => {
+        setImportCollectionLocationModalOpen(false);
+        setImportData(null);
+        toast.success('Collection imported successfully');
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error('An error occurred while importing the collection');
+      });
   };
 
   const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
@@ -155,8 +142,8 @@ const TitleBar = ({ showSearch, setShowSearch }) => {
         <CreateCollection
           onClose={() => setCreateCollectionModalOpen(false)}
           workspaceUid={activeWorkspace?.uid}
-          defaultLocation={activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : ''}
-          hideLocationInput={!!activeWorkspace?.pathname}
+          defaultLocation={activeWorkspace?.type !== 'default' && activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : undefined}
+          hideLocationInput={activeWorkspace?.type !== 'default' && !!activeWorkspace?.pathname}
         />
       )}
       {importCollectionModalOpen && (
@@ -165,9 +152,10 @@ const TitleBar = ({ showSearch, setShowSearch }) => {
           handleSubmit={handleImportCollection}
         />
       )}
-      {importCollectionLocationModalOpen && (
+      {importCollectionLocationModalOpen && importData && (
         <ImportCollectionLocation
-          collectionName={Array.isArray(importedCollection) ? importedCollection?.[0]?.name : importedCollection?.name}
+          rawData={importData.rawData}
+          format={importData.type}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />

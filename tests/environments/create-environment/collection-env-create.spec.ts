@@ -9,7 +9,8 @@ test.describe('Collection Environment Create Tests', () => {
     const openApiFile = path.join(__dirname, 'fixtures', 'bruno-collection.json');
 
     // Import test collection
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     const importModal = page.locator('[data-testid="import-collection-modal"]');
     await importModal.waitFor({ state: 'visible' });
@@ -21,7 +22,7 @@ test.describe('Collection Environment Create Tests', () => {
     await expect(locationModal.getByText('test_collection')).toBeVisible();
 
     await page.locator('#collection-location').fill(await createTmpDir('env-test'));
-    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await locationModal.getByRole('button', { name: 'Import' }).click();
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'test_collection' })).toBeVisible();
 
@@ -113,18 +114,13 @@ test.describe('Collection Environment Create Tests', () => {
     await expect(responsePane).toContainText('"body": "This is a test post body with environment variables"');
     await expect(responsePane).toContainText('"apiToken": "super-secret-token-12345"');
 
-    // Cleanup
-    await page
-      .locator('.collection-name')
-      .filter({ has: page.locator('#sidebar-collection-name:has-text("test_collection")') })
-      .locator('.collection-actions')
-      .click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
-    // Scope the Close button to the confirmation modal to avoid matching the dropdown close button
-    // Wait for the confirmation modal with "Close Collection" title to appear
-    const closeModal = page.getByRole('dialog').filter({ has: page.getByText('Close Collection') });
-    await closeModal.getByRole('button', { name: 'Close' }).click();
+    // Cleanup - use new "Remove" action in workspace UI
+    const collectionRow = page.locator('.collection-name').filter({ has: page.locator('#sidebar-collection-name:has-text("test_collection")') });
+    await collectionRow.hover();
+    await collectionRow.locator('.collection-actions .icon').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Remove' }).click();
 
-    await page.locator('.bruno-logo').click();
+    const closeModal = page.getByRole('dialog').filter({ has: page.getByText('Remove Collection') });
+    await closeModal.getByRole('button', { name: 'Remove' }).click();
   });
 });

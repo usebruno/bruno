@@ -43,7 +43,7 @@ const CreateCollection = ({ onClose, workspaceUid, defaultLocation: propDefaultL
     initialValues: {
       collectionName: '',
       collectionFolderName: '',
-      collectionLocation: isDefaultWorkspace ? '' : (defaultLocation || ''),
+      collectionLocation: defaultLocation || '',
       format: 'yml'
     },
     validationSchema: Yup.object({

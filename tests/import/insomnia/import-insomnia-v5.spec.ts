@@ -11,7 +11,8 @@ test.describe('Import Insomnia Collection v5', () => {
   test('Import Insomnia Collection v5 successfully', async ({ page, createTmpDir }) => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5.yaml');
 
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
     const importModal = page.getByRole('dialog');
@@ -20,15 +21,13 @@ test.describe('Import Insomnia Collection v5', () => {
 
     await page.setInputFiles('input[type="file"]', insomniaFile);
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-
-    // Verify that the Import Collection modal is displayed (for location selection)
-    const locationModal = page.getByRole('dialog');
+    // Wait for location modal to appear after file processing
+    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+    await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
     await page.locator('#collection-location').fill(await createTmpDir('insomnia-v5-test'));
-    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await locationModal.getByRole('button', { name: 'Import' }).click();
 
     await expect(page.locator('#sidebar-collection-name').getByText('Test API Collection v5')).toBeVisible();
   });

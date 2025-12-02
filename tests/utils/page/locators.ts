@@ -21,7 +21,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   actions: {
     collectionActions: (collectionName: string) =>
-      page.locator('.collection-name')
+      page.getByTestId('collections').locator('.collection-name')
         .filter({ hasText: collectionName })
         .locator('.collection-actions .icon'),
     collectionItemActions: (itemName: string) =>
@@ -43,7 +43,7 @@ export const buildCommonLocators = (page: Page) => ({
   modal: {
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
-    button: (name: string) => page.getByRole('button', { name: name, exact: true }),
+    button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
     closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button')
   },
   environment: {

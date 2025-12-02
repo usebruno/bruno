@@ -43,7 +43,7 @@ const Collections = ({ showSearch }) => {
   }
 
   return (
-    <StyledWrapper>
+    <StyledWrapper data-testid="collections">
       {createCollectionModalOpen ? (
         <CreateCollection
           onClose={() => setCreateCollectionModalOpen(false)}

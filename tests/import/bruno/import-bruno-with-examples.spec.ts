@@ -11,7 +11,8 @@ test.describe('Import Bruno Collection with Examples', () => {
     const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-with-examples.json');
 
     await test.step('Open import collection modal', async () => {
-      await page.getByRole('button', { name: 'Import Collection' }).click();
+      await page.locator('.plus-icon-button').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
     });
 
     await test.step('Wait for import modal and verify title', async () => {
@@ -24,10 +25,6 @@ test.describe('Import Bruno Collection with Examples', () => {
       await page.setInputFiles('input[type="file"]', brunoFile);
     });
 
-    await test.step('Wait for file processing to complete', async () => {
-      await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-    });
-
     await test.step('Verify no parsing errors occurred', async () => {
       const hasError = await page.getByText('Failed to parse the file').isVisible().catch(() => false);
       if (hasError) {
@@ -36,12 +33,12 @@ test.describe('Import Bruno Collection with Examples', () => {
     });
 
     await test.step('Verify location selection modal appears', async () => {
-      const locationModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     });
 
     await test.step('Verify collection name appears in location modal', async () => {
-      const locationModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await expect(locationModal.getByText('bruno-with-examples')).toBeVisible();
       await page.getByTestId('modal-close-button').click();
     });

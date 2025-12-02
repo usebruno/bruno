@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Create GraphQL Requests', () => {
@@ -7,6 +7,7 @@ test.describe('Create GraphQL Requests', () => {
 
   test.beforeAll(async ({ pageWithUserData: page }) => {
     locators = buildCommonLocators(page);
+    await openCollectionAndAcceptSandbox(page, 'create-requests', 'safe');
   });
 
   test.afterAll(async ({ pageWithUserData: page }) => {

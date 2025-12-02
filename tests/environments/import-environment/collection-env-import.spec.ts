@@ -12,24 +12,24 @@ test.describe('Collection Environment Import Tests', () => {
     const envFile = path.join(__dirname, 'fixtures', 'collection-env.json');
 
     // Import test collection
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     const importModal = page.locator('[data-testid="import-collection-modal"]');
     await importModal.waitFor({ state: 'visible' });
 
     await page.setInputFiles('input[type="file"]', openApiFile);
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
     await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     await expect(locationModal.getByText('Environment Test Collection')).toBeVisible();
 
+    // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('collection-env-import-test'));
-    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await locationModal.getByRole('button', { name: 'Import' }).click();
 
     await expect(
-      page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })
-    ).toBeVisible();
+      page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })).toBeVisible({ timeout: 10000 });
 
     // Configure collection
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
