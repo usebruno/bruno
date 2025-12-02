@@ -4,7 +4,7 @@ import Modal from 'components/Modal';
 import { createPortal } from 'react-dom';
 
 const ConfirmSwitchEnv = ({ onCancel }) => {
-  return createPortal(
+  const modalContent = (
     <Modal
       size="md"
       title="Unsaved changes"
@@ -32,8 +32,10 @@ const ConfirmSwitchEnv = ({ onCancel }) => {
         </div>
         <div></div>
       </div>
-    </Modal>,
-    document.body);
+    </Modal>
+  );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default ConfirmSwitchEnv;

@@ -16,7 +16,6 @@ import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 
-
 const TitleBar = ({ showSearch, setShowSearch }) => {
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
@@ -72,7 +71,7 @@ const TitleBar = ({ showSearch, setShowSearch }) => {
       return;
     }
 
-        setImportCollectionLocationModalOpen(false);
+    setImportCollectionLocationModalOpen(false);
 
     if (activeWorkspace) {
       dispatch(importCollectionInWorkspace(collectionsToImport, activeWorkspace.uid, collectionLocation))
@@ -179,7 +178,7 @@ const TitleBar = ({ showSearch, setShowSearch }) => {
     </>
   );
 
-    return (
+  return (
     <StyledWrapper className="px-2 py-2">
       {renderModals()}
       <div className="titlebar-container">
@@ -304,7 +303,7 @@ const TitleBar = ({ showSearch, setShowSearch }) => {
         </div>
       </div>
     </StyledWrapper>
-    );
+  );
 };
 
 export default TitleBar;
