@@ -550,13 +550,12 @@ const addBruShimToContext = (vm, bru) => {
         // Create native handler that executes the stored handle
         // Returns a Promise so HookManager can await async handlers
         const nativeHandler = (data) => {
-          const vmInstance = vm;
           const storedHandle = handlerHandles.get(handlerId);
-          if (!storedHandle || !vmInstance) {
+          if (!storedHandle || !vm) {
             return Promise.resolve();
           }
           // Return the Promise from executeHandler so HookManager awaits it
-          return executeHandler(storedHandle, vmInstance, data);
+          return executeHandler(storedHandle, vm, data);
         };
 
         // Register with native hook system
@@ -612,20 +611,17 @@ const addBruShimToContext = (vm, bru) => {
 
       // Native handler returns a Promise so HookManager can await async handlers
       const nativeHandler = (data) => {
-        // Use the VM instance stored on bru object (ensures we use the correct VM context)
-        const vmInstance = vm;
-
         // Retrieve the stored handler handle (this keeps it alive)
         const storedHandle = handlerHandles.get(handlerId);
         if (!storedHandle) {
           return Promise.resolve();
         }
 
-        if (!vmInstance) {
+        if (!vm) {
           return Promise.resolve();
         }
         // Return the Promise from executeHandler so HookManager awaits it
-        return executeHandler(storedHandle, vmInstance, data);
+        return executeHandler(storedHandle, vm, data);
       };
 
       // Register with native HookManager

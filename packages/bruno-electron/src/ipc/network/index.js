@@ -1304,7 +1304,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       if (isCollectionRun) {
         const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
-        collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_START, { collection, collectionUid });
+        await collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_START, { collection, collectionUid });
       }
 
       mainWindow.webContents.send('main:run-folder-event', {

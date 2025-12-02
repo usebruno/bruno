@@ -6,18 +6,25 @@
  * Usage examples:
  *
  * Register a handler for a single event
- * bru.hooks.on('grpc:start-connection', (context) => { ... });
+ * bru.hooks.on('beforeRequest', ({ req }) => { ... });
+ * bru.hooks.on('afterResponse', ({ req, res }) => { ... });
  *
  * Register a handler for multiple events (including wildcard)
- * const unhook = bru.hooks.on(['grpc:start-connection', '*'], (context) => { ... });
+ * const unhook = bru.hooks.on(['beforeRequest', 'afterResponse'], (data) => { ... });
  *
  * Unregister handler by calling `unhook`
  * unhook()
  * or unregister for a specific pattern
- * unhook('grpc:start-connection')
+ * unhook('beforeRequest')
  *
  * Call hooks for a single event (internal use)
- * hookManager.call('grpc:start-connection', context);
+ * hookManager.call('beforeRequest', { request, req, collection });
+ *
+ * Available events:
+ * - 'beforeRequest': Fired before a request is sent
+ * - 'afterResponse': Fired after a response is received
+ * - 'collectionRunStart': Fired when a collection run starts
+ * - 'collectionRunEnd': Fired when a collection run ends
  *
  * @class
  */
