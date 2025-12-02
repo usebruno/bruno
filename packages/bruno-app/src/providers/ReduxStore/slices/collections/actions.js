@@ -81,6 +81,42 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
+// generate a unique names
+const generateUniqueName = (originalName, existingItems, isFolder) => {
+  // Extract base name by removing any existing " (number)" suffix
+  const baseName = originalName.replace(/\s*\(\d+\)$/, '');
+  const baseFilename = sanitizeName(baseName);
+
+  // Get normalized filenames for items of the same type
+  const existingFilenames = existingItems
+    .filter((item) => isFolder ? item.type === 'folder' : item.type !== 'folder')
+    .map((item) => {
+      let filename = trim(item.filename);
+      // For requests, remove file extension (.bru, .yml, .yaml)
+      return isFolder ? filename : filename.replace(/\.(bru|yml|yaml)$/, '');
+    });
+
+  // Check if base name conflicts with existing items
+  if (!existingFilenames.includes(baseFilename)) {
+    return { newName: baseName, newFilename: baseFilename };
+  }
+
+  // Find highest counter among conflicting names
+  const counters = existingFilenames
+    .filter((filename) => filename === baseFilename || filename.startsWith(`${baseFilename} (`))
+    .map((filename) => {
+      if (filename === baseFilename) return 0;
+      const match = filename.match(/\((\d+)\)$/);
+      return match ? parseInt(match[1], 10) : 0;
+    });
+
+  const nextCounter = Math.max(0, ...counters) + 1;
+  return {
+    newName: `${baseName} (${nextCounter})`,
+    newFilename: `${baseFilename} (${nextCounter})`
+  };
+};
+
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -853,7 +889,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
       const collectionPath = path.join(parentFolder.pathname, newFilename);
 
       const { ipcRenderer } = window;
-      ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
+      ipcRenderer.invoke('renderer:clone-folder', item, collectionPath, collection.pathname).then(resolve).catch(reject);
       return;
     }
 
@@ -943,11 +979,6 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
       for (const clipboardItem of clipboardResult.items) {
         const copiedItem = cloneDeep(clipboardItem);
 
-        // Only allow pasting requests (not folders)
-        if (isItemAFolder(copiedItem)) {
-          return reject(new Error('Pasting folders is not supported'));
-        }
-
         const targetCollectionCopy = cloneDeep(targetCollection);
         let targetItem = null;
         let targetParentPathname = targetCollection.pathname;
@@ -964,39 +995,47 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
           targetParentPathname = targetItem.pathname;
         }
 
-        // Generate a unique filename for the pasted item
-        let newName = copiedItem.name;
-        let newFilename = sanitizeName(copiedItem.name);
-        let counter = 1;
-
         const existingItems = targetItem ? targetItem.items : targetCollection.items;
 
-        // Check for duplicate names and append counter if needed
-        while (find(existingItems, (i) => i.type !== 'folder' && trim(i.filename) === trim(resolveRequestFilename(newFilename, targetCollection.format)))) {
-          newName = `${copiedItem.name} (${counter})`;
-          newFilename = `${sanitizeName(copiedItem.name)} (${counter})`;
-          counter++;
+        // Handle folder pasting
+        if (isItemAFolder(copiedItem)) {
+          // Generate unique name for folder
+          const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, true);
+
+          set(copiedItem, 'name', newName);
+          set(copiedItem, 'filename', newFilename);
+          set(copiedItem, 'root.meta.name', newName);
+          set(copiedItem, 'root.meta.seq', (existingItems?.length ?? 0) + 1);
+
+          const fullPathname = path.join(targetParentPathname, newFilename);
+          const { ipcRenderer } = window;
+
+          await ipcRenderer.invoke('renderer:clone-folder', copiedItem, fullPathname, targetCollection.pathname);
+        } else {
+          // Handle request pasting
+          // Generate unique name for request
+          const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, false);
+
+          const filename = resolveRequestFilename(newFilename, targetCollection.format);
+          const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+          set(itemToSave, 'name', trim(newName));
+          set(itemToSave, 'filename', trim(filename));
+
+          const fullPathname = path.join(targetParentPathname, filename);
+          const { ipcRenderer } = window;
+          const requestItems = filter(existingItems, (i) => i.type !== 'folder');
+          itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
+
+          await itemSchema.validate(itemToSave);
+          await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
+
+          dispatch(insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid: targetCollectionUid,
+            itemPathname: fullPathname
+          }));
         }
-
-        const filename = resolveRequestFilename(newFilename, targetCollection.format);
-        const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
-        set(itemToSave, 'name', trim(newName));
-        set(itemToSave, 'filename', trim(filename));
-
-        const fullPathname = path.join(targetParentPathname, filename);
-        const { ipcRenderer } = window;
-        const requestItems = filter(existingItems, (i) => i.type !== 'folder');
-        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
-
-        await itemSchema.validate(itemToSave);
-        await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
-
-        dispatch(insertTaskIntoQueue({
-          uid: uuid(),
-          type: 'OPEN_REQUEST',
-          collectionUid: targetCollectionUid,
-          itemPathname: fullPathname
-        }));
       }
 
       resolve();
@@ -1021,7 +1060,7 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
       const { ipcRenderer } = window;
 
       ipcRenderer
-        .invoke('renderer:delete-item', item.pathname, item.type)
+        .invoke('renderer:delete-item', item.pathname, item.type, collection.pathname)
         .then(async () => {
           // Reorder items in parent directory after deletion
           if (parentDirectoryItem.items) {
