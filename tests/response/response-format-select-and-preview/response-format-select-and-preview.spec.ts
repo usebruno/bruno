@@ -51,7 +51,7 @@ test.describe.serial('Response Format Select and Preview', () => {
       await switchResponseFormat(page, 'XML');
       await expect(codeLine.nth(1)).toContainText('"hello": "bruno"');
       await switchToPreviewTab(page);
-      await expect(previewContainer).toContainText('"ERROR"');
+      await expect(previewContainer).toContainText('Cannot preview as XML');
     });
 
     await test.step('Switch to Editor, select JavaScript, verify editor and preview fallback', async () => {
@@ -113,7 +113,7 @@ test.describe.serial('Response Format Select and Preview', () => {
       await switchResponseFormat(page, 'JSON');
       await expect(codeLine.first()).toContainText('<h1>hello</h1>');
       await switchToPreviewTab(page);
-      await expect(previewContainer).toContainText('"ERROR"');
+      await expect(previewContainer).toContainText('Cannot preview as JSON');
     });
 
     await test.step('Switch to Editor, select XML, verify editor and preview', async () => {

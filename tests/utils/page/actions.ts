@@ -548,6 +548,7 @@ const sendRequest = async (
 const openRequest = async (page: Page, collectionName: string, requestName: string) => {
   await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
     const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
+    await collectionContainer.click();
     const collectionWrapper = collectionContainer.locator('..');
     const request = collectionWrapper.locator('.collection-item-name').filter({ hasText: requestName });
     await request.click();
