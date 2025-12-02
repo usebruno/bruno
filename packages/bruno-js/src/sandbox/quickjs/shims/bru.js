@@ -402,7 +402,8 @@ const addBruShimToContext = (vm, bru) => {
     }
 
     // Execute handler using the original function handle from the VM
-    const executeHandler = (handlerHandle, vmInstance, data) => {
+    // Returns a Promise that resolves when the handler completes (supports async handlers)
+    const executeHandler = async (handlerHandle, vmInstance, data) => {
       if (!handlerHandle) {
         return;
       }
@@ -457,8 +458,59 @@ const addBruShimToContext = (vm, bru) => {
           if (!errorMsg.includes('UseAfterFree') && !errorMsg.includes('Lifetime not alive')) {
             console.error('Error in hook handler:', error);
           }
-        } else {
+          return;
+        }
+
+        // Check if the result is a Promise (async handler) and await it
+        // This is crucial for handlers that need to complete before the request proceeds
+        const resultType = vmInstance.typeof(result.value);
+
+        // Only try to resolve as Promise if it's an object (Promises are objects in JS)
+        // For non-object values (undefined, null, primitives), just dispose and return
+        if (resultType !== 'object') {
           result.value.dispose();
+          return;
+        }
+
+        // Check if the object has a .then property (duck-typing for Promise)
+        let isPromise = false;
+        try {
+          const thenProp = vmInstance.getProp(result.value, 'then');
+          isPromise = vmInstance.typeof(thenProp) === 'function';
+          thenProp.dispose();
+        } catch (e) {
+          // If we can't check for .then, assume it's not a promise
+          isPromise = false;
+        }
+
+        if (!isPromise) {
+          // Not a promise, just dispose and return
+          result.value.dispose();
+          return;
+        }
+
+        // It's a Promise - await it using resolvePromise
+        try {
+          const resolvedResult = await vmInstance.resolvePromise(result.value);
+          result.value.dispose();
+
+          if (resolvedResult.error) {
+            const error = vmInstance.dump(resolvedResult.error);
+            resolvedResult.error.dispose();
+            const errorMsg = error?.message || error?.toString() || String(error);
+            if (!errorMsg.includes('UseAfterFree') && !errorMsg.includes('Lifetime not alive')) {
+              console.error('Error in async hook handler:', error);
+            }
+          } else {
+            resolvedResult.value.dispose();
+          }
+        } catch (promiseError) {
+          // If resolvePromise fails, just dispose the value
+          try {
+            result.value.dispose();
+          } catch (e) {
+            // Ignore disposal errors
+          }
         }
       } catch (error) {
         const errorMsg = error?.message || error?.toString() || String(error);
@@ -502,13 +554,15 @@ const addBruShimToContext = (vm, bru) => {
         handlerHandles.set(handlerId, handlerHandle);
 
         // Create native handler that executes the stored handle
+        // Returns a Promise so HookManager can await async handlers
         const nativeHandler = (data) => {
           const vmInstance = bru._quickjsVm || vm;
           const storedHandle = handlerHandles.get(handlerId);
           if (!storedHandle || !vmInstance) {
-            return;
+            return Promise.resolve();
           }
-          executeHandler(storedHandle, vmInstance, data);
+          // Return the Promise from executeHandler so HookManager awaits it
+          return executeHandler(storedHandle, vmInstance, data);
         };
 
         // Register with native hook system
@@ -562,6 +616,7 @@ const addBruShimToContext = (vm, bru) => {
       // Store the handle to keep it alive
       handlerHandles.set(handlerId, handlerHandle);
 
+      // Native handler returns a Promise so HookManager can await async handlers
       const nativeHandler = (data) => {
         // Use the VM instance stored on bru object (ensures we use the correct VM context)
         const vmInstance = bru._quickjsVm || vm;
@@ -569,13 +624,14 @@ const addBruShimToContext = (vm, bru) => {
         // Retrieve the stored handler handle (this keeps it alive)
         const storedHandle = handlerHandles.get(handlerId);
         if (!storedHandle) {
-          return;
+          return Promise.resolve();
         }
 
         if (!vmInstance) {
-          return;
+          return Promise.resolve();
         }
-        executeHandler(storedHandle, vmInstance, data);
+        // Return the Promise from executeHandler so HookManager awaits it
+        return executeHandler(storedHandle, vmInstance, data);
       };
 
       // Register with native HookManager
