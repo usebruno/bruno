@@ -1,16 +1,15 @@
 import { debounce } from 'lodash';
-import QueryResultFilter from './QueryResultFilter';
-import React from 'react';
-import classnames from 'classnames';
-import { getContentType, formatResponse } from 'utils/common';
-import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
-import QueryResultPreview from './QueryResultPreview';
-import StyledWrapper from './StyledWrapper';
-import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
-import { detectContentTypeFromBuffer, getEncoding } from 'utils/common/index';
+import React, { useEffect, useMemo, useState } from 'react';
+import { formatResponse, getContentType } from 'utils/common';
+import { getEncoding } from 'utils/common/index';
+import { getDefaultResponseFormat } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
+import QueryResultFilter from './QueryResultFilter';
+import QueryResultPreview from './QueryResultPreview';
 import QueryResultTypeSelector from './QueryResultTypeSelector/index';
+import StyledWrapper from './StyledWrapper';
+import { detectContentTypeFromBuffer } from 'utils/response/index';
 
 const PREVIEW_FORMAT_OPTIONS = [
   {
@@ -105,26 +104,10 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
 
   const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
 
-  // Determine initial format based on content type (only runs once)
-  const getInitialFormat = (_contentType) => {
-    if (_contentType.includes('html')) return { format: 'html', tab: 'preview' };
-    if (_contentType.includes('json')) return { format: 'json', tab: 'editor' };
-    if (_contentType.includes('xml')) return { format: 'xml', tab: 'editor' };
-    if (_contentType.includes('javascript')) return { format: 'javascript', tab: 'editor' };
-    if (_contentType.includes('image')) return { format: 'base64', tab: 'preview' };
-    if (_contentType.includes('pdf')) return { format: 'base64', tab: 'preview' };
-    if (_contentType.includes('audio')) return { format: 'base64', tab: 'preview' };
-    if (_contentType.includes('video')) return { format: 'base64', tab: 'preview' };
-    if (_contentType.includes('text')) return { format: 'raw', tab: 'editor' };
-
-    // for all other content types, return raw
-    return { format: 'raw', tab: 'editor' };
-  };
-
   // Initialize format and tab only once when data loads
   useEffect(() => {
     if (isInitialRun && (detectedContentType !== undefined && contentType !== undefined)) {
-      const initial = getInitialFormat(contentType);
+      const initial = getDefaultResponseFormat(contentType);
       setSelectedFormat(initial.format);
       setSelectedTab(initial.tab);
       setIsInitialRun(false);
@@ -227,7 +210,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
       ) : (
         <div className="h-full flex flex-col">
           <div className="flex-1 relative">
-            <div className="absolute top-0 left-0 h-full w-full bg-[#f3f3f3] dark:bg-[#262626]" data-testid="response-preview-container">
+            <div className="absolute top-0 left-0 h-full w-full" data-testid="response-preview-container">
               <QueryResultPreview
                 selectedTab={selectedTab}
                 data={data}

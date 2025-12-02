@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 
-const TextPreview = React.memo(({ data }) => {
-  const displayData = React.useMemo(() => {
+const TextPreview = memo(({ data }) => {
+  const displayData = useMemo(() => {
     if (data === null || data === undefined) {
       return String(data);
     }
