@@ -29,23 +29,34 @@ const addQueryParamPreservingPath = (targetUrl, key, value, preserveDotSegments)
     return targetUrl;
   }
 
-  if (!preserveDotSegments) {
-    try {
-      const urlObj = new URL(targetUrl);
-      urlObj.searchParams.set(key, value);
+  try {
+    const urlObj = new URL(targetUrl);
+    urlObj.searchParams.set(key, value);
+
+    if (!preserveDotSegments) {
       return urlObj.toString();
-    } catch (err) {
-      // fall back to manual path handling
     }
+
+    const [urlWithoutHash, ...hashParts] = targetUrl.split('#');
+    const hash = hashParts.length ? `#${hashParts.join('#')}` : '';
+    const [pathPart] = urlWithoutHash.split('?');
+    const queryString = urlObj.searchParams.toString();
+
+    return `${pathPart}${queryString ? `?${queryString}` : ''}${hash}`;
+  } catch (err) {
+    // fall back to manual path handling
   }
 
   const [urlWithoutHash, ...hashParts] = targetUrl.split('#');
   const hash = hashParts.length ? `#${hashParts.join('#')}` : '';
-  const separator = urlWithoutHash.includes('?')
-    ? (urlWithoutHash.endsWith('?') || urlWithoutHash.endsWith('&') ? '' : '&')
-    : '?';
+  const [pathPart, rawQuery = ''] = urlWithoutHash.split('?');
+  const params = new URLSearchParams(rawQuery);
 
-  return `${urlWithoutHash}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}${hash}`;
+  params.set(key, value);
+
+  const queryString = params.toString();
+
+  return `${pathPart}${queryString ? `?${queryString}` : ''}${hash}`;
 };
 
 const interpolatePathSegments = (segment, pathParams) => {
