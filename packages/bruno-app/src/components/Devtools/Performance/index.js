@@ -9,6 +9,16 @@ import {
   IconChevronDown
 } from '@tabler/icons';
 
+const getProcessOptions = (processes) => {
+  return [
+    { value: 'cumulative', label: 'Cumulative (All Processes)' },
+    ...(processes ?? []).map((process) => ({
+      value: String(process.pid),
+      label: `PID ${process.pid}${process.title ? ` - ${process.title}` : ''}${process.type ? ` (${process.type})` : ''}`
+    }))
+  ];
+};
+
 const Performance = () => {
   const { systemResources } = useSelector((state) => state.performance);
   const [selectedPid, setSelectedPid] = useState('cumulative');
@@ -84,16 +94,7 @@ const Performance = () => {
   );
 
   // Get process options for dropdown
-  const processOptions = useMemo(() => {
-    const processes = systemResources.processes || [];
-    return [
-      { value: 'cumulative', label: 'Cumulative (All Processes)' },
-      ...processes.map((process) => ({
-        value: String(process.pid),
-        label: `PID ${process.pid}${process.title ? ` - ${process.title}` : ''}${process.type ? ` (${process.type})` : ''}`
-      }))
-    ];
-  }, [systemResources.processes]);
+  const processOptions = useMemo(() => getProcessOptions(systemResources.processes), [systemResources.processes]);
 
   // Get selected process data
   const selectedProcess = useMemo(() => {
@@ -126,9 +127,9 @@ const Performance = () => {
         <SystemResourceCard
           icon={IconDatabase}
           title="Memory Usage"
-          value={formatBytes(systemResources.memory * 1024)}
+          value={formatBytes(systemResources.memory)}
           subtitle="Total memory usage"
-          color={systemResources.memory > 500 * 1024 * 1024 ? 'danger' : 'default'}
+          color={systemResources.memory > (500 * 1024 * 1024) ? 'danger' : 'default'}
         />
 
         <SystemResourceCard
@@ -173,9 +174,9 @@ const Performance = () => {
           <SystemResourceCard
             icon={IconDatabase}
             title="Memory Usage"
-            value={formatBytes(process.memory * 1024)}
+            value={formatBytes(process.memory)}
             subtitle="Current memory usage"
-            color={process.memory > 500 * 1024 * 1024 ? 'danger' : 'default'}
+            color={process.memory > (500 * 1024 * 1024) ? 'danger' : 'default'}
           />
 
           <SystemResourceCard
