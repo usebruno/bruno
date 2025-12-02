@@ -40,7 +40,7 @@ class ErrorBoundary extends React.Component {
               <Bruno width={256} />
             </div>
 
-            <h1 className="text-2xl font-semibold text-red-600 mb-2">Oops! Something went wrong</h1>
+            <h1 className="text-2xl font-medium text-red-600 mb-2">Oops! Something went wrong</h1>
             <p className="text-red-500 mb-2">
               If you are using an official production build: the above error is most likely a bug!
               <br />

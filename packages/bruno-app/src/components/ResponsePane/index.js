@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
@@ -19,10 +19,13 @@ import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 import ResponseCopy from 'src/components/ResponsePane/ResponseCopy';
+import ResponseBookmark from 'src/components/ResponsePane/ResponseBookmark';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
 import ResponseLayoutToggle from './ResponseLayoutToggle';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
+import WSMessagesList from './WsResponsePane/WSMessagesList';
 
 const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -51,11 +54,30 @@ const ResponsePane = ({ item, collection }) => {
   };
 
   const response = item.response || {};
-  const responseSize = response.size || 0;
+
+  const responseSize = useMemo(() => {
+    if (typeof response.size === 'number') {
+      return response.size;
+    }
+
+    if (!response.dataBuffer) return 0;
+
+    try {
+      // dataBuffer is base64 encoded, so we need to calculate the actual size
+      const buffer = Buffer.from(response.dataBuffer, 'base64');
+      return buffer.length;
+    } catch (error) {
+      return 0;
+    }
+  }, [response.size, response.dataBuffer]);
 
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
+        const isStream = item.response?.stream ?? false;
+        if (isStream) {
+          return <WSMessagesList order={-1} messages={item.response.data} />;
+        }
         return (
           <QueryResult
             item={item}
@@ -171,6 +193,11 @@ const ResponsePane = ({ item, collection }) => {
                 <ResponseCopy item={item} />
                 <StatusCode status={response.status} />
                 <ResponseTime duration={response.duration} />
+                <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
+                <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
+                {item.response?.stream?.running
+                  ? <ResponseStopWatch startMillis={response.duration} />
+                  : <ResponseTime duration={response.duration} />}
                 <ResponseSize size={responseSize} />
               </>
             ) : null}

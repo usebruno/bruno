@@ -1,7 +1,7 @@
-const fs = require('fs');
-const tls = require('tls');
+const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
+const { getCACertificates } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { interpolateString } = require('./interpolate-string');
@@ -11,11 +11,13 @@ const { interpolateString } = require('./interpolate-string');
  */
 const getCertsAndProxyConfig = async ({
   collectionUid,
+  collection,
   request,
   envVars,
   runtimeVariables,
   processEnvVars,
-  collectionPath
+  collectionPath,
+  globalEnvironmentVariables
 }) => {
   /**
    * @see https://github.com/usebruno/bruno/issues/211 set keepAlive to true, this should fix socket hang up errors
@@ -26,21 +28,26 @@ const getCertsAndProxyConfig = async ({
     httpsAgentRequestFields['rejectUnauthorized'] = false;
   }
 
-  if (preferencesUtil.shouldUseCustomCaCertificate()) {
-    const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
-    if (caCertFilePath) {
-      let caCertBuffer = fs.readFileSync(caCertFilePath);
-      if (preferencesUtil.shouldKeepDefaultCaCertificates()) {
-        caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
-      }
-      httpsAgentRequestFields['ca'] = caCertBuffer;
-    }
-  }
+  let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
+  let caCertificatesData = getCACertificates({
+    caCertFilePath, 
+    shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates() 
+  });
 
-  const brunoConfig = getBrunoConfig(collectionUid);
+  let caCertificates = caCertificatesData.caCertificates;
+  let caCertificatesCount = caCertificatesData.caCertificatesCount;
+
+  // configure HTTPS agent with aggregated CA certificates
+  httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;
+  httpsAgentRequestFields['ca'] = caCertificates || [];
+
+  const { promptVariables } = collection;
+  const brunoConfig = getBrunoConfig(collectionUid, collection);
   const interpolationOptions = {
+    globalEnvironmentVariables,
     envVars,
     runtimeVariables,
+    promptVariables,
     processEnvVars
   };
 

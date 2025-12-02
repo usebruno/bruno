@@ -6,6 +6,7 @@ const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
+const { parseEnvironmentJson } = require('../utils/environment');
 const { isRequestTagsIncluded } = require("@usebruno/common")
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
@@ -101,7 +102,7 @@ const printRunSummary = (results) => {
 };
 
 const getJsSandboxRuntime = (sandbox) => {
-  return sandbox === 'safe' ? 'quickjs' : 'vm2';
+  return sandbox === 'safe' ? 'quickjs' : 'nodevm';
 };
 
 const builder = async (yargs) => {
@@ -131,7 +132,7 @@ const builder = async (yargs) => {
       type: 'string'
     })
     .option('env-file', {
-      describe: 'Path to environment file (.bru) - can be absolute or relative path',
+      describe: 'Path to environment file (.bru or .json) - absolute or relative',
       type: 'string'
     })
     .option('env-var', {
@@ -139,8 +140,8 @@ const builder = async (yargs) => {
       type: 'string'
     })
     .option('sandbox', {
-      describe: 'Javascript sandbox to use; available sandboxes are "developer" (default) or "safe"',
-      default: 'developer',
+      describe: 'Javascript sandbox to use; available sandboxes are "safe" (default) or "developer"',
+      default: 'safe',
       type: 'string'
     })
     .option('output', {
@@ -208,6 +209,10 @@ const builder = async (yargs) => {
     .option('exclude-tags', {
       type: 'string',
       description: 'Tags to exclude from the run'
+    })
+    .option('verbose', {
+      type: 'boolean',
+      description: 'Allow verbose output for debugging purposes'
     })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
@@ -284,7 +289,8 @@ const handler = async function (argv) {
       noproxy,
       delay,
       tags: includeTags,
-      excludeTags
+      excludeTags,
+      verbose
     } = argv;
     const collectionPath = process.cwd();
 
@@ -306,7 +312,7 @@ const handler = async function (argv) {
           clientCertConfigJson = JSON.parse(clientCertConfigFileContent);
         } catch (err) {
           console.error(chalk.red(`Failed to parse Client Certificate Config JSON: ${err.message}`));
-          process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
         }
 
         if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
@@ -346,10 +352,29 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
 
-      const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
-      const envJson = parseEnvironment(envBruContent);
-      envVars = getEnvVars(envJson);
-      envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
+      const ext = path.extname(envFilePath).toLowerCase();
+      if (ext === '.json') {
+        // Parse Bruno schema JSON environment
+        let envJsonContent;
+        try {
+          envJsonContent = fs.readFileSync(envFilePath, 'utf8');
+          const parsed = JSON.parse(envJsonContent);
+          const normalizedEnv = parseEnvironmentJson(parsed);
+          envVars = getEnvVars(normalizedEnv);
+          const rawName = normalizedEnv?.name;
+          const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
+          envVars.__name__ = trimmedName || path.basename(envFilePath, '.json');
+        } catch (err) {
+          console.error(chalk.red(`Failed to parse Environment JSON: ${err.message}`));
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+        }
+      } else {
+        // Default to .bru parsing
+        const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
+        const envJson = parseEnvironment(envBruContent);
+        envVars = getEnvVars(envJson);
+        envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
+      }
     }
 
     if (envVar) {
@@ -390,6 +415,9 @@ const handler = async function (argv) {
     }
     if (noproxy) {
       options['noproxy'] = true;
+    }
+    if (verbose) {
+      options['verbose'] = true;
     }
     if (cacert && cacert.length) {
       if (insecure) {
@@ -518,7 +546,7 @@ const handler = async function (argv) {
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
-      const { pathname } = requestItem;
+      const { name, pathname } = requestItem;
 
       const start = process.hrtime();
       const result = await runSingleRequest(
@@ -548,7 +576,8 @@ const handler = async function (argv) {
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: pathname.replace('.bru', '')
+        suitename: pathname.replace('.bru', ''),
+        name
       });
 
       if (reporterSkipAllHeaders) {
@@ -623,8 +652,12 @@ const handler = async function (argv) {
     }
 
     const summary = printRunSummary(results);
+    const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+
+    // Extract environment name from envVars if available
+    const environmentName = envVars?.__name__ || null;
 
     const formatKeys = Object.keys(formats);
     if (formatKeys && formatKeys.length > 0) {
@@ -636,7 +669,7 @@ const handler = async function (argv) {
       const reporters = {
         'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path),
+        html: (path) => makeHtmlOutput(outputJson, path, runCompletionTime, environmentName)
       }
 
       for (const formatter of Object.keys(formats))

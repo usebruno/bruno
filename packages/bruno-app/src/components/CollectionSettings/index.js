@@ -1,9 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
 import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
-import toast from 'react-hot-toast';
-import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import ProxySettings from './ProxySettings';
@@ -12,17 +9,14 @@ import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
-import Presets from './Presets';
-import Grpc from './Grpc';
+import Protobuf from './Protobuf';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
 import Overview from './Overview/index';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
-  const isGrpcEnabled = useBetaFeature(BETA_FEATURES.GRPC);
   const tab = collection.settingsSelectedTab;
   const setTab = (tab) => {
     dispatch(
@@ -33,61 +27,22 @@ const CollectionSettings = ({ collection }) => {
     );
   };
 
-  const root = collection?.root;
+  const root = collection?.draft?.root || collection?.root;
   const hasScripts = root?.request?.script?.res || root?.request?.script?.req;
   const hasTests = root?.request?.tests;
   const hasDocs = root?.docs;
 
-  const headers = get(collection, 'root.request.headers', []);
+  const headers = collection.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   const activeHeadersCount = headers.filter((header) => header.enabled).length;
 
-  const requestVars = get(collection, 'root.request.vars.req', []);
-  const responseVars = get(collection, 'root.request.vars.res', []);
-  const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
-  const authMode = get(collection, 'root.request.auth', {}).mode || 'none';
+  const requestVars = collection.draft?.root ? get(collection, 'draft.root.request.vars.req', []) : get(collection, 'root.request.vars.req', []);
+  const activeVarsCount = requestVars.filter((v) => v.enabled).length;
+  const authMode = (collection.draft?.root ? get(collection, 'draft.root.request.auth', {}) : get(collection, 'root.request.auth', {})).mode || 'none';
 
-  const proxyConfig = get(collection, 'brunoConfig.proxy', {});
-  const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
-  const grpcConfig = get(collection, 'brunoConfig.grpc', {});
-
-  const onProxySettingsUpdate = (config) => {
-    const brunoConfig = cloneDeep(collection.brunoConfig);
-    brunoConfig.proxy = config;
-    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
-      .then(() => {
-        toast.success('Collection settings updated successfully.');
-      })
-      .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
-  };
-
-  const onClientCertSettingsUpdate = (config) => {
-    const brunoConfig = cloneDeep(collection.brunoConfig);
-    if (!brunoConfig.clientCertificates) {
-      brunoConfig.clientCertificates = {
-        enabled: true,
-        certs: [config]
-      };
-    } else {
-      brunoConfig.clientCertificates.certs.push(config);
-    }
-    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
-      .then(() => {
-        toast.success('Collection settings updated successfully');
-      })
-      .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
-  };
-
-  const onClientCertSettingsRemove = (config) => {
-    const brunoConfig = cloneDeep(collection.brunoConfig);
-    brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.filter(
-      (item) => item.domain != config.domain
-    );
-    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
-      .then(() => {
-        toast.success('Collection settings updated successfully');
-      })
-      .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
-  };
+  const proxyConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.proxy', {}) : get(collection, 'brunoConfig.proxy', {});
+  const proxyEnabled = proxyConfig.hostname ? true : false;
+  const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
+  const protobufConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.protobuf', {}) : get(collection, 'brunoConfig.protobuf', {});
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -109,24 +64,18 @@ const CollectionSettings = ({ collection }) => {
       case 'tests': {
         return <Test collection={collection} />;
       }
-      case 'presets': {
-        return <Presets collection={collection} />;
-      }
       case 'proxy': {
-        return <ProxySettings proxyConfig={proxyConfig} onUpdate={onProxySettingsUpdate} />;
+        return <ProxySettings collection={collection} />;
       }
       case 'clientCert': {
         return (
           <ClientCertSettings
-            root={collection.pathname}
-            clientCertConfig={clientCertConfig}
-            onUpdate={onClientCertSettingsUpdate}
-            onRemove={onClientCertSettingsRemove}
+            collection={collection}
           />
         );
       }
-      case 'grpc': {
-        return <Grpc collection={collection} />;
+      case 'protobuf': {
+        return <Protobuf collection={collection} />;
       }
     }
   };
@@ -163,23 +112,18 @@ const CollectionSettings = ({ collection }) => {
           Tests
           {hasTests && <StatusDot />}
         </div>
-        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
-          Presets
-        </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
-          {Object.keys(proxyConfig).length > 0 && <StatusDot />}
+          {Object.keys(proxyConfig).length > 0 && proxyEnabled && <StatusDot />}
         </div>
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
           {clientCertConfig.length > 0 && <StatusDot />}
         </div>
-        {isGrpcEnabled && (
-          <div className={getTabClassname('grpc')} role="tab" onClick={() => setTab('grpc')}>
-            gRPC
-            {grpcConfig.protoFiles && grpcConfig.protoFiles.length > 0 && <StatusDot />}
-          </div>
-        )}
+        <div className={getTabClassname('protobuf')} role="tab" onClick={() => setTab('protobuf')}>
+          Protobuf
+          {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
+        </div>
       </div>
       <section className="mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
     </StyledWrapper>

@@ -20,7 +20,7 @@ const FolderSettings = ({ collection, folder }) => {
     tab = folderLevelSettingsSelectedTab[folder?.uid];
   }
 
-  const folderRoot = folder?.root;
+  const folderRoot = folder?.draft || folder?.root;
   const hasScripts = folderRoot?.request?.script?.res || folderRoot?.request?.script?.req;
   const hasTests = folderRoot?.request?.tests;
 
@@ -28,8 +28,7 @@ const FolderSettings = ({ collection, folder }) => {
   const activeHeadersCount = headers.filter((header) => header.enabled).length;
 
   const requestVars = folderRoot?.request?.vars?.req || [];
-  const responseVars = folderRoot?.request?.vars?.res || [];
-  const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
+  const activeVarsCount = requestVars.filter((v) => v.enabled).length;
 
   const auth = get(folderRoot, 'request.auth.mode');
   const hasAuth = auth && auth !== 'none';

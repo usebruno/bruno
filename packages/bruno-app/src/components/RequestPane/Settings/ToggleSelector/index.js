@@ -6,7 +6,8 @@ const ToggleSelector = ({
   label,
   description,
   disabled = false,
-  size = 'small' // 'small', 'medium', 'large'
+  size = 'small', // 'small', 'medium', 'large'
+  'data-testid': dataTestId
 }) => {
   const sizeClasses = {
     small: {
@@ -29,13 +30,24 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between">
+      <div className="flex flex-col">
+        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
+          {label}
+        </label>
+        {description && (
+          <p className="text-xs text-gray-700 dark:text-gray-400">
+            {description}
+          </p>
+        )}
+      </div>
       <button
         type="button"
         onClick={onChange}
         disabled={disabled}
+        data-testid={dataTestId}
         className={`
-          relative inline-flex ${currentSize.container} mx-1 items-center rounded-full transition-colors
+          relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors
           focus:outline-none focus:ring-1 focus:ring-offset-1
           ${disabled
             ? 'opacity-50 cursor-not-allowed'
@@ -57,16 +69,6 @@ const ToggleSelector = ({
           `}
         />
       </button>
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
-      </div>
     </div>
   );
 };

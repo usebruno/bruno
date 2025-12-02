@@ -31,6 +31,10 @@ const GrpcAuthMode = ({ item, collection }) => {
       mode: 'oauth2'
     },
     {
+      name: 'WSSE Auth',
+      mode: 'wsse'
+    },
+    {
       name: 'Inherit',
       mode: 'inherit'
     },

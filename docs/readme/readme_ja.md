@@ -43,13 +43,6 @@ Bruno はオフラインのみで利用できます。Bruno にクラウド同�
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
-### ゴールデンエディション ✨
-
-機能のほとんどが無料で使用でき、オープンソースとなっています。
-私たちは[オープンソースの原則と長期的な維持](https://github.com/usebruno/bruno/discussions/269)の間でうまくバランスを取ろうと努力しています。
-
-[ゴールデンエディション](https://www.usebruno.com/pricing)を **19 ドル** (買い切り)で購入できます！
-
 ### インストール方法
 
 Bruno は[私たちのウェブサイト](https://www.usebruno.com/downloads)からバイナリをダウンロードできます。Mac, Windows, Linux に対応しています。
@@ -78,10 +71,13 @@ flatpak install com.usebruno.Bruno
 
 # LinuxでAptを使ってインストール
 sudo mkdir -p /etc/apt/keyrings
-sudo apt update && sudo apt install gpg
-sudo gpg --list-keys
-sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
+sudo apt update && sudo apt install gpg curl
+curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x9FA6017ECABE0266" \
+  | gpg --dearmor \
+  | sudo tee /etc/apt/keyrings/bruno.gpg > /dev/null
+sudo chmod 644 /etc/apt/keyrings/bruno.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" \
+  | sudo tee /etc/apt/sources.list.d/bruno.list
 sudo apt update && sudo apt install bruno
 ```
 

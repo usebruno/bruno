@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "name": "Custom Method X-CUSTOM",
+    "type": "http",
+    "seq": "2"
+  },
+  "http": {
+    "method": "X-CUSTOM",
+    "url": "https://api.example.com/x-custom"
+  }
+}

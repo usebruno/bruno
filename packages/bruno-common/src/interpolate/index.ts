@@ -5,10 +5,10 @@
  * Ex: interpolate('Hello, my name is ${user.name} and I am ${user.age} years old', {
  *  "user.name": "Bruno",
  *  "user": {
- *   "age": 4
+ *   "age": 6
  *  }
  * });
- * Output: Hello, my name is Bruno and I am 4 years old
+ * Output: Hello, my name is Bruno and I am 6 years old
  */
 
 import { mockDataFunctions } from '../utils/faker-functions';

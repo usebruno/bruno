@@ -120,4 +120,37 @@ describe('curlToJson', () => {
       ]
     });
   });
+
+  it('should parse custom json content-types', () => {
+    const curlCommand = `curl 'https://api.example.com/test'
+    -H 'content-type: application/x.custom+json;version=1'
+    --data-raw '{"test":"data"}'
+    `;
+
+    const result = curlToJson(curlCommand);
+
+    expect(result).toEqual({
+      url: 'https://api.example.com/test',
+      raw_url: 'https://api.example.com/test',
+      method: 'post',
+      headers: {
+        'content-type': 'application/x.custom+json;version=1'
+      },
+      data: '{"test":"data"}'
+    });
+  });
+
+  it('should parse vendor tree json content-types', () => {
+    const curlCommand = `curl --request POST \\
+      --url https://api.example.com/orders/42/preferences \\
+      --header 'accept: */*' \\
+      --header 'content-type: application/vnd.vendor+json' \\
+      --data '{\\n  "data": {\\n    "type": "order-preferences",\\n    "attributes": {\\n      "notes": "Leave at door",\\n      "priority": true\\n    }\\n  }\\n}'`;
+
+    const result = curlToJson(curlCommand);
+    expect(result.data).toContain('"type": "order-preferences"');
+    expect(result.data).toContain('"notes": "Leave at door"');
+    expect(result.data).toContain('"priority": true');
+    expect(result.headers['content-type']).toBe('application/vnd.vendor+json');
+  });
 });

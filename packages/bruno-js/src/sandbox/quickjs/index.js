@@ -11,6 +11,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
 const { marshallToVm } = require('./utils');
+const addCryptoUtilsShimToContext = require('./shims/lib/crypto-utils');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -97,6 +98,9 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   try {
     const module = await newQuickJSWASMModule();
     const vm = module.newContext();
+
+    // add crypto utilities required by the crypto-js library in bundledCode
+    await addCryptoUtilsShimToContext(vm);
 
     const bundledCode = getBundledCode?.toString() || '';
     const moduleLoaderCode = function () {

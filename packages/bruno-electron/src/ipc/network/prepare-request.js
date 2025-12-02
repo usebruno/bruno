@@ -1,10 +1,12 @@
 const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
-const fs = require('node:fs/promises');
+const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
-const { buildFormUrlEncodedPayload } = require('../../utils/form-data');
 const path = require('node:path');
+const { isLargeFile } = require('../../utils/filesystem');
+
+const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -43,8 +45,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'wsse':
-        const username = get(request, 'auth.wsse.username', '');
-        const password = get(request, 'auth.wsse.password', '');
+        const username = get(collectionAuth, 'wsse.username', '');
+        const password = get(collectionAuth, 'wsse.password', '');
 
         const ts = new Date().toISOString();
         const nonce = crypto.randomBytes(16).toString('hex');
@@ -193,7 +195,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
               username: get(request, 'auth.oauth2.username'),
               password: get(request, 'auth.oauth2.password'),
               clientId: get(request, 'auth.oauth2.clientId'),
@@ -215,7 +217,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
               authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
@@ -251,7 +253,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
@@ -303,7 +305,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
   const settings = item.draft?.settings ?? item.settings;
-  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
+  const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
@@ -325,6 +327,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     mergeAuth(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
+    request.promptVariables = collection?.promptVariables || {};
   }
 
 
@@ -343,6 +346,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     url,
     headers,
     name: item.name,
+    tags: item.tags || [],
     pathParams: request.params?.filter((param) => param.type === 'path'),
     settings,
     responseType: 'arraybuffer'
@@ -398,8 +402,14 @@ const prepareRequest = async (item, collection = {}, abortController) => {
         }
   
         try {
-          const fileContent = await fs.readFile(filePath);
-          axiosRequest.data = fileContent;
+          // Large files can cause "JavaScript heap out of memory" errors when loaded entirely into memory.
+          if (isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)) {
+            // For large files: Use streaming to avoid memory issues
+            axiosRequest.data = fs.createReadStream(filePath);
+          } else {
+            // For smaller files: Use synchronous read for better performance
+            axiosRequest.data = fs.readFileSync(filePath);
+          }
         } catch (error) {
           console.error('Error reading file:', error);
         }
@@ -412,7 +422,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
       axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     }
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
+    axiosRequest.data = enabledParams;
   }
 
   if (request.body.mode === 'multipartForm') {
@@ -454,6 +464,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
+  axiosRequest.promptVariables = request.promptVariables;
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;

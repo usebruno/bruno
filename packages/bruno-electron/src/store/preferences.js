@@ -24,7 +24,7 @@ const defaultPreferences = {
   },
   font: {
     codeFont: 'default',
-    codeFontSize: 14
+    codeFontSize: 13
   },
   proxy: {
     mode: 'off',
@@ -41,8 +41,16 @@ const defaultPreferences = {
   layout: {
     responsePaneOrientation: 'horizontal'
   },
-  beta: {
-    grpc: false
+  beta: {},
+  onboarding: {
+    hasLaunchedBefore: false
+  },
+  general: {
+    defaultCollectionLocation: ''
+  },
+  autoSave: {
+    enabled: false,
+    interval: 1000
   }
 };
 
@@ -80,7 +88,16 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   beta: Yup.object({
-    grpc: Yup.boolean()
+  }),
+  onboarding: Yup.object({
+    hasLaunchedBefore: Yup.boolean()
+  }),
+  general: Yup.object({
+    defaultCollectionLocation: Yup.string().max(1024).nullable()
+  }),
+  autoSave: Yup.object({
+    enabled: Yup.boolean(),
+    interval: Yup.number().min(100)
   })
 });
 
@@ -106,6 +123,28 @@ class PreferencesStore {
     // This is a part of migration to the new preferences format
     if (preferences?.proxy && 'enabled' in preferences.proxy) {
       delete preferences.proxy.enabled;
+    }
+
+    // Migrate font size from 14px to 13px for existing users
+    // Only migrate once if codeFont is 'default' (or not set) and codeFontSize is 14
+    // This ensures the migration only happens once and doesn't override user's explicit choices
+    // If user explicitly sets it to 14px after migration, it won't be migrated again
+    const fontSizeMigrated = get(preferences, '_migrations.codeFontSize14to13', false);
+    if (!fontSizeMigrated) {
+      const codeFont = get(preferences, 'font.codeFont', 'default');
+      const codeFontSize = get(preferences, 'font.codeFontSize');
+
+      // Only migrate if it's the old default combination (codeFont is default and size is 14)
+      if (codeFont === 'default' && codeFontSize === 14) {
+        preferences.font.codeFontSize = 13;
+        // Mark migration as complete
+        if (!preferences._migrations) {
+          preferences._migrations = {};
+        }
+        preferences._migrations.codeFontSize14to13 = true;
+        // Save the migrated preferences back to the store
+        this.store.set('preferences', preferences);
+      }
     }
 
     return merge({}, defaultPreferences, preferences);
@@ -174,6 +213,19 @@ const preferencesUtil = {
   },
   isBetaFeatureEnabled: (featureName) => {
     return get(getPreferences(), `beta.${featureName}`, false);
+  },
+  hasLaunchedBefore: () => {
+    return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
+  },
+  markAsLaunched: async () => {
+    const preferences = getPreferences();
+    preferences.onboarding.hasLaunchedBefore = true;
+
+    try {
+      await savePreferences(preferences);
+    } catch (err) {
+      console.error('Failed to save preferences in markAsLaunched:', err);
+    }
   }
 };
 

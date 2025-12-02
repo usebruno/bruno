@@ -15,9 +15,11 @@ import {
   collectionUnlinkEnvFileEvent,
   collectionUnlinkFileEvent,
   processEnvUpdateEvent,
+  requestCancelled,
   runFolderEvent,
   runRequestEvent,
-  scriptEnvironmentUpdateEvent
+  scriptEnvironmentUpdateEvent,
+  streamDataReceived
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
@@ -26,6 +28,7 @@ import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
+import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -136,13 +139,17 @@ const useIpcEvents = () => {
       dispatch(processEnvUpdateEvent(val));
     });
 
-    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => { 
-      console[val.type](...val.args);    
+    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
+      console[val.type](...val.args);
       dispatch(addLog({
         type: val.type,
         args: val.args,
         timestamp: new Date().toISOString()
       }));
+    });
+
+    const removeSystemResourcesListener = ipcRenderer.on('main:filesync-system-resources', (resourceData) => {
+      dispatch(updateSystemResources(resourceData));
     });
 
     const removeConfigUpdatesListener = ipcRenderer.on('main:bruno-config-update', (val) =>
@@ -183,6 +190,14 @@ const useIpcEvents = () => {
       dispatch(collectionAddOauth2CredentialsByUrl(payload));
     });
 
+    const removeHttpStreamNewDataListener = ipcRenderer.on('main:http-stream-new-data', (val) => {
+      dispatch(streamDataReceived(val));
+    });
+
+    const removeHttpStreamEndListener = ipcRenderer.on('main:http-stream-end', (val) => {
+      dispatch(requestCancelled(val));
+    });
+
     const removeCollectionLoadingStateListener = ipcRenderer.on('main:collection-loading-state-updated', (val) => {
       dispatch(updateCollectionLoadingState(val));
     });
@@ -207,8 +222,11 @@ const useIpcEvents = () => {
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
+      removeHttpStreamNewDataListener();
+      removeHttpStreamEndListener();
       removeCollectionLoadingStateListener();
       removePersistentEnvVariablesUpdateListener();
+      removeSystemResourcesListener();
     };
   }, [isElectron]);
 };

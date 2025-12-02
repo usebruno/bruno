@@ -9,7 +9,8 @@ const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   if (authMode !== 'inherit') return null;
 
-  const collectionAuth = get(collection, 'root.request.auth');
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionAuth = get(collectionRoot, 'request.auth');
   let effectiveSource = {
     type: 'collection',
     uid: collection.uid,
@@ -45,7 +46,7 @@ const getEffectiveAuthSource = (collection, item) => {
 const Timeline = ({ collection, item }) => {
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
-  const isGrpcRequest = item.type === 'grpc-request';
+  const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
   
   // Filter timeline entries based on new rules
   const  combinedTimeline = ([...(collection?.timeline || [])]).filter(obj => {

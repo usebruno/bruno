@@ -1,0 +1,12 @@
+meta {
+  name: Global Environment Update
+}
+
+auth {
+  mode: none
+}
+
+script:pre-request {
+  //create a new global env variable.
+  bru.setGlobalEnvVar('newEnv', "newEnvValue");
+}

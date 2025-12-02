@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const { getValueString, indentString } = require('./utils');
 
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
@@ -7,7 +8,8 @@ const envToJson = (json) => {
     .map((variable) => {
       const { name, value, enabled } = variable;
       const prefix = enabled ? '' : '~';
-      return `  ${prefix}${name}: ${value}`;
+
+      return indentString(`${prefix}${name}: ${getValueString(value)}`);
     });
 
   const secretVars = variables
@@ -15,7 +17,7 @@ const envToJson = (json) => {
     .map((variable) => {
       const { name, enabled } = variable;
       const prefix = enabled ? '' : '~';
-      return `  ${prefix}${name}`;
+      return indentString(`${prefix}${name}`);
     });
 
   if (!variables || !variables.length) {

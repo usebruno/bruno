@@ -22,4 +22,26 @@ const postmanToBruno = (collection) => {
   });
 };
 
-export { postmanToBruno, readFile };
+const isPostmanCollection = (data) => {
+  const info = data.info;
+  if (!info || typeof info !== 'object') {
+    return false;
+  }
+
+  const schema = info.schema;
+  if (typeof schema !== 'string') {
+    return false;
+  }
+
+  // Only accept supported Postman v2.0 and v2.1 schemas
+  const supportedSchemas = [
+    'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
+    'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+    'https://schema.postman.com/json/collection/v2.0.0/collection.json',
+    'https://schema.postman.com/json/collection/v2.1.0/collection.json'
+  ];
+
+  return supportedSchemas.includes(schema);
+};
+
+export { postmanToBruno, readFile, isPostmanCollection };

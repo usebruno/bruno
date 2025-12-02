@@ -1,7 +1,7 @@
 import find from 'lodash/find';
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request'].includes(item.type);
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type);
 };
 
 export const isItemAFolder = (item) => {

@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  font-size: 0.6875rem;
+  font-size: ${(props) => props.theme.font.size.xs};
   display: flex;
   align-self: stretch;
   align-items: center;
@@ -36,6 +36,12 @@ const Wrapper = styled.div`
   }
   .method-grpc {
     color: ${(props) => props.theme.request.grpc};
+  }
+  .method-ws {
+    color: ${(props) => props.theme.request.ws};
+  }
+  .method-graphql {
+    color: ${(props) => props.theme.request.gql};
   }
 `;
 

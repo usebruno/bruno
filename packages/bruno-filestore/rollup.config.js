@@ -1,11 +1,42 @@
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
-const dts = require('rollup-plugin-dts');
+const json = require('@rollup/plugin-json');
 const { terser } = require('rollup-plugin-terser');
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 
 const packageJson = require('./package.json');
+
+const externalDeps = [
+  '@usebruno/lang',
+  '@usebruno/schema-types',
+  /@usebruno\/schema-types\/.*/,
+  '@opencollection/types',
+  /@opencollection\/types\/.*/,
+  // Runtime dependencies
+  'lodash',
+  'yaml',
+  'ajv',
+  // Node built-ins
+  'worker_threads',
+  'path',
+  'fs'
+];
+
+const commonPlugins = [
+  peerDepsExternal(),
+  nodeResolve({
+    extensions: ['.js', '.ts', '.tsx', '.json']
+  }),
+  json(),
+  commonjs(),
+  typescript({
+    tsconfig: './tsconfig.json',
+    declaration: false,
+    declarationMap: false
+  }),
+  terser()
+];
 
 module.exports = [
   {
@@ -24,16 +55,8 @@ module.exports = [
         exports: 'named'
       }
     ],
-    plugins: [
-      peerDepsExternal(),
-      nodeResolve({
-        extensions: ['.js', '.ts', '.tsx', '.json', '.css']
-      }),
-      commonjs(),
-      typescript({ tsconfig: './tsconfig.json' }),
-      terser(),
-    ],
-    external: ['@usebruno/lang', 'lodash', 'worker_threads', 'path']
+    plugins: commonPlugins,
+    external: externalDeps
   },
   {
     input: 'src/workers/worker-script.ts',
@@ -49,15 +72,7 @@ module.exports = [
         sourcemap: true
       }
     ],
-    plugins: [
-      peerDepsExternal(),
-      nodeResolve({
-        extensions: ['.js', '.ts', '.tsx', '.json', '.css']
-      }),
-      commonjs(),
-      typescript({ tsconfig: './tsconfig.json' }),
-      terser(),
-    ],
-    external: ['@usebruno/lang', 'lodash', 'worker_threads', 'path']
+    plugins: commonPlugins,
+    external: externalDeps
   }
-]; 
+];

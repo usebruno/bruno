@@ -2,247 +2,12 @@
 const { ipcMain, app } = require('electron');
 const { GrpcClient } = require("@usebruno/requests") 
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
-const { cloneDeep, each, get } = require('lodash');
-const interpolateVars = require('./interpolate-vars');
+const { cloneDeep, get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
 const { getCertsAndProxyConfig } = require('./cert-utils');
-const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
-const { getProcessEnvVars } = require('../../store/process-env');
-const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
-
-const setGrpcAuthHeaders = (grpcRequest, request, collectionRoot) => {
-  const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth && request.auth?.mode === 'inherit') {
-    if (collectionAuth.mode === 'basic') {
-      grpcRequest.basicAuth = {
-        username: get(collectionAuth, 'basic.username'),
-        password: get(collectionAuth, 'basic.password')
-      };
-    }
-
-    if (collectionAuth.mode === 'bearer') {
-      grpcRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
-    }
-
-    if (collectionAuth.mode === 'apikey') {
-      grpcRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
-      
-    }
-
-    if (collectionAuth.mode === 'oauth2') {
-      const grantType = get(collectionAuth, 'oauth2.grantType');
-      
-      if (grantType === 'client_credentials') {
-        grpcRequest.oauth2 = {
-          grantType,
-          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-          clientId: get(collectionAuth, 'oauth2.clientId'),
-          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-          scope: get(collectionAuth, 'oauth2.scope'),
-          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
-          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
-        };
-      } else if (grantType === 'password') {
-        grpcRequest.oauth2 = {
-          grantType,
-          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-          username: get(collectionAuth, 'oauth2.username'),
-          password: get(collectionAuth, 'oauth2.password'),
-          clientId: get(collectionAuth, 'oauth2.clientId'),
-          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-          scope: get(collectionAuth, 'oauth2.scope'),
-          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
-          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
-        };
-      }
-    }
-
-  }
-
-  if (request.auth && request.auth.mode !== 'inherit') {
-    if (request.auth.mode === 'basic') {
-      grpcRequest.basicAuth = {
-        username: get(request, 'auth.basic.username'),
-        password: get(request, 'auth.basic.password')
-      };
-    }
-
-    if (request.auth.mode === 'bearer') {
-      grpcRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
-    }
-
-    if (request.auth.mode === 'oauth2') {
-      const grantType = get(request, 'auth.oauth2.grantType');
-
-      
-      if (grantType === 'client_credentials') {
-        grpcRequest.oauth2 = {
-          grantType,
-          clientId: get(request, 'auth.oauth2.clientId'),
-          clientSecret: get(request, 'auth.oauth2.clientSecret'),
-          scope: get(request, 'auth.oauth2.scope'),
-          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
-          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
-          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
-        };
-      } else if (grantType === 'password') {
-        grpcRequest.oauth2 = {
-          grantType,
-          username: get(request, 'auth.oauth2.username'),
-          password: get(request, 'auth.oauth2.password'),
-          clientId: get(request, 'auth.oauth2.clientId'),
-          clientSecret: get(request, 'auth.oauth2.clientSecret'),
-          scope: get(request, 'auth.oauth2.scope'),
-          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
-          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
-          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
-        };
-      } else if (grantType === 'authorization_code') {
-        grpcRequest.oauth2 = {
-          grantType,
-          ...get(request, 'auth.oauth2')
-        };
-      }
-    }
-    
-    if (request.auth.mode === 'apikey') {
-      grpcRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
-    }
-  }
-
-
-  return grpcRequest;
-}
-
-const prepareRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
-  const request = item.draft ? item.draft.request : item.request;
-  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
-  const headers = {};
-  const url = request.url;
-
-  each(get(collectionRoot, 'request.headers', []), (h) => {
-    if (h.enabled && h.name?.toLowerCase() === 'content-type') {
-      contentTypeDefined = true;
-      return false;
-    }
-  });
-
-  const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-  if (requestTreePath && requestTreePath.length > 0) {
-    mergeAuth(collection, request, requestTreePath);
-    mergeHeaders(collection, request, requestTreePath);
-    mergeScripts(collection, request, requestTreePath, scriptFlow);
-    mergeVars(collection, request, requestTreePath);
-    request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
-    request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
-  }
-
-  each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name.length > 0) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
-    }
-  });
-  
-  const processEnvVars = getProcessEnvVars(collection.uid);
-  const envVars = getEnvVars(environment);
-
-  let grpcRequest = {
-    uid: item.uid,
-    mode: request.body.mode,
-    method: request.method,
-    methodType: request.methodType,
-    url,
-    headers,
-    processEnvVars,
-    envVars,
-    runtimeVariables,
-    body: request.body,
-    protoPath: request.protoPath,
-    // Add variable properties for interpolation
-    vars: request.vars,
-    collectionVariables: request.collectionVariables,
-    folderVariables: request.folderVariables,
-    requestVariables: request.requestVariables,
-    globalEnvironmentVariables: request.globalEnvironmentVariables,
-    oauth2CredentialVariables: request.oauth2CredentialVariables,
-  }
-
-  grpcRequest = setGrpcAuthHeaders(grpcRequest, request, collectionRoot);
-
-  if (grpcRequest.oauth2) {
-    let requestCopy = cloneDeep(grpcRequest);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
-    let credentials, credentialsId;
-    switch (grantType) {
-      case 'authorization_code':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
-        grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
-        }
-        break;
-      case 'client_credentials':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
-        grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
-        }
-        break;
-      case 'password':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
-        grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
-        }
-        break;
-    }
-  }
-
-  interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars);
-
-  return grpcRequest;
-}
+const prepareGrpcRequest = require('./prepare-grpc-request');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
@@ -272,16 +37,18 @@ const registerGrpcEventHandlers = (window) => {
       const requestCopy = cloneDeep(request);
     
 
-      const preparedRequest = await prepareRequest(requestCopy, collection, environment, runtimeVariables, {});
+      const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
 
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
+        collection,
         request: requestCopy.request,
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
-        collectionPath: collection.pathname
+        collectionPath: collection.pathname,
+        globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
    
 
@@ -403,16 +170,18 @@ const registerGrpcEventHandlers = (window) => {
   ipcMain.handle('grpc:load-methods-reflection', async (event, { request, collection, environment, runtimeVariables }) => {
     try {
       const requestCopy = cloneDeep(request);
-      const preparedRequest = await prepareRequest(requestCopy, collection, environment, runtimeVariables);
+      const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables);
       
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
+        collection,
         request: requestCopy.request,
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
-        collectionPath: collection.pathname
+        collectionPath: collection.pathname,
+        globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
 
       // Extract certificate information from the config
@@ -509,7 +278,7 @@ const registerGrpcEventHandlers = (window) => {
   ipcMain.handle('grpc:generate-grpcurl', async (event, { request, collection, environment, runtimeVariables }) => {
     try {
       const requestCopy = cloneDeep(request);
-      const preparedRequest = await prepareRequest(requestCopy, collection, environment, runtimeVariables, {});
+      const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
       const interpolationOptions = {
         envVars: preparedRequest.envVars,
         runtimeVariables,
@@ -521,7 +290,7 @@ const registerGrpcEventHandlers = (window) => {
         caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
       }
 
-      const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+      const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
 
       for (let clientCert of clientCertConfig) {
         const domain = interpolateString(clientCert?.domain, interpolationOptions);

@@ -1,13 +1,14 @@
 const { get, each, find, compact, isString, filter } = require('lodash');
 const fs = require('fs');
-const { getRequestUid } = require('../cache/requestUids');
+const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
+const { preferencesUtil } = require('../store/preferences');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
 
-  let collectionHeaders = get(collection, 'root.request.headers', []);
+  let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       if (header?.name?.toLowerCase?.() === 'content-type') {
@@ -20,7 +21,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let _headers = get(i, 'root.request.headers', []);
+      const folderRoot = i?.draft || i?.root;
+      let _headers = get(folderRoot, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
           if (header.name.toLowerCase() === 'content-type') {
@@ -49,7 +51,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
 const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
-  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
@@ -61,7 +64,8 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let requestVariables = {};
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.req', []);
+      const folderRoot = i?.draft || i?.root;
+      let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           reqVars.set(_var.name, _var.value);
@@ -91,63 +95,31 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       type: 'request'
     }));
   }
-
-  let resVars = new Map();
-  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
-  collectionResponseVars.forEach((_var) => {
-    if (_var.enabled) {
-      resVars.set(_var.name, _var.value);
-    }
-  });
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.res', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
-        }
-      });
-    } else {
-      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
-        }
-      });
-    }
-  }
-
-  if(request?.vars) {
-    request.vars.res = Array.from(resVars, ([name, value]) => ({
-      name,
-      value,
-      enabled: true,
-      type: 'response'
-    }));
-  }
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
-  let collectionPreReqScript = get(collection, 'root.request.script.req', '');
-  let collectionPostResScript = get(collection, 'root.request.script.res', '');
-  let collectionTests = get(collection, 'root.request.tests', '');
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
+  let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
+  let collectionTests = get(collectionRoot, 'request.tests', '');
 
   let combinedPreReqScript = [];
   let combinedPostResScript = [];
   let combinedTests = [];
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let preReqScript = get(i, 'root.request.script.req', '');
+      const folderRoot = i?.draft || i?.root;
+      let preReqScript = get(folderRoot, 'request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
         combinedPreReqScript.push(preReqScript);
       }
 
-      let postResScript = get(i, 'root.request.script.res', '');
+      let postResScript = get(folderRoot, 'request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
       }
 
-      let tests = get(i, 'root.request.tests', '');
+      let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
       }
@@ -281,6 +253,67 @@ const parseBruFileMeta = (data) => {
   }
 }
 
+// Parse YML file meta information
+const parseYmlFileMeta = (data) => {
+  try {
+    const yaml = require('js-yaml');
+    const parsed = yaml.load(data);
+
+    if (!parsed || !parsed.meta) {
+      console.log('No "meta" section found in YAML file.');
+      return null;
+    }
+
+    const metaJson = parsed.meta;
+
+    // Transform to the format expected by bruno-app
+    let requestType = metaJson.type;
+    const typeMap = {
+      http: 'http-request',
+      graphql: 'graphql-request',
+      grpc: 'grpc-request',
+      ws: 'ws-request'
+    };
+    requestType = typeMap[requestType] || 'http-request';
+
+    const sequence = metaJson.seq;
+    const transformedJson = {
+      type: requestType,
+      name: metaJson.name,
+      seq: !isNaN(sequence) ? Number(sequence) : 1,
+      settings: {},
+      tags: metaJson.tags || [],
+      request: {
+        method: '',
+        url: '',
+        params: [],
+        headers: [],
+        auth: { mode: 'none' },
+        body: { mode: 'none' },
+        script: {},
+        vars: {},
+        assertions: [],
+        tests: '',
+        docs: ''
+      }
+    };
+
+    return transformedJson;
+  } catch (err) {
+    console.error('Error parsing YAML file meta:', err);
+    return null;
+  }
+};
+
+// Format-aware meta parsing function
+const parseFileMeta = (data, format = 'bru') => {
+  if (format === 'yml') {
+    return parseYmlFileMeta(data);
+  } else {
+    return parseBruFileMeta(data);
+  }
+};
+
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
 
@@ -292,6 +325,7 @@ const hydrateRequestWithUuid = (request, pathname) => {
   const bodyFormUrlEncoded = get(request, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(request, 'request.body.multipartForm', []);
   const file = get(request, 'request.body.file', []);
+  const examples = get(request, 'examples', []);
 
   params.forEach((param) => (param.uid = uuid()));
   headers.forEach((header) => (header.uid = uuid()));
@@ -301,6 +335,22 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
   file.forEach((param) => (param.uid = uuid()));
+  examples.forEach((example, eIndex) => {
+    example.uid = getExampleUid(pathname, eIndex);
+    example.itemUid = request.uid;
+    const params = get(example, 'request.params', []);
+    const headers = get(example, 'request.headers', []);
+    const responseHeaders = get(example, 'response.headers', []);
+    const bodyMultipartForm = get(example, 'request.body.multipartForm', []);
+    const bodyFormUrlEncoded = get(example, 'request.body.formUrlEncoded', []);
+    const file = get(example, 'request.body.file', []);
+    params.forEach((param) => (param.uid = uuid()));
+    headers.forEach((header) => (header.uid = uuid()));
+    responseHeaders.forEach((header) => (header.uid = uuid()));
+    bodyMultipartForm.forEach((param) => (param.uid = uuid()));
+    bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
+    file.forEach((param) => (param.uid = uuid()));
+  });
 
   return request;
 };
@@ -331,6 +381,8 @@ const transformRequestToSaveToFilesystem = (item) => {
     name: _item.name,
     seq: _item.seq,
     settings: _item.settings,
+    tags: _item.tags,
+    examples: _item.examples || [],
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -479,14 +531,16 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
 
 const mergeAuth = (collection, request, requestTreePath) => {
   // Start with collection level auth (always consider collection auth as base)
-  let collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  let collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
   let lastFolderWithAuth = null;
 
   // Traverse through the path to find the closest auth configuration
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      const folderAuth = get(i, 'root.request.auth');
+      const folderRoot = i?.draft || i?.root;
+      const folderAuth = get(folderRoot, 'request.auth');
       // Only consider folders that have a valid auth mode
       if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
@@ -520,6 +574,32 @@ const mergeAuth = (collection, request, requestTreePath) => {
       }
     }
   }
+};
+
+const resolveInheritedSettings = (settings) => {
+  const resolvedSettings = {};
+
+  // Resolve each setting individually
+  Object.keys(settings).forEach((settingKey) => {
+    const currentValue = settings[settingKey];
+
+    // If setting is inherited, fallback to preferences only for timeout setting
+    if (currentValue === 'inherit' || currentValue === undefined || currentValue === null) {
+      if (settingKey === 'timeout') {
+        resolvedSettings[settingKey] = preferencesUtil.getRequestTimeout();
+      }
+    } else {
+      // Use the current value as-is
+      resolvedSettings[settingKey] = currentValue;
+    }
+  });
+
+  // Handle missing timeout setting - if timeout is not in settings, treat it as inherited
+  if (!settings.hasOwnProperty('timeout')) {
+    resolvedSettings.timeout = preferencesUtil.getRequestTimeout();
+  }
+
+  return resolvedSettings;
 };
 
 const sortByNameThenSequence = items => {
@@ -577,6 +657,7 @@ module.exports = {
   findParentItemInCollection,
   findParentItemInCollectionByPathname,
   parseBruFileMeta,
+  parseFileMeta,
   hydrateRequestWithUuid,
   transformRequestToSaveToFilesystem,
   sortCollection,
@@ -584,5 +665,6 @@ module.exports = {
   getAllRequestsInFolderRecursively,
   getEnvVars,
   getFormattedCollectionOauth2Credentials,
-  sortByNameThenSequence
+  sortByNameThenSequence,
+  resolveInheritedSettings
 };

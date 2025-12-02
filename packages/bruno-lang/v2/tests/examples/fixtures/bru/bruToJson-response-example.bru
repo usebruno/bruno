@@ -1,0 +1,40 @@
+meta {
+  name: Test API
+  type: http
+}
+
+get {
+  url: https://api.example.com/test
+}
+
+example {
+  name: Example with Response
+  description: An example with response data
+  
+  request: {
+    url: https://api.example.com/users/123
+    method: get
+    mode: none
+  }
+
+  response: {
+    headers: {
+      content-type: application/json
+    }
+
+    status: {
+      code: 200
+      text: OK
+    }
+    
+    body: {
+      type: json
+      content: '''
+        {
+          "id": 123,
+          "name": "John Doe"
+        }
+      '''
+    }
+  }
+}

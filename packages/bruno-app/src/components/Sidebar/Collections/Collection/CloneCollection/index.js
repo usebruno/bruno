@@ -12,12 +12,15 @@ import PathDisplay from 'components/PathDisplay';
 import { useState } from 'react';
 import { IconArrowBackUp, IconEdit } from "@tabler/icons";
 import { findCollectionByUid } from 'utils/collections/index';
+import get from 'lodash/get';
 
 const CloneCollection = ({ onClose, collectionUid }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [isEditing, toggleEditing] = useState(false);
   const collection = useSelector(state => findCollectionByUid(state.collections.collections, collectionUid));
+  const preferences = useSelector((state) => state.app.preferences);
+  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
   const { name } = collection;
 
   const formik = useFormik({
@@ -25,7 +28,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
     initialValues: {
       collectionName: `${name} copy`,
       collectionFolderName: `${sanitizeName(name)} copy`,
-      collectionLocation: ''
+      collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
@@ -85,7 +88,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
     <Modal size="sm" title="Clone Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
-          <label htmlFor="collection-name" className="flex items-center font-semibold">
+          <label htmlFor="collection-name" className="flex items-center font-medium">
             Name
           </label>
           <input
@@ -108,7 +111,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
             <div className="text-red-500">{formik.errors.collectionName}</div>
           ) : null}
 
-          <label htmlFor="collection-location" className="block font-semibold mt-3">
+          <label htmlFor="collection-location" className="block font-medium mt-3">
             Location
           </label>
           <input
@@ -130,9 +133,6 @@ const CloneCollection = ({ onClose, collectionUid }) => {
           <div className="mt-1">
             <span
               className="text-link cursor-pointer hover:underline" onClick={browse}
-              style={{
-                fontSize: '0.8125rem'
-              }}
             >
               Browse
             </span>
@@ -140,7 +140,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
 
           <div className="mt-4">
             <div className="flex items-center justify-between">
-              <label htmlFor="filename" className="flex items-center font-semibold">
+              <label htmlFor="filename" className="flex items-center font-medium">
                 Folder Name
                 <Help width="300">
                   <p>

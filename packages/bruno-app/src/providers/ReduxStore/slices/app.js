@@ -1,10 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
+import brunoClipboard from 'utils/bruno-clipboard';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   leftSidebarWidth: 222,
+  sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
@@ -24,8 +26,12 @@ const initialState = {
     font: {
       codeFont: 'default'
     },
-    beta: {
-      grpc: false
+    general: {
+      defaultCollectionLocation: ''
+    },
+    autoSave: {
+      enabled: false,
+      interval: 1000
     }
   },
   generateCode: {
@@ -35,7 +41,10 @@ const initialState = {
   },
   cookies: [],
   taskQueue: [],
-  systemProxyEnvVariables: {}
+  systemProxyEnvVariables: {},
+  clipboard: {
+    hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
+  }
 };
 
 export const appSlice = createSlice({
@@ -89,6 +98,13 @@ export const appSlice = createSlice({
         ...state.generateCode,
         ...action.payload
       };
+    },
+    toggleSidebarCollapse: (state) => {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+    },
+    setClipboard: (state, action) => {
+      // Update clipboard UI state
+      state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     }
   }
 });
@@ -108,7 +124,9 @@ export const {
   removeTaskFromQueue,
   removeAllTasksFromQueue,
   updateSystemProxyEnvVariables,
-  updateGenerateCode
+  updateGenerateCode,
+  toggleSidebarCollapse,
+  setClipboard
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -172,6 +190,12 @@ export const createCookieString = (cookieObj) => () => {
 export const completeQuitFlow = () => (dispatch, getState) => {
   const { ipcRenderer } = window;
   return ipcRenderer.invoke('main:complete-quit-flow');
+};
+
+export const copyRequest = (item) => (dispatch, getState) => {
+  brunoClipboard.write(item);
+  dispatch(setClipboard({ hasCopiedItems: true }));
+  return Promise.resolve();
 };
 
 export default appSlice.reducer;

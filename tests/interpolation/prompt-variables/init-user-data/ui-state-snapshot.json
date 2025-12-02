@@ -1,0 +1,8 @@
+{
+  "collections": [
+    {
+      "pathname": "{{projectRoot}}/tests/interpolation/prompt-variables/fixtures/collection",
+      "selectedEnvironment": "local"
+    }
+  ]
+}

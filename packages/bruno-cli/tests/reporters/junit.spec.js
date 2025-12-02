@@ -22,7 +22,7 @@ describe('makeJUnitOutput', () => {
     const results = [
       {
         description: 'description provided',
-        suitename: 'Tests/Suite A',
+        name: 'Tests/Suite A',
         request: {
           method: 'GET',
           url: 'https://ima.test'
@@ -47,7 +47,7 @@ describe('makeJUnitOutput', () => {
           method: 'GET',
           url: 'https://imanother.test'
         },
-        suitename: 'Tests/Suite B',
+        name: 'Tests/Suite B',
         testResults: [
           {
             lhsExpr: 'res.status',
@@ -98,7 +98,7 @@ describe('makeJUnitOutput', () => {
     const results = [
       {
         description: 'description provided',
-        suitename: 'Tests/Suite A',
+        name: 'Tests/Suite A',
         request: {
           method: 'GET',
           url: 'https://ima.test'

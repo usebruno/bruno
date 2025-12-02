@@ -1,4 +1,4 @@
-const { get, cloneDeep } = require('lodash');
+const { get, cloneDeep, filter } = require('lodash');
 const crypto = require('crypto');
 const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-window');
 const Oauth2Store = require('../store/oauth2');
@@ -252,7 +252,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     'Accept': 'application/json',
   };
   if (credentialsPlacement === "basic_auth_header") {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'authorization_code',
@@ -451,7 +451,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     'Accept': 'application/json',
   };
   if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'client_credentials',
@@ -598,7 +598,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     'Accept': 'application/json',
   };
   if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'password',
@@ -659,7 +659,7 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       'Accept': 'application/json'
     };
     if (credentialsPlacement === "basic_auth_header") {
-      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
     }
     axiosRequestConfig.url = url;
     axiosRequestConfig.responseType = 'arraybuffer';
@@ -894,6 +894,30 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   }
 };
 
+const updateCollectionOauth2Credentials = ({ collectionUid, itemUid, collectionOauth2Credentials = [], requestOauth2Credentials = {} }) => {
+  const { url, credentialsId, folderUid, credentials, debugInfo } = requestOauth2Credentials;
+
+  // Remove existing credentials for the same combination
+  const filteredOauth2Credentials = filter(cloneDeep(collectionOauth2Credentials),
+    (creds) =>
+      !(creds.url === url
+        && creds.collectionUid === collectionUid
+        && creds.credentialsId === credentialsId));
+
+  // Add the new credential with folderUid and itemUid
+  filteredOauth2Credentials.push({
+    collectionUid,
+    folderUid: folderUid,
+    itemUid: folderUid ? null : itemUid,
+    url,
+    credentials,
+    credentialsId,
+    debugInfo
+  });
+
+  return filteredOauth2Credentials;
+};
+
 module.exports = {
   persistOauth2Credentials,
   clearOauth2Credentials,
@@ -904,5 +928,6 @@ module.exports = {
   getOAuth2TokenUsingImplicitGrant,
   refreshOauth2Token,
   generateCodeVerifier,
-  generateCodeChallenge
+  generateCodeChallenge,
+  updateCollectionOauth2Credentials
 };

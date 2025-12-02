@@ -17,6 +17,11 @@ get {
 params:query {
   apiKey: secret
   numbers: 998877665
+  "key with spaces": is allowed
+  "colon:parameter": is allowed
+  "nested escaped \"quote\"": is allowed
+  "{braces}": is allowed
+  ~"disabled:colon:parameter": is allowed
   ~message: hello
 }
 
@@ -27,6 +32,11 @@ params:path {
 headers {
   content-type: application/json
   Authorization: Bearer 123
+  "key with spaces": is allowed
+  "colon:header": is allowed
+  "{braces}": is allowed
+  "nested escaped \"quote\"": is allowed
+  ~"disabled:colon:header": is allowed
   ~transaction-id: {{transactionId}}
 }
 
@@ -104,13 +114,23 @@ body:sparql {
 body:form-urlencoded {
   apikey: secret
   numbers: +91998877665
+  "key with spaces": is allowed
+  "colon:parameter": is allowed
+  "nested escaped \"quote\"": is allowed
+  "{braces}": is allowed
   ~message: hello
+  ~"disabled colon:parameter": is allowed
 }
 
 body:multipart-form {
   apikey: secret
   numbers: +91998877665
+  "key with spaces": is allowed
+  "colon:part": is allowed
+  "nested escaped \"quote\"": is allowed
+  "{braces}": is allowed
   ~message: hello
+  ~"disabled colon:part": is allowed
 }
 
 body:file {

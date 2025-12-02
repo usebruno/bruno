@@ -86,6 +86,7 @@ const template = [
               nodeIntegration: true,
             },
           });
+          aboutWindow.removeMenu();
           aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({version}))}`);
         }
       },

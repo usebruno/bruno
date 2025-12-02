@@ -31,13 +31,13 @@ const StyledWrapper = styled.div`
     padding: 20px;
 
     h1 {
-      font-size: 14px;
+      font-size: ${(props) => props.theme.font.size.base};
       margin-bottom: 8px;
       color: ${props => props.theme.text};
     }
 
     p {
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       opacity: 0.8;
     }
   }
