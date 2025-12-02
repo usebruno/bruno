@@ -37,17 +37,5 @@
         "enabled": true
       }
     ]
-  },
-  "clientCertificates": {
-    "enabled": true,
-    "certs": [
-      {
-        "domain": "localhost:4000",
-        "type": "cert",
-        "certFilePath": "../../../../certs/localhost-cert.pem",
-        "keyFilePath": "../../../../certs/localhost-key.pem",
-        "passphrase": ""
-      }
-    ]
   }
 }
