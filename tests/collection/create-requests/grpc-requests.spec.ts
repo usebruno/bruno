@@ -1,13 +1,12 @@
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Create gRPC Requests', () => {
   let locators: ReturnType<typeof buildCommonLocators>;
 
   test.beforeAll(async ({ pageWithUserData: page }) => {
     locators = buildCommonLocators(page);
-    await openCollectionAndAcceptSandbox(page, 'create-requests', 'safe');
   });
 
   test.afterAll(async ({ pageWithUserData: page }) => {
