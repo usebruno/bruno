@@ -65,7 +65,7 @@ export default function PromptVariablesModal({ title = 'Input Required', prompts
                   placeholder="Enter value"
                   value={values[prompt] || ''}
                   onChange={(e) => handleChange(prompt, e.target.value)}
-                  // autoFocus={index === 0} --> AutoFocus breaks the code. AutoFocus does not seem to provide such a big enhancement to make the code more complicated
+                  // autoFocus removed to prevent conflicts with suggestion dropdown
                   onFocus={() => handleOnFocus(prompt)}
                   onBlur={() => handleOnBlur(prompt)}
                   autoComplete="off"
@@ -97,7 +97,7 @@ export default function PromptVariablesModal({ title = 'Input Required', prompts
                           <li>{promptVariables[prompt]}</li>
                         </ul>
                       </div>
-) : <></>}
+                    ) : null}
               </div>
             ))}
           </div>
