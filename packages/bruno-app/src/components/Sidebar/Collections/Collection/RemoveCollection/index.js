@@ -20,12 +20,17 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
   }, [collection]);
 
   const onConfirm = () => {
+    if (!collection) {
+      toast.error('Collection not found');
+      onClose();
+      return;
+    }
     dispatch(removeCollection(collection.uid))
       .then(() => {
-        toast.success('Collection closed');
+        toast.success('Collection removed from workspace');
         onClose();
       })
-      .catch(() => toast.error('An error occurred while closing the collection'));
+      .catch(() => toast.error('An error occurred while removing the collection'));
   };
 
   // If there are drafts, show the draft confirmation modal
@@ -33,19 +38,19 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
     return <ConfirmCollectionCloseDrafts onClose={onClose} collection={collection} collectionUid={collectionUid} />;
   }
 
-  // Otherwise, show the standard close confirmation modal
+  // Otherwise, show the standard remove confirmation modal
   return (
-    <Modal size="sm" title="Close Collection" confirmText="Close" handleConfirm={onConfirm} handleCancel={onClose}>
+    <Modal size="sm" title="Remove Collection" confirmText="Remove" handleConfirm={onConfirm} handleCancel={onClose}>
       <div className="flex items-center">
         <IconFiles size={18} strokeWidth={1.5} />
         <span className="ml-2 mr-4 font-medium">{collection.name}</span>
       </div>
       <div className="break-words text-xs mt-1">{collection.pathname}</div>
       <div className="mt-4">
-        Are you sure you want to close collection <span className="font-medium">{collection.name}</span> in Bruno?
+        Are you sure you want to remove collection <span className="font-medium">{collection.name}</span> from this workspace?
       </div>
-      <div className="mt-4">
-        It will still be available in the file system at the above location and can be re-opened later.
+      <div className="mt-4 text-muted">
+        The collection files will remain on disk and can be re-added to this or another workspace later.
       </div>
     </Modal>
   );

@@ -29,17 +29,11 @@ const {
   sanitizeName,
   isWSLPath,
   safeToRename,
-  getSubDirectories,
   isWindowsOS,
-  readDir,
   hasRequestExtension,
   getCollectionFormat,
   searchForRequestFiles,
-  normalizeAndResolvePath,
   validateName,
-  chooseFileToSave,
-  exists,
-  isFile,
   getCollectionStats,
   sizeInMB,
   safeWriteFileSync,
@@ -48,7 +42,7 @@ const {
   getPaths,
   generateUniqueName
 } = require('../utils/filesystem');
-const { openCollectionDialog } = require('../app/collections');
+const { openCollectionDialog, openCollectionsByPathname } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
@@ -78,12 +72,8 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
-const findCollectionPathByItemPath = (filePath, lastOpenedCollections) => {
-  const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
-  const lastOpenedPaths = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
-
-  // Combine both currently watched collections and last opened collections
-  const allCollectionPaths = [...new Set([...openCollectionPaths, ...lastOpenedPaths])];
+const findCollectionPathByItemPath = (filePath) => {
+  const allCollectionPaths = collectionWatcher.getAllWatcherPaths();
 
   // Find the collection path that contains this file
   // Sort by length descending to find the most specific (deepest) match first
@@ -98,20 +88,21 @@ const findCollectionPathByItemPath = (filePath, lastOpenedCollections) => {
   return null;
 };
 
-const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
-  const collectionPath = findCollectionPathByItemPath(filePath, lastOpenedCollections);
+const validatePathIsInsideCollection = (filePath) => {
+  const collectionPath = findCollectionPathByItemPath(filePath);
 
   if (!collectionPath) {
     throw new Error(`Path: ${filePath} should be inside a collection`);
   }
 }
 
-const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
+const registerRendererEventHandlers = (mainWindow, watcher) => {
   // create collection
   ipcMain.handle(
     'renderer:create-collection',
-    async (event, collectionName, collectionFolderName, collectionLocation, format = 'bru') => {
+    async (event, collectionName, collectionFolderName, collectionLocation, options = {}) => {
       try {
+        const format = options.format || 'bru';
         collectionFolderName = sanitizeName(collectionFolderName);
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
@@ -313,7 +304,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} already exists`);
       }
 
-      const collectionPath = findCollectionPathByItemPath(pathname, lastOpenedCollections);
+      const collectionPath = findCollectionPathByItemPath(pathname);
       if (!collectionPath) {
         throw new Error('Collection not found for the given pathname');
       }
@@ -324,7 +315,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(baseFilename)) {
         throw new Error(`${request.filename} is not a valid filename`);
       }
-      validatePathIsInsideCollection(pathname, lastOpenedCollections);
+      validatePathIsInsideCollection(pathname);
 
       const content = await stringifyRequestViaWorker(request, { format });
       await writeFile(pathname, content);
@@ -688,7 +679,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         const folderFileContent = await stringifyFolder(folderFileJsonContent, { format });
         await writeFile(folderFilePath, folderFileContent);
-        
+
         const requestFilesAtSource = await searchForRequestFiles(oldPath, collectionPathname);
 
         for (let requestFile of requestFilesAtSource) {
@@ -803,31 +794,38 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:open-collection', () => {
+  ipcMain.handle('renderer:open-collection', async () => {
     if (watcher && mainWindow) {
-      openCollectionDialog(mainWindow, watcher);
+      await openCollectionDialog(mainWindow, watcher);
     }
   });
 
-  ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid) => {
+  ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths) => {
     if (watcher && mainWindow) {
-      console.log(`watcher stopWatching: ${collectionPath}`);
-      watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
-      lastOpenedCollections.remove(collectionPath);
+      await openCollectionsByPathname(mainWindow, watcher, collectionPaths);
+    }
+  });
 
-      // If wsclient was initialised for any collections that are opened
-      // then close for the current collection
+  ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid, workspacePath) => {
+    if (watcher && mainWindow) {
+      watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+
       if (wsClient) {
         wsClient.closeForCollection(collectionUid);
       }
     }
+
+    if (workspacePath && workspacePath !== 'default') {
+      try {
+        const { removeCollectionFromWorkspace } = require('../utils/workspace-config');
+        await removeCollectionFromWorkspace(workspacePath, collectionPath);
+      } catch (error) {
+        console.error('Error removing collection from workspace.yml:', error);
+      }
+    }
   });
 
-  ipcMain.handle('renderer:update-collection-paths', async (_, collectionPaths) => {
-    lastOpenedCollections.update(collectionPaths);
-  })
-
-  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation, format = 'bru') => {
+  ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, format = 'bru') => {
     try {
       let collectionName = sanitizeName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
@@ -837,8 +835,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       // Recursive function to parse the collection items and create files/folders
-      const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach(async (item) => {
+      const parseCollectionItems = async (items = [], currentPath) => {
+        await Promise.all(items.map(async (item) => {
           if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
             let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.${format}`);
             const content = await stringifyRequestViaWorker(item, { format });
@@ -858,7 +856,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             }
 
             if (item.items && item.items.length) {
-              parseCollectionItems(item.items, folderPath);
+              await parseCollectionItems(item.items, folderPath);
             }
           }
           // Handle items of type 'js'
@@ -867,21 +865,21 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             const filePath = path.join(currentPath, sanitizedFilename);
             safeWriteFileSync(filePath, item.fileContent);
           }
-        });
+        }));
       };
 
-      const parseEnvironments = (environments = [], collectionPath) => {
+      const parseEnvironments = async (environments = [], collectionPath) => {
         const envDirPath = path.join(collectionPath, 'environments');
         if (!fs.existsSync(envDirPath)) {
           fs.mkdirSync(envDirPath);
         }
 
-        environments.forEach(async (env) => {
+        await Promise.all(environments.map(async (env) => {
           const content = await stringifyEnvironment(env, { format });
           let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
           const filePath = path.join(envDirPath, sanitizedEnvFilename);
           safeWriteFileSync(filePath, content);
-        });
+        }));
       };
 
       const getBrunoJsonConfig = (collection) => {
@@ -924,11 +922,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
 
-      lastOpenedCollections.add(collectionPath);
-
       // create folder and files based on collection
       await parseCollectionItems(collection.items, collectionPath);
       await parseEnvironments(collection.environments, collectionPath);
+
+      return collectionPath;
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1529,7 +1527,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 };
 
-const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
+const registerMainEventHandlers = (mainWindow, watcher) => {
   ipcMain.on('main:open-collection', () => {
     if (watcher && mainWindow) {
       openCollectionDialog(mainWindow, watcher);
@@ -1542,7 +1540,6 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   });
 
   ipcMain.on('main:collection-opened', async (win, pathname, uid, brunoConfig) => {
-    lastOpenedCollections.add(pathname);
     app.addRecentDocument(pathname);
   });
 
@@ -1560,9 +1557,9 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   });
 };
 
-const registerCollectionsIpc = (mainWindow, watcher, lastOpenedCollections) => {
-  registerRendererEventHandlers(mainWindow, watcher, lastOpenedCollections);
-  registerMainEventHandlers(mainWindow, watcher, lastOpenedCollections);
+const registerCollectionsIpc = (mainWindow, watcher) => {
+  registerRendererEventHandlers(mainWindow, watcher);
+  registerMainEventHandlers(mainWindow, watcher);
 };
 
 module.exports = registerCollectionsIpc;

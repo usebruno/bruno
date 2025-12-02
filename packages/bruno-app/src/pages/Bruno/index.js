@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import classnames from 'classnames';
-import Welcome from 'components/Welcome';
+import WorkspaceOverview from 'components/WorkspaceOverview';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
@@ -112,7 +112,7 @@ export default function Main() {
             <Sidebar />
             <section className="flex flex-grow flex-col overflow-hidden">
               {showHomePage ? (
-                <Welcome />
+              <WorkspaceOverview />
               ) : (
                 <>
                   <RequestTabs />

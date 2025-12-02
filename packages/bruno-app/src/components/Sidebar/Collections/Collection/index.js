@@ -405,7 +405,7 @@ const Collection = ({ collection, searchText }) => {
               <span className="dropdown-icon">
                 <IconX size={16} strokeWidth={2} />
               </span>
-              Close
+              Remove
             </div>
           </Dropdown>
         </div>

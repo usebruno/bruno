@@ -22,7 +22,7 @@ async function findUniqueFolderName(baseName, collectionLocation, counter = 0) {
 /**
  * Import a collection - shared logic used by both IPC handler and onboarding service
  */
-async function importCollection(collection, collectionLocation, mainWindow, lastOpenedCollections, uniqueFolderName = null, format = 'bru') {
+async function importCollection(collection, collectionLocation, mainWindow, uniqueFolderName = null, format = 'bru') {
   // Use provided unique folder name or use collection name
   let folderName = uniqueFolderName ? sanitizeName(uniqueFolderName) : sanitizeName(collection.name);
   let collectionPath = path.join(collectionLocation, folderName);
@@ -100,13 +100,13 @@ async function importCollection(collection, collectionLocation, mainWindow, last
   let brunoConfig = getBrunoJsonConfig(collection);
 
   if (format === 'yml') {
-    const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
+    const collectionContent = await stringifyCollection(collection.root, { format });
     await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
   } else if (format === 'bru') {
     const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
     await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
-    const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
+    const collectionContent = await stringifyCollection(collection.root, { format });
     await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
   } else {
     throw new Error(`Invalid format: ${format}`);
@@ -118,8 +118,6 @@ async function importCollection(collection, collectionLocation, mainWindow, last
 
   mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
   ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
-
-  lastOpenedCollections.add(collectionPath);
 
   // create folder and files based on collection
   await parseCollectionItems(collection.items, collectionPath);

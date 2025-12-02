@@ -38,8 +38,11 @@ const registerCollectionsIpc = require('./ipc/collection');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
 const registerSystemMonitorIpc = require('./ipc/system-monitor');
+const registerWorkspaceIpc = require('./ipc/workspace');
 const collectionWatcher = require('./app/collection-watcher');
+const WorkspaceWatcher = require('./app/workspace-watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
+const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
@@ -51,6 +54,8 @@ const { getIsRunningInRosetta } = require('./utils/arch');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
+
+const workspaceWatcher = new WorkspaceWatcher();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -212,9 +217,10 @@ app.on('ready', async () => {
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
-  registerGlobalEnvironmentsIpc(mainWindow);
-  registerCollectionsIpc(mainWindow, collectionWatcher, lastOpenedCollections);
-  registerPreferencesIpc(mainWindow, collectionWatcher, lastOpenedCollections);
+  registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
+  registerCollectionsIpc(mainWindow, collectionWatcher);
+  registerPreferencesIpc(mainWindow, collectionWatcher);
+  registerWorkspaceIpc(mainWindow, workspaceWatcher);
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);
   registerSystemMonitorIpc(mainWindow, systemMonitor);

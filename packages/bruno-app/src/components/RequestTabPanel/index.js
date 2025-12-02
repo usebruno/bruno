@@ -7,7 +7,6 @@ import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
 import ResponsePane from 'components/ResponsePane';
 import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
-import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
@@ -34,6 +33,7 @@ import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
+import WorkspaceOverview from 'components/WorkspaceOverview/index';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -137,7 +137,7 @@ const RequestTabPanel = () => {
   }, [dragging]);
 
   if (!activeTabUid) {
-    return <Welcome />;
+    return <WorkspaceOverview />;
   }
 
   if (!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {

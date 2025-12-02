@@ -148,6 +148,39 @@ const darkTheme = {
     headingText: '#FFFFFF'
   },
 
+  listItem: {
+    hoverBg: '#2A2D2F',
+    activeBg: '#3D3D3D'
+  },
+
+  workspace: {
+    accent: '#F59E0B',
+    border: '#444',
+    borderMuted: '#585858',
+    card: {
+      bg: '#2A2D2F'
+    },
+    button: {
+      bg: '#242424'
+    },
+    collection: {
+      header: {
+        indentBorder: 'solid 1px #444444'
+      },
+      item: {
+        indentBorder: 'solid 1px #313131'
+      }
+    },
+    environments: {
+      bg: '#212121',
+      indentBorder: 'solid 1px #313131',
+      activeBg: '#37373c',
+      search: {
+        bg: '#3D3D3D'
+      }
+    }
+  },
+
   request: {
     methods: {
       get: '#8cd656',
