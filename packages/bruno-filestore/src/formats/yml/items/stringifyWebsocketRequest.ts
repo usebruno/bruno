@@ -12,9 +12,16 @@ import { toOpenCollectionHttpHeaders } from '../common/headers';
 import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionScripts } from '../common/scripts';
 
+interface WebSocketRequestWithSettings extends WebSocketRequest {
+  settings?: {
+    timeout?: number;
+    keepAliveInterval?: number;
+  };
+}
+
 const stringifyWebsocketRequest = (item: BrunoItem): string => {
   try {
-    const ocRequest: WebSocketRequest = {
+    const ocRequest: WebSocketRequestWithSettings = {
       type: 'websocket'
     };
 
@@ -79,6 +86,16 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
     // tags
     if (item.tags?.length) {
       ocRequest.tags = item.tags;
+    }
+
+    // settings
+    const wsSettings = item.settings as Record<string, number | string | undefined> | undefined;
+    if (wsSettings) {
+      ocRequest.settings = {};
+      const timeout = Number(wsSettings.timeout);
+      ocRequest.settings.timeout = !isNaN(timeout) ? timeout : 0;
+      const keepAliveInterval = Number(wsSettings.keepAliveInterval);
+      ocRequest.settings.keepAliveInterval = !isNaN(keepAliveInterval) ? keepAliveInterval : 0;
     }
 
     return stringifyYml(ocRequest);

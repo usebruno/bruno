@@ -65,17 +65,25 @@ class SystemMonitor {
 
       for (const metric of metrics) {
         totalCPU += metric.cpu.percentCPUUsage;
-        totalMemory += metric.memory.workingSetSize;
+        totalMemory += metric.memory.workingSetSize * 1024;
       }
 
       const uptime = (currentTime - this.startTime) / 1000;
-
+      var processes = metrics.map((metric) => ({
+        pid: metric.pid,
+        title: metric.title,
+        memory: metric.memory.workingSetSize * 1024,
+        cpu: metric.cpu.percentCPUUsage,
+        type: metric.type || 'unknown',
+        creationTime: metric.creationTime
+      }));
       const systemResources = {
         cpu: totalCPU,
         memory: totalMemory,
         pid: process.pid,
         uptime: uptime,
-        timestamp: currentTime.toISOString()
+        timestamp: currentTime.toISOString(),
+        processes: processes
       };
 
       if (win && !win.isDestroyed()) {
@@ -95,7 +103,8 @@ class SystemMonitor {
         memory: memory.rss,
         pid: process.pid,
         uptime: uptime,
-        timestamp: currentTime.toISOString()
+        timestamp: currentTime.toISOString(),
+        processes: []
       };
 
       if (win && !win.isDestroyed()) {

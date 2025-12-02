@@ -773,7 +773,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // delete file/folder
-  ipcMain.handle('renderer:delete-item', async (event, pathname, type) => {
+  ipcMain.handle('renderer:delete-item', async (event, pathname, type, collectionPathname) => {
     try {
       if (type === 'folder') {
         if (!fs.existsSync(pathname)) {
@@ -781,7 +781,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         // delete the request uid mappings
-        const requestFilesAtSource = await searchForRequestFiles(pathname);
+        const requestFilesAtSource = await searchForRequestFiles(pathname, collectionPathname);
         for (let requestFile of requestFilesAtSource) {
           deleteRequestUid(requestFile);
         }
@@ -947,7 +947,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
             const content = await stringifyRequestViaWorker(item, { format });
-            const filePath = path.join(currentPath, item.filename);
+
+            // Use the correct file extension based on target format
+            const baseName = path.parse(item.filename).name;
+            const newFilename = format === 'yml' ? `${baseName}.yml` : `${baseName}.bru`;
+            const filePath = path.join(currentPath, newFilename);
+
             safeWriteFileSync(filePath, content);
           }
           if (item.type === 'folder') {

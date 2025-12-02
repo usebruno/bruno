@@ -118,6 +118,7 @@ const lightTheme = {
       item: {
         bg: colors.GRAY_2,
         hoverBg: colors.GRAY_2,
+        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
         indentBorder: `solid 1px ${colors.GRAY_3}`,
         active: {
           indentBorder: `solid 1px ${colors.GRAY_3}`
@@ -553,6 +554,12 @@ const lightTheme = {
     border: 'rgba(217, 31, 17, 0.1)',
     icon: '#D91F11',
     text: '#343434'
+  },
+
+  preferences: {
+    sidebar: {
+      border: '#EFEFEF'
+    }
   },
 
   examples: {

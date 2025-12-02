@@ -77,6 +77,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const [examplesExpanded, setExamplesExpanded] = useState(false);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
@@ -186,10 +187,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   });
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
-    'item-focused-in-tab': isTabForItemActive,
+    'item-focused-in-tab': isTabForItemActive && !isKeyboardFocused,
     'item-hovered': isOver && canDrop,
     'drop-target': isOver && dropType === 'inside',
-    'drop-target-above': isOver && dropType === 'adjacent'
+    'drop-target-above': isOver && dropType === 'adjacent',
+    'item-keyboard-focused': isKeyboardFocused
   });
 
   const handleRun = async () => {
@@ -393,21 +395,54 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
-  const handleCopyRequest = () => {
+  const handleCopyItem = () => {
     dropdownTippyRef.current.hide();
     dispatch(copyRequest(item));
-    toast.success('Request copied to clipboard');
+    const itemType = isFolder ? 'Folder' : 'Request';
+    toast.success(`${itemType} copied to clipboard`);
   };
 
-  const handlePasteRequest = () => {
+  const handlePasteItem = () => {
     dropdownTippyRef.current.hide();
+
+    // Only allow paste into folders
+    if (!isFolder) {
+      toast.error('Paste is only available for folders');
+      return;
+    }
+
     dispatch(pasteItem(collectionUid, item.uid))
       .then(() => {
-        toast.success('Request pasted successfully');
+        toast.success('Item pasted successfully');
       })
       .catch((err) => {
-        toast.error(err ? err.message : 'An error occurred while pasting the request');
+        toast.error(err ? err.message : 'An error occurred while pasting the item');
       });
+  };
+
+  // Keyboard shortcuts handler
+  const handleKeyDown = (e) => {
+    // Detect Mac by checking both metaKey and platform
+    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
+    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
+
+    if (isModifierPressed && e.key.toLowerCase() === 'c') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCopyItem();
+    } else if (isModifierPressed && e.key.toLowerCase() === 'v') {
+      e.preventDefault();
+      e.stopPropagation();
+      handlePasteItem();
+    }
+  };
+
+  const handleFocus = () => {
+    setIsKeyboardFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsKeyboardFocused(false);
   };
 
   return (
@@ -449,6 +484,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           ref.current = node;
           drag(drop(node));
         }}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
@@ -568,21 +607,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 </span>
                 Clone
               </div>
-              {!isFolder && (
-                <div
-                  className="dropdown-item"
-                  onClick={handleCopyRequest}
-                >
-                  <span className="dropdown-icon">
+              <div
+                className="dropdown-item"
+                onClick={handleCopyItem}
+              >
+                <span className="dropdown-icon">
                     <IconCopy size={16} strokeWidth={2} />
-                  </span>
-                  Copy
-                </div>
-              )}
+                </span>
+                Copy
+              </div>
               {isFolder && hasCopiedItems && (
                 <div
                   className="dropdown-item"
-                  onClick={handlePasteRequest}
+                  onClick={handlePasteItem}
                 >
                   <span className="dropdown-icon">
                     <IconClipboard size={16} strokeWidth={2} />

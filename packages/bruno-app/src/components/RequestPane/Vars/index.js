@@ -11,13 +11,7 @@ const Vars = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
         <VarsTable item={item} collection={collection} vars={requestVars} varType="request" />
-      </div>
-      <div>
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <DeprecationWarning featureName="Post Response Variables" learnMoreUrl="https://github.com/usebruno/bruno/discussions/6231" />
-        <VarsTable item={item} collection={collection} vars={responseVars} varType="response" />
       </div>
     </StyledWrapper>
   );
