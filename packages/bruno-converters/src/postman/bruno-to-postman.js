@@ -131,7 +131,7 @@ export const brunoToPostman = (collection) => {
         }
       } else if (typeof obj === 'string') {
         obj.replace(pattern, (match) => {
-          const varKey = match[0].replace(/{{|}}/g, '');
+          const varKey = match.replace(/{{|}}/g, '');
           results.push({
             key: varKey,
             value: '',
