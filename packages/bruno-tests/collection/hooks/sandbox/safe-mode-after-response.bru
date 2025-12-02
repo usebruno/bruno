@@ -1,0 +1,53 @@
+meta {
+  name: safe-mode-after-response
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.onAfterResponse(({ req, res }) => {
+    console.log('[afterResponse] Safe mode - afterResponse hook');
+    
+    // Test: Can access req and res objects in safe mode
+    const reqUrl = req.getUrl();
+    const status = res.getStatus();
+    const body = res.getBody();
+    
+    // Test: Can use bru APIs in safe mode
+    bru.setVar('safe-mode-afterResponse-executed', 'true');
+    bru.setVar('safe-mode-status', status.toString());
+    bru.setVar('safe-mode-body', body);
+    bru.setVar('safe-mode-req-url', reqUrl);
+    
+    console.log('[afterResponse] Safe mode hook completed');
+  });
+}
+
+tests {
+  test("safe mode afterResponse hook should have executed", function() {
+    const executed = bru.getVar('safe-mode-afterResponse-executed');
+    expect(executed).to.equal('true');
+  });
+  
+  test("should have access to response in safe mode", function() {
+    const status = bru.getVar('safe-mode-status');
+    expect(status).to.equal('200');
+  });
+  
+  test("should have access to response body in safe mode", function() {
+    const body = bru.getVar('safe-mode-body');
+    expect(body).to.equal('pong');
+  });
+  
+  test("should have access to request in safe mode", function() {
+    const reqUrl = bru.getVar('safe-mode-req-url');
+    expect(reqUrl).to.include('/ping');
+  });
+}
+

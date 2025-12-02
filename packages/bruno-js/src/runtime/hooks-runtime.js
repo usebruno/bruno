@@ -119,21 +119,19 @@ class HooksRuntime {
       };
     }
 
-    if (this.runtime === 'quickjs') {
-      await executeQuickJsVmAsync({
-        script: hooksFile,
-        context: context,
-        collectionPath
-      });
+    await executeQuickJsVmAsync({
+      script: hooksFile,
+      context: context,
+      collectionPath
+    });
 
-      return {
-        hookManager,
-        envVariables: cleanJson(envVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables)
-      };
-    }
+    return {
+      hookManager,
+      envVariables: cleanJson(envVariables),
+      runtimeVariables: cleanJson(runtimeVariables),
+      persistentEnvVariables: bru.persistentEnvVariables,
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables)
+    };
   }
 }
 

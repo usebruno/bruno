@@ -1,0 +1,53 @@
+meta {
+  name: safe-mode-before-request
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Safe mode - beforeRequest hook');
+    
+    // Test: Can access req object in safe mode
+    const url = req.getUrl();
+    const method = req.getMethod();
+    
+    // Test: Can use bru APIs in safe mode
+    bru.setVar('safe-mode-beforeRequest-executed', 'true');
+    bru.setVar('safe-mode-url', url);
+    bru.setVar('safe-mode-method', method);
+    
+    // Test: Can modify request in safe mode
+    req.setHeader('X-Safe-Mode', 'true');
+    
+    console.log('[beforeRequest] Safe mode hook completed');
+  });
+}
+
+tests {
+  test("safe mode beforeRequest hook should have executed", function() {
+    const executed = bru.getVar('safe-mode-beforeRequest-executed');
+    expect(executed).to.equal('true');
+  });
+  
+  test("should have access to request in safe mode", function() {
+    const url = bru.getVar('safe-mode-url');
+    expect(url).to.include('/ping');
+  });
+  
+  test("should have access to request method in safe mode", function() {
+    const method = bru.getVar('safe-mode-method');
+    expect(method).to.equal('GET');
+  });
+  
+  test("request should execute successfully in safe mode", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

@@ -1,0 +1,25 @@
+meta {
+  name: getProducts
+  type: grpc
+  seq: 2
+}
+
+grpc {
+  url: {{host3}}
+  body: grpc
+  auth: none
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "id": 3
+    }
+  '''
+}
+
+vars:pre-request {
+  hos23: https://localhost:4000
+  host4: https://localhost:4000
+}
