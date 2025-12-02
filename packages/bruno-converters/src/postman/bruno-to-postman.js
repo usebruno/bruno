@@ -118,7 +118,7 @@ export const brunoToPostman = (collection) => {
 
   const generateCollectionVars = (collection) => {
     const pattern = /{{[^{}]+}}/g;
-    let listOfVars = [];
+    let collectionVars = [];
 
     const findOccurrences = (obj, results) => {
       if (typeof obj === 'object') {
@@ -131,20 +131,41 @@ export const brunoToPostman = (collection) => {
         }
       } else if (typeof obj === 'string') {
         obj.replace(pattern, (match) => {
-          results.push(match.replace(/{{|}}/g, ''));
+          const varKey = match[0].replace(/{{|}}/g, '');
+          results.push({
+            key: varKey,
+            value: '',
+            type: 'default'
+          });
         });
       }
     };
 
-    findOccurrences(collection, listOfVars);
+    findOccurrences(collection, collectionVars);
 
-    const finalArrayOfVars = [...new Set(listOfVars)];
-
-    return finalArrayOfVars.map((variable) => ({
-      key: variable,
-      value: '',
+    // Add request and response vars
+    let reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
+      key: v.name,
+      value: v.value,
       type: 'default'
     }));
+
+    let resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
+      key: v.name,
+      value: v.value,
+      type: 'default'
+    }));
+
+    // Merge and deduplicate final result
+    const allVars = [...reqVars, ...resVars, ...collectionVars];
+    const finalVarsMap = new Map();
+    allVars.forEach((v) => {
+      if (!finalVarsMap.has(v.key)) {
+        finalVarsMap.set(v.key, v);
+      }
+    });
+
+    return Array.from(finalVarsMap.values());
   };
   const generateEventSection = (item) => {
     const eventArray = [];
