@@ -22,7 +22,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
-const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
@@ -59,15 +59,12 @@ const saveCookies = (url, headers) => {
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
 
-  if (securityConfig.jsSandboxMode === 'safe') {
-    return 'quickjs';
-  }
-
-  if (preferencesUtil.isBetaFeatureEnabled('nodevm')) {
+  if (securityConfig.jsSandboxMode === 'developer') {
     return 'nodevm';
   }
 
-  return 'vm2';
+  // default runtime is `quickjs`
+  return 'quickjs';
 };
 
 const hasStreamHeaders = (headers) => {
@@ -509,48 +506,6 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig,
     runRequestByItemPathname
   ) => {
-    // run post-response vars
-    const postResponseVars = get(request, 'vars.res', []);
-    if (postResponseVars?.length) {
-      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      const result = varsRuntime.runPostResponseVars(
-        postResponseVars,
-        request,
-        response,
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars
-      );
-
-      if (result) {
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          runtimeVariables: result.runtimeVariables,
-          persistentEnvVariables: result.persistentEnvVariables,
-          requestUid,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:persistent-env-variables-update', {
-          persistentEnvVariables: result.persistentEnvVariables,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:global-environment-variables-update', {
-          globalEnvironmentVariables: result.globalEnvironmentVariables
-        });
-
-        collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
-      }
-
-      if (result?.error) {
-        mainWindow.webContents.send('main:display-error', result.error);
-      }
-
-      collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
-    }
-
     // run post-response script
     const responseScript = get(request, 'script.res');
     let scriptResult;
@@ -605,9 +560,10 @@ const registerNetworkIpc = (mainWindow) => {
 
     const runRequestByItemPathname = async (relativeItemPathname) => {
       return new Promise(async (resolve, reject) => {
-        let itemPathname = path.join(collection?.pathname, relativeItemPathname);
-        if (itemPathname && !itemPathname?.endsWith('.bru')) {
-          itemPathname = `${itemPathname}.bru`;
+        const format = getCollectionFormat(collection.pathname);
+        let itemPathname = path.join(collection.pathname, relativeItemPathname);
+        if (itemPathname && !hasRequestExtension(itemPathname, format)) {
+          itemPathname = `${itemPathname}.${format}`;
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if(_item) {
@@ -1093,9 +1049,10 @@ const registerNetworkIpc = (mainWindow) => {
 
       const runRequestByItemPathname = async (relativeItemPathname) => {
         return new Promise(async (resolve, reject) => {
-          let itemPathname = path.join(collection?.pathname, relativeItemPathname);
-          if (itemPathname && !itemPathname?.endsWith('.bru')) {
-            itemPathname = `${itemPathname}.bru`;
+          const format = getCollectionFormat(collection.pathname);
+          let itemPathname = path.join(collection.pathname, relativeItemPathname);
+          if (itemPathname && !hasRequestExtension(itemPathname, format)) {
+            itemPathname = `${itemPathname}.${format}`;
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if(_item) {

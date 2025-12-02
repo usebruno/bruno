@@ -45,10 +45,13 @@ describe('prompt variable utils', () => {
       expect(extractPromptVariables([{ text: 'Multiple {{?prompts}} in {{?one}} string', noPrompt: 'No prompt here' }, ['Another {{?test}} string', { prompt: '{{?nested}}', no: 'prompt' }]])).toEqual(['prompts', 'one', 'test', 'nested']);
     });
 
-    it('should deduplicate prompt variables', () => {
-      // Strings
-      expect(extractPromptVariables(['{{?world}} prompt here', 'Hello {{?world}}'])).toEqual(['world']);
-      expect(extractPromptVariables(['Multiple {{?prompts}} in {{?one}} string', 'Another {{?one}} string'])).toEqual(['prompts', 'one']);
+    it('should not extract prompt variables from invalid template patterns', () => {
+      expect(extractPromptVariables('Prompt with valid {{?inner space}}')).toEqual(['inner space']);
+      expect(extractPromptVariables('Prompt with invalid {{? leading space}}')).toEqual([]);
+      expect(extractPromptVariables('Prompt with invalid {{?trailing space }}')).toEqual([]);
+      expect(extractPromptVariables('Prompt with invalid {{?{curly brace}}')).toEqual([]);
+      expect(extractPromptVariables('Prompt with invalid {{?}curly brace}}')).toEqual([]);
+      expect(extractPromptVariables('Prompt with invalid {{?{curly brace}}}')).toEqual([]);
     });
   });
 });

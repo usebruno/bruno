@@ -37,7 +37,7 @@ describe('runtime', () => {
                 })
             `;
 
-      const runtime = new TestRuntime({ runtime: 'vm2' });
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
       const result = await runtime.runTests(
         testFile,
         { ...baseRequest },
@@ -73,7 +73,7 @@ describe('runtime', () => {
                 })
             `;
 
-      const runtime = new TestRuntime({ runtime: 'vm2' });
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
       const result = await runtime.runTests(
         testFile,
         { ...baseRequest },
@@ -116,7 +116,7 @@ describe('runtime', () => {
                   bru.setVar('validation', validate(new Date().toISOString()))
               `;
 
-        const runtime = new ScriptRuntime({ runtime: 'vm2' });
+        const runtime = new ScriptRuntime({ runtime: 'nodevm' });
         const result = await runtime.runRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env);
         expect(result.runtimeVariables.validation).toBeTruthy();
       });
@@ -162,7 +162,7 @@ describe('runtime', () => {
                   bru.setVar('validation', validate(new Date().toISOString()))
               `;
 
-        const runtime = new ScriptRuntime({ runtime: 'vm2' });
+        const runtime = new ScriptRuntime({ runtime: 'nodevm' });
         const result = await runtime.runResponseScript(
           script,
           { ...baseRequest },
@@ -181,7 +181,7 @@ describe('runtime', () => {
   describe('persistent environment variables validation', () => {
     it('should throw error when trying to persist non-string values', async () => {
       const script = `bru.setEnvVar('number', 42, {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'vm2' });
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
       
       await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
         .rejects.toThrow('Persistent environment variables must be strings. Received number for key "number".');
@@ -189,7 +189,7 @@ describe('runtime', () => {
 
     it('should throw error when trying to persist boolean values', async () => {
       const script = `bru.setEnvVar('isActive', true, {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'vm2' });
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
       
       await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
         .rejects.toThrow('Persistent environment variables must be strings. Received boolean for key "isActive".');
@@ -197,7 +197,7 @@ describe('runtime', () => {
 
     it('should throw error when trying to persist object values', async () => {
       const script = `bru.setEnvVar('config', {port: 3000}, {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'vm2' });
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
       
       await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
         .rejects.toThrow('Persistent environment variables must be strings. Received object for key "config".');
@@ -205,7 +205,7 @@ describe('runtime', () => {
 
     it('should throw error when trying to persist array values', async () => {
       const script = `bru.setEnvVar('items', ['item1', 'item2'], {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'vm2' });
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
       
       await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
         .rejects.toThrow('Persistent environment variables must be strings. Received object for key "items".');
@@ -213,7 +213,7 @@ describe('runtime', () => {
 
     it('should allow string values when persist is true', async () => {
       const script = `bru.setEnvVar('api_key', 'abc123', {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'vm2' });
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
       
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
       
@@ -227,7 +227,7 @@ describe('runtime', () => {
         bru.setEnvVar('object', {key: 'value'}, {persist: false});
         bru.setEnvVar('array', [1, 2, 3], {persist: false});
       `;
-      const runtime = new ScriptRuntime({ runtime: 'vm2' });
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
       
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
 
@@ -239,7 +239,7 @@ describe('runtime', () => {
 
     it('should allow non-string values when persist is not specified', async () => {
       const script = `bru.setEnvVar('number', 42);`;
-      const runtime = new ScriptRuntime({ runtime: 'vm2' });
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
       
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
       
@@ -251,7 +251,7 @@ describe('runtime', () => {
     it('should not be equal to {{$randomFirstName}}', async () => {
       const script = `bru.setVar('title', '{{$randomFirstName}}')`;
 
-      const runtime = new ScriptRuntime({ runtime: 'vm2' });
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
 

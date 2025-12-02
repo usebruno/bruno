@@ -8,6 +8,11 @@ import ResponseSize from './index';
 const theme = {
   requestTabPanel: {
     responseStatus: '#666'
+  },
+  font: {
+    size: {
+      sm: '0.75rem'
+    }
   }
 };
 

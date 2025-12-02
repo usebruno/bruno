@@ -45,7 +45,7 @@ const RenameCollection = ({ collectionUid, onClose }) => {
     <Modal size="sm" title="Rename Collection" confirmText="Rename" handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
-          <label htmlFor="name" className="block font-semibold">
+          <label htmlFor="name" className="block font-medium">
             Name
           </label>
           <input

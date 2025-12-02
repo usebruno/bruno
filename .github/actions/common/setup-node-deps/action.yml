@@ -23,4 +23,5 @@ runs:
         npm run sandbox:bundle-libraries --workspace=packages/bruno-js
         npm run build:bruno-converters
         npm run build:bruno-requests
+        npm run build:schema-types
         npm run build:bruno-filestore

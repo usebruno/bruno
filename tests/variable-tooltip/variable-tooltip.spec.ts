@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { createCollection, closeAllCollections } from '../utils/page';
+import { createCollection, closeAllCollections, createRequest } from '../utils/page';
 
 test.describe('Variable Tooltip', () => {
   test.afterEach(async ({ page }) => {
@@ -43,19 +43,15 @@ test.describe('Variable Tooltip', () => {
     });
 
     await test.step('Create request and test tooltip', async () => {
-      // Create request
-      const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
-      await collectionContainer.locator('.collection-actions').hover();
-      await collectionContainer.locator('.collection-actions .icon').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
+      // Create request using utility method
+      await createRequest(page, 'Test Request', collectionName);
 
-      await page.getByPlaceholder('Request Name').fill('Test Request');
-      await page.locator('#new-request-url .CodeMirror').click();
-      await page.locator('textarea').fill('https://api.example.com?key={{apiKey}}');
-      await page.getByRole('button', { name: 'Create' }).click();
-
-      // Open request
+      // Set the URL
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com?key={{apiKey}}');
+      await page.keyboard.press('Control+s');
     });
 
     await test.step('Test basic tooltip', async () => {
@@ -153,17 +149,15 @@ test.describe('Variable Tooltip', () => {
     });
 
     await test.step('Create request with variable references', async () => {
-      const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
-      await collectionContainer.locator('.collection-actions').hover();
-      await collectionContainer.locator('.collection-actions .icon').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
+      // Create request using utility method
+      await createRequest(page, 'Ref Test Request', collectionName);
 
-      await page.getByPlaceholder('Request Name').fill('Ref Test Request');
-      await page.locator('#new-request-url .CodeMirror').click();
-      await page.locator('textarea').fill('{{endpoint}}');
-      await page.getByRole('button', { name: 'Create' }).click();
-
+      // Set the URL
       await page.locator('.collection-item-name').filter({ hasText: 'Ref Test Request' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('{{endpoint}}');
+      await page.keyboard.press('Control+s');
     });
 
     await test.step('Test variable referencing other variables', async () => {
@@ -272,18 +266,15 @@ test.describe('Variable Tooltip', () => {
       await page.getByRole('button', { name: 'Save' }).click();
       await page.getByText('×').click();
 
-      // Create request
-      const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
-      await collectionContainer.locator('.collection-actions').hover();
-      await collectionContainer.locator('.collection-actions .icon').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
+      // Create request using utility method
+      await createRequest(page, 'Readonly Test', collectionName);
 
-      await page.getByPlaceholder('Request Name').fill('Readonly Test');
-      await page.locator('#new-request-url .CodeMirror').click();
-      await page.locator('textarea').fill('https://example.com');
-      await page.getByRole('button', { name: 'Create' }).click();
-
+      // Set the URL
       await page.locator('.collection-item-name').filter({ hasText: 'Readonly Test' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://example.com');
+      await page.keyboard.press('Control+s');
     });
 
     await test.step('Test process.env variable tooltip', async () => {
@@ -312,6 +303,165 @@ test.describe('Variable Tooltip', () => {
       // Should have copy button but not be editable
       await expect(tooltip.locator('.copy-button')).toBeVisible();
       await expect(tooltip.locator('.var-value-editor')).not.toBeVisible();
+    });
+  });
+
+  test('should auto-save request when creating variable via tooltip', async ({ page, createTmpDir }) => {
+    const collectionName = 'draft-autosave-test';
+
+    await test.step('Setup collection and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('draft-autosave'), {
+        openWithSandboxMode: 'safe'
+      });
+
+      // Create request using utility method
+      await createRequest(page, 'Autosave Test', collectionName);
+
+      // Set the URL
+      await page.locator('.collection-item-name').filter({ hasText: 'Autosave Test' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com');
+      await page.keyboard.press('Control+s');
+    });
+
+    await test.step('Edit URL to create draft with undefined variable', async () => {
+      // Edit the URL to add a variable reference
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.press('End');
+      await page.keyboard.type('/users/{{myApiKey}}');
+
+      // Verify draft indicator appears (unsaved changes) in the request tab
+      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Autosave Test' }) });
+      await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
+    });
+
+    await test.step('Create variable via tooltip - should auto-save entire request', async () => {
+      // Hover over the undefined variable {{myApiKey}}
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const undefinedVar = urlEditor.locator('.cm-variable-invalid').filter({ hasText: 'myApiKey' }).first();
+      await undefinedVar.hover();
+
+      // Tooltip should appear
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-name')).toContainText('myApiKey');
+      await expect(tooltip.locator('.var-scope-badge')).toContainText('Request');
+
+      // Click to edit the variable
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await valueDisplay.click();
+
+      // Type value
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+      await page.keyboard.type('secret-key-123');
+
+      // Click outside to close editor - this will auto-save the entire request
+      await page.locator('body').click();
+    });
+
+    await test.step('Verify request was auto-saved with URL changes and new variable', async () => {
+      // Move mouse away
+      await page.mouse.move(0, 0);
+
+      // Verify variable is now valid (green) in the URL
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const validVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'myApiKey' });
+      await expect(validVar).toBeVisible();
+
+      // Hover to verify value was saved
+      await validVar.first().hover();
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-value-editable-display')).toContainText('secret-key-123');
+
+      // Move mouse away
+      await page.mouse.move(0, 0);
+
+      // Verify the URL changes were also saved
+      const urlContent = await urlEditor.locator('.CodeMirror-line').first().textContent();
+      expect(urlContent).toContain('api.example.com/users');
+      expect(urlContent).toContain('myApiKey');
+
+      // Verify draft indicator is GONE (everything was auto-saved)
+      const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Autosave Test' }) });
+      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible();
+      await expect(requestTab.locator('.close-icon')).toBeVisible();
+    });
+
+    await test.step('Verify variable exists in Vars tab', async () => {
+      // Check variable is saved to file - should appear in the Vars tab
+      await page.getByRole('tab', { name: 'Vars' }).click();
+
+      // The variable should exist in the saved file
+      const varsTable = page.locator('table').first();
+      await expect(varsTable).toBeVisible();
+
+      const varRow = varsTable.locator('tbody tr').first();
+      await expect(varRow).toBeVisible();
+
+      // Check variable name
+      const varNameInput = varRow.locator('td').first().locator('input[type="text"]');
+      await expect(varNameInput).toBeVisible();
+      await expect(varNameInput).toHaveValue('myApiKey');
+
+      // Check variable value
+      const varValueTd = varRow.locator('td').nth(1);
+      const varValue = varValueTd.locator('.CodeMirror');
+      await expect(varValue).toBeVisible();
+      const varValueContent = await varValue.locator('.CodeMirror-line').textContent();
+      expect(varValueContent).toContain('secret-key-123');
+    });
+  });
+
+  test('should handle invalid variable names with warning', async ({ page, createTmpDir }) => {
+    const collectionName = 'invalid-var-test';
+
+    await test.step('Setup collection and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('invalid-var-collection'), {
+        openWithSandboxMode: 'safe'
+      });
+
+      // Create request using utility method
+      await createRequest(page, 'Invalid Var Test', collectionName);
+
+      // Set the URL
+      await page.locator('.collection-item-name').filter({ hasText: 'Invalid Var Test' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com');
+      await page.keyboard.press('Control+s');
+    });
+
+    await test.step('Test invalid variable name with space', async () => {
+      await page.getByRole('tab', { name: 'Body' }).click();
+
+      // Select JSON body mode
+      await page.locator('.body-mode-selector').click();
+      await page.locator('.dropdown-item').filter({ hasText: 'JSON' }).click();
+
+      const bodyEditor = page.locator('.CodeMirror').last();
+      await bodyEditor.click();
+
+      await bodyEditor.evaluate((el: any) => {
+        const cm = el.CodeMirror;
+        cm.setValue('{\n  "userId": "{{user id}}"\n}');
+      });
+      await page.keyboard.press('Control+s');
+
+      // Hover over the invalid variable
+      await page.mouse.move(0, 0);
+      const invalidVar = bodyEditor.locator('.cm-variable-invalid, .cm-variable-valid').filter({ hasText: 'user id' }).first();
+      await invalidVar.hover();
+
+      // Verify tooltip shows warning and hides input
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-name')).toContainText('user id');
+      await expect(tooltip.locator('.var-warning-note')).toBeVisible();
+      await expect(tooltip.locator('.var-value-editable-display')).not.toBeVisible();
     });
   });
 });

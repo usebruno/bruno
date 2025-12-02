@@ -126,7 +126,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
       <div className="flex flex-col">
         <div className="mb-4">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
+          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
           <div
             onDragEnter={handleDrag}
             onDragOver={handleDrag}
@@ -149,7 +149,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                 onChange={handleFileInputChange}
                 accept={acceptedFileTypes.join(',')}
               />
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+              <p className="text-gray-600 dark:text-gray-300 mb-2">
                 Drop file to import or{' '}
                 <button
                   className="text-blue-500 underline cursor-pointer"

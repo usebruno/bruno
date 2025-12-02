@@ -95,41 +95,6 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       type: 'request'
     }));
   }
-
-  let resVars = new Map();
-  let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
-  collectionResponseVars.forEach((_var) => {
-    if (_var.enabled) {
-      resVars.set(_var.name, _var.value);
-    }
-  });
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      const folderRoot = i?.draft || i?.root;
-      let vars = get(folderRoot, 'request.vars.res', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
-        }
-      });
-    } else {
-      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
-        }
-      });
-    }
-  }
-
-  if(request?.vars) {
-    request.vars.res = Array.from(resVars, ([name, value]) => ({
-      name,
-      value,
-      enabled: true,
-      type: 'response'
-    }));
-  }
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
@@ -287,6 +252,67 @@ const parseBruFileMeta = (data) => {
     return null;
   }
 }
+
+// Parse YML file meta information
+const parseYmlFileMeta = (data) => {
+  try {
+    const yaml = require('js-yaml');
+    const parsed = yaml.load(data);
+
+    if (!parsed || !parsed.meta) {
+      console.log('No "meta" section found in YAML file.');
+      return null;
+    }
+
+    const metaJson = parsed.meta;
+
+    // Transform to the format expected by bruno-app
+    let requestType = metaJson.type;
+    const typeMap = {
+      http: 'http-request',
+      graphql: 'graphql-request',
+      grpc: 'grpc-request',
+      ws: 'ws-request'
+    };
+    requestType = typeMap[requestType] || 'http-request';
+
+    const sequence = metaJson.seq;
+    const transformedJson = {
+      type: requestType,
+      name: metaJson.name,
+      seq: !isNaN(sequence) ? Number(sequence) : 1,
+      settings: {},
+      tags: metaJson.tags || [],
+      request: {
+        method: '',
+        url: '',
+        params: [],
+        headers: [],
+        auth: { mode: 'none' },
+        body: { mode: 'none' },
+        script: {},
+        vars: {},
+        assertions: [],
+        tests: '',
+        docs: ''
+      }
+    };
+
+    return transformedJson;
+  } catch (err) {
+    console.error('Error parsing YAML file meta:', err);
+    return null;
+  }
+};
+
+// Format-aware meta parsing function
+const parseFileMeta = (data, format = 'bru') => {
+  if (format === 'yml') {
+    return parseYmlFileMeta(data);
+  } else {
+    return parseBruFileMeta(data);
+  }
+};
 
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
@@ -631,6 +657,7 @@ module.exports = {
   findParentItemInCollection,
   findParentItemInCollectionByPathname,
   parseBruFileMeta,
+  parseFileMeta,
   hydrateRequestWithUuid,
   transformRequestToSaveToFilesystem,
   sortCollection,

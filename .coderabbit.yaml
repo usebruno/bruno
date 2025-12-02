@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: 'en-US'
+early_access: false
+tone_instructions: 'You are an expert code reviewer in TypeScript, JavaScript, NodeJS, and ElectronJS. You work in an enterprise software developer team, providing concise and clear code review advice. You only elaborate or provide detailed explanations when requested.'
+
+knowledge_base:
+  opt_out: false
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - '**/CODING_STANDARDS.md'
+
+reviews:
+  profile: 'chill'
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: true
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches: ['main', 'release/*']
+  path_instructions:
+    - path: 'tests/**/**.*'
+      instructions: |
+        Review the following e2e test code written using the Playwright test library. Ensure that:
+        - Follow best practices for Playwright code and e2e automation
+        - Try to reduce usage of `page.waitForTimeout();` in code unless absolutely necessary and the locator cannot be found using existing `expect()` playwright calls
+        - Avoid using `page.pause()` in code
+        - Use locator variables for locators
+        - Avoid using test.only
+        - Use multiple assertions
+        - Promote the use of `test.step` as much as possible so the generated reports are easier to read
+        - Ensure that the `fixtures` like the collections are nested inside the `fixtures` folder 
+          
+
+
+          **Fixture Example***: Here's an example of possible fixture and test pair
+          ```
+          .
+          ├── fixtures
+          │   └── collection
+          │       ├── base.bru
+          │       ├── bruno.json
+          │       ├── collection.bru
+          │       ├── ws-test-request-with-headers.bru
+          │       ├── ws-test-request-with-subproto.bru
+          │       └── ws-test-request.bru
+          ├── connection.spec.ts # <- Depends on the collection in ./fixtures/collection
+          ├── headers.spec.ts
+          ├── persistence.spec.ts
+          ├── variable-interpolation
+          │   ├── fixtures
+          │   │   └── collection
+          │   │       ├── environments
+          │   │       ├── bruno.json
+          │   │       └── ws-interpolation-test.bru
+          │   ├── init-user-data
+          │   └── variable-interpolation.spec.ts # <- Depends on the collection in ./variable-interpolation/fixtures/collection
+          └── subproto.spec.ts
+          ```
+
+chat:
+  auto_reply: true

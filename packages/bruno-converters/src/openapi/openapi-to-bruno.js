@@ -199,7 +199,7 @@ const getExampleFromSchema = (schema) => {
  * @param {string} params.contentType - Content type (e.g., 'application/json', 'application/ld+json')
  */
 const populateRequestBody = ({ body, requestBodyValue, contentType }) => {
-  if (!requestBodyValue || !contentType) return;
+  if (!requestBodyValue || !contentType || typeof contentType !== 'string') return;
 
   // Normalize: lowercase (content types from OpenAPI spec object keys may vary in case)
   const normalizedContentType = contentType.toLowerCase();
@@ -485,7 +485,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     let bodySchema = body.schema;
 
     // Normalize: lowercase (object keys may vary in case)
-    const normalizedMimeType = mimeType.toLowerCase();
+    const normalizedMimeType = typeof mimeType === 'string' ? mimeType.toLowerCase() : '';
 
     if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedMimeType)) {
       brunoRequestItem.request.body.mode = 'json';

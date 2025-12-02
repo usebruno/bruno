@@ -1,13 +1,66 @@
+const colors = {
+  BRAND: '#546de5',
+  TEXT: 'rgb(52, 52, 52)',
+  TEXT_LINK: '#1663bb',
+  BACKGROUND: '#fff',
+  WHITE: '#fff',
+  BLACK: '#000',
+  GRAY_1: '#f8f8f8',
+  GRAY_2: '#eaeaea',
+  GRAY_3: '#e5e5e5',
+  GRAY_4: '#cbcbcb',
+
+  CODEMIRROR_TOKENS: {
+    DEFINITION: '#566f4e', // Deep moss
+    PROPERTY: '#4b7bbb', // Muted azure
+    STRING: '#a06e3b', // Warm bronze
+    NUMBER: '#3d8b7c', // Muted jade
+    ATOM: '#8169ad', // Soft plum
+    VARIABLE: '#3f7b6f', // Deep teal
+    KEYWORD: '#b95d6a', // Muted ruby
+    COMMENT: '#8997aa', // Cool gray
+    OPERATOR: '#6b7a8f' // Slate blue
+  }
+};
+
 const lightTheme = {
-  brand: '#546de5',
-  text: 'rgb(52, 52, 52)',
-  textLink: '#1663bb',
-  bg: '#fff',
+  brand: colors.BRAND,
+  text: colors.TEXT,
+  textLink: colors.TEXT_LINK,
+  bg: colors.BACKGROUND,
+
+  font: {
+    size: {
+      xs: '0.6875rem', // 11px
+      sm: '0.75rem', // 12px
+      base: '0.8125rem', // 13px
+      md: '0.875rem', // 14px
+      lg: '1rem', // 16px
+      xl: '1.125rem' // 18px
+    }
+  },
+
+  shadow: {
+    sm: '0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+    md: '0 2px 8px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.06)',
+    lg: '0 2px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+  },
+
+  border: {
+    radius: {
+      sm: '4px',
+      base: '6px',
+      md: '8px',
+      lg: '10px',
+      xl: '12px'
+    }
+  },
 
   colors: {
     text: {
       green: '#047857',
       danger: '#B91C1C',
+      warning: '#f57c00',
       muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
@@ -46,11 +99,14 @@ const lightTheme = {
   sidebar: {
     color: 'rgb(52, 52, 52)',
     muted: '#4b5563',
-    bg: '#F3F3F3',
-    dragbar: 'rgb(200, 200, 200)',
+    bg: colors.GRAY_1,
+    dragbar: {
+      border: colors.GRAY_3,
+      activeBorder: colors.GRAY_4
+    },
 
     badge: {
-      bg: '#e1e1e1'
+      bg: '#eaeaea'
     },
 
     search: {
@@ -60,11 +116,11 @@ const lightTheme = {
 
     collection: {
       item: {
-        bg: '#e1e1e1',
-        hoverBg: '#e7e7e7',
-        indentBorder: 'solid 1px #e1e1e1',
+        bg: colors.GRAY_2,
+        hoverBg: colors.GRAY_2,
+        indentBorder: `solid 1px ${colors.GRAY_3}`,
         active: {
-          indentBorder: 'solid 1px #d0d0d0'
+          indentBorder: `solid 1px ${colors.GRAY_3}`
         }
       }
     },
@@ -113,10 +169,11 @@ const lightTheme = {
 
   requestTabPanel: {
     url: {
-      bg: '#f3f3f3',
+      bg: colors.WHITE,
       icon: '#515151',
       iconDanger: '#d91f11',
-      errorHoverBg: '#fef2f2'
+      errorHoverBg: '#fef2f2',
+      border: `solid 1px ${colors.GRAY_3}`
     },
     dragbar: {
       border: '#efefef',
@@ -277,14 +334,14 @@ const lightTheme = {
   },
 
   codemirror: {
-    bg: 'white',
-    border: '#efefef',
+    bg: colors.WHITE,
+    border: colors.WHITE,
     placeholder: {
       color: '#a2a2a2',
       opacity: 0.75
     },
     gutter: {
-      bg: '#f3f3f3'
+      bg: colors.WHITE
     },
     variable: {
       valid: '#047857',
@@ -302,6 +359,17 @@ const lightTheme = {
         border: '#EFEFEF',
         editorBorder: '#EFEFEF'
       }
+    },
+    tokens: {
+      definition: colors.CODEMIRROR_TOKENS.DEFINITION,
+      property: colors.CODEMIRROR_TOKENS.PROPERTY,
+      string: colors.CODEMIRROR_TOKENS.STRING,
+      number: colors.CODEMIRROR_TOKENS.NUMBER,
+      atom: colors.CODEMIRROR_TOKENS.ATOM,
+      variable: colors.CODEMIRROR_TOKENS.VARIABLE,
+      keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
+      comment: colors.CODEMIRROR_TOKENS.COMMENT,
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
     searchMatch: '#B8860B',
@@ -480,6 +548,19 @@ const lightTheme = {
       }
     }
   },
+  deprecationWarning: {
+    bg: 'rgba(217, 31, 17, 0.1)',
+    border: 'rgba(217, 31, 17, 0.1)',
+    icon: '#D91F11',
+    text: '#343434'
+  },
+
+  preferences: {
+    sidebar: {
+      border: '#EFEFEF'
+    }
+  },
+
   examples: {
     buttonBg: '#D977061A',
     buttonColor: '#D97706',

@@ -6,6 +6,7 @@ export const buildCommonLocators = (page: Page) => ({
     .locator('.infotip')
     .filter({ hasText: /^Save/ }),
   sidebar: {
+    collectionsContainer: () => page.getByTestId('collections'),
     collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
@@ -15,7 +16,8 @@ export const buildCommonLocators = (page: Page) => ({
       // Using .locator('..') gets the parent element of the folder's collection-item-name div.
       const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
       return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
-    }
+    },
+    closeAllCollectionsButton: () => page.getByTestId('close-all-collections-button')
   },
   actions: {
     collectionActions: (collectionName: string) =>
@@ -40,7 +42,9 @@ export const buildCommonLocators = (page: Page) => ({
   },
   modal: {
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
-    button: (name: string) => page.getByRole('button', { name: name, exact: true })
+    byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
+    button: (name: string) => page.getByRole('button', { name: name, exact: true }),
+    closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button')
   },
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
