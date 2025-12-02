@@ -443,22 +443,34 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
-  const appendTestScriptErrorResult = (testResults, error) => {
+  const appendScriptErrorResult = (scriptType, scriptResult, error) => {
     if (!error) {
-      return testResults;
+      return scriptResult;
     }
 
+    const descriptionMap = {
+      'test': 'Test Script Error',
+      'post-response': 'Post-Response Script Error',
+      'pre-request': 'Pre-Request Script Error'
+    };
+
+    const messageMap = {
+      'test': 'An error occurred while executing the test script.',
+      'post-response': 'An error occurred while executing the post-response script.',
+      'pre-request': 'An error occurred while executing the pre-request script.'
+    };
+
     const results = [
-      ...(testResults?.results || []),
+      ...(scriptResult?.results || []),
       {
         status: 'fail',
-        description: 'Test Script Error',
-        error: error.message || 'An error occurred while executing the test script.'
+        description: descriptionMap[scriptType] || 'Script Error',
+        error: error.message || messageMap[scriptType] || 'An error occurred while executing the script.'
       }
     ];
 
     return {
-      ...(testResults || {}),
+      ...(scriptResult || {}),
       results
     };
   };
@@ -719,6 +731,12 @@ const registerNetworkIpc = (mainWindow) => {
         preRequestError = error;
       }
 
+      if (preRequestError?.partialResults) {
+        preRequestScriptResult = preRequestError.partialResults;
+      }
+
+      preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
+
       if (preRequestScriptResult?.results) {
         mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results-pre-request',
@@ -884,6 +902,8 @@ const registerNetworkIpc = (mainWindow) => {
           postResponseError = error;
         }
 
+        postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
+
         if (postResponseScriptResult?.results) {
           mainWindow.webContents.send('main:run-request-event', {
             type: 'test-results-post-response',
@@ -957,7 +977,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
           }
 
-          testResults = appendTestScriptErrorResult(testResults, testError);
+          testResults = appendScriptErrorResult('test', testResults, testError);
 
           !runInBackground && mainWindow.webContents.send('main:run-request-event', {
             type: 'test-results',
@@ -1330,6 +1350,12 @@ const registerNetworkIpc = (mainWindow) => {
               preRequestError = error;
             }
 
+            if (preRequestError?.partialResults) {
+              preRequestScriptResult = preRequestError.partialResults;
+            }
+
+            preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
+
             if (preRequestScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results-pre-request',
@@ -1552,6 +1578,8 @@ const registerNetworkIpc = (mainWindow) => {
               postResponseError = error;
             }
 
+            postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
+
             notifyScriptExecution({
               channel: 'main:run-folder-event',
               basePayload: eventData,
@@ -1638,7 +1666,7 @@ const registerNetworkIpc = (mainWindow) => {
                 }
               }
 
-              testResults = appendTestScriptErrorResult(testResults, testError);
+              testResults = appendScriptErrorResult('test', testResults, testError);
 
               if (testResults?.nextRequestName !== undefined) {
                 nextRequestName = testResults.nextRequestName;
