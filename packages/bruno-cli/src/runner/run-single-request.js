@@ -638,6 +638,22 @@ const runSingleRequest = async function (
         logResults(postResponseTestResults, 'Post-Response Tests');
       } catch (error) {
         console.error('Post-response script execution error:', error);
+
+        const partialResults = error?.partialResults?.results || [];
+        postResponseTestResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Post-Response Script Error',
+            error: error.message || 'An error occurred while executing the post-response script.'
+          }
+        ];
+
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        logResults(postResponseTestResults, 'Post-Response Tests');
       }
     }
 
