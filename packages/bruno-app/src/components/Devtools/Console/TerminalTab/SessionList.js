@@ -82,23 +82,23 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
     if (session.name) {
       return { name: session.name };
     }
-    
+
     if (session.cwd) {
       // Normalize path and get the last directory name
       const normalizedPath = session.cwd.replace(/\\/g, '/').replace(/\/$/, '');
-      const pathParts = normalizedPath.split('/').filter(p => p);
-      
+      const pathParts = normalizedPath.split('/').filter((p) => p);
+
       if (pathParts.length > 0) {
         const folderName = pathParts[pathParts.length - 1];
         return { name: folderName };
       }
-      
+
       // If it's root or home directory
       if (normalizedPath === '' || normalizedPath === '/' || normalizedPath.match(/^[A-Z]:\/?$/)) {
         return { name: 'Root' };
       }
     }
-    
+
     // Fallback: use a cool name based on session ID
     const shortId = session.sessionId.split('_')[1]?.slice(-6) || session.sessionId.slice(-6);
     return { name: `Terminal ${shortId}` };
@@ -122,25 +122,25 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
             place="bottom-start"
             delayShow={100}
           >
-          <div
-            key={session.sessionId}
-            className={`session-list-item ${activeSessionId === session.sessionId ? 'active' : ''}`}
-            onClick={() => onSelectSession(session.sessionId)}
-          >
-            <div className="session-name">
-              <IconTerminal className="session-icon" size={14} />
-              <span>{name}</span>
-            </div>
             <div
-              className="session-close-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCloseSession(session.sessionId);
-              }}
+              key={session.sessionId}
+              className={`session-list-item ${activeSessionId === session.sessionId ? 'active' : ''}`}
+              onClick={() => onSelectSession(session.sessionId)}
             >
-              <IconX size={14} />
+              <div className="session-name">
+                <IconTerminal className="session-icon" size={14} />
+                <span>{name}</span>
+              </div>
+              <div
+                className="session-close-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCloseSession(session.sessionId);
+                }}
+              >
+                <IconX size={14} />
+              </div>
             </div>
-          </div>
           </ToolHint>
         );
       })}
@@ -149,4 +149,3 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
 };
 
 export default SessionList;
-
