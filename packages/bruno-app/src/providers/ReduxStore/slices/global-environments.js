@@ -123,6 +123,9 @@ export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (
     const { workspaceUid, workspacePath } = getWorkspaceContext(state);
     const globalEnvironments = state.globalEnvironments.globalEnvironments;
     const baseEnv = globalEnvironments?.find((env) => env?.uid == baseEnvUid);
+    if (!baseEnv) {
+      return reject(new Error('Base environment not found'));
+    }
     const uid = uuid();
     const environment = { uid, name, variables: baseEnv.variables };
     const { ipcRenderer } = window;

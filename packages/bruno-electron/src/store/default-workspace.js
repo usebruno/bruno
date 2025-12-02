@@ -69,12 +69,12 @@ class DefaultWorkspaceManager {
       try {
         const shouldMigrate = this.needsMigration();
         const newWorkspacePath = await this.initializeDefaultWorkspace(null, { migrateFromPreferences: shouldMigrate });
-        const workspaceYmlPath = path.join(existingPath, 'workspace.yml');
+        const workspaceYmlPath = path.join(newWorkspacePath, 'workspace.yml');
         if (!fs.existsSync(workspaceYmlPath)) {
           this.defaultWorkspacePath = null;
         } else {
           return {
-            workspacePath: existingPath,
+            workspacePath: newWorkspacePath,
             workspaceUid: this.getDefaultWorkspaceUid()
           };
         }
