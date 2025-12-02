@@ -395,12 +395,6 @@ const addBruShimToContext = (vm, bru) => {
   if (bru.hooks) {
     const hooksObject = vm.newObject();
 
-    // Store VM instance on bru object so it's accessible when handlers execute
-    // This ensures the VM context is available when hooks fire later
-    if (!bru._quickjsVm) {
-      bru._quickjsVm = vm;
-    }
-
     // Execute handler using the original function handle from the VM
     // Returns a Promise that resolves when the handler completes (supports async handlers)
     const executeHandler = async (handlerHandle, vmInstance, data) => {
@@ -556,7 +550,7 @@ const addBruShimToContext = (vm, bru) => {
         // Create native handler that executes the stored handle
         // Returns a Promise so HookManager can await async handlers
         const nativeHandler = (data) => {
-          const vmInstance = bru._quickjsVm || vm;
+          const vmInstance = vm;
           const storedHandle = handlerHandles.get(handlerId);
           if (!storedHandle || !vmInstance) {
             return Promise.resolve();
@@ -619,7 +613,7 @@ const addBruShimToContext = (vm, bru) => {
       // Native handler returns a Promise so HookManager can await async handlers
       const nativeHandler = (data) => {
         // Use the VM instance stored on bru object (ensures we use the correct VM context)
-        const vmInstance = bru._quickjsVm || vm;
+        const vmInstance = vm;
 
         // Retrieve the stored handler handle (this keeps it alive)
         const storedHandle = handlerHandles.get(handlerId);
