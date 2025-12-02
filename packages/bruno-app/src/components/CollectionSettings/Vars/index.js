@@ -10,7 +10,6 @@ const Vars = ({ collection }) => {
   const dispatch = useDispatch();
   const requestVars = collection.draft?.root ? get(collection, 'draft.root.request.vars.req', []) : get(collection, 'root.request.vars.req', []);
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
-  const deprecationWarningMessage = 'Post response vars is deprecated and will be removed in v3.0.0';
 
   return (
     <StyledWrapper className="w-full flex flex-col">

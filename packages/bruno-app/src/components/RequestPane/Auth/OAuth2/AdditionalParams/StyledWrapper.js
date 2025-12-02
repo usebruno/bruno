@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
     .tab {
       cursor: pointer;
       padding: 4px 8px !important;
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       border-radius: 4px;
       
       &:hover {
@@ -15,7 +15,6 @@ const StyledWrapper = styled.div`
       &.active {
         background-color: ${(props) => props.theme.mode === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)'};
         color: ${(props) => props.theme.mode === 'dark' ? '#6366f1' : '#4f46e5'};
-        font-weight: 500;
       }
     }
   }
@@ -23,7 +22,7 @@ const StyledWrapper = styled.div`
   table {
     width: 100%;
     border-collapse: collapse;
-    font-weight: 600;
+    font-weight: 500;
     table-layout: fixed;
 
     thead,
@@ -33,7 +32,7 @@ const StyledWrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
     }
     td {

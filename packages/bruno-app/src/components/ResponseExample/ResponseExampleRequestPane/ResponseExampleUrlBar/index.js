@@ -55,7 +55,7 @@ const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid 
   return (
     <StyledWrapper className="flex items-center">
       <div className="url-bar-container w-full flex p-2 text-xs rounded-md items-center justify-between" data-testid="url-bar-container">
-        <div className={`method flex text-xs items-center justify-center px-2 rounded h-6 flex-shrink-0 mr-2 overflow-hidden whitespace-nowrap font-semibold uppercase ${getMethodClass()}`}>
+        <div className={`method flex text-xs items-center justify-center px-2 rounded h-6 flex-shrink-0 mr-2 overflow-hidden whitespace-nowrap font-medium uppercase ${getMethodClass()}`}>
           {method || 'GET'}
         </div>
 

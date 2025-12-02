@@ -241,7 +241,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context, runtime) => {
 
 class AssertRuntime {
   constructor(props) {
-    this.runtime = props?.runtime || 'vm2';
+    this.runtime = props?.runtime || 'quickjs';
   }
 
   runAssertions(assertions, request, response, envVariables, runtimeVariables, processEnvVars) {

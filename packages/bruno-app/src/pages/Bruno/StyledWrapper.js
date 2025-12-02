@@ -19,7 +19,7 @@ const Wrapper = styled.div`
   }
 
   .fw-600 {
-    font-weight: 600;
+    font-weight: 500;
   }
 `;
 

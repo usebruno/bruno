@@ -59,15 +59,12 @@ const saveCookies = (url, headers) => {
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
 
-  if (securityConfig.jsSandboxMode === 'safe') {
-    return 'quickjs';
-  }
-
-  if (preferencesUtil.isBetaFeatureEnabled('nodevm')) {
+  if (securityConfig.jsSandboxMode === 'developer') {
     return 'nodevm';
   }
 
-  return 'vm2';
+  // default runtime is `quickjs`
+  return 'quickjs';
 };
 
 const hasStreamHeaders = (headers) => {

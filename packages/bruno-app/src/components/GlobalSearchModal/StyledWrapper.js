@@ -102,7 +102,7 @@ const StyledWrapper = styled.div`
     border: none;
     outline: none;
     color: ${(props) => props.theme.text};
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     width: 100%;
     padding: 0;
     &::placeholder {
@@ -179,7 +179,7 @@ const StyledWrapper = styled.div`
     flex-shrink: 0;
   }
   .result-name {
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     margin-bottom: 3px;
     white-space: nowrap;
     overflow: hidden;
@@ -188,7 +188,7 @@ const StyledWrapper = styled.div`
     letter-spacing: 0.2px;
   }
   .result-path {
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
     white-space: nowrap;
     overflow: hidden;
@@ -196,7 +196,7 @@ const StyledWrapper = styled.div`
     letter-spacing: 0.1px;
   }
   .method-badge {
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 500;
     padding: 3px 8px;
     border-radius: 4px;
@@ -236,27 +236,27 @@ const StyledWrapper = styled.div`
     &.unary {
       color: #27ae60;
       background: rgba(39, 174, 96, 0.12);
-      font-weight: 600;
+      font-weight: 500;
     }
     &.client-streaming {
       color: #2980b9;
       background: rgba(41, 128, 185, 0.12);
-      font-weight: 600;
+      font-weight: 500;
     }
     &.server-streaming {
       color: #f39c12;
       background: rgba(243, 156, 18, 0.12);
-      font-weight: 600;
+      font-weight: 500;
     }
     &.bidirectional-streaming,
     &.bidi-streaming {
       color: #8e44ad;
       background: rgba(142, 68, 173, 0.12);
-      font-weight: 600;
+      font-weight: 500;
     }
   }
   .result-type {
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.colors.text.muted};
     padding: 2px 6px;
     border-radius: 3px;
@@ -272,7 +272,7 @@ const StyledWrapper = styled.div`
       opacity: 0.8;
     }
     .result-path {
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       color: ${(props) => props.theme.colors.text.muted};
       white-space: nowrap;
       overflow: hidden;
@@ -289,7 +289,7 @@ const StyledWrapper = styled.div`
     padding: 24px 16px;
     text-align: center;
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
   }
   .command-k-footer {
     padding: 8px 12px;
@@ -301,7 +301,7 @@ const StyledWrapper = styled.div`
     justify-content: center;
     gap: 24px;
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     letter-spacing: 0.2px;
     span {
       display: flex;
@@ -323,7 +323,7 @@ const StyledWrapper = styled.div`
         border-radius: 4px;
         background: ${(props) =>
           props.theme.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'};
-        font-size: 11px;
+        font-size: ${(props) => props.theme.font.size.xs};
         font-weight: 500;
         font-family: inherit;
         line-height: 1;
