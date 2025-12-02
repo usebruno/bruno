@@ -3,7 +3,8 @@ import {
   showPreferences,
   updateCookies,
   updatePreferences,
-  updateSystemProxyEnvVariables
+  updateSystemProxyEnvVariables,
+  updateLeftSidebarWidth
 } from 'providers/ReduxStore/slices/app';
 import {
   brunoConfigUpdateEvent,
@@ -162,6 +163,12 @@ const useIpcEvents = () => {
 
     const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {
       dispatch(updatePreferences(val));
+      // Restore sidebar width from preferences if available
+      if (val?.layout?.leftSidebarWidth) {
+        dispatch(updateLeftSidebarWidth({
+          leftSidebarWidth: val.layout.leftSidebarWidth
+        }));
+      }
     });
 
     const removeSystemProxyEnvUpdatesListener = ipcRenderer.on('main:load-system-proxy-env', (val) => {
