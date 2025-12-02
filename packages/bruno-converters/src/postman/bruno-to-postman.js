@@ -118,33 +118,30 @@ export const brunoToPostman = (collection) => {
 
   const generateCollectionVars = (collection) => {
     const pattern = /{{[^{}]+}}/g;
-    const collectionVars = [];
-    const visit = (node) => {
-      if (!node) {
-        return;
-      }
-      if (typeof node === 'string') {
-        const matches = node.matchAll(pattern);
-        matches.forEach((match) => {
+    let collectionVars = [];
+
+    const findOccurrences = (obj, results) => {
+      if (typeof obj === 'object') {
+        if (Array.isArray(obj)) {
+          obj.forEach((item) => findOccurrences(item, results));
+        } else {
+          for (const key in obj) {
+            findOccurrences(obj[key], results);
+          }
+        }
+      } else if (typeof obj === 'string') {
+        obj.replace(pattern, (match) => {
           const varKey = match[0].replace(/{{|}}/g, '');
-          collectionVars.push({
+          results.push({
             key: varKey,
             value: '',
             type: 'default'
           });
         });
       }
-      if (Array.isArray(node)) {
-        node.forEach((item) => visit(item));
-      }
-      if (typeof node === 'object') {
-        for (const value of Object.values(node)) {
-          visit(value);
-        }
-      }
     };
 
-    visit(collection);
+    findOccurrences(collection, collectionVars);
 
     // Add request and response vars
     let reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
@@ -167,6 +164,7 @@ export const brunoToPostman = (collection) => {
         finalVarsMap.set(v.key, v);
       }
     });
+
     return Array.from(finalVarsMap.values());
   };
   const generateEventSection = (item) => {
