@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie, IconTool, IconSearch } from '@tabler/icons';
+import { IconSettings, IconCookie, IconTool, IconSearch, IconMessage } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
@@ -9,6 +9,7 @@ import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
+import Feedback from 'components/Feedback';
 import { showPreferences, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { useApp } from 'providers/App';
@@ -20,6 +21,7 @@ const StatusBar = () => {
   const logs = useSelector((state) => state.logs.logs);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const [cookiesOpen, setCookiesOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { version } = useApp();
 
   const errorCount = logs.filter(log => log.type === 'error').length;
@@ -63,6 +65,21 @@ const StatusBar = () => {
             role="dialog"
             aria-labelledby="cookies-title"
             aria-describedby="cookies-description"
+          />
+        </Portal>
+      )}
+
+      {feedbackOpen && (
+        <Portal>
+          <Feedback
+            onClose={() => {
+              setFeedbackOpen(false);
+              document.querySelector('[data-trigger="feedback"]').focus();
+            }}
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="feedback-title"
+            aria-describedby="feedback-description"
           />
         </Portal>
       )}
@@ -143,7 +160,19 @@ const StatusBar = () => {
                 )}
               </div>
             </button>
-            
+            <button
+              className="status-bar-button"
+              data-trigger="feedback"
+              onClick={() => setFeedbackOpen(true)}
+              tabIndex={0}
+              aria-label="Open Feedback"
+            >
+              <div className="console-button-content">
+                <IconMessage size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="console-label">Bug / Feedback</span>
+              </div>
+            </button>
+
             <div className="status-bar-divider"></div>
             
             <div className="status-bar-version">
