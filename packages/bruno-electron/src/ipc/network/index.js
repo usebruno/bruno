@@ -19,6 +19,7 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
+const { addQueryParamPreservingPath, buildRawPathTransport } = require('./raw-path');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
@@ -142,6 +143,8 @@ const configureRequest = async (
 
   request.maxRedirects = 0;
 
+  const preserveDotSegments = request.settings?.preserveDotSegments;
+
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
@@ -170,12 +173,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token, preserveDotSegments);
         }
         break;
       case 'implicit':
@@ -186,12 +184,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token, preserveDotSegments);
         }
         break;
       case 'client_credentials':
@@ -202,12 +195,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token, preserveDotSegments);
         }
         break;
       case 'password':
@@ -218,12 +206,7 @@ const configureRequest = async (
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
+          request.url = addQueryParamPreservingPath(request.url, tokenQueryKey, credentials?.access_token, preserveDotSegments);
         }
         break;
     }
@@ -276,14 +259,10 @@ const configureRequest = async (
 
   // Add API key to the URL
   if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
-    const urlObj = new URL(request.url);
-
     // Interpolate key and value as they can be variables before adding to the URL.
     const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
     const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
-
-    urlObj.searchParams.set(key, value);
-    request.url = urlObj.toString();
+    request.url = addQueryParamPreservingPath(request.url, key, value, preserveDotSegments);
   }
 
   // Remove pathParams, already in URL (Issue #2439)
@@ -291,6 +270,13 @@ const configureRequest = async (
 
   // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
   delete request.apiKeyAuthValueForQueryParams;
+
+  if (preserveDotSegments) {
+    const rawPathTransport = buildRawPathTransport(request.url);
+    if (rawPathTransport) {
+      request.transport = rawPathTransport;
+    }
+  }
 
   return axiosInstance;
 };

@@ -1,6 +1,7 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
 const FormData = require('form-data');
+const { buildUrlWithPathParams } = require('./raw-path');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -11,11 +12,6 @@ const getContentType = (headers = {}) => {
   });
 
   return contentType;
-};
-
-const getRawQueryString = (url) => {
-  const queryIndex = url.indexOf('?');
-  return queryIndex !== -1 ? url.slice(queryIndex) : '';
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}, promptVariables = {}) => {
@@ -37,6 +33,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     });
   });
+
+  const preserveDotSegments = request?.settings?.preserveDotSegments;
 
   const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
@@ -150,61 +148,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   if (request?.pathParams?.length) {
-    let url = request.url;
-    const urlSearchRaw = getRawQueryString(request.url)
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = `http://${url}`;
-    }
-
-    try {
-      url = new URL(url);
-    } catch (e) {
-      throw { message: 'Invalid URL format', originalError: e.message };
-    }
-
-    const urlPathnameInterpolatedWithPathParams = url.pathname
-      .split('/')
-      .filter((path) => path !== '')
-      .map((path) => {
-        // traditional path parameters
-        if (path.startsWith(':')) {
-          const paramName = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
-          if (!existingPathParam) {
-            return '/' + path;
-          }
-          return '/' + existingPathParam.value;
-        }
-
-        // for OData-style parameters (parameters inside parentheses)
-        // Check if path matches valid OData syntax:
-        // 1. EntitySet('key') or EntitySet(key)
-        // 2. EntitySet(Key1=value1,Key2=value2)
-        // 3. Function(param=value)
-        if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
-          const paramRegex = /[:](\w+)/g;
-          let match;
-          let result = path;
-          while ((match = paramRegex.exec(path))) {
-            if (match[1]) {
-              let name = match[1].replace(/[')"`]+$/, '');
-              name = name.replace(/^[('"`]+/, '');
-              if (name) {
-                const existingPathParam = request.pathParams.find((param) => param.name === name);
-                if (existingPathParam) {
-                  result = result.replace(':' + match[1], existingPathParam.value);
-                }
-              }
-            }
-          }
-          return '/' + result;
-        }
-        return '/' + path;
-      })
-      .join('');
-
-    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
+    request.url = buildUrlWithPathParams(request.url, request.pathParams, preserveDotSegments);
   }
 
   if (request.proxy) {
