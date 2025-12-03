@@ -861,6 +861,13 @@ const registerNetworkIpc = (mainWindow) => {
           postResponseError = error;
         }
 
+        // Extract partial results from error if available
+        // This preserves any test() calls that passed before the script errored
+        // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
+        if (postResponseError?.partialResults) {
+          postResponseScriptResult = postResponseError.partialResults;
+        }
+
         postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
 
         if (postResponseScriptResult?.results) {
@@ -1507,6 +1514,12 @@ const registerNetworkIpc = (mainWindow) => {
             } catch (error) {
               console.error('Post-response script error:', error);
               postResponseError = error;
+            }
+
+            // Extract partial results from error if available
+            // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
+            if (postResponseError?.partialResults) {
+              postResponseScriptResult = postResponseError.partialResults;
             }
 
             postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
