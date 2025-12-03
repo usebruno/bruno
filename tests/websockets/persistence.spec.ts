@@ -35,7 +35,7 @@ test.describe.serial('persistence', () => {
   });
 
   test('save new websocket url', async ({ pageWithUserData: page }) => {
-    const replacementUrl = 'ws://localhost:8082';
+    const replacementUrl = 'ws://localhost:8083';
     const locators = buildWebsocketCommonLocators(page);
 
     const clearText = async (text: string) => {

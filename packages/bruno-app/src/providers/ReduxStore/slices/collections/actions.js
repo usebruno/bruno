@@ -1469,6 +1469,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
       request: {
         url: requestUrl,
         method: requestMethod,
+        params: [],
         body: body ?? {
           mode: 'ws',
           ws: [

@@ -780,6 +780,8 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.url = action.payload.url;
+          item.draft.request.params = item?.draft?.request?.params ?? [];
+          item.request.params = item?.request?.params ?? [];
 
           const parts = splitOnFirst(item?.draft?.request?.url, '?');
           const urlQueryParams = parseQueryParams(parts[1]);
