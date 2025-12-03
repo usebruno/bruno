@@ -1973,9 +1973,6 @@ export const collectionsSlice = createSlice({
             root: cloneDeep(collection.root)
           };
         }
-        if (!collection.draft.root.request.script) {
-          collection.draft.root.request.script = {};
-        }
         set(collection, 'draft.root.request.script.hooks', action.payload.hooks);
       }
     },
