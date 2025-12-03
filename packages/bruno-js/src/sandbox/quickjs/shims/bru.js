@@ -391,6 +391,40 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'cookies', bruCookiesObject);
   bruCookiesObject.dispose();
 
+  // Store handler handles to keep them alive (only used if hooks are enabled)
+  const handlerHandles = new Map();
+
+  // Cleanup function to dispose handler handles and prevent memory leaks
+  const cleanupHandlerHandles = () => {
+    if (handlerHandles.size === 0) {
+      return;
+    }
+
+    try {
+      // Dispose all handler handles
+      handlerHandles.forEach((handle, handlerId) => {
+        try {
+          if (handle && typeof handle.dispose === 'function') {
+            handle.dispose();
+          }
+        } catch (e) {
+          // Ignore disposal errors for individual handles
+          // Log only if it's not a UseAfterFree error
+          const errorMsg = e?.message || String(e);
+          if (!errorMsg.includes('UseAfterFree') && !errorMsg.includes('Lifetime not alive')) {
+            console.warn(`Error disposing handler handle ${handlerId}:`, e.message);
+          }
+        }
+      });
+
+      // Clear the Map
+      handlerHandles.clear();
+    } catch (error) {
+      // Ignore cleanup errors
+      console.warn('Error during handler handles cleanup:', error.message);
+    }
+  };
+
   // Add hooks shim if bru.hooks exists
   if (bru.hooks) {
     const hooksObject = vm.newObject();
@@ -513,9 +547,6 @@ const addBruShimToContext = (vm, bru) => {
         }
       }
     };
-
-    // Store handler handles to keep them alive
-    const handlerHandles = new Map();
 
     /**
      * Creates a hook function that registers a handler with the native hook system.
@@ -739,6 +770,9 @@ const addBruShimToContext = (vm, bru) => {
       };
     };
   `);
+
+  // Return cleanup function (null if hooks weren't enabled)
+  return cleanupHandlerHandles;
 };
 
 module.exports = addBruShimToContext;
