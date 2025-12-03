@@ -48,7 +48,8 @@ const StyledWrapper = styled.div`
   }
 
   .protocol-https,
-  .protocol-grpcs {
+  .protocol-grpcs,
+  .protocol-wss {
     position: absolute;
     right: 8px;
     top: 0;
@@ -60,24 +61,47 @@ const StyledWrapper = styled.div`
   }
 
   .protocol-https {
-    animation: slideUpDown 6s infinite;
-    transform: translateY(0);
+    animation: slideHttps 9s infinite;
   }
 
   .protocol-grpcs {
-    animation: slideUpDown 6s infinite 3s;
-    transform: translateY(100%);
+    animation: slideGrpcs 9s infinite;
   }
 
-  @keyframes slideUpDown {
-    0%, 45% {
+  .protocol-wss {
+    animation: slideWss 9s infinite;
+  }
+
+  @keyframes slideHttps {
+    0%, 30% {
       transform: translateY(0);
     }
-    50%, 95% {
+    33.33%, 100% {
+      transform: translateY(-100%);
+    }
+  }
+
+  @keyframes slideGrpcs {
+    0%, 30% {
       transform: translateY(100%);
     }
-    100% {
+    33.33%, 63.33% {
       transform: translateY(0);
+    }
+    66.66%, 100% {
+      transform: translateY(-100%);
+    }
+  }
+
+  @keyframes slideWss {
+    0%, 63.33% {
+      transform: translateY(100%);
+    }
+    66.66%, 96.66% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-100%);
     }
   }
 `;
