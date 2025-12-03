@@ -62,6 +62,7 @@ const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentia
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
 const { transformBrunoConfigBeforeSave } = require('../utils/transfomBrunoConfig');
+const { REQUEST_TYPES } = require('../utils/constants');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -1023,7 +1024,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
           const content = await stringifyFolder(folderJsonData, { format });
           await writeFile(folderRootPath, content);
-        } else {
+        } else if (REQUEST_TYPES.includes(item?.type)) {
           if (fs.existsSync(item.pathname)) {
             const itemToSave = transformRequestToSaveToFilesystem(item);
             const content = await stringifyRequestViaWorker(itemToSave, { format });

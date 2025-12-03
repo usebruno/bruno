@@ -308,7 +308,7 @@ export const renderVarInfo = (token, options) => {
 
     // Create CodeMirror instance
     const cmEditor = CodeMirror(editorContainer, {
-      value: rawValue, // Use raw value (e.g., {{echo-host}} not resolved value)
+      value: typeof rawValue === 'string' ? rawValue : String(rawValue), // Use raw value (e.g., {{echo-host}} not resolved value) (ensure it's always a string for CodeMirror) #usebruno/bruno/#6265
       mode: 'brunovariables',
       theme: cmTheme,
       lineWrapping: true,
