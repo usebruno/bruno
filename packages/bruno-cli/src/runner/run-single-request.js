@@ -169,55 +169,80 @@ const runSingleRequest = async function (
     const collectionName = collection?.brunoConfig?.name;
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await scriptRuntime.runRequestScript(
-        decomment(requestScriptFile),
-        request,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
+      try {
+        const result = await scriptRuntime.runRequestScript(decomment(requestScriptFile),
+          request,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName);
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
 
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
 
-      if (result?.skipRequest) {
-        return {
-          test: {
-            filename: relativeItemPathname
-          },
-          request: {
-            method: request.method,
-            url: request.url,
-            headers: request.headers,
-            data: request.data
-          },
-          response: {
+        if (result?.skipRequest) {
+          return {
+            test: {
+              filename: relativeItemPathname
+            },
+            request: {
+              method: request.method,
+              url: request.url,
+              headers: request.headers,
+              data: request.data
+            },
+            response: {
+              status: 'skipped',
+              statusText: 'request skipped via pre-request script',
+              data: null,
+              responseTime: 0
+            },
+            error: null,
             status: 'skipped',
-            statusText: 'request skipped via pre-request script',
-            data: null,
-            responseTime: 0
-          },
-          error: null,
-          status: 'skipped',
-          skipped: true,
-          assertionResults: [],
-          testResults: [],
-          preRequestTestResults: result?.results || [],
-          postResponseTestResults: [],
-          shouldStopRunnerExecution
-        };
-      }
+            skipped: true,
+            assertionResults: [],
+            testResults: [],
+            preRequestTestResults: result?.results || [],
+            postResponseTestResults: [],
+            shouldStopRunnerExecution
+          };
+        }
 
-      preRequestTestResults = result?.results || [];
+        preRequestTestResults = result?.results || [];
+      } catch (error) {
+        console.error('Pre-request script execution error:', error);
+
+        // Extract partial results from the error (tests that passed before the error)
+        const partialResults = error?.partialResults?.results || [];
+        preRequestTestResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Pre-Request Script Error',
+            error: error.message || 'An error occurred while executing the pre-request script.'
+          }
+        ];
+
+        // Preserve nextRequestName if it was set before the error
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        // Preserve stopExecution if it was set before the error
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(preRequestTestResults, 'Pre-Request Tests');
+      }
     }
 
     // interpolate variables inside request
