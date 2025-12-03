@@ -30,7 +30,7 @@ describe('Testing Framework Translation', () => {
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe(`
         test("Check environment and call successful", function () {
-            expect(bru.getEnvName()).to.equal("ENVIRONMENT_NAME");
+            expect(bru.environment.getEnvName()).to.equal("ENVIRONMENT_NAME");
             expect(res.getStatus()).to.equal(200);
         });`);
     });

@@ -135,6 +135,12 @@
   z-index: 20 !important;
 }
 
+.CodeMirror-lint-tooltip {
+  max-width: 350px !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+}
+
 .graphiql-container {
   background: transparent !important;
 }
