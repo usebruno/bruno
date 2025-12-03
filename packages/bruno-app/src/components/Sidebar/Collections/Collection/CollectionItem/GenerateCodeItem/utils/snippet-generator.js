@@ -16,8 +16,6 @@ const addCurlAuthFlags = (curlCommand, auth) => {
     const credentials = password ? `${username}:${password}` : username;
     const authFlag = authMode === 'digest' ? '--digest' : '--ntlm';
 
-    // Insert auth flags after 'curl' command
-    // Handle both 'curl' and 'curl.exe' cases
     const curlMatch = curlCommand.match(/^(curl(?:\.exe)?)/i);
     if (curlMatch) {
       const curlCmd = curlMatch[1];
