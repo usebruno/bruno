@@ -4,7 +4,7 @@ const { isDirectory } = require('../utils/filesystem');
 const { openCollection } = require('../app/collections');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
-``;
+
 const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
   ipcMain.handle('renderer:ready', async (event) => {
     // load preferences

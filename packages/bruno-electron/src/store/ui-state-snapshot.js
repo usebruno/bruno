@@ -64,14 +64,16 @@ class UiStateSnapshotStore {
 
   update({ type, data }) {
     switch(type) {
-      case 'COLLECTION_ENVIRONMENT':
+      case 'COLLECTION_ENVIRONMENT': {
         const { collectionPath, environmentName } = data;
         this.updateCollectionEnvironment({ collectionPath, environmentName });
         break;
-      case 'SIDEBAR':
+      }
+      case 'SIDEBAR': {
         const { width } = data;
         this.updateSidebarWidth(width);
         break;
+      }
       default:
         break;
     }
