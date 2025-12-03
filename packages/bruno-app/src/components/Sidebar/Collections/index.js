@@ -22,7 +22,6 @@ const Collections = ({ showSearch }) => {
     }).filter(Boolean);
   }
 
-
   if (!workspaceCollections || !workspaceCollections.length) {
     return (
       <StyledWrapper>
