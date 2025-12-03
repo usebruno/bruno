@@ -1,19 +1,52 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { isValidHtml } from 'utils/common/index';
 import { escapeHtml, isValidHtmlSnippet } from 'utils/response/index';
 
 const HtmlPreview = React.memo(({ data, baseUrl }) => {
+
+  const webviewContainerRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (!webviewContainerRef.current) return;
+
+    const checkDragging = () => {
+      const hasDraggingParent = webviewContainerRef.current?.closest('.dragging');
+      setIsDragging(!!hasDraggingParent);
+    };
+
+    const watchTarget = webviewContainerRef.current.closest('[class*="flex"]') || document.body;
+
+    const mutationObserver = new MutationObserver(checkDragging);
+    mutationObserver.observe(watchTarget, {
+      attributes: true,
+      attributeFilter: ['class'],
+      subtree: true
+    });
+
+    return () => mutationObserver.disconnect();
+  }, []);
+
   if (isValidHtml(data) || isValidHtmlSnippet(data)) {
     const htmlContent = data.includes('<head>')
       ? data.replace('<head>', `<head><base href="${escapeHtml(baseUrl)}">`)
       : `<head><base href="${escapeHtml(baseUrl)}"></head>${data}`;
 
+    const dragStyles = isDragging ? { pointerEvents: 'none', userSelect: 'none' } : {};
+
     return (
-      <webview
-        src={`data:text/html; charset=utf-8,${encodeURIComponent(htmlContent)}`}
-        webpreferences="disableDialogs=true, javascript=yes"
+      <div
+        ref={webviewContainerRef}
         className="h-full bg-white"
-      />
+        style={dragStyles}
+      >
+        <webview
+          src={`data:text/html; charset=utf-8,${encodeURIComponent(htmlContent)}`}
+          webpreferences="disableDialogs=true, javascript=yes"
+          className="h-full bg-white"
+          style={dragStyles}
+        />
+      </div>
     );
   }
 
