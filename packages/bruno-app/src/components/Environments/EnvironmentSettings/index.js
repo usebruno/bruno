@@ -46,10 +46,9 @@ const DefaultTab = ({ setTab }) => {
 const EnvironmentSettings = ({ collection, onClose }) => {
   const [isModified, setIsModified] = useState(false);
   const { environments } = collection;
-  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [tab, setTab] = useState('default');
   const [showExportModal, setShowExportModal] = useState(false);
-  if (!environments || !environments.length) {
+  if (!environments?.length) {
     return (
       <StyledWrapper>
         <Modal size="md" title="Environments" handleCancel={onClose} hideCancel={true} hideFooter={true}>
