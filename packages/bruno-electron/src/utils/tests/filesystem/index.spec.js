@@ -24,14 +24,13 @@ describe('File System Operations', () => {
 
   describe('copyPath and removePath', () => {
     it('should move files and folder items multiple times', async () => {
-
       {
         const sourcePath = path.join(tempDir, 'folder_1', 'file_2.bru');
         const destDir = path.join(tempDir, 'folder_1', 'folder_1_1');
         await copyPath(sourcePath, destDir);
         await removePath(sourcePath);
       }
-      
+
       {
         const sourcePath = path.join(tempDir, 'folder_2');
         const destDir = path.join(tempDir, 'folder_1', 'folder_1_1');
@@ -57,7 +56,6 @@ describe('File System Operations', () => {
       expect(result).toBe(true);
     });
 
-
     it('should throw an error move file/folder if the destination has the same filename', async () => {
       {
         const sourcePath = path.join(tempDir, 'folder_1', 'file_dup.bru');
@@ -65,10 +63,8 @@ describe('File System Operations', () => {
         await expect(copyPath(sourcePath, destDir)).rejects.toThrow();
       }
     });
-
   });
 });
-
 
 // create folders and files recursively based on the defined json structure
 const createFilesAndFolders = async (dir, filesAndFolders) => {
@@ -81,7 +77,7 @@ const createFilesAndFolders = async (dir, filesAndFolders) => {
       await fs.writeFile(itemPath, item.content);
     }
   }
-}
+};
 
 // if a file/folder doesnt exist, return false
 // should only contain files and folders that are defined in the json structure
@@ -93,18 +89,18 @@ const verifyFilesAndFolders = async (dir, filesAndFolders) => {
     }
     for (const file of files) {
       const itemPath = path.join(dir, file);
-      const item = filesAndFolders.find(f => f.name === file);
+      const item = filesAndFolders.find((f) => f.name === file);
       if (!item) {
         return false;
       }
       if (item.type === 'folder') {
         return await verify(itemPath, item.files);
       } else {
-        return await fs.readFile(itemPath, 'utf8').then(content => content === item.content);
+        return await fs.readFile(itemPath, 'utf8').then((content) => content === item.content);
       }
     }
     return true;
-  }
+  };
 
   try {
     const verified = await verify(dir, filesAndFolders);
@@ -113,4 +109,4 @@ const verifyFilesAndFolders = async (dir, filesAndFolders) => {
     console.error(error);
     return false;
   }
-}
+};

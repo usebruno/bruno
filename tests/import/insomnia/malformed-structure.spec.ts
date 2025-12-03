@@ -5,7 +5,8 @@ test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
   test('Handle malformed Insomnia collection structure', async ({ page }) => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-malformed.json');
 
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
     const importModal = page.getByRole('dialog');
@@ -13,9 +14,6 @@ test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
     await page.setInputFiles('input[type="file"]', insomniaFile);
-
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // Check for error message - this should fail during JSON parsing
     const hasError = await page.getByText('Failed to parse the file').first().isVisible();

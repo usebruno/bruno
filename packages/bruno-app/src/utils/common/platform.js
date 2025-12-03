@@ -15,7 +15,6 @@ export const resolveRequestFilename = (name, extension = 'bru') => {
 };
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
-
   const relativePath = path.relative(rootPath, pathname);
   return relativePath ? relativePath.split(path.sep) : [];
 };

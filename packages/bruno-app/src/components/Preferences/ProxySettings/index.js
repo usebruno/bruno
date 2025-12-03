@@ -84,10 +84,10 @@ const ProxySettings = ({ close }) => {
             proxy: validatedProxy
           })
         ).then(() => {
-          toast.success('Preferences saved successfully')
+          toast.success('Preferences saved successfully');
           close();
         }).catch(() => {
-          toast.error('Failed to save preferences')
+          toast.error('Failed to save preferences');
         });
       })
       .catch((error) => {
@@ -163,7 +163,7 @@ const ProxySettings = ({ close }) => {
         {formik?.values?.mode === 'system' ? (
           <div className="mb-3 pt-1 text-muted system-proxy-settings">
             <small>
-              Below values are sourced from your system environment variables and cannot be directly updated in Bruno.<br/>
+              Below values are sourced from your system environment variables and cannot be directly updated in Bruno.<br />
               Please refer to your OS documentation to change these values.
             </small>
             <div className="flex flex-col justify-start items-start pt-2">

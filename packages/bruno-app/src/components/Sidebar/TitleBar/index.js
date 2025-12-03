@@ -1,31 +1,47 @@
+import { useState, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
-import Bruno from 'components/Bruno';
+import { IconPlus, IconFolder, IconDownload, IconHome, IconSearch, IconDeviceDesktop } from '@tabler/icons';
+
+import { showHomePage } from 'providers/ReduxStore/slices/app';
+import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+
 import Dropdown from 'components/Dropdown';
-import CreateCollection from '../CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 
-import { IconDots, IconPlus, IconFolder, IconDownload, IconDeviceDesktop } from '@tabler/icons';
-import { useState, forwardRef, useRef } from 'react';
-import { useDispatch } from 'react-redux';
-import { showHomePage } from 'providers/ReduxStore/slices/app';
-import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
+import CreateCollection from '../CreateCollection';
+import WorkspaceSelector from './WorkspaceSelector';
 import StyledWrapper from './StyledWrapper';
-import { multiLineMsg } from "utils/common";
-import { formatIpcError } from "utils/common/error";
 
-const TitleBar = () => {
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
-  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
-  const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
-  const [importData, setImportData] = useState(null);
+const TitleBar = ({ showSearch, setShowSearch }) => {
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+
+  const [importData, setImportData] = useState(null);
+  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
+  const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+
+  const actionsDropdownTippyRef = useRef();
+  const onActionsDropdownCreate = (ref) => (actionsDropdownTippyRef.current = ref);
+
   const handleImportCollection = ({ rawData, type }) => {
-    setImportData({ rawData, type });
     setImportCollectionModalOpen(false);
-    setImportCollectionLocationModalOpen(true);
+
+    if (activeWorkspace && activeWorkspace.type !== 'default') {
+      dispatch(importCollectionInWorkspace(rawData, activeWorkspace.uid, undefined, type))
+        .catch((err) => {
+          toast.error('An error occurred while importing the collection');
+        });
+    } else {
+      setImportData({ rawData, type });
+      setImportCollectionLocationModalOpen(true);
+    }
   };
 
   const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
@@ -37,107 +53,122 @@ const TitleBar = () => {
       })
       .catch((err) => {
         console.error(err);
-        toast.error(multiLineMsg('An error occurred while importing the collection.', formatIpcError(err)));
+        toast.error('An error occurred while importing the collection');
       });
   };
 
-  const menuDropdownTippyRef = useRef();
-  const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
-  const MenuIcon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="dropdown-icon cursor-pointer">
-        <IconDots size={22} />
-      </div>
-    );
-  });
-
-  const handleTitleClick = () => dispatch(showHomePage());
+  const handleToggleSearch = () => {
+    if (setShowSearch) {
+      setShowSearch((prev) => !prev);
+    }
+  };
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch(
-      (err) => {
-        console.log(err);
-        toast.error('An error occurred while opening the collection');
-      }
-    );
+    const options = {};
+    if (activeWorkspace?.pathname) {
+      options.workspaceId = activeWorkspace.pathname;
+    }
+
+    dispatch(openCollection(options)).catch((err) => {
+      toast.error('An error occurred while opening the collection');
+    });
   };
 
   const openDevTools = () => {
     ipcRenderer.invoke('renderer:open-devtools');
   };
 
-  return (
-    <StyledWrapper className="px-2 py-2">
-      {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
-      {importCollectionModalOpen ? (
-        <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} />
-      ) : null}
-      {importCollectionLocationModalOpen && importData ? (
+  const renderModals = () => (
+    <>
+      {createCollectionModalOpen && (
+        <CreateCollection
+          onClose={() => setCreateCollectionModalOpen(false)}
+        />
+      )}
+      {importCollectionModalOpen && (
+        <ImportCollection
+          onClose={() => setImportCollectionModalOpen(false)}
+          handleSubmit={handleImportCollection}
+        />
+      )}
+      {importCollectionLocationModalOpen && importData && (
         <ImportCollectionLocation
           rawData={importData.rawData}
           format={importData.type}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
-      ) : null}
+      )}
+    </>
+  );
 
-      <div className="flex items-center">
-        <button className="bruno-logo flex items-center gap-2 font-medium" onClick={handleTitleClick}>
-          <span aria-hidden>
-            <Bruno width={30} />
-          </span>
-          bruno
-        </button>
-        <div className="collection-dropdown flex flex-grow items-center justify-end">
-          <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
+  return (
+    <StyledWrapper className="px-2 py-2">
+      {renderModals()}
+      <div className="titlebar-container">
+        <WorkspaceSelector />
+
+        <div className="actions-container">
+          <button className="home-icon-button" onClick={() => dispatch(showHomePage())} title="Home">
+            <IconHome size={16} stroke={1.5} />
+          </button>
+
+          {setShowSearch && (
+            <button className="search-icon-button" onClick={handleToggleSearch} title="Toggle search">
+              <IconSearch size={16} stroke={1.5} />
+            </button>
+          )}
+
+          <Dropdown
+            onCreate={onActionsDropdownCreate}
+            icon={(
+              <button className="plus-icon-button">
+                <IconPlus size={16} stroke={1.5} />
+              </button>
+            )}
+            placement="bottom-end"
+            style="new"
+          >
             <div className="label-item">Collections</div>
             <div
               className="dropdown-item"
               onClick={(e) => {
                 setCreateCollectionModalOpen(true);
-                menuDropdownTippyRef.current.hide();
+                actionsDropdownTippyRef.current?.hide();
               }}
             >
-              <span className="dropdown-icon">
-                <IconPlus size={16} strokeWidth={2} />
-              </span>
-              Create Collection
+              <IconPlus size={16} stroke={1.5} className="icon" />
+              Create collection
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                actionsDropdownTippyRef.current?.hide();
+                setImportCollectionModalOpen(true);
+              }}
+            >
+              <IconDownload size={16} stroke={1.5} className="icon" />
+              Import collection
             </div>
             <div
               className="dropdown-item"
               onClick={(e) => {
                 handleOpenCollection();
-                menuDropdownTippyRef.current.hide();
+                actionsDropdownTippyRef.current?.hide();
               }}
             >
-              <span className="dropdown-icon">
-                <IconFolder size={16} strokeWidth={2} />
-              </span>
-              Open
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-                setImportCollectionModalOpen(true);
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconDownload size={16} strokeWidth={2} />
-              </span>
-              Import
+              <IconFolder size={16} stroke={1.5} className="icon" />
+              Open collection
             </div>
             <div className="dropdown-separator"></div>
             <div
               className="dropdown-item"
               onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
+                actionsDropdownTippyRef.current?.hide();
                 openDevTools();
               }}
             >
-              <span className="dropdown-icon">
-                <IconDeviceDesktop size={16} strokeWidth={2} />
-              </span>
+              <IconDeviceDesktop size={16} stroke={1.5} className="icon" />
               Devtools
             </div>
           </Dropdown>

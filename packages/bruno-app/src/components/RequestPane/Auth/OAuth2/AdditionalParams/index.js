@@ -1,15 +1,15 @@
-import { useDispatch } from "react-redux";
+import { useDispatch } from 'react-redux';
 import React, { useState } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { IconPlus, IconTrash, IconAdjustmentsHorizontal } from '@tabler/icons';
-import { cloneDeep } from "lodash";
+import { cloneDeep } from 'lodash';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import MultiLineEditor from 'components/MultiLineEditor/index';
-import StyledWrapper from "./StyledWrapper";
-import Table from "components/Table/index";
+import StyledWrapper from './StyledWrapper';
+import Table from 'components/Table/index';
 
-const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleSave }) => {
+const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSave }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -34,13 +34,13 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
 
   const updateAdditionalParameters = ({ updatedAdditionalParameters }) => {
     const filteredParams = cloneDeep(updatedAdditionalParameters);
-    
-    Object.keys(filteredParams).forEach(paramType => {
+
+    Object.keys(filteredParams).forEach((paramType) => {
       if (filteredParams[paramType]?.length) {
-        filteredParams[paramType] = filteredParams[paramType].filter(param => 
+        filteredParams[paramType] = filteredParams[paramType].filter((param) =>
           param.name.trim() || param.value.trim()
         );
-        
+
         if (filteredParams[paramType].length === 0) {
           delete filteredParams[paramType];
         }
@@ -61,15 +61,15 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
         }
       })
     );
-  }
+  };
 
   const handleUpdateAdditionalParam = ({ paramType, key, paramIndex, value }) => {
     const updatedAdditionalParameters = cloneDeep(additionalParameters);
-    
+
     if (!updatedAdditionalParameters[paramType]) {
       updatedAdditionalParameters[paramType] = [];
     }
-    
+
     if (!updatedAdditionalParameters[paramType][paramIndex]) {
       updatedAdditionalParameters[paramType][paramIndex] = {
         name: '',
@@ -78,27 +78,27 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
         enabled: true
       };
     }
-    
+
     updatedAdditionalParameters[paramType][paramIndex][key] = value;
-    
+
     // Only filter when updating a parameter
     updateAdditionalParameters({ updatedAdditionalParameters });
-  }
+  };
 
   const handleDeleteAdditionalParam = ({ paramType, paramIndex }) => {
     const updatedAdditionalParameters = cloneDeep(additionalParameters);
-    
+
     if (updatedAdditionalParameters[paramType]?.length) {
       updatedAdditionalParameters[paramType] = updatedAdditionalParameters[paramType].filter((_, index) => index !== paramIndex);
-      
+
       // If the array is now empty, ensure we're not sending empty arrays
       if (updatedAdditionalParameters[paramType].length === 0) {
         delete updatedAdditionalParameters[paramType];
       }
     }
-    
+
     updateAdditionalParameters({ updatedAdditionalParameters });
-  }
+  };
 
   const handleAddNewAdditionalParam = () => {
     // Prevent adding multiple empty rows
@@ -108,11 +108,11 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
 
     const paramType = activeTab;
     const localAdditionalParameters = cloneDeep(additionalParameters);
-    
+
     if (!localAdditionalParameters[paramType]) {
       localAdditionalParameters[paramType] = [];
     }
-    
+
     localAdditionalParameters[paramType] = [
       ...localAdditionalParameters[paramType],
       {
@@ -122,7 +122,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
         enabled: true
       }
     ];
-    
+
     // Don't filter here to allow the empty row to display in UI
     // But don't permanently store it in state until it has values
     dispatch(
@@ -132,11 +132,11 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
         itemUid: item.uid,
         content: {
           ...oAuth,
-          additionalParameters: localAdditionalParameters,
+          additionalParameters: localAdditionalParameters
         }
       })
     );
-  }
+  };
 
   // Add a class to the Add Parameter button if it's disabled
   const addButtonDisabled = hasEmptyRow();
@@ -144,10 +144,10 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
   // Define available tabs for each grant type
   const getAvailableTabs = (grantType) => {
     const tabConfig = {
-      'authorization_code': ['authorization', 'token', 'refresh'],
-      'implicit': ['authorization'],
-      'password': ['token', 'refresh'],
-      'client_credentials': ['token', 'refresh']
+      authorization_code: ['authorization', 'token', 'refresh'],
+      implicit: ['authorization'],
+      password: ['token', 'refresh'],
+      client_credentials: ['token', 'refresh']
     };
     return tabConfig[grantType] || ['token', 'refresh'];
   };
@@ -155,9 +155,9 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
   const availableTabs = getAvailableTabs(grantType);
 
   const renderTab = (tabKey, tabLabel) => (
-    <div 
+    <div
       key={tabKey}
-      className={`tab ${activeTab === tabKey ? 'active' : ''}`} 
+      className={`tab ${activeTab === tabKey ? 'active' : ''}`}
       onClick={() => setActiveTab(tabKey)}
     >
       {tabLabel}
@@ -174,7 +174,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
           Additional Parameters
         </span>
       </div>
-      
+
       <div className="tabs flex w-full gap-2 my-2">
         {availableTabs.includes('authorization') && renderTab('authorization', 'Authorization')}
         {availableTabs.includes('token') && renderTab('token', 'Token')}
@@ -189,13 +189,13 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
         ]}
       >
         <tbody>
-          {(additionalParameters?.[activeTab] || []).map((param, index) => 
+          {(additionalParameters?.[activeTab] || []).map((param, index) => (
             <tr key={index}>
-              <td className='flex relative'>
+              <td className="flex relative">
                 <SingleLineEditor
                   value={param?.name || ''}
                   theme={storedTheme}
-                  onChange={(value) => handleUpdateAdditionalParam({ 
+                  onChange={(value) => handleUpdateAdditionalParam({
                     paramType: activeTab,
                     key: 'name',
                     paramIndex: index,
@@ -209,7 +209,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
                 <MultiLineEditor
                   value={param?.value || ''}
                   theme={storedTheme}
-                  onChange={(value) => handleUpdateAdditionalParam({ 
+                  onChange={(value) => handleUpdateAdditionalParam({
                     paramType: activeTab,
                     key: 'value',
                     paramIndex: index,
@@ -221,16 +221,16 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
               </td>
               <td>
                 <div className="w-full additional-parameter-sends-in-selector">
-                  <select 
-                    value={param?.sendIn || 'headers'} 
-                    onChange={e => {
-                      handleUpdateAdditionalParam({ 
+                  <select
+                    value={param?.sendIn || 'headers'}
+                    onChange={(e) => {
+                      handleUpdateAdditionalParam({
                         paramType: activeTab,
                         key: 'sendIn',
                         paramIndex: index,
                         value: e.target.value
-                      })
-                    }} 
+                      });
+                    }}
                     className="mousetrap bg-transparent"
                   >
                     {sendInOptionsMap[grantType || 'authorization_code'][activeTab].map((optionValue) => (
@@ -249,21 +249,21 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
                     tabIndex="-1"
                     className="mr-3 mousetrap"
                     onChange={(e) => {
-                      handleUpdateAdditionalParam({ 
+                      handleUpdateAdditionalParam({
                         paramType: activeTab,
                         key: 'enabled',
                         paramIndex: index,
                         value: e.target.checked
-                      })
+                      });
                     }}
                   />
-                  <button 
-                    tabIndex="-1" 
+                  <button
+                    tabIndex="-1"
                     onClick={() => {
                       handleDeleteAdditionalParam({
                         paramType: activeTab,
                         paramIndex: index
-                      })
+                      });
                     }}
                   >
                     <IconTrash strokeWidth={1.5} size={20} />
@@ -271,37 +271,38 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
                 </div>
               </td>
             </tr>
+          )
           )}
         </tbody>
       </Table>
-      <div 
-        className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} 
+      <div
+        className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         onClick={addButtonDisabled ? null : handleAddNewAdditionalParam}
       >
         <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
         <span className="ml-1 text-gray-500">Add Parameter</span>
       </div>
     </StyledWrapper>
-  )
-}
+  );
+};
 
 export default AdditionalParams;
 
 const sendInOptionsMap = {
-  'authorization_code': {
-    'authorization': ['headers', 'queryparams'],
-    'token': ['headers', 'queryparams', 'body'],
-    'refresh': ['headers', 'queryparams', 'body']
+  authorization_code: {
+    authorization: ['headers', 'queryparams'],
+    token: ['headers', 'queryparams', 'body'],
+    refresh: ['headers', 'queryparams', 'body']
   },
-  'password': {
-    'token': ['headers', 'queryparams', 'body'],
-    'refresh': ['headers', 'queryparams', 'body']
+  password: {
+    token: ['headers', 'queryparams', 'body'],
+    refresh: ['headers', 'queryparams', 'body']
   },
-  'client_credentials': {
-    'token': ['headers', 'queryparams', 'body'],
-    'refresh': ['headers', 'queryparams', 'body']
+  client_credentials: {
+    token: ['headers', 'queryparams', 'body'],
+    refresh: ['headers', 'queryparams', 'body']
   },
-  'implicit': {
-    'authorization': ['headers', 'queryparams']
+  implicit: {
+    authorization: ['headers', 'queryparams']
   }
-}
+};

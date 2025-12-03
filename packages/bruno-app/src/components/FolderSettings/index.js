@@ -28,8 +28,7 @@ const FolderSettings = ({ collection, folder }) => {
   const activeHeadersCount = headers.filter((header) => header.enabled).length;
 
   const requestVars = folderRoot?.request?.vars?.req || [];
-  const responseVars = folderRoot?.request?.vars?.res || [];
-  const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
+  const activeVarsCount = requestVars.filter((v) => v.enabled).length;
 
   const auth = get(folderRoot, 'request.auth.mode');
   const hasAuth = auth && auth !== 'none';
@@ -101,7 +100,7 @@ const FolderSettings = ({ collection, folder }) => {
             Docs
           </div>
         </div>
-        <section className={`flex mt-4 h-full overflow-auto`}>{getTabPanel(tab)}</section>
+        <section className="flex mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
       </div>
     </StyledWrapper>
   );

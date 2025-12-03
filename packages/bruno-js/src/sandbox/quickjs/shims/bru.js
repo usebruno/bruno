@@ -296,7 +296,7 @@ const addBruShimToContext = (vm, bru) => {
       const promise = vm.newPromise();
       const dumpedUrl = vm.dump(url);
       const dumpedNameOrObj = vm.dump(nameOrCookieObj);
-      
+
       // Check if the second argument is an object (cookie object case)
       if (typeof dumpedNameOrObj === 'object' && dumpedNameOrObj !== null) {
         // Cookie object case: setCookie(url, cookieObject, callback)
@@ -318,7 +318,7 @@ const addBruShimToContext = (vm, bru) => {
           }
         });
       }
-      
+
       promise.settled.then(vm.runtime.executePendingJobs);
       return promise.handle;
     });
@@ -326,7 +326,7 @@ const addBruShimToContext = (vm, bru) => {
 
     const _setCookiesFn = vm.newFunction('_setCookies', (url, cookiesArray) => {
       const promise = vm.newPromise();
-      
+
       nativeJar.setCookies(vm.dump(url), vm.dump(cookiesArray), (err) => {
         if (err) {
           promise.reject(marshallToVm(cleanJson(err), vm));

@@ -349,6 +349,21 @@ const registerWsEventHandlers = (window) => {
       return { success: false, error: error.message, isActive: false };
     }
   });
+
+  /**
+   * Get the connection status of a connection
+   * @param {string} requestId - The request ID to get the connection status of
+   * @returns {string} - The connection status
+   */
+  ipcMain.handle('renderer:ws:connection-status', (event, requestId) => {
+    try {
+      const status = wsClient.connectionStatus(requestId);
+      return { success: true, status };
+    } catch (error) {
+      console.error('Error getting WebSocket connection status:', error);
+      return { success: false, error: error.message, status: 'disconnected' };
+    }
+  });
 };
 
 module.exports = {

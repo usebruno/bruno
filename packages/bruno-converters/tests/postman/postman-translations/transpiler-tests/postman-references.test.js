@@ -38,7 +38,7 @@ describe('Postman to PM References Conversion', () => {
         pm.expect(pm.response.code).to.equal(200);
     });
     `;
-    
+
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('const apiKey = bru.getEnvVar("apiKey");');
     expect(translatedCode).toContain('const baseUrl = bru.getEnvVar("baseUrl");');
@@ -51,7 +51,7 @@ describe('Postman to PM References Conversion', () => {
     const { environment } = postman;
     environment.set("key", "value");
     `;
-    
+
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('bru.setEnvVar("key", "value");');
   });
@@ -67,7 +67,7 @@ describe('Postman to PM References Conversion', () => {
         postman.setNextRequest("Development Flow");
     }
     `;
-    
+
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('if (bru.getEnvVar("isProduction") === "true") {');
     expect(translatedCode).toContain('const apiUrl = bru.getEnvVar("prodUrl");');
@@ -86,7 +86,7 @@ describe('Postman to PM References Conversion', () => {
     // Set environment variables with response data
     postman.setEnvironmentVariable("lastResponseCode", responseCode);
     `;
-    
+
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('const responseCode = res.getStatus();');
     expect(translatedCode).toContain('const responseBody = res.getBody();');
@@ -99,7 +99,7 @@ describe('Postman to PM References Conversion', () => {
     console.log("This is a pm script");
     const message = "We're using pm to test our API";
     `;
-    
+
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('console.log("This is a pm script");');
     expect(translatedCode).toContain('const message = "We\'re using pm to test our API";');
@@ -121,7 +121,7 @@ describe('Postman to PM References Conversion', () => {
         postman.expect(code).to.equal(200);
     });
     `;
-    
+
     const translatedCode = translateCode(code);
     // Should handle the aliases properly
     expect(translatedCode).toContain('const apiKey = bru.getEnvVar("apiKey");');
@@ -129,4 +129,4 @@ describe('Postman to PM References Conversion', () => {
     expect(translatedCode).toContain('test("Response is valid", function() {');
     expect(translatedCode).toContain('expect(code).to.equal(200);');
   });
-}); 
+});

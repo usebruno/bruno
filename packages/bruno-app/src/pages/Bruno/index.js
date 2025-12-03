@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import classnames from 'classnames';
-import Welcome from 'components/Welcome';
+import WorkspaceHome from 'components/WorkspaceHome';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
@@ -106,26 +106,26 @@ export default function Main() {
         data-app-state="loading"
         style={{
           height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
-          }}
-        >
-          <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
-            <Sidebar />
-            <section className="flex flex-grow flex-col overflow-hidden">
-              {showHomePage ? (
-                <Welcome />
-              ) : (
-                <>
-                  <RequestTabs />
-                  <RequestTabPanel key={activeTabUid} />
-                </>
-              )}
-            </section>
-          </StyledWrapper>
-        </div>
-
-        <Devtools mainSectionRef={mainSectionRef} />
-        <StatusBar />
+        }}
+      >
+        <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
+          <Sidebar />
+          <section className="flex flex-grow flex-col overflow-hidden">
+            {showHomePage ? (
+              <WorkspaceHome />
+            ) : (
+              <>
+                <RequestTabs />
+                <RequestTabPanel key={activeTabUid} />
+              </>
+            )}
+          </section>
+        </StyledWrapper>
       </div>
+
+      <Devtools mainSectionRef={mainSectionRef} />
+      <StatusBar />
+    </div>
     // </ErrorCapture>
   );
 }

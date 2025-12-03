@@ -43,7 +43,7 @@ export const interpolateBody = (body, variables = {}) => {
       break;
 
     case 'formUrlEncoded':
-      interpolatedBody.formUrlEncoded = Array.isArray(body.formUrlEncoded) 
+      interpolatedBody.formUrlEncoded = Array.isArray(body.formUrlEncoded)
         ? body.formUrlEncoded.map((param) => ({
             ...param,
             value: param.enabled ? interpolate(param.value, variables) : param.value

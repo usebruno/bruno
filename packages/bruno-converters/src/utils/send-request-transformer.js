@@ -6,12 +6,12 @@
  */
 const convertArrayToObject = (j, arrayValue) => {
   const obj = j.objectExpression([]);
-  
+
   if (arrayValue.type === 'ArrayExpression') {
-    arrayValue.elements.forEach(elem => {
+    arrayValue.elements.forEach((elem) => {
       if (elem.type === 'ObjectExpression') {
-        const keyProp = elem.properties.find(p => (p.key.name === 'key' || p.key.value === 'key'));
-        const valueProp = elem.properties.find(p => (p.key.name === 'value' || p.key.value === 'value'));
+        const keyProp = elem.properties.find((p) => (p.key.name === 'key' || p.key.value === 'key'));
+        const valueProp = elem.properties.find((p) => (p.key.name === 'value' || p.key.value === 'value'));
 
         if (keyProp && valueProp) {
           obj.properties.push(
@@ -25,7 +25,7 @@ const convertArrayToObject = (j, arrayValue) => {
       }
     });
   }
-  
+
   return obj;
 };
 
@@ -37,7 +37,7 @@ const convertArrayToObject = (j, arrayValue) => {
  * @param {string} headerValue - Header value
  */
 const addOrUpdateHeader = (j, requestOptions, headerName, headerValue) => {
-  let headersProp = requestOptions.properties.find(p => (p.key.name === 'headers' || p.key.value === 'headers'));
+  let headersProp = requestOptions.properties.find((p) => (p.key.name === 'headers' || p.key.value === 'headers'));
 
   if (!headersProp) {
     headersProp = j.property('init', j.identifier('headers'), j.objectExpression([]));
@@ -47,9 +47,9 @@ const addOrUpdateHeader = (j, requestOptions, headerName, headerValue) => {
   }
 
   // filter out existing header with same name (case-insensitive)
-  headersProp.value.properties = headersProp.value.properties.filter(p =>
-    p.key.type !== 'Literal' ||
-    p.key.value.toLowerCase() !== headerName.toLowerCase()
+  headersProp.value.properties = headersProp.value.properties.filter((p) =>
+    p.key.type !== 'Literal'
+    || p.key.value.toLowerCase() !== headerName.toLowerCase()
   );
 
   headersProp.value.properties.push(
@@ -69,7 +69,7 @@ const addOrUpdateHeader = (j, requestOptions, headerName, headerValue) => {
 const transformHeaders = (j, requestOptions) => {
   if (requestOptions.type !== 'ObjectExpression') return;
 
-  requestOptions.properties.forEach(prop => {
+  requestOptions.properties.forEach((prop) => {
     // find and rename 'header' property to 'headers'
     if (prop.key.name === 'header' || prop.key.value === 'header') {
       prop.key.name = 'headers';
@@ -91,19 +91,19 @@ const transformHeaders = (j, requestOptions) => {
  */
 const transformBody = (j, requestOptions) => {
   if (requestOptions.type !== 'ObjectExpression') return null;
-  
-  requestOptions.properties.forEach(prop => {
+
+  requestOptions.properties.forEach((prop) => {
     if (prop.key.name === 'body' || prop.key.value === 'body') {
       if (prop.value.type === 'ObjectExpression') {
         const bodyProps = prop.value.properties;
-        const modeProp = bodyProps.find(p => (p.key.name === 'mode' || p.key.value === 'mode'));
+        const modeProp = bodyProps.find((p) => (p.key.name === 'mode' || p.key.value === 'mode'));
 
         if (modeProp && modeProp.value.type === 'Literal') {
           const bodyMode = modeProp.value.value;
 
           // Handle raw mode (text, json, xml, etc.)
           if (bodyMode === 'raw') {
-            const rawProp = bodyProps.find(p => (p.key.name === 'raw' || p.key.value === 'raw'));
+            const rawProp = bodyProps.find((p) => (p.key.name === 'raw' || p.key.value === 'raw'));
 
             if (rawProp) {
               // Replace body with data
@@ -111,37 +111,35 @@ const transformBody = (j, requestOptions) => {
               prop.key.value = 'data';
               prop.value = rawProp.value;
             }
-          }
-          // Handle urlencoded mode
-          else if (bodyMode === 'urlencoded') {
-            const urlencodedProp = bodyProps.find(p => (p.key.name === 'urlencoded' || p.key.value === 'urlencoded') && p.value.type === 'ArrayExpression');
+          } else if (bodyMode === 'urlencoded') {
+            // Handle urlencoded mode
+            const urlencodedProp = bodyProps.find((p) => (p.key.name === 'urlencoded' || p.key.value === 'urlencoded') && p.value.type === 'ArrayExpression');
 
             if (urlencodedProp) {
               // Replace the body property with a 'data' property
               prop.key.name = 'data';
               prop.key.value = 'data';
-              
+
               // Transform the urlencoded array to an object
               prop.value = convertArrayToObject(j, urlencodedProp.value);
 
               // Add Content-Type header for urlencoded
               addOrUpdateHeader(j, requestOptions, 'Content-Type', 'application/x-www-form-urlencoded');
             }
-          }
-          // Handle formdata mode
-          else if (bodyMode === 'formdata') {
-            const formdataProp = bodyProps.find(p => (p.key.name === 'formdata' || p.key.value === 'formdata') && p.value.type === 'ArrayExpression');
+          } else if (bodyMode === 'formdata') {
+            // Handle formdata mode
+            const formdataProp = bodyProps.find((p) => (p.key.name === 'formdata' || p.key.value === 'formdata') && p.value.type === 'ArrayExpression');
 
             if (formdataProp) {
-                // Replace the body property with a 'data' property
-                prop.key.name = 'data';
-                prop.key.value = 'data';
-                
-                // Transform the urlencoded array to an object
-                prop.value = convertArrayToObject(j, formdataProp.value);
-  
-                // Add Content-Type header for urlencoded
-                addOrUpdateHeader(j, requestOptions, 'Content-Type', 'multipart/form-data');
+              // Replace the body property with a 'data' property
+              prop.key.name = 'data';
+              prop.key.value = 'data';
+
+              // Transform the urlencoded array to an object
+              prop.value = convertArrayToObject(j, formdataProp.value);
+
+              // Add Content-Type header for urlencoded
+              addOrUpdateHeader(j, requestOptions, 'Content-Type', 'multipart/form-data');
             }
           }
         }
@@ -158,7 +156,7 @@ const transformBody = (j, requestOptions) => {
  */
 const transformCallback = (j, callback) => {
   if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
-  
+
   const params = callback.params;
   const callbackBody = callback.body;
 
@@ -175,10 +173,10 @@ const transformCallback = (j, callback) => {
 
   // Define translations for callback response properties
   const responsePropertyMap = {
-    'json': 'data',
-    'text': 'data', 
-    'code': 'status',
-    'status': 'statusText',
+    json: 'data',
+    text: 'data',
+    code: 'status',
+    status: 'statusText'
   };
 
   // Process the callback body to transform response property references
@@ -187,7 +185,7 @@ const transformCallback = (j, callback) => {
       type: 'Identifier',
       name: responseVarName
     }
-  }).forEach(memberPath => {
+  }).forEach((memberPath) => {
     const property = memberPath.node.property;
 
     // Handle property access
@@ -239,26 +237,25 @@ const findAndTransformVariableDeclaration = (j, root, variableName, visited = ne
     return null;
   }
   visited.add(variableName);
-  
+
   let transformedConfig = null;
-  
+
   // Find the variable declaration
   root.find(j.VariableDeclarator, {
     id: { name: variableName }
-  }).forEach(declaratorPath => {
+  }).forEach((declaratorPath) => {
     const init = declaratorPath.value.init;
-    
+
     if (init && init.type === 'ObjectExpression') {
       // Found the actual object expression - clone and transform it
       const configClone = j(init).at(0).get().value;
-      
+
       // Transform headers and body
       transformHeaders(j, configClone);
       transformBody(j, configClone);
-      
+
       transformedConfig = configClone;
-    } 
-    else if (init && init.type === 'Identifier') {
+    } else if (init && init.type === 'Identifier') {
       // This variable references another variable - follow the chain
       const referencedVariableName = init.name;
       transformedConfig = findAndTransformVariableDeclaration(j, root, referencedVariableName, visited);
@@ -288,14 +285,13 @@ const sendRequestTransformer = (path, j) => {
     transformHeaders(j, requestOptions);
     // Transform body
     transformBody(j, requestOptions);
-  }
-  // Handle case where requestOptions is a variable reference
-  else if (requestOptions.type === 'Identifier') {
+  } else if (requestOptions.type === 'Identifier') {
+    // Handle case where requestOptions is a variable reference
     const variableName = requestOptions.name;
-    
+
     // Find the root of the current file/program
     const root = j(path).closest(j.Program);
-    
+
     // Find and transform the variable declaration
     findAndTransformVariableDeclaration(j, root, variableName);
   }
@@ -303,12 +299,12 @@ const sendRequestTransformer = (path, j) => {
   // Create the callback block and promise chain if there's a callback
   if (callback) {
     const transformedCallback = transformCallback(j, callback);
-    
+
     // Add async keyword to the callback function
     if (transformedCallback && (transformedCallback.type === 'FunctionExpression' || transformedCallback.type === 'ArrowFunctionExpression')) {
       transformedCallback.async = true;
     }
-    
+
     // Create expression: await bru.sendRequest(requestConfig, callback);
     const sendRequestCall = j.callExpression(
       j.identifier('bru.sendRequest'),
@@ -323,7 +319,7 @@ const sendRequestTransformer = (path, j) => {
     j.identifier('bru.sendRequest'),
     [requestOptions]
   );
-  
+
   return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
 };
 

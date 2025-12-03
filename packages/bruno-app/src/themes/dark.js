@@ -115,6 +115,7 @@ const darkTheme = {
       item: {
         bg: '#37373D',
         hoverBg: '#2A2D2F',
+        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
         indentBorder: 'solid 1px #585858',
         active: {
           indentBorder: 'solid 1px #4c4c4c'
@@ -146,6 +147,39 @@ const darkTheme = {
     primaryText: '#D4D4D4',
     secondaryText: '#9CA3AF',
     headingText: '#FFFFFF'
+  },
+
+  listItem: {
+    hoverBg: '#2A2D2F',
+    activeBg: '#3D3D3D'
+  },
+
+  workspace: {
+    accent: '#F59E0B',
+    border: '#444',
+    borderMuted: '#585858',
+    card: {
+      bg: '#2A2D2F'
+    },
+    button: {
+      bg: '#242424'
+    },
+    collection: {
+      header: {
+        indentBorder: 'solid 1px #444444'
+      },
+      item: {
+        indentBorder: 'solid 1px #313131'
+      }
+    },
+    environments: {
+      bg: '#212121',
+      indentBorder: 'solid 1px #313131',
+      activeBg: '#37373c',
+      search: {
+        bg: '#3D3D3D'
+      }
+    }
   },
 
   request: {
@@ -543,6 +577,12 @@ const darkTheme = {
     border: 'rgba(250, 83, 67, 0.1)',
     icon: '#FA5343',
     text: '#B8B8B8'
+  },
+
+  preferences: {
+    sidebar: {
+      border: '#444444'
+    }
   },
 
   examples: {

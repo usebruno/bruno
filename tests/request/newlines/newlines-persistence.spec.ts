@@ -10,20 +10,20 @@ test('should persist request with newlines across app restarts', async ({ create
   const app1 = await launchElectronApp({ userDataPath });
   const page = await app1.firstWindow();
 
-  await page.locator('.dropdown-icon').click();
-  await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-  await page.getByLabel('Name').fill('newlines-persistence');
-  await page.getByLabel('Location').fill(collectionPath);
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.locator('.plus-icon-button').click();
+  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+  await page.locator('.bruno-modal').getByLabel('Name').fill('newlines-persistence');
+  await page.locator('.bruno-modal').getByLabel('Location').fill(collectionPath);
+  await page.locator('.bruno-modal').getByRole('button', { name: 'Create' }).click();
 
-  const collection = page.locator('.collection-name').filter({ hasText: 'newlines-persistence' });
+  const collection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' });
   await collection.locator('.collection-actions').hover();
   await collection.locator('.collection-actions .icon').click();
   await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
   await page.getByPlaceholder('Request Name').fill('persistence-test');
   await page.locator('#new-request-url').locator('.CodeMirror').click();
   await page.locator('#new-request-url').locator('textarea').fill('https://httpbin.org/get');
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
   await openCollectionAndAcceptSandbox(page, 'newlines-persistence', 'safe');
   await page.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
@@ -47,18 +47,11 @@ test('should persist request with newlines across app restarts', async ({ create
 
   // Add Pre Request var with newlines
   await page.getByRole('tab', { name: 'Vars' }).click();
-  await page.locator('.btn-add-var').first().click();
-  const preReqRow = page.locator('table').first().locator('tbody tr').first();
+  await page.locator('.btn-add-var').click();
+  const preReqRow = page.locator('table tbody tr').first();
   await getTableCell(preReqRow, 0).locator('input[type="text"]').fill('preRequestVar');
   await getTableCell(preReqRow, 1).locator('.CodeMirror').click();
   await getTableCell(preReqRow, 1).locator('textarea').fill('pre\nRequest\nValue');
-
-  // Add Post Response var with newlines
-  await page.locator('.btn-add-var').last().click();
-  const postResRow = page.locator('table').nth(1).locator('tbody tr').first();
-  await getTableCell(postResRow, 0).locator('input[type="text"]').fill('postResponseVar');
-  await getTableCell(postResRow, 1).locator('.CodeMirror').click();
-  await getTableCell(postResRow, 1).locator('textarea').fill('post\nResponse\nValue');
 
   await page.keyboard.press('Meta+s');
   await app1.close();
@@ -67,7 +60,7 @@ test('should persist request with newlines across app restarts', async ({ create
   const app2 = await launchElectronApp({ userDataPath });
   const page2 = await app2.firstWindow();
 
-  await page2.locator('.collection-name').filter({ hasText: 'newlines-persistence' }).click();
+  await page2.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' }).click();
   await page2.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
   // Verify params persisted
@@ -80,8 +73,7 @@ test('should persist request with newlines across app restarts', async ({ create
 
   // Verify vars persisted
   await page2.getByRole('tab', { name: 'Vars' }).click();
-  await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(1);
-  await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(1);
+  await expect(page2.locator('table tbody tr')).toHaveCount(1);
 
   await app2.close();
 });

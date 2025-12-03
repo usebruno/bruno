@@ -87,7 +87,7 @@ const AuthMode = ({ collection }) => {
             }}
           >
             NTLM Auth
-          </div>          
+          </div>
           <div
             className="dropdown-item"
             onClick={() => {

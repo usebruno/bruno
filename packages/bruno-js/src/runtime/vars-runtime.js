@@ -20,7 +20,7 @@ const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime, mode) => {
 
 class VarsRuntime {
   constructor(props) {
-    this.runtime = props?.runtime || 'vm2';
+    this.runtime = props?.runtime || 'quickjs';
     this.mode = props?.mode || 'developer';
   }
 

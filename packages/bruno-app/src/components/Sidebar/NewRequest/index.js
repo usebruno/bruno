@@ -29,10 +29,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const storedTheme = useTheme();
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
-  const {
-    brunoConfig: { presets: collectionPresets = {} }
-  } = collection;
-
   const [curlRequestTypeDetected, setCurlRequestTypeDetected] = useState(null);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
@@ -73,41 +69,13 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
   const [isEditing, toggleEditing] = useState(false);
 
-  const getRequestType = (collectionPresets) => {
-    if (!collectionPresets || !collectionPresets.requestType) {
-      return 'http-request';
-    }
-
-    // Note: Why different labels for the same thing?
-    // http-request and graphql-request are used inside the app's json representation of a request
-    // http and graphql are used in Bru DSL as well as collection exports
-    // We need to eventually standardize the app's DSL to use the same labels as bru DSL
-    if (collectionPresets.requestType === 'http') {
-      return 'http-request';
-    }
-
-    if (collectionPresets.requestType === 'graphql') {
-      return 'graphql-request';
-    }
-
-    if (collectionPresets.requestType === 'grpc') {
-      return 'grpc-request';
-    }
-
-    if (collectionPresets.requestType === 'ws') {
-      return 'ws-request';
-    }
-
-    return 'http-request';
-  };
-
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
       filename: '',
-      requestType: getRequestType(collectionPresets),
-      requestUrl: collectionPresets.requestUrl || '',
+      requestType: 'http-request',
+      requestUrl: '',
       requestMethod: 'GET',
       curlCommand: ''
     },
@@ -469,7 +437,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       type="text"
                       name="filename"
                       placeholder="File Name"
-                      className={`!pr-10 block textbox mt-2 w-full`}
+                      className="!pr-10 block textbox mt-2 w-full"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -569,7 +537,8 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   value={formik.values.curlCommand}
                   onChange={handleCurlCommandChange}
                   data-testid="curl-command"
-                ></textarea>
+                >
+                </textarea>
                 {formik.touched.curlCommand && formik.errors.curlCommand ? (
                   <div className="text-red-500">{formik.errors.curlCommand}</div>
                 ) : null}

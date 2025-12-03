@@ -41,14 +41,16 @@ const defaultPreferences = {
   layout: {
     responsePaneOrientation: 'horizontal'
   },
-  beta: {
-    nodevm: false
-  },
+  beta: {},
   onboarding: {
     hasLaunchedBefore: false
   },
   general: {
     defaultCollectionLocation: ''
+  },
+  autoSave: {
+    enabled: false,
+    interval: 1000
   }
 };
 
@@ -86,13 +88,16 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   beta: Yup.object({
-    nodevm: Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean()
   }),
   general: Yup.object({
     defaultCollectionLocation: Yup.string().max(1024).nullable()
+  }),
+  autoSave: Yup.object({
+    enabled: Yup.boolean(),
+    interval: Yup.number().min(100)
   })
 });
 

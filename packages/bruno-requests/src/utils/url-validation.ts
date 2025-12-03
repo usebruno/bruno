@@ -64,4 +64,4 @@ const isPotentiallyTrustworthyOrigin = (urlString: string): boolean => {
   return isLocalHostname(hostname);
 };
 
-export { isPotentiallyTrustworthyOrigin }; 
+export { isPotentiallyTrustworthyOrigin };

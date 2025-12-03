@@ -83,11 +83,11 @@ const template = [
             width: 350,
             height: 250,
             webPreferences: {
-              nodeIntegration: true,
-            },
+              nodeIntegration: true
+            }
           });
           aboutWindow.removeMenu();
-          aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({version}))}`);
+          aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({ version }))}`);
         }
       },
       { label: 'Documentation', click: () => ipcMain.emit('main:open-docs') }

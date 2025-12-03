@@ -43,16 +43,16 @@ const ApiKeyAuth = ({ collection }) => {
   };
 
   useEffect(() => {
-    !apikeyAuth?.placement &&
-      dispatch(
-        updateCollectionAuth({
-          mode: 'apikey',
-          collectionUid: collection.uid,
-          content: {
-            placement: 'header'
-          }
-        })
-      );
+    !apikeyAuth?.placement
+    && dispatch(
+      updateCollectionAuth({
+        mode: 'apikey',
+        collectionUid: collection.uid,
+        content: {
+          placement: 'header'
+        }
+      })
+    );
   }, [apikeyAuth]);
 
   return (

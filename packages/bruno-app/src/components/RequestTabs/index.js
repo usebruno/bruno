@@ -24,7 +24,7 @@ const RequestTabs = () => {
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
-      active: tab.uid === activeTabUid,
+      'active': tab.uid === activeTabUid,
       'last-tab': tabs && tabs.length && index === tabs.length - 1
     });
   };

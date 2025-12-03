@@ -803,4 +803,4 @@ describe('Send Request Translation', () => {
       `);
     });
   });
-}); 
+});

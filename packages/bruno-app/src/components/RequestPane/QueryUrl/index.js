@@ -33,7 +33,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     setMethodSelectorWidth(el.offsetWidth);
   }, [method]);
 
-  const onSave = (finalValue) => {
+  const onSave = () => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 

@@ -118,6 +118,7 @@ const lightTheme = {
       item: {
         bg: colors.GRAY_2,
         hoverBg: colors.GRAY_2,
+        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
         indentBorder: `solid 1px ${colors.GRAY_3}`,
         active: {
           indentBorder: `solid 1px ${colors.GRAY_3}`
@@ -149,6 +150,39 @@ const lightTheme = {
     primaryText: '#343434',
     secondaryText: '#6B7280',
     headingText: '#343434'
+  },
+
+  listItem: {
+    hoverBg: '#e7e7e7',
+    activeBg: '#dcdcdc'
+  },
+
+  workspace: {
+    accent: '#D97706',
+    border: '#e7e7e7',
+    borderMuted: '#f3f3f3',
+    card: {
+      bg: '#fff'
+    },
+    button: {
+      bg: '#f3f3f3'
+    },
+    collection: {
+      header: {
+        indentBorder: 'solid 1px #efefef'
+      },
+      item: {
+        indentBorder: 'solid 1px #f9f9f9'
+      }
+    },
+    environments: {
+      bg: '#fbfbfb',
+      indentBorder: 'solid 1px #efefef',
+      activeBg: '#eeeeee',
+      search: {
+        bg: '#fff'
+      }
+    }
   },
 
   request: {
@@ -553,6 +587,12 @@ const lightTheme = {
     border: 'rgba(217, 31, 17, 0.1)',
     icon: '#D91F11',
     text: '#343434'
+  },
+
+  preferences: {
+    sidebar: {
+      border: '#EFEFEF'
+    }
   },
 
   examples: {
