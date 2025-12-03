@@ -60,6 +60,7 @@ const contentSecurityPolicy = [
   "connect-src 'self' https://*.posthog.com",
   "font-src 'self' https: data:;",
   "frame-src data:",
+  'script-src \'self\' \'unsafe-inline\' data:',
   // this has been commented out to make oauth2 work
   // "form-action 'none'",
   // we make an exception and allow http for images so that
