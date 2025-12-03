@@ -315,7 +315,7 @@ const Collection = ({ collection, searchText }) => {
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowNewRequestModal(true);
               }}
@@ -325,7 +325,6 @@ const Collection = ({ collection, searchText }) => {
               </span>
               New Request
             </div>
-
             <div
               className="dropdown-item"
               onClick={(_e) => {

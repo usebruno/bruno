@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef } from 'react';
+import React, { useState, useRef } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
@@ -11,7 +11,6 @@ import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateUntitledRequest from 'components/CreateUntitledRequest';
-import { IconPlus } from '@tabler/icons';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -50,14 +49,6 @@ const RequestTabs = () => {
 
   const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
-
-  const PlusIcon = forwardRef((props, ref) => (
-    <div ref={ref}>
-      <IconPlus size={18} strokeWidth={1.5} style={{ cursor: 'pointer' }} />
-    </div>
-  ));
-  
-  PlusIcon.displayName = 'PlusIcon';
 
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
   const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
@@ -156,7 +147,6 @@ const RequestTabs = () => {
                   <CreateUntitledRequest
                     collectionUid={activeCollection.uid}
                     itemUid={null}
-                    icon={<PlusIcon />}
                     placement="bottom-start"
                   />
                 )}

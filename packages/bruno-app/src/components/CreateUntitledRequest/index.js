@@ -5,9 +5,9 @@ import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxSto
 import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
-import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
+import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode, IconPlus } from '@tabler/icons';
 
-const CreateUntitledRequest = ({ collectionUid, itemUid = null, icon = null, onRequestCreated, placement = 'bottom' }) => {
+const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated, placement = 'bottom' }) => {
   const dispatch = useDispatch();
   const collections = useSelector((state) => state.collections.collections);
   const collection = collections?.find((c) => c.uid === collectionUid);
@@ -117,7 +117,7 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, icon = null, onR
 
 
   return (
-    <Dropdown onCreate={onDropdownCreate} icon={icon} placement={placement}>
+    <Dropdown onCreate={onDropdownCreate} icon={<IconPlus size={16} strokeWidth={2} />} placement={placement}>
       <div
         className="dropdown-item"
         onClick={(e) => {
