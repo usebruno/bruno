@@ -1,6 +1,6 @@
-import { T_RunnerResults } from "../../types";
-import { isHtmlContentType, getContentType, redactImageData, encodeBase64 } from "../../utils";
-import htmlTemplateString from "./template";
+import { T_RunnerResults } from '../../types';
+import { isHtmlContentType, getContentType, redactImageData, encodeBase64 } from '../../utils';
+import htmlTemplateString from './template';
 
 const generateHtmlReport = ({
   runnerResults,
@@ -32,10 +32,10 @@ const generateHtmlReport = ({
             data: response?.data ? redactImageData(response?.data, responseContentType) : response?.data,
             isHtml: isHtmlContentType(responseContentType)
           }
-        }
+        };
       }),
       summary
-    }
+    };
   });
   const htmlString = htmlTemplateString(encodeBase64(JSON.stringify({
     results: resultsWithSummaryAndCleanData,
@@ -46,4 +46,4 @@ const generateHtmlReport = ({
   return htmlString;
 };
 
-export { generateHtmlReport }
+export { generateHtmlReport };

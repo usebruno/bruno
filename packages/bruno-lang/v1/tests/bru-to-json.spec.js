@@ -82,8 +82,8 @@ describe('bruToJson', () => {
             }
           ]
         },
-        script: "const foo='bar';",
-        tests: "bruno.test('200 ok', () => {});"
+        script: 'const foo=\'bar\';',
+        tests: 'bruno.test(\'200 ok\', () => {});'
       }
     });
   });

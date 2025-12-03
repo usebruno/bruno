@@ -1,9 +1,9 @@
-import React from "react";
+import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { IconBox, IconFolder, IconWorld, IconApi, IconShare } from '@tabler/icons';
-import { areItemsLoading, getItemsLoadStats } from "utils/collections/index";
-import { useState } from "react";
-import ShareCollection from "components/ShareCollection/index";
+import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
+import { useState } from 'react';
+import ShareCollection from 'components/ShareCollection/index';
 
 const Info = ({ collection }) => {
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
@@ -11,10 +11,10 @@ const Info = ({ collection }) => {
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
-  
+
   const handleToggleShowShareCollectionModal = (value) => (e) => {
     toggleShowShareCollectionModal(value);
-  }
+  };
 
   return (
     <div className="w-full flex flex-col h-fit">
@@ -55,7 +55,7 @@ const Info = ({ collection }) => {
               <div className="font-medium">Requests</div>
               <div className="mt-1 text-muted text-xs">
                 {
-                  isCollectionLoading? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
+                  isCollectionLoading ? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
                 }
               </div>
             </div>

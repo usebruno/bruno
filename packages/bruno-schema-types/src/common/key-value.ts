@@ -10,4 +10,3 @@ export interface KeyValue {
   description?: string | null;
   enabled?: boolean;
 }
-

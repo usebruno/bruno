@@ -13,7 +13,7 @@ const pathFoundInVariables = (path, obj) => {
  * Defines a custom CodeMirror mode for Bruno variables highlighting.
  * This function creates a specialized mode that can highlight both Bruno template
  * variables (in the format {{variable}}) and URL path parameters (in the format /:param).
- * 
+ *
  * @param {Object} _variables - The variables object containing data to validate against
  * @param {string} mode - The base CodeMirror mode to extend (e.g., 'javascript', 'application/json')
  * @param {boolean} highlightPathParams - Whether to highlight URL path parameters

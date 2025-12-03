@@ -2,7 +2,6 @@ import * as FileSaver from 'file-saver';
 import { brunoToPostman } from '@usebruno/converters';
 
 export const exportCollection = (collection) => {
-
   const collectionToExport = brunoToPostman(collection);
 
   const fileName = `${collection.name}.json`;

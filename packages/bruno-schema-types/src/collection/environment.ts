@@ -16,4 +16,3 @@ export interface Environment {
 }
 
 export type Environments = Environment[];
-

@@ -1,8 +1,8 @@
-import StyledWrapper from "./StyledWrapper";
-import Docs from "../Docs";
-import Info from "./Info";
+import StyledWrapper from './StyledWrapper';
+import Docs from '../Docs';
+import Info from './Info';
 import { IconBox } from '@tabler/icons';
-import RequestsNotLoaded from "./RequestsNotLoaded";
+import RequestsNotLoaded from './RequestsNotLoaded';
 
 const Overview = ({ collection }) => {
   return (
@@ -22,6 +22,6 @@ const Overview = ({ collection }) => {
       </div>
     </div>
   );
-}
+};
 
 export default Overview;

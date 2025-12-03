@@ -19,7 +19,7 @@ function getContentType(headers = {}) {
 }
 
 function repr(value, isKey) {
-  return isKey ? "'" + jsesc(value, { quotes: 'single' }) + "'" : value;
+  return isKey ? '\'' + jsesc(value, { quotes: 'single' }) + '\'' : value;
 }
 
 /**
@@ -92,7 +92,7 @@ function getFilesString(request) {
       {
         filePath: repr(filePath),
         contentType: request.headers['Content-Type'],
-        selected: true,
+        selected: true
       }
     ];
 

@@ -8,7 +8,7 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
   const dispatch = useDispatch();
   const collections = useSelector((state) => state.collections.collections);
   const collection = cloneDeep(find(collections, (c) => c.uid === collectionUid));
-  
+
   // tags for the collection run
   const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
 
@@ -17,7 +17,7 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
 
   // all available tags in the collection that can be used for filtering
   const availableTags = get(collection, 'allTags', []);
-  const tagsHintList = availableTags.filter(t => !tags.exclude.includes(t) && !tags.include.includes(t));
+  const tagsHintList = availableTags.filter((t) => !tags.exclude.includes(t) && !tags.include.includes(t));
 
   useEffect(() => {
     dispatch(updateCollectionTagsList({ collectionUid }));
@@ -34,7 +34,7 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
     if (tags.exclude.includes(trimmedTag)) {
       return 'tag is present in the exclude list!';
     }
-  }
+  };
 
   const handleAddTag = ({ tag, to }) => {
     const trimmedTag = tag.trim();
@@ -105,8 +105,8 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
             <span>Included tags:</span>
             <TagList
               tags={tags.include}
-              handleAddTag={tag => handleAddTag({ tag, to: 'include' })}
-              handleRemoveTag={tag => handleRemoveTag({ tag, from: 'include' })}
+              handleAddTag={(tag) => handleAddTag({ tag, to: 'include' })}
+              handleRemoveTag={(tag) => handleRemoveTag({ tag, from: 'include' })}
               tagsHintList={tagsHintList}
               handleValidation={handleValidation}
             />
@@ -115,8 +115,8 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
             <span>Excluded tags:</span>
             <TagList
               tags={tags.exclude}
-              handleAddTag={tag => handleAddTag({ tag, to: 'exclude' })}
-              handleRemoveTag={tag => handleRemoveTag({ tag, from: 'exclude' })}
+              handleAddTag={(tag) => handleAddTag({ tag, to: 'exclude' })}
+              handleRemoveTag={(tag) => handleRemoveTag({ tag, from: 'exclude' })}
               tagsHintList={tagsHintList}
               handleValidation={handleValidation}
             />
@@ -124,7 +124,7 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
 export default RunnerTags;

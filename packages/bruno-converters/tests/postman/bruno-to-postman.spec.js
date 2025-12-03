@@ -1,10 +1,10 @@
-import { sanitizeUrl, transformUrl, brunoToPostman } from "../../src/postman/bruno-to-postman";
+import { sanitizeUrl, transformUrl, brunoToPostman } from '../../src/postman/bruno-to-postman';
 
 describe('transformUrl', () => {
   it('should handle basic URL with path variables', () => {
     const url = 'https://example.com/{{username}}/api/resource/:id';
     const params = [
-      { name: 'id', value: '123', type: 'path' },
+      { name: 'id', value: '123', type: 'path' }
     ];
 
     const result = transformUrl(url, params);
@@ -16,7 +16,7 @@ describe('transformUrl', () => {
       path: ['{{username}}', 'api', 'resource', ':id'],
       query: [],
       variable: [
-        { key: 'id', value: '123' },
+        { key: 'id', value: '123' }
       ]
     });
   });

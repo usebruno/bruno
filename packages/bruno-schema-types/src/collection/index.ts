@@ -19,4 +19,3 @@ export type {
   WebSocketItemSettings
 } from './item';
 export type { Collection, RunnerResult } from './collection';
-

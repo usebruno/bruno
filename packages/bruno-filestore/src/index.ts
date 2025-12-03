@@ -130,7 +130,6 @@ export const stringifyEnvironment = (envObj: BrunoEnvironment, options: Stringif
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
-
 export const parseDotEnv = (content: string): Record<string, string> => {
   return dotenvToJson(content);
 };

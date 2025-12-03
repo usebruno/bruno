@@ -57,7 +57,7 @@ const Collection = ({ collection, searchText }) => {
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
-  
+
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const menuDropdownTippyRef = useRef();
@@ -81,7 +81,7 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const ensureCollectionIsMounted = () => {
-    if(collection.mountStatus === 'mounted'){
+    if (collection.mountStatus === 'mounted') {
       return;
     }
     dispatch(mountCollection({
@@ -89,7 +89,7 @@ const Collection = ({ collection, searchText }) => {
       collectionPathname: collection.pathname,
       brunoConfig: collection.brunoConfig
     }));
-  }
+  };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
   const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
@@ -103,27 +103,27 @@ const Collection = ({ collection, searchText }) => {
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
-    
+
     ensureCollectionIsMounted();
 
-    if(collection.collapsed) {
+    if (collection.collapsed) {
       dispatch(toggleCollection(collection.uid));
     }
-  
-    if(!isChevronClick) {
+
+    if (!isChevronClick) {
       dispatch(hideHomePage()); // @TODO Playwright tests are often stuck on home page, rather than collection settings tab. Revisit for a proper fix.
       dispatch(
         addTab({
           uid: collection.uid,
           collectionUid: collection.uid,
-          type: 'collection-settings',
+          type: 'collection-settings'
         })
       );
     }
   };
 
   const handleDoubleClick = (_event) => {
-    dispatch(makeTabPermanent({ uid: collection.uid }))
+    dispatch(makeTabPermanent({ uid: collection.uid }));
   };
 
   const handleCollectionCollapse = (e) => {
@@ -131,7 +131,7 @@ const Collection = ({ collection, searchText }) => {
     e.preventDefault();
     ensureCollectionIsMounted();
     dispatch(toggleCollection(collection.uid));
-  }
+  };
 
   // prevent the parent's double-click handler from firing
   const handleCollectionDoubleClick = (e) => {
@@ -201,18 +201,18 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    type: "collection",
+    type: 'collection',
     item: collection,
     collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
+      isDragging: monitor.isDragging()
     }),
     options: {
-      dropEffect: "move"
+      dropEffect: 'move'
     }
   });
-  
+
   const [{ isOver }, drop] = useDrop({
-    accept: ["collection", "collection-item"],
+    accept: ['collection', 'collection-item'],
     hover: (_draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
@@ -226,9 +226,9 @@ const Collection = ({ collection, searchText }) => {
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }))
+        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
       } else {
-        dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
+        dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));
       }
       setDropType(null);
     },
@@ -236,8 +236,8 @@ const Collection = ({ collection, searchText }) => {
       return draggedItem.uid !== collection.uid;
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
+      isOver: monitor.isOver()
+    })
   });
 
   useEffect(() => {
@@ -255,7 +255,7 @@ const Collection = ({ collection, searchText }) => {
     'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
     'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
     'collection-keyboard-focused': isKeyboardFocused
-    });
+  });
 
   // we need to sort request items by seq property
   const sortItemsBySequence = (items = []) => {
@@ -282,7 +282,8 @@ const Collection = ({ collection, searchText }) => {
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
       <CollectionItemDragPreview />
-      <div className={collectionRowClassName}
+      <div
+        className={collectionRowClassName}
         ref={(node) => {
           collectionRef.current = node;
           drag(drop(node));

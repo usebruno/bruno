@@ -24,4 +24,3 @@ export type {
 } from './websocket';
 
 export type Request = HttpRequest | GrpcRequest | WebSocketRequest;
-

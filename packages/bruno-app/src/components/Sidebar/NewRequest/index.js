@@ -437,7 +437,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       type="text"
                       name="filename"
                       placeholder="File Name"
-                      className={`!pr-10 block textbox mt-2 w-full`}
+                      className="!pr-10 block textbox mt-2 w-full"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -537,7 +537,8 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   value={formik.values.curlCommand}
                   onChange={handleCurlCommandChange}
                   data-testid="curl-command"
-                ></textarea>
+                >
+                </textarea>
                 {formik.touched.curlCommand && formik.errors.curlCommand ? (
                   <div className="text-red-500">{formik.errors.curlCommand}</div>
                 ) : null}

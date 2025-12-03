@@ -83,33 +83,33 @@ const Assertions = ({ item, collection }) => {
         <ReorderTable updateReorderedItem={handleAssertionDrag}>
           {assertions && assertions.length
             ? assertions.map((assertion) => {
-              return (
-                <tr key={assertion.uid} data-uid={assertion.uid}>
-                  <td className='flex relative'>
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={assertion.name}
-                      className="mousetrap"
-                      onChange={(e) => handleAssertionChange(e, assertion, 'name')}
+                return (
+                  <tr key={assertion.uid} data-uid={assertion.uid}>
+                    <td className="flex relative">
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        value={assertion.name}
+                        className="mousetrap"
+                        onChange={(e) => handleAssertionChange(e, assertion, 'name')}
+                      />
+                    </td>
+                    <AssertionRow
+                      key={assertion.uid}
+                      assertion={assertion}
+                      item={item}
+                      collection={collection}
+                      handleAssertionChange={handleAssertionChange}
+                      handleRemoveAssertion={handleRemoveAssertion}
+                      onSave={onSave}
+                      handleRun={handleRun}
                     />
-                  </td>
-                  <AssertionRow
-                    key={assertion.uid}
-                    assertion={assertion}
-                    item={item}
-                    collection={collection}
-                    handleAssertionChange={handleAssertionChange}
-                    handleRemoveAssertion={handleRemoveAssertion}
-                    onSave={onSave}
-                    handleRun={handleRun}
-                  />
-                </tr>
-              );
-            })
+                  </tr>
+                );
+              })
             : null}
         </ReorderTable>
       </Table>

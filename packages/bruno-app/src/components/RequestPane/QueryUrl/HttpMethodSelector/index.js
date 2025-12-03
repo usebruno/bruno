@@ -3,7 +3,7 @@ import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 
-const STANDARD_METHODS = Object.freeze(['GET','POST','PUT','DELETE','PATCH','OPTIONS','HEAD','TRACE','CONNECT']);
+const STANDARD_METHODS = Object.freeze(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT']);
 
 const KEY = Object.freeze({ ENTER: 'Enter', ESCAPE: 'Escape' });
 
@@ -62,7 +62,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
   const [isCustomMode, setIsCustomMode] = useState(false);
   const dropdownTippyRef = useRef();
   const inputRef = useRef();
-  
+
   const blurInput = () => inputRef.current?.blur();
 
   const handleInputChange = (e) => {
@@ -85,7 +85,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
     setIsCustomMode(true);
     onMethodSelect('');
     dropdownTippyRef.current?.hide();
-    
+
     setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
@@ -117,7 +117,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
       <div className="flex method-selector">
         <Dropdown
           onCreate={onDropdownCreate}
-          icon={
+          icon={(
             <Icon
               isCustomMode={isCustomMode}
               inputValue={method}
@@ -126,7 +126,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
               handleKeyDown={handleKeyDown}
               inputRef={inputRef}
             />
-          }
+          )}
           placement="bottom-start"
         >
           <div>
