@@ -5,6 +5,7 @@ import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxSto
 import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
+import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
 
 const CreateUntitledRequest = ({ collectionUid, itemUid = null, icon = null, onRequestCreated, placement = 'bottom' }) => {
   const dispatch = useDispatch();
@@ -117,18 +118,54 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, icon = null, onR
 
   return (
     <Dropdown onCreate={onDropdownCreate} icon={icon} placement={placement}>
-      <button className="dropdown-item w-full" onClick={handleCreateHttpRequest}>
+      <div
+        className="dropdown-item"
+        onClick={(e) => {
+          dropdownTippyRef.current.hide();
+          handleCreateHttpRequest();
+        }}
+      >
+        <span className="dropdown-icon">
+          <IconApi size={16} strokeWidth={2} />
+        </span>
         HTTP
-      </button>
-      <button className="dropdown-item w-full" onClick={handleCreateGraphQLRequest}>
+      </div>
+      <div
+        className="dropdown-item"
+        onClick={(e) => {
+          dropdownTippyRef.current.hide();
+          handleCreateGraphQLRequest();
+        }}
+      >
+        <span className="dropdown-icon">
+          <IconBrandGraphql size={16} strokeWidth={2} />
+        </span>
         GraphQL
-      </button>
-      <button className="dropdown-item w-full" onClick={handleCreateWebSocketRequest}>
+      </div>
+      <div
+        className="dropdown-item"
+        onClick={(e) => {
+          dropdownTippyRef.current.hide();
+          handleCreateWebSocketRequest();
+        }}
+      >
+        <span className="dropdown-icon">
+          <IconPlugConnected size={16} strokeWidth={2} />
+        </span>
         WebSocket
-      </button>
-      <button className="dropdown-item w-full" onClick={handleCreateGrpcRequest}>
+      </div>
+      <div
+        className="dropdown-item"
+        onClick={(e) => {
+          dropdownTippyRef.current.hide();
+          handleCreateGrpcRequest();
+        }}
+      >
+        <span className="dropdown-icon">
+          <IconCode size={16} strokeWidth={2} />
+        </span>
         gRPC
-      </button>
+      </div>
     </Dropdown>
   );
 };
