@@ -108,7 +108,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
-        className={`flex items-center justify-between tab-container px-1 ${tab.preview ? "italic" : ""}`}
+        className={`flex items-center justify-between tab-container px-1 ${tab.preview ? 'italic' : ''}`}
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
         {showConfirmCollectionClose && tab.type === 'collection-settings' && (
@@ -192,7 +192,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-
   const getMethodText = useCallback((item) => {
     if (!item) return;
 
@@ -269,7 +268,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className={`flex items-baseline tab-label pl-2 ${tab.preview ? "italic" : ""}`}
+        className={`flex items-baseline tab-label pl-2 ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {
@@ -282,7 +281,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
+        <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
           {method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>

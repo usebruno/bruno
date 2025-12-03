@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addVar, updateVar, deleteVar, moveVar } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
@@ -92,24 +92,24 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         headers={[
           { name: 'Name', accessor: 'name', width: '40%' },
           { name: varType === 'request' ? (
-              <div className="flex items-center">
-                <span>Value</span>
-              </div>
+            <div className="flex items-center">
+              <span>Value</span>
+            </div>
           ) : (
-              <div className="flex items-center">
-                <span>Expr</span>
-                <InfoTip content="You can write any valid JS expression here" infotipId="response-var" />
-              </div>
+            <div className="flex items-center">
+              <span>Expr</span>
+              <InfoTip content="You can write any valid JS expression here" infotipId="response-var" />
+            </div>
           ), accessor: 'value', width: '46%' },
           { name: '', accessor: '', width: '14%' }
         ]}
       >
         <ReorderTable updateReorderedItem={handleVarDrag}>
-        {vars && vars.length
+          {vars && vars.length
             ? vars.map((_var) => {
                 return (
                   <tr key={_var.uid} data-uid={_var.uid}>
-                    <td className='flex relative'>
+                    <td className="flex relative">
                       <input
                         type="text"
                         autoComplete="off"
@@ -122,7 +122,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MultiLineEditor
                         value={_var.value}
                         theme={storedTheme}
                         onSave={onSave}
@@ -135,8 +135,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                             },
                             _var,
                             'value'
-                          )
-                        }
+                          )}
                         onRun={handleRun}
                         collection={collection}
                         item={item}

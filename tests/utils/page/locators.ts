@@ -6,6 +6,7 @@ export const buildCommonLocators = (page: Page) => ({
     .locator('.infotip')
     .filter({ hasText: /^Save/ }),
   sidebar: {
+    collectionsContainer: () => page.getByTestId('collections'),
     collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
@@ -15,11 +16,12 @@ export const buildCommonLocators = (page: Page) => ({
       // Using .locator('..') gets the parent element of the folder's collection-item-name div.
       const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
       return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
-    }
+    },
+    closeAllCollectionsButton: () => page.getByTestId('close-all-collections-button')
   },
   actions: {
     collectionActions: (collectionName: string) =>
-      page.locator('.collection-name')
+      page.getByTestId('collections').locator('.collection-name')
         .filter({ hasText: collectionName })
         .locator('.collection-actions .icon'),
     collectionItemActions: (itemName: string) =>
@@ -40,7 +42,15 @@ export const buildCommonLocators = (page: Page) => ({
   },
   modal: {
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
-    button: (name: string) => page.getByRole('button', { name: name, exact: true })
+    byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
+    button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
+    closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button')
+  },
+  environment: {
+    selector: () => page.getByTestId('environment-selector-trigger'),
+    collectionTab: () => page.getByTestId('env-tab-collection'),
+    globalTab: () => page.getByTestId('env-tab-global'),
+    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   }
 });
 
@@ -63,5 +73,35 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
     latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
     clearResponse: () => page.getByRole('button', { name: 'Clear Response' })
+  }
+});
+
+export const getTableCell = (row, index) => row.locator('td').nth(index);
+
+export const buildGrpcCommonLocators = (page: Page) => ({
+  ...buildCommonLocators(page),
+  method: {
+    dropdownTrigger: () => page.getByTestId('grpc-method-dropdown-trigger'),
+    indicator: () => page.getByTestId('grpc-method-indicator')
+  },
+  request: {
+    queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
+    sendButton: () => page.getByTestId('grpc-send-request-button'),
+    messagesContainer: () => page.getByTestId('grpc-messages-container'),
+    addMessageButton: () => page.getByTestId('grpc-add-message-button'),
+    sendMessage: (index: number) => page.getByTestId(`grpc-send-message-${index}`),
+    endConnectionButton: () => page.getByTestId('grpc-end-connection-button'),
+    cancelConnectionButton: () => page.getByTestId('grpc-cancel-connection-button')
+  },
+  response: {
+    statusCode: () => page.getByTestId('grpc-response-status-code'),
+    statusText: () => page.getByTestId('grpc-response-status-text'),
+    content: () => page.getByTestId('grpc-response-content'),
+    container: () => page.getByTestId('grpc-responses-container'),
+    singleResponse: () => page.getByTestId('grpc-single-response'),
+    accordion: () => page.getByTestId('grpc-responses-accordion'),
+    responseItem: (index: number) => page.getByTestId(`grpc-response-item-${index}`),
+    responseItems: () => page.locator('[data-testid^="grpc-response-item-"]'),
+    tabCount: () => page.getByTestId('tab-response-count')
   }
 });

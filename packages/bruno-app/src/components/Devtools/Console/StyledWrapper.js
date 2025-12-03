@@ -37,7 +37,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
     border-radius: 4px 4px 0 0;
 
@@ -89,12 +89,12 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 8px;
     color: ${(props) => props.theme.console.titleColor};
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
 
     .log-count {
       color: ${(props) => props.theme.console.countColor};
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       font-weight: 400;
     }
   }
@@ -194,7 +194,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
 
     &:hover {
       background: ${(props) => props.theme.console.buttonHoverBg};
@@ -235,7 +235,7 @@ const StyledWrapper = styled.div`
     padding: 8px 12px;
     background: ${(props) => props.theme.console.dropdownHeaderBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
     color: ${(props) => props.theme.console.titleColor};
   }
@@ -245,7 +245,7 @@ const StyledWrapper = styled.div`
     border: none;
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 500;
     padding: 2px 4px;
     border-radius: 2px;
@@ -288,13 +288,13 @@ const StyledWrapper = styled.div`
 
   .filter-option-label {
     color: ${(props) => props.theme.console.optionLabelColor};
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 400;
   }
 
   .filter-option-count {
     color: ${(props) => props.theme.console.optionCountColor};
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 400;
     margin-left: auto;
   }
@@ -312,12 +312,12 @@ const StyledWrapper = styled.div`
 
     p {
       margin: 0;
-      font-size: 14px;
+      font-size: ${(props) => props.theme.font.size.base};
       font-weight: 500;
     }
 
     span {
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       opacity: 0.7;
     }
   }
@@ -333,7 +333,7 @@ const StyledWrapper = styled.div`
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 500;
     color: white;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -346,7 +346,7 @@ const StyledWrapper = styled.div`
     gap: 12px;
     padding: 4px 16px;
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     line-height: 1.4;
     border-left: 2px solid transparent;
     transition: background-color 0.1s ease;
@@ -431,13 +431,13 @@ const StyledWrapper = styled.div`
 
   .log-timestamp {
     color: ${(props) => props.theme.console.timestampColor};
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 400;
   }
 
   .log-level {
     font-size: 9px;
-    font-weight: 600;
+    font-weight: 500;
     padding: 2px 4px;
     border-radius: 2px;
     text-transform: uppercase;
@@ -465,7 +465,7 @@ const StyledWrapper = styled.div`
         background: transparent !important;
         
         .object-key-val {
-          font-size: 12px !important;
+          font-size: ${(props) => props.theme.font.size.sm} !important;
         }
         
         .object-key {
@@ -517,4 +517,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

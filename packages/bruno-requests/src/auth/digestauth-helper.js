@@ -23,8 +23,8 @@ function containsDigestHeader(response) {
 
 function containsAuthorizationHeader(originalRequest) {
   return Boolean(
-    originalRequest.headers['Authorization'] ||
-    originalRequest.headers['authorization']
+    originalRequest.headers['Authorization']
+    || originalRequest.headers['authorization']
   );
 }
 
@@ -53,9 +53,9 @@ export function addDigestInterceptor(axiosInstance, request) {
       originalRequest._retry = true;
 
       if (
-        error.response?.status === 401 &&
-        containsDigestHeader(error.response) &&
-        !containsAuthorizationHeader(originalRequest)
+        error.response?.status === 401
+        && containsDigestHeader(error.response)
+        && !containsAuthorizationHeader(originalRequest)
       ) {
         console.debug('Processing Digest Authentication Challenge');
         console.debug(error.response.headers['www-authenticate']);
@@ -77,7 +77,7 @@ export function addDigestInterceptor(axiosInstance, request) {
           return Promise.reject(error);
         }
 
-        console.debug("Auth Details: \n", authDetails);
+        console.debug('Auth Details: \n', authDetails);
 
         const nonceCount = '00000001';
         const cnonce = crypto.randomBytes(24).toString('hex');
@@ -113,7 +113,7 @@ export function addDigestInterceptor(axiosInstance, request) {
           `realm="${authDetails.realm}"`,
           `nonce="${authDetails.nonce}"`,
           `uri="${uri}"`,
-          `response="${response}"`,
+          `response="${response}"`
         ];
 
         if (authDetails.qop && authDetails.qop.split(',').map((q) => q.trim().toLowerCase()).includes('auth')) {

@@ -14,8 +14,8 @@ import LargeResponseWarning from '../LargeResponseWarning';
 const formatErrorMessage = (error) => {
   if (!error) return 'Something went wrong';
 
-  const remoteMethodError = "Error invoking remote method 'send-http-request':";
-  
+  const remoteMethodError = 'Error invoking remote method \'send-http-request\':';
+
   if (error?.includes(remoteMethodError)) {
     const parts = error.split(remoteMethodError);
     return parts[1]?.trim() || error;
@@ -37,7 +37,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
     if (typeof response.size === 'number') {
       return response.size;
     }
-    
+
     if (!dataBuffer) return 0;
 
     try {

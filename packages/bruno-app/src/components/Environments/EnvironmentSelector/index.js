@@ -49,15 +49,15 @@ const EnvironmentSelector = ({ collection }) => {
   };
 
   // Get description based on active tab
-  const description =
-    activeTab === 'collection'
+  const description
+    = activeTab === 'collection'
       ? 'Create your first environment to begin working with your collection.'
       : 'Create your first global environment to begin working across collections.';
 
   // Environment selection handler
   const handleEnvironmentSelect = (environment) => {
-    const action =
-      activeTab === 'collection'
+    const action
+      = activeTab === 'collection'
         ? selectEnvironment(environment ? environment.uid : null, collection.uid)
         : selectGlobalEnvironment({ environmentUid: environment ? environment.uid : null });
 

@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { 
+import {
   IconFilter,
   IconChevronDown,
-  IconNetwork,
+  IconNetwork
 } from '@tabler/icons';
-import { 
-  updateNetworkFilter, 
-  toggleAllNetworkFilters, 
+import {
+  updateNetworkFilter,
+  toggleAllNetworkFilters,
   setSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
 import StyledWrapper from './StyledWrapper';
@@ -27,8 +27,8 @@ const MethodBadge = ({ method }) => {
   };
 
   return (
-    <span 
-      className="method-badge" 
+    <span
+      className="method-badge"
       style={{ backgroundColor: getMethodColor(method) }}
     >
       {method?.toUpperCase() || 'GET'}
@@ -46,10 +46,10 @@ const StatusBadge = ({ status, statusCode }) => {
   };
 
   const displayStatus = statusCode || status;
-  
+
   return (
-    <span 
-      className="status-badge" 
+    <span
+      className="status-badge"
       style={{ color: getStatusColor(statusCode) }}
     >
       {displayStatus}
@@ -61,7 +61,7 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const allFiltersEnabled = Object.values(filters).every(f => f);
+  const allFiltersEnabled = Object.values(filters).every((f) => f);
   const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
   useEffect(() => {
@@ -77,7 +77,7 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
 
   return (
     <div className="filter-dropdown" ref={dropdownRef}>
-      <button 
+      <button
         className="filter-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
         title="Filter requests by method"
@@ -88,21 +88,21 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
         </span>
         <IconChevronDown size={14} strokeWidth={1.5} />
       </button>
-      
+
       {isOpen && (
-        <div className={`filter-dropdown-menu right`}>
+        <div className="filter-dropdown-menu right">
           <div className="filter-dropdown-header">
             <span>Filter by Method</span>
-            <button 
+            <button
               className="filter-toggle-all"
               onClick={() => onToggleAll(!allFiltersEnabled)}
             >
               {allFiltersEnabled ? 'Hide All' : 'Show All'}
             </button>
           </div>
-          
+
           <div className="filter-dropdown-options">
-            {Object.keys(filters).map(method => (
+            {Object.keys(filters).map((method) => (
               <label key={method} className="filter-option">
                 <input
                   type="checkbox"
@@ -126,13 +126,13 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
 const RequestRow = ({ request, isSelected, onClick }) => {
   const { data } = request;
   const { request: req, response: res, timestamp } = data;
-  
+
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { 
-      hour12: false, 
-      hour: '2-digit', 
-      minute: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
       second: '2-digit',
       fractionalSecondDigits: 3
     });
@@ -174,34 +174,34 @@ const RequestRow = ({ request, isSelected, onClick }) => {
   };
 
   return (
-    <div 
+    <div
       className={`request-row ${isSelected ? 'selected' : ''}`}
       onClick={onClick}
     >
       <div className="request-method">
         <MethodBadge method={req?.method} />
       </div>
-      
+
       <div className="request-status">
         <StatusBadge status={res?.status} statusCode={res?.statusCode} />
       </div>
-      
+
       <div className="request-domain" title={getDomain()}>
         {getDomain()}
       </div>
-      
+
       <div className="request-path" title={getPath()}>
         {getPath()}
       </div>
-      
+
       <div className="request-time">
         {formatTime(timestamp)}
       </div>
-      
+
       <div className="request-duration">
         {formatDuration(res?.duration)}
       </div>
-      
+
       <div className="request-size">
         {formatSize(res?.size)}
       </div>
@@ -211,17 +211,17 @@ const RequestRow = ({ request, isSelected, onClick }) => {
 
 const NetworkTab = () => {
   const dispatch = useDispatch();
-  const { networkFilters, selectedRequest } = useSelector(state => state.logs);
-  const collections = useSelector(state => state.collections.collections);
+  const { networkFilters, selectedRequest } = useSelector((state) => state.logs);
+  const collections = useSelector((state) => state.collections.collections);
 
   const allRequests = useMemo(() => {
     const requests = [];
-    
-    collections.forEach(collection => {
+
+    collections.forEach((collection) => {
       if (collection.timeline) {
         collection.timeline
-          .filter(entry => entry.type === 'request')
-          .forEach(entry => {
+          .filter((entry) => entry.type === 'request')
+          .forEach((entry) => {
             requests.push({
               ...entry,
               collectionName: collection.name,
@@ -230,12 +230,12 @@ const NetworkTab = () => {
           });
       }
     });
-    
+
     return requests.sort((a, b) => a.timestamp - b.timestamp);
   }, [collections]);
 
   const filteredRequests = useMemo(() => {
-    return allRequests.filter(request => {
+    return allRequests.filter((request) => {
       const method = request.data?.request?.method?.toUpperCase() || 'GET';
       return networkFilters[method];
     });
@@ -281,7 +281,7 @@ const NetworkTab = () => {
               <div className="text-right">Duration</div>
               <div className="text-right">Size</div>
             </div>
-            
+
             <div className="requests-list">
               {filteredRequests.map((request, index) => (
                 <RequestRow
@@ -299,4 +299,4 @@ const NetworkTab = () => {
   );
 };
 
-export default NetworkTab; 
+export default NetworkTab;

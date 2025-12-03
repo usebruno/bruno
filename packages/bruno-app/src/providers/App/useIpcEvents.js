@@ -15,11 +15,14 @@ import {
   collectionUnlinkEnvFileEvent,
   collectionUnlinkFileEvent,
   processEnvUpdateEvent,
+  requestCancelled,
   runFolderEvent,
   runRequestEvent,
-  scriptEnvironmentUpdateEvent
+  scriptEnvironmentUpdateEvent,
+  streamDataReceived
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { workspaceOpenedEvent, workspaceConfigUpdatedEvent } from 'providers/ReduxStore/slices/workspaces/actions';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -96,6 +99,68 @@ const useIpcEvents = () => {
       dispatch(openCollectionEvent(uid, pathname, brunoConfig));
     });
 
+    const removeOpenWorkspaceListener = ipcRenderer.on('main:workspace-opened', (workspacePath, workspaceUid, workspaceConfig) => {
+      dispatch(workspaceOpenedEvent(workspacePath, workspaceUid, workspaceConfig));
+    });
+
+    const removeWorkspaceConfigUpdatedListener = ipcRenderer.on('main:workspace-config-updated', (workspacePath, workspaceUid, workspaceConfig) => {
+      dispatch(workspaceConfigUpdatedEvent(workspacePath, workspaceUid, workspaceConfig));
+    });
+
+    const removeWorkspaceEnvironmentAddedListener = ipcRenderer.on('main:workspace-environment-added', (workspaceUid, file) => {
+      const state = window.__store__.getState();
+      const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
+      if (activeWorkspaceUid === workspaceUid) {
+        const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
+        if (workspace) {
+          ipcRenderer.invoke('renderer:get-global-environments', {
+            workspaceUid,
+            workspacePath: workspace.pathname
+          }).then((result) => {
+            dispatch(updateGlobalEnvironments(result));
+          }).catch((error) => {
+            console.error('Error refreshing global environments:', error);
+          });
+        }
+      }
+    });
+
+    const removeWorkspaceEnvironmentChangedListener = ipcRenderer.on('main:workspace-environment-changed', (workspaceUid, file) => {
+      const state = window.__store__.getState();
+      const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
+      if (activeWorkspaceUid === workspaceUid) {
+        const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
+        if (workspace) {
+          ipcRenderer.invoke('renderer:get-global-environments', {
+            workspaceUid,
+            workspacePath: workspace.pathname
+          }).then((result) => {
+            dispatch(updateGlobalEnvironments(result));
+          }).catch((error) => {
+            console.error('Error refreshing global environments:', error);
+          });
+        }
+      }
+    });
+
+    const removeWorkspaceEnvironmentDeletedListener = ipcRenderer.on('main:workspace-environment-deleted', (workspaceUid, environmentUid) => {
+      const state = window.__store__.getState();
+      const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
+      if (activeWorkspaceUid === workspaceUid) {
+        const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
+        if (workspace) {
+          ipcRenderer.invoke('renderer:get-global-environments', {
+            workspaceUid,
+            workspacePath: workspace.pathname
+          }).then((result) => {
+            dispatch(updateGlobalEnvironments(result));
+          }).catch((error) => {
+            console.error('Error refreshing global environments:', error);
+          });
+        }
+      }
+    });
+
     const removeCollectionAlreadyOpenedListener = ipcRenderer.on('main:collection-already-opened', (pathname) => {
       toast.success('Collection is already opened');
     });
@@ -137,8 +202,8 @@ const useIpcEvents = () => {
       dispatch(processEnvUpdateEvent(val));
     });
 
-    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => { 
-      console[val.type](...val.args);    
+    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
+      console[val.type](...val.args);
       dispatch(addLog({
         type: val.type,
         args: val.args,
@@ -188,6 +253,14 @@ const useIpcEvents = () => {
       dispatch(collectionAddOauth2CredentialsByUrl(payload));
     });
 
+    const removeHttpStreamNewDataListener = ipcRenderer.on('main:http-stream-new-data', (val) => {
+      dispatch(streamDataReceived(val));
+    });
+
+    const removeHttpStreamEndListener = ipcRenderer.on('main:http-stream-end', (val) => {
+      dispatch(requestCancelled(val));
+    });
+
     const removeCollectionLoadingStateListener = ipcRenderer.on('main:collection-loading-state-updated', (val) => {
       dispatch(updateCollectionLoadingState(val));
     });
@@ -195,6 +268,11 @@ const useIpcEvents = () => {
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
+      removeOpenWorkspaceListener();
+      removeWorkspaceConfigUpdatedListener();
+      removeWorkspaceEnvironmentAddedListener();
+      removeWorkspaceEnvironmentChangedListener();
+      removeWorkspaceEnvironmentDeletedListener();
       removeCollectionAlreadyOpenedListener();
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
@@ -212,6 +290,8 @@ const useIpcEvents = () => {
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
+      removeHttpStreamNewDataListener();
+      removeHttpStreamEndListener();
       removeCollectionLoadingStateListener();
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();

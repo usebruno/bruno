@@ -1,5 +1,5 @@
-import { makeGenericClientConstructor, ChannelCredentials, Metadata } from '@grpc/grpc-js';
-import * as grpcReflection from 'grpc-reflection-js';
+import { makeGenericClientConstructor, ChannelCredentials, Metadata, status, credentials, CallCredentials } from '@grpc/grpc-js';
+import { GrpcReflection } from 'grpc-js-reflection-client';
 import * as protoLoader from '@grpc/proto-loader';
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
 import * as tls from 'tls';
@@ -34,6 +34,8 @@ const configOptions = {
   json: true
 };
 
+const reflectionServices = ['grpc.reflection.v1alpha.ServerReflection', 'grpc.reflection.v1.ServerReflection'];
+
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
     return '';
@@ -64,7 +66,7 @@ const safeJsonParse = (jsonString, context = 'JSON string') => {
     console.error(errorMessage, { originalString: jsonString, parseError: error });
     throw new Error(errorMessage);
   }
-}
+};
 
 const processGrpcMetadata = (metadata) => {
   return Object.entries(metadata).map(([name, value]) => {
@@ -90,16 +92,16 @@ const processGrpcMetadata = (metadata) => {
 
 const getParsedGrpcUrlObject = (url) => {
   const isUnixSocket = (str) => str.startsWith('unix:');
-  //const isXdsUrl = str => str.startsWith('xds:');
+  // const isXdsUrl = str => str.startsWith('xds:');
   // By default, secure protocol grpcs is set if not specified, localhost is set to insecure (grpc://)
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
-    
+
     // For localhost, default to insecure (grpc://) for local development
     if (str.includes('localhost') || str.includes('127.0.0.1')) {
       return `grpc://${str}`;
     }
-    
+
     // For other hosts, default to secure
     return `grpcs://${str}`;
   };
@@ -173,6 +175,51 @@ class GrpcClient {
   }
 
   /**
+   * Creates call options from metadata for gRPC calls
+   * @param {grpc.Metadata} metadata - metadata to be sent with calls
+   * @returns {Object} callOptions object with credentials if metadata is provided
+   */
+  #createCallOptions(metadata) {
+    if (metadata && Object.keys(metadata.getMap()).length > 0) {
+      // Create CallCredentials from metadata generator
+      const callCredentials = CallCredentials.createFromMetadataGenerator((options, callback) => {
+        callback(null, metadata);
+      });
+      return { credentials: callCredentials };
+    }
+    return {};
+  }
+
+  /**
+   * Creates a reflection client that works for v1, v1alpha, or both.
+   *
+   * @param {string} host - host:port of the gRPC server
+   * @param {grpc.ChannelCredentials} credentials - defaults to insecure
+   * @param {grpc.Metadata} metadata - metadata to be sent with reflection calls (used for insecure connections where credentials can't include metadata)
+   * @param {grpc.ChannelOptions} options - channel options
+   * @returns {Promise<{ client: GrpcReflection, services: string[], callOptions: Object }>}
+   */
+  async #getReflectionClient(host, credentials = ChannelCredentials.createInsecure(), metadata = null, options = {}) {
+    const makeClient = (version) => new GrpcReflection(host, credentials, options, version);
+    const callOptions = this.#createCallOptions(metadata);
+
+    let client;
+    let services;
+
+    try {
+      client = makeClient('v1');
+      services = await client.listServices('*', callOptions);
+      return { client, services, callOptions };
+    } catch (e) {
+      console.warn(`gRPC reflection v1 failed:`, e);
+    }
+
+    client = makeClient('v1alpha');
+    services = await client.listServices('*', callOptions);
+    return { client, services, callOptions };
+  }
+
+  /**
    * Get method type based on streaming configuration
    */
   #getMethodType({ requestStream, responseStream }) {
@@ -241,9 +288,7 @@ class GrpcClient {
         return ChannelCredentials.createFromSecureContext(secureContext, sslOptions);
       }
 
-      const credentials = ChannelCredentials.createSsl(rootCertBuffer, privateKeyBuffer, clientCertBuffer, sslOptions);
-
-      return credentials;
+      return ChannelCredentials.createSsl(rootCertBuffer, privateKeyBuffer, clientCertBuffer, sslOptions);
     } catch (error) {
       console.error('Error creating channel credentials:', error);
       // Default to insecure as fallback
@@ -446,9 +491,8 @@ class GrpcClient {
     try {
       method = this.#getMethodFromPath(methodPath);
     } catch (error) {
-
       /* Attempt to refresh methods as fallback
-      * In an ideal case, the stored metadata from local storage should be received from the client side, 
+      * In an ideal case, the stored metadata from local storage should be received from the client side,
       * however, this approach causes serialization failure as the method definition loses its requestSerialize function while saving to local storage
       * so we are using reflection as a fallback
       */
@@ -491,8 +535,8 @@ class GrpcClient {
       messages = messages.map(({ content }) => safeJsonParse(content, 'message content'));
     } catch (parseError) {
       console.error('Failed to parse gRPC message content:', parseError);
-      this.eventCallback('grpc:error', request.uid, collection.uid, { 
-        error: parseError 
+      this.eventCallback('grpc:error', request.uid, collection.uid, {
+        error: parseError
       });
       return; // Exit early to prevent sending invalid data
     }
@@ -527,7 +571,7 @@ class GrpcClient {
 
     if (connection) {
       let parsedBody;
-      
+
       // Parse the body if it's a string, with error handling
       if (typeof body === 'string') {
         try {
@@ -535,8 +579,8 @@ class GrpcClient {
         } catch (parseError) {
           // Log the error and notify the client
           console.error('Failed to parse message body:', parseError);
-          this.eventCallback('grpc:error', requestId, collectionUid, { 
-            error: parseError 
+          this.eventCallback('grpc:error', requestId, collectionUid, {
+            error: parseError
           });
           return; // Exit early to prevent sending invalid data
         }
@@ -566,6 +610,11 @@ class GrpcClient {
     verifyOptions,
     sendEvent
   }) {
+    const { host, path } = getParsedGrpcUrlObject(request.url);
+    const metadata = new Metadata();
+    Object.entries(request.headers).forEach(([name, value]) => {
+      metadata.add(name, value);
+    });
     const credentials = this.#getChannelCredentials({
       url: request.url,
       rootCertificate,
@@ -575,38 +624,31 @@ class GrpcClient {
       pfx,
       verifyOptions
     });
-    const { host, path } = getParsedGrpcUrlObject(request.url);
-    const metadata = new Metadata();
-    Object.entries(request.headers).forEach(([name, value]) => {
-      metadata.add(name, value);
-    });
 
     try {
-      const client = new grpcReflection.Client(host, credentials, {}, metadata);
+      const { client, services, callOptions } = await this.#getReflectionClient(host, credentials, metadata, {});
 
-      const declarations = await client.listServices();
-      const methods = await Promise.all(
-        declarations.map(async (declaration) => {
-          const fileContainingSymbol = await client.fileContainingSymbol(declaration);
-          const descriptor = fileContainingSymbol.toDescriptor('proto3');
-          const protoDefinition = protoLoader.loadFileDescriptorSetFromObject(descriptor, configOptions);
+      const methods = [];
+      for (const service of services) {
+        if (reflectionServices.includes(service)) {
+          continue;
+        }
+        const m = await client.listMethods(service, callOptions);
+        methods.push(...m);
+      }
 
-          const serviceDefinition = protoDefinition[declaration];
-          if (!!serviceDefinition?.format) {
-            return [];
-          }
-          const methods = Object.values(serviceDefinition);
-          methods.forEach((method) => {
-            this.methods.set(method.path, method);
-          });
-          return methods;
-        })
-      );
-
-      const methodsWithType = methods.flat().map((method) => ({
-        ...method,
-        type: this.#getMethodType(method)
-      }));
+      const methodsWithType = methods.map((method) => {
+        const { definition, ...rest } = method;
+        const modifiedMethod = {
+          ...rest,
+          ...definition
+        };
+        modifiedMethod.type = this.#getMethodType(modifiedMethod);
+        return modifiedMethod;
+      });
+      methodsWithType.forEach((method) => {
+        this.methods.set(method.path, method);
+      });
       return methodsWithType;
     } catch (error) {
       console.error('Error in gRPC reflection:', error);
@@ -615,9 +657,6 @@ class GrpcClient {
     }
   }
 
-  /**
-   * Load methods from proto file
-   */
   async loadMethodsFromProtoFile(filePath, includeDirs = []) {
     const protoDefinition = await protoLoader.load(filePath, { ...configOptions, includeDirs });
     const methods = Object.values(protoDefinition)
@@ -690,7 +729,7 @@ class GrpcClient {
   generateSampleMessage(methodPath, options = {}) {
     try {
       let method;
-      
+
       // First, try to use the methodMetadata from options if provided
       if (options.methodMetadata) {
         method = options.methodMetadata;
@@ -702,7 +741,7 @@ class GrpcClient {
             error: `Method ${methodPath} not found in cache, please refresh the methods`
           };
         }
-        
+
         // Get the method definition from cache
         method = this.methods.get(methodPath);
       }

@@ -14,7 +14,7 @@ const Tags = ({ item, collection }) => {
   const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
 
   // Filter out tags that are already associated with the current request
-  const collectionTagsWithoutCurrentRequestTags = collectionTags?.filter(tag => !tags.includes(tag)) || [];
+  const collectionTagsWithoutCurrentRequestTags = collectionTags?.filter((tag) => !tags.includes(tag)) || [];
 
   const handleAdd = useCallback((tag) => {
     const trimmedTag = tag.trim();
@@ -41,7 +41,7 @@ const Tags = ({ item, collection }) => {
 
   const handleRequestSave = () => {
     dispatch(saveRequest(item.uid, collection.uid));
-  }
+  };
 
   useEffect(() => {
     dispatch(updateCollectionTagsList({ collectionUid: collection.uid }));
@@ -49,9 +49,9 @@ const Tags = ({ item, collection }) => {
 
   return (
     <div className="flex flex-col">
-      <TagList 
+      <TagList
         tagsHintList={collectionTagsWithoutCurrentRequestTags}
-        handleAddTag={handleAdd} 
+        handleAddTag={handleAdd}
         handleRemoveTag={handleRemove}
         tags={tags}
         onSave={handleRequestSave}
@@ -60,4 +60,4 @@ const Tags = ({ item, collection }) => {
   );
 };
 
-export default Tags; 
+export default Tags;

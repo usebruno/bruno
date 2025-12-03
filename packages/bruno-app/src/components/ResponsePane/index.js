@@ -16,13 +16,15 @@ import TestResultsLabel from './TestResultsLabel';
 import ScriptError from './ScriptError';
 import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
-import ResponseSave from 'src/components/ResponsePane/ResponseSave';
-import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import ResponseActions from 'src/components/ResponsePane/ResponseActions';
 import ResponseBookmark from 'src/components/ResponsePane/ResponseBookmark';
+import ResponseCopy from 'src/components/ResponsePane/ResponseCopy';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
 import ResponseLayoutToggle from './ResponseLayoutToggle';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
+import WSMessagesList from './WsResponsePane/WSMessagesList';
 
 const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -31,7 +33,7 @@ const ResponsePane = ({ item, collection }) => {
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const requestTimeline = ([...(collection.timeline || [])]).filter(obj => {
+  const requestTimeline = ([...(collection.timeline || [])]).filter((obj) => {
     if (obj.itemUid === item.uid) return true;
   });
 
@@ -71,6 +73,10 @@ const ResponsePane = ({ item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
+        const isStream = item.response?.stream ?? false;
+        if (isStream) {
+          return <WSMessagesList order={-1} messages={item.response.data} />;
+        }
         return (
           <QueryResult
             item={item}
@@ -87,15 +93,17 @@ const ResponsePane = ({ item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item}  />;
+        return <Timeline collection={collection} item={item} />;
       }
       case 'tests': {
-        return <TestResults
-          results={item.testResults}
-          assertionResults={item.assertionResults}
-          preRequestTestResults={item.preRequestTestResults}
-          postResponseTestResults={item.postResponseTestResults}
-        />;
+        return (
+          <TestResults
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
+        );
       }
 
       default: {
@@ -177,15 +185,17 @@ const ResponsePane = ({ item, collection }) => {
               />
             )}
             <ResponseLayoutToggle />
-            {focusedTab?.responsePaneTab === "timeline" ? (
+            {focusedTab?.responsePaneTab === 'timeline' ? (
               <ClearTimeline item={item} collection={collection} />
             ) : (item?.response && !item?.response?.error) ? (
               <>
-                <ResponseClear item={item} collection={collection} />
-                <ResponseSave item={item} />
                 <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
-                <StatusCode status={response.status} />
-                <ResponseTime duration={response.duration} />
+                <ResponseCopy item={item} />
+                <ResponseActions item={item} collection={collection} />
+                <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
+                {item.response?.stream?.running
+                  ? <ResponseStopWatch startMillis={response.duration} />
+                  : <ResponseTime duration={response.duration} />}
                 <ResponseSize size={responseSize} />
               </>
             ) : null}
@@ -193,7 +203,7 @@ const ResponsePane = ({ item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col min-h-0 relative px-4 auto overflow-auto`}
+        className="flex flex-col min-h-0 relative px-4 auto overflow-auto"
         style={{
           flex: '1 1 0',
           height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'
@@ -206,9 +216,9 @@ const ResponsePane = ({ item, collection }) => {
             onClose={() => setShowScriptErrorCard(false)}
           />
         )}
-        <div className='flex-1 overflow-y-auto'>
+        <div className="flex-1 overflow-y-auto">
           {!item?.response ? (
-            focusedTab?.responsePaneTab === "timeline" && requestTimeline?.length ? (
+            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline
                 collection={collection}
                 item={item}

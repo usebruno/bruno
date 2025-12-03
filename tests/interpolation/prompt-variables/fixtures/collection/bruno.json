@@ -1,0 +1,22 @@
+{
+  "version": "1",
+  "name": "prompt-variables-interpolation",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "size": 0.0008153915405273438,
+  "filesCount": 4,
+  "clientCertificates": {
+    "enabled": true,
+    "certs": [
+      {
+        "domain": "localhost:8081",
+        "type": "pfx",
+        "pfxFilePath": "../client.pfx",
+        "passphrase": "{{?Enter Client CA Password}}"
+      }
+    ]
+  }
+}

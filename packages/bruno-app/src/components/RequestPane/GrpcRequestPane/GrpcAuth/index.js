@@ -24,7 +24,7 @@ const GrpcAuth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
-  const request = item.draft 
+  const request = item.draft
     ? get(item, 'draft.request', {})
     : get(item, 'request', {});
 
@@ -93,7 +93,7 @@ const GrpcAuth = ({ item, collection }) => {
       }
       case 'inherit': {
         const source = getEffectiveAuthSource();
-        
+
         // Only show inherited auth if it's one of the supported types
         if (source && supportedGrpcAuthModes.includes(source.auth?.mode)) {
           return (
@@ -130,4 +130,4 @@ const GrpcAuth = ({ item, collection }) => {
   );
 };
 
-export default GrpcAuth; 
+export default GrpcAuth;

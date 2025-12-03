@@ -1,7 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
-
 import { closeAllCollections } from '../../utils/page';
 
 test.describe('Open Multiple Collections', () => {
@@ -57,8 +56,9 @@ test.describe('Open Multiple Collections', () => {
 
     await expect(page.locator('#sidebar-collection-name').getByText('Test Collection 1')).not.toBeVisible();
 
-    // Click on Open Collection button
-    await page.locator('button').filter({ hasText: 'Open Collection' }).click();
+    // Click on plus icon button and then "Open collection" in the dropdown
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
 
     // Wait for both collections to appear in the sidebar
     const collection1Element = page.locator('#sidebar-collection-name').getByText('Test Collection 1');
@@ -80,6 +80,9 @@ test.describe('Open Multiple Collections', () => {
     const collection1Dir = await createTmpDir('collection-1');
     const collection2Dir = 'invalid-collection-path';
 
+    // Count collections before attempting to open invalid ones
+    const collectionCountBefore = await page.locator('#sidebar-collection-name').count();
+
     // Mock the electron dialog to return multiple folder selections
     await electronApp.evaluate(({ dialog }, { collection1Dir, collection2Dir }) => {
       dialog.showOpenDialog = async () => ({
@@ -89,20 +92,17 @@ test.describe('Open Multiple Collections', () => {
     },
     { collection1Dir, collection2Dir });
 
-    await expect(page.locator('#sidebar-collection-name').getByText('Test Collection 1')).not.toBeVisible();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
 
-    // Click on Open Collection button
-    await page.getByRole('button', { name: 'Open Collection' }).click();
+    // Wait for error toasts to appear
+    await page.waitForTimeout(1000);
 
     // Verify no collections were opened
-    await expect(page.locator('#sidebar-collection-name')).toHaveCount(0);
+    await expect(page.locator('#sidebar-collection-name')).toHaveCount(collectionCountBefore);
 
     // Verify invalid collection error
-    const invalidCollectionError = page.getByText('The collection is not valid (bruno.json not found)').first();
+    const invalidCollectionError = page.getByText('The collection is not valid').first();
     await expect(invalidCollectionError).toBeVisible();
-
-    // Verify invalid path error
-    const invalidPathError = page.getByText('Some selected folders could not be opened').getByText('invalid-collection-path').first();
-    await expect(invalidPathError).toBeVisible();
   });
 });

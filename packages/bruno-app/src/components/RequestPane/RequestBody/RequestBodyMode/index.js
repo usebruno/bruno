@@ -1,6 +1,15 @@
 import React, { useRef, forwardRef } from 'react';
 import get from 'lodash/get';
-import { IconCaretDown } from '@tabler/icons';
+import {
+  IconCaretDown,
+  IconForms,
+  IconBraces,
+  IconCode,
+  IconFileText,
+  IconDatabase,
+  IconFile,
+  IconX
+} from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { useDispatch } from 'react-redux';
 import { updateRequestBodyMode } from 'providers/ReduxStore/slices/collections';
@@ -70,81 +79,105 @@ const RequestBodyMode = ({ item, collection }) => {
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer body-mode-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-        <div className="label-item font-medium">Form</div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('multipartForm');
-          }}
-        >
-          Multipart Form
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('formUrlEncoded');
-          }}
-        >
-          Form URL Encoded
-        </div>
-        <div className="label-item font-medium">Raw</div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('json');
-          }}
-        >
-          JSON
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('xml');
-          }}
-        >
-          XML
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('text');
-          }}
-        >
-          TEXT
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('sparql');
-          }}
-        >
-          SPARQL
-        </div>
-        <div className="label-item font-medium">Other</div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('file');
-          }}
-        >
-          File / Binary
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('none');
-          }}
-        >
-          No Body
-        </div>
+          <div className="label-item">Form</div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('multipartForm');
+            }}
+          >
+            <span className="dropdown-icon">
+              <IconForms size={16} strokeWidth={2} />
+            </span>
+            Multipart Form
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('formUrlEncoded');
+            }}
+          >
+            <span className="dropdown-icon">
+              <IconForms size={16} strokeWidth={2} />
+            </span>
+            Form URL Encoded
+          </div>
+          <div className="label-item">Raw</div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('json');
+            }}
+          >
+            <span className="dropdown-icon">
+              <IconBraces size={16} strokeWidth={2} />
+            </span>
+            JSON
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('xml');
+            }}
+          >
+            <span className="dropdown-icon">
+              <IconCode size={16} strokeWidth={2} />
+            </span>
+            XML
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('text');
+            }}
+          >
+            <span className="dropdown-icon">
+              <IconFileText size={16} strokeWidth={2} />
+            </span>
+            TEXT
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('sparql');
+            }}
+          >
+            <span className="dropdown-icon">
+              <IconDatabase size={16} strokeWidth={2} />
+            </span>
+            SPARQL
+          </div>
+          <div className="label-item">Other</div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('file');
+            }}
+          >
+            <span className="dropdown-icon">
+              <IconFile size={16} strokeWidth={2} />
+            </span>
+            File / Binary
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('none');
+            }}
+          >
+            <span className="dropdown-icon">
+              <IconX size={16} strokeWidth={2} />
+            </span>
+            No Body
+          </div>
         </Dropdown>
       </div>
       {(bodyMode === 'json' || bodyMode === 'xml') && (

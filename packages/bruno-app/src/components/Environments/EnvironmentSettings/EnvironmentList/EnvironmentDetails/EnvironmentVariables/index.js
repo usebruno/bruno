@@ -25,7 +25,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   let _collection = cloneDeep(collection);
-  
+
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   _collection.globalEnvironmentVariables = globalEnvironmentVariables;
 
@@ -39,7 +39,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       return result;
     }
     const varNames = new Set(nonSecretVars.map((v) => v.name));
-    
+
     const checkSensitiveField = (obj, fieldPath) => {
       const value = get(obj, fieldPath);
       if (typeof value === 'string') {
@@ -62,7 +62,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     sensitiveFields.forEach((fieldPath) => {
       checkSensitiveField(collectionObj, fieldPath);
     });
-    
+
     const items = flattenItems(collection.items || []);
     items.forEach((item) => {
       const objToProcess = getObjectToProcess(item);
@@ -123,7 +123,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     }
     return (
       <span>
-        <IconAlertCircle id={id} className="text-red-600 cursor-pointer	" size={20} />
+        <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
         <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
       </span>
     );
@@ -160,7 +160,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
 
   useEffect(() => {
     if (formik.dirty) {
-      // Smooth scrolling to the changed parameter is temporarily disabled 
+      // Smooth scrolling to the changed parameter is temporarily disabled
       // due to UX issues when editing the first row in a long list of environment variables.
       // addButtonRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -221,6 +221,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                       value={variable.value}
                       isSecret={variable.secret}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                      enableBrunoVarInfo={false}
                     />
                   </div>
                   {!variable.secret && hasSensitiveUsage(variable.name) && (

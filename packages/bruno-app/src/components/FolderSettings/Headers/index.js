@@ -41,7 +41,8 @@ const Headers = ({ collection, folder }) => {
     const header = cloneDeep(_header);
     switch (type) {
       case 'name': {
-        header.name = e.target.value;
+        // Strip newlines from header keys
+        header.name = e.target.value.replace(/[\r\n]/g, '');
         break;
       }
       case 'value': {
@@ -120,8 +121,7 @@ const Headers = ({ collection, folder }) => {
                             },
                             header,
                             'name'
-                          )
-                        }
+                          )}
                         autocomplete={headerAutoCompleteList}
                         collection={collection}
                       />
@@ -140,8 +140,7 @@ const Headers = ({ collection, folder }) => {
                             },
                             header,
                             'value'
-                          )
-                        }
+                          )}
                         collection={collection}
                         item={folder}
                         autocomplete={MimeTypes}

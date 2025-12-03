@@ -39,7 +39,7 @@ const ClientCertSettings = ({ collection }) => {
       domain: Yup.string()
         .required()
         .trim()
-        .test('not-empty-after-trim', 'Domain is required', value => value && value.trim().length > 0),
+        .test('not-empty-after-trim', 'Domain is required', (value) => value && value.trim().length > 0),
       type: Yup.string().required().oneOf(['cert', 'pfx']),
       certFilePath: Yup.string().when('type', {
         is: (type) => type == 'cert',
@@ -146,30 +146,30 @@ const ClientCertSettings = ({ collection }) => {
     <StyledWrapper className="w-full h-full">
       <div className="text-xs mb-4 text-muted">Add client certificates to be used for specific domains.</div>
 
-      <h1 className="font-semibold">Client Certificates</h1>
+      <h1 className="font-medium">Client Certificates</h1>
       <ul className="mt-4">
         {!clientCertConfig.length
           ? 'No client certificates added'
           : clientCertConfig.map((clientCert, index) => (
-            <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
-              <div className="flex items-center w-full justify-between">
-                <div className="flex w-full items-center">
-                  <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
-                  {clientCert.domain}
-                </div>
-                <div className="flex w-full items-center">
-                  <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
-                  {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
-                </div>
+              <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
+                <div className="flex items-center w-full justify-between">
+                  <div className="flex w-full items-center">
+                    <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
+                    {clientCert.domain}
+                  </div>
+                  <div className="flex w-full items-center">
+                    <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
+                    {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
+                  </div>
                   <button onClick={() => handleRemove(index)} className="remove-certificate ml-2">
-                  <IconTrash size={18} strokeWidth={1.5} />
+                    <IconTrash size={18} strokeWidth={1.5} />
                   </button>
-              </div>
-            </li>
-          ))}
+                </div>
+              </li>
+            ))}
       </ul>
 
-      <h1 className="font-semibold mt-8 mb-2">Add Client Certificate</h1>
+      <h1 className="font-medium mt-8 mb-2">Add Client Certificate</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="domain">

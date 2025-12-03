@@ -23,7 +23,7 @@ test('should handle corrupted passkey and still display saved cookie list', asyn
   await page1.getByRole('button', { name: 'Save' }).click();
 
   await expect(page1.getByText('example.com')).toBeVisible();
-  
+
   await app1.close();
 
   // 2. Corrupt the encryptedPasskey in cookies.json

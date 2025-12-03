@@ -99,16 +99,13 @@ const HttpRequestPane = ({ item, collection }) => {
   const tests = getPropertyFromDraftOrRequest('request.tests');
   const docs = getPropertyFromDraftOrRequest('request.docs');
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
-  const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
   const auth = getPropertyFromDraftOrRequest('request.auth');
   const tags = getPropertyFromDraftOrRequest('tags');
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
-  const activeVarsLength =
-    requestVars.filter((request) => request.enabled).length +
-    responseVars.filter((response) => response.enabled).length;
+  const activeVarsLength = requestVars.filter((request) => request.enabled).length;
 
   useEffect(() => {
     if (activeParamsLength === 0 && body.mode !== 'none') {
@@ -142,9 +139,9 @@ const HttpRequestPane = ({ item, collection }) => {
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
           {(script.req || script.res) && (
-            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ?
-            <StatusDot type="error" /> :
-            <StatusDot />
+            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage
+              ? <StatusDot type="error" />
+              : <StatusDot />
           )}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
@@ -154,9 +151,9 @@ const HttpRequestPane = ({ item, collection }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
           {tests && tests.length > 0 && (
-            item.testScriptErrorMessage ?
-              <StatusDot type="error" /> :
-              <StatusDot />
+            item.testScriptErrorMessage
+              ? <StatusDot type="error" />
+              : <StatusDot />
           )}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>

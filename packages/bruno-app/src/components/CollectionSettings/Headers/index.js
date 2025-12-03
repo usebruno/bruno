@@ -45,7 +45,8 @@ const Headers = ({ collection }) => {
     const header = cloneDeep(_header);
     switch (type) {
       case 'name': {
-        header.name = e.target.value;
+        // Strip newlines from header keys
+        header.name = e.target.value.replace(/[\r\n]/g, '');
         break;
       }
       case 'value': {
@@ -122,8 +123,7 @@ const Headers = ({ collection }) => {
                             },
                             header,
                             'name'
-                          )
-                        }
+                          )}
                         autocomplete={headerAutoCompleteList}
                         collection={collection}
                       />
@@ -142,8 +142,7 @@ const Headers = ({ collection }) => {
                             },
                             header,
                             'value'
-                          )
-                        }
+                          )}
                         collection={collection}
                         autocomplete={MimeTypes}
                       />

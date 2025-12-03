@@ -3,20 +3,15 @@ import * as path from 'path';
 import { closeAllCollections } from '../../utils/page';
 
 test.describe('Import Bruno Testbench Collection', () => {
-  test.beforeAll(async ({ page }) => {
-    // Navigate back to homescreen after all tests
-    await page.locator('.bruno-logo').click();
-  });
-
-  test.afterEach(async ({ page }) => {
-    // cleanup: close all collections
+  test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 
   test('Import Bruno Testbench collection successfully', async ({ page, createTmpDir }) => {
     const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-testbench.json');
 
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
     const importModal = page.getByRole('dialog');
@@ -25,18 +20,16 @@ test.describe('Import Bruno Testbench Collection', () => {
 
     await page.setInputFiles('input[type="file"]', brunoFile);
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-
-    // Verify that the Import Collection modal is displayed (for location selection)
-    const locationModal = page.getByRole('dialog');
+    // Wait for location modal to appear after file processing
+    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+    await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
     // Wait for collection to appear in the location modal
     await expect(locationModal.getByText('bruno-testbench')).toBeVisible();
 
     await page.locator('#collection-location').fill(await createTmpDir('bruno-testbench-test'));
-    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await locationModal.getByRole('button', { name: 'Import' }).click();
 
     await expect(page.locator('#sidebar-collection-name').getByText('bruno-testbench')).toBeVisible();
   });

@@ -11,5 +11,4 @@ const StatusDot = ({ type = 'default' }) => (
   </sup>
 );
 
-
 export default StatusDot;

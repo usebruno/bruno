@@ -38,7 +38,7 @@ const EnvVariables = ({ collection, theme }) => {
   if (!environment) {
     return (
       <>
-        <h1 className="font-semibold mt-4 mb-2">Environment Variables</h1>
+        <h1 className="font-medium mt-4 mb-2">Environment Variables</h1>
         <div className="muted text-xs">No environment selected</div>
       </>
     );
@@ -50,7 +50,7 @@ const EnvVariables = ({ collection, theme }) => {
   return (
     <>
       <div className="flex items-center mt-4 mb-2">
-        <h1 className="font-semibold">Environment Variables</h1>
+        <h1 className="font-medium">Environment Variables</h1>
         <span className="muted ml-2">({environment.name})</span>
       </div>
       {enabledEnvVars.length > 0 ? (
@@ -73,7 +73,7 @@ const RuntimeVariables = ({ collection, theme }) => {
 
   return (
     <>
-      <h1 className="font-semibold mb-2">Runtime Variables</h1>
+      <h1 className="font-medium mb-2">Runtime Variables</h1>
       {runtimeVariablesFound ? (
         <KeyValueExplorer data={runtimeVariableArray} theme={theme} />
       ) : (

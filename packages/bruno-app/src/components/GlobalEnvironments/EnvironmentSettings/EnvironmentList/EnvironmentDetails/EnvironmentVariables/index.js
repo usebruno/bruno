@@ -58,7 +58,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         })
         .catch((error) => {
           console.error(error);
-          toast.error('An error occurred while saving the changes')
+          toast.error('An error occurred while saving the changes');
         });
     }
   });
@@ -76,7 +76,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     }
     return (
       <span>
-        <IconAlertCircle id={id} className="text-red-600 cursor-pointer	" size={20} />
+        <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
         <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
       </span>
     );
@@ -162,6 +162,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       isSecret={variable.secret}
                       readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                      enableBrunoVarInfo={false}
                     />
                   </div>
                   {typeof variable.value !== 'string' && (

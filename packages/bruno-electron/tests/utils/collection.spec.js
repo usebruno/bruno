@@ -1,4 +1,4 @@
-const { parseBruFileMeta } = require("../../src/utils/collection");
+const { parseBruFileMeta } = require('../../src/utils/collection');
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {

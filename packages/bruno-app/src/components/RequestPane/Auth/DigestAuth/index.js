@@ -17,7 +17,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   const { showWarning, warningMessage } = isSensitive(digestAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
   };

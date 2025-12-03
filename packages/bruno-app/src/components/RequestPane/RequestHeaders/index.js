@@ -20,7 +20,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
-  
+
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const addHeader = () => {
@@ -36,9 +36,11 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
+
     switch (type) {
       case 'name': {
-        header.name = e.target.value;
+        // Strip newlines from header keys
+        header.name = e.target.value.replace(/[\r\n]/g, '');
         break;
       }
       case 'value': {
@@ -50,6 +52,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         break;
       }
     }
+
     dispatch(
       updateRequestHeader({
         header: header,
@@ -69,15 +72,15 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     );
   };
 
-    const handleHeaderDrag = ({ updateReorderedItem }) => {
-      dispatch(
-        moveRequestHeader({
-          collectionUid: collection.uid,
-          itemUid: item.uid,
-          updateReorderedItem
-        })
-      );
-    };
+  const handleHeaderDrag = ({ updateReorderedItem }) => {
+    dispatch(
+      moveRequestHeader({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        updateReorderedItem
+      })
+    );
+  };
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
@@ -111,11 +114,11 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         ]}
       >
         <ReorderTable updateReorderedItem={handleHeaderDrag}>
-        {headers && headers.length
+          {headers && headers.length
             ? headers.map((header) => {
                 return (
                   <tr key={header.uid} data-uid={header.uid}>
-                    <td className='flex relative'>
+                    <td className="flex relative">
                       <SingleLineEditor
                         value={header.name}
                         theme={storedTheme}
@@ -129,8 +132,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                             },
                             header,
                             'name'
-                          )
-                        }
+                          )}
                         autocomplete={headerAutoCompleteList}
                         onRun={handleRun}
                         collection={collection}
@@ -150,11 +152,9 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                             },
                             header,
                             'value'
-                          )
-                        }
+                          )}
                         onRun={handleRun}
                         autocomplete={MimeTypes}
-                        allowNewlines={true}
                         collection={collection}
                         item={item}
                       />

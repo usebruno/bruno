@@ -25,7 +25,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
 
   useEffect(() => {
     if (selectedEnvironment) {
-      const _selectedEnvironment = environments?.find(env => env?.uid === selectedEnvironment?.uid);
+      const _selectedEnvironment = environments?.find((env) => env?.uid === selectedEnvironment?.uid);
       const hasSelectedEnvironmentChanged = !isEqual(selectedEnvironment, _selectedEnvironment);
       if (hasSelectedEnvironmentChanged) {
         setSelectedEnvironment(_selectedEnvironment);
@@ -107,16 +107,16 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
             </div>
           )}
           <div className="environments-sidebar flex flex-col">
-            {environments &&
-              environments.length &&
-              environments.map((env) => (
+            {environments
+              && environments.length
+              && environments.map((env) => (
                 <ToolHint key={env.uid} text={env.name} toolhintId={env.uid} place="right">
                   <div
                     id={env.uid}
                     className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
                     onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
                   >
-                      <span className="break-all">{env.name}</span>
+                    <span className="break-all">{env.name}</span>
                   </div>
                 </ToolHint>
               ))}

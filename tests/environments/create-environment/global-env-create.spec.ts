@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
 import path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Global Environment Create Tests', () => {
   test('should import collection and create global environment for request usage', async ({
@@ -9,20 +10,22 @@ test.describe('Global Environment Create Tests', () => {
     const openApiFile = path.join(__dirname, 'fixtures', 'bruno-collection.json');
 
     // Import test collection
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     const importModal = page.locator('[data-testid="import-collection-modal"]');
     await importModal.waitFor({ state: 'visible' });
 
     await page.setInputFiles('input[type="file"]', openApiFile);
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
+    // Wait for location modal to appear after file processing
     const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+    await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     await expect(locationModal.getByText('test_collection')).toBeVisible();
 
     await page.locator('#collection-location').fill(await createTmpDir('global-env-test'));
-    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await locationModal.getByRole('button', { name: 'Import' }).click();
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'test_collection' })).toBeVisible();
 
@@ -116,18 +119,7 @@ test.describe('Global Environment Create Tests', () => {
     await expect(responsePane).toContainText('"body": "This is a global test post body with environment variables"');
     await expect(responsePane).toContainText('"apiToken": "global-secret-token-12345"');
 
-    // Cleanup
-    await page
-      .locator('.collection-name')
-      .filter({ has: page.locator('#sidebar-collection-name:has-text("test_collection")') })
-      .locator('.collection-actions')
-      .click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
-    // Scope the Close button to the confirmation modal to avoid matching the dropdown close button
-    // Wait for the confirmation modal with "Close Collection" title to appear
-    const closeModal = page.getByRole('dialog').filter({ has: page.getByText('Close Collection') });
-    await closeModal.getByRole('button', { name: 'Close' }).click();
-
-    await page.locator('.bruno-logo').click();
+    // cleanup: close all collections
+    await closeAllCollections(page);
   });
 });

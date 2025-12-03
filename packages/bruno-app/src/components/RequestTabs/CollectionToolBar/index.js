@@ -43,17 +43,17 @@ const CollectionToolBar = ({ collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex items-center p-2">
+      <div className="flex items-center py-2 px-4">
         <div className="flex flex-1 items-center cursor-pointer hover:underline" onClick={viewCollectionSettings}>
           <IconFiles size={18} strokeWidth={1.5} />
-          <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
+          <span className="ml-2 mr-4 font-medium">{collection?.name}</span>
         </div>
         <div className="flex flex-3 items-center justify-end">
           <span className="mr-2">
             <JsSandboxMode collection={collection} />
           </span>
           <span className="mr-3">
-            <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place='bottom'>
+            <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place="bottom">
               <IconRun className="cursor-pointer" size={18} strokeWidth={1.5} onClick={handleRun} />
             </ToolHint>
           </span>
