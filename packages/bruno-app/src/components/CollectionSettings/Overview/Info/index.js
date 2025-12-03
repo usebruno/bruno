@@ -1,6 +1,6 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconBox, IconFolder, IconWorld, IconApi, IconShare, IconDatabase } from '@tabler/icons';
+import { IconBox, IconFolder, IconWorld, IconApi, IconShare } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -16,11 +16,11 @@ const Info = ({ collection }) => {
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
-  const [showCollectionEnvironmentModal, setShowCollectionEnvironmentModal] = useState(false);
   const [showGlobalEnvironmentModal, setShowGlobalEnvironmentModal] = useState(false);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
+  const isCollectionEnvironmentModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
 
   const collectionEnvironmentCount = collection.environments?.length || 0;
   const globalEnvironmentCount = globalEnvironments?.length || 0;
@@ -56,19 +56,14 @@ const Info = ({ collection }) => {
               <div className="mt-1 flex flex-col gap-1">
                 <div
                   className="text-sm text-link cursor-pointer hover:underline"
-                  onClick={() => {
-                    dispatch(updateEnvironmentSettingsModalVisibility(true));
-                    setShowCollectionEnvironmentModal(true);
-                  }}
+                  onClick={() => dispatch(updateEnvironmentSettingsModalVisibility(true))}
                 >
-                  <IconDatabase className="w-4 h-4 inline mr-1" stroke={1.5} />
                   {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
                 </div>
                 <div
                   className="text-sm text-link cursor-pointer hover:underline"
                   onClick={() => setShowGlobalEnvironmentModal(true)}
                 >
-                  <IconWorld className="w-4 h-4 inline mr-1" stroke={1.5} />
                   {globalEnvironmentCount} global environment{globalEnvironmentCount !== 1 ? 's' : ''}
                 </div>
               </div>
@@ -104,13 +99,10 @@ const Info = ({ collection }) => {
           {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
-      {showCollectionEnvironmentModal && (
+      {isCollectionEnvironmentModalOpen && (
         <EnvironmentSettings
           collection={collection}
-          onClose={() => {
-            setShowCollectionEnvironmentModal(false);
-            dispatch(updateEnvironmentSettingsModalVisibility(false));
-          }}
+          onClose={() => dispatch(updateEnvironmentSettingsModalVisibility(false))}
         />
       )}
       {showGlobalEnvironmentModal && (
