@@ -1647,74 +1647,37 @@ export const generateUniqueRequestName = async (collection, baseName = 'Untitled
   }
 
   const trim = require('lodash/trim');
-  const { resolveRequestFilename } = require('utils/common/platform');
-  const { existsSync } = require('utils/filesystem');
-
-  // Determine the parent item and pathname
   const parentItem = itemUid ? findItemInCollection(collection, itemUid) : null;
-  const targetPathname = parentItem ? parentItem.pathname : collection.pathname;
   const parentItems = parentItem ? (parentItem.items || []) : (collection.items || []);
+  const baseNamePattern = new RegExp(`^${baseName}(\\d+)?$`);
+  const matchingItems = parentItems
+    .filter((item) => {
+      if (item.type === 'folder') return false;
 
-  if (!targetPathname) {
-    // Fallback to in-memory check only if no pathname available
-    const resolvedBaseFilename = resolveRequestFilename(baseName);
-    const baseNameExists = find(
-      parentItems,
-      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedBaseFilename)
-    );
-    if (!baseNameExists) {
-      return baseName;
-    }
-    // Try numbered variants
-    let counter = 1;
-    while (true) {
-      const candidateName = `${baseName}${counter}`;
-      const resolvedCandidateFilename = resolveRequestFilename(candidateName);
-      const candidateExists = find(
-        parentItems,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedCandidateFilename)
-      );
-      if (!candidateExists) {
-        return candidateName;
-      }
-      counter++;
-    }
-  }
+      const filename = trim(item.filename);
+      if (!filename.endsWith('.bru')) return false;
 
-  // Check if baseName exists (both in-memory and filesystem)
-  const resolvedBaseFilename = resolveRequestFilename(baseName);
-  const fullBasePath = path.join(targetPathname, resolvedBaseFilename);
-  
-  // Check in-memory items
-  const baseNameExistsInMemory = find(
-    parentItems,
-    (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedBaseFilename)
-  );
-  
-  // Check filesystem
-  const baseNameExistsInFs = await existsSync(fullBasePath);
+      const filenameWithoutExt = filename.replace(/\.bru$/, '');
+      return baseNamePattern.test(filenameWithoutExt);
+    })
+    .map((item) => {
+      const filenameWithoutExt = trim(item.filename).replace(/\.bru$/, '');
+      const match = filenameWithoutExt.match(baseNamePattern);
 
-  if (!baseNameExistsInMemory && !baseNameExistsInFs) {
+      if (!match) return null;
+
+      const number = match[1] ? parseInt(match[1], 10) : 0;
+      return { name: filenameWithoutExt, number: isNaN(number) ? null : number };
+    })
+    .filter((item) => item !== null && item.number !== null);
+
+  if (matchingItems.length === 0) {
     return baseName;
   }
 
-  // Try Untitled1, Untitled2, etc.
-  let counter = 1;
-  while (true) {
-    const candidateName = `${baseName}${counter}`;
-    const resolvedCandidateFilename = resolveRequestFilename(candidateName);
-    const fullCandidatePath = path.join(targetPathname, resolvedCandidateFilename);
-    
-    // Check both in-memory and filesystem
-    const candidateExistsInMemory = find(
-      parentItems,
-      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedCandidateFilename)
-    );
-    const candidateExistsInFs = await existsSync(fullCandidatePath);
-    
-    if (!candidateExistsInMemory && !candidateExistsInFs) {
-      return candidateName;
-    }
-    counter++;
-  }
+  const sortedMatches = matchingItems.sort((a, b) => a.number - b.number);
+  const lastElement = sortedMatches[sortedMatches.length - 1];
+  const nextNumber = lastElement.number + 1;
+
+  return `${baseName}${nextNumber}`;
 };
