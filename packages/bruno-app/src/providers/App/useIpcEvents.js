@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import {
   showPreferences,
   updateCookies,
-  updatePreferences,
-  updateSystemProxyEnvVariables
+  updatePreferences
 } from 'providers/ReduxStore/slices/app';
 import {
   brunoConfigUpdateEvent,
@@ -164,10 +163,6 @@ const useIpcEvents = () => {
       dispatch(updatePreferences(val));
     });
 
-    const removeSystemProxyEnvUpdatesListener = ipcRenderer.on('main:load-system-proxy-env', (val) => {
-      dispatch(updateSystemProxyEnvVariables(val));
-    });
-
     const removeCookieUpdateListener = ipcRenderer.on('main:cookies-update', (val) => {
       dispatch(updateCookies(val));
     });
@@ -218,7 +213,6 @@ const useIpcEvents = () => {
       removeShowPreferencesListener();
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
-      removeSystemProxyEnvUpdatesListener();
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
