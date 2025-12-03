@@ -39,4 +39,4 @@ const FolderNotFound = ({ folderUid }) => {
   );
 };
 
-export default FolderNotFound; 
+export default FolderNotFound;

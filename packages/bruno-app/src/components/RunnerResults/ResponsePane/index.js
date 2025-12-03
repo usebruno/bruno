@@ -66,12 +66,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         );
       }
       case 'tests': {
-        return <TestResults
-          results={testResults}
-          assertionResults={assertionResults}
-          preRequestTestResults={preRequestTestResults}
-          postResponseTestResults={postResponseTestResults}
-        />;
+        return (
+          <TestResults
+            results={testResults}
+            assertionResults={assertionResults}
+            preRequestTestResults={preRequestTestResults}
+            postResponseTestResults={postResponseTestResults}
+          />
+        );
       }
 
       default: {
@@ -134,7 +136,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             onClose={() => setShowScriptErrorCard(false)}
           />
         )}
-        <div className='flex-1'>
+        <div className="flex-1">
           {getTabPanel(selectedTab)}
         </div>
       </section>

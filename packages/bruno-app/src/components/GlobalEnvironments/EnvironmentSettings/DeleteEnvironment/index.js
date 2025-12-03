@@ -22,7 +22,7 @@ const DeleteEnvironment = ({ onClose, environment }) => {
       <StyledWrapper>
         <Modal
           size="sm"
-          title={'Delete Global Environment'}
+          title="Delete Global Environment"
           confirmText="Delete"
           handleConfirm={onConfirm}
           handleCancel={onClose}

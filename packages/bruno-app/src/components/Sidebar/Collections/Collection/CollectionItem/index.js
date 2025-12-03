@@ -58,7 +58,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
-  
+
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
@@ -94,7 +94,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       isDragging: monitor.isDragging()
     }),
     options: {
-      dropEffect: "move"
+      dropEffect: 'move'
     }
   });
 
@@ -133,7 +133,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (!newPathname) return false;
 
     if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
-    
+
     return true;
   };
 
@@ -154,19 +154,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     drop: async (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
-  
+
       if (draggedItemUid === targetItemUid) return;
-  
+
       const dropType = determineDropType(monitor);
       if (!dropType) return;
 
-      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }))
+      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
       setDropType(null);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
     collect: (monitor) => ({
       isOver: monitor.isOver()
-    }),
+    })
   });
 
   const dropdownTippyRef = useRef();
@@ -204,7 +204,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const handleClick = (event) => {
     if (event && event.detail != 1) return;
-    //scroll to the active tab
+    // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
     if (isRequest) {
@@ -222,7 +222,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           uid: item.uid,
           collectionUid: collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(item),
-          type: 'request',
+          type: 'request'
         })
       );
     } else {
@@ -230,10 +230,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          type: 'folder-settings',
+          type: 'folder-settings'
         })
       );
-      if(item.collapsed) {
+      if (item.collapsed) {
         dispatch(
           toggleCollectionItem({
             itemUid: item.uid,
@@ -307,7 +307,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     dispatch(makeTabPermanent({ uid: item.uid }));
   };
 
-    // Sort items by their "seq" property.
+  // Sort items by their "seq" property.
   const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
@@ -363,15 +363,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setCreateExampleModalOpen(false);
   };
 
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
+  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i)));
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
- 
+
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();
     if (
-      (item?.request?.url !== '') ||
-      (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
+      (item?.request?.url !== '')
+      || (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
     ) {
       setGenerateCodeItemModalOpen(true);
     } else {
@@ -612,7 +612,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 onClick={handleCopyItem}
               >
                 <span className="dropdown-icon">
-                    <IconCopy size={16} strokeWidth={2} />
+                  <IconCopy size={16} strokeWidth={2} />
                 </span>
                 Copy
               </div>

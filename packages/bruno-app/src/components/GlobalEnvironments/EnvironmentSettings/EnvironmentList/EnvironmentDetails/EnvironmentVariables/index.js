@@ -58,7 +58,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         })
         .catch((error) => {
           console.error(error);
-          toast.error('An error occurred while saving the changes')
+          toast.error('An error occurred while saving the changes');
         });
     }
   });

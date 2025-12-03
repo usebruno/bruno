@@ -3,7 +3,7 @@ const path = require('node:path');
 const os = require('node:os');
 
 function getMaxWorkers() {
-  return Math.max(os.availableParallelism(), 1)
+  return Math.max(os.availableParallelism(), 1);
 }
 
 class WorkerPool {
@@ -28,7 +28,7 @@ class WorkerPool {
   runTask(data) {
     return new Promise((resolve, reject) => {
       const task = { data, resolve, reject };
-      
+
       if (this.idle.length > 0) {
         this._runTaskOnWorker(this.idle.shift(), task);
       } else {
@@ -40,42 +40,42 @@ class WorkerPool {
   // Run a task on a specific worker
   _runTaskOnWorker(workerId, task) {
     const worker = this.workers[workerId];
-    
+
     const messageHandler = (result) => {
       // Cleanup listeners
       worker.removeListener('message', messageHandler);
       worker.removeListener('error', errorHandler);
-      
+
       // Mark worker as idle
       this.idle.push(workerId);
-      
+
       // Process queue if tasks are waiting
       if (this.queue.length > 0) {
         this._runTaskOnWorker(workerId, this.queue.shift());
       }
-      
+
       // Resolve the task
       task.resolve(result);
     };
-    
+
     const errorHandler = (err) => {
       worker.removeListener('message', messageHandler);
       worker.removeListener('error', errorHandler);
-      
+
       this.idle.push(workerId);
-      
+
       if (this.queue.length > 0) {
         this._runTaskOnWorker(workerId, this.queue.shift());
       }
-      
+
       task.reject(err);
     };
-    
+
     worker.on('message', messageHandler);
     worker.on('error', errorHandler);
     worker.postMessage(task.data);
   }
-  
+
   // Terminate all workers
   terminate() {
     for (const worker of this.workers) {
@@ -95,8 +95,8 @@ function countScriptLines(script) {
 // Calculate complexity of a script entry
 function calculateScriptComplexity([uid, entry]) {
   let totalLines = 0;
-  const { events }  = entry
-  
+  const { events } = entry;
+
   if (events && Array.isArray(events)) {
     events.forEach(({ script }) => {
       if (script && script.exec) {
@@ -104,7 +104,7 @@ function calculateScriptComplexity([uid, entry]) {
       }
     });
   }
-  
+
   return { uid, entry, complexity: totalLines || 1 }; // Minimum complexity of 1
 }
 
@@ -112,86 +112,84 @@ function calculateScriptComplexity([uid, entry]) {
 function createBalancedBatches(scriptEntries, workerCount) {
   // Calculate complexity for each script
   const scriptsWithComplexity = scriptEntries.map(calculateScriptComplexity);
-  
+
   // Sort scripts by complexity (descending)
   scriptsWithComplexity.sort((a, b) => b.complexity - a.complexity);
-  
+
   // Initialize batches
-  const batches = Array.from({ length: workerCount }, () => ({ 
-    entries: [], 
-    totalComplexity: 0 
+  const batches = Array.from({ length: workerCount }, () => ({
+    entries: [],
+    totalComplexity: 0
   }));
-  
+
   // Algorithm: Greedy load balancing
   // 1. Process scripts in descending order of complexity
   // 2. Always assign each script to the batch with lowest current load
   // 3. This minimizes the maximum workload across all workers
   for (const { uid, entry, complexity } of scriptsWithComplexity) {
-
     const batchWithLowestComplexity = batches.reduce(
       (target, current) => current.totalComplexity < target.totalComplexity ? current : target
     );
-    
+
     // Add the script to this batch
-    batchWithLowestComplexity.entries.push({uid, entry});
+    batchWithLowestComplexity.entries.push({ uid, entry });
     batchWithLowestComplexity.totalComplexity += complexity;
   }
-  
-  return batches.map(batch => 
+
+  return batches.map((batch) =>
     batch.entries.map(({ uid, entry }) => [uid, entry])
-  ).filter(batch => batch.length > 0);
+  ).filter((batch) => batch.length > 0);
 }
 
 const scriptTranslationWorker = async (scriptMap) => {
   // Convert the Map to an array of entries
   const scriptEntries = Array.from(scriptMap.entries());
   const maxWorkers = getMaxWorkers();
-  
+
   // For very small collections, don't parallelize
   if (scriptEntries.length <= 50) {
-    const workerPool = new WorkerPool(path.join(__dirname,'./src/workers/scripts/translate-postman-scripts.js'), 1);
+    const workerPool = new WorkerPool(path.join(__dirname, './src/workers/scripts/translate-postman-scripts.js'), 1);
     workerPool.initialize();
-    
+
     try {
       const translatedScripts = new Map();
       const result = await workerPool.runTask({ scripts: scriptEntries });
-      
+
       if (result.error) {
         console.error('Error in script translation worker:', result.error);
         throw new Error(result.error);
       }
-      
+
       result.forEach(([uid, { request }]) => {
         translatedScripts.set(uid, { request });
       });
-      
+
       return translatedScripts;
     } finally {
       workerPool.terminate();
     }
   }
-  
 
   const workerCount = Math.min(maxWorkers, 4);
-  
+
   // Create balanced batches based on script complexity
   const batches = createBalancedBatches(scriptEntries, workerCount);
-  
-  const translatedScripts = new Map();  
+
+  const translatedScripts = new Map();
 
   // Create worker pool with optimal size
-  const workerPool = new WorkerPool(path.join(__dirname,'./src/workers/scripts/translate-postman-scripts.js'), workerCount);
+  const workerPool = new WorkerPool(path.join(__dirname, './src/workers/scripts/translate-postman-scripts.js'), workerCount);
   workerPool.initialize();
 
   // Process all batches in parallel using worker pool
-  const batchPromises = batches.map(batch => {
+  const batchPromises = batches.map((batch) => {
     return workerPool.runTask({ scripts: batch })
-      .then(modScripts => {
+      .then((modScripts) => {
         modScripts.forEach(([name, { request }]) => {
           translatedScripts.set(name, { request });
         });
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Error in script translation worker:', err);
         throw new Error(err);
       });
@@ -208,4 +206,4 @@ const scriptTranslationWorker = async (scriptMap) => {
   return translatedScripts;
 };
 
-export default scriptTranslationWorker
+export default scriptTranslationWorker;

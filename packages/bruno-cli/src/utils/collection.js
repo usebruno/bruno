@@ -9,7 +9,7 @@ const chalk = require('chalk');
 
 const createCollectionJsonFromPathname = (collectionPath) => {
   const environmentsPath = path.join(collectionPath, `environments`);
-    
+
   // get the collection bruno json config [<collection-path>/bruno.json]
   const brunoConfig = getCollectionBrunoJsonConfig(collectionPath);
 
@@ -29,17 +29,16 @@ const createCollectionJsonFromPathname = (collectionPath) => {
       if (stats.isDirectory()) {
         if (filePath === environmentsPath) continue;
         if (filePath.startsWith('.git') || filePath.startsWith('node_modules')) continue;
-        
+
         // get the folder root
-        let folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) }
+        let folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) };
         const folderBruJson = getFolderRoot(filePath);
         if (folderBruJson) {
           folderItem.root = folderBruJson;
           folderItem.seq = folderBruJson.meta.seq;
         }
         currentDirItems.push(folderItem);
-      }
-      else {
+      } else {
         if (['collection.bru', 'folder.bru'].includes(file)) continue;
         if (path.extname(filePath) !== '.bru') continue;
 
@@ -78,7 +77,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
     root: collectionRoot,
     pathname: collectionPath,
     items: collectionItems
-  }
+  };
 
   return collection;
 };
@@ -96,7 +95,7 @@ const getCollectionBrunoJsonConfig = (dir) => {
   const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
   const brunoConfig = JSON.parse(brunoConfigFile);
   return brunoConfig;
-}
+};
 
 const getCollectionRoot = (dir) => {
   const collectionRootPath = path.join(dir, 'collection.bru');
@@ -191,7 +190,7 @@ const mergeVars = (collection, request, requestTreePath) => {
   request.folderVariables = folderVariables;
   request.requestVariables = requestVariables;
 
-  if(request?.vars) {
+  if (request?.vars) {
     request.vars.req = Array.from(reqVars, ([name, value]) => ({
       name,
       value,
@@ -309,7 +308,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
   if (request.auth && request.auth.mode === 'inherit') {
     request.auth = effectiveAuth;
   }
-}
+};
 
 const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
   let requests = [];
@@ -330,11 +329,10 @@ const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
 
 const getAllRequestsAtFolderRoot = (folderItems = []) => {
   return getAllRequestsInFolder(folderItems, false);
-}
+};
 
-const getCallStack = (resolvedPaths = [], collection, {recursive}) => {
+const getCallStack = (resolvedPaths = [], collection, { recursive }) => {
   let requestItems = [];
-
 
   if (!resolvedPaths || !resolvedPaths.length) {
     return requestItems;
@@ -380,7 +378,7 @@ const safeWriteFileSync = (filePath, content) => {
 
 /**
  * Creates a Bruno collection directory structure from a Bruno collection object
- * 
+ *
  * @param {Object} collection - The Bruno collection object
  * @param {string} dirPath - The output directory path
  */
@@ -392,9 +390,9 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     type: 'collection',
     ignore: ['node_modules', '.git']
   };
-  
+
   fs.writeFileSync(
-    path.join(dirPath, 'bruno.json'), 
+    path.join(dirPath, 'bruno.json'),
     JSON.stringify(brunoConfig, null, 2)
   );
 
@@ -424,7 +422,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
 
 /**
  * Recursively processes collection items to create files and folders
- * 
+ *
  * @param {Array} items - Collection items
  * @param {string} currentPath - Current directory path
  */
@@ -487,17 +485,17 @@ const processCollectionItems = async (items = [], currentPath) => {
   }
 };
 
-const sortByNameThenSequence = items => {
-  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+const sortByNameThenSequence = (items) => {
+  const isSeqValid = (seq) => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
 
   // Sort folders alphabetically by name
   const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
 
   // Extract folders without 'seq'
-  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+  const withoutSeq = alphabeticallySorted.filter((f) => !isSeqValid(f['seq']));
 
   // Extract folders with 'seq' and sort them by 'seq'
-  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+  const withSeq = alphabeticallySorted.filter((f) => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
 
   const sortedItems = withoutSeq;
 
@@ -516,7 +514,7 @@ const sortByNameThenSequence = items => {
       const newGroup = Array.isArray(existingItem)
         ? [...existingItem, item]
         : [existingItem, item];
-      
+
       withoutSeq.splice(position, 1, newGroup);
     } else {
       // Insert item at the specified position
@@ -527,7 +525,6 @@ const sortByNameThenSequence = items => {
   // return flattened sortedItems
   return sortedItems.flat();
 };
-
 
 module.exports = {
   createCollectionJsonFromPathname,
@@ -541,4 +538,4 @@ module.exports = {
   getAllRequestsInFolder,
   getAllRequestsAtFolderRoot,
   getCallStack
-}
+};

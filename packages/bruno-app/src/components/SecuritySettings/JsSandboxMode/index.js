@@ -20,7 +20,7 @@ const JsSandboxMode = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className='flex'>
+    <StyledWrapper className="flex">
       {jsSandboxMode === 'safe' && (
         <div
           className="flex items-center border rounded-md text-xs cursor-pointer safe-mode"

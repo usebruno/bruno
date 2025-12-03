@@ -1,19 +1,19 @@
-const path = require("node:path");
+const path = require('node:path');
 const { describe, it, expect } = require('@jest/globals');
 const constants = require('../../src/constants');
 const { createCollectionJsonFromPathname } = require('../../src/utils/collection');
 
 describe('create collection json from pathname', () => {
-  it("should throw an error when the pathname is not a valid bruno collection root", () => {
+  it('should throw an error when the pathname is not a valid bruno collection root', () => {
     const invalidCollectionPathname = path.join(__dirname, './fixtures/collection-invalid');
     jest.spyOn(console, 'error').mockImplementation(() => { });
     let mockProcessExit = jest.spyOn(process, 'exit').mockImplementation((code) => { throw new Error(code); });
     try { createCollectionJsonFromPathname(invalidCollectionPathname); } catch { }
     expect(mockProcessExit).toHaveBeenCalledWith(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
     jest.restoreAllMocks();
-  })
+  });
 
-  it("creates a bruno collection json from the collection bru files", () => {
+  it('creates a bruno collection json from the collection bru files', () => {
     const collectionPathname = path.join(__dirname, './fixtures/collection-json-from-pathname/collection');
     const outputCollectionJson = createCollectionJsonFromPathname(collectionPathname);
 
@@ -21,10 +21,10 @@ describe('create collection json from pathname', () => {
     expect(c).toBeDefined();
 
     /* collection bruno.json */
-    expect(c).toHaveProperty('brunoConfig.version', "1");
+    expect(c).toHaveProperty('brunoConfig.version', '1');
     expect(c).toHaveProperty('brunoConfig.name', 'collection');
     expect(c).toHaveProperty('brunoConfig.type', 'collection');
-    expect(c).toHaveProperty('brunoConfig.ignore', ["node_modules", ".git"]);
+    expect(c).toHaveProperty('brunoConfig.ignore', ['node_modules', '.git']);
     expect(c).toHaveProperty('brunoConfig.proxy.enabled', false);
     expect(c).toHaveProperty('brunoConfig.proxy.protocol', 'http');
     expect(c).toHaveProperty('brunoConfig.proxy.hostname', '<proxy-hostname>');

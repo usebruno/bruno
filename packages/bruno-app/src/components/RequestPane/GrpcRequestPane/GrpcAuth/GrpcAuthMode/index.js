@@ -66,7 +66,7 @@ const GrpcAuthMode = ({ item, collection }) => {
     dropdownTippyRef?.current?.hide();
     onModeChange(mode);
   };
-  
+
   return (
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer auth-mode-selector">
@@ -86,4 +86,4 @@ const GrpcAuthMode = ({ item, collection }) => {
   );
 };
 
-export default GrpcAuthMode; 
+export default GrpcAuthMode;

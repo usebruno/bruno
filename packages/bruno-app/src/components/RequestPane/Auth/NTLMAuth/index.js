@@ -18,7 +18,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
   const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
   };
@@ -66,7 +66,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         }
       })
     );
-  };  
+  };
 
   return (
     <StyledWrapper className="mt-2 w-full">

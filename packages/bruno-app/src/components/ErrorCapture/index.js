@@ -33,7 +33,7 @@ class ErrorBoundary extends Component {
 }
 
 const serializeArgs = (args) => {
-  return args.map(arg => {
+  return args.map((arg) => {
     try {
       if (arg === null) return 'null';
       if (arg === undefined) return 'undefined';
@@ -65,12 +65,12 @@ const serializeArgs = (args) => {
 // Helper function to extract file and line info from stack trace
 const extractFileInfo = (stack) => {
   if (!stack) return { filename: null, lineno: null, colno: null };
-  
+
   try {
     const lines = stack.split('\n');
     for (let line of lines) {
       if (line.includes('ErrorCapture') || line.trim() === 'Error') continue;
-      
+
       const match = line.match(/(?:at\s+.*?\s+)?\(?([^)]+):(\d+):(\d+)\)?/);
       if (match) {
         return {
@@ -83,7 +83,7 @@ const extractFileInfo = (stack) => {
   } catch (e) {
     // Ignore parsing errors
   }
-  
+
   return { filename: null, lineno: null, colno: null };
 };
 
@@ -95,7 +95,7 @@ const useGlobalErrorCapture = () => {
 
     console.error = (...args) => {
       const currentStack = new Error().stack;
-      
+
       originalConsoleError.apply(console, args);
 
       if (currentStack && currentStack.includes('useIpcEvents.js')) {
@@ -130,7 +130,7 @@ const useGlobalErrorCapture = () => {
 
 const ErrorCapture = ({ children }) => {
   const dispatch = useDispatch();
-  
+
   useGlobalErrorCapture();
 
   const handleReactError = (errorData) => {
@@ -144,4 +144,4 @@ const ErrorCapture = ({ children }) => {
   );
 };
 
-export default ErrorCapture; 
+export default ErrorCapture;

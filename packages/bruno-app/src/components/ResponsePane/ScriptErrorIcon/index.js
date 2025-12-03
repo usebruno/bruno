@@ -4,10 +4,10 @@ import ToolHint from 'components/ToolHint';
 
 const ScriptErrorIcon = ({ itemUid, onClick }) => {
   const toolhintId = `script-error-icon-${itemUid}`;
-  
+
   return (
     <>
-      <div 
+      <div
         id={toolhintId}
         className="cursor-pointer ml-2"
         onClick={onClick}
@@ -25,4 +25,4 @@ const ScriptErrorIcon = ({ itemUid, onClick }) => {
   );
 };
 
-export default ScriptErrorIcon; 
+export default ScriptErrorIcon;

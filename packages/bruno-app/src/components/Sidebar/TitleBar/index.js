@@ -11,8 +11,8 @@ import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { multiLineMsg } from "utils/common";
-import { formatIpcError } from "utils/common/error";
+import { multiLineMsg } from 'utils/common';
+import { formatIpcError } from 'utils/common/error';
 
 const TitleBar = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);

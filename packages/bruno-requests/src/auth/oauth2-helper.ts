@@ -337,7 +337,7 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
 
   // Check if we already have credentials stored
   const existingToken = await tokenStore.getCredential({ url: accessTokenUrl, credentialsId });
-  
+
   if (existingToken) {
     // Check if token is expired
     if (!isTokenExpired(existingToken)) {

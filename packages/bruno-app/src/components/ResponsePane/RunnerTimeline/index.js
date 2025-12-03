@@ -31,7 +31,7 @@ const RunnerTimeline = ({ request = {}, response = {}, item, collection }) => {
         collection={collection}
         hideTimestamp={true}
       />
-      
+
       {oauth2Events.map((event, index) => {
         const { data, timestamp } = event;
         const { debugInfo } = data;
@@ -45,7 +45,7 @@ const RunnerTimeline = ({ request = {}, response = {}, item, collection }) => {
             <div className="mt-2">
               {debugInfo && debugInfo.length > 0 ? (
                 debugInfo.map((data, idx) => (
-                  <div key={idx} className='ml-4'>
+                  <div key={idx} className="ml-4">
                     <TimelineItem
                       timestamp={timestamp}
                       request={data?.request}

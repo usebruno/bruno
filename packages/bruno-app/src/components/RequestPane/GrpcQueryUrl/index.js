@@ -12,7 +12,7 @@ import {
   IconRefresh,
   IconDeviceFloppy,
   IconArrowRight,
-  IconCode,
+  IconCode
 } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import {
@@ -385,7 +385,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               strokeWidth={1.5}
               size={22}
               className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
-            />  
+            />
             <span className="infotip-text text-xs">
               Save <span className="shortcut">({saveShortcut})</span>
             </span>

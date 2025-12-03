@@ -3,8 +3,8 @@ const Method = ({ method }) => {
     <span className={`${methodColors[method?.toUpperCase()] || 'text-white'} font-bold`}>
       {method?.toUpperCase()}
     </span>
-  )  
-}
+  );
+};
 
 const methodColors = {
   GET: 'text-green-500',
@@ -13,7 +13,7 @@ const methodColors = {
   DELETE: 'text-red-500',
   PATCH: 'text-purple-500',
   OPTIONS: 'text-gray-500',
-  HEAD: 'text-gray-500',
+  HEAD: 'text-gray-500'
 };
 
 export default Method;

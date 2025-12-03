@@ -4,7 +4,6 @@ const { globalEnvironmentsStore } = require('../store/global-environments');
 const { generateUniqueName, sanitizeName } = require('../utils/filesystem');
 
 const registerGlobalEnvironmentsIpc = (mainWindow) => {
-
   // GLOBAL ENVIRONMENTS
 
   ipcMain.handle('renderer:create-global-environment', async (event, { uid, name, variables }) => {
@@ -28,7 +27,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:save-global-environment', async (event, { environmentUid, variables }) => {
     try {
-      globalEnvironmentsStore.saveGlobalEnvironment({ environmentUid, variables })
+      globalEnvironmentsStore.saveGlobalEnvironment({ environmentUid, variables });
     } catch (error) {
       return Promise.reject(error);
     }

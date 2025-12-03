@@ -34,7 +34,7 @@ const AuthMode = ({ collection, folder }) => {
   return (
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">      
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div
             className="dropdown-item"
             onClick={() => {

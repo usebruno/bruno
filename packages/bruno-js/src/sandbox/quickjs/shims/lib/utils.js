@@ -45,4 +45,4 @@ function deserializeTypedArray(obj) {
 module.exports = {
   serializeTypedArray,
   deserializeTypedArray
-}
+};

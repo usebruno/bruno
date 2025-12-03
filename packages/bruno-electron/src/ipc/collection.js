@@ -4,7 +4,7 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { 
+const {
   parseRequest,
   stringifyRequest,
   parseRequestViaWorker,
@@ -104,7 +104,7 @@ const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
   if (!collectionPath) {
     throw new Error(`Path: ${filePath} should be inside a collection`);
   }
-}
+};
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // create collection
@@ -613,7 +613,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item-name', async (event, { itemPath, newName, collectionPathname }) => {
     try {
-
       if (!fs.existsSync(itemPath)) {
         throw new Error(`path: ${itemPath} does not exist`);
       }
@@ -633,7 +632,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             }
           };
         }
-        
+
         const folderFileContent = await stringifyFolder(folderFileJsonContent, { format });
         await writeFile(folderFilePath, folderFileContent);
 
@@ -688,7 +687,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         const folderFileContent = await stringifyFolder(folderFileJsonContent, { format });
         await writeFile(folderFilePath, folderFileContent);
-        
+
         const requestFilesAtSource = await searchForRequestFiles(oldPath, collectionPathname);
 
         for (let requestFile of requestFilesAtSource) {
@@ -745,7 +744,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             await fsExtra.copy(tempDir, oldPath);
             await fsExtra.remove(tempDir);
           } catch (err) {
-            console.error("Failed to restore data to the old path:", err);
+            console.error('Failed to restore data to the old path:', err);
           }
         }
       }
@@ -825,7 +824,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:update-collection-paths', async (_, collectionPaths) => {
     lastOpenedCollections.update(collectionPaths);
-  })
+  });
 
   ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation, format = 'bru') => {
     try {
@@ -1057,7 +1056,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (fs.existsSync(targetDirname)) {
         const sourceDirname = path.dirname(sourcePathname);
         const pathnamesBefore = await getPaths(sourcePathname);
-        const pathnamesAfter = pathnamesBefore?.map(p => p?.replace(sourceDirname, targetDirname));
+        const pathnamesAfter = pathnamesBefore?.map((p) => p?.replace(sourceDirname, targetDirname));
         await copyPath(sourcePathname, targetDirname);
         await removePath(sourcePathname);
         // move the request uids of the previous file/folders to the new file/folder items
@@ -1184,7 +1183,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-    ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieStr) => {
+  ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieStr) => {
     try {
       return parseCookieString(cookieStr);
     } catch (error) {
@@ -1392,7 +1391,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return Promise.reject(error);
     }
   });
-  
+
   // todo: could be removed
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
@@ -1500,10 +1499,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       maxFileSize
     } = await getCollectionStats(collectionPathname);
 
-    const shouldLoadCollectionAsync =
-      (size > MAX_COLLECTION_SIZE_IN_MB) ||
-      (filesCount > MAX_COLLECTION_FILES_COUNT) ||
-      (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+    const shouldLoadCollectionAsync
+      = (size > MAX_COLLECTION_SIZE_IN_MB)
+        || (filesCount > MAX_COLLECTION_FILES_COUNT)
+        || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
   });

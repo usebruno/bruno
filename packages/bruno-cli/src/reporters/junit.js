@@ -23,49 +23,48 @@ const makeJUnitOutput = async (results, outputPath) => {
       '@timestamp': new Date().toISOString().split('Z')[0],
       '@hostname': os.hostname(),
       '@time': result.runtime.toFixed(3),
-      testcase: []
+      'testcase': []
     };
 
-    result.assertionResults &&
-      result.assertionResults.forEach((assertion) => {
-        const testcase = {
-          '@name': `${assertion.lhsExpr} ${assertion.rhsExpr}`,
-          '@status': assertion.status,
-          '@classname': result.request.url,
-          '@time': (result.runtime / totalTests).toFixed(3)
-        };
+    result.assertionResults
+    && result.assertionResults.forEach((assertion) => {
+      const testcase = {
+        '@name': `${assertion.lhsExpr} ${assertion.rhsExpr}`,
+        '@status': assertion.status,
+        '@classname': result.request.url,
+        '@time': (result.runtime / totalTests).toFixed(3)
+      };
 
-        if (assertion.status === 'fail') {
-          suite['@failures']++;
+      if (assertion.status === 'fail') {
+        suite['@failures']++;
 
-          testcase.failure = [{ '@type': 'failure', '@message': assertion.error }];
-        }
+        testcase.failure = [{ '@type': 'failure', '@message': assertion.error }];
+      }
 
-        suite.testcase.push(testcase);
-      });
+      suite.testcase.push(testcase);
+    });
 
-    result.testResults &&
-      result.testResults.forEach((test) => {
-        const testcase = {
-          '@name': test.description,
-          '@status': test.status,
-          '@classname': result.request.url,
-          '@time': (result.runtime / totalTests).toFixed(3)
-        };
+    result.testResults
+    && result.testResults.forEach((test) => {
+      const testcase = {
+        '@name': test.description,
+        '@status': test.status,
+        '@classname': result.request.url,
+        '@time': (result.runtime / totalTests).toFixed(3)
+      };
 
-        if (test.status === 'fail') {
-          suite['@failures']++;
+      if (test.status === 'fail') {
+        suite['@failures']++;
 
-          testcase.failure = [{ '@type': 'failure', '@message': test.error }];
-        }
+        testcase.failure = [{ '@type': 'failure', '@message': test.error }];
+      }
 
-        suite.testcase.push(testcase);
-      });
+      suite.testcase.push(testcase);
+    });
 
     if (result?.skipped) {
       suite['@skipped'] = 1;
-    }
-    else if (result.error) {
+    } else if (result.error) {
       suite['@errors'] = 1;
       suite['@tests'] = 1;
       suite.testcase = [
@@ -74,7 +73,7 @@ const makeJUnitOutput = async (results, outputPath) => {
           '@status': 'fail',
           '@classname': result.request.url,
           '@time': result.runtime.toFixed(3),
-          error: [{ '@type': 'error', '@message': result.error }]
+          'error': [{ '@type': 'error', '@message': result.error }]
         }
       ];
     }

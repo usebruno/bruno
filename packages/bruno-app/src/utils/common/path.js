@@ -2,9 +2,9 @@ import platform from 'platform';
 import path from 'path';
 
 const isWindowsOS = () => {
-    const os = platform.os;
-    const osFamily = os.family.toLowerCase();
-    return osFamily.includes('windows');
+  const os = platform.os;
+  const osFamily = os.family.toLowerCase();
+  return osFamily.includes('windows');
 };
 
 /**

@@ -1,5 +1,5 @@
-import { makeTabPermanent } from "providers/ReduxStore/slices/tabs";
-import { findCollectionByUid, findItemInCollection } from "utils/collections/index";
+import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { findCollectionByUid, findItemInCollection } from 'utils/collections/index';
 import find from 'lodash/find';
 
 function handleMakeTabParmanent(state, action, dispatch) {
@@ -39,4 +39,4 @@ function handleMakeTabParmanent(state, action, dispatch) {
 
 export {
   handleMakeTabParmanent
-}
+};
