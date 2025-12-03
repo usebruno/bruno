@@ -36,6 +36,11 @@ const WorkspaceDocs = ({ workspace }) => {
   };
 
   const onSave = async () => {
+    if (!workspace) {
+      toast.error('Workspace not found');
+      return;
+    }
+
     try {
       await dispatch(saveWorkspaceDocs(workspace.uid, localDocs));
       toast.success('Documentation saved successfully');
@@ -76,7 +81,7 @@ const WorkspaceDocs = ({ workspace }) => {
           value={localDocs}
           onEdit={onEdit}
           onSave={onSave}
-          mode="application/text"
+          mode="markdown"
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
         />

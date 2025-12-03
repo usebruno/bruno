@@ -14,10 +14,10 @@ const ImportEnvironment = ({ onClose, onEnvironmentCreated }) => {
   const handleImportPostmanEnvironment = () => {
     importPostmanEnvironment()
       .then((environments) => {
-        environments
+        const importPromises = environments
           .filter((env) =>
             env.name && env.name !== 'undefined')
-          .map((environment) => {
+          .map((environment) =>
             dispatch(addGlobalEnvironment({ name: environment.name, variables: environment.variables }))
               .then(() => {
                 toast.success('Environment imported successfully');
@@ -25,8 +25,8 @@ const ImportEnvironment = ({ onClose, onEnvironmentCreated }) => {
               .catch((error) => {
                 toast.error('An error occurred while importing the environment');
                 console.error(error);
-              });
-          });
+              }));
+        return Promise.all(importPromises);
       })
       .then(() => {
         onClose();

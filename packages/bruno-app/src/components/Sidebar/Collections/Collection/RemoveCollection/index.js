@@ -33,6 +33,10 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
       .catch(() => toast.error('An error occurred while removing the collection'));
   };
 
+  if (!collection) {
+    return <div>Collection not found</div>;
+  }
+
   // If there are drafts, show the draft confirmation modal
   if (drafts.length > 0) {
     return <ConfirmCollectionCloseDrafts onClose={onClose} collection={collection} collectionUid={collectionUid} />;
