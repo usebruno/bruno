@@ -17,8 +17,6 @@ import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
-import CloseTabIcon from './CloseTabIcon';
-import DraftTabIcon from './DraftTabIcon';
 import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
@@ -106,11 +104,12 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;
   const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
+
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
-        className={`flex items-center justify-between tab-container px-1 ${tab.preview ? "italic" : ""}`}
-        onMouseUp={handleMouseUp} // Add middle-click behavior here
+        className={`flex items-center justify-between tab-container px-3 ${tab.preview ? 'italic' : ''}`}
+        onMouseUp={handleMouseUp}
       >
         {showConfirmCollectionClose && tab.type === 'collection-settings' && (
           <ConfirmCollectionClose
@@ -193,7 +192,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-
   const getMethodText = useCallback((item) => {
     if (!item) return;
 
@@ -233,7 +231,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const method = getMethodText(item);
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-1">
+    <StyledWrapper className="flex items-center justify-between tab-container px-3">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}

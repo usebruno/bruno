@@ -2,80 +2,43 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   position: relative;
+  width: 100%;
+  height: 100%;
 
   .tab-label {
     overflow: hidden;
+    position: relative;
+    flex: 1;
+    min-width: 0;
   }
 
   .tab-method {
-    font-size: ${(props) => props.theme.font.size.base};
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
   }
 
   .tab-name {
+    position: relative;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: 0.8125rem;
   }
 
-  .close-icon-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 20px;
-    min-width: 24px;
-    margin-left: 4px;
-    border-radius: 3px;
-
-    .close-icon {
-      display: none;
-      color: ${(props) => props.theme.requestTabs.icon.color};
-      width: 8px;
-      padding-bottom: 6px;
-      padding-top: 6px;
-    }
-
-    &:hover {
-      background-color: ${(props) => props.theme.requestTabs.icon.hoverBg};
-    }
-
-    &:hover .close-icon {
-      color: ${(props) => props.theme.requestTabs.icon.hoverColor};
-    }
-
-    .has-changes-icon {
-      height: 24px;
-    }
-  }
-
-  .request-tab:hover & .close-icon-container .close-icon {
-    display: block;
-  }
-
-  .request-tab.active & .close-icon-container .close-icon {
-    display: block;
-  }
-
-  /**
-   * Request tab specific styles
-   */
-  .request-tab & .tab-name {
-    text-overflow: clip;
-  }
-
-  .request-tab & .tab-name::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 20px;
-    height: 100%;
-    background: linear-gradient(to right, transparent, ${(props) => props.theme.requestTabs.bg});
-    pointer-events: none;
-  }
-
-  .request-tab.active & .tab-name::after {
-    background: linear-gradient(to right, transparent, ${(props) => props.theme.requestTabs.active.bg});
+  li:hover & .tab-name{
+    mask-image: linear-gradient(
+      to right,
+      black 0%,
+      black calc(100% - 8px),
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      black 0%,
+      black calc(100% - 8px),
+      transparent 100%
+    );
   }
 `;
 

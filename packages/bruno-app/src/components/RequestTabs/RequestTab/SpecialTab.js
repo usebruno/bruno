@@ -7,49 +7,49 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
     switch (type) {
       case 'collection-settings': {
         return (
-          <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
-            <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Collection</span>
-          </div>
+          <>
+            <IconSettings size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
+            <span className="ml-1 tab-name">Collection</span>
+          </>
         );
       }
       case 'collection-overview': {
         return (
           <>
-            <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Collection</span>
+            <IconSettings size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
+            <span className="ml-1 tab-name">Overview</span>
           </>
         );
       }
       case 'security-settings': {
         return (
           <>
-            <IconShieldLock size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1">Security</span>
+            <IconShieldLock size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
+            <span className="ml-1 tab-name">Security</span>
           </>
-        )
+        );
       }
       case 'folder-settings': {
         return (
-          <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
-            <IconFolder size={18} strokeWidth={1.5} className="text-yellow-600 min-w-[18px]" />
-            <span className="ml-1 leading-6 truncate">{tabName || 'Folder'}</span>
-          </div>
+          <>
+            <IconFolder size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
+            <span className="ml-1 tab-name">{tabName || 'Folder'}</span>
+          </>
         );
       }
       case 'variables': {
         return (
           <>
-            <IconVariable size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Variables</span>
+            <IconVariable size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
+            <span className="ml-1 tab-name">Variables</span>
           </>
         );
       }
       case 'collection-runner': {
         return (
           <>
-            <IconRun size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Runner</span>
+            <IconRun size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
+            <span className="ml-1 tab-name">Runner</span>
           </>
         );
       }
@@ -57,7 +57,10 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
   };
 
   return (
-    <div className="flex items-center tab-label w-full">
+    <div
+      className="flex items-center tab-label w-full"
+      onDoubleClick={handleDoubleClick}
+    >
       {getTabInfo(type, tabName)}
       <GradientCloseButton hasChanges={hasDraft} onClick={(e) => handleCloseClick(e)} />
     </div>

@@ -5,36 +5,46 @@ const StyledWrapper = styled.div`
   align-items: center;
   justify-content: flex-end;
   position: absolute;
-  width: 50px;
+  width: 44px;
   height: 100%;
   right: 0;
   top: 0;
-  padding-right: 2px;
-  background: linear-gradient(90deg, transparent 0%, ${(props) => props.theme.requestTabs.bg} 50%);
-  z-index: 2;
+  padding-right: 4px;
+  z-index: 3;
+  
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    ${(props) => props.theme.requestTabs.bg} 40%
+  );
+  
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.12s linear;
+  transition: opacity 0.15s ease;
 
-  /* Show on tab hover or when has changes */
+  li.active & {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      ${(props) => props.theme.bg || '#ffffff'} 40%
+    );
+  }
+
   li:hover &,
   &.has-changes {
     opacity: 1;
     pointer-events: auto;
   }
 
-  /* Active tab uses active background color */
-  li.active & {
-    background: linear-gradient(90deg, transparent 0%, ${(props) => props.theme.requestTabs.active.bg} 50%);
-  }
-
   .close-icon-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 20px;
-    min-width: 24px;
-    border-radius: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
 
     &:hover {
       background-color: ${(props) => props.theme.requestTabs.icon.hoverBg};
@@ -48,21 +58,43 @@ const StyledWrapper = styled.div`
   .close-icon {
     color: ${(props) => props.theme.requestTabs.icon.color};
     width: 8px;
-    padding: 6px 0;
+    height: 8px;
+    transition: color 0.12s ease;
   }
 
   .has-changes-icon {
-    height: 24px;
+    width: 10px;
+    height: 10px;
   }
 
-  /* Default: show close icon, hide draft icon */
-  .draft-icon-wrapper { display: none; }
-  .close-icon-wrapper { display: flex; }
+  .draft-icon-wrapper { 
+    display: none; 
+  }
+  
+  .close-icon-wrapper { 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-  /* Has changes (not hovered): show draft icon */
   &.has-changes:not(li:hover &) {
-    .draft-icon-wrapper { display: flex; }
-    .close-icon-wrapper { display: none; }
+    .draft-icon-wrapper { 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-icon-wrapper { 
+      display: none; 
+    }
+  }
+
+  li:hover &.has-changes {
+    .draft-icon-wrapper { 
+      display: none; 
+    }
+    .close-icon-wrapper { 
+      display: flex; 
+    }
   }
 `;
 
