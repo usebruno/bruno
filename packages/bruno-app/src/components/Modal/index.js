@@ -42,8 +42,8 @@ const ModalFooter = ({
   return (
     <div className="flex justify-end p-4 bruno-modal-footer">
       <span className={hidePromptToggle ? 'hidden' : 'mr-auto content-center'}>
-        <input type="checkbox" checked={savePromptValues ? 'checked' : ''} onChange={() => setSavePromptValues((prev) => !prev)} className="mr-2 align-middle" />
-        <span>Remember prompt value</span>
+        <input id="promptToggle" name="promptToggle" type="checkbox" checked={savePromptValues} onChange={() => setSavePromptValues((prev) => !prev)} className="align-middle" />
+        <label className="ml-2 select-none" htmlFor="promptToggle">Remember prompt value</label>
       </span>
       <span className={hideCancel ? 'hidden' : 'mr-2'}>
         <button type="button" onClick={handleCancel} className="btn btn-md btn-close">
