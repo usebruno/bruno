@@ -1,7 +1,9 @@
-// In-memory credential store implementation for OAuth2 credentials
+// In-memory credential store implementation for OAuth2 and OAuth1 credentials
 const tokenStore = {
   credentials: {},
+  oauth1Credentials: {},
 
+  // OAuth2 methods
   // Save credentials
   async saveCredential({ url, credentialsId, credentials }) {
     if (!this.credentials[credentialsId]) {
@@ -41,6 +43,41 @@ const tokenStore = {
             credentials
           });
         }
+      }
+    }
+    return result;
+  },
+
+  // OAuth1 methods
+  // Save OAuth1 credentials
+  async saveOAuth1Credential({ credentialsId, credentials }) {
+    this.oauth1Credentials[credentialsId] = credentials;
+    return true;
+  },
+
+  // Get OAuth1 credentials
+  async getOAuth1Credential({ credentialsId }) {
+    return this.oauth1Credentials[credentialsId];
+  },
+
+  // Delete OAuth1 credentials
+  async deleteOAuth1Credential({ credentialsId }) {
+    if (this.oauth1Credentials[credentialsId]) {
+      delete this.oauth1Credentials[credentialsId];
+      return true;
+    }
+    return false;
+  },
+
+  // Get all stored OAuth1 credentials
+  getAllOAuth1Credentials() {
+    const result = [];
+    for (const [credentialsId, credentials] of Object.entries(this.oauth1Credentials)) {
+      if (credentials) {
+        result.push({
+          credentialsId,
+          credentials
+        });
       }
     }
     return result;

@@ -263,7 +263,24 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
-    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
+  }
+
+  // interpolate vars for OAuth 1.0
+  if (request.oauth1) {
+    request.oauth1.consumerKey = _interpolate(request.oauth1.consumerKey) || '';
+    request.oauth1.consumerSecret = _interpolate(request.oauth1.consumerSecret) || '';
+    request.oauth1.signatureMethod = _interpolate(request.oauth1.signatureMethod) || '';
+    request.oauth1.parameterTransmission = _interpolate(request.oauth1.parameterTransmission) || '';
+    request.oauth1.requestTokenUrl = _interpolate(request.oauth1.requestTokenUrl) || '';
+    request.oauth1.authorizeUrl = _interpolate(request.oauth1.authorizeUrl) || '';
+    request.oauth1.accessTokenUrl = _interpolate(request.oauth1.accessTokenUrl) || '';
+    request.oauth1.callbackUrl = _interpolate(request.oauth1.callbackUrl) || '';
+    request.oauth1.verifier = _interpolate(request.oauth1.verifier) || '';
+    request.oauth1.accessToken = _interpolate(request.oauth1.accessToken) || '';
+    request.oauth1.accessTokenSecret = _interpolate(request.oauth1.accessTokenSecret) || '';
+    request.oauth1.rsaPrivateKey = _interpolate(request.oauth1.rsaPrivateKey) || '';
+    request.oauth1.credentialsId = _interpolate(request.oauth1.credentialsId) || '';
   }
 
   if(request?.auth) delete request.auth;
