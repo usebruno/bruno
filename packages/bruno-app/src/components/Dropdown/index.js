@@ -15,6 +15,7 @@ const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, .
         placement={placement || 'bottom-end'}
         animation={false}
         arrow={false}
+        onCreate={onCreate}
         {...tippyProps}
       >
         {icon}
