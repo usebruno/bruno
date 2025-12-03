@@ -201,7 +201,6 @@ const runSingleRequest = async function (
         for (const folderHook of folderHooks) {
           // folderPathname is set by extractHooks (i.pathname)
           const folderHookManagerKey = `folder:${folderHook.folderPathname}`;
-          console.log('folderHookManagerKey', folderHookManagerKey);
           const folderHookManager = await getOrCreateHookManager(hookManagersMap, folderHookManagerKey, folderHook.hooks, hookManagerOptions);
           folderHookManagers.push(folderHookManager);
         }
