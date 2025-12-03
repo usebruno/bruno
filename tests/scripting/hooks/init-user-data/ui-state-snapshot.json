@@ -1,0 +1,12 @@
+{
+    "collections": [
+        {
+            "pathname": "{{projectRoot}}/tests/scripting/hooks/fixtures/collections/basic_hooks",
+            "selectedEnvironment": "Default"
+        },
+        {
+            "pathname": "{{projectRoot}}/tests/scripting/hooks/fixtures/collections/collection_run_hooks",
+            "selectedEnvironment": "Default"
+        }
+    ]
+}

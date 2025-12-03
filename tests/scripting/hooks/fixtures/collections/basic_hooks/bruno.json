@@ -1,0 +1,9 @@
+{
+    "version": "1",
+    "name": "basic_hooks",
+    "type": "collection",
+    "ignore": [
+        "node_modules",
+        ".git"
+    ]
+}

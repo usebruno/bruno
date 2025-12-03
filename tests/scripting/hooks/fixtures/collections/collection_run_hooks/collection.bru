@@ -1,0 +1,19 @@
+script:hooks {
+  bru.runner.hooks.onCollectionRunStart(() => {
+    bru.setEnvVar('collection_started', 'true');
+    bru.setEnvVar('start_time', Date.now().toString());
+  });
+  
+  bru.runner.hooks.onCollectionRunEnd(() => {
+    bru.setEnvVar('collection_ended', 'true');
+    bru.setEnvVar('end_time', Date.now().toString());
+    
+    // Cleanup: Delete all runtime-created env vars for consistent testing
+    bru.deleteEnvVar('collection_started');
+    bru.deleteEnvVar('start_time');
+    bru.deleteEnvVar('collection_ended');
+    bru.deleteEnvVar('end_time');
+    bru.deleteEnvVar('request1_end_time');
+    bru.deleteEnvVar('request2_end_time');
+  });
+}

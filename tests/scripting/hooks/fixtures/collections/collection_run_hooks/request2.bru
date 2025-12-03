@@ -1,0 +1,47 @@
+meta {
+  name: Request 2
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: none
+  auth: none
+}
+
+tests {
+  test("collectionRunStart should have executed", function() {
+    const started = bru.getEnvVar('collection_started');
+    expect(started).to.equal('true');
+  });
+  
+  test("collectionRunStart should have set start_time", function() {
+    const startTime = bru.getEnvVar('start_time');
+    expect(startTime).to.be.a('string');
+    expect(parseInt(startTime)).to.be.a('number');
+    expect(parseInt(startTime)).to.be.greaterThan(0);
+  });
+  
+  test("request2 should set end time", function() {
+    const endTime = Date.now().toString();
+    bru.setEnvVar('request2_end_time', endTime);
+    expect(parseInt(endTime)).to.be.a('number');
+  });
+  
+  test("start_time should be before request2 end time", function() {
+    const startTime = parseInt(bru.getEnvVar('start_time'));
+    const request2EndTime = parseInt(bru.getEnvVar('request2_end_time'));
+    expect(startTime).to.be.lessThan(request2EndTime);
+  });
+  
+  test("request1 end time should be before request2 end time", function() {
+    const request1EndTime = parseInt(bru.getEnvVar('request1_end_time'));
+    const request2EndTime = parseInt(bru.getEnvVar('request2_end_time'));
+    expect(request1EndTime).to.be.lessThan(request2EndTime);
+  });
+  
+  test("request should succeed", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
