@@ -4,7 +4,7 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { 
+const {
   parseRequest,
   stringifyRequest,
   parseRequestViaWorker,
@@ -634,7 +634,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             }
           };
         }
-        
+
         const folderFileContent = await stringifyFolder(folderFileJsonContent, { format });
         await writeFile(folderFilePath, folderFileContent);
 
@@ -689,7 +689,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         const folderFileContent = await stringifyFolder(folderFileJsonContent, { format });
         await writeFile(folderFilePath, folderFileContent);
-        
+
         const requestFilesAtSource = await searchForRequestFiles(oldPath, collectionPathname);
 
         for (let requestFile of requestFilesAtSource) {
@@ -1185,7 +1185,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-    ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieStr) => {
+  ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieStr) => {
     try {
       return parseCookieString(cookieStr);
     } catch (error) {
@@ -1393,7 +1393,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return Promise.reject(error);
     }
   });
-  
+
   // todo: could be removed
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
@@ -1531,6 +1531,98 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       console.error('Error converting Postman to Bruno:', error);
       return Promise.reject(error);
+    }
+  });
+
+  // SSH Remote Collections Handlers
+  const sshConnectionManager = require('../utils/ssh-connection-manager');
+  const remoteFileBrowser = require('../utils/remote-file-browser');
+  const remoteCollectionHandler = require('../utils/remote-collection-handler');
+
+  // Connect to SSH server
+  ipcMain.handle('renderer:ssh-connect', async (event, config) => {
+    try {
+      const connectionId = await sshConnectionManager.connect(config);
+      return { success: true, connectionId };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Disconnect from SSH server
+  ipcMain.handle('renderer:ssh-disconnect', async (event, connectionId) => {
+    try {
+      await sshConnectionManager.disconnect(connectionId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // List remote directory
+  ipcMain.handle('renderer:ssh-list-directory', async (event, connectionId, remotePath) => {
+    try {
+      const items = await remoteFileBrowser.browseWithCollectionInfo(connectionId, remotePath);
+      return { success: true, items };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Get collection metadata
+  ipcMain.handle('renderer:ssh-get-collection-metadata', async (event, connectionId, remotePath) => {
+    try {
+      const metadata = await remoteFileBrowser.getCollectionMetadata(connectionId, remotePath);
+      return { success: true, metadata };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Open remote collection
+  ipcMain.handle('renderer:ssh-open-collection', async (event, connectionId, remotePath, collectionUid) => {
+    try {
+      // Download collection to local cache
+      const localPath = await remoteCollectionHandler.downloadCollection(connectionId, remotePath, collectionUid);
+
+      // Start watching for changes
+      remoteCollectionHandler.startWatching(collectionUid, connectionId, remotePath, localPath);
+
+      // Get collection metadata
+      const metadata = await remoteFileBrowser.getCollectionMetadata(connectionId, remotePath);
+
+      // Open the local collection
+      const uid = generateUidBasedOnHash(localPath);
+      const brunoConfig = metadata;
+
+      mainWindow.webContents.send('main:collection-opened', localPath, uid, brunoConfig);
+      ipcMain.emit('main:collection-opened', mainWindow, localPath, uid, brunoConfig);
+
+      lastOpenedCollections.add(localPath);
+
+      return { success: true, localPath, uid };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Close remote collection
+  ipcMain.handle('renderer:ssh-close-collection', async (event, collectionUid) => {
+    try {
+      await remoteCollectionHandler.stopWatching(collectionUid);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Get active SSH connections
+  ipcMain.handle('renderer:ssh-get-connections', async () => {
+    try {
+      const connections = sshConnectionManager.getActiveConnections();
+      return { success: true, connections };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
   });
 };
