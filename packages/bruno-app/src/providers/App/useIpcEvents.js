@@ -3,7 +3,7 @@ import {
   showPreferences,
   updateCookies,
   updatePreferences,
-  updateSystemProxyEnvVariables
+  updateSystemProxyEnvVariables,
 } from 'providers/ReduxStore/slices/app';
 import {
   brunoConfigUpdateEvent,

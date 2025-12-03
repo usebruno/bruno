@@ -39,7 +39,8 @@ const defaultPreferences = {
     bypassProxy: ''
   },
   layout: {
-    responsePaneOrientation: 'horizontal'
+    responsePaneOrientation: 'horizontal',
+    leftSidebarWidth: 222
   },
   beta: {},
   onboarding: {
@@ -85,7 +86,8 @@ const preferencesSchema = Yup.object().shape({
     bypassProxy: Yup.string().optional().max(1024)
   }),
   layout: Yup.object({
-    responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
+    responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical']),
+    leftSidebarWidth: Yup.number().min(221).max(600).nullable()
   }),
   beta: Yup.object({
   }),

@@ -8,7 +8,7 @@ import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path from 'utils/common/path';
-import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue, toggleSidebarCollapse, updateLeftSidebarWidth } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
   findCollectionByUid,
@@ -2357,22 +2357,31 @@ export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (
 };
 
 export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getState) => {
-  const collectionSnapshotData = payload;
+  const uiStateSnapshotData = payload;
   return new Promise((resolve, reject) => {
     const state = getState();
     try {
-      if (!collectionSnapshotData) resolve();
-      const { pathname, selectedEnvironment } = collectionSnapshotData;
-      const collection = findCollectionByPathname(state.collections.collections, pathname);
-      const collectionCopy = cloneDeep(collection);
-      const collectionUid = collectionCopy?.uid;
+      if (!uiStateSnapshotData) {
+        return resolve();
+      }
 
-      // update selected environment
-      if (selectedEnvironment) {
-        const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
-        if (environment) {
-          dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+      if (uiStateSnapshotData.collections && uiStateSnapshotData.collections.pathname) {
+        const { pathname, selectedEnvironment } = uiStateSnapshotData.collections;
+        const collection = findCollectionByPathname(state.collections.collections, pathname);
+        const collectionCopy = cloneDeep(collection);
+        const collectionUid = collectionCopy?.uid;
+
+        // update selected environment
+        if (selectedEnvironment) {
+          const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
+          if (environment) {
+            dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+          }
         }
+      }
+
+      if (uiStateSnapshotData.sidebar && uiStateSnapshotData.sidebar.width != null) {
+        dispatch(updateLeftSidebarWidth({ leftSidebarWidth: uiStateSnapshotData.sidebar.width }));
       }
 
       // todo: add any other redux state that you want to save

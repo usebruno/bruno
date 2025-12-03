@@ -141,6 +141,14 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
   });
 };
 
+export const saveSidebarWidth = (leftSidebarWidth) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+    type: 'SIDEBAR',
+    data: { width: leftSidebarWidth }
+  });
+};
+
 export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

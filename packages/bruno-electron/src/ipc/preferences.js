@@ -3,7 +3,8 @@ const { getPreferences, savePreferences, preferencesUtil } = require('../store/p
 const { isDirectory } = require('../utils/filesystem');
 const { openCollection } = require('../app/collections');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-``;
+const UiStateSnapshot = require('../store/ui-state-snapshot');
+
 const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
   ipcMain.handle('renderer:ready', async (event) => {
     // load preferences
@@ -24,6 +25,17 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
     }
     catch(error) {
       console.error("Error occured while fetching global environements!");
+      console.error(error);
+    }
+
+    // hydrate UI state snapshot sidebar width
+    try {
+      const UiStateSnapshotStore = new UiStateSnapshot();
+      const sidebarSnapshotState = UiStateSnapshotStore.getSidebar();
+      const uiSnapshotState = { sidebar: sidebarSnapshotState || {} };
+      mainWindow.webContents.send('main:hydrate-app-with-ui-state-snapshot', uiSnapshotState);
+    } catch (error) {
+      console.error('Error loading UI state snapshot');
       console.error(error);
     }
 

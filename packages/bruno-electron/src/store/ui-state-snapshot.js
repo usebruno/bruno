@@ -45,12 +45,35 @@ class UiStateSnapshotStore {
     this.setCollectionByPathname({ collection });
   }
 
+  getSidebar() {
+    return this.store.get('sidebar') || { width: 222 };
+  }
+
+  saveSidebar(sidebar) {
+    this.store.set('sidebar', sidebar);
+  }
+
+  getSidebarWidth() {
+    const sidebar = this.getSidebar();
+    return sidebar && sidebar.width != null ? sidebar.width : 222;
+  }
+
+  updateSidebarWidth(width) {
+    this.saveSidebar({ width });
+  }
+
   update({ type, data }) {
     switch(type) {
-      case 'COLLECTION_ENVIRONMENT':
+      case 'COLLECTION_ENVIRONMENT': {
         const { collectionPath, environmentName } = data;
         this.updateCollectionEnvironment({ collectionPath, environmentName });
         break;
+      }
+      case 'SIDEBAR': {
+        const { width } = data;
+        this.updateSidebarWidth(width);
+        break;
+      }
       default:
         break;
     }

@@ -660,7 +660,8 @@ const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
   const UiStateSnapshotStore = new UiStateSnapshot();
   const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
   const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == watchPath);
-  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
+  const uiSnapshotState = { collections: collectionSnapshotState || {} };
+  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', uiSnapshotState);
 };
 
 class CollectionWatcher {
