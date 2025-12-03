@@ -65,7 +65,7 @@ components:
     expect(bodyJson).toHaveProperty('dueDate');
   });
 
-  it('should import formUrlEncoded body when requestBody uses $ref with inline schema (no explicit type: object)', () => {
+  it('should import formUrlEncoded body when requestBody uses $ref with inline schema', () => {
     const openApiSpec = `
 openapi: "3.0.0"
 info:
@@ -110,7 +110,7 @@ components:
     expect(fieldNames).toContain('password');
   });
 
-  it('should import multipartForm body when requestBody uses $ref with inline schema (no explicit type: object)', () => {
+  it('should import multipartForm body when requestBody uses $ref with inline schema', () => {
     const openApiSpec = `
 openapi: "3.0.0"
 info:
