@@ -91,20 +91,92 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const handlePaste = useCallback(
-    (event) => {
-      // Only enable curl paste detection for HTTP requests
-      if (item.type !== 'http-request') {
+  const handleGraphqlPaste = useCallback((event) => {
+    if (item.type !== 'graphql-request') {
+      return;
+    }
+
+    const clipboardData = event.clipboardData || window.clipboardData;
+    const pastedData = clipboardData.getData('Text');
+
+    const curlCommandRegex = /^\s*curl\s/i;
+    if (!curlCommandRegex.test(pastedData)) {
+      toast.error('Invalid cURL command');
+      return;
+    }
+    event.preventDefault();
+    try {
+      const request = getRequestFromCurlCommand(pastedData, 'graphql-request');
+      if (!request || !request.url) {
+        toast.error('Invalid cURL command');
         return;
       }
+      // Update URL
+      dispatch(requestUrlChanged({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        url: request.url
+      }));
 
-      const clipboardData = event.clipboardData || window.clipboardData;
-      const pastedData = clipboardData.getData('Text');
+      // Update method
+      dispatch(updateRequestMethod({
+        method: request.method.toUpperCase(), // Convert to uppercase
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
 
-      // Check if pasted data looks like a cURL command
-      const curlCommandRegex = /^\s*curl\s/i;
-      if (!curlCommandRegex.test(pastedData)) {
-        // Not a curl command, allow normal paste behavior
+      // Update headers
+      if (request.headers && request.headers.length > 0) {
+        dispatch(setRequestHeaders({
+          collectionUid: collection.uid,
+          itemUid: item.uid,
+          headers: request.headers
+        }));
+      }
+
+      // Update body
+      if (request.body) {
+        const bodyMode = request.body.mode;
+        if (bodyMode === 'graphql') {
+          dispatch(updateRequestGraphqlQuery({
+            itemUid: item.uid,
+            collectionUid: collection.uid,
+            query: request.body.graphql.query
+          }));
+          let variables = request.body.graphql.variables;
+          try {
+            variables = JSON.parse(variables);
+          } catch (error) {
+            variables = variables;
+          }
+          dispatch(updateRequestGraphqlVariables({
+            itemUid: item.uid,
+            collectionUid: collection.uid,
+            variables: variables
+          }));
+        }
+
+        toast.success('GraphQL query imported successfully');
+      }
+    } catch (error) {
+      console.error('Error parsing cURL command:', error);
+      toast.error('Failed to parse GraphQL query');
+    }
+  }, [dispatch, item.uid, collection.uid]);
+
+  const handleHttpPaste = useCallback((event) => {
+    // Only enable curl paste detection for HTTP requests
+    if (item.type !== 'http-request') {
+      return;
+    }
+
+    const clipboardData = event.clipboardData || window.clipboardData;
+    const pastedData = clipboardData.getData('Text');
+
+    // Check if pasted data looks like a cURL command
+    const curlCommandRegex = /^\s*curl\s/i;
+    if (!curlCommandRegex.test(pastedData)) {
+      // Not a curl command, allow normal paste behavior
         return;
       }
 
@@ -327,7 +399,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           theme={storedTheme}
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}
-          onPaste={handlePaste}
+          onPaste={item.type === 'http-request' ? handleHttpPaste : item.type === 'graphql-request' ? handleGraphqlPaste : null}
           collection={collection}
           highlightPathParams={true}
           item={item}
