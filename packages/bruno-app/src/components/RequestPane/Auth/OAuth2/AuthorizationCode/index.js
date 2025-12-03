@@ -129,7 +129,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium">
+        <span className="font-medium">
           Configuration
         </span>
       </div>
@@ -195,7 +195,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span className="font-medium text-gray-800 dark:text-gray-200">
           Token
         </span>
       </div>
@@ -272,7 +272,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span className="font-medium text-gray-800 dark:text-gray-200">
           Advanced Settings
         </span>
       </div>
@@ -295,7 +295,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium">Settings</span>
+        <span className="font-medium">Settings</span>
       </div>
 
       {/* Automatically Fetch Token */}

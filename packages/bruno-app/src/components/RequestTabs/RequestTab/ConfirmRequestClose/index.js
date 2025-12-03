@@ -25,10 +25,10 @@ const ConfirmRequestClose = ({ item, example, onCancel, onCloseWithoutSave, onSa
     >
       <div className="flex items-center font-normal">
         <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
-        <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
+        <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
       </div>
       <div className="font-normal mt-4">
-        You have unsaved changes in {itemType} <span className="font-semibold">{itemName}</span>.
+        You have unsaved changes in {itemType} <span className="font-medium">{itemName}</span>.
       </div>
 
       <div className="flex justify-between mt-6">

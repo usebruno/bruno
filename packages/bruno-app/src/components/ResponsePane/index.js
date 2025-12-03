@@ -16,13 +16,15 @@ import TestResultsLabel from './TestResultsLabel';
 import ScriptError from './ScriptError';
 import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
-import ResponseSave from 'src/components/ResponsePane/ResponseSave';
-import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import ResponseActions from 'src/components/ResponsePane/ResponseActions';
 import ResponseBookmark from 'src/components/ResponsePane/ResponseBookmark';
+import ResponseCopy from 'src/components/ResponsePane/ResponseCopy';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
 import ResponseLayoutToggle from './ResponseLayoutToggle';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
+import WSMessagesList from './WsResponsePane/WSMessagesList';
 
 const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -71,6 +73,10 @@ const ResponsePane = ({ item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
+        const isStream = item.response?.stream ?? false;
+        if (isStream) {
+          return <WSMessagesList order={-1} messages={item.response.data} />;
+        }
         return (
           <QueryResult
             item={item}
@@ -181,11 +187,13 @@ const ResponsePane = ({ item, collection }) => {
               <ClearTimeline item={item} collection={collection} />
             ) : (item?.response && !item?.response?.error) ? (
               <>
-                <ResponseClear item={item} collection={collection} />
-                <ResponseSave item={item} />
                 <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
-                <StatusCode status={response.status} />
-                <ResponseTime duration={response.duration} />
+                <ResponseCopy item={item} />
+                <ResponseActions item={item} collection={collection} />
+                <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
+                {item.response?.stream?.running
+                  ? <ResponseStopWatch startMillis={response.duration} />
+                  : <ResponseTime duration={response.duration} />}
                 <ResponseSize size={responseSize} />
               </>
             ) : null}

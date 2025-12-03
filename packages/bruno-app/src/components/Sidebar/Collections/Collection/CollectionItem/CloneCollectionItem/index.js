@@ -91,7 +91,7 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
         >
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
-              <label htmlFor="name" className="block font-semibold">
+              <label htmlFor="name" className="block font-medium">
                 {isFolder ? 'Folder' : 'Request'} Name
               </label>
               <input
@@ -117,7 +117,7 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
             {showFilesystemName && (
               <div className="mt-4">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="filename" className="flex items-center font-semibold">
+                  <label htmlFor="filename" className="flex items-center font-medium">
                     {isFolder ? 'Folder' : 'File'} Name <small className='font-normal text-muted ml-1'>(on filesystem)</small>
                     { isFolder ? (
                       <Help width="300">

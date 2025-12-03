@@ -12,11 +12,11 @@ import {
   updateRequestAuthMode,
   updateAuth
 } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { getRequestFromCurlCommand } from 'utils/curl';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
-import { IconDeviceFloppy, IconArrowRight, IconCode } from '@tabler/icons';
+import { IconDeviceFloppy, IconArrowRight, IconCode, IconSquareRoundedX } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
@@ -33,6 +33,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
   const isGrpc = item.type === 'grpc-request';
+  const isLoading = ['queued', 'sending'].includes(item.requestState);
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
@@ -43,7 +44,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     setMethodSelectorWidth(el.offsetWidth);
   }, [method]);
 
-  const onSave = (finalValue) => {
+  const onSave = () => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
@@ -51,9 +52,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     if (!editorRef.current?.editor) return;
     const editor = editorRef.current.editor;
     const cursor = editor.getCursor();
-  
+
     const finalUrl = value?.trim() ?? value;
-  
+
     dispatch(
       requestUrlChanged({
         itemUid: item.uid,
@@ -61,7 +62,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         url: finalUrl
       })
     );
-  
+
     // Restore cursor position only if URL was trimmed
     if (finalUrl !== value) {
       setTimeout(() => {
@@ -369,7 +370,11 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     },
     [dispatch, item.uid, item.type, collection.uid]
   );
-
+  const handleCancelRequest = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dispatch(cancelRequest(item.cancelTokenUid, item, collection));
+  };
   return (
     <StyledWrapper className="flex items-center">
       <div className="flex flex-1 items-center h-full method-selector-container">
@@ -377,7 +382,6 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           <div className="flex items-center justify-center h-full w-16">
             <span className="text-xs text-indigo-500 font-bold">gRPC</span>
           </div>
-          
         ) : (
           <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
         )}
@@ -403,6 +407,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           collection={collection}
           highlightPathParams={true}
           item={item}
+          showNewlineArrow={true}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div
@@ -412,15 +417,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               handleGenerateCode(e);
             }}
           >
-            <IconCode
-              color={theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={22}
-              className={'cursor-pointer'}
-            />
-            <span className="infotiptext text-xs">
-              Generate Code
-            </span>
+            <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className="cursor-pointer" />
+            <span className="infotiptext text-xs">Generate Code</span>
           </div>
           <div
             title="Save Request"
@@ -441,11 +439,30 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} data-testid="send-arrow-icon" />
+          {isLoading || item.response?.stream?.running ? (
+            <IconSquareRoundedX
+              color={theme.requestTabPanel.url.iconDanger}
+              strokeWidth={1.5}
+              size={22}
+              data-testid="cancel-request-icon"
+              onClick={handleCancelRequest}
+            />
+          ) : (
+            <IconArrowRight
+              color={theme.requestTabPanel.url.icon}
+              strokeWidth={1.5}
+              size={22}
+              data-testid="send-arrow-icon"
+            />
+          )}
         </div>
       </div>
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collectionUid={collection.uid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem
+          collectionUid={collection.uid}
+          item={item}
+          onClose={() => setGenerateCodeItemModalOpen(false)}
+        />
       )}
     </StyledWrapper>
   );

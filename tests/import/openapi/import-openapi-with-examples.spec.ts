@@ -60,20 +60,20 @@ test.describe('Import OpenAPI Collection with Examples', () => {
       }
     });
 
-    await test.step('Verify OpenAPI import settings modal appears', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
-      await settingsModal.getByRole('button', { name: 'Import' }).click();
+    await test.step('Verify Import Collection location modal appears', async () => {
+      const locationModal = page.getByRole('dialog');
+      await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+      await expect(locationModal.getByText('API with Examples')).toBeVisible();
     });
 
     await test.step('Click Browse link to select collection folder', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await settingsModal.getByText('Browse').click();
+      const locationModal = page.getByRole('dialog');
+      await locationModal.getByText('Browse').click();
     });
 
     await test.step('Complete import by clicking import button', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await settingsModal.getByRole('button', { name: 'Import' }).click();
+      const locationModal = page.getByRole('dialog');
+      await locationModal.getByRole('button', { name: 'Import' }).click();
     });
 
     await test.step('Handle sandbox modal', async () => {
@@ -124,8 +124,8 @@ test.describe('Import OpenAPI Collection with Examples', () => {
       await chevronIcon.click();
 
       // Check if examples are visible
-      const createdExample = page.locator('.collection-item-name').getByText('User Created');
-      const validationErrorExample = page.locator('.collection-item-name').getByText('Validation Error');
+      const createdExample = page.locator('.collection-item-name').getByText('User Created (Valid User)');
+      const validationErrorExample = page.locator('.collection-item-name').getByText('Validation Error (Invalid User)');
 
       await expect(createdExample).toBeVisible();
       await expect(validationErrorExample).toBeVisible();
@@ -175,34 +175,32 @@ test.describe('Import OpenAPI Collection with Examples', () => {
       }
     });
 
-    await test.step('Verify OpenAPI import settings modal appears', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
+    await test.step('Verify Import Collection location modal appears', async () => {
+      const locationModal = page.getByRole('dialog');
+      await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+      await expect(locationModal.getByText('API with Examples')).toBeVisible();
     });
 
     await test.step('Select path-based grouping option from dropdown', async () => {
-      const settingsModal = page.getByRole('dialog');
+      const locationModal = page.getByRole('dialog');
 
       // Click on the grouping dropdown to open it
-      const groupingDropdown = settingsModal.getByTestId('grouping-dropdown');
+      const groupingDropdown = locationModal.getByTestId('grouping-dropdown');
       await groupingDropdown.click();
 
       // Wait for dropdown to open and select "Paths" option (note: it's "Paths" not "Path")
       const pathOption = page.getByTestId('grouping-option-path');
       await pathOption.click();
-      // click on import button
-      const importButton = settingsModal.getByRole('button', { name: 'Import' });
-      await importButton.click();
     });
 
     await test.step('Click Browse link to select collection folder', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await settingsModal.getByText('Browse').click();
+      const locationModal = page.getByRole('dialog');
+      await locationModal.getByText('Browse').click();
     });
 
     await test.step('Complete import by clicking import button', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await settingsModal.getByRole('button', { name: 'Import' }).click();
+      const locationModal = page.getByRole('dialog');
+      await locationModal.getByRole('button', { name: 'Import' }).click();
     });
 
     await test.step('Handle sandbox modal', async () => {

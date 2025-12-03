@@ -29,9 +29,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const storedTheme = useTheme();
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
-  const {
-    brunoConfig: { presets: collectionPresets = {} }
-  } = collection;
   const [curlRequestTypeDetected, setCurlRequestTypeDetected] = useState(null);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
@@ -72,41 +69,13 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
   const [isEditing, toggleEditing] = useState(false);
 
-  const getRequestType = (collectionPresets) => {
-    if (!collectionPresets || !collectionPresets.requestType) {
-      return 'http-request';
-    }
-
-    // Note: Why different labels for the same thing?
-    // http-request and graphql-request are used inside the app's json representation of a request
-    // http and graphql are used in Bru DSL as well as collection exports
-    // We need to eventually standardize the app's DSL to use the same labels as bru DSL
-    if (collectionPresets.requestType === 'http') {
-      return 'http-request';
-    }
-
-    if (collectionPresets.requestType === 'graphql') {
-      return 'graphql-request';
-    }
-
-    if (collectionPresets.requestType === 'grpc') {
-      return 'grpc-request';
-    }
-
-    if (collectionPresets.requestType === 'ws') {
-      return 'ws-request';
-    }
-
-    return 'http-request';
-  };
-
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
       filename: '',
-      requestType: getRequestType(collectionPresets),
-      requestUrl: collectionPresets.requestUrl || '',
+      requestType: 'http-request',
+      requestUrl: '',
       requestMethod: 'GET',
       curlCommand: ''
     },
@@ -145,12 +114,13 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     onSubmit: (values) => {
       const isGrpcRequest = values.requestType === 'grpc-request';
       const isWsRequest = values.requestType === 'ws-request';
+      const filename = values.filename;
 
       if (isGrpcRequest) {
         dispatch(
           newGrpcRequest({
             requestName: values.requestName,
-            filename: values.filename,
+            filename: filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             collectionUid: collection.uid,
@@ -168,7 +138,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         dispatch(newWsRequest({
           requestName: values.requestName,
           requestMethod: values.requestMethod,
-          filename: values.filename,
+          filename: filename,
           requestType: values.requestType,
           requestUrl: values.requestUrl,
           collectionUid: collection.uid,
@@ -185,7 +155,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           newEphemeralHttpRequest({
             uid: uid,
             requestName: values.requestName,
-            filename: values.filename,
+            filename: filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
@@ -210,7 +180,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
-            filename: values.filename,
+            filename: filename,
             requestType: curlRequestTypeDetected,
             requestUrl: request.url,
             requestMethod: request.method,
@@ -231,7 +201,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
-            filename: values.filename,
+            filename: filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
@@ -319,7 +289,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             }}
           >
             <div>
-              <label htmlFor="requestName" className="block font-semibold">
+              <label htmlFor="requestName" className="block font-medium">
                 Type
               </label>
 
@@ -406,7 +376,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
               </div>
             </div>
             <div className="mt-4">
-              <label htmlFor="requestName" className="block font-semibold">
+              <label htmlFor="requestName" className="block font-medium">
                 Request Name
               </label>
               <input
@@ -434,7 +404,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             {showFilesystemName && (
               <div className="mt-4">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="filename" className="flex items-center font-semibold">
+                  <label htmlFor="filename" className="flex items-center font-medium">
                     File Name <small className="font-normal text-muted ml-1">(on filesystem)</small>
                     <Help width="300">
                       <p>Bruno saves each request as a file in your collection's folder.</p>
@@ -476,11 +446,13 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       value={formik.values.filename || ''}
                       data-testid="file-name"
                     />
-                    <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.bru</span>
+                    <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{collection.format}</span>
                   </div>
                 ) : (
                   <div className="relative flex flex-row gap-1 items-center justify-between">
-                    <PathDisplay baseName={formik.values.filename ? `${formik.values.filename}.bru` : ''} />
+                    <PathDisplay
+                      baseName={formik.values.filename ? `${formik.values.filename}.${collection.format}` : ''}
+                    />
                   </div>
                 )}
                 {formik.touched.filename && formik.errors.filename ? (
@@ -491,7 +463,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             {formik.values.requestType !== 'from-curl' ? (
               <>
                 <div className="mt-4">
-                  <label htmlFor="request-url" className="block font-semibold">
+                  <label htmlFor="request-url" className="block font-medium">
                     URL
                   </label>
                   <div className="flex items-center mt-2 ">
@@ -534,7 +506,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             ) : (
               <div className="mt-4">
                 <div className="flex justify-between">
-                  <label htmlFor="request-url" className="block font-semibold">
+                  <label htmlFor="request-url" className="block font-medium">
                     cURL Command
                   </label>
                   <Dropdown className="dropdown" onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">

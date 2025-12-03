@@ -28,7 +28,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, allEnviron
       <div className="flex">
         <div className="flex flex-grow items-center">
           <IconDatabase className="cursor-pointer" size={20} strokeWidth={1.5} />
-          <span className="ml-1 font-semibold break-all">{environment.name}</span>
+          <span className="ml-1 font-medium break-all">{environment.name}</span>
         </div>
         <div className="flex gap-x-2 pl-2">
           <ToolHint text="Edit Environment" toolhintId={`edit-${environment.uid}`}>

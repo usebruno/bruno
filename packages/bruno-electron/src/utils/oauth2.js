@@ -252,7 +252,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     'Accept': 'application/json',
   };
   if (credentialsPlacement === "basic_auth_header") {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'authorization_code',
@@ -451,7 +451,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     'Accept': 'application/json',
   };
   if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'client_credentials',
@@ -598,7 +598,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     'Accept': 'application/json',
   };
   if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'password',
@@ -659,7 +659,7 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       'Accept': 'application/json'
     };
     if (credentialsPlacement === "basic_auth_header") {
-      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
     }
     axiosRequestConfig.url = url;
     axiosRequestConfig.responseType = 'arraybuffer';

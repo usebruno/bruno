@@ -1,14 +1,16 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, saveCollectionRoot, saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
 import { findItemInCollection, hasRequestChanges } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
+import ConfirmCollectionClose from './ConfirmCollectionClose';
+import ConfirmFolderClose from './ConfirmFolderClose';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
@@ -26,6 +28,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const { storedTheme } = useTheme();
   const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
+  const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -77,17 +81,97 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return colorMap[method.toLocaleLowerCase()];
   };
 
+  const handleCloseCollectionSettings = (event) => {
+    if (!collection.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmCollectionClose(true);
+  };
+
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
+
+  const handleCloseFolderSettings = (event) => {
+    if (!folder?.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmFolderClose(true);
+  };
+
+  const hasDraft = tab.type === 'collection-settings' && collection?.draft;
+  const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-1 ${tab.preview ? "italic" : ""}`}
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
+        {showConfirmCollectionClose && tab.type === 'collection-settings' && (
+          <ConfirmCollectionClose
+            collection={collection}
+            onCancel={() => setShowConfirmCollectionClose(false)}
+            onCloseWithoutSave={() => {
+              dispatch(deleteCollectionDraft({
+                collectionUid: collection.uid
+              }));
+              dispatch(closeTabs({
+                tabUids: [tab.uid]
+              }));
+              setShowConfirmCollectionClose(false);
+            }}
+            onSaveAndClose={() => {
+              dispatch(saveCollectionRoot(collection.uid))
+                .then(() => {
+                  dispatch(closeTabs({
+                    tabUids: [tab.uid]
+                  }));
+                  setShowConfirmCollectionClose(false);
+                })
+                .catch((err) => {
+                  console.log('err', err);
+                });
+            }}
+          />
+        )}
+        {showConfirmFolderClose && tab.type === 'folder-settings' && (
+          <ConfirmFolderClose
+            folder={folder}
+            onCancel={() => setShowConfirmFolderClose(false)}
+            onCloseWithoutSave={() => {
+              dispatch(deleteFolderDraft({
+                collectionUid: collection.uid,
+                folderUid: folder.uid
+              }));
+              dispatch(closeTabs({
+                tabUids: [tab.uid]
+              }));
+              setShowConfirmFolderClose(false);
+            }}
+            onSaveAndClose={() => {
+              dispatch(saveFolderRoot(collection.uid, folder.uid))
+                .then(() => {
+                  dispatch(closeTabs({
+                    tabUids: [tab.uid]
+                  }));
+                  setShowConfirmFolderClose(false);
+                })
+                .catch((err) => {
+                  console.log('err', err);
+                });
+            }}
+          />
+        )}
         {tab.type === 'folder-settings' && !folder ? (
           <RequestTabNotFound handleCloseClick={handleCloseClick} />
         ) : tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
+          <SpecialTab handleCloseClick={handleCloseFolderSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} hasDraft={hasFolderDraft} />
+        ) : tab.type === 'collection-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseCollectionSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={collection?.name} hasDraft={hasDraft} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
@@ -198,7 +282,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
+        <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
           {method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>

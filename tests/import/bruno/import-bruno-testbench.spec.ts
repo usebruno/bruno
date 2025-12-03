@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Import Bruno Testbench Collection', () => {
   test.beforeAll(async ({ page }) => {
@@ -7,7 +8,12 @@ test.describe('Import Bruno Testbench Collection', () => {
     await page.locator('.bruno-logo').click();
   });
 
-  test('Import Bruno Testbench collection successfully', async ({ page }) => {
+  test.afterEach(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('Import Bruno Testbench collection successfully', async ({ page, createTmpDir }) => {
     const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-testbench.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
@@ -29,7 +35,9 @@ test.describe('Import Bruno Testbench Collection', () => {
     // Wait for collection to appear in the location modal
     await expect(locationModal.getByText('bruno-testbench')).toBeVisible();
 
-    // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.locator('#collection-location').fill(await createTmpDir('bruno-testbench-test'));
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
+
+    await expect(page.locator('#sidebar-collection-name').getByText('bruno-testbench')).toBeVisible();
   });
 });

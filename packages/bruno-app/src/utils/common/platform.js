@@ -10,8 +10,8 @@ export const isElectron = () => {
   return window.ipcRenderer ? true : false;
 };
 
-export const resolveRequestFilename = (name) => {
-  return `${trim(name)}.bru`;
+export const resolveRequestFilename = (name, extension = 'bru') => {
+  return `${trim(name)}.${extension}`;
 };
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {

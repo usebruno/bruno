@@ -25,7 +25,7 @@ const Wrapper = styled.div`
       padding-left: 0;
       padding-right: 0;
       cursor: pointer;
-      font-size: 0.8125rem;
+      font-size: ${(props) => props.theme.font.size.base};
       height: 38px;
 
       margin-right: 6px;
@@ -39,7 +39,6 @@ const Wrapper = styled.div`
 
       &.active {
         background: ${(props) => props.theme.requestTabs.active.bg};
-        font-weight: 500;
       }
 
       &.active {

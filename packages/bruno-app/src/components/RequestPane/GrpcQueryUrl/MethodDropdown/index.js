@@ -73,7 +73,7 @@ const MethodDropdown = ({
 
   const MethodsDropdownIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-center ml-2 cursor-pointer select-none">
+      <div ref={ref} className="flex items-center justify-center ml-2 cursor-pointer select-none" data-testid="grpc-method-dropdown-trigger">
         {selectedGrpcMethod && <div className="mr-2">{getIconForMethodType(selectedGrpcMethod.type)}</div>}
         <span className="text-xs">
           {selectedGrpcMethod ? (
@@ -162,7 +162,7 @@ const MethodDropdown = ({
         <div ref={listRef} className="max-h-96 overflow-y-auto w-96 min-w-60" data-testid="grpc-methods-list">
           {Object.entries(groupedMethods).map(([serviceName, methods], serviceIndex) => (
             <div key={serviceIndex} className="service-group mb-2" onKeyDown={handleKeyDown} tabIndex={0}>
-              <div className="service-header px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-sm font-medium truncate sticky top-0 z-10">
+              <div className="service-header px-3 py-1 bg-neutral-100 dark:bg-neutral-800 font-medium truncate sticky top-0 z-10">
                 {serviceName || 'Default Service'}
               </div>
               <div className="service-methods">

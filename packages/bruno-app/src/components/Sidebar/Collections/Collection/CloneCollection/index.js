@@ -88,7 +88,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
     <Modal size="sm" title="Clone Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
-          <label htmlFor="collection-name" className="flex items-center font-semibold">
+          <label htmlFor="collection-name" className="flex items-center font-medium">
             Name
           </label>
           <input
@@ -111,7 +111,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
             <div className="text-red-500">{formik.errors.collectionName}</div>
           ) : null}
 
-          <label htmlFor="collection-location" className="block font-semibold mt-3">
+          <label htmlFor="collection-location" className="block font-medium mt-3">
             Location
           </label>
           <input
@@ -133,9 +133,6 @@ const CloneCollection = ({ onClose, collectionUid }) => {
           <div className="mt-1">
             <span
               className="text-link cursor-pointer hover:underline" onClick={browse}
-              style={{
-                fontSize: '0.8125rem'
-              }}
             >
               Browse
             </span>
@@ -143,7 +140,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
 
           <div className="mt-4">
             <div className="flex items-center justify-between">
-              <label htmlFor="filename" className="flex items-center font-semibold">
+              <label htmlFor="filename" className="flex items-center font-medium">
                 Folder Name
                 <Help width="300">
                   <p>

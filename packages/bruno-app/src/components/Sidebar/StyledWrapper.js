@@ -53,10 +53,16 @@ const Wrapper = styled.div`
     right: -3px;
     transition: opacity 0.2s ease;
 
-    &:hover div.drag-request-border {
-      width: 2px;
+    div.drag-request-border {
+      width: 1px;
       height: 100%;
-      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar};
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.border};
+    }
+
+    &:hover div.drag-request-border {
+      width: 1px;
+      height: 100%;
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.activeBorder};
     }
   }
 `;
