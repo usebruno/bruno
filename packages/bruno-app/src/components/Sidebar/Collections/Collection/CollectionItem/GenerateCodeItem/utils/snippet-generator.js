@@ -15,12 +15,14 @@ const addCurlAuthFlags = (curlCommand, auth) => {
     const password = get(auth, `${authMode}.password`, '');
     const credentials = password ? `${username}:${password}` : username;
     const authFlag = authMode === 'digest' ? '--digest' : '--ntlm';
+    // Escape single quotes for shell safety: ' becomes '\''
+    const escapedCredentials = credentials.replace(/'/g, `'\\''`);
 
     const curlMatch = curlCommand.match(/^(curl(?:\.exe)?)/i);
     if (curlMatch) {
       const curlCmd = curlMatch[1];
       const restOfCommand = curlCommand.slice(curlCmd.length);
-      return `${curlCmd} ${authFlag} --user '${credentials}'${restOfCommand}`;
+      return `${curlCmd} ${authFlag} --user '${escapedCredentials}'${restOfCommand}`;
     }
   }
 
