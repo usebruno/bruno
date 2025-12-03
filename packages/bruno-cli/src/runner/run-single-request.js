@@ -199,8 +199,9 @@ const runSingleRequest = async function (
         // Folder-level HookManagers (in order from collection to request)
         const folderHookManagers = [];
         for (const folderHook of folderHooks) {
-          // folderUid is set by extractHooks (i.uid || i.pathname)
-          const folderHookManagerKey = `folder:${folderHook.folderUid}`;
+          // folderPathname is set by extractHooks (i.pathname)
+          const folderHookManagerKey = `folder:${folderHook.folderPathname}`;
+          console.log('folderHookManagerKey', folderHookManagerKey);
           const folderHookManager = await getOrCreateHookManager(hookManagersMap, folderHookManagerKey, folderHook.hooks, hookManagerOptions);
           folderHookManagers.push(folderHookManager);
         }

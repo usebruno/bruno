@@ -2203,12 +2203,6 @@ export const collectionsSlice = createSlice({
         if (!folder.draft) {
           folder.draft = cloneDeep(folder.root);
         }
-        if (!folder.draft.request) {
-          folder.draft.request = {};
-        }
-        if (!folder.draft.request.script) {
-          folder.draft.request.script = {};
-        }
         set(folder, 'draft.request.script.hooks', action.payload.hooks);
       }
     },

@@ -1446,7 +1446,7 @@ const registerNetworkIpc = (mainWindow) => {
           // Folder-level HookManagers (in order from collection to request)
           const folderHookManagers = [];
           for (const folderHook of folderHooks) {
-            const folderHookManagerKey = `folder:${folderHook.folderUid}`;
+            const folderHookManagerKey = `folder:${folderHook.folderPathname}`;
             const folderHookManager = await getOrCreateHookManager(hookManagersMap, folderHookManagerKey, folderHook.hooks, hookManagerOptions);
             folderHookManagers.push(folderHookManager);
           }

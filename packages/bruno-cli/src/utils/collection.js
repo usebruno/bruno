@@ -386,7 +386,7 @@ const extractHooks = (collection, request, requestTreePath) => {
       const hooks = get(folderRoot, 'request.script.hooks', '');
       if (hooks && hooks.trim() !== '') {
         folderHooks.push({
-          folderUid: i.pathname, // Use pathname as unique identifier
+          folderPathname: i.pathname, // Use pathname as unique identifier
           hooks: hooks
         });
       }
