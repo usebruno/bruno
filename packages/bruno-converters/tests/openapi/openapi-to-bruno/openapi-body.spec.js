@@ -64,4 +64,95 @@ components:
     expect(bodyJson).toHaveProperty('invoiceDate');
     expect(bodyJson).toHaveProperty('dueDate');
   });
+
+  it('should import formUrlEncoded body when requestBody uses $ref with inline schema (no explicit type: object)', () => {
+    const openApiSpec = `
+openapi: "3.0.0"
+info:
+  version: "1.0.0"
+  title: "Form URL Encoded Ref Test"
+servers:
+  - url: "https://api.example.com"
+paths:
+  /login:
+    post:
+      summary: "Login"
+      operationId: "login"
+      requestBody:
+        $ref: '#/components/requestBodies/loginForm'
+      responses:
+        '200':
+          description: "Login successful"
+components:
+  requestBodies:
+    loginForm:
+      required: true
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+`;
+
+    const result = openApiToBruno(openApiSpec);
+
+    expect(result.items.length).toBe(1);
+    const request = result.items[0];
+
+    expect(request.request.body.mode).toBe('formUrlEncoded');
+    expect(request.request.body.formUrlEncoded.length).toBe(2);
+
+    const fieldNames = request.request.body.formUrlEncoded.map((f) => f.name);
+    expect(fieldNames).toContain('username');
+    expect(fieldNames).toContain('password');
+  });
+
+  it('should import multipartForm body when requestBody uses $ref with inline schema (no explicit type: object)', () => {
+    const openApiSpec = `
+openapi: "3.0.0"
+info:
+  version: "1.0.0"
+  title: "Multipart Form Ref Test"
+servers:
+  - url: "https://api.example.com"
+paths:
+  /upload:
+    post:
+      summary: "Upload file"
+      operationId: "uploadFile"
+      requestBody:
+        $ref: '#/components/requestBodies/fileUpload'
+      responses:
+        '200':
+          description: "Upload successful"
+components:
+  requestBodies:
+    fileUpload:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            properties:
+              file:
+                type: string
+                format: binary
+              description:
+                type: string
+`;
+
+    const result = openApiToBruno(openApiSpec);
+
+    expect(result.items.length).toBe(1);
+    const request = result.items[0];
+
+    expect(request.request.body.mode).toBe('multipartForm');
+    expect(request.request.body.multipartForm.length).toBe(2);
+
+    const fieldNames = request.request.body.multipartForm.map((f) => f.name);
+    expect(fieldNames).toContain('file');
+    expect(fieldNames).toContain('description');
+  });
 });
