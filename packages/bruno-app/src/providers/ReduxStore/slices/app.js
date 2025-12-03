@@ -142,16 +142,11 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
 };
 
 export const saveSidebarWidth = (leftSidebarWidth) => (dispatch, getState) => {
-  const currentPreferences = getState().app.preferences;
-  const updatedPreferences = {
-    ...currentPreferences,
-    layout: {
-      ...currentPreferences.layout,
-      leftSidebarWidth
-    }
-  };
-
-  return dispatch(savePreferences(updatedPreferences));
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+    type: 'SIDEBAR',
+    data: { width: leftSidebarWidth }
+  });
 };
 
 export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
