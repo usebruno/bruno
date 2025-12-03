@@ -8,25 +8,23 @@ test.describe.serial('wss with custom ca cert', () => {
   test('websocket connects over ssl', async ({ pageWithUserData: page }) => {
     const locators = buildWebsocketCommonLocators(page);
 
-    await openCollectionAndAcceptSandbox(page, 'wss-custom-ca-certs-test', 'safe');
+    // Define reusable locators
+    const requestItem = page.getByTitle(BRU_REQ_NAME);
+    const responseMessage = locators.messages().nth(2).locator('.text-ellipsis');
 
-    // Click on the WSS request
-    await page.getByTitle(BRU_REQ_NAME).click();
-
-    // Connect to the WebSocket
-    await locators.connectionControls.connect().click();
-
-    // Wait for connection to establish
-    await expect(locators.connectionControls.disconnect()).toBeAttached({
-      timeout: 5000
+    await test.step('Open collection', async () => {
+      await openCollectionAndAcceptSandbox(page, 'wss-custom-ca-certs-test', 'safe');
     });
 
-    // Run the request to send the message
-    await locators.runner().click();
+    await test.step('Connect to WSS', async () => {
+      await requestItem.click();
+      await locators.connectionControls.connect().click();
+      await expect(locators.connectionControls.disconnect()).toBeAttached();
+    });
 
-    // Check if the response contains headers (proving connection worked)
-    await expect(locators.messages().nth(2).locator('.text-ellipsis')).toHaveText(/\"headers\"/, {
-      timeout: 5000
+    await test.step('Send message and verify response', async () => {
+      await locators.runner().click();
+      await expect(responseMessage).toHaveText(/\"headers\"/);
     });
   });
 });

@@ -22,6 +22,10 @@ function createServer(certsDir, port = 8090) {
   const wss = new WebSocket.Server({ noServer: true });
 
   wss.on('connection', function connection(ws, request) {
+    ws.on('error', function error(err) {
+      console.error('WebSocket error:', err.message);
+    });
+
     ws.on('message', function message(data) {
       const msg = Buffer.from(data).toString().trim();
       let isJSON = false;
@@ -45,7 +49,7 @@ function createServer(certsDir, port = 8090) {
           }));
         } else {
           return ws.send(JSON.stringify({
-            data: JSON.parse(Buffer.from(data).toString())
+            data: obj
           }));
         }
       }
