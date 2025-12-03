@@ -9,12 +9,13 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
 import Documentation from './Documentation';
 import Auth from './Auth';
+import Overview from './Overview';
 import StatusDot from 'components/StatusDot';
 import get from 'lodash/get';
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
-  let tab = 'headers';
+  let tab = 'overview';
   const { folderLevelSettingsSelectedTab } = collection;
   if (folderLevelSettingsSelectedTab?.[folder?.uid]) {
     tab = folderLevelSettingsSelectedTab[folder?.uid];
@@ -46,6 +47,9 @@ const FolderSettings = ({ collection, folder }) => {
 
   const getTabPanel = (tab) => {
     switch (tab) {
+      case 'overview': {
+        return <Overview collection={collection} folder={folder} />;
+      }
       case 'headers': {
         return <Headers collection={collection} folder={folder} />;
       }
@@ -77,6 +81,9 @@ const FolderSettings = ({ collection, folder }) => {
     <StyledWrapper className="flex flex-col h-full overflow-auto">
       <div className="flex flex-col h-full relative px-4 py-4">
         <div className="flex flex-wrap items-center tabs" role="tablist">
+          <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
+            Overview
+          </div>
           <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
             Headers
             {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
