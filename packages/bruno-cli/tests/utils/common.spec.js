@@ -306,4 +306,4 @@ describe('hasExecutableTestInScript', () => {
       expect(hasExecutableTestInScript(script)).toBe(true);
     });
   });
-}); 
+});

@@ -92,24 +92,24 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         headers={[
           { name: 'Name', accessor: 'name', width: '40%' },
           { name: varType === 'request' ? (
-              <div className="flex items-center">
-                <span>Value</span>
-              </div>
+            <div className="flex items-center">
+              <span>Value</span>
+            </div>
           ) : (
-              <div className="flex items-center">
-                <span>Expr</span>
-                <InfoTip content="You can write any valid JS expression here" infotipId="response-var" />
-              </div>
+            <div className="flex items-center">
+              <span>Expr</span>
+              <InfoTip content="You can write any valid JS expression here" infotipId="response-var" />
+            </div>
           ), accessor: 'value', width: '46%' },
           { name: '', accessor: '', width: '14%' }
         ]}
       >
         <ReorderTable updateReorderedItem={handleVarDrag}>
-        {vars && vars.length
+          {vars && vars.length
             ? vars.map((_var) => {
                 return (
                   <tr key={_var.uid} data-uid={_var.uid}>
-                    <td className='flex relative'>
+                    <td className="flex relative">
                       <input
                         type="text"
                         autoComplete="off"
@@ -135,8 +135,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                             },
                             _var,
                             'value'
-                          )
-                        }
+                          )}
                         onRun={handleRun}
                         collection={collection}
                         item={item}

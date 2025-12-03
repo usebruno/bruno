@@ -71,8 +71,8 @@ test.describe('Multiline Variables - Write Test', () => {
     await expect(page.locator('.response-status-code')).toContainText('200');
 
     // verify multiline JSON variable resolution in response
-    const expectedBody =
-      '{\n  "user": {\n    "name": "John Doe",\n    "email": "john@example.com",\n    "preferences": {\n      "theme": "dark",\n      "notifications": true\n    }\n  },\n  "metadata": {\n    "created": "2025-09-03",\n    "version": "1.0"\n  }\n}';
+    const expectedBody
+      = '{\n  "user": {\n    "name": "John Doe",\n    "email": "john@example.com",\n    "preferences": {\n      "theme": "dark",\n      "notifications": true\n    }\n  },\n  "metadata": {\n    "created": "2025-09-03",\n    "version": "1.0"\n  }\n}';
     await expect(page.locator('.response-pane')).toContainText(`"body": ${JSON.stringify(expectedBody)}`);
   });
 
@@ -89,5 +89,4 @@ test.describe('Multiline Variables - Write Test', () => {
 
     fs.writeFileSync(testBruPath, content);
   });
-
 });

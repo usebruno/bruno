@@ -60,6 +60,6 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.mode === 'dark' ? '#6366f1' : '#4f46e5'};
     }
   }
-`
+`;
 
 export default StyledWrapper;

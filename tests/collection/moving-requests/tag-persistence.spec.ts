@@ -55,7 +55,7 @@ test.describe('Tag persistence', () => {
     // Move the request-3 request to just above request-1 within the same collection
     const r3Request = page.locator('.collection-item-name').filter({ hasText: 'request-3' });
     const r1Request = page.locator('.collection-item-name').filter({ hasText: 'request-1' });
-    
+
     await expect(r3Request).toBeVisible();
     await expect(r1Request).toBeVisible();
 
@@ -108,7 +108,7 @@ test.describe('Tag persistence', () => {
 
     await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).hover();
     await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).locator('.menu-icon').click();
-    await page.locator('.dropdown-item').getByText('New Request').click()
+    await page.locator('.dropdown-item').getByText('New Request').click();
     await page.getByRole('textbox', { name: 'Request Name' }).fill('request-1');
     await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
     await page.getByRole('button', { name: 'Create' }).click();
@@ -118,7 +118,7 @@ test.describe('Tag persistence', () => {
       .filter({ hasText: 'folder-1' }).hover();
     await page.locator('.collection-item-name')
       .filter({ hasText: 'folder-1' }).locator('.menu-icon').click();
-    await page.locator('.dropdown-item').getByText('New Request').click()
+    await page.locator('.dropdown-item').getByText('New Request').click();
     await page.getByRole('textbox', { name: 'Request Name' }).fill('request-2');
     await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
     await page.getByRole('button', { name: 'Create' }).click();
@@ -153,12 +153,12 @@ test.describe('Tag persistence', () => {
     await page.getByRole('textbox', { name: 'Request Name' }).fill('request-3');
     await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
     await page.getByRole('button', { name: 'Create' }).click();
-    
+
     // Drag and drop request-2 request to folder-2 folder
     const r2Request = page.locator('.collection-item-name').filter({ hasText: 'request-2' });
     const f2Folder = page.locator('.collection-item-name').filter({ hasText: 'folder-2' });
     await r2Request.dragTo(f2Folder);
-    
+
     // Verify the requests are still in the collection and request-2 is now in folder-2 folder
     await expect(page.locator('.collection-item-name').filter({ hasText: 'request-2' })).toBeVisible();
     await expect(page.locator('.collection-item-name').filter({ hasText: 'folder-2' })).toBeVisible();

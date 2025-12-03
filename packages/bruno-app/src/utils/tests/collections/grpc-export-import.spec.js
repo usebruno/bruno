@@ -47,7 +47,7 @@ describe('gRPC Export/Import', () => {
             name: 'Streaming Request',
             request: {
               url: 'grpc://localhost:50051',
-              method: '/randomService/randomMethod',    
+              method: '/randomService/randomMethod',
               methodType: 'bidi-streaming',
               protoPath: 'proto/streaming.proto',
               headers: [],

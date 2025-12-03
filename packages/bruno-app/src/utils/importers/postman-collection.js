@@ -14,8 +14,8 @@ const readFile = (files) => {
 const postmanToBruno = (collection) => {
   return new Promise((resolve, reject) => {
     window.ipcRenderer.invoke('renderer:convert-postman-to-bruno', collection)
-      .then(result => resolve(result))
-      .catch(err => {
+      .then((result) => resolve(result))
+      .catch((err) => {
         console.error('Error converting Postman to Bruno via Electron:', err);
         reject(new BrunoError('Conversion failed'));
       });

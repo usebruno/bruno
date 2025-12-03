@@ -15,7 +15,6 @@ test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
 
     await page.setInputFiles('input[type="file"]', insomniaFile);
 
-
     // Check for error message - this should fail during JSON parsing
     const hasError = await page.getByText('Failed to parse the file').first().isVisible();
     expect(hasError).toBe(true);

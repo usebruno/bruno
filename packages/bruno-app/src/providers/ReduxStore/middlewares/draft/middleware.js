@@ -1,4 +1,4 @@
-import { handleMakeTabParmanent } from "./utils";
+import { handleMakeTabParmanent } from './utils';
 
 const actionsToIntercept = [
   // Request-level actions

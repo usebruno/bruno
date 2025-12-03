@@ -6,9 +6,9 @@ export const normalizeQuery = (searchQuery) => {
 };
 
 export const isValidQuery = (normalizedQuery) => {
-  return normalizedQuery && 
-         normalizedQuery !== '/' && 
-         !(normalizedQuery.length === 1 && !normalizedQuery.match(/[a-zA-Z0-9]/));
+  return normalizedQuery
+    && normalizedQuery !== '/'
+    && !(normalizedQuery.length === 1 && !normalizedQuery.match(/[a-zA-Z0-9]/));
 };
 
 export const highlightText = (text, searchQuery) => {
@@ -34,12 +34,12 @@ export const sortResults = (results) => {
     if (b.type === SEARCH_TYPES.DOCUMENTATION) return 1;
 
     // Sort by match type priority
-    const matchTypeOrder = { 
-      [MATCH_TYPES.COLLECTION]: 0, 
-      [MATCH_TYPES.FOLDER]: 1, 
-      [MATCH_TYPES.REQUEST]: 2, 
-      [MATCH_TYPES.URL]: 3, 
-      [MATCH_TYPES.PATH]: 4 
+    const matchTypeOrder = {
+      [MATCH_TYPES.COLLECTION]: 0,
+      [MATCH_TYPES.FOLDER]: 1,
+      [MATCH_TYPES.REQUEST]: 2,
+      [MATCH_TYPES.URL]: 3,
+      [MATCH_TYPES.PATH]: 4
     };
     const aMatchType = matchTypeOrder[a.matchType] ?? 5;
     const bMatchType = matchTypeOrder[b.matchType] ?? 5;
@@ -47,10 +47,10 @@ export const sortResults = (results) => {
     if (aMatchType !== bMatchType) return aMatchType - bMatchType;
 
     // Sort by type priority
-    const typeOrder = { 
-      [SEARCH_TYPES.COLLECTION]: 0, 
-      [SEARCH_TYPES.FOLDER]: 1, 
-      [SEARCH_TYPES.REQUEST]: 2 
+    const typeOrder = {
+      [SEARCH_TYPES.COLLECTION]: 0,
+      [SEARCH_TYPES.FOLDER]: 1,
+      [SEARCH_TYPES.REQUEST]: 2
     };
     const aType = typeOrder[a.type] ?? 3;
     const bType = typeOrder[b.type] ?? 3;

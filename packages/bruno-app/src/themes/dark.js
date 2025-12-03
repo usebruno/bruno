@@ -115,6 +115,7 @@ const darkTheme = {
       item: {
         bg: '#37373D',
         hoverBg: '#2A2D2F',
+        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
         indentBorder: 'solid 1px #585858',
         active: {
           indentBorder: 'solid 1px #4c4c4c'

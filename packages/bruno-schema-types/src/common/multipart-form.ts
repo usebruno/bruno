@@ -11,4 +11,3 @@ export interface MultipartFormEntry {
 }
 
 export type MultipartForm = MultipartFormEntry[];
-

@@ -29,7 +29,7 @@ export const globalEnvironmentsSlice = createSlice({
     _saveGlobalEnvironment: (state, action) => {
       const { environmentUid: globalEnvironmentUid, variables } = action.payload;
       if (globalEnvironmentUid) {
-        const environment = state.globalEnvironments.find(env => env?.uid == globalEnvironmentUid);
+        const environment = state.globalEnvironments.find((env) => env?.uid == globalEnvironmentUid);
         if (environment) {
           environment.variables = variables;
         }
@@ -38,7 +38,7 @@ export const globalEnvironmentsSlice = createSlice({
     _renameGlobalEnvironment: (state, action) => {
       const { environmentUid: globalEnvironmentUid, name } = action.payload;
       if (globalEnvironmentUid) {
-        const environment = state.globalEnvironments.find(env => env?.uid == globalEnvironmentUid);
+        const environment = state.globalEnvironments.find((env) => env?.uid == globalEnvironmentUid);
         if (environment) {
           environment.name = name;
         }
@@ -57,7 +57,7 @@ export const globalEnvironmentsSlice = createSlice({
     _selectGlobalEnvironment: (state, action) => {
       const { environmentUid: globalEnvironmentUid } = action.payload;
       if (globalEnvironmentUid) {
-        const environment = state.globalEnvironments.find(env => env?.uid == globalEnvironmentUid);
+        const environment = state.globalEnvironments.find((env) => env?.uid == globalEnvironmentUid);
         if (environment) {
           state.activeGlobalEnvironmentUid = globalEnvironmentUid;
         }
@@ -68,7 +68,7 @@ export const globalEnvironmentsSlice = createSlice({
     _deleteGlobalEnvironment: (state, action) => {
       const { environmentUid: uid } = action.payload;
       if (uid) {
-        state.globalEnvironments = state.globalEnvironments.filter(env => env?.uid !== uid);
+        state.globalEnvironments = state.globalEnvironments.filter((env) => env?.uid !== uid);
         if (uid === state.activeGlobalEnvironmentUid) {
           state.activeGlobalEnvironmentUid = null;
         }
@@ -151,7 +151,6 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
     const { workspaceUid, workspacePath } = getWorkspaceContext(state);
     const globalEnvironments = state.globalEnvironments.globalEnvironments;
     const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
-
     if (!environment) {
       return reject(new Error('Environment not found'));
     }
@@ -247,7 +246,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     const { workspaceUid, workspacePath } = getWorkspaceContext(state);
     const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
     const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
-    const environment = globalEnvironments?.find(env => env?.uid == environmentUid);
+    const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
 
     if (!environment || !environmentUid) {
       return resolve();
@@ -255,7 +254,9 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
 
     let variables = cloneDeep(environment?.variables);
 
-    variables = variables?.map?.(variable => ({
+    // "globalEnvironmentVariables" will include only the enabled variables and newly added variables created using the script.
+    // Update the value of each variable if it's present in "globalEnvironmentVariables", otherwise keep the existing value.
+    variables = variables?.map?.((variable) => ({
       ...variable,
       value: has(globalEnvironmentVariables, variable?.name)
         ? globalEnvironmentVariables[variable?.name]
@@ -291,6 +292,5 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
       .catch(reject);
   });
 };
-
 
 export default globalEnvironmentsSlice.reducer;

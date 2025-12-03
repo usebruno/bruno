@@ -365,7 +365,5 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       request,
       collection.root
     );
-  })
+  });
 });
-
-

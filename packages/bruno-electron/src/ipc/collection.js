@@ -4,7 +4,7 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { 
+const {
   parseRequest,
   stringifyRequest,
   parseRequestViaWorker,
@@ -20,6 +20,7 @@ const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { wsClient } = require('../ipc/network/ws-event-handlers');
+const { hasSubDirectories } = require('../utils/filesystem');
 
 const {
   writeFile,
@@ -56,6 +57,7 @@ const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentia
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
 const { transformBrunoConfigBeforeSave } = require('../utils/transfomBrunoConfig');
+const { REQUEST_TYPES } = require('../utils/constants');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -94,7 +96,7 @@ const validatePathIsInsideCollection = (filePath) => {
   if (!collectionPath) {
     throw new Error(`Path: ${filePath} should be inside a collection`);
   }
-}
+};
 
 const registerRendererEventHandlers = (mainWindow, watcher) => {
   // create collection
@@ -180,21 +182,23 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       await createDirectory(dirPath);
       const uid = generateUidBasedOnHash(dirPath);
       const format = getCollectionFormat(previousPath);
+      let brunoConfig;
 
       if (format === 'yml') {
         const content = fs.readFileSync('opencollection.yml', 'utf8');
         const {
-          brunoConfig,
+          brunoConfig: parsedBrunoConfig,
           collectionRoot
         } = parseCollection(content);
 
+        brunoConfig = parsedBrunoConfig;
         brunoConfig.name = collectionName;
 
         const newContent = stringifyCollection(collectionRoot, brunoConfig, { format });
         await writeFile(path.join(dirPath, 'opencollection.yml'), newContent);
       } else if (format === 'bru') {
         const content = fs.readFileSync('bruno.json', 'utf8');
-        const brunoConfig = JSON.parse(content);
+        brunoConfig = JSON.parse(content);
         brunoConfig.name = collectionName;
         const newContent = await stringifyJson(brunoConfig);
         await writeFile(path.join(dirPath, 'bruno.json'), newContent);
@@ -604,7 +608,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // rename item
   ipcMain.handle('renderer:rename-item-name', async (event, { itemPath, newName, collectionPathname }) => {
     try {
-
       if (!fs.existsSync(itemPath)) {
         throw new Error(`path: ${itemPath} does not exist`);
       }
@@ -624,7 +627,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             }
           };
         }
-        
+
         const folderFileContent = await stringifyFolder(folderFileJsonContent, { format });
         await writeFile(folderFilePath, folderFileContent);
 
@@ -736,7 +739,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             await fsExtra.copy(tempDir, oldPath);
             await fsExtra.remove(tempDir);
           } catch (err) {
-            console.error("Failed to restore data to the old path:", err);
+            console.error('Failed to restore data to the old path:', err);
           }
         }
       }
@@ -764,7 +767,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // delete file/folder
-  ipcMain.handle('renderer:delete-item', async (event, pathname, type) => {
+  ipcMain.handle('renderer:delete-item', async (event, pathname, type, collectionPathname) => {
     try {
       if (type === 'folder') {
         if (!fs.existsSync(pathname)) {
@@ -772,7 +775,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         // delete the request uid mappings
-        const requestFilesAtSource = await searchForRequestFiles(pathname);
+        const requestFilesAtSource = await searchForRequestFiles(pathname, collectionPathname);
         for (let requestFile of requestFilesAtSource) {
           deleteRequestUid(requestFile);
         }
@@ -945,7 +948,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
             const content = await stringifyRequestViaWorker(item, { format });
-            const filePath = path.join(currentPath, item.filename);
+
+            // Use the correct file extension based on target format
+            const baseName = path.parse(item.filename).name;
+            const newFilename = format === 'yml' ? `${baseName}.yml` : `${baseName}.bru`;
+            const filePath = path.join(currentPath, newFilename);
+
             safeWriteFileSync(filePath, content);
           }
           if (item.type === 'folder') {
@@ -1016,7 +1024,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           }
           const content = await stringifyFolder(folderJsonData, { format });
           await writeFile(folderRootPath, content);
-        } else {
+        } else if (REQUEST_TYPES.includes(item?.type)) {
           if (fs.existsSync(item.pathname)) {
             const itemToSave = transformRequestToSaveToFilesystem(item);
             const content = await stringifyRequestViaWorker(itemToSave, { format });
@@ -1050,7 +1058,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (fs.existsSync(targetDirname)) {
         const sourceDirname = path.dirname(sourcePathname);
         const pathnamesBefore = await getPaths(sourcePathname);
-        const pathnamesAfter = pathnamesBefore?.map(p => p?.replace(sourceDirname, targetDirname));
+        const pathnamesAfter = pathnamesBefore?.map((p) => p?.replace(sourceDirname, targetDirname));
         await copyPath(sourcePathname, targetDirname);
         await removePath(sourcePathname);
         // move the request uids of the previous file/folders to the new file/folder items
@@ -1177,7 +1185,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-    ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieStr) => {
+  ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieStr) => {
     try {
       return parseCookieString(cookieStr);
     } catch (error) {
@@ -1385,7 +1393,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       return Promise.reject(error);
     }
   });
-  
+
   // todo: could be removed
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
@@ -1493,10 +1501,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       maxFileSize
     } = await getCollectionStats(collectionPathname);
 
-    const shouldLoadCollectionAsync =
-      (size > MAX_COLLECTION_SIZE_IN_MB) ||
-      (filesCount > MAX_COLLECTION_FILES_COUNT) ||
-      (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+    const shouldLoadCollectionAsync
+      = (size > MAX_COLLECTION_SIZE_IN_MB)
+        || (filesCount > MAX_COLLECTION_FILES_COUNT)
+        || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
   });

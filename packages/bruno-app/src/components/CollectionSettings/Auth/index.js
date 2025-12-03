@@ -13,7 +13,6 @@ import StyledWrapper from './StyledWrapper';
 import OAuth2 from './OAuth2';
 import NTLMAuth from './NTLMAuth';
 
-
 const Auth = ({ collection }) => {
   const authMode = collection.draft?.root ? get(collection, 'draft.root.request.auth.mode') : get(collection, 'root.request.auth.mode');
   const dispatch = useDispatch();
@@ -36,7 +35,7 @@ const Auth = ({ collection }) => {
       }
       case 'ntlm': {
         return <NTLMAuth collection={collection} />;
-      }       
+      }
       case 'oauth2': {
         return <OAuth2 collection={collection} />;
       }

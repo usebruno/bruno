@@ -18,11 +18,11 @@ const Devtools = ({ mainSectionRef }) => {
 
   const handleDevtoolsResize = useCallback((e) => {
     if (!isResizingDevtools || !mainSectionRef.current) return;
-    
+
     const windowHeight = window.innerHeight;
     const statusBarHeight = 22;
     const mouseY = e.clientY;
-    
+
     // Calculate new devtools height - expanding upward from bottom
     const newHeight = windowHeight - mouseY - statusBarHeight;
     const clampedHeight = Math.min(MAX_DEVTOOLS_HEIGHT, Math.max(MIN_DEVTOOLS_HEIGHT, newHeight));
@@ -43,7 +43,7 @@ const Devtools = ({ mainSectionRef }) => {
       document.addEventListener('mousemove', handleDevtoolsResize);
       document.addEventListener('mouseup', handleDevtoolsResizeEnd);
       document.body.style.userSelect = 'none';
-      
+
       return () => {
         document.removeEventListener('mousemove', handleDevtoolsResize);
         document.removeEventListener('mouseup', handleDevtoolsResizeEnd);
@@ -65,7 +65,7 @@ const Devtools = ({ mainSectionRef }) => {
 
   return (
     <>
-      <div 
+      <div
         onMouseDown={handleDevtoolsResizeStart}
         style={{
           height: '4px',
@@ -85,4 +85,4 @@ const Devtools = ({ mainSectionRef }) => {
   );
 };
 
-export default Devtools; 
+export default Devtools;

@@ -79,7 +79,6 @@ export const normalizeFileName = (name) => {
 };
 
 export const getContentType = (headers) => {
-
   // Return empty string for invalid headers
   if (!headers || typeof headers !== 'object' || Object.keys(headers).length === 0) {
     return '';
@@ -111,8 +110,7 @@ export const getContentType = (headers) => {
   }
 
   return contentType;
-}
-
+};
 
 export const startsWith = (str, search) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -182,17 +180,17 @@ export const generateUidBasedOnHash = (str) => {
   return `${hash}`.padEnd(21, '0');
 };
 
-export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);
+export const stringifyIfNot = (v) => typeof v === 'string' ? v : String(v);
 
 export const getEncoding = (headers) => {
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
   return charsetMatch?.[1];
-}
+};
 
 export const multiLineMsg = (...messages) => {
-  return messages.filter(m => m !== undefined && m !== null && m !== '').join('\n');
-}
+  return messages.filter((m) => m !== undefined && m !== null && m !== '').join('\n');
+};
 
 export const formatSize = (bytes) => {
   // Handle invalid inputs
@@ -211,19 +209,19 @@ export const formatSize = (bytes) => {
   }
 
   return (bytes / (1024 * 1024 * 1024)).toFixed(1) + 'GB';
-}
+};
 
-export const sortByNameThenSequence = items => {
-  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+export const sortByNameThenSequence = (items) => {
+  const isSeqValid = (seq) => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
 
   // Sort folders alphabetically by name
   const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
 
   // Extract folders without 'seq'
-  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+  const withoutSeq = alphabeticallySorted.filter((f) => !isSeqValid(f['seq']));
 
   // Extract folders with 'seq' and sort them by 'seq'
-  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+  const withSeq = alphabeticallySorted.filter((f) => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
 
   const sortedItems = withoutSeq;
 
@@ -242,7 +240,7 @@ export const sortByNameThenSequence = items => {
       const newGroup = Array.isArray(existingItem)
         ? [...existingItem, item]
         : [existingItem, item];
-      
+
       withoutSeq.splice(position, 1, newGroup);
     } else {
       // Insert item at the specified position

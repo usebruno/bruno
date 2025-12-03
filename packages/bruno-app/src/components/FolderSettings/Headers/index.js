@@ -121,8 +121,7 @@ const Headers = ({ collection, folder }) => {
                             },
                             header,
                             'name'
-                          )
-                        }
+                          )}
                         autocomplete={headerAutoCompleteList}
                         collection={collection}
                       />
@@ -141,8 +140,7 @@ const Headers = ({ collection, folder }) => {
                             },
                             header,
                             'value'
-                          )
-                        }
+                          )}
                         collection={collection}
                         item={folder}
                         autocomplete={MimeTypes}

@@ -4,7 +4,7 @@ const isDev = require('electron-is-dev');
 const os = require('os');
 
 if (isDev) {
-  if(!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
+  if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
     console.log('JS Sandbox libraries have not been bundled yet');
     console.log('Please run the below command \nnpm run sandbox:bundle-libraries --workspace=packages/bruno-js');
     throw new Error('JS Sandbox libraries have not been bundled yet');
@@ -16,8 +16,8 @@ const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
-  console.debug("`ELECTRON_USER_DATA_PATH` found, modifying `userData` path: \n"
-    + `\t${app.getPath("userData")} -> ${process.env.ELECTRON_USER_DATA_PATH}`);
+  console.debug('`ELECTRON_USER_DATA_PATH` found, modifying `userData` path: \n'
+    + `\t${app.getPath('userData')} -> ${process.env.ELECTRON_USER_DATA_PATH}`);
 
   app.setPath('userData', process.env.ELECTRON_USER_DATA_PATH);
 }
@@ -45,6 +45,7 @@ const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window')
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+const TerminalManager = require('./ipc/terminal');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
@@ -54,22 +55,24 @@ const { getIsRunningInRosetta } = require('./utils/arch');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
+const terminalManager = new TerminalManager();
 
 const workspaceWatcher = new WorkspaceWatcher();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
-  "default-src 'self'",
-  "connect-src 'self' https://*.posthog.com",
-  "font-src 'self' https: data:;",
-  "frame-src data:",
+  'default-src \'self\'',
+  'connect-src \'self\' https://*.posthog.com',
+  'font-src \'self\' https: data:;',
+  'frame-src data:',
+  'script-src \'self\' \'unsafe-inline\' data:',
   // this has been commented out to make oauth2 work
   // "form-action 'none'",
   // we make an exception and allow http for images so that
   // they can be used as link in the embedded markdown editors
-  "img-src 'self' blob: data: http: https:",
-  "media-src 'self' blob: data: https:",
-  "style-src 'self' 'unsafe-inline' https:"
+  'img-src \'self\' blob: data: http: https:',
+  'media-src \'self\' blob: data: https:',
+  'style-src \'self\' \'unsafe-inline\' https:'
 ];
 
 setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
@@ -80,18 +83,17 @@ let mainWindow;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
-
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
     try {
       const extensions = await installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS], {
-        loadExtensionOptions: {allowFileAccess: true},
-      })
-      console.log(`Added Extensions:  ${extensions.map(ext => ext.name).join(", ")}`)
-      await require("node:timers/promises").setTimeout(1000);
+        loadExtensionOptions: { allowFileAccess: true }
+      });
+      console.log(`Added Extensions:  ${extensions.map((ext) => ext.name).join(', ')}`);
+      await require('node:timers/promises').setTimeout(1000);
       session.defaultSession.getAllExtensions().map((ext) => {
         console.log(`Loading Extension: ${ext.name}`);
-        session.defaultSession.loadExtension(ext.path)
+        session.defaultSession.loadExtension(ext.path);
       });
     } catch (err) {
       console.error('An error occurred while loading extensions: ', err);
@@ -106,8 +108,8 @@ app.on('ready', async () => {
     y,
     width,
     height,
-    minWidth: 1000,
-    minHeight: 640,
+    minWidth: 700,
+    minHeight: 400,
     show: false,
     webPreferences: {
       nodeIntegration: true,
@@ -142,13 +144,13 @@ app.on('ready', async () => {
     console.error('Original message:', reason);
     if (isDev) {
       console.error(
-        'Could not connect to Next.Js dev server, is it running?' +
-          ' Start the dev server using "npm run dev:web" and restart electron'
+        'Could not connect to Next.Js dev server, is it running?'
+        + ' Start the dev server using "npm run dev:web" and restart electron'
       );
     } else {
       console.error(
-        'If you are using an official production build: the above error is most likely a bug! ' +
-          ' Please report this under: https://github.com/usebruno/bruno/issues'
+        'If you are using an official production build: the above error is most likely a bug! '
+        + ' Please report this under: https://github.com/usebruno/bruno/issues'
       );
     }
   });
@@ -166,6 +168,7 @@ app.on('ready', async () => {
   mainWindow.on('unmaximize', () => saveMaximized(false));
   mainWindow.on('close', (e) => {
     e.preventDefault();
+    terminalManager.cleanup(mainWindow.webContents);
     ipcMain.emit('main:start-quit-flow');
   });
 
@@ -187,20 +190,19 @@ app.on('ready', async () => {
     }
     return { action: 'deny' };
   });
-  
 
   mainWindow.webContents.on('did-finish-load', async () => {
     let ogSend = mainWindow.webContents.send;
-    mainWindow.webContents.send = function(channel, ...args) {
-      return ogSend.apply(this, [channel, ...args?.map(_ => {
+    mainWindow.webContents.send = function (channel, ...args) {
+      return ogSend.apply(this, [channel, ...args?.map((_) => {
         // todo: replace this with @msgpack/msgpack encode/decode
         return safeParseJSON(safeStringifyJSON(_));
       })]);
-    }
-    
+    };
+
     // Handle onboarding
     await onboardUser(mainWindow, lastOpenedCollections);
-    
+
     // Send cookies list after renderer is ready
     try {
       cookiesStore.initializeCookies();
@@ -236,6 +238,12 @@ app.on('before-quit', () => {
 
   // Stop system monitoring
   systemMonitor.stop();
+
+  try {
+    terminalManager.killAll();
+  } catch (err) {
+    console.error('Failed to kill all terminals on quit', err);
+  }
 });
 
 app.on('window-all-closed', app.quit);
@@ -245,16 +253,15 @@ app.on('open-file', (event, path) => {
   openCollection(mainWindow, collectionWatcher, path);
 });
 
-
 // Register the global shortcuts
 app.on('browser-window-focus', () => {
   // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
   globalShortcut.register('Ctrl+=', () => {
     mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
   });
-})
+});
 
 // Disable global shortcuts when not focused
 app.on('browser-window-blur', () => {
-  globalShortcut.unregisterAll()
-})
+  globalShortcut.unregisterAll();
+});

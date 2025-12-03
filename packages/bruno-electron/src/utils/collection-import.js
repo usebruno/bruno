@@ -11,11 +11,11 @@ const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, st
 async function findUniqueFolderName(baseName, collectionLocation, counter = 0) {
   const folderName = counter === 0 ? baseName : `${baseName} - ${counter}`;
   const collectionPath = path.join(collectionLocation, sanitizeName(folderName));
-  
+
   if (fs.existsSync(collectionPath)) {
     return findUniqueFolderName(baseName, collectionLocation, counter + 1);
   }
-  
+
   return folderName;
 }
 

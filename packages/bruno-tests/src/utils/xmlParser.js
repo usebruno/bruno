@@ -3,7 +3,7 @@ const { XMLParser } = require('fast-xml-parser');
 const xmlParser = () => {
   const parser = new XMLParser({
     ignoreAttributes: false,
-    allowBooleanAttributes: true,
+    allowBooleanAttributes: true
   });
 
   return (req, res, next) => {

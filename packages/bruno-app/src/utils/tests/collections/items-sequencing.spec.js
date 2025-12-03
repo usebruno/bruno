@@ -6,33 +6,32 @@ describe('resetSequencesInFolder', () => {
       items: [
         { uid: '1', seq: 1 },
         { uid: '2', seq: 3 },
-        { uid: '3', seq: 6 },
-      ],
+        { uid: '3', seq: 6 }
+      ]
     };
 
     const fixedFolder = resetSequencesInFolder(folder.items);
     expect(fixedFolder).toEqual([
       { uid: '1', seq: 1 },
       { uid: '2', seq: 2 },
-      { uid: '3', seq: 3 },
+      { uid: '3', seq: 3 }
     ]);
   });
-
 
   it('should fix the sequences in the folder 2', () => {
     const folder = {
       items: [
         { uid: '1', seq: 3 },
         { uid: '2', seq: 1 },
-        { uid: '3', seq: 2 },
-      ],
+        { uid: '3', seq: 2 }
+      ]
     };
 
     const fixedFolder = resetSequencesInFolder(folder.items);
     expect(fixedFolder).toEqual([
       { uid: '2', seq: 1 },
       { uid: '3', seq: 2 },
-      { uid: '1', seq: 3 },
+      { uid: '1', seq: 3 }
     ]);
   });
 
@@ -42,7 +41,7 @@ describe('resetSequencesInFolder', () => {
         { uid: '1', seq: 1 },
         { uid: '2', type: 'folder' },
         { uid: '3', type: 'folder' },
-        { uid: '4', seq: 7 },
+        { uid: '4', seq: 7 }
       ]
     };
 
@@ -51,7 +50,7 @@ describe('resetSequencesInFolder', () => {
       { uid: '1', seq: 1 },
       { uid: '2', seq: 2, type: 'folder' },
       { uid: '3', seq: 3, type: 'folder' },
-      { uid: '4', seq: 4 },
+      { uid: '4', seq: 4 }
     ]);
   });
 
@@ -61,8 +60,8 @@ describe('resetSequencesInFolder', () => {
         { uid: '1', seq: 2 },
         { uid: '2', seq: 2 },
         { uid: '3', seq: 3 },
-        { uid: '4', seq: 1 },
-      ],
+        { uid: '4', seq: 1 }
+      ]
     };
 
     const fixedFolder = resetSequencesInFolder(folder.items);
@@ -70,7 +69,7 @@ describe('resetSequencesInFolder', () => {
       { uid: '4', seq: 1 },
       { uid: '1', seq: 2 },
       { uid: '2', seq: 3 },
-      { uid: '3', seq: 4 },
+      { uid: '3', seq: 4 }
     ]);
   });
 });

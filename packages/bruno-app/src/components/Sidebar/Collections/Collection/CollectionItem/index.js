@@ -18,7 +18,8 @@ import {
   IconFolder,
   IconTrash,
   IconSettings,
-  IconInfoCircle
+  IconInfoCircle,
+  IconTerminal2
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -51,6 +52,7 @@ import { isEqual } from 'lodash';
 import { calculateDraggedItemNewPathname, getInitialExampleName } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
@@ -58,7 +60,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
-  
+
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
@@ -77,6 +79,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const [examplesExpanded, setExamplesExpanded] = useState(false);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
@@ -93,7 +96,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       isDragging: monitor.isDragging()
     }),
     options: {
-      dropEffect: "move"
+      dropEffect: 'move'
     }
   });
 
@@ -132,7 +135,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (!newPathname) return false;
 
     if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
-    
+
     return true;
   };
 
@@ -153,19 +156,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     drop: async (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
-  
+
       if (draggedItemUid === targetItemUid) return;
-  
+
       const dropType = determineDropType(monitor);
       if (!dropType) return;
 
-      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }))
+      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
       setDropType(null);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
     collect: (monitor) => ({
       isOver: monitor.isOver()
-    }),
+    })
   });
 
   const dropdownTippyRef = useRef();
@@ -186,10 +189,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   });
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
-    'item-focused-in-tab': isTabForItemActive,
+    'item-focused-in-tab': isTabForItemActive && !isKeyboardFocused,
     'item-hovered': isOver && canDrop,
     'drop-target': isOver && dropType === 'inside',
-    'drop-target-above': isOver && dropType === 'adjacent'
+    'drop-target-above': isOver && dropType === 'adjacent',
+    'item-keyboard-focused': isKeyboardFocused
   });
 
   const handleRun = async () => {
@@ -202,7 +206,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const handleClick = (event) => {
     if (event && event.detail != 1) return;
-    //scroll to the active tab
+    // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
     if (isRequest) {
@@ -220,7 +224,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           uid: item.uid,
           collectionUid: collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(item),
-          type: 'request',
+          type: 'request'
         })
       );
     } else {
@@ -228,10 +232,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          type: 'folder-settings',
+          type: 'folder-settings'
         })
       );
-      if(item.collapsed) {
+      if (item.collapsed) {
         dispatch(
           toggleCollectionItem({
             itemUid: item.uid,
@@ -305,7 +309,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     dispatch(makeTabPermanent({ uid: item.uid }));
   };
 
-    // Sort items by their "seq" property.
+  // Sort items by their "seq" property.
   const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
@@ -361,15 +365,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setCreateExampleModalOpen(false);
   };
 
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
+  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i)));
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
- 
+
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();
     if (
-      (item?.request?.url !== '') ||
-      (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
+      (item?.request?.url !== '')
+      || (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
     ) {
       setGenerateCodeItemModalOpen(true);
     } else {
@@ -393,21 +397,54 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
-  const handleCopyRequest = () => {
+  const handleCopyItem = () => {
     dropdownTippyRef.current.hide();
     dispatch(copyRequest(item));
-    toast.success('Request copied to clipboard');
+    const itemType = isFolder ? 'Folder' : 'Request';
+    toast.success(`${itemType} copied to clipboard`);
   };
 
-  const handlePasteRequest = () => {
+  const handlePasteItem = () => {
     dropdownTippyRef.current.hide();
+
+    // Only allow paste into folders
+    if (!isFolder) {
+      toast.error('Paste is only available for folders');
+      return;
+    }
+
     dispatch(pasteItem(collectionUid, item.uid))
       .then(() => {
-        toast.success('Request pasted successfully');
+        toast.success('Item pasted successfully');
       })
       .catch((err) => {
-        toast.error(err ? err.message : 'An error occurred while pasting the request');
+        toast.error(err ? err.message : 'An error occurred while pasting the item');
       });
+  };
+
+  // Keyboard shortcuts handler
+  const handleKeyDown = (e) => {
+    // Detect Mac by checking both metaKey and platform
+    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
+    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
+
+    if (isModifierPressed && e.key.toLowerCase() === 'c') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCopyItem();
+    } else if (isModifierPressed && e.key.toLowerCase() === 'v') {
+      e.preventDefault();
+      e.stopPropagation();
+      handlePasteItem();
+    }
+  };
+
+  const handleFocus = () => {
+    setIsKeyboardFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsKeyboardFocused(false);
   };
 
   return (
@@ -449,6 +486,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           ref.current = node;
           drag(drop(node));
         }}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
@@ -568,21 +609,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 </span>
                 Clone
               </div>
-              {!isFolder && (
-                <div
-                  className="dropdown-item"
-                  onClick={handleCopyRequest}
-                >
-                  <span className="dropdown-icon">
-                    <IconCopy size={16} strokeWidth={2} />
-                  </span>
-                  Copy
-                </div>
-              )}
+              <div
+                className="dropdown-item"
+                onClick={handleCopyItem}
+              >
+                <span className="dropdown-icon">
+                  <IconCopy size={16} strokeWidth={2} />
+                </span>
+                Copy
+              </div>
               {isFolder && hasCopiedItems && (
                 <div
                   className="dropdown-item"
-                  onClick={handlePasteRequest}
+                  onClick={handlePasteItem}
                 >
                   <span className="dropdown-icon">
                     <IconClipboard size={16} strokeWidth={2} />
@@ -654,6 +693,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                     <IconSettings size={16} strokeWidth={2} />
                   </span>
                   Settings
+                </div>
+              )}
+              {isFolder && (
+                <div
+                  className="dropdown-item"
+                  onClick={async (e) => {
+                    dropdownTippyRef.current.hide();
+                    // Get folder pathname
+                    const folderCwd = item.pathname || collectionPathname;
+                    await openDevtoolsAndSwitchToTerminal(dispatch, folderCwd);
+                  }}
+                >
+                  <span className="dropdown-icon">
+                    <IconTerminal2 size={16} strokeWidth={2} />
+                  </span>
+                  Open in Terminal
                 </div>
               )}
               <div

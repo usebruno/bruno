@@ -58,7 +58,7 @@ describe('ResponseSize', () => {
     });
 
     it('should not render when size is an object', () => {
-      const { container } = renderWithTheme(<ResponseSize size={{value: 1024}} />);
+      const { container } = renderWithTheme(<ResponseSize size={{ value: 1024 }} />);
       expect(container).toBeEmptyDOMElement();
     });
   });

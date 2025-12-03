@@ -12,7 +12,7 @@ import StyledWrapper from './StyledWrapper';
 import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash, IconChevronDown, IconChevronUp } from '@tabler/icons';
 import ToolHint from 'components/ToolHint/index';
 import { toastError } from 'utils/common/error';
-import toast from 'react-hot-toast'
+import toast from 'react-hot-toast';
 import { getAbsoluteFilePath } from 'utils/common/path';
 import { prettifyJsonString } from 'utils/common/index';
 
@@ -33,7 +33,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 
   const onEdit = (value) => {
     const currentMessages = [...(body.grpc || [])];
-    
+
     currentMessages[index] = {
       name: name ? name : `message ${index + 1}`,
       content: value
@@ -250,9 +250,9 @@ const GrpcBody = ({ item, collection, handleRun }) => {
   }, [body?.grpc?.length]);
 
   const toggleMessageCollapse = (index) => {
-    setCollapsedMessages(prev => {
+    setCollapsedMessages((prev) => {
       if (prev.includes(index)) {
-        return prev.filter(i => i !== index);
+        return prev.filter((i) => i !== index);
       } else {
         return [...prev, index];
       }

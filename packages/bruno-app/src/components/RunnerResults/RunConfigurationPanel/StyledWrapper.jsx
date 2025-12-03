@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  background-color: ${props => props.theme.sidebar.bg};
+  background-color: ${(props) => props.theme.sidebar.bg};
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -13,7 +13,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: space-between;
     padding: 1rem;
-    border-bottom: 1px solid ${props => props.theme.sidebar.dragbar};
+    border-bottom: 1px solid ${(props) => props.theme.sidebar.dragbar};
     margin-bottom: 0.5rem;
 
     .counter {
@@ -33,7 +33,7 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 0.25rem;
       font-size: ${(props) => props.theme.font.size.base};
-      color: ${props => props.theme.textLink};
+      color: ${(props) => props.theme.textLink};
       background: none;
       border: none;
       padding: 0.25rem 0.5rem;
@@ -58,14 +58,14 @@ const StyledWrapper = styled.div`
     }
     
     &::-webkit-scrollbar-thumb {
-      background-color: ${props => props.theme.console.scrollbarThumb};
+      background-color: ${(props) => props.theme.console.scrollbarThumb};
       border-radius: 3px;
     }
 
     .loading-message, 
     .empty-message {
       padding: 0.75rem;
-      color: ${props => props.theme.colors.text.muted};
+      color: ${(props) => props.theme.colors.text.muted};
       font-size: ${(props) => props.theme.font.size.base};
     }
     
@@ -84,17 +84,17 @@ const StyledWrapper = styled.div`
     position: relative;
     height: 2.5rem;
     border: 1px solid transparent;
-    background-color: ${props => props.theme.sidebar.bg};
+    background-color: ${(props) => props.theme.sidebar.bg};
     transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
     
     &.is-selected {
-      background-color: ${props => props.theme.requestTabs.active.bg};
+      background-color: ${(props) => props.theme.requestTabs.active.bg};
     }
     
     &.is-dragging {
       opacity: 0.5;
-      background-color: ${props => props.theme.sidebar.bg};
-      border: 1px dashed ${props => props.theme.sidebar.dragbar};
+      background-color: ${(props) => props.theme.sidebar.bg};
+      border: 1px dashed ${(props) => props.theme.sidebar.dragbar};
       transform: scale(0.98);
       box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
       z-index: 5;
@@ -107,7 +107,7 @@ const StyledWrapper = styled.div`
       left: 0;
       right: 0;
       height: 2px;
-      background: ${props => props.theme.dragAndDrop?.border || props.theme.textLink};
+      background: ${(props) => props.theme.dragAndDrop?.border || props.theme.textLink};
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease;
@@ -125,7 +125,7 @@ const StyledWrapper = styled.div`
       &::before {
         opacity: 1;
         height: 2px;
-        background: ${props => props.theme.dragAndDrop?.border || props.theme.textLink};
+        background: ${(props) => props.theme.dragAndDrop?.border || props.theme.textLink};
       }
     }
 
@@ -133,25 +133,25 @@ const StyledWrapper = styled.div`
       &::after {
         opacity: 1;
         height: 2px;
-        background: ${props => props.theme.dragAndDrop?.border || props.theme.textLink};
+        background: ${(props) => props.theme.dragAndDrop?.border || props.theme.textLink};
       }
     }
 
     .drag-handle {
       cursor: grab;
       margin-right: 0.25rem;
-      color: ${props => props.theme.sidebar.muted};
+      color: ${(props) => props.theme.sidebar.muted};
       display: flex;
       align-items: center;
       transition: color 0.15s ease;
       
       &:hover {
-        color: ${props => props.theme.text};
+        color: ${(props) => props.theme.text};
       }
       
       &:active {
         cursor: grabbing;
-        color: ${props => props.theme.textLink};
+        color: ${(props) => props.theme.textLink};
       }
     }
     
@@ -162,7 +162,7 @@ const StyledWrapper = styled.div`
       .checkbox {
         width: 1rem;
         height: 1rem;
-        border: 1px solid ${props => props.theme.sidebar.dragbar};
+        border: 1px solid ${(props) => props.theme.sidebar.dragbar};
         border-radius: 3px;
         display: flex;
         align-items: center;
@@ -170,7 +170,7 @@ const StyledWrapper = styled.div`
         transition: all 0.1s ease;
         
         &:hover {
-          border-color: ${props => props.theme.textLink};
+          border-color: ${(props) => props.theme.textLink};
         }
       }
     }
@@ -181,34 +181,34 @@ const StyledWrapper = styled.div`
       font-weight: 500;
       margin-right: 0.5rem;
       min-width: 3rem;
-      color: ${props => props.theme.sidebar.muted}; // Default color for unknown methods
+      color: ${(props) => props.theme.sidebar.muted}; // Default color for unknown methods
       
       &.method-get {
-        color: ${props => props.theme.request.methods.get};
+        color: ${(props) => props.theme.request.methods.get};
       }
       
       &.method-post {
-        color: ${props => props.theme.request.methods.post};
+        color: ${(props) => props.theme.request.methods.post};
       }
       
       &.method-put {
-        color: ${props => props.theme.request.methods.put};
+        color: ${(props) => props.theme.request.methods.put};
       }
       
       &.method-delete {
-        color: ${props => props.theme.request.methods.delete};
+        color: ${(props) => props.theme.request.methods.delete};
       }
       
       &.method-patch {
-        color: ${props => props.theme.request.methods.patch};
+        color: ${(props) => props.theme.request.methods.patch};
       }
       
       &.method-options {
-        color: ${props => props.theme.request.methods.options};
+        color: ${(props) => props.theme.request.methods.options};
       }
       
       &.method-head {
-        color: ${props => props.theme.request.methods.head};
+        color: ${(props) => props.theme.request.methods.head};
       }
     }
     
@@ -222,10 +222,10 @@ const StyledWrapper = styled.div`
       .folder-path {
         margin-left: 0.5rem;
         font-size: ${(props) => props.theme.font.size.base};
-        color: ${props => props.theme.sidebar.muted};
+        color: ${(props) => props.theme.sidebar.muted};
       }
     }
   }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

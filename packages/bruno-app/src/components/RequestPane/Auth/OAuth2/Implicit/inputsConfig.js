@@ -21,4 +21,4 @@ const inputsConfig = [
   }
 ];
 
-export { inputsConfig }; 
+export { inputsConfig };

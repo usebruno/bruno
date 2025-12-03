@@ -156,9 +156,9 @@ const ProxySettings = ({ collection }) => {
             <InfoTip infotipId="request-var">
               <div>
                 <ul>
-                  <li><span style={{width: "50px", display: "inline-block"}}>global</span> - use global proxy config</li>
-                  <li><span style={{width: "50px", display: "inline-block"}}>enabled</span> - use collection proxy config</li>
-                  <li><span style={{width: "50px", display: "inline-block"}}>disable</span> - disable proxy</li>
+                  <li><span style={{ width: '50px', display: 'inline-block' }}>global</span> - use global proxy config</li>
+                  <li><span style={{ width: '50px', display: 'inline-block' }}>enabled</span> - use collection proxy config</li>
+                  <li><span style={{ width: '50px', display: 'inline-block' }}>disable</span> - disable proxy</li>
                 </ul>
               </div>
             </InfoTip>
