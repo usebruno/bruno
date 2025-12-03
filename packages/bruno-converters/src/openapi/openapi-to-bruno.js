@@ -489,7 +489,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
 
     if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedMimeType)) {
       brunoRequestItem.request.body.mode = 'json';
-      if (bodySchema && bodySchema.type === 'object') {
+      if (bodySchema && (bodySchema.type === 'object' || bodySchema.properties)) {
         let _jsonBody = buildEmptyJsonBody(bodySchema);
         brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
       }
@@ -498,7 +498,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
       }
     } else if (normalizedMimeType === 'application/x-www-form-urlencoded') {
       brunoRequestItem.request.body.mode = 'formUrlEncoded';
-      if (bodySchema && bodySchema.type === 'object') {
+      if (bodySchema && (bodySchema.type === 'object' || bodySchema.properties)) {
         each(bodySchema.properties || {}, (prop, name) => {
           brunoRequestItem.request.body.formUrlEncoded.push({
             uid: uuid(),
@@ -511,7 +511,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
       }
     } else if (normalizedMimeType === 'multipart/form-data') {
       brunoRequestItem.request.body.mode = 'multipartForm';
-      if (bodySchema && bodySchema.type === 'object') {
+      if (bodySchema && (bodySchema.type === 'object' || bodySchema.properties)) {
         each(bodySchema.properties || {}, (prop, name) => {
           brunoRequestItem.request.body.multipartForm.push({
             uid: uuid(),
