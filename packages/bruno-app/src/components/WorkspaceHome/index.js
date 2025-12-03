@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconCategory, IconPlus, IconFolders, IconFileImport, IconDots, IconEdit, IconX, IconCheck, IconFolder } from '@tabler/icons';
-import { loadWorkspaceCollections, importCollectionInWorkspace, renameWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { importCollectionInWorkspace, renameWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CreateCollection from 'components/Sidebar/CreateCollection';
@@ -13,7 +13,7 @@ import WorkspaceEnvironments from './WorkspaceEnvironments';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 
-const WorkspaceOverview = () => {
+const WorkspaceHome = () => {
   const dispatch = useDispatch();
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const [activeTab, setActiveTab] = useState('collections');
@@ -31,12 +31,6 @@ const WorkspaceOverview = () => {
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
-
-  useEffect(() => {
-    if (activeWorkspaceUid && activeWorkspace) {
-      dispatch(loadWorkspaceCollections(activeWorkspaceUid));
-    }
-  }, [activeWorkspaceUid, dispatch, activeWorkspace]);
 
   useEffect(() => {
     if (!isRenamingWorkspace) return;
@@ -214,9 +208,6 @@ const WorkspaceOverview = () => {
         {createCollectionModalOpen && (
           <CreateCollection
             onClose={() => setCreateCollectionModalOpen(false)}
-            workspaceUid={activeWorkspace.uid}
-            defaultLocation={`${activeWorkspace.pathname}/collections`}
-            hideLocationInput={true}
           />
         )}
 
@@ -357,4 +348,4 @@ const WorkspaceOverview = () => {
   );
 };
 
-export default WorkspaceOverview;
+export default WorkspaceHome;

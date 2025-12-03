@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     height: 100%;
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   .collections-header {
@@ -28,7 +28,7 @@ const StyledWrapper = styled.div`
 
   .header-cell {
     font-weight: 600;
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.text.muted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -48,14 +48,7 @@ const StyledWrapper = styled.div`
     border-bottom: ${(props) => props.theme.workspace.collection.item.indentBorder};
     transition: background-color 0.15s ease;
     cursor: pointer;
-
-    &:has(.cell-git) {
-      grid-template-columns: 1fr 3fr 1fr 1.5fr;
-    }
-
-    &:not(:has(.cell-git)) {
-      grid-template-columns: 1fr 3fr 1.5fr;
-    }
+    grid-template-columns: 1fr 3fr 1.5fr;
 
     &:hover {
       background-color: ${(props) => props.theme.sidebar.bg};
@@ -86,14 +79,14 @@ const StyledWrapper = styled.div`
     .collection-name {
       font-weight: 400;
       color: ${(props) => props.theme.text};
-      font-size: 13px;
+      font-size: ${(props) => props.theme.font.size.base};
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .collection-subtitle {
-      font-size: 11px;
+      font-size: ${(props) => props.theme.font.size.xs};
       color: ${(props) => props.theme.text.muted};
       white-space: nowrap;
       overflow: hidden;
@@ -102,112 +95,14 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .cell-type {
-    .type-icon {
-      flex-shrink: 0;
-      
-      &.remote {
-        color: #3B82F6;
-      }
-      
-      &.local {
-        color: ${(props) => props.theme.workspace.accent};
-      }
-    }
-
-    .type-label {
-      font-size: 12px;
-      font-weight: 500;
-      
-      &.remote {
-        color: #3B82F6;
-      }
-      
-      &.local {
-        color: ${(props) => props.theme.text.primary};
-      }
-    }
-  }
-
   .cell-location {
     .location-text {
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       color: ${(props) => props.theme.text.muted};
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       width: 100%;
-    }
-  }
-
-  .cell-git {
-    .git-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 500;
-      width: fit-content;
-
-      &.git-enabled {
-        background-color: #10B98120;
-        color: #10B981;
-      }
-
-      &.git-disabled {
-        background-color: ${(props) => props.theme.workspace.border}40;
-        color: ${(props) => props.theme.text.muted};
-      }
-    }
-  }
-
-  .cell-requests {
-    .request-count {
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-    }
-
-    .count-number {
-      font-weight: 600;
-      font-size: 14px;
-      color: ${(props) => props.theme.text.primary};
-    }
-
-    .count-label {
-      font-size: 11px;
-      color: ${(props) => props.theme.text.muted};
-    }
-  }
-
-  .cell-status {
-    .status-badge {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 500;
-      
-      &.status-ready {
-        background-color: ${(props) => props.theme.workspace.accent}20;
-        color: ${(props) => props.theme.workspace.accent};
-        
-        .status-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background-color: ${(props) => props.theme.workspace.accent};
-        }
-      }
-      
-      &.status-not-loaded {
-        background-color: ${(props) => props.theme.workspace.border}40;
-        color: ${(props) => props.theme.text.muted};
-      }
     }
   }
 
@@ -241,24 +136,12 @@ const StyledWrapper = styled.div`
     &:hover:not(:disabled) {
       background-color: ${(props) => props.theme.listItem.hoverBg};
       
-      &.action-git {
-        color: #F97316;
-      }
-      
-      &.action-run {
-        color: #10B981;
-      }
-      
       &.action-edit {
         color: ${(props) => props.theme.text};
       }
       
       &.action-share {
         color: #3B82F6;
-      }
-      
-      &.action-settings {
-        color: ${(props) => props.theme.text};
       }
       
       &.action-delete {

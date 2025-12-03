@@ -6,32 +6,13 @@ const StyledWrapper = styled.div`
     align-items: center;
   }
 
-  .workspace-icon-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .workspace-letter-logo {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 500;
-    background: white;
-    color: #5d5d5d;
-  }
-
   .workspace-name-container {
     display: flex;
     align-items: center;
     gap: 4px;
     padding: 6px 10px;
     margin-left: 0px;
-    border-radius: 6px;
+    border-radius: ${(props) => props.theme.border.radius.base};
     cursor: pointer;
     transition: all 0.2s ease;
     min-width: 0;
@@ -43,7 +24,7 @@ const StyledWrapper = styled.div`
     }
 
     .workspace-name {
-      font-size: 13px;
+      font-size: ${(props) => props.theme.font.size.base};
       font-weight: 600;
       color: ${(props) => props.theme.sidebar.color};
       white-space: nowrap;
@@ -103,7 +84,7 @@ const StyledWrapper = styled.div`
     .workspace-name {
       flex: 1;
       min-width: 0;
-      font-size: 13px;
+      font-size: ${(props) => props.theme.font.size.base};
       font-weight: 400;
       color: ${(props) => props.theme.dropdown.color};
       white-space: nowrap;

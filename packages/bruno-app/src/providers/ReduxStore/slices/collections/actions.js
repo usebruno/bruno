@@ -58,8 +58,7 @@ import {
 
 import { each } from 'lodash';
 import { closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
-import { addCollectionToWorkspace, removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
-import { loadWorkspaceCollections } from 'providers/ReduxStore/slices/workspaces/actions';
+import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
@@ -2252,21 +2251,14 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
                 path: pathname
               };
 
+              // The electron handler will automatically trigger workspace config update
+              // which will cause the app to react and reload collections
               ipcRenderer
                 .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
-                .then(() => {
-                  dispatch(addCollectionToWorkspace({
-                    workspaceUid: activeWorkspace.uid,
-                    collection: workspaceCollection
-                  }));
-                  dispatch(loadWorkspaceCollections(activeWorkspace.uid, true));
-                })
                 .catch((err) => {
                   console.error('Failed to add collection to workspace', err);
                   toast.error('Failed to add collection to workspace');
                 });
-            } else {
-              dispatch(loadWorkspaceCollections(activeWorkspace.uid, true));
             }
           }
 
@@ -2382,11 +2374,6 @@ export const importCollection = (collection, collectionLocation, options = {}) =
         };
 
         await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection);
-
-        dispatch(addCollectionToWorkspace({
-          workspaceUid: activeWorkspace.uid,
-          collection: workspaceCollection
-        }));
       }
 
       resolve(collectionPath);

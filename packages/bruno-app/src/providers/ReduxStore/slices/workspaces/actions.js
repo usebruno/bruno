@@ -301,7 +301,7 @@ export const loadLastOpenedWorkspaces = () => {
 };
 
 export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfig) => {
-  return async (dispatch) => {
+  return async (dispatch, getState) => {
     dispatch(createWorkspace({
       uid: workspaceUid,
       pathname: workspacePath,
@@ -311,6 +311,14 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     try {
       await dispatch(loadWorkspaceCollections(workspaceUid));
     } catch (error) {
+    }
+
+    // If this is the default workspace or no workspace is active yet, switch to it
+    const state = getState();
+    const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
+
+    if (!activeWorkspaceUid || workspaceConfig.type === 'default') {
+      dispatch(switchWorkspace(workspaceUid));
     }
   };
 };
@@ -477,11 +485,6 @@ export const importCollectionInWorkspace = (collection, workspaceUid, collection
     };
 
     await ipcRenderer.invoke('renderer:add-collection-to-workspace', currentWorkspace.pathname, workspaceCollection);
-
-    dispatch(addCollectionToWorkspace({
-      workspaceUid,
-      collection: workspaceCollection
-    }));
 
     return collectionPath;
   };

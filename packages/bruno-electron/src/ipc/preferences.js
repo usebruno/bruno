@@ -24,6 +24,8 @@ const registerPreferencesIpc = (mainWindow, watcher) => {
       console.error("Error occured while fetching global environements!");
       console.error(error);
     }
+
+    ipcMain.emit('main:renderer-ready', mainWindow);
   });
 
   ipcMain.on('main:open-preferences', () => {

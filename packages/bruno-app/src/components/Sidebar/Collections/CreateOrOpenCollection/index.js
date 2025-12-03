@@ -48,8 +48,6 @@ const CreateOrOpenCollection = () => {
       {createCollectionModalOpen ? (
         <CreateCollection
           onClose={() => setCreateCollectionModalOpen(false)}
-          workspaceUid={activeWorkspaceUid}
-          hideLocationInput={activeWorkspace && activeWorkspace.type !== 'default'}
         />
       ) : null}
 

@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconBox, IconTrash, IconEdit, IconShare } from '@tabler/icons';
-import { loadWorkspaceCollections, removeCollectionFromWorkspaceAction, importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { removeCollectionFromWorkspaceAction, importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
-import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import CreateCollection from 'components/Sidebar/CreateCollection';
@@ -24,12 +23,6 @@ const WorkspaceCollections = ({ workspace, onImportCollection }) => {
 
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (workspace && workspace.uid) {
-      dispatch(loadWorkspaceCollections(workspace.uid));
-    }
-  }, [workspace?.uid, collections.length, dispatch]);
 
   const handleImportCollection = ({ rawData, type }) => {
     if (onImportCollection) {
@@ -199,9 +192,6 @@ const WorkspaceCollections = ({ workspace, onImportCollection }) => {
         {createCollectionModalOpen && (
           <CreateCollection
             onClose={() => setCreateCollectionModalOpen(false)}
-            workspaceUid={workspace.uid}
-            defaultLocation={`${workspace.pathname}/collections`}
-            hideLocationInput={true}
           />
         )}
 

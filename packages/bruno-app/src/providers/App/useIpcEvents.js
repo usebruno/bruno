@@ -22,8 +22,7 @@ import {
   streamDataReceived
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { workspaceOpenedEvent, workspaceConfigUpdatedEvent, loadLastOpenedWorkspaces, switchWorkspace, loadWorkspaceCollections } from 'providers/ReduxStore/slices/workspaces/actions';
-import { createWorkspace } from 'providers/ReduxStore/slices/workspaces';
+import { workspaceOpenedEvent, workspaceConfigUpdatedEvent } from 'providers/ReduxStore/slices/workspaces/actions';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -91,33 +90,6 @@ const useIpcEvents = () => {
         dispatch(collectionUnlinkEnvFileEvent(val));
       }
     };
-
-    const initializeDefaultWorkspace = async () => {
-      try {
-        const defaultWorkspace = await ipcRenderer.invoke('renderer:get-default-workspace');
-
-        if (defaultWorkspace) {
-          const { workspaceConfig, workspaceUid, workspacePath } = defaultWorkspace;
-
-          dispatch(createWorkspace({
-            uid: workspaceUid,
-            name: workspaceConfig.name || 'Default',
-            type: 'default',
-            pathname: workspacePath,
-            collections: [],
-            docs: workspaceConfig.docs || ''
-          }));
-
-          await dispatch(loadWorkspaceCollections(workspaceUid));
-          dispatch(switchWorkspace(workspaceUid));
-        }
-      } catch (error) {
-        console.error('Error loading default workspace:', error);
-      }
-    };
-
-    initializeDefaultWorkspace();
-    dispatch(loadLastOpenedWorkspaces());
 
     ipcRenderer.invoke('renderer:ready');
 

@@ -33,7 +33,7 @@ import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
-import WorkspaceOverview from 'components/WorkspaceOverview/index';
+import WorkspaceHome from 'components/WorkspaceHome';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -137,7 +137,7 @@ const RequestTabPanel = () => {
   }, [dragging]);
 
   if (!activeTabUid) {
-    return <WorkspaceOverview />;
+    return <WorkspaceHome />;
   }
 
   if (!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {

@@ -318,7 +318,13 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   ipcMain.handle('renderer:add-collection-to-workspace', async (event, workspacePath, collection) => {
     try {
       const normalizedCollection = normalizeCollectionEntry(workspacePath, collection);
-      return await addCollectionToWorkspace(workspacePath, normalizedCollection);
+      const updatedCollections = await addCollectionToWorkspace(workspacePath, normalizedCollection);
+
+      const workspaceConfig = readWorkspaceConfig(workspacePath);
+      const workspaceUid = generateUidBasedOnHash(workspacePath);
+      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, workspaceConfig);
+
+      return updatedCollections;
     } catch (error) {
       throw error;
     }
@@ -429,6 +435,66 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       };
     } catch (error) {
       return null;
+    }
+  });
+
+  ipcMain.on('main:renderer-ready', async (win) => {
+    try {
+      const defaultResult = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
+      if (defaultResult) {
+        const { workspacePath, workspaceUid } = defaultResult;
+        const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+
+        if (fs.existsSync(workspaceFilePath)) {
+          const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
+          const workspaceConfig = yaml.load(yamlContent);
+
+          win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, {
+            ...workspaceConfig,
+            type: 'default'
+          });
+
+          if (workspaceWatcher) {
+            workspaceWatcher.addWatcher(win, workspacePath);
+          }
+        }
+      }
+
+      const workspaces = lastOpenedWorkspaces.getAll();
+      const invalidWorkspaceUids = [];
+
+      for (const workspace of workspaces) {
+        if (workspace.pathname) {
+          const workspaceYmlPath = path.join(workspace.pathname, 'workspace.yml');
+
+          if (fs.existsSync(workspaceYmlPath)) {
+            try {
+              const workspaceConfig = readWorkspaceConfig(workspace.pathname);
+              validateWorkspaceConfig(workspaceConfig);
+              const workspaceUid = generateUidBasedOnHash(workspace.pathname);
+
+              win.webContents.send('main:workspace-opened', workspace.pathname, workspaceUid, workspaceConfig);
+
+              if (workspaceWatcher) {
+                workspaceWatcher.addWatcher(win, workspace.pathname);
+              }
+            } catch (error) {
+              console.error(`Error loading workspace ${workspace.pathname}:`, error);
+              invalidWorkspaceUids.push(workspace.uid);
+            }
+          } else {
+            invalidWorkspaceUids.push(workspace.uid);
+          }
+        } else {
+          invalidWorkspaceUids.push(workspace.uid);
+        }
+      }
+
+      for (const uid of invalidWorkspaceUids) {
+        lastOpenedWorkspaces.remove(uid);
+      }
+    } catch (error) {
+      console.error('Error initializing workspaces:', error);
     }
   });
 };

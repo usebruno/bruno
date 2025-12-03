@@ -4,7 +4,6 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import path from 'path';
 import { browseDirectory, createCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { loadWorkspaceCollections } from 'providers/ReduxStore/slices/workspaces/actions';
 import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
@@ -20,20 +19,26 @@ import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
 
-const CreateCollection = ({ onClose, workspaceUid, defaultLocation: propDefaultLocation, hideLocationInput = false }) => {
+const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
+  const workspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
   const [isEditing, toggleEditing] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const [showExternalLocation, setShowExternalLocation] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const defaultLocation = propDefaultLocation || get(preferences, 'general.defaultCollectionLocation', '');
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const activeWorkspace = workspaces.find((w) => w.uid === workspaceUid);
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
+
+  const hideLocationInput = activeWorkspace && activeWorkspace.type !== 'default' && !!activeWorkspace?.pathname;
+
+  const defaultLocation = propDefaultLocation
+    || (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '')
+    || get(preferences, 'general.defaultCollectionLocation', '');
 
   const shouldShowAccordion = workspaceUid && hideLocationInput && !isDefaultWorkspace;
   const actuallyHideLocationInput = hideLocationInput && !showExternalLocation && !isDefaultWorkspace;
@@ -87,7 +92,6 @@ const CreateCollection = ({ onClose, workspaceUid, defaultLocation: propDefaultL
             path: collectionPath
           };
           await ipcRenderer.invoke('renderer:add-collection-to-workspace', currentWorkspace.pathname, workspaceCollection);
-          await dispatch(loadWorkspaceCollections(workspaceUid));
         }
 
         toast.success('Collection created!');
