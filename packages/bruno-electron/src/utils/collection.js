@@ -183,46 +183,46 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   // This allows each script to run separately with its own scope,
   // preventing variable re-declaration errors and allowing early returns
   // to only affect that specific script segment
-  const preReqScripts = compact([
+  const preReqScripts = [
     collectionPreReqScript,
     ...combinedPreReqScript,
     request?.script?.req || ''
-  ]);
+  ];
   request.script.req = compact(preReqScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
 
   // Handle post-response scripts based on scriptFlow
   if (scriptFlow === 'sequential') {
-    const postResScripts = compact([
+    const postResScripts = [
       collectionPostResScript,
       ...combinedPostResScript,
       request?.script?.res || ''
-    ]);
+    ];
     request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   } else {
     // Reverse order for non-sequential flow
-    const postResScripts = compact([
+    const postResScripts = [
       request?.script?.res || '',
-      ...combinedPostResScript.reverse(),
+      ...[...combinedPostResScript].reverse(),
       collectionPostResScript
-    ]);
+    ];
     request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
 
   // Handle tests based on scriptFlow
   if (scriptFlow === 'sequential') {
-    const testScripts = compact([
+    const testScripts = [
       collectionTests,
       ...combinedTests,
       request?.tests || ''
-    ]);
+    ];
     request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   } else {
     // Reverse order for non-sequential flow
-    const testScripts = compact([
+    const testScripts = [
       request?.tests || '',
-      ...combinedTests.reverse(),
+      ...[...combinedTests].reverse(),
       collectionTests
-    ]);
+    ];
     request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
 };
