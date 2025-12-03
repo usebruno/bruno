@@ -34,11 +34,23 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
 const regexVariable = new RegExp('{{.*?}}', 'g');
 
 const normalizeVariables = (value) => {
-  value = value || '';
+  // Defensive: ensure value is a string before calling .match()
+  // Handles edge cases where non-strings might be passed
+  if (typeof value !== 'string') {
+    if (value == null) return '';
+    if (value instanceof Date) {
+      // Invalid Date objects should return empty string
+      return isNaN(value.getTime()) ? '' : value.toISOString();
+    }
+    value = String(value);
+  }
+
+  // Normalize Bruno variable syntax ({{_.var}} -> {{var}}, remove spaces)
   const variables = value.match(regexVariable) || [];
   each(variables, (variable) => {
     value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
   });
+
   return value;
 };
 
@@ -300,8 +312,13 @@ const parseInsomniaCollection = (data) => {
 
 export const insomniaToBruno = (insomniaCollection) => {
   try {
-    if(typeof insomniaCollection !== 'object') {
-      insomniaCollection = jsyaml.load(insomniaCollection);
+    if (typeof insomniaCollection !== 'object') {
+      // Use CORE_SCHEMA to prevent auto-conversion of dates, keeping values as strings
+      // This prevents TypeError when calling .match() on Date objects
+      // See: https://github.com/usebruno/bruno/issues/6095
+      insomniaCollection = jsyaml.load(insomniaCollection, {
+        schema: jsyaml.CORE_SCHEMA
+      });
     }
     let collection;
     if (isInsomniaV5Export(insomniaCollection)) {
