@@ -152,6 +152,39 @@ const lightTheme = {
     headingText: '#343434'
   },
 
+  listItem: {
+    hoverBg: '#e7e7e7',
+    activeBg: '#dcdcdc'
+  },
+
+  workspace: {
+    accent: '#D97706',
+    border: '#e7e7e7',
+    borderMuted: '#f3f3f3',
+    card: {
+      bg: '#fff'
+    },
+    button: {
+      bg: '#f3f3f3'
+    },
+    collection: {
+      header: {
+        indentBorder: 'solid 1px #efefef'
+      },
+      item: {
+        indentBorder: 'solid 1px #f9f9f9'
+      }
+    },
+    environments: {
+      bg: '#fbfbfb',
+      indentBorder: 'solid 1px #efefef',
+      activeBg: '#eeeeee',
+      search: {
+        bg: '#fff'
+      }
+    }
+  },
+
   request: {
     methods: {
       get: 'rgb(5, 150, 105)',

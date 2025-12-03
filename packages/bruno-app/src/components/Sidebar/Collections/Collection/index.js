@@ -318,6 +318,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowNewRequestModal(true);
               }}
             >
@@ -330,6 +331,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowNewFolderModal(true);
               }}
             >
@@ -448,7 +450,7 @@ const Collection = ({ collection, searchText }) => {
               <span className="dropdown-icon">
                 <IconX size={16} strokeWidth={2} />
               </span>
-              Close
+              Remove
             </div>
           </Dropdown>
         </div>

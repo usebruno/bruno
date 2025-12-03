@@ -27,8 +27,8 @@ export const getRunnerResultCounts = async (page: Page) => {
  * @returns void
  */
 export const runCollection = async (page: Page, collectionName: string) => {
-  // Ensure collection is visible and loaded
-  const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
+  // Ensure collection is visible and loaded (scope to sidebar)
+  const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
   await collectionContainer.waitFor({ state: 'visible' });
   // Wait a bit for the UI to stabilize
   await page.waitForTimeout(300);
@@ -71,24 +71,14 @@ export const runCollection = async (page: Page, collectionName: string) => {
  * @returns void
  */
 export const setSandboxMode = async (page: Page, collectionName: string, mode: 'developer' | 'safe') => {
-  // Click on the collection name - try sidebar first, then fall back to collection tab/name
-  // First try sidebar collection name (more reliable)
-  const sidebarCollection = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
-  const sidebarExists = await sidebarCollection.count().then((count) => count > 0).catch(() => false);
+  // Click on the collection name in the sidebar
+  // Use the collections testid to scope to the sidebar, then find the specific collection
+  const sidebarCollection = page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: collectionName }).first();
 
-  if (sidebarExists) {
-    await sidebarCollection.click();
-  } else {
-    // Fall back to collection by title or text
-    const collectionByTitle = page.getByTitle(collectionName);
-    const collectionByText = page.getByText(collectionName);
-    const titleExists = await collectionByTitle.count().then((count) => count > 0).catch(() => false);
-    if (titleExists) {
-      await collectionByTitle.click();
-    } else {
-      await collectionByText.click();
-    }
-  }
+  // Wait for the sidebar to be loaded
+  await page.waitForTimeout(500);
+
+  await sidebarCollection.click();
 
   // Wait a moment for the UI to load
   await page.waitForTimeout(300);

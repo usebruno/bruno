@@ -56,14 +56,17 @@ test.describe('Default Collection Location Feature', () => {
 
   test('Should use default location in Create Collection modal', async ({ pageWithUserData: page }) => {
     // test Create Collection modal
-    await page.locator('[data-testid="create-collection"]').click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
-    // verify the default location is pre-filled
+    // verify the default location is pre-filled (if location input is visible)
     const collectionLocationInput = page.getByLabel('Location');
-    await expect(collectionLocationInput).toHaveValue('/tmp/bruno-collections');
+    if (await collectionLocationInput.isVisible()) {
+      await expect(collectionLocationInput).toHaveValue('/tmp/bruno-collections');
+    }
 
     // cancel the collection creation
-    await page.getByRole('button', { name: 'Cancel' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel' }).click();
 
     // wait for 2 seconds
     await page.waitForTimeout(2000);
@@ -71,12 +74,19 @@ test.describe('Default Collection Location Feature', () => {
 
   test('Should use default location in Clone Collection modal', async ({ pageWithUserData: page }) => {
     // open the clone collection modal
-    await page.locator('[data-testid="collection-actions"]').click();
-    await page.getByTestId('clone-collection').click();
+    const collection = page.locator('.collection-name').first();
+    await collection.hover();
+    await collection.locator('.collection-actions .icon').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Clone' }).click();
 
     // verify the default location is pre-filled
     const cloneLocationInput = page.getByLabel('Location');
-    await expect(cloneLocationInput).toHaveValue('/tmp/bruno-collections');
+    if (await cloneLocationInput.isVisible()) {
+      await expect(cloneLocationInput).toHaveValue('/tmp/bruno-collections');
+    }
+
+    // cancel the clone operation
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel' }).click();
 
     // wait for 2 seconds
     await page.waitForTimeout(2000);

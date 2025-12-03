@@ -8,12 +8,16 @@ test.describe('Tag persistence', () => {
   });
 
   test('Verify tag persistence while moving requests within a collection', async ({ page, createTmpDir }) => {
-    // Create first collection - click dropdown menu first
-    await page.getByLabel('Create Collection').click();
+    // Create first collection - click plus icon button to open dropdown
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('test-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('test-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-    await page.getByText('test-collection').click();
+    const locationInput = page.locator('.bruno-modal').getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(await createTmpDir('test-collection'));
+    }
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'test-collection' }).click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
@@ -74,12 +78,16 @@ test.describe('Tag persistence', () => {
   });
 
   test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
-    // Create first collection - click dropdown menu first
-    await page.getByLabel('Create Collection').click();
+    // Create first collection - click plus icon button to open dropdown
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('test-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('test-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-    await page.getByText('test-collection').click();
+    const locationInput = page.locator('.bruno-modal').getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(await createTmpDir('test-collection'));
+    }
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'test-collection' }).click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 

@@ -1,10 +1,8 @@
 const { ipcMain } = require('electron');
 const { getPreferences, savePreferences, preferencesUtil } = require('../store/preferences');
-const { isDirectory } = require('../utils/filesystem');
-const { openCollection } = require('../app/collections');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-``;
-const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
+
+const registerPreferencesIpc = (mainWindow, watcher) => {
   ipcMain.handle('renderer:ready', async (event) => {
     // load preferences
     const preferences = getPreferences();
@@ -26,18 +24,7 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
       console.error(error);
     }
 
-    // reload last opened collections
-    const lastOpened = lastOpenedCollections.getAll();
-
-    if (lastOpened && lastOpened.length) {
-      for (let collectionPath of lastOpened) {
-        if (isDirectory(collectionPath)) {
-          await openCollection(mainWindow, watcher, collectionPath, {
-            dontSendDisplayErrors: true
-          });
-        }
-      }
-    }
+    ipcMain.emit('main:renderer-ready', mainWindow);
   });
 
   ipcMain.on('main:open-preferences', () => {

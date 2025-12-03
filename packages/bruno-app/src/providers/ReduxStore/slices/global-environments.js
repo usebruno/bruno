@@ -87,19 +87,31 @@ export const {
   _deleteGlobalEnvironment
 } = globalEnvironmentsSlice.actions;
 
-export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch) => {
+const getWorkspaceContext = (state) => {
+  const workspaceUid = state.workspaces?.activeWorkspaceUid;
+  const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
+  return { workspaceUid, workspacePath: workspace?.pathname };
+};
+
+export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const uid = uuid();
-    let environment = { name, uid, variables };
+    const environment = { name, uid, variables };
     const { ipcRenderer } = window;
+    const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
+
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { name, uid, variables }))
+      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { name, uid, variables, workspaceUid, workspacePath }))
       .then((result) => {
+        const finalUid = result?.uid || uid;
         const finalName = result?.name || name;
-        dispatch(_addGlobalEnvironment({ name: finalName, uid, variables }));
+        const finalVariables = result?.variables || variables;
+        dispatch(_addGlobalEnvironment({ name: finalName, uid: finalUid, variables: finalVariables }));
+        return finalUid;
       })
-      .then(() => dispatch(selectGlobalEnvironment({ environmentUid: uid })))
+      .then((finalUid) => dispatch(selectGlobalEnvironment({ environmentUid: finalUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -108,17 +120,24 @@ export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch) => 
 export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
     const globalEnvironments = state.globalEnvironments.globalEnvironments;
     const baseEnv = globalEnvironments?.find((env) => env?.uid == baseEnvUid);
+    if (!baseEnv) {
+      return reject(new Error('Base environment not found'));
+    }
     const uid = uuid();
-    let environment = { uid, name, variables: baseEnv.variables };
+    const environment = { uid, name, variables: baseEnv.variables };
     const { ipcRenderer } = window;
+
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { uid, name, variables: baseEnv.variables }))
+      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { uid, name, variables: baseEnv.variables, workspaceUid, workspacePath }))
       .then((result) => {
+        const finalUid = result?.uid || uid;
         const finalName = result?.name || name;
-        dispatch(_copyGlobalEnvironment({ name: finalName, uid, variables: baseEnv.variables }));
+        const finalVariables = result?.variables || baseEnv.variables;
+        dispatch(_copyGlobalEnvironment({ name: finalName, uid: finalUid, variables: finalVariables }));
       })
       .then(resolve)
       .catch(reject);
@@ -129,6 +148,7 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
     const globalEnvironments = state.globalEnvironments.globalEnvironments;
     const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
     if (!environment) {
@@ -136,8 +156,18 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
     }
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:rename-global-environment', { name: newName, environmentUid }))
-      .then(() => dispatch(_renameGlobalEnvironment({ name: newName, environmentUid })))
+      .then(() => ipcRenderer.invoke('renderer:rename-global-environment', { name: newName, environmentUid, workspaceUid, workspacePath }))
+      .then((result) => {
+        const resolvedUid = result?.uid || environmentUid;
+        dispatch(_renameGlobalEnvironment({ name: newName, environmentUid: resolvedUid }));
+        return ipcRenderer
+          .invoke('renderer:get-global-environments', { workspaceUid, workspacePath })
+          .then((data) => {
+            dispatch(updateGlobalEnvironments(data));
+            return resolvedUid;
+          });
+      })
+      .then((resolvedUid) => dispatch(_selectGlobalEnvironment({ environmentUid: resolvedUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -146,35 +176,47 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
 export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
     const globalEnvironments = state.globalEnvironments.globalEnvironments;
-    const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
+    let environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
+    if (!environment) {
+      const activeUid = state.globalEnvironments?.activeGlobalEnvironmentUid;
+      const activeEnv = globalEnvironments?.find((env) => env?.uid == activeUid);
+      if (activeEnv) {
+        environment = activeEnv;
+        environmentUid = activeEnv.uid;
+      }
+    }
 
     if (!environment) {
       return reject(new Error('Environment not found'));
     }
 
-    let environmentToSave = { ...environment, variables };
-
+    const environmentToSave = { ...environment, variables };
     const { ipcRenderer } = window;
+
     environmentSchema
       .validate(environmentToSave)
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
-        variables
+        variables,
+        workspaceUid,
+        workspacePath
       }))
       .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
       .then(resolve)
-      .catch((error) => {
-        reject(error);
-      });
+      .catch(reject);
   });
 };
 
 export const selectGlobalEnvironment = ({ environmentUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
+    const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
+
     ipcRenderer
-      .invoke('renderer:select-global-environment', { environmentUid })
+      .invoke('renderer:select-global-environment', { environmentUid, workspaceUid, workspacePath })
       .then(() => dispatch(_selectGlobalEnvironment({ environmentUid })))
       .then(resolve)
       .catch(reject);
@@ -184,8 +226,11 @@ export const selectGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
 export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
+    const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
+
     ipcRenderer
-      .invoke('renderer:delete-global-environment', { environmentUid })
+      .invoke('renderer:delete-global-environment', { environmentUid, workspaceUid, workspacePath })
       .then(() => dispatch(_deleteGlobalEnvironment({ environmentUid })))
       .then(resolve)
       .catch(reject);
@@ -198,6 +243,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     if (!globalEnvironmentVariables) resolve();
 
     const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
     const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
     const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
     const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
@@ -217,9 +263,8 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
         : variable?.value
     }));
 
-    // add new env values
     Object.entries(globalEnvironmentVariables)?.forEach?.(([key, value]) => {
-      let isAnExistingVariable = variables?.find((v) => v?.name == key);
+      const isAnExistingVariable = variables?.find((v) => v?.name == key);
       if (!isAnExistingVariable) {
         variables.push({
           uid: uuid(),
@@ -232,19 +277,19 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
       }
     });
 
-    let environmentToSave = { ...environment, variables };
+    const environmentToSave = { ...environment, variables };
 
     environmentSchema
       .validate(environmentToSave)
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
-        variables
+        variables,
+        workspaceUid,
+        workspacePath
       }))
       .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
       .then(resolve)
-      .catch((error) => {
-        reject(error);
-      });
+      .catch(reject);
   });
 };
 

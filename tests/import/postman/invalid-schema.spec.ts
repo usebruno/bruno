@@ -5,7 +5,8 @@ test.describe('Invalid Postman Collection - Invalid Schema', () => {
   test('Handle Postman collection with invalid schema version', async ({ page }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-invalid-schema.json');
 
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
     const importModal = page.getByRole('dialog');
@@ -13,9 +14,6 @@ test.describe('Invalid Postman Collection - Invalid Schema', () => {
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
     await page.setInputFiles('input[type="file"]', postmanFile);
-
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // Check for error message
     const hasError = await page.getByText('Unsupported collection format').first().isVisible();

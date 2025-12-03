@@ -59,6 +59,7 @@ import {
 
 import { each } from 'lodash';
 import { closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
@@ -1127,19 +1128,15 @@ export const handleCollectionItemDrop
         const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
 
         const newDirname = path.dirname(newPathname);
-        await dispatch(
-          moveItem({
-            targetDirname: newDirname,
-            sourcePathname: draggedItemPathname
-          })
-        );
+        await dispatch(moveItem({
+          targetDirname: newDirname,
+          sourcePathname: draggedItemPathname
+        }));
 
         // Update sequences in the source directory
         if (draggedItemDirectoryItems?.length) {
-        // reorder items in the source directory
-          const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter(
-            (i) => i.uid !== draggedItemUid
-          );
+          // reorder items in the source directory
+          const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter((i) => i.uid !== draggedItemUid);
           const reorderedSourceItems = getReorderedItemsInSourceDirectory({
             items: draggedItemDirectoryItemsWithoutDraggedItem
           });
@@ -2139,18 +2136,48 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
     const { ipcRenderer } = window;
+
+    // Get active workspace to determine which workspace we're removing from
+    const { workspaces } = state;
+    const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+
+    let workspaceId = 'default';
+    if (activeWorkspace) {
+      if (activeWorkspace.pathname) {
+        workspaceId = activeWorkspace.pathname;
+      } else {
+        workspaceId = activeWorkspace.uid;
+      }
+    }
+
     ipcRenderer
-      .invoke('renderer:remove-collection', collection.pathname, collectionUid)
+      .invoke('renderer:remove-collection', collection.pathname, collectionUid, workspaceId)
       .then(() => {
-        dispatch(closeAllCollectionTabs({ collectionUid }));
+        // Check if the collection still exists in other workspaces
+        return ipcRenderer.invoke('renderer:get-collection-workspaces', collection.pathname);
       })
-      .then(waitForNextTick)
-      .then(() => {
-        dispatch(
-          _removeCollection({
-            collectionUid: collectionUid
-          })
-        );
+      .then((remainingWorkspaces) => {
+        // Close tabs for this collection
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+
+        // Remove collection from workspace in Redux state
+        if (activeWorkspace) {
+          dispatch(removeCollectionFromWorkspace({
+            workspaceUid: activeWorkspace.uid,
+            collectionLocation: collection.pathname
+          }));
+        }
+
+        // Only remove from Redux if no workspaces remain
+        if (!remainingWorkspaces || remainingWorkspaces.length === 0) {
+          return waitForNextTick().then(() => {
+            dispatch(_removeCollection({
+              collectionUid: collectionUid
+            }));
+          });
+        } else {
+          // Collection still exists in other workspaces
+        }
       })
       .then(resolve)
       .catch(reject);
@@ -2256,6 +2283,28 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
           if (state.app.sidebarCollapsed) {
             dispatch(toggleSidebarCollapse());
           }
+
+          const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+          if (activeWorkspace) {
+            const isAlreadyInWorkspace = activeWorkspace.collections?.some((c) => c.path === pathname);
+
+            if (!isAlreadyInWorkspace) {
+              const workspaceCollection = {
+                name: brunoConfig.name,
+                path: pathname
+              };
+
+              // The electron handler will automatically trigger workspace config update
+              // which will cause the app to react and reload collections
+              ipcRenderer
+                .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
+                .catch((err) => {
+                  console.error('Failed to add collection to workspace', err);
+                  toast.error('Failed to add collection to workspace');
+                });
+            }
+          }
+
           resolve();
         })
         .catch(reject);
@@ -2263,12 +2312,23 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
   });
 };
 
-export const createCollection = (collectionName, collectionFolderName, collectionLocation, format = 'bru') => () => {
+export const createCollection = (collectionName, collectionFolderName, collectionLocation, options = {}) => (dispatch, getState) => {
   const { ipcRenderer } = window;
+
+  if (!options.workspaceId) {
+    const { workspaces } = getState();
+    const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+
+    if (activeWorkspace && activeWorkspace.pathname) {
+      options.workspaceId = activeWorkspace.pathname;
+    } else {
+      options.workspaceId = 'default';
+    }
+  }
 
   return new Promise((resolve, reject) => {
     ipcRenderer
-      .invoke('renderer:create-collection', collectionName, collectionFolderName, collectionLocation, format)
+      .invoke('renderer:create-collection', collectionName, collectionFolderName, collectionLocation, options)
       .then(resolve)
       .catch(reject);
   });
@@ -2284,11 +2344,34 @@ export const cloneCollection = (collectionName, collectionFolderName, collection
     previousPath
   );
 };
-export const openCollection = () => () => {
+export const openCollection = (options = {}) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:open-collection').then(resolve).catch(reject);
+    const state = getState();
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+
+    if (!options.workspaceId) {
+      options.workspaceId = activeWorkspace?.pathname || 'default';
+    }
+
+    ipcRenderer.invoke('renderer:open-collection', options)
+      .then((result) => {
+        resolve(result);
+      })
+      .catch(reject);
+  });
+};
+
+export const openMultipleCollections = (collectionPaths, options = {}) => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:open-multiple-collections', collectionPaths, options)
+      .then(resolve)
+      .catch((err) => {
+        reject();
+      });
   });
 };
 
@@ -2317,11 +2400,29 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
   });
 };
 
-export const importCollection = (collection, collectionLocation) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
+export const importCollection = (collection, collectionLocation, options = {}) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+    try {
+      const state = getState();
+      const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+
+      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation);
+
+      if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
+        const workspaceCollection = {
+          name: collection.name,
+          path: collectionPath
+        };
+
+        await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection);
+      }
+
+      resolve(collectionPath);
+    } catch (error) {
+      reject(error);
+    }
   });
 };
 
@@ -2329,15 +2430,7 @@ export const moveCollectionAndPersist
   = ({ draggedItem, targetItem }) =>
     (dispatch, getState) => {
       dispatch(moveCollection({ draggedItem, targetItem }));
-
-      return new Promise((resolve, reject) => {
-        const { ipcRenderer } = window;
-        const state = getState();
-
-        const collectionPaths = state.collections.collections.map((collection) => collection.pathname);
-
-        ipcRenderer.invoke('renderer:update-collection-paths', collectionPaths).then(resolve).catch(reject);
-      });
+      return Promise.resolve();
     };
 
 export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (dispatch, getState) => {
@@ -2534,20 +2627,16 @@ export const openCollectionSettings
           return reject(new Error('Collection not found'));
         }
 
-        dispatch(
-          updateSettingsSelectedTab({
-            collectionUid: collection.uid,
-            tab: tabName
-          })
-        );
+        dispatch(updateSettingsSelectedTab({
+          collectionUid: collection.uid,
+          tab: tabName
+        }));
 
-        dispatch(
-          addTab({
-            uid: collection.uid,
-            collectionUid: collection.uid,
-            type: 'collection-settings'
-          })
-        );
+        dispatch(addTab({
+          uid: collection.uid,
+          collectionUid: collection.uid,
+          type: 'collection-settings'
+        }));
 
         resolve();
       });

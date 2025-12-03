@@ -27,7 +27,7 @@ function getDefaultCollectionLocation() {
 /**
  * Import sample collection for new users
  */
-async function importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections) {
+async function importSampleCollection(collectionLocation, mainWindow) {
   // Handle both development and production paths
   const sampleCollectionPath = app.isPackaged
     ? path.join(process.resourcesPath, 'data', 'sample-collection.json')
@@ -56,7 +56,6 @@ async function importSampleCollection(collectionLocation, mainWindow, lastOpened
       collectionToImport,
       collectionLocation,
       mainWindow,
-      lastOpenedCollections,
       collectionName
     );
 
@@ -80,14 +79,15 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
       // Check if user already has collections (indicates they're an existing user)
       // Onboarding was added in a later version, so for existing users we should skip it
       // to avoid creating sample collections
-      const collections = await lastOpenedCollections.getAll();
+      // lastOpenedCollections is still used here to check for existing collections during migration
+      const collections = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
       if (collections.length > 0) {
         await preferencesUtil.markAsLaunched();
         return;
       }
 
       const collectionLocation = getDefaultCollectionLocation();
-      await importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections);
+      await importSampleCollection(collectionLocation, mainWindow);
     }
 
     await preferencesUtil.markAsLaunched();

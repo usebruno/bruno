@@ -9,11 +9,14 @@ test.describe('Move tabs', () => {
 
   test('Verify tab move by drag and drop', async ({ page, createTmpDir }) => {
     // Create a collection
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('source-collection-drag-drop');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection-drag-drop'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    const locationInput = page.locator('.bruno-modal').getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(await createTmpDir('source-collection-drag-drop'));
+    }
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for collection to appear and click on it
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-drag-drop' })).toBeVisible();
@@ -97,11 +100,14 @@ test.describe('Move tabs', () => {
 
   test('Verify tab move by keyboard shortcut', async ({ page, createTmpDir }) => {
     // Create a collection
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('source-collection-keyboard-shortcut');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection-keyboard-shortcut'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    const locationInput2 = page.locator('.bruno-modal').getByLabel('Location');
+    if (await locationInput2.isVisible()) {
+      await locationInput2.fill(await createTmpDir('source-collection-keyboard-shortcut'));
+    }
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for collection to appear and click on it
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' })).toBeVisible();

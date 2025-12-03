@@ -10,20 +10,20 @@ test('should persist request with newlines across app restarts', async ({ create
   const app1 = await launchElectronApp({ userDataPath });
   const page = await app1.firstWindow();
 
-  await page.locator('.dropdown-icon').click();
-  await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-  await page.getByLabel('Name').fill('newlines-persistence');
-  await page.getByLabel('Location').fill(collectionPath);
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.locator('.plus-icon-button').click();
+  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+  await page.locator('.bruno-modal').getByLabel('Name').fill('newlines-persistence');
+  await page.locator('.bruno-modal').getByLabel('Location').fill(collectionPath);
+  await page.locator('.bruno-modal').getByRole('button', { name: 'Create' }).click();
 
-  const collection = page.locator('.collection-name').filter({ hasText: 'newlines-persistence' });
+  const collection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' });
   await collection.locator('.collection-actions').hover();
   await collection.locator('.collection-actions .icon').click();
   await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
   await page.getByPlaceholder('Request Name').fill('persistence-test');
   await page.locator('#new-request-url').locator('.CodeMirror').click();
   await page.locator('#new-request-url').locator('textarea').fill('https://httpbin.org/get');
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
   await openCollectionAndAcceptSandbox(page, 'newlines-persistence', 'safe');
   await page.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
@@ -60,7 +60,7 @@ test('should persist request with newlines across app restarts', async ({ create
   const app2 = await launchElectronApp({ userDataPath });
   const page2 = await app2.firstWindow();
 
-  await page2.locator('.collection-name').filter({ hasText: 'newlines-persistence' }).click();
+  await page2.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' }).click();
   await page2.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
   // Verify params persisted
