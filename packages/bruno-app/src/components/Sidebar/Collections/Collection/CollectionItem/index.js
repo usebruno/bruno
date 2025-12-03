@@ -18,7 +18,8 @@ import {
   IconFolder,
   IconTrash,
   IconSettings,
-  IconInfoCircle
+  IconInfoCircle,
+  IconTerminal2
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -51,6 +52,7 @@ import { isEqual } from 'lodash';
 import { calculateDraggedItemNewPathname, getInitialExampleName } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
@@ -691,6 +693,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                     <IconSettings size={16} strokeWidth={2} />
                   </span>
                   Settings
+                </div>
+              )}
+              {isFolder && (
+                <div
+                  className="dropdown-item"
+                  onClick={async (e) => {
+                    dropdownTippyRef.current.hide();
+                    // Get folder pathname
+                    const folderCwd = item.pathname || collectionPathname;
+                    await openDevtoolsAndSwitchToTerminal(dispatch, folderCwd);
+                  }}
+                >
+                  <span className="dropdown-icon">
+                    <IconTerminal2 size={16} strokeWidth={2} />
+                  </span>
+                  Open in Terminal
                 </div>
               )}
               <div

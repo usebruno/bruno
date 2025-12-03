@@ -17,7 +17,8 @@ import {
   IconShare,
   IconFoldDown,
   IconX,
-  IconSettings
+  IconSettings,
+  IconTerminal2
 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
@@ -42,6 +43,7 @@ import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -421,6 +423,19 @@ const Collection = ({ collection, searchText }) => {
                 <IconSettings size={16} strokeWidth={2} />
               </span>
               Settings
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={async (_e) => {
+                menuDropdownTippyRef.current.hide();
+                const collectionCwd = collection.pathname;
+                await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
+              }}
+            >
+              <span className="dropdown-icon">
+                <IconTerminal2 size={16} strokeWidth={2} />
+              </span>
+              Open in Terminal
             </div>
             <div
               className="dropdown-item"
