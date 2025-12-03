@@ -4,6 +4,7 @@ import {
 } from '@tabler/icons';
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import CreateCollection from '../CreateCollection';
 import Collection from './Collection';
 import CollectionsHeader from './CollectionsHeader';
@@ -66,10 +67,10 @@ const Collections = () => {
       <div className="mt-4 flex flex-col overflow-hidden hover:overflow-y-auto absolute top-32 bottom-0 left-0 right-0">
         {collections && collections.length
           ? collections.map((c) => {
-              return (
-                <Collection searchText={searchText} collection={c} key={c.uid} />
-              );
-            })
+            return (
+              <Collection searchText={searchText} collection={c} key={c.uid} />
+            );
+          })
           : null}
       </div>
     </StyledWrapper>
