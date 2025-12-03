@@ -1,9 +1,7 @@
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
-const { get } = require('lodash');
 const Bru = require('../bru');
 const HookManager = require('../hook-manager');
 const { cleanJson } = require('../utils');
-const { mixinTypedArrays } = require('../sandbox/mixins/typed-arrays');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 class HooksRuntime {
   constructor(props) {
@@ -48,25 +46,9 @@ class HooksRuntime {
     const promptVariables = request?.promptVariables || {};
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, hookManager);
 
-    const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
-    const whitelistedModules = {};
-
-    for (let module of moduleWhitelist) {
-      try {
-        whitelistedModules[module] = require(module);
-      } catch (e) {
-        // Ignore
-        console.warn(e);
-      }
-    }
-
     const context = {
       bru
     };
-
-    if (this.runtime === 'vm2') {
-      mixinTypedArrays(context);
-    }
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
