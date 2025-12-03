@@ -184,12 +184,29 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.auth) {
-    if (request.auth.mode === 'basic') {
+    const authMode = request.auth.mode;
+    if (authMode === 'basic') {
       requestJson.auth = {
         mode: 'basic',
         basic: {
           username: repr(request.auth.basic?.username),
           password: repr(request.auth.basic?.password)
+        }
+      };
+    } else if (authMode === 'digest') {
+      requestJson.auth = {
+        mode: 'digest',
+        digest: {
+          username: repr(request.auth.digest?.username),
+          password: repr(request.auth.digest?.password)
+        }
+      };
+    } else if (authMode === 'ntlm') {
+      requestJson.auth = {
+        mode: 'ntlm',
+        ntlm: {
+          username: repr(request.auth.ntlm?.username),
+          password: repr(request.auth.ntlm?.password)
         }
       };
     }
