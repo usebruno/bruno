@@ -16,12 +16,18 @@ import { getAllVariables } from 'utils/collections';
 import useDebounce from 'hooks/useDebounce';
 import get from 'lodash/get';
 
+const CONNECTION_STATUS = {
+  CONNECTING: 'connecting',
+  CONNECTED: 'connected',
+  DISCONNECTED: 'disconnected'
+};
+
 const useWsConnectionStatus = (requestId) => {
-  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [connectionStatus, setConnectionStatus] = useState(CONNECTION_STATUS.DISCONNECTED);
   useEffect(() => {
     const checkConnectionStatus = async () => {
       const result = await getWsConnectionStatus(requestId);
-      setConnectionStatus(result?.status ?? 'disconnected');
+      setConnectionStatus(result?.status ?? CONNECTION_STATUS.DISCONNECTED);
     };
     checkConnectionStatus();
     const interval = setInterval(checkConnectionStatus, 2000);
@@ -58,16 +64,16 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     previousDeboundedInterpolatedURL.current = debouncedInterpolatedURL;
   };
 
-  const handleDisconnect = async (e, withToast) => {
+  const handleDisconnect = async (e, notify) => {
     e && e.stopPropagation();
     closeWsConnection(item.uid)
       .then(() => {
-        withToast && toast.success('WebSocket connection closed');
+        notify && toast.success('WebSocket connection closed');
         setConnectionStatus('disconnected');
       })
       .catch((err) => {
         console.error('Failed to close WebSocket connection:', err);
-        withToast && toast.error('Failed to close WebSocket connection');
+        notify && toast.error('Failed to close WebSocket connection');
       });
   };
 
@@ -170,11 +176,9 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
                 <div className="infotip" onClick={handleConnect}>
                   <IconPlugConnected
-                    className={
-                      classnames('cursor-pointer', {
-                        'animate-pulse': connectionStatus === 'connecting'
-                      })
-                    }
+                    className={classnames('cursor-pointer', {
+                      'animate-pulse': connectionStatus === CONNECTION_STATUS.CONNECTING
+                    })}
                     color={theme.colors.text.green}
                     strokeWidth={1.5}
                     size={22}
@@ -191,7 +195,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
         </div>
       </div>
 
-      {connectionStatus === 'connected' && <div className="connection-status-strip"></div>}
+      {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
     </StyledWrapper>
   );
 };
