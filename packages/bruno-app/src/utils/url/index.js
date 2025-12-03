@@ -98,9 +98,9 @@ export const interpolateUrl = ({ url, variables }) => {
   return interpolate(url, variables);
 };
 
-export const interpolateUrlPathParams = (url, params) => {
+export const interpolateUrlPathParams = (url, params, variables) => {
   const getInterpolatedBasePath = (pathname, params) => {
-    return pathname
+    let replacedPathname = pathname
       .split('/')
       .map((segment) => {
         // traditional path parameters
@@ -137,6 +137,8 @@ export const interpolateUrlPathParams = (url, params) => {
         return result;
       })
       .join('/');
+
+    return interpolate(replacedPathname, variables);
   };
 
   let uri;
