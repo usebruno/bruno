@@ -61,6 +61,7 @@ const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, .
           item.style.cursor = 'pointer';
           item.style.width = '100%';
           item.style.boxSizing = 'border-box';
+          item.style.gap = '0.5rem';
           if (theme.dropdown?.color) {
             item.style.color = theme.dropdown.color;
           }
