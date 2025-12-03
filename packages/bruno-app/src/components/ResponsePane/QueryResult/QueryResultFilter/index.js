@@ -45,11 +45,9 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
 
   return (
     <div
-      className={
-        'response-filter absolute bottom-2 w-full justify-end right-0 flex flex-row items-center gap-2 py-4 px-2 pointer-events-none'
-      }
+      className="response-filter absolute bottom-2 w-full justify-end right-0 flex flex-row items-center gap-2 py-4 px-2 pointer-events-none"
     >
-      {infotipText && !isExpanded && <ReactInfotip anchorId={'request-filter-icon'} html={infotipText} />}
+      {infotipText && !isExpanded && <ReactInfotip anchorId="request-filter-icon" html={infotipText} />}
       <input
         ref={inputRef}
         type="text"

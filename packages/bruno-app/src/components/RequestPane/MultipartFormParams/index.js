@@ -108,42 +108,64 @@ const MultipartFormParams = ({ item, collection }) => {
         <ReorderTable updateReorderedItem={handleParamDrag}>
           {params && params.length
             ? params.map((param, index) => {
-              return (
-                <tr key={param.uid} className='w-full' data-uid={param.uid}>
-                  <td className="flex relative">
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={param.name}
-                      className="mousetrap"
-                      onChange={(e) => handleParamChange(e, param, 'name')}
-                    />
-                  </td>
-                  <td>
-                    {param.type === 'file' ? (
-                      <FilePickerEditor
-                        value={param.value}
-                        onChange={(newValue) =>
-                          handleParamChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            param,
-                            'value'
-                          )
-                        }
-                        collection={collection}
+                return (
+                  <tr key={param.uid} className="w-full" data-uid={param.uid}>
+                    <td className="flex relative">
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        value={param.name}
+                        className="mousetrap"
+                        onChange={(e) => handleParamChange(e, param, 'name')}
                       />
-                    ) : (
+                    </td>
+                    <td>
+                      {param.type === 'file' ? (
+                        <FilePickerEditor
+                          value={param.value}
+                          onChange={(newValue) =>
+                            handleParamChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              param,
+                              'value'
+                            )}
+                          collection={collection}
+                        />
+                      ) : (
+                        <MultiLineEditor
+                          onSave={onSave}
+                          theme={storedTheme}
+                          value={param.value}
+                          onChange={(newValue) =>
+                            handleParamChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              param,
+                              'value'
+                            )}
+                          onRun={handleRun}
+                          allowNewlines={true}
+                          collection={collection}
+                          item={item}
+                        />
+                      )}
+                    </td>
+                    <td>
                       <MultiLineEditor
                         onSave={onSave}
                         theme={storedTheme}
-                        value={param.value}
+                        placeholder="Auto"
+                        value={param.contentType}
                         onChange={(newValue) =>
                           handleParamChange(
                             {
@@ -152,54 +174,29 @@ const MultipartFormParams = ({ item, collection }) => {
                               }
                             },
                             param,
-                            'value'
-                          )
-                        }
+                            'contentType'
+                          )}
                         onRun={handleRun}
-                        allowNewlines={true}
                         collection={collection}
-                        item={item}
                       />
-                    )}
-                  </td>
-                  <td>
-                    <MultiLineEditor
-                      onSave={onSave}
-                      theme={storedTheme}
-                      placeholder="Auto"
-                      value={param.contentType}
-                      onChange={(newValue) =>
-                        handleParamChange(
-                          {
-                            target: {
-                              value: newValue
-                            }
-                          },
-                          param,
-                          'contentType'
-                        )
-                      }
-                      onRun={handleRun}
-                      collection={collection}
-                    />
-                  </td>
-                  <td>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={param.enabled}
-                        tabIndex="-1"
-                        className="mr-3 mousetrap"
-                        onChange={(e) => handleParamChange(e, param, 'enabled')}
-                      />
-                      <button tabIndex="-1" onClick={() => handleRemoveParams(param)}>
-                        <IconTrash strokeWidth={1.5} size={20} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
+                    </td>
+                    <td>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={param.enabled}
+                          tabIndex="-1"
+                          className="mr-3 mousetrap"
+                          onChange={(e) => handleParamChange(e, param, 'enabled')}
+                        />
+                        <button tabIndex="-1" onClick={() => handleRemoveParams(param)}>
+                          <IconTrash strokeWidth={1.5} size={20} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             : null}
         </ReorderTable>
       </Table>

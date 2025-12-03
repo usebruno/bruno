@@ -51,7 +51,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
         onSave={onSave}
         data-testid="tag-input"
       />
-      {error && <span className='text-xs text-red-500'>{error}</span>}
+      {error && <span className="text-xs text-red-500">{error}</span>}
       <ul className="flex flex-wrap gap-1">
         {tags && tags.length
           ? tags.map((_tag) => (

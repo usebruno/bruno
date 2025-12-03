@@ -54,7 +54,7 @@ const saveCookies = (url, headers) => {
       }
     }
   }
-}
+};
 
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
@@ -126,7 +126,7 @@ const configureRequest = async (
 
   // Get followRedirects setting, default to true for backward compatibility
   const followRedirects = request.settings?.followRedirects ?? true;
-  
+
   // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
   let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
 
@@ -153,7 +153,7 @@ const configureRequest = async (
   });
 
   if (request.ntlmConfig) {
-    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+    axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
     delete request.ntlmConfig;
   }
 
@@ -168,14 +168,12 @@ const configureRequest = async (
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
-        }
-        else {
+        } else {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          }
-          catch(error) {}
+          } catch (error) {}
         }
         break;
       case 'implicit':
@@ -184,14 +182,12 @@ const configureRequest = async (
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
+        } else {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          }
-          catch(error) {}
+          } catch (error) {}
         }
         break;
       case 'client_credentials':
@@ -200,14 +196,12 @@ const configureRequest = async (
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
-        }
-        else {
+        } else {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          }
-          catch(error) {}
+          } catch (error) {}
         }
         break;
       case 'password':
@@ -216,14 +210,12 @@ const configureRequest = async (
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
-        }
-        else {
+        } else {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          }
-          catch(error) {}
+          } catch (error) {}
         }
         break;
     }
@@ -248,28 +240,28 @@ const configureRequest = async (
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
       const existingCookieHeaderName = Object.keys(request.headers).find(
-          name => name.toLowerCase() === 'cookie'
+        (name) => name.toLowerCase() === 'cookie'
       );
       const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
-  
+
       // Helper function to parse cookies into an object
       const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
-          const [name, ...rest] = cookie.split('=');
-          if (name && name.trim()) {
-              cookies[name.trim()] = rest.join('=').trim();
-          }
-          return cookies;
+        const [name, ...rest] = cookie.split('=');
+        if (name && name.trim()) {
+          cookies[name.trim()] = rest.join('=').trim();
+        }
+        return cookies;
       }, {});
-  
+
       const mergedCookies = {
-          ...parseCookies(existingCookieString),
-          ...parseCookies(cookieString),
+        ...parseCookies(existingCookieString),
+        ...parseCookies(cookieString)
       };
-  
+
       const combinedCookieString = Object.entries(mergedCookies)
-          .map(([name, value]) => `${name}=${value}`)
-          .join('; ');
-  
+        .map(([name, value]) => `${name}=${value}`)
+        .join('; ');
+
       request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
     }
   }
@@ -388,10 +380,10 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   const notifyScriptExecution = ({
-    channel,           // 'main:run-request-event' | 'main:run-folder-event'
-    basePayload,       // request-level or runner-level identifiers
-    scriptType,        // 'pre-request' | 'post-response' | 'test'
-    error              // optional Error
+    channel, // 'main:run-request-event' | 'main:run-folder-event'
+    basePayload, // request-level or runner-level identifiers
+    scriptType, // 'pre-request' | 'post-response' | 'test'
+    error // optional Error
   }) => {
     mainWindow.webContents.send(channel, {
       type: `${scriptType}-script-execution`,
@@ -509,7 +501,7 @@ const registerNetworkIpc = (mainWindow) => {
     // run post-response script
     const responseScript = get(request, 'script.res');
     let scriptResult;
-    const collectionName = collection?.name
+    const collectionName = collection?.name;
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
@@ -566,13 +558,13 @@ const registerNetworkIpc = (mainWindow) => {
           itemPathname = `${itemPathname}.${format}`;
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
-        if(_item) {
+        if (_item) {
           const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
           resolve(res);
         }
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
       });
-    }
+    };
 
     !runInBackground && mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
@@ -664,7 +656,7 @@ const registerNetworkIpc = (mainWindow) => {
         data: requestData,
         dataBuffer: requestDataBuffer,
         timestamp: Date.now()
-      }
+      };
 
       !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
@@ -682,7 +674,7 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid,
           credentialsId: request?.oauth2Credentials?.credentialsId,
           ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
-          debugInfo: request?.oauth2Credentials?.debugInfo,
+          debugInfo: request?.oauth2Credentials?.debugInfo
         });
       }
 
@@ -733,7 +725,7 @@ const registerNetworkIpc = (mainWindow) => {
             statusText: error.statusText,
             error: error.message || ERROR_OCCURRED_WHILE_EXECUTING_REQUEST,
             timeline: error.timeline
-          }
+          };
         }
       }
 
@@ -922,7 +914,7 @@ const registerNetworkIpc = (mainWindow) => {
         timeline: error?.timeline
       };
     }
-  }
+  };
 
   /**
    * Extract prompt variables from a request
@@ -1021,7 +1013,7 @@ const registerNetworkIpc = (mainWindow) => {
   });
 
   // handler for fetch-gql-schema
-  ipcMain.handle('fetch-gql-schema', fetchGqlSchemaHandler)
+  ipcMain.handle('fetch-gql-schema', fetchGqlSchemaHandler);
 
   ipcMain.handle(
     'renderer:run-collection-folder',
@@ -1055,13 +1047,13 @@ const registerNetworkIpc = (mainWindow) => {
             itemPathname = `${itemPathname}.${format}`;
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
-          if(_item) {
-            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });                  
+          if (_item) {
+            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
             resolve(res);
           }
           reject(`bru.runRequest: invalid request path - ${itemPathname}`);
         });
-      }
+      };
 
       if (!folder) {
         folder = collection;
@@ -1088,9 +1080,8 @@ const registerNetworkIpc = (mainWindow) => {
             }
           });
 
-          
           // sort requests by seq property
-          folderRequests = sortByNameThenSequence(folderRequests)
+          folderRequests = sortByNameThenSequence(folderRequests);
         }
 
         // Filter requests based on tags
@@ -1099,7 +1090,7 @@ const registerNetworkIpc = (mainWindow) => {
           const excludeTags = tags.exclude ? tags.exclude : [];
           folderRequests = folderRequests.filter(({ tags: requestTags = [], draft }) => {
             requestTags = draft?.tags || requestTags || [];
-            return isRequestTagsIncluded(requestTags, includeTags, excludeTags)
+            return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
           });
         }
 
@@ -1261,7 +1252,7 @@ const registerNetworkIpc = (mainWindow) => {
               data: requestData,
               dataBuffer: requestDataBuffer,
               timestamp: Date.now()
-            }
+            };
 
             // todo:
             // i have no clue why electron can't send the request object
@@ -1293,7 +1284,7 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionUid,
                 credentialsId: request?.oauth2Credentials?.credentialsId,
                 ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
-                debugInfo: request?.oauth2Credentials?.debugInfo,
+                debugInfo: request?.oauth2Credentials?.debugInfo
               });
 
               collection.oauth2Credentials = updateCollectionOauth2Credentials({
@@ -1380,7 +1371,7 @@ const registerNetworkIpc = (mainWindow) => {
                   size: Buffer.byteLength(dataBuffer),
                   data: error.response.data,
                   responseTime: error.response.responseTime,
-                  timeline: error.response.timeline,
+                  timeline: error.response.timeline
                 };
 
                 // if we get a response from the server, we consider it as a success
@@ -1468,7 +1459,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             const testFile = get(request, 'tests');
-            const collectionName = collection?.name
+            const collectionName = collection?.name;
             if (typeof testFile === 'string') {
               let testResults = null;
               let testError = null;
@@ -1490,7 +1481,7 @@ const registerNetworkIpc = (mainWindow) => {
                 );
               } catch (error) {
                 testError = error;
-                
+
                 if (error.partialResults) {
                   testResults = error.partialResults;
                 } else {
@@ -1524,7 +1515,7 @@ const registerNetworkIpc = (mainWindow) => {
               mainWindow.webContents.send('main:global-environment-variables-update', {
                 globalEnvironmentVariables: testResults.globalEnvironmentVariables
               });
-              
+
               collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
 
               notifyScriptExecution({
@@ -1553,7 +1544,7 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid,
               folderUid,
               statusText: 'collection run was terminated!',
-              runCompletionTime: new Date().toISOString(),
+              runCompletionTime: new Date().toISOString()
             });
             break;
           }
@@ -1570,7 +1561,7 @@ const registerNetworkIpc = (mainWindow) => {
             if (nextRequestIdx >= 0) {
               currentRequestIndex = nextRequestIdx;
             } else {
-              console.error("Could not find request with name '" + nextRequestName + "'");
+              console.error('Could not find request with name \'' + nextRequestName + '\'');
               currentRequestIndex++;
             }
           } else {
@@ -1583,10 +1574,10 @@ const registerNetworkIpc = (mainWindow) => {
           type: 'testrun-ended',
           collectionUid,
           folderUid,
-          runCompletionTime: new Date().toISOString(),
+          runCompletionTime: new Date().toISOString()
         });
       } catch (error) {
-        console.log("error", error);
+        console.log('error', error);
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
@@ -1651,7 +1642,7 @@ const registerNetworkIpc = (mainWindow) => {
       const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
       if (filePath) {
         const encoding = getEncodingFormat();
-        const data = Buffer.from(response.dataBuffer, 'base64')
+        const data = Buffer.from(response.dataBuffer, 'base64');
         if (encoding === 'utf-8') {
           await writeFile(filePath, data);
         } else {
@@ -1683,14 +1674,13 @@ const executeRequestOnFailHandler = async (request, error) => {
   }
 };
 
-
 const registerAllNetworkIpc = (mainWindow) => {
   registerNetworkIpc(mainWindow);
   registerGrpcEventHandlers(mainWindow);
   registerWsEventHandlers(mainWindow);
-}
+};
 
-module.exports = registerAllNetworkIpc
+module.exports = registerAllNetworkIpc;
 module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;

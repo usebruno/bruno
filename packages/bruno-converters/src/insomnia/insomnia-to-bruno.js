@@ -159,8 +159,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   }
 
   const settings = {
-    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false, // handles v4 and v5 import
-  }
+    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false // handles v4 and v5 import
+  };
 
   brunoRequestItem.settings = settings;
 
@@ -259,13 +259,13 @@ const parseInsomniaCollection = (data) => {
 
     brunoCollection.name = insomniaCollection.name;
 
-    const requestsAndFolders =
-    insomniaResources.filter((resource) => resource._type === 'request' || resource._type === 'request_group') ||
-    [];
+    const requestsAndFolders
+      = insomniaResources.filter((resource) => resource._type === 'request' || resource._type === 'request_group')
+        || [];
 
     function createFolderStructure(resources, parentId = null) {
-      const requestGroups =
-        resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
+      const requestGroups
+        = resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
       const requests = resources.filter((resource) => resource._type === 'request' && resource.parentId === parentId);
 
       const folders = requestGroups.map((folder, index, allFolder) => {
@@ -274,12 +274,12 @@ const parseInsomniaCollection = (data) => {
           (resource) => resource._type === 'request' && resource.parentId === folder._id
         );
 
-    return {
+        return {
           uid: uuid(),
           name,
           type: 'folder',
           items: createFolderStructure(resources, folder._id).concat(
-            requests.filter(r => r.parentId === folder._id).map(transformInsomniaRequestItem)
+            requests.filter((r) => r.parentId === folder._id).map(transformInsomniaRequestItem)
           )
         };
       });
@@ -300,7 +300,7 @@ const parseInsomniaCollection = (data) => {
 
 export const insomniaToBruno = (insomniaCollection) => {
   try {
-    if(typeof insomniaCollection !== 'object') {
+    if (typeof insomniaCollection !== 'object') {
       insomniaCollection = jsyaml.load(insomniaCollection);
     }
     let collection;
@@ -309,7 +309,7 @@ export const insomniaToBruno = (insomniaCollection) => {
     } else {
       collection = parseInsomniaCollection(insomniaCollection);
     }
-    
+
     const transformedCollection = transformItemsInCollection(collection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     const validatedCollection = validateSchema(hydratedCollection);

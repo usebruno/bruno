@@ -123,8 +123,7 @@ const Headers = ({ collection }) => {
                             },
                             header,
                             'name'
-                          )
-                        }
+                          )}
                         autocomplete={headerAutoCompleteList}
                         collection={collection}
                       />
@@ -143,8 +142,7 @@ const Headers = ({ collection }) => {
                             },
                             header,
                             'value'
-                          )
-                        }
+                          )}
                         collection={collection}
                         autocomplete={MimeTypes}
                       />

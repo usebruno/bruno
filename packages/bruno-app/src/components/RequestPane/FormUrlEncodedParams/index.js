@@ -89,59 +89,58 @@ const FormUrlEncodedParams = ({ item, collection }) => {
         <ReorderTable updateReorderedItem={handleParamDrag}>
           {params && params.length
             ? params.map((param, index) => {
-              return (
-                <tr key={param.uid} data-uid={param.uid}>
-                  <td className='flex relative'>
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={param.name}
-                      className="mousetrap"
-                      onChange={(e) => handleParamChange(e, param, 'name')}
-                    />
-                  </td>
-                  <td>
-                    <MultiLineEditor
-                      value={param.value}
-                      theme={storedTheme}
-                      onSave={onSave}
-                      onChange={(newValue) =>
-                        handleParamChange(
-                          {
-                            target: {
-                              value: newValue
-                            }
-                          },
-                          param,
-                          'value'
-                        )
-                      }
-                      allowNewlines={true}
-                      onRun={handleRun}
-                      collection={collection}
-                      item={item}
-                    />
-                  </td>
-                  <td>
-                    <div className="flex items-center">
+                return (
+                  <tr key={param.uid} data-uid={param.uid}>
+                    <td className="flex relative">
                       <input
-                        type="checkbox"
-                        checked={param.enabled}
-                        tabIndex="-1"
-                        className="mr-3 mousetrap"
-                        onChange={(e) => handleParamChange(e, param, 'enabled')}
+                        type="text"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        value={param.name}
+                        className="mousetrap"
+                        onChange={(e) => handleParamChange(e, param, 'name')}
                       />
-                      <button tabIndex="-1" onClick={() => handleRemoveParams(param)}>
-                        <IconTrash strokeWidth={1.5} size={20} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
+                    </td>
+                    <td>
+                      <MultiLineEditor
+                        value={param.value}
+                        theme={storedTheme}
+                        onSave={onSave}
+                        onChange={(newValue) =>
+                          handleParamChange(
+                            {
+                              target: {
+                                value: newValue
+                              }
+                            },
+                            param,
+                            'value'
+                          )}
+                        allowNewlines={true}
+                        onRun={handleRun}
+                        collection={collection}
+                        item={item}
+                      />
+                    </td>
+                    <td>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={param.enabled}
+                          tabIndex="-1"
+                          className="mr-3 mousetrap"
+                          onChange={(e) => handleParamChange(e, param, 'enabled')}
+                        />
+                        <button tabIndex="-1" onClick={() => handleRemoveParams(param)}>
+                          <IconTrash strokeWidth={1.5} size={20} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             : null}
         </ReorderTable>
       </Table>

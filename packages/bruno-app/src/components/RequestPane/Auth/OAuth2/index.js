@@ -24,7 +24,6 @@ const GrantTypeComponentMap = ({ item, collection }) => {
     dispatch(sendRequest(item, collection.uid));
   };
 
-
   switch (grantType) {
     case 'password':
       return <OAuth2PasswordCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuth} collection={collection} />;

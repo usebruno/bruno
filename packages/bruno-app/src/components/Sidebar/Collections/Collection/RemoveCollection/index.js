@@ -10,7 +10,7 @@ import ConfirmCollectionCloseDrafts from './ConfirmCollectionCloseDrafts';
 
 const RemoveCollection = ({ onClose, collectionUid }) => {
   const dispatch = useDispatch();
-  const collection = useSelector(state => findCollectionByUid(state.collections.collections, collectionUid));
+  const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
 
   // Detect drafts in the collection
   const drafts = useMemo(() => {

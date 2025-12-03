@@ -72,7 +72,7 @@ const CollectionProperties = ({ onClose }) => {
   const [searchText, setSearchText] = useState(null);
 
   const handleAddCookie = (domain) => {
-    if(domain) setCurrentDomain(domain);
+    if (domain) setCurrentDomain(domain);
     setIsModifyCookieModalOpen(true);
   };
 

@@ -3,11 +3,11 @@ import http from 'node:http';
 import https from 'node:https';
 
 /**
- * 
+ *
  * @param {Object} customRequestConfig options - partial AxiosRequestConfig
- * 
+ *
  * @returns {import('axios').AxiosInstance} Configured Axios instance
- * 
+ *
  * @example
  * const instance = makeAxiosInstance({
  *   maxRedirects: 0,
@@ -20,11 +20,11 @@ import https from 'node:https';
 
 type ModifiedInternalAxiosRequestConfig = InternalAxiosRequestConfig & {
   startTime: number;
-}
+};
 
 type ModifiedAxiosResponse = AxiosResponse & {
   responseTime: number;
-}
+};
 
 const baseRequestConfig: Partial<AxiosRequestConfig> = {
   proxy: false,
@@ -45,7 +45,7 @@ const baseRequestConfig: Partial<AxiosRequestConfig> = {
 
     return data;
   }
-}
+};
 
 const makeAxiosInstance = (customRequestConfig?: AxiosRequestConfig) => {
   customRequestConfig = customRequestConfig || {};
@@ -58,7 +58,7 @@ const makeAxiosInstance = (customRequestConfig?: AxiosRequestConfig) => {
     const modifiedConfig: ModifiedInternalAxiosRequestConfig = {
       ...config,
       startTime: Date.now()
-    }
+    };
     return modifiedConfig;
   });
 

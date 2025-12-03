@@ -126,8 +126,7 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
                             },
                             _var,
                             'value'
-                          )
-                        }
+                          )}
                         collection={collection}
                         item={folder}
                       />

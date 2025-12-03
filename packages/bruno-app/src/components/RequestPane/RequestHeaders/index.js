@@ -72,15 +72,15 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     );
   };
 
-    const handleHeaderDrag = ({ updateReorderedItem }) => {
-      dispatch(
-        moveRequestHeader({
-          collectionUid: collection.uid,
-          itemUid: item.uid,
-          updateReorderedItem
-        })
-      );
-    };
+  const handleHeaderDrag = ({ updateReorderedItem }) => {
+    dispatch(
+      moveRequestHeader({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        updateReorderedItem
+      })
+    );
+  };
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
@@ -114,11 +114,11 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         ]}
       >
         <ReorderTable updateReorderedItem={handleHeaderDrag}>
-        {headers && headers.length
+          {headers && headers.length
             ? headers.map((header) => {
                 return (
                   <tr key={header.uid} data-uid={header.uid}>
-                    <td className='flex relative'>
+                    <td className="flex relative">
                       <SingleLineEditor
                         value={header.name}
                         theme={storedTheme}
@@ -132,8 +132,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                             },
                             header,
                             'name'
-                          )
-                        }
+                          )}
                         autocomplete={headerAutoCompleteList}
                         onRun={handleRun}
                         collection={collection}
@@ -153,8 +152,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                             },
                             header,
                             'value'
-                          )
-                        }
+                          )}
                         onRun={handleRun}
                         autocomplete={MimeTypes}
                         collection={collection}

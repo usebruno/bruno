@@ -8,12 +8,14 @@ class ErrorBoundary extends React.Component {
 
     this.state = { hasError: false };
   }
+
   componentDidMount() {
     // Add a global error event listener to capture client-side errors
     window.onerror = (message, source, lineno, colno, error) => {
       this.setState({ hasError: true, error });
     };
   }
+
   componentDidCatch(error, errorInfo) {
     console.log({ error, errorInfo });
     this.setState({ hasError: true, error, errorInfo });

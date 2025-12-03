@@ -8,8 +8,8 @@ const Status = ({ statusCode, statusText }) => {
       {statusCode}{' '}
       {statusText || ''}
     </span>
-  )
-}
+  );
+};
 
 const statusColor = (statusCode) => {
   if (statusCode >= 200 && statusCode < 300) {

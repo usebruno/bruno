@@ -95,7 +95,7 @@ describe('sortByNameThenSequence', () => {
       expect(result).toEqual([
         { name: 'folder_1', seq: 1 },
         { name: 'folder_3', seq: 1 },
-        { name: 'folder_2', seq: 2 },
+        { name: 'folder_2', seq: 2 }
       ]);
     });
 

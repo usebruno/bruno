@@ -65,7 +65,6 @@ jest.mock('utils/collections/index', () => {
 import { generateSnippet } from './snippet-generator';
 
 describe('Snippet Generator - Simple Tests', () => {
-
   // Simple test request - easy to understand
   const testRequest = {
     uid: 'test-request-123',

@@ -139,9 +139,9 @@ const HttpRequestPane = ({ item, collection }) => {
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
           {(script.req || script.res) && (
-            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ?
-            <StatusDot type="error" /> :
-            <StatusDot />
+            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage
+              ? <StatusDot type="error" />
+              : <StatusDot />
           )}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
@@ -151,9 +151,9 @@ const HttpRequestPane = ({ item, collection }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
           {tests && tests.length > 0 && (
-            item.testScriptErrorMessage ?
-              <StatusDot type="error" /> :
-              <StatusDot />
+            item.testScriptErrorMessage
+              ? <StatusDot type="error" />
+              : <StatusDot />
           )}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>

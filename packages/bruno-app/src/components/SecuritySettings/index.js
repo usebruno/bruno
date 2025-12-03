@@ -28,8 +28,8 @@ const SecuritySettings = ({ collection }) => {
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
       <div className="font-medium mt-2">JavaScript Sandbox</div>
 
-      <div className='mt-4'>
-      The collection might include JavaScript code in Variables, Scripts, Tests, and Assertions.
+      <div className="mt-4">
+        The collection might include JavaScript code in Variables, Scripts, Tests, and Assertions.
       </div>
 
       <div className="flex flex-col mt-4">
@@ -64,7 +64,7 @@ const SecuritySettings = ({ collection }) => {
             />
             <span className={jsSandboxMode === 'developer' ? 'font-medium' : 'font-normal'}>
               Developer Mode
-              <span className='ml-1 developer-mode-warning'>(use only if you trust the authors of the collection)</span>
+              <span className="ml-1 developer-mode-warning">(use only if you trust the authors of the collection)</span>
             </span>
           </label>
           <p className="text-muted mt-1">

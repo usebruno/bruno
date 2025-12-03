@@ -160,8 +160,8 @@ export const stringifyBruRequest = (json: any): string => {
         mode: 'json',
         json: '{}'
       });
-    } // For gRPC, add gRPC-specific structure but maintain field names
-    else if (type === 'grpc') {
+    } else if (type === 'grpc') {
+      // For gRPC, add gRPC-specific structure but maintain field names
       bruJson.grpc = {
         url: _.get(json, 'request.url'),
         auth: _.get(json, 'request.auth.mode', 'none'),

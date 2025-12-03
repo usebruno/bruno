@@ -33,7 +33,7 @@ const ResponsePane = ({ item, collection }) => {
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const requestTimeline = ([...(collection.timeline || [])]).filter(obj => {
+  const requestTimeline = ([...(collection.timeline || [])]).filter((obj) => {
     if (obj.itemUid === item.uid) return true;
   });
 
@@ -93,15 +93,17 @@ const ResponsePane = ({ item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item}  />;
+        return <Timeline collection={collection} item={item} />;
       }
       case 'tests': {
-        return <TestResults
-          results={item.testResults}
-          assertionResults={item.assertionResults}
-          preRequestTestResults={item.preRequestTestResults}
-          postResponseTestResults={item.postResponseTestResults}
-        />;
+        return (
+          <TestResults
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
+        );
       }
 
       default: {
@@ -183,7 +185,7 @@ const ResponsePane = ({ item, collection }) => {
               />
             )}
             <ResponseLayoutToggle />
-            {focusedTab?.responsePaneTab === "timeline" ? (
+            {focusedTab?.responsePaneTab === 'timeline' ? (
               <ClearTimeline item={item} collection={collection} />
             ) : (item?.response && !item?.response?.error) ? (
               <>
@@ -201,7 +203,7 @@ const ResponsePane = ({ item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col min-h-0 relative px-4 auto overflow-auto`}
+        className="flex flex-col min-h-0 relative px-4 auto overflow-auto"
         style={{
           flex: '1 1 0',
           height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'
@@ -214,9 +216,9 @@ const ResponsePane = ({ item, collection }) => {
             onClose={() => setShowScriptErrorCard(false)}
           />
         )}
-        <div className='flex-1 overflow-y-auto'>
+        <div className="flex-1 overflow-y-auto">
           {!item?.response ? (
-            focusedTab?.responsePaneTab === "timeline" && requestTimeline?.length ? (
+            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline
                 collection={collection}
                 item={item}

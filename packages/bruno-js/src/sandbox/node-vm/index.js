@@ -98,7 +98,6 @@ async function runScriptInNodeVm({
   return;
 }
 
-
 /**
  * Creates a custom require function with enhanced security and local module support
  * @param {Object} options - Configuration options
