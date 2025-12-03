@@ -36,9 +36,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
 
   const hideLocationInput = activeWorkspace && activeWorkspace.type !== 'default' && !!activeWorkspace?.pathname;
 
-  const defaultLocation = propDefaultLocation
-    || (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '')
-    || get(preferences, 'general.defaultCollectionLocation', '');
+  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultCollectionLocation', '') : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
 
   const shouldShowAccordion = workspaceUid && hideLocationInput && !isDefaultWorkspace;
   const actuallyHideLocationInput = hideLocationInput && !showExternalLocation && !isDefaultWorkspace;
