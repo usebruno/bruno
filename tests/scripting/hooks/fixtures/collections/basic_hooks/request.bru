@@ -81,7 +81,7 @@ tests {
   
   test("hook should have been called once before unhooking", function() {
     const callCount = bru.getEnvVar('hook_call_count');
-    expect(parseInt(callCount)).to.be.greaterThan(0);
+    expect(parseInt(callCount, 10)).to.be.greaterThan(0);
   });
   
   test("request should succeed", function() {

@@ -61,7 +61,7 @@ script:hooks {
   
   // Unhook test
   const unhook = bru.hooks.onBeforeRequest(({ req }) => {
-    const count = parseInt(bru.getEnvVar('hook_call_count') || '0');
+    const count = parseInt(bru.getEnvVar('hook_call_count') || '0', 10);
     bru.setEnvVar('hook_call_count', (count + 1).toString());
     
     // Unhook after first call

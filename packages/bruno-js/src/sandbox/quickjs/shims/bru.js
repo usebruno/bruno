@@ -392,6 +392,9 @@ const addBruShimToContext = (vm, bru) => {
   bruCookiesObject.dispose();
 
   // Store handler handles to keep them alive (only used if hooks are enabled)
+  // VM is captured in closure and remains valid throughout execution lifecycle
+  // VMs are not disposed (see packages/bruno-js/src/sandbox/quickjs/index.js:184), and handlers are cleaned
+  // via HookManager lifecycle (collection/folder/request completion)
   const handlerHandles = new Map();
 
   // Cleanup function to dispose handler handles and prevent memory leaks

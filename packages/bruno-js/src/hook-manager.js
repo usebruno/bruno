@@ -58,12 +58,6 @@ class HookManager {
 
     // Call handlers for each pattern
     for (const ptn of patternList) {
-      if (ptn === '*' && this.listeners[ptn]) {
-        for (const handler of this.listeners[ptn]) {
-          await callHandler(handler, data, ptn);
-        }
-        return;
-      }
       if (!this.listeners[ptn]) continue;
       for (const handler of this.listeners[ptn]) {
         await callHandler(handler, data, ptn);

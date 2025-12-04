@@ -269,7 +269,7 @@ const HOOK_EVENTS = Object.freeze({
  * @param {string} options.collectionName - Collection name
  * @returns {Promise<HookManager>} HookManager instance for this level
  */
-const getOrCreateHookManager = async (hookManagersMap, uid, hooksFile, options) => {
+const getOrCreateHookManager = async (hookManagersMap, uid, hooksFile, options = {}) => {
   // Return existing HookManager if already created
   if (hookManagersMap.has(uid)) {
     return hookManagersMap.get(uid);
