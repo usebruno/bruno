@@ -99,13 +99,16 @@ const HttpRequestPane = ({ item, collection }) => {
   const tests = getPropertyFromDraftOrRequest('request.tests');
   const docs = getPropertyFromDraftOrRequest('request.docs');
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
+  const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
   const auth = getPropertyFromDraftOrRequest('request.auth');
   const tags = getPropertyFromDraftOrRequest('tags');
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
-  const activeVarsLength = requestVars.filter((request) => request.enabled).length;
+  const activeVarsLength
+    = requestVars.filter((request) => request.enabled).length
+      + responseVars.filter((response) => response.enabled).length;
 
   useEffect(() => {
     if (activeParamsLength === 0 && body.mode !== 'none') {

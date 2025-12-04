@@ -198,6 +198,41 @@ const mergeVars = (collection, request, requestTreePath) => {
       type: 'request'
     }));
   }
+
+  let resVars = new Map();
+  let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
+  collectionResponseVars.forEach((_var) => {
+    if (_var.enabled) {
+      resVars.set(_var.name, _var.value);
+    }
+  });
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderRoot = i?.draft || i?.root;
+      let vars = get(folderRoot, 'request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    } else {
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    }
+  }
+
+  if (request?.vars) {
+    request.vars.res = Array.from(resVars, ([name, value]) => ({
+      name,
+      value,
+      enabled: true,
+      type: 'response'
+    }));
+  }
 };
 
 /**
