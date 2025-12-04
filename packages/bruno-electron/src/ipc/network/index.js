@@ -536,8 +536,6 @@ const registerNetworkIpc = (mainWindow) => {
       if (result?.error) {
         mainWindow.webContents.send('main:display-error', result.error);
       }
-
-      collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
     }
 
     // run post-response script
