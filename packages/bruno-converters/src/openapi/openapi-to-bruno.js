@@ -131,7 +131,7 @@ const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
     if (prop.type === 'object') {
       _jsonBody[name] = buildEmptyJsonBody(prop, visited);
     } else if (prop.type === 'array') {
-      if (prop.items && prop.items.type === 'object') {
+      if (prop.items && (prop.items.type === 'object' || prop.items.properties)) {
         _jsonBody[name] = [buildEmptyJsonBody(prop.items, visited)];
       } else {
         _jsonBody[name] = [];

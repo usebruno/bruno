@@ -43,6 +43,23 @@ components:
               dueDate:
                 type: string
                 format: date-time
+              fees:
+                type: array
+                items:
+                  $ref: '#/components/requestBodies/fees'
+    fees:
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 50
+        amount:
+          type: number
+      required:
+       - id
+       - amount
 `;
 
     const result = openApiToBruno(openApiSpec);
@@ -63,6 +80,8 @@ components:
     expect(bodyJson).toHaveProperty('externalDocumentNumber');
     expect(bodyJson).toHaveProperty('invoiceDate');
     expect(bodyJson).toHaveProperty('dueDate');
+    expect(bodyJson).toHaveProperty('fees');
+    expect(bodyJson['fees'][0]).toHaveProperty('id');
   });
 
   it('should import formUrlEncoded body when requestBody uses $ref with inline schema', () => {
