@@ -109,7 +109,8 @@ const configureRequest = async (
   globalEnvironmentVariables
 ) => {
   const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
-  if (!protocolRegex.test(request.url)) {
+  const hasVariables = request.url.startsWith('{{');
+  if (!hasVariables && !protocolRegex.test(request.url)) {
     request.url = `http://${request.url}`;
   }
 
