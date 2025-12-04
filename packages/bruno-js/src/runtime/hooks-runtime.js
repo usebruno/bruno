@@ -38,6 +38,7 @@ class HooksRuntime {
       collectionName,
       hookManager
     } = options;
+    const activeHookManager = hookManager || new HookManager();
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
@@ -70,12 +71,12 @@ class HooksRuntime {
     }
 
     // Ensure bru.hooks is accessible in the context (important for VM sandbox)
-    context.bru.hooks = hookManager;
+    context.bru.hooks = activeHookManager;
 
     // If no hooks file, return early with the hookManager
     if (!hooksFile || !hooksFile.length) {
       return {
-        hookManager,
+        hookManager: activeHookManager,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         persistentEnvVariables: bru.persistentEnvVariables,
@@ -93,7 +94,7 @@ class HooksRuntime {
       });
 
       return {
-        hookManager,
+        hookManager: activeHookManager,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         persistentEnvVariables: bru.persistentEnvVariables,
@@ -108,7 +109,7 @@ class HooksRuntime {
     });
 
     return {
-      hookManager,
+      hookManager: activeHookManager,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       persistentEnvVariables: bru.persistentEnvVariables,
