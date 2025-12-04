@@ -1,0 +1,91 @@
+script:hooks {
+  // Basic beforeRequest hook
+  bru.hooks.onBeforeRequest(({ req }) => {
+    bru.setEnvVar('before_request_executed', 'true');
+    bru.setEnvVar('hook_timestamp', Date.now().toString());
+  });
+  
+  // Basic afterResponse hook
+  bru.hooks.onAfterResponse(({ res }) => {
+    bru.setEnvVar('after_response_executed', 'true');
+    bru.setEnvVar('response_status', res.getStatus().toString());
+  });
+  
+  // Multiple hooks test
+  bru.hooks.onBeforeRequest(({ req }) => {
+    const current = bru.getEnvVar('hook_order') || '';
+    bru.setEnvVar('hook_order', current ? current + ',before1' : 'before1');
+  });
+  
+  bru.hooks.onBeforeRequest(({ req }) => {
+    const current = bru.getEnvVar('hook_order') || '';
+    bru.setEnvVar('hook_order', current ? current + ',before2' : 'before2');
+  });
+  
+  bru.hooks.onAfterResponse(({ res }) => {
+    const current = bru.getEnvVar('hook_order') || '';
+    bru.setEnvVar('hook_order', current ? current + ',after1' : 'after1');
+  });
+  
+  // Request modification in beforeRequest
+  bru.hooks.onBeforeRequest(({ req }) => {
+    req.setHeader('X-Hook-Header', 'hook-value');
+    bru.setEnvVar('request_modified', 'true');
+  });
+  
+  // Response access in afterResponse
+  bru.hooks.onAfterResponse(({ res }) => {
+    const status = res.getStatus();
+    const body = res.getBody();
+    const headers = res.getHeaders();
+    
+    bru.setEnvVar('response_has_body', (body !== null && body !== undefined).toString());
+    bru.setEnvVar('response_has_headers', (headers && Object.keys(headers).length > 0).toString());
+  });
+  
+  // Wildcard hook
+  bru.hooks.on('*', ({ req, res }) => {
+    bru.setEnvVar('wildcard_executed', 'true');
+  });
+  
+  // Async hooks
+  bru.hooks.onBeforeRequest(async ({ req }) => {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    bru.setEnvVar('async_before_completed', 'true');
+  });
+  
+  bru.hooks.onAfterResponse(async ({ res }) => {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    bru.setEnvVar('async_after_completed', 'true');
+  });
+  
+  // Unhook test
+  const unhook = bru.hooks.onBeforeRequest(({ req }) => {
+    const count = parseInt(bru.getEnvVar('hook_call_count') || '0', 10);
+    bru.setEnvVar('hook_call_count', (count + 1).toString());
+    
+    // Unhook after first call
+    if (count === 0) {
+      unhook();
+      bru.setEnvVar('unhooked', 'true');
+    }
+  });
+  
+  // Cleanup: Delete all runtime-created env vars on collection run end
+  bru.runner.hooks.onCollectionRunEnd(() => {
+    // Delete all env vars created during test execution
+    bru.deleteEnvVar('before_request_executed');
+    bru.deleteEnvVar('hook_timestamp');
+    bru.deleteEnvVar('after_response_executed');
+    bru.deleteEnvVar('response_status');
+    bru.deleteEnvVar('hook_order');
+    bru.deleteEnvVar('request_modified');
+    bru.deleteEnvVar('response_has_body');
+    bru.deleteEnvVar('response_has_headers');
+    bru.deleteEnvVar('wildcard_executed');
+    bru.deleteEnvVar('async_before_completed');
+    bru.deleteEnvVar('async_after_completed');
+    bru.deleteEnvVar('hook_call_count');
+    bru.deleteEnvVar('unhooked');
+  });
+}

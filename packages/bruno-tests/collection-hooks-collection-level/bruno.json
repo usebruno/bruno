@@ -1,0 +1,9 @@
+{
+    "version": "1",
+    "name": "collection-hooks-collection-level",
+    "type": "collection",
+    "ignore": [
+        "node_modules",
+        ".git"
+    ]
+}

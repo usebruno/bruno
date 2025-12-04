@@ -1,0 +1,48 @@
+meta {
+  name: developer-mode-before-request
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Developer mode - beforeRequest hook');
+    
+    // Test: Can access req object in developer mode
+    const url = req.getUrl();
+    const method = req.getMethod();
+    
+    // Test: Can use bru APIs in developer mode
+    bru.setVar('developer-mode-beforeRequest-executed', 'true');
+    bru.setVar('developer-mode-url', url);
+    bru.setVar('developer-mode-method', method);
+    
+    // Test: Can modify request in developer mode
+    req.setHeader('X-Developer-Mode', 'true');
+    
+    console.log('[beforeRequest] Developer mode hook completed');
+  });
+}
+
+tests {
+  test("developer mode beforeRequest hook should have executed", function() {
+    const executed = bru.getVar('developer-mode-beforeRequest-executed');
+    expect(executed).to.equal('true');
+  });
+  
+  test("should have access to request in developer mode", function() {
+    const url = bru.getVar('developer-mode-url');
+    expect(url).to.include('/ping');
+  });
+  
+  test("request should execute successfully in developer mode", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

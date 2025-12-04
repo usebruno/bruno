@@ -9,7 +9,10 @@ const FormData = require('form-data');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, HooksRuntime } = require('@usebruno/js');
+// BrunoRequest and BrunoResponse are not exported from main index, require directly
+const BrunoRequest = require('@usebruno/js/src/bruno-request');
+const BrunoResponse = require('@usebruno/js/src/bruno-response');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -25,7 +28,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence, extractHooks, HOOK_EVENTS, getOrCreateHookManager } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -37,6 +40,7 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
+const HookManager = require('@usebruno/js/src/hook-manager');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -392,8 +396,156 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
-  const runPreRequest = async (
+  /**
+   * Register all hooks along the request path tree to a new HookManager instance.
+   * Hooks are registered in order: collection -> folder(s) -> request
+   * The HookManager will be garbage collected after the request run completes.
+   *
+   * @param {object} options - Configuration options
+   * @param {object} options.collection - Collection object
+   * @param {object} options.request - Request object
+   * @param {array} options.requestTreePath - Path from collection to request
+   * @param {object} options.envVars - Environment variables
+   * @param {object} options.runtimeVariables - Runtime variables
+   * @param {string} options.collectionPath - Collection path
+   * @param {object} options.processEnvVars - Process environment variables
+   * @param {object} options.scriptingConfig - Scripting configuration
+   * @param {function} options.runRequestByItemPathname - Function to run requests
+   * @param {string} options.collectionName - Collection name
+   * @param {function} options.onConsoleLog - Console log callback
+   * @returns {HookManager} HookManager instance with all hooks registered
+   */
+  /**
+   * Generic function to register hooks from a hooks file to a HookManager
+   * @param {object} options - Configuration options
+   * @param {string} options.hooksFile - The hooks script content
+   * @param {HookManager} options.hookManager - HookManager instance to register hooks to
+   * @param {object} options.request - Request object (used for variable extraction)
+   * @param {object} options.envVars - Environment variables
+   * @param {object} options.runtimeVariables - Runtime variables
+   * @param {string} options.collectionPath - Collection path
+   * @param {object} options.processEnvVars - Process environment variables
+   * @param {object} options.scriptingConfig - Scripting configuration
+   * @param {function} options.runRequestByItemPathname - Function to run requests
+   * @param {string} options.collectionName - Collection name
+   * @param {function} options.onConsoleLog - Console log callback
+   * @returns {Promise<void>}
+   */
+  const registerHooks = async ({
+    hooksFile,
+    hookManager,
     request,
+    envVars,
+    runtimeVariables,
+    collectionPath,
+    processEnvVars,
+    scriptingConfig,
+    runRequestByItemPathname,
+    collectionName,
+    onConsoleLog
+  }) => {
+    if (!hooksFile || !hooksFile.trim()) {
+      return;
+    }
+
+    const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+
+    try {
+      await hooksRuntime.runHooks({
+        hooksFile: decomment(hooksFile),
+        request,
+        envVariables: envVars,
+        runtimeVariables,
+        collectionPath,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        runRequestByItemPathname,
+        collectionName,
+        hookManager
+      });
+    } catch (error) {
+      console.error('Error registering hooks:', error);
+      onConsoleLog?.('error', [`Error registering hooks: ${error.message}`]);
+    }
+  };
+
+  /**
+   * Register all hooks for a standalone request run
+   * Creates a single HookManager with all hooks (collection, folder, request)
+   * @param {object} options - Configuration options
+   * @returns {Promise<HookManager>} HookManager instance with all hooks registered
+   */
+  const registerHooksForRequest = async ({
+    collection,
+    request,
+    requestTreePath,
+    envVars,
+    runtimeVariables,
+    collectionPath,
+    processEnvVars,
+    scriptingConfig,
+    runRequestByItemPathname,
+    collectionName,
+    onConsoleLog
+  }) => {
+    // Create a new HookManager for this request run
+    const hookManager = new HookManager();
+
+    // Extract hooks from different levels
+    const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
+
+    // Register collection-level hooks
+    await registerHooks({
+      hooksFile: collectionHooks,
+      hookManager,
+      request,
+      envVars,
+      runtimeVariables,
+      collectionPath,
+      processEnvVars,
+      scriptingConfig,
+      runRequestByItemPathname,
+      collectionName,
+      onConsoleLog
+    });
+
+    // Register folder-level hooks (in order from collection to request)
+    for (const folderHook of folderHooks) {
+      await registerHooks({
+        hooksFile: folderHook.hooks,
+        hookManager,
+        request,
+        envVars,
+        runtimeVariables,
+        collectionPath,
+        processEnvVars,
+        scriptingConfig,
+        runRequestByItemPathname,
+        collectionName,
+        onConsoleLog
+      });
+    }
+
+    // Register request-level hooks
+    await registerHooks({
+      hooksFile: requestHooks,
+      hookManager,
+      request,
+      envVars,
+      runtimeVariables,
+      collectionPath,
+      processEnvVars,
+      scriptingConfig,
+      runRequestByItemPathname,
+      collectionName,
+      onConsoleLog
+    });
+
+    return hookManager;
+  };
+
+  const runPreRequest = async (request,
     requestUid,
     envVars,
     collectionPath,
@@ -585,9 +737,40 @@ const registerNetworkIpc = (mainWindow) => {
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
+    // Get request tree path for hooks registration
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+
     try {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
+
+      // Register all hooks along the request path tree to a new HookManager for this request run
+      const hookManager = await registerHooksForRequest({
+        collection,
+        request,
+        requestTreePath,
+        envVars,
+        runtimeVariables,
+        collectionPath,
+        processEnvVars,
+        scriptingConfig,
+        runRequestByItemPathname,
+        collectionName: collection?.name,
+        onConsoleLog
+      });
+
+      // Call pre-request hooks before running pre-request scripts
+      // Hooks are called in registration order: collection -> folder(s) -> request
+      if (hookManager) {
+        try {
+          // Create req object for hook callbacks (res is not available yet)
+          const req = new BrunoRequest(request);
+          await hookManager.call(HOOK_EVENTS.BEFORE_REQUEST, { request, req, collection, collectionUid });
+        } catch (error) {
+          console.error('Error calling pre-request hooks:', error);
+          onConsoleLog?.('error', [`Error calling pre-request hooks: ${error.message}`]);
+        }
+      }
 
       let preRequestScriptResult = null;
       let preRequestError = null;
@@ -752,6 +935,20 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
       cookiesStore.saveCookieJar();
+
+      // Call post-response hooks after response is received but before post-response scripts
+      // Use the same HookManager that was created for this request run
+      if (hookManager) {
+        try {
+          // Create req and res objects for hook callbacks
+          const req = new BrunoRequest(request);
+          const res = new BrunoResponse(response);
+          await hookManager.call(HOOK_EVENTS.AFTER_RESPONSE, { request, response, req, res, collection, collectionUid });
+        } catch (error) {
+          console.error('Error calling post-response hooks:', error);
+          onConsoleLog?.('error', [`Error calling post-response hooks: ${error.message}`]);
+        }
+      }
 
       const runPostScripts = async () => {
         let postResponseScriptResult = null;
@@ -1059,6 +1256,57 @@ const registerNetworkIpc = (mainWindow) => {
         folder = collection;
       }
 
+      // Create a map to store HookManagers for this collection/folder run
+      // Key format: 'collection:<collectionUid>', 'folder:<folderUid>', 'request:<requestUid>'
+      const hookManagersMap = new Map();
+
+      // Register collection-level hooks immediately
+      const collectionHookManagerOptions = {
+        request: {}, // Placeholder request for hook registration
+        envVars,
+        runtimeVariables,
+        collectionPath,
+        processEnvVars,
+        scriptingConfig,
+        runRequestByItemPathname,
+        collectionName: collection?.name,
+        onConsoleLog: (type, args) => {
+          console[type](...args);
+          mainWindow.webContents.send('main:console-log', {
+            type,
+            args
+          });
+        }
+      };
+
+      const collectionRoot = collection?.draft?.root || collection?.root || {};
+      const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
+      const collectionHookManagerKey = `collection:${collectionPath}`;
+      await getOrCreateHookManager(hookManagersMap, collectionHookManagerKey, collectionHooks, collectionHookManagerOptions);
+      const isCollectionRun = folder?.uid === collection?.uid;
+
+      // If a folder is being run (not the collection itself), register folder hooks along the folder path tree
+      if (folder && !isCollectionRun) {
+        const folderTreePath = getTreePathFromCollectionToItem(collection, folder);
+
+        // Extract folder hooks from the folder tree path
+        for (const pathItem of folderTreePath) {
+          if (pathItem.type === 'folder') {
+            const folderRoot = pathItem?.draft || pathItem?.root;
+            const folderHooks = get(folderRoot, 'request.script.hooks', '');
+            if (folderHooks && folderHooks.trim() !== '') {
+              const folderHookManagerKey = `folder:${pathItem.pathname}`;
+              await getOrCreateHookManager(hookManagersMap, folderHookManagerKey, folderHooks, collectionHookManagerOptions);
+            }
+          }
+        }
+      }
+
+      if (isCollectionRun) {
+        const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
+        await collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_START, { collection, collectionUid });
+      }
+
       mainWindow.webContents.send('main:run-folder-event', {
         type: 'testrun-started',
         isRecursive: recursive,
@@ -1096,6 +1344,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
+
         while (currentRequestIndex < folderRequests.length) {
           // user requested to cancel runner
           if (abortController.signal.aborted) {
@@ -1167,7 +1416,60 @@ const registerNetworkIpc = (mainWindow) => {
             continue;
           }
 
+          // Get request tree path for hooks registration
+          const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+          const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
+
+          // Get or create HookManagers for each level
+          const hookManagerOptions = {
+            request,
+            envVars,
+            runtimeVariables,
+            collectionPath,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName: collection?.name,
+            onConsoleLog: (type, args) => {
+              console[type](...args);
+              mainWindow.webContents.send('main:console-log', {
+                type,
+                args
+              });
+            }
+          };
+
+          // Collection-level HookManager
+          const collectionHookManagerKey = `collection:${collectionPath}`;
+          const collectionHookManager = await getOrCreateHookManager(hookManagersMap, collectionHookManagerKey, collectionHooks, hookManagerOptions);
+
+          // Folder-level HookManagers (in order from collection to request)
+          const folderHookManagers = [];
+          for (const folderHook of folderHooks) {
+            const folderHookManagerKey = `folder:${folderHook.folderPathname}`;
+            const folderHookManager = await getOrCreateHookManager(hookManagersMap, folderHookManagerKey, folderHook.hooks, hookManagerOptions);
+            folderHookManagers.push(folderHookManager);
+          }
+
+          // Request-level HookManager
+          const requestHookManagerKey = item.pathname;
+          const requestHookManager = await getOrCreateHookManager(hookManagersMap, requestHookManagerKey, requestHooks, hookManagerOptions);
+
+          // Combine all HookManagers in order: collection -> folders -> request
+          const allHookManagers = [collectionHookManager, ...folderHookManagers, requestHookManager];
+
           try {
+            // Call pre-request hooks before running pre-request scripts
+            // Hooks are called in registration order: collection -> folder(s) -> request
+            for (const hookManager of allHookManagers) {
+              try {
+                const req = new BrunoRequest(request);
+                await hookManager.call(HOOK_EVENTS.BEFORE_REQUEST, { request, req, collection, collectionUid });
+              } catch (error) {
+                console.error('Error calling pre-request hooks:', error);
+              }
+            }
+
             let preRequestScriptResult;
             let preRequestError = null;
             try {
@@ -1219,6 +1521,10 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             if (preRequestScriptResult?.skipRequest) {
+              // Clean up request-level hook manager if request is skipped
+              if (hookManagersMap) {
+                hookManagersMap.delete(item.pathname);
+              }
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'runner-request-skipped',
                 error: 'Request has been skipped from pre-request script',
@@ -1387,6 +1693,25 @@ const registerNetworkIpc = (mainWindow) => {
                 // if it's not a network error, don't continue
                 throw error;
               }
+            }
+
+            // Call post-response hooks after response is received but before post-response scripts
+            // Hooks are called in registration order: collection -> folder(s) -> request
+            for (const hookManager of allHookManagers) {
+              try {
+                const req = new BrunoRequest(request);
+                const res = new BrunoResponse(response);
+                await hookManager.call(HOOK_EVENTS.AFTER_RESPONSE, { request, response, req, res, collection, collectionUid });
+              } catch (error) {
+                console.error('Error calling post-response hooks:', error);
+              }
+            }
+
+            // Clean up request-level hook manager after request completes
+            // Requests are only run once, so we can safely remove the hook manager to free memory
+            // TODO: we probably don't even have to store the request level hook manager in the first place
+            if (hookManagersMap) {
+              hookManagersMap.delete(item.pathname);
             }
 
             let postResponseScriptResult;
@@ -1569,6 +1894,17 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
+        // Call collection run end hooks
+        if (isCollectionRun) {
+          const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
+          if (collectionHookManager) {
+            await collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_END, { collection, collectionUid });
+          }
+        }
+
+        // Cleanup: Clear hook managers map (will be garbage collected)
+        hookManagersMap.clear();
+
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
@@ -1578,6 +1914,18 @@ const registerNetworkIpc = (mainWindow) => {
         });
       } catch (error) {
         console.log('error', error);
+
+        // Call collection run end hooks even on error
+        if (isCollectionRun) {
+          const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
+          if (collectionHookManager) {
+            await collectionHookManager.call(HOOK_EVENTS.COLLECTION_RUN_END, { collection, collectionUid });
+          }
+        }
+
+        // Cleanup: Clear hook managers map even on error
+        hookManagersMap.clear();
+
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',

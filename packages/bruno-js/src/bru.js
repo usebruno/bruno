@@ -7,7 +7,7 @@ const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, hookManager) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.promptVariables = promptVariables || {};
@@ -19,6 +19,8 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
+    this.hooks = hookManager;
+    this._initializeHooksConvenienceMethods();
     this.sendRequest = sendRequest;
     this.cookies = {
       jar: () => {
@@ -74,6 +76,20 @@ class Bru {
       },
       setNextRequest: (nextRequest) => {
         this.nextRequest = nextRequest;
+      },
+      hooks: {
+        onCollectionRunStart: (handler) => {
+          if (!this.hooks) {
+            throw new Error('HookManager is not available');
+          }
+          return this.hooks.on('collectionRunStart', handler);
+        },
+        onCollectionRunEnd: (handler) => {
+          if (!this.hooks) {
+            throw new Error('HookManager is not available');
+          }
+          return this.hooks.on('collectionRunEnd', handler);
+        }
       }
     };
 
@@ -278,6 +294,25 @@ class Bru {
 
   getCollectionName() {
     return this.collectionName;
+  }
+
+  /**
+   * Initialize hooks convenience methods if hookManager is available
+   * This adds convenience methods like onBeforeRequest, onAfterResponse
+   */
+  _initializeHooksConvenienceMethods() {
+    if (!this.hooks) {
+      return;
+    }
+
+    // Add convenience methods to hooks object
+    this.hooks.onBeforeRequest = (handler) => {
+      return this.hooks.on('beforeRequest', handler);
+    };
+
+    this.hooks.onAfterResponse = (handler) => {
+      return this.hooks.on('afterResponse', handler);
+    };
   }
 }
 

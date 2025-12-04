@@ -1,0 +1,90 @@
+meta {
+  name: Test Request
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+tests {
+  test("beforeRequest hook should have executed", function() {
+    const executed = bru.getEnvVar('before_request_executed');
+    expect(executed).to.equal('true');
+  });
+  
+  test("afterResponse hook should have executed", function() {
+    const executed = bru.getEnvVar('after_response_executed');
+    expect(executed).to.equal('true');
+  });
+  
+  test("hook should have set timestamp", function() {
+    const timestamp = bru.getEnvVar('hook_timestamp');
+    expect(timestamp).to.be.a('string');
+    expect(parseInt(timestamp)).to.be.a('number');
+  });
+  
+  test("hook should have captured response status", function() {
+    const status = bru.getEnvVar('response_status');
+    expect(status).to.equal('200');
+  });
+  
+  test("multiple hooks should execute in order", function() {
+    const order = bru.getEnvVar('hook_order');
+    expect(order).to.include('before1');
+    expect(order).to.include('before2');
+    expect(order).to.include('after1');
+    const beforeIndex = order.indexOf('before1');
+    const afterIndex = order.indexOf('after1');
+    expect(beforeIndex).to.be.lessThan(afterIndex);
+  });
+  
+  test("request should have been modified by hook", function() {
+    const modified = bru.getEnvVar('request_modified');
+    expect(modified).to.equal('true');
+  });
+  
+  test("hook should have detected response body", function() {
+    const hasBody = bru.getEnvVar('response_has_body');
+    expect(hasBody).to.equal('true');
+  });
+  
+  test("hook should have detected response headers", function() {
+    const hasHeaders = bru.getEnvVar('response_has_headers');
+    expect(hasHeaders).to.equal('true');
+  });
+  
+  
+  test("async beforeRequest hook should have completed", function() {
+    const asyncBefore = bru.getEnvVar('async_before_completed');
+    expect(asyncBefore).to.equal('true');
+  });
+  
+  test("async afterResponse hook should have completed", function() {
+    const asyncAfter = bru.getEnvVar('async_after_completed');
+    expect(asyncAfter).to.equal('true');
+  });
+  
+  test("hook should have been unhooked", function() {
+    const unhooked = bru.getEnvVar('unhooked');
+    expect(unhooked).to.equal('true');
+  });
+  
+  test("hook should have been called once before unhooking", function() {
+    const callCount = bru.getEnvVar('hook_call_count');
+    expect(parseInt(callCount, 10)).to.be.greaterThan(0);
+  });
+  
+  test("request should succeed", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

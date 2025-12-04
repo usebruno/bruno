@@ -13,6 +13,9 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
   if (request?.script?.res?.trim().length) {
     ocScripts.postResponse = request.script.res.trim();
   }
+  if (request?.script?.hooks?.trim().length) {
+    ocScripts.hooks = request.script.hooks.trim();
+  }
   if (request?.tests?.trim().length) {
     ocScripts.tests = request.tests.trim();
   }
@@ -21,7 +24,7 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
 };
 
 export const toBrunoScripts = (scripts: Scripts | null | undefined): {
-  script?: { req?: string; res?: string };
+  script?: { req?: string; res?: string; hooks?: string };
   tests?: string;
 } | undefined => {
   if (!scripts) {
@@ -29,17 +32,20 @@ export const toBrunoScripts = (scripts: Scripts | null | undefined): {
   }
 
   const brunoScripts: {
-    script?: { req?: string; res?: string };
+    script?: { req?: string; res?: string; hooks?: string };
     tests?: string;
   } = {};
 
-  if (scripts.preRequest || scripts.postResponse) {
+  if (scripts.preRequest || scripts.postResponse || scripts.hooks) {
     brunoScripts.script = {};
     if (scripts.preRequest) {
       brunoScripts.script.req = scripts.preRequest;
     }
     if (scripts.postResponse) {
       brunoScripts.script.res = scripts.postResponse;
+    }
+    if (scripts.hooks) {
+      brunoScripts.script.hooks = scripts.hooks;
     }
   }
 
