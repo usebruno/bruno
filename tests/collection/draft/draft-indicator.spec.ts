@@ -256,7 +256,10 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(folderTab.locator('.close-icon')).toBeVisible();
     await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
 
-    // Headers tab should be selected by default, add a new header
+    // Click on Headers tab
+    await page.locator('.tab.headers').click();
+
+    // Add a new header
     await page.getByRole('button', { name: 'Add Header' }).click();
 
     // Fill in header name and value in the table
