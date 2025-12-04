@@ -64,14 +64,14 @@ const makeJUnitOutput = async (results, outputPath) => {
       suite.testcase.push(testcase);
     });
 
-    result.testResults &&
-      result.testResults.forEach((test) => {
-        const testcase = {
-          '@name': test.description,
-          '@status': test.status,
-          '@classname': result.request.url,
-          '@time': (result.runtime / totalTests).toFixed(3)
-        };
+    result.testResults
+    && result.testResults.forEach((test) => {
+      const testcase = {
+        '@name': test.description,
+        '@status': test.status,
+        '@classname': result.request.url,
+        '@time': (result.runtime / totalTests).toFixed(3)
+      };
 
       if (test.status === 'fail') {
         suite['@failures']++;
@@ -85,20 +85,20 @@ const makeJUnitOutput = async (results, outputPath) => {
     result.postResponseTestResults
     && result.postResponseTestResults.forEach((test) => {
       const testcase = {
-          '@name': test.description,
-          '@status': test.status,
-          '@classname': result.request.url,
-          '@time': (result.runtime / totalTests).toFixed(3)
-        };
+        '@name': test.description,
+        '@status': test.status,
+        '@classname': result.request.url,
+        '@time': (result.runtime / totalTests).toFixed(3)
+      };
 
-        if (test.status === 'fail') {
-          suite['@failures']++;
+      if (test.status === 'fail') {
+        suite['@failures']++;
 
-          testcase.failure = [{ '@type': 'failure', '@message': test.error }];
-        }
+        testcase.failure = [{ '@type': 'failure', '@message': test.error }];
+      }
 
-        suite.testcase.push(testcase);
-      });
+      suite.testcase.push(testcase);
+    });
 
     if (result?.skipped) {
       suite['@skipped'] = 1;
