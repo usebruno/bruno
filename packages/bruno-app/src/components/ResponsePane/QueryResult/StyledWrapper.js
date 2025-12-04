@@ -1,9 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  display: grid;
-  grid-template-columns: 100%;
-  grid-template-rows: 1.75rem 1fr;
+  display: flex;
+  flex-direction: column;
 
   /* This is a hack to force Codemirror to use all available space */
   > div {

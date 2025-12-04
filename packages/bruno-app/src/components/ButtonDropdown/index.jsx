@@ -102,7 +102,7 @@ const ButtonDropdown = ({
         ref={ref}
         className={classnames('flex items-center gap-1.5 text-xs',
           'cursor-pointer select-none',
-          'h-7 rounded-[6px] border px-2 transition-colors',
+          'h-7 rounded-[4px] border px-2 transition-colors',
           // Text color
           'text-gray-700 dark:text-gray-300',
           // Border color
