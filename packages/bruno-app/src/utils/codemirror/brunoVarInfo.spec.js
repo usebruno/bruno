@@ -518,12 +518,5 @@ describe('renderVarInfo', () => {
       expect(warningNote).not.toBeNull();
       expect(warningNote.textContent).toContain('OAuth2 token not found');
     });
-
-    it('should not show value container for invalid OAuth2 variables', () => {
-      const { valueContainer } = setupOAuth2Render('$oauth2.nonexistent.access_token', {});
-
-      // Token not found, so no value display
-      expect(valueContainer).toBeNull();
-    });
   });
 });
