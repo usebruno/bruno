@@ -16,11 +16,11 @@ const Info = ({ collection }) => {
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
+  const [showCollectionEnvironmentModal, setShowCollectionEnvironmentModal] = useState(false);
   const [showGlobalEnvironmentModal, setShowGlobalEnvironmentModal] = useState(false);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
-  const isCollectionEnvironmentModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
 
   const collectionEnvironmentCount = collection.environments?.length || 0;
   const globalEnvironmentCount = globalEnvironments?.length || 0;
@@ -56,7 +56,10 @@ const Info = ({ collection }) => {
               <div className="mt-1 flex flex-col gap-1">
                 <div
                   className="text-sm text-link cursor-pointer hover:underline"
-                  onClick={() => dispatch(updateEnvironmentSettingsModalVisibility(true))}
+                  onClick={() => {
+                    dispatch(updateEnvironmentSettingsModalVisibility(true));
+                    setShowCollectionEnvironmentModal(true);
+                  }}
                 >
                   {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
                 </div>
@@ -99,10 +102,13 @@ const Info = ({ collection }) => {
           {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
-      {isCollectionEnvironmentModalOpen && (
+      {showCollectionEnvironmentModal && (
         <EnvironmentSettings
           collection={collection}
-          onClose={() => dispatch(updateEnvironmentSettingsModalVisibility(false))}
+          onClose={() => {
+            setShowCollectionEnvironmentModal(false);
+            dispatch(updateEnvironmentSettingsModalVisibility(false));
+          }}
         />
       )}
       {showGlobalEnvironmentModal && (
