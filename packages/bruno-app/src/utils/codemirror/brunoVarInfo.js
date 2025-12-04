@@ -74,6 +74,7 @@ const getScopeLabel = (scopeType) => {
     'runtime': 'Runtime',
     'process.env': 'Process Env',
     'dynamic': 'Dynamic',
+    'oauth2': 'OAuth2',
     'undefined': 'Undefined'
   };
   return labels[scopeType] || scopeType;
@@ -181,12 +182,21 @@ export const renderVarInfo = (token, options) => {
 
   // Check if this is a dynamic/faker variable (starts with "$")
   let scopeInfo;
-  if (variableName.startsWith('$')) {
+  if (variableName.startsWith('$oauth2.')) {
+    // OAuth2 token variable - look up in variables object
+    const oauth2Value = get(options.variables, variableName);
+    scopeInfo = {
+      type: 'oauth2',
+      value: oauth2Value !== undefined ? oauth2Value : '',
+      data: null,
+      isValidOAuth2Variable: oauth2Value !== undefined
+    };
+  } else if (variableName.startsWith('$')) {
     const fakerKeyword = variableName.substring(1); // Remove the $ prefix
     const fakerFunction = mockDataFunctions[fakerKeyword];
     scopeInfo = {
       type: 'dynamic',
-      value: fakerFunction ? fakerFunction() : '',
+      value: '',
       data: null,
       isValidFakerVariable: !!fakerFunction
     };
@@ -240,8 +250,8 @@ export const renderVarInfo = (token, options) => {
     }
   }
 
-  // Check if variable is read-only (process.env, runtime, dynamic/faker, and undefined variables cannot be edited)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'undefined';
+  // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
+  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined';
 
   // Get raw value from scope
   const rawValue = scopeInfo.value || '';
@@ -279,7 +289,7 @@ export const renderVarInfo = (token, options) => {
   // Check if variable name is valid
   // - process.env variables bypass the regex check
   // - dynamic/faker variables bypass the regex check (they start with $)
-  const isValidVariableName = scopeInfo.type === 'process.env' || scopeInfo.type === 'dynamic' || variableNameRegex.test(variableName);
+  const isValidVariableName = scopeInfo.type === 'process.env' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || variableNameRegex.test(variableName);
 
   // Show warning if variable name is invalid
   if (!isValidVariableName) {
@@ -307,6 +317,15 @@ export const renderVarInfo = (token, options) => {
     readOnlyNote.className = 'var-readonly-note';
     readOnlyNote.textContent = 'Generates random value on each request';
     into.appendChild(readOnlyNote);
+    return into;
+  }
+
+  // Show warning for invalid OAuth2 variable (token not found)
+  if (scopeInfo.type === 'oauth2' && !scopeInfo.isValidOAuth2Variable) {
+    const warningNote = document.createElement('div');
+    warningNote.className = 'var-warning-note';
+    warningNote.textContent = `OAuth2 token not found. Make sure you have fetched the token with the correct Token ID.`;
+    into.appendChild(warningNote);
     return into;
   }
 
@@ -561,6 +580,11 @@ export const renderVarInfo = (token, options) => {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'Set by scripts (read-only)';
+      into.appendChild(readOnlyNote);
+    } else if (scopeInfo.type === 'oauth2') {
+      const readOnlyNote = document.createElement('div');
+      readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'undefined') {
       const readOnlyNote = document.createElement('div');

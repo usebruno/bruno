@@ -468,4 +468,62 @@ describe('renderVarInfo', () => {
       expect(warningNote.textContent).toContain('Unknown dynamic variable');
     });
   });
+
+  describe('OAuth2 variable rendering', () => {
+    function setupOAuth2Render(variableName, variables = {}) {
+      const result = renderVarInfo({ string: `{{${variableName}}}` }, { variables, collection: null, item: null });
+      if (!result) return { result: null, containerDiv: null };
+
+      const containerDiv = result;
+      const header = containerDiv.querySelector('.var-info-header');
+      const scopeBadge = containerDiv.querySelector('.var-scope-badge');
+      const readOnlyNote = containerDiv.querySelector('.var-readonly-note');
+      const warningNote = containerDiv.querySelector('.var-warning-note');
+      const valueContainer = containerDiv.querySelector('.var-value-container');
+      const valueDisplay = containerDiv.querySelector('.var-value-display');
+
+      return { result, containerDiv, header, scopeBadge, readOnlyNote, warningNote, valueContainer, valueDisplay };
+    }
+
+    it('should show OAuth2 scope badge for $oauth2 variables', () => {
+      const { scopeBadge } = setupOAuth2Render('$oauth2.credentials.access_token', {
+        '$oauth2.credentials.access_token': 'test-token-123'
+      });
+
+      expect(scopeBadge.textContent).toBe('OAuth2');
+    });
+
+    it('should show read-only note for valid OAuth2 variables', () => {
+      const { readOnlyNote } = setupOAuth2Render('$oauth2.credentials.access_token', {
+        '$oauth2.credentials.access_token': 'test-token-123'
+      });
+
+      expect(readOnlyNote).not.toBeNull();
+      expect(readOnlyNote.textContent).toBe('read-only');
+    });
+
+    it('should display the token value for valid OAuth2 variables', () => {
+      const { valueDisplay } = setupOAuth2Render('$oauth2.credentials.access_token', {
+        '$oauth2.credentials.access_token': 'test-token-123'
+      });
+
+      expect(valueDisplay).not.toBeNull();
+      expect(valueDisplay.textContent).toBe('test-token-123');
+    });
+
+    it('should show warning for OAuth2 variable when token is not found', () => {
+      const { warningNote, scopeBadge } = setupOAuth2Render('$oauth2.credentials.access_token', {});
+
+      expect(scopeBadge.textContent).toBe('OAuth2');
+      expect(warningNote).not.toBeNull();
+      expect(warningNote.textContent).toContain('OAuth2 token not found');
+    });
+
+    it('should not show value container for invalid OAuth2 variables', () => {
+      const { valueContainer } = setupOAuth2Render('$oauth2.nonexistent.access_token', {});
+
+      // Token not found, so no value display
+      expect(valueContainer).toBeNull();
+    });
+  });
 });
