@@ -21,7 +21,6 @@ const EnvironmentSelector = ({ collection }) => {
   const dropdownTippyRef = useRef();
   const [activeTab, setActiveTab] = useState('collection');
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
-  const [showCollectionSettings, setShowCollectionSettings] = useState(false);
   const [showCreateGlobalModal, setShowCreateGlobalModal] = useState(false);
   const [showImportGlobalModal, setShowImportGlobalModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
@@ -29,6 +28,7 @@ const EnvironmentSelector = ({ collection }) => {
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
+  const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
   const activeGlobalEnvironment = activeGlobalEnvironmentUid
     ? find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid)
     : null;
@@ -79,7 +79,6 @@ const EnvironmentSelector = ({ collection }) => {
   const handleSettingsClick = () => {
     if (activeTab === 'collection') {
       dispatch(updateEnvironmentSettingsModalVisibility(true));
-      setShowCollectionSettings(true);
     } else {
       setShowGlobalSettings(true);
     }
@@ -109,7 +108,6 @@ const EnvironmentSelector = ({ collection }) => {
   // Modal handlers
   const handleCloseSettings = () => {
     setShowGlobalSettings(false);
-    setShowCollectionSettings(false);
     dispatch(updateEnvironmentSettingsModalVisibility(false));
   };
 
@@ -220,6 +218,10 @@ const EnvironmentSelector = ({ collection }) => {
       </div>
 
       {/* Modals - Rendered outside dropdown to avoid conflicts */}
+      {isEnvironmentSettingsModalOpen && (
+        <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />
+      )}
+
       {showGlobalSettings && (
         <GlobalEnvironmentSettings
           globalEnvironments={globalEnvironments}
@@ -228,8 +230,6 @@ const EnvironmentSelector = ({ collection }) => {
           onClose={handleCloseSettings}
         />
       )}
-
-      {showCollectionSettings && <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />}
 
       {showCreateGlobalModal && (
         <CreateGlobalEnvironment
@@ -255,7 +255,7 @@ const EnvironmentSelector = ({ collection }) => {
           collection={collection}
           onClose={() => setShowCreateCollectionModal(false)}
           onEnvironmentCreated={() => {
-            setShowCollectionSettings(true);
+            dispatch(updateEnvironmentSettingsModalVisibility(true));
           }}
         />
       )}
@@ -266,7 +266,7 @@ const EnvironmentSelector = ({ collection }) => {
           collection={collection}
           onClose={() => setShowImportCollectionModal(false)}
           onEnvironmentCreated={() => {
-            setShowCollectionSettings(true);
+            dispatch(updateEnvironmentSettingsModalVisibility(true));
           }}
         />
       )}

@@ -5,7 +5,6 @@ import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
-import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
 import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
 
@@ -16,7 +15,6 @@ const Info = ({ collection }) => {
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
-  const [showCollectionEnvironmentModal, setShowCollectionEnvironmentModal] = useState(false);
   const [showGlobalEnvironmentModal, setShowGlobalEnvironmentModal] = useState(false);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
@@ -58,7 +56,6 @@ const Info = ({ collection }) => {
                   className="text-sm text-link cursor-pointer hover:underline"
                   onClick={() => {
                     dispatch(updateEnvironmentSettingsModalVisibility(true));
-                    setShowCollectionEnvironmentModal(true);
                   }}
                 >
                   {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
@@ -102,15 +99,6 @@ const Info = ({ collection }) => {
           {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
-      {showCollectionEnvironmentModal && (
-        <EnvironmentSettings
-          collection={collection}
-          onClose={() => {
-            setShowCollectionEnvironmentModal(false);
-            dispatch(updateEnvironmentSettingsModalVisibility(false));
-          }}
-        />
-      )}
       {showGlobalEnvironmentModal && (
         <GlobalEnvironmentSettings
           globalEnvironments={globalEnvironments}
