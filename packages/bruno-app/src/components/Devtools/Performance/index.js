@@ -6,7 +6,8 @@ import {
   IconDatabase,
   IconClock,
   IconServer,
-  IconChevronDown
+  IconChevronDown,
+  IconChartLine
 } from '@tabler/icons';
 
 const getProcessOptions = (processes) => {

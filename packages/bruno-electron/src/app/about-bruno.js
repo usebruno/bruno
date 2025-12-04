@@ -1,4 +1,4 @@
-module.exports = function aboutBruno({version}) {
+module.exports = function aboutBruno({ version }) {
   return `
     <!DOCTYPE html>
     <html lang="en">

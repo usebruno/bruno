@@ -10,8 +10,8 @@ import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, isItemAReques
  */
 export const transformUrl = (url, params) => {
   if (typeof url !== 'string' || !url.trim()) {
-    url = "";
-    console.error("Invalid URL input:", url);
+    url = '';
+    console.error('Invalid URL input:', url);
   }
 
   const urlRegexPatterns = {

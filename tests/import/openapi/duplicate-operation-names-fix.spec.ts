@@ -12,7 +12,8 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-duplicate-operation-name.yaml');
 
     // start the import process
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // wait for the import collection modal to appear
     const importModal = page.getByTestId('import-collection-modal');
@@ -21,12 +22,15 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     // upload the OpenAPI file with duplicate operation names
     await page.setInputFiles('input[type="file"]', openApiFile);
 
+    // Wait for location modal to appear after file processing
+    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+    await locationModal.waitFor({ state: 'visible', timeout: 10000 });
+
     // wait for the file processing to complete
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // select a location
     await page.locator('#collection-location').fill(await createTmpDir('duplicate-test'));
-    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await locationModal.getByRole('button', { name: 'Import' }).click();
 
     // verify the collection was imported successfully
     await expect(page.locator('#sidebar-collection-name').getByText('Duplicate Test Collection')).toBeVisible();

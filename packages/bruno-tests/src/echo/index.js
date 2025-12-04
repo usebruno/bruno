@@ -52,7 +52,7 @@ router.get('/iso-enc', (req, res) => {
   return res.send(Buffer.from(responseText, 'latin1'));
 });
 
-router.post("/custom", (req, res) => {
+router.post('/custom', (req, res) => {
   const { headers, content, contentBase64, contentJSON, type } = req.body || {};
 
   res._headers = {};

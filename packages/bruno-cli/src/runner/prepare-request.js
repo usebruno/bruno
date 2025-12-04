@@ -66,7 +66,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
       if (collectionAuth.apikey?.placement === 'header') {
         axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
       }
-      
+
       if (collectionAuth.apikey?.placement === 'queryparams') {
         if (axiosRequest.url && collectionAuth.apikey?.key) {
           try {
@@ -89,7 +89,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
     if (collectionAuth.mode === 'oauth2') {
       const grantType = get(collectionAuth, 'oauth2.grantType');
-      
+
       if (grantType === 'client_credentials') {
         axiosRequest.oauth2 = {
           grantType,
@@ -226,7 +226,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
     if (request.auth.mode === 'oauth2') {
       const grantType = get(request, 'auth.oauth2.grantType');
-      
+
       if (grantType === 'client_credentials') {
         axiosRequest.oauth2 = {
           grantType: grantType,
@@ -265,12 +265,12 @@ const prepareRequest = async (item = {}, collection = {}) => {
         };
       }
     }
-    
+
     if (request.auth.mode === 'apikey') {
       if (request.auth.apikey?.placement === 'header') {
         axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
       }
-      
+
       if (request.auth.apikey?.placement === 'queryparams') {
         if (axiosRequest.url && request.auth.apikey?.key) {
           try {

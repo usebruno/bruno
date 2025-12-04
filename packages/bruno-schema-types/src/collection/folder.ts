@@ -21,4 +21,3 @@ export interface FolderRoot {
   docs?: string | null;
   meta?: FolderMeta | null;
 }
-

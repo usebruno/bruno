@@ -7,21 +7,21 @@ parentPort.on('message', (workerData) => {
     const modScripts = scripts.map(([uid, { events }]) => {
       const requestObject = {
         script: {}
-      }
-      
+      };
+
       if (events && Array.isArray(events)) {
         events.forEach((event) => {
-          if(event?.script && event.script.exec) {
-            if(event.listen === 'prerequest') {
-              if(event.script.exec && event.script.exec.length > 0) {
+          if (event?.script && event.script.exec) {
+            if (event.listen === 'prerequest') {
+              if (event.script.exec && event.script.exec.length > 0) {
                 requestObject.script.req = postmanTranslation(event.script.exec);
               } else {
                 requestObject.script.req = '';
               }
             }
 
-            if(event.listen === 'test') {
-              if(event.script.exec && event.script.exec.length > 0) {
+            if (event.listen === 'test') {
+              if (event.script.exec && event.script.exec.length > 0) {
                 requestObject.script.res = postmanTranslation(event.script.exec);
               } else {
                 requestObject.script.res = '';
@@ -33,10 +33,9 @@ parentPort.on('message', (workerData) => {
 
       return [uid, { request: requestObject }];
     });
-    
+
     parentPort.postMessage(modScripts);
-  }
-  catch(error) {
+  } catch (error) {
     console.error(error);
     parentPort.postMessage({ error: error?.message });
   }

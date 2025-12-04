@@ -22,7 +22,7 @@ const StatusBar = () => {
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
 
-  const errorCount = logs.filter(log => log.type === 'error').length;
+  const errorCount = logs.filter((log) => log.type === 'error').length;
 
   const handleConsoleClick = () => {
     dispatch(openConsole());
@@ -51,7 +51,7 @@ const StatusBar = () => {
           />
         </Portal>
       )}
-      
+
       {cookiesOpen && (
         <Portal>
           <Cookies
@@ -91,7 +91,7 @@ const StatusBar = () => {
                 <IconSettings size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
             </ToolHint>
-            
+
             <ToolHint text="Notifications" toolhintId="Notifications" place="top" offset={10}>
               <div className="status-bar-button">
                 <Notifications />
@@ -114,7 +114,7 @@ const StatusBar = () => {
                 <span className="console-label">Search</span>
               </div>
             </button>
-            
+
             <button
               className="status-bar-button"
               data-trigger="cookies"
@@ -127,7 +127,7 @@ const StatusBar = () => {
                 <span className="console-label">Cookies</span>
               </div>
             </button>
-            
+
             <button
               className={`status-bar-button ${errorCount > 0 ? 'has-errors' : ''}`}
               data-trigger="dev-tools"
@@ -143,9 +143,9 @@ const StatusBar = () => {
                 )}
               </div>
             </button>
-            
+
             <div className="status-bar-divider"></div>
-            
+
             <div className="status-bar-version">
               v{version}
             </div>
@@ -156,4 +156,4 @@ const StatusBar = () => {
   );
 };
 
-export default StatusBar; 
+export default StatusBar;

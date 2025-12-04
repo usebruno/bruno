@@ -14,7 +14,7 @@ import { getRequestItemsForCollectionRun } from 'utils/collections/index';
 const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
 
-  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
+  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const isCollectionRunInProgress = collection?.runnerResult?.info?.status && (collection?.runnerResult?.info?.status !== 'ended');
 
   // tags for the collection run
@@ -47,7 +47,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
       })
     );
     onClose();
-  }
+  };
 
   const isFolderLoading = areItemsLoading(item);
 
@@ -72,12 +72,12 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
             <span className="font-medium">Recursive Run</span>
             <span className="ml-1 text-xs">({totalRequestItemsCountForRecursiveFolderRun} requests)</span>
           </div>
-          <div className={isFolderLoading ? "mb-2" : "mb-8"}>This will run all the requests in this folder and all its subfolders.</div>
-          {isFolderLoading ? <div className='mb-8 warning'>Requests in this folder are still loading.</div> : null}
-          {isCollectionRunInProgress ? <div className='mb-6 warning'>A Collection Run is already in progress.</div> : null}
+          <div className={isFolderLoading ? 'mb-2' : 'mb-8'}>This will run all the requests in this folder and all its subfolders.</div>
+          {isFolderLoading ? <div className="mb-8 warning">Requests in this folder are still loading.</div> : null}
+          {isCollectionRunInProgress ? <div className="mb-6 warning">A Collection Run is already in progress.</div> : null}
 
           {/* Tags for the collection run */}
-          <RunnerTags collectionUid={collection.uid} className='mb-6' />
+          <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
           <div className="flex justify-end bruno-modal-footer">
             <span className="mr-3">
@@ -86,25 +86,28 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
               </button>
             </span>
             {
-              isCollectionRunInProgress ? 
-                <span>
-                  <button type="submit" className="submit btn btn-md btn-secondary mr-3" onClick={handleViewRunner}>
-                    View Run
-                  </button>
-                </span>
-              :
-                <>
-                  <span>
-                    <button type="submit" disabled={shouldDisableRecursiveFolderRun} className="submit btn btn-md btn-secondary mr-3" onClick={() => onSubmit(true)}>
-                      Recursive Run
-                    </button>
-                  </span>
-                  <span>
-                    <button type="submit" disabled={shouldDisableFolderRun} className="submit btn btn-md btn-secondary" onClick={() => onSubmit(false)}>
-                      Run
-                    </button>
-                  </span>
-                </>
+              isCollectionRunInProgress
+                ? (
+                    <span>
+                      <button type="submit" className="submit btn btn-md btn-secondary mr-3" onClick={handleViewRunner}>
+                        View Run
+                      </button>
+                    </span>
+                  )
+                : (
+                    <>
+                      <span>
+                        <button type="submit" disabled={shouldDisableRecursiveFolderRun} className="submit btn btn-md btn-secondary mr-3" onClick={() => onSubmit(true)}>
+                          Recursive Run
+                        </button>
+                      </span>
+                      <span>
+                        <button type="submit" disabled={shouldDisableFolderRun} className="submit btn btn-md btn-secondary" onClick={() => onSubmit(false)}>
+                          Run
+                        </button>
+                      </span>
+                    </>
+                  )
             }
           </div>
         </div>

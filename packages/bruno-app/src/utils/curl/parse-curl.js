@@ -461,7 +461,6 @@ const postBuildProcessRequest = (request) => {
     // remove data and isQuery from request as they are no longer needed
     delete request.data;
     delete request.isQuery;
-
   } else if (request.data) {
     // if data is present, set method to POST unless the method is explicitly set
     if (!request.method || request.method === 'HEAD') {
@@ -519,7 +518,7 @@ const cleanCurlCommand = (curlCommand) => {
   // Handle escape sequences
   curlCommand = curlCommand.replace(/\$('.*')/g, (match, group) => group);
   // Convert escaped single quotes to shell quote pattern
-  curlCommand = curlCommand.replace(/\\'(?!')/g, "'\\''");
+  curlCommand = curlCommand.replace(/\\'(?!')/g, '\'\\\'\'');
   // Fix concatenated HTTP methods
   curlCommand = fixConcatenatedMethods(curlCommand);
 

@@ -44,7 +44,7 @@ const IconDockToRight = () => {
         stroke="currentColor"
         d="m 19.111502,18.486486 c -0.115516,0.259266 -0.354643,0.491338 -0.639512,0.620643 -0.221702,0.100633 -0.393081,0.114019 -1.474447,0.115163 l -1.223586,0.0013 V 12 4.7764125 h 1.22675 c 1.194609,0 1.234605,0.0039 1.526503,0.14937 0.187285,0.09333 0.363095,0.2407725 0.46858,0.3929775 l 0.168829,0.243606 0.0129,6.373606 c 0.0105,5.212942 -0.0015,6.405822 -0.06597,6.550511 z"
       />
-    </svg>  
+    </svg>
   );
 };
 
@@ -67,8 +67,8 @@ const ResponseLayoutToggle = () => {
 
   return (
     <StyledWrapper className="ml-2 flex items-center">
-      <button 
-        onClick={toggleOrientation} 
+      <button
+        onClick={toggleOrientation}
         title={orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout'}
       >
         {orientation === 'horizontal' ? (

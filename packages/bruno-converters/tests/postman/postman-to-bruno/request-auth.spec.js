@@ -2,8 +2,6 @@ import { describe, it, expect } from '@jest/globals';
 import postmanToBruno from '../../../src/postman/postman-to-bruno';
 
 describe('Request Authentication', () => {
-
-
   it('should handle basic auth at request level', async () => {
     const postmanCollection = {
       info: {
@@ -391,5 +389,4 @@ describe('Request Authentication', () => {
       basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
     });
   });
-
 });

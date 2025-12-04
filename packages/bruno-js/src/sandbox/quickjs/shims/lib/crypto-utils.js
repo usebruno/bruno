@@ -10,7 +10,7 @@ const addCryptoUtilsShimToContext = async (vm) => {
   let randomBytesHandle = vm.newFunction('randomBytes', function (sizeHandle) {
     try {
       let size = vm.dump(sizeHandle);
-      
+
       if (typeof size !== 'number') {
         throw new TypeError('The "size" argument must be of type number');
       }
@@ -30,15 +30,14 @@ const addCryptoUtilsShimToContext = async (vm) => {
       }
 
       const buffer = crypto.randomBytes(size);
-      
+
       const byteArray = Array.from(buffer);
-      
+
       return marshallToVm(byteArray, vm);
-      
     } catch (error) {
       const vmError = vm.newError(error.message);
       vm.setProp(vmError, 'name', vm.newString(error.name));
-      
+
       throw vmError;
     }
   });
@@ -48,7 +47,7 @@ const addCryptoUtilsShimToContext = async (vm) => {
       // Receive the serialized array data directly
       const serializedArray = vm.dump(arrayHandle);
       const typedArray = deserializeTypedArray(serializedArray);
-      
+
       if (typedArray.length === 0) {
         return marshallToVm([], vm);
       }
@@ -62,11 +61,10 @@ const addCryptoUtilsShimToContext = async (vm) => {
       const byteArray = Array.from(typedArray);
 
       return marshallToVm(byteArray, vm);
-      
     } catch (error) {
       const vmError = vm.newError(error.message);
       vm.setProp(vmError, 'name', vm.newString(error.name));
-      
+
       throw vmError;
     }
   });

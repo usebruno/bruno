@@ -21,7 +21,7 @@ export const AppProvider = (props) => {
 
   useEffect(() => {
     const platform = get(navigator, 'platform', '');
-    if(platform && platform.toLowerCase().indexOf('mac') > -1) {
+    if (platform && platform.toLowerCase().indexOf('mac') > -1) {
       document.body.classList.add('os-mac');
     }
   }, []);

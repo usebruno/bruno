@@ -32,4 +32,3 @@ export interface Example {
   request?: ExampleRequest | null;
   response?: ExampleResponse | null;
 }
-

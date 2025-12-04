@@ -52,7 +52,7 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
           </div>
           <div className="warning-description">
             Handling responses over <span className="size-highlight supported-size">{formatSize(10 * 1024 * 1024)}</span> could degrade performance.
-          <br />
+            <br />
             Size of current response: <span className="size-highlight current-size">{formatSize(responseSize)}</span>
           </div>
         </div>

@@ -6,6 +6,6 @@ jest.mock('./src/common', () => {
   return {
     __esModule: true, // Use this property to indicate it's an ES module
     ...originalModule,
-    uuid: jest.fn(() => 'mockeduuidvalue123456'), // Mock uuid to return a fixed value
+    uuid: jest.fn(() => 'mockeduuidvalue123456') // Mock uuid to return a fixed value
   };
 });

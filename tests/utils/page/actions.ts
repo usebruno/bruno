@@ -8,20 +8,20 @@ import { buildCommonLocators } from './locators';
  */
 const closeAllCollections = async (page) => {
   await test.step('Close all collections', async () => {
-    const numberOfCollections = await page.locator('.collection-name').count();
+    const numberOfCollections = await page.locator('[data-testid="collections"] .collection-name').count();
 
     for (let i = 0; i < numberOfCollections; i++) {
-      await page.locator('.collection-name').first().locator('.collection-actions').click();
-      await page.locator('.dropdown-item').getByText('Close').click();
-      // Wait for the close collection modal to be visible
-      await page.locator('.bruno-modal-header-title', { hasText: 'Close Collection' }).waitFor({ state: 'visible' });
+      await page.locator('[data-testid="collections"] .collection-name').first().locator('.collection-actions').click();
+      await page.locator('.dropdown-item').getByText('Remove').click();
+      // Wait for the remove collection modal to be visible
+      await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
       await page.locator('.bruno-modal-footer .submit').click();
-      // Wait for the close collection modal to be hidden
-      await page.locator('.bruno-modal-header-title', { hasText: 'Close Collection' }).waitFor({ state: 'hidden' });
+      // Wait for the remove collection modal to be hidden
+      await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
     }
 
-    // Wait until no collections are left open
-    await expect(page.locator('.collection-name')).toHaveCount(0);
+    // Wait until no collections are left open (check sidebar only)
+    await expect(page.getByTestId('collections').locator('.collection-name')).toHaveCount(0);
   });
 };
 
@@ -62,13 +62,16 @@ type CreateCollectionOptions = {
  */
 const createCollection = async (page, collectionName: string, collectionLocation: string, options: CreateCollectionOptions = {}) => {
   await test.step(`Create collection "${collectionName}"`, async () => {
-    await page.locator('.collection-dropdown .dropdown-icon').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create Collection' }).click();
+    await page.locator('.plus-icon-button').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
     const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
 
     await createCollectionModal.getByLabel('Name').fill(collectionName);
-    await createCollectionModal.getByLabel('Location').fill(collectionLocation);
+    const locationInput = createCollectionModal.getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(collectionLocation);
+    }
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
     await createCollectionModal.waitFor({ state: 'detached' });
@@ -115,8 +118,8 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
     await locators.sidebar.collection(collectionName).click();
 
     // Find the request within the collection's context
-    // Use the collection container (.collection-name) to scope the search
-    const collectionContainer = page.locator('.collection-name').filter({ hasText: collectionName });
+    // Use the collection container (.collection-name) scoped to sidebar to scope the search
+    const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
     const collectionWrapper = collectionContainer.locator('..');
     const request = collectionWrapper.locator('.collection-item-name').filter({ hasText: requestName });
 
