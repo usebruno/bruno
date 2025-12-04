@@ -42,10 +42,17 @@ const getCertsAndProxyConfig = async ({
   httpsAgentRequestFields['ca'] = caCertificates || [];
 
   const { promptVariables } = collection;
+  const collectionVariables = request.collectionVariables || {};
+  const folderVariables = request.folderVariables || {};
+  const requestVariables = request.requestVariables || {};
+
   const brunoConfig = getBrunoConfig(collectionUid, collection);
   const interpolationOptions = {
     globalEnvironmentVariables,
+    collectionVariables,
     envVars,
+    folderVariables,
+    requestVariables,
     runtimeVariables,
     promptVariables,
     processEnvVars

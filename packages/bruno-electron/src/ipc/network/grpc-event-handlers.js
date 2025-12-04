@@ -35,15 +35,18 @@ const registerGrpcEventHandlers = (window) => {
     
     try {
       const requestCopy = cloneDeep(request);
-    
-
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
+
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
 
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
         collection,
-        request: requestCopy.request,
+        request: preparedRequest,
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
@@ -171,12 +174,17 @@ const registerGrpcEventHandlers = (window) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables);
-      
+
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
+
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
         collection,
-        request: requestCopy.request,
+        request: preparedRequest,
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
@@ -279,6 +287,12 @@ const registerGrpcEventHandlers = (window) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
+
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
+
       const interpolationOptions = {
         envVars: preparedRequest.envVars,
         runtimeVariables,
