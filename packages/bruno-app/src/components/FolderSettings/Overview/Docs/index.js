@@ -14,7 +14,8 @@ const Docs = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
-  const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
+  const rootDocs = get(folder, 'root.docs', '');
+  const docs = folder.draft ? get(folder, 'draft.docs', rootDocs) : rootDocs;
   const preferences = useSelector((state) => state.app.preferences);
 
   const toggleViewMode = () => {
@@ -33,7 +34,7 @@ const Docs = ({ collection, folder }) => {
     dispatch(updateFolderDocs({
       folderUid: folder.uid,
       collectionUid: collection.uid,
-      docs: docs
+      docs: rootDocs
     }));
     toggleViewMode();
   };

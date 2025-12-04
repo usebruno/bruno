@@ -1,7 +1,6 @@
 import React from 'react';
-import { getTotalRequestCountInCollection, getTreePathFromCollectionToItem } from 'utils/collections/';
+import { getTotalRequestCountInCollection, getTreePathFromCollectionToItem, areItemsLoading, getItemsLoadStats } from 'utils/collections/';
 import { IconFolder, IconApi, IconSubtask } from '@tabler/icons';
-import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 
 const Info = ({ collection, folder }) => {
   const totalRequestsInFolder = getTotalRequestCountInCollection(folder);

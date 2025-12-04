@@ -1,4 +1,3 @@
-import StyledWrapper from './StyledWrapper';
 import Docs from './Docs';
 import Info from './Info';
 import { IconFolder } from '@tabler/icons';
