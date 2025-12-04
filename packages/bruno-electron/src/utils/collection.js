@@ -4,8 +4,7 @@ const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
-const { HooksRuntime } = require('@usebruno/js');
-const HookManager = require('@usebruno/js').HookManager;
+const { HooksRuntime, HookManager } = require('@usebruno/js');
 const decomment = require('decomment');
 
 const mergeHeaders = (collection, request, requestTreePath) => {

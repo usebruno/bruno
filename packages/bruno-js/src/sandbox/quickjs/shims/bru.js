@@ -774,7 +774,7 @@ const addBruShimToContext = (vm, bru) => {
     };
   `);
 
-  // Return cleanup function (null if hooks weren't enabled)
+  // Always return cleanup function; it is a no-op if no hooks were registered
   return cleanupHandlerHandles;
 };
 

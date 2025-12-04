@@ -36,6 +36,7 @@ class HookManager {
   /**
    * Call all registered handlers for the given pattern(s)
    * Supports both sync and async handlers - all handlers are awaited
+   * Wildcard handlers ('*') are called for every pattern, in addition to specific pattern handlers
    * @param {string|string[]} pattern - Event pattern(s) to trigger
    * @param {*} data - Data to pass to handlers
    * @returns {Promise<void>} Promise that resolves when all handlers complete
@@ -46,17 +47,19 @@ class HookManager {
     }
 
     const patternList = [].concat(pattern).map((d) => String(d).trim());
-    const patternHasStar = patternList.includes('*');
+    const hasWildcard = patternList.includes('*');
 
-    // If wildcard is in the list, only call wildcard handlers and return early
-    if (patternHasStar && this.listeners['*']) {
-      for (const handler of this.listeners['*']) {
-        await callHandler(handler, data, '*');
+    if (hasWildcard) {
+      for (const ptn of Object.keys(this.listeners)) {
+        const handlers = this.listeners[ptn];
+        for (const handler of handlers) {
+          await callHandler(handler, data, ptn);
+        }
       }
       return;
     }
 
-    // Call handlers for each pattern
+    // Call handlers for each specific pattern
     for (const ptn of patternList) {
       if (!this.listeners[ptn]) continue;
       for (const handler of this.listeners[ptn]) {
@@ -81,9 +84,9 @@ class HookManager {
     }
 
     const patternList = [].concat(pattern).map((d) => String(d).trim());
-    const hasStar = patternList.includes('*');
+    const hasWildcard = patternList.includes('*');
 
-    if (hasStar) {
+    if (hasWildcard) {
       (this.listeners['*'] ||= []).push(handler);
       return this._createUnhook(patternList, handler);
     }
@@ -143,7 +146,7 @@ class HookManager {
 
     for (const ptn of patternList) {
       if (ptn === '*') {
-        this.listeners['*'] = [];
+        delete this.listeners['*'];
       } else if (this.listeners[ptn]) {
         delete this.listeners[ptn];
       }
