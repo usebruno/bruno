@@ -24,27 +24,50 @@ const getTitleText = ({ isResponseTooLarge, isStreamingResponse }) => {
   return 'Save current response as example';
 };
 
-const ResponseBookmark = ({ item, collection, responseSize }) => {
+const ResponseBookmark = ({ item, collection, responseSize, children }) => {
   const dispatch = useDispatch();
   const [showSaveResponseExampleModal, setShowSaveResponseExampleModal] = useState(false);
   const response = item.response || {};
 
   const isResponseTooLarge = responseSize >= 5 * 1024 * 1024; // 5 MB
   const isStreamingResponse = response.stream;
+  const isDisabled = isResponseTooLarge || isStreamingResponse;
 
   // Only show for HTTP requests
   if (item.type !== 'http-request') {
     return null;
   }
 
-  const handleSaveClick = () => {
+  const handleKeyDown = (e) => {
+    if (isDisabled) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      handleSaveClick(e);
+    }
+  };
+
+  const handleSaveClick = (e) => {
     if (!response || response.error) {
       toast.error('No valid response to save as example');
+      e.preventDefault();
+      e.stopPropagation();
       return;
     }
 
     if (isResponseTooLarge) {
       toast.error('Response size exceeds 5MB limit. Cannot save as example.');
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    if (isDisabled) {
+      e.preventDefault();
+      e.stopPropagation();
       return;
     }
 
@@ -116,21 +139,28 @@ const ResponseBookmark = ({ item, collection, responseSize }) => {
 
   return (
     <>
-      <StyledWrapper className="ml-2 flex items-center">
-        <button
-          onClick={handleSaveClick}
-          disabled={isResponseTooLarge || isStreamingResponse}
-          title={
-            disabledMessage
-          }
-          className={classnames('p-1', {
-            'opacity-50 cursor-not-allowed': isResponseTooLarge || isStreamingResponse
-          })}
-          data-testid="response-bookmark-btn"
-        >
-          <IconBookmark size={16} strokeWidth={1.5} />
-        </button>
-      </StyledWrapper>
+      <div
+        role="button"
+        tabIndex={isDisabled ? -1 : 0}
+        aria-disabled={isDisabled}
+        onKeyDown={handleKeyDown}
+        onClick={handleSaveClick}
+        title={
+          !children ? disabledMessage : (isDisabled ? disabledMessage : null)
+        }
+        className={classnames({
+          'opacity-50 cursor-not-allowed': isDisabled
+        })}
+        data-testid="response-bookmark-btn"
+      >
+        {children ?? (
+          <StyledWrapper className="flex items-center">
+            <button className="p-1">
+              <IconBookmark size={16} strokeWidth={2} />
+            </button>
+          </StyledWrapper>
+        )}
+      </div>
 
       <CreateExampleModal
         isOpen={showSaveResponseExampleModal}

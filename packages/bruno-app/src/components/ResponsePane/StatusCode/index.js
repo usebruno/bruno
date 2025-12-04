@@ -6,7 +6,7 @@ import StyledWrapper from './StyledWrapper';
 // Todo: text-error class is not getting pulled in for 500 errors
 const StatusCode = ({ status, statusText, isStreaming }) => {
   const getTabClassname = (status) => {
-    return classnames('ml-2', {
+    return classnames({
       'text-ok': status >= 100 && status < 200,
       'text-ok': status >= 200 && status < 300,
       'text-error': status >= 300 && status < 400,

@@ -3,7 +3,6 @@ import { isValidHtml } from 'utils/common/index';
 import { escapeHtml, isValidHtmlSnippet } from 'utils/response/index';
 
 const HtmlPreview = React.memo(({ data, baseUrl }) => {
-
   const webviewContainerRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -15,7 +14,9 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
       setIsDragging(!!hasDraggingParent);
     };
 
-    const watchTarget = webviewContainerRef.current.closest('[class*="flex"]') || document.body;
+    // Watch from a common ancestor where .dragging gets added
+    const watchTarget = webviewContainerRef.current.closest('.main-section')
+      || document.body;
 
     const mutationObserver = new MutationObserver(checkDragging);
     mutationObserver.observe(watchTarget, {
@@ -23,6 +24,9 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
       attributeFilter: ['class'],
       subtree: true
     });
+
+    // Check initial state
+    checkDragging();
 
     return () => mutationObserver.disconnect();
   }, []);
@@ -37,7 +41,7 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
     return (
       <div
         ref={webviewContainerRef}
-        className="h-full bg-white"
+        className="h-full bg-white webview-container"
         style={dragStyles}
       >
         <webview

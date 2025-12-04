@@ -4,11 +4,11 @@ import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { responseCleared } from 'providers/ReduxStore/slices/collections/index';
 
-const ResponseClear = ({ collection, item, asDropdownItem, onClose }) => {
+// Hook to get clear response function
+export const useResponseClear = (item, collection) => {
   const dispatch = useDispatch();
 
   const clearResponse = () => {
-    if (onClose) onClose();
     dispatch(
       responseCleared({
         itemUid: item.uid,
@@ -18,21 +18,28 @@ const ResponseClear = ({ collection, item, asDropdownItem, onClose }) => {
     );
   };
 
-  if (asDropdownItem) {
-    return (
-      <div className="dropdown-item" onClick={clearResponse}>
-        <IconEraser size={16} strokeWidth={1.5} className="icon mr-2" />
-        Clear
-      </div>
-    );
-  }
+  return { clearResponse };
+};
+
+const ResponseClear = ({ collection, item, children }) => {
+  const { clearResponse } = useResponseClear(item, collection);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      clearResponse();
+    }
+  };
 
   return (
-    <StyledWrapper className="ml-2 flex items-center">
-      <button onClick={clearResponse} title="Clear response">
-        <IconEraser size={16} strokeWidth={1.5} />
-      </button>
-    </StyledWrapper>
+    <div role="button" tabIndex={0} onClick={clearResponse} title={!children ? 'Clear response' : null} onKeyDown={handleKeyDown}>
+      {children ? children : (
+        <StyledWrapper className="flex items-center">
+          <button className="p-1">
+            <IconEraser size={16} strokeWidth={2} />
+          </button>
+        </StyledWrapper>
+      )}
+    </div>
   );
 };
 export default ResponseClear;

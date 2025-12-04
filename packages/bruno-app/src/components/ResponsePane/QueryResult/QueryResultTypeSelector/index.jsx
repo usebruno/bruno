@@ -2,6 +2,7 @@ import React from 'react';
 import { IconEye } from '@tabler/icons';
 import ButtonDropdown from 'components/ButtonDropdown';
 import ToggleSwitch from 'components/ToggleSwitch';
+import StyledWrapper from './StyledWrapper';
 
 const QueryResultTypeSelector = ({
   formatOptions,
@@ -12,7 +13,7 @@ const QueryResultTypeSelector = ({
 }) => {
   const header = (
     <div className="flex items-center justify-between gap-3 py-[0.35rem] px-[0.6rem]">
-      <span className="text-[0.8125rem] text-gray-700 dark:text-gray-300">Preview</span>
+      <span className="text-[0.8125rem] preview-response-tab-label">Preview</span>
       <ToggleSwitch
         isOn={selectedTab === 'preview'}
         handleToggle={onPreviewTabSelect}
@@ -23,7 +24,7 @@ const QueryResultTypeSelector = ({
     </div>
   );
   return (
-    <div>
+    <StyledWrapper>
       <ButtonDropdown
         label={formatValue}
         options={formatOptions}
@@ -34,7 +35,7 @@ const QueryResultTypeSelector = ({
         data-testid="format-response-tab"
         suffix={selectedTab === 'preview' ? <IconEye size={14} strokeWidth={2} className="active mr-[2px]" /> : null}
       />
-    </div>
+    </StyledWrapper>
   );
 };
 
