@@ -128,15 +128,15 @@ const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
 
   let _jsonBody = {};
   each(bodySchema.properties || {}, (prop, name) => {
-    if (prop.type === 'object' || prop.properties) {
+    if (prop.type === 'object') {
       _jsonBody[name] = buildEmptyJsonBody(prop, visited);
     } else if (prop.type === 'array') {
-      if (prop.items && (prop.items.type === 'object' || prop.items.properties)) {
+      if (prop.items && prop.items.type === 'object') {
         _jsonBody[name] = [buildEmptyJsonBody(prop.items, visited)];
       } else {
         _jsonBody[name] = [];
       }
-    } else if (prop.type === 'integer' || prop.type === 'number') {
+    } else if (prop.type === 'integer') {
       _jsonBody[name] = 0;
     } else if (prop.type === 'boolean') {
       _jsonBody[name] = false;
