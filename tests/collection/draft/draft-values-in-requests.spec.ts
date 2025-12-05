@@ -56,6 +56,9 @@ test.describe('Draft values are used in requests', () => {
     await expect(page.locator('.collection-item-name').filter({ hasText: 'Test Folder' })).toBeVisible();
     const folder = page.locator('.collection-item-name').filter({ hasText: 'Test Folder' });
 
+    // Click on Headers tab in folder settings
+    await page.locator('.tab.headers').click();
+
     // Add a header to the folder
     await page.getByRole('button', { name: 'Add Header' }).click();
 
