@@ -126,7 +126,7 @@ const AppTitleBar = () => {
     const updatedPreferences = {
       ...preferences,
       layout: {
-        ...preferences.layout,
+        ...preferences?.layout || {},
         responsePaneOrientation: newOrientation
       }
     };

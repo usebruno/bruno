@@ -100,6 +100,9 @@ const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange
       case 'reverseAlphabetical':
         order = 'default';
         break;
+      default:
+        order = 'default';
+        break;
     }
     dispatch(sortCollections({ order }));
   };
