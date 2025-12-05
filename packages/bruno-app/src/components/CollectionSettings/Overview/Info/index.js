@@ -5,8 +5,6 @@ import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
-import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
-import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
 import { updateEnvironmentSettingsModalVisibility, updateGlobalEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
 
 const Info = ({ collection }) => {
@@ -18,9 +16,6 @@ const Info = ({ collection }) => {
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
-  const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
-  const isCollectionEnvironmentModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
-  const isGlobalEnvironmentSettingsModalOpen = useSelector((state) => state.app.isGlobalEnvironmentSettingsModalOpen);
 
   const collectionEnvironmentCount = collection.environments?.length || 0;
   const globalEnvironmentCount = globalEnvironments?.length || 0;
@@ -54,20 +49,22 @@ const Info = ({ collection }) => {
             <div className="ml-4">
               <div className="font-medium text-sm">Environments</div>
               <div className="mt-1 flex flex-col gap-1">
-                <div
-                  className="text-sm text-link cursor-pointer hover:underline"
+                <button
+                  type="button"
+                  className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
                   onClick={() => {
                     dispatch(updateEnvironmentSettingsModalVisibility(true));
                   }}
                 >
                   {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
-                </div>
-                <div
-                  className="text-sm text-link cursor-pointer hover:underline"
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
                   onClick={() => dispatch(updateGlobalEnvironmentSettingsModalVisibility(true))}
                 >
                   {globalEnvironmentCount} global environment{globalEnvironmentCount !== 1 ? 's' : ''}
-                </div>
+                </button>
               </div>
             </div>
           </div>
@@ -101,20 +98,6 @@ const Info = ({ collection }) => {
           {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
-      {isCollectionEnvironmentModalOpen && (
-        <EnvironmentSettings
-          collection={collection}
-          onClose={() => dispatch(updateEnvironmentSettingsModalVisibility(false))}
-        />
-      )}
-      {isGlobalEnvironmentSettingsModalOpen && (
-        <GlobalEnvironmentSettings
-          globalEnvironments={globalEnvironments}
-          collection={collection}
-          activeGlobalEnvironmentUid={activeGlobalEnvironmentUid}
-          onClose={() => dispatch(updateGlobalEnvironmentSettingsModalVisibility(false))}
-        />
-      )}
     </div>
   );
 };
