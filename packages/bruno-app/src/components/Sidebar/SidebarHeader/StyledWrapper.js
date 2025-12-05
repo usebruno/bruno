@@ -10,10 +10,6 @@ const StyledWrapper = styled.div`
     gap: 8px;
   }
 
-    justify-content: space-between;
-    gap: 8px;
-  }
-
   /* Section Title (single view mode) - with separator */
   &.single-view {
     border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
@@ -105,9 +101,8 @@ const StyledWrapper = styled.div`
     transition: all 0.15s ease;
 
     &:hover {
-        background: ${(props) => props.theme.dropdown?.hoverBg || props.theme.sidebar?.collection?.item?.hoverBg};
-        color: ${(props) => props.theme.dropdown?.mutedText || props.theme.text?.muted || '#888'};
-      }
+      background: ${(props) => props.theme.dropdown?.hoverBg || props.theme.sidebar?.collection?.item?.hoverBg};
+      color: ${(props) => props.theme.dropdown?.mutedText || props.theme.text?.muted || '#888'};
     }
   }
 `;

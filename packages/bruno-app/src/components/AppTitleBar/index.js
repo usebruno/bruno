@@ -25,17 +25,17 @@ const AppTitleBar = () => {
     const { ipcRenderer } = window;
     if (!ipcRenderer) return;
 
-    const handleEnterFullScreen = ipcRenderer.on('main:enter-full-screen', () => {
+    const removeEnterFullScreenListener = ipcRenderer.on('main:enter-full-screen', () => {
       setIsFullScreen(true);
     });
 
-    const handleLeaveFullScreen = ipcRenderer.on('main:leave-full-screen', () => {
+    const removeLeaveFullScreenListener = ipcRenderer.on('main:leave-full-screen', () => {
       setIsFullScreen(false);
     });
 
     return () => {
-      if (handleEnterFullScreen) handleEnterFullScreen();
-      if (handleLeaveFullScreen) handleLeaveFullScreen();
+      removeEnterFullScreenListener();
+      removeLeaveFullScreenListener();
     };
   }, []);
 

@@ -90,7 +90,6 @@ const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange
 
   const handleSortCollections = () => {
     let order;
-    console.log('collectionSortOrder', collectionSortOrder);
     switch (collectionSortOrder) {
       case 'default':
         order = 'alphabetical';
