@@ -20,7 +20,6 @@ const AutocompleteInput = ({ value, onChange, suggestions, id, name, className }
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef(null);
-  const suggestionsRef = useRef(null);
 
   const handleInputChange = (e) => {
     const inputValue = e.target.value;
