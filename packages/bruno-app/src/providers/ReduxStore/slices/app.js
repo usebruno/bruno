@@ -5,7 +5,7 @@ import brunoClipboard from 'utils/bruno-clipboard';
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
-  leftSidebarWidth: 222,
+  leftSidebarWidth: 250,
   sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
