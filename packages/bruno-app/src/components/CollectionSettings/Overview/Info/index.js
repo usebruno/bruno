@@ -5,8 +5,9 @@ import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
+import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
-import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
+import { updateEnvironmentSettingsModalVisibility, updateGlobalEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
 
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
@@ -15,10 +16,11 @@ const Info = ({ collection }) => {
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
-  const [showGlobalEnvironmentModal, setShowGlobalEnvironmentModal] = useState(false);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
+  const isCollectionEnvironmentModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
+  const isGlobalEnvironmentSettingsModalOpen = useSelector((state) => state.app.isGlobalEnvironmentSettingsModalOpen);
 
   const collectionEnvironmentCount = collection.environments?.length || 0;
   const globalEnvironmentCount = globalEnvironments?.length || 0;
@@ -62,7 +64,7 @@ const Info = ({ collection }) => {
                 </div>
                 <div
                   className="text-sm text-link cursor-pointer hover:underline"
-                  onClick={() => setShowGlobalEnvironmentModal(true)}
+                  onClick={() => dispatch(updateGlobalEnvironmentSettingsModalVisibility(true))}
                 >
                   {globalEnvironmentCount} global environment{globalEnvironmentCount !== 1 ? 's' : ''}
                 </div>
@@ -99,12 +101,18 @@ const Info = ({ collection }) => {
           {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
-      {showGlobalEnvironmentModal && (
+      {isCollectionEnvironmentModalOpen && (
+        <EnvironmentSettings
+          collection={collection}
+          onClose={() => dispatch(updateEnvironmentSettingsModalVisibility(false))}
+        />
+      )}
+      {isGlobalEnvironmentSettingsModalOpen && (
         <GlobalEnvironmentSettings
           globalEnvironments={globalEnvironments}
           collection={collection}
           activeGlobalEnvironmentUid={activeGlobalEnvironmentUid}
-          onClose={() => setShowGlobalEnvironmentModal(false)}
+          onClose={() => dispatch(updateGlobalEnvironmentSettingsModalVisibility(false))}
         />
       )}
     </div>
