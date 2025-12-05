@@ -204,6 +204,7 @@ const MultiLineEditorWithSuggestions = ({ suggestions, onChange, children, ...pr
           className="suggestions-toggle-btn"
           onClick={toggleSuggestions}
           title="Show values from other environments"
+          aria-label="Show values from other environments"
         >
           ▼
         </button>
