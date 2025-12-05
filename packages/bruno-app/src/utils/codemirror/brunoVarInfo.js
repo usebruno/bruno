@@ -287,8 +287,6 @@ export const renderVarInfo = (token, options) => {
   into.appendChild(header);
 
   // Check if variable name is valid
-  // - process.env variables bypass the regex check
-  // - dynamic/faker variables bypass the regex check (they start with $)
   const isValidVariableName = scopeInfo.type === 'process.env' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || variableNameRegex.test(variableName);
 
   // Show warning if variable name is invalid
