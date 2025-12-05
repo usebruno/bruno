@@ -203,6 +203,8 @@ const AppTitleBar = () => {
             className="titlebar-action-button"
             onClick={handleToggleSidebar}
             title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+            aria-label="Toggle Sidebar"
+            data-testid="toggle-sidebar-button"
           >
             <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} />
           </button>
@@ -212,6 +214,8 @@ const AppTitleBar = () => {
             className="titlebar-action-button"
             onClick={handleToggleDevtools}
             title={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
+            aria-label="Toggle Devtools"
+            data-testid="toggle-devtools-button"
           >
             <IconBottombarToggle collapsed={!isConsoleOpen} size={16} strokeWidth={1.5} />
           </button>
@@ -221,6 +225,8 @@ const AppTitleBar = () => {
             className="titlebar-action-button"
             onClick={handleToggleVerticalLayout}
             title={orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout'}
+            aria-label="Toggle Vertical Layout"
+            data-testid="toggle-vertical-layout-button"
           >
             {orientation === 'horizontal' ? (
               <IconLayoutColumns size={16} stroke={1.5} />
