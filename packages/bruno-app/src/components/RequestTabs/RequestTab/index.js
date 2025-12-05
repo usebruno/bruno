@@ -26,6 +26,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
+  const tabNameRef = useRef(null);
+  const lastOverflowStateRef = useRef(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
   const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
@@ -34,6 +36,48 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const item = findItemInCollection(collection, tab.uid);
+
+  const method = useMemo(() => {
+    if (!item) return;
+    switch (item.type) {
+      case 'grpc-request':
+        return 'gRPC';
+      case 'ws-request':
+        return 'WS';
+      case 'graphql-request':
+        return 'GQL';
+      default:
+        return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+    }
+  }, [item]);
+
+  useEffect(() => {
+    if (!item || !tabNameRef.current || !setHasOverflow) return;
+
+    const checkOverflow = () => {
+      if (tabNameRef.current && setHasOverflow) {
+        const hasOverflow = tabNameRef.current.scrollWidth > tabNameRef.current.clientWidth;
+        if (lastOverflowStateRef.current !== hasOverflow) {
+          lastOverflowStateRef.current = hasOverflow;
+          setHasOverflow(hasOverflow);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(checkOverflow, 0);
+    const resizeObserver = new ResizeObserver(() => {
+      checkOverflow();
+    });
+
+    if (tabNameRef.current) {
+      resizeObserver.observe(tabNameRef.current);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [item, item?.name, method, setHasOverflow]);
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -192,21 +236,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  const getMethodText = useCallback((item) => {
-    if (!item) return;
-
-    switch (item.type) {
-      case 'grpc-request':
-        return 'gRPC';
-      case 'ws-request':
-        return 'WS';
-      case 'graphql-request':
-        return 'GQL';
-      default:
-        return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
-    }
-  }, [item]);
-
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   if (!item) {
@@ -228,9 +257,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }
 
   const isWS = item.type === 'ws-request';
-  const method = getMethodText(item);
-  const tabNameRef = useRef(null);
-  const lastOverflowStateRef = useRef(null);
 
   useEffect(() => {
     const checkOverflow = () => {
@@ -372,7 +398,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
       }
 
       dispatch(closeTabs({ tabUids: [tabUid] }));
-    } catch (err) {}
+    } catch (err) { }
   }
 
   function handleRevertChanges(event) {
@@ -391,7 +417,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
           collectionUid: collection.uid
         }));
       }
-    } catch (err) {}
+    } catch (err) { }
   }
 
   function handleCloseOtherTabs(event) {

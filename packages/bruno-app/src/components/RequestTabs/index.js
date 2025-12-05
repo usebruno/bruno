@@ -39,6 +39,29 @@ const RequestTabs = () => {
     };
   }, []);
 
+  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+  const activeCollection = find(collections, (c) => c.uid === activeTab?.collectionUid);
+  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
+
+  useEffect(() => {
+    if (!activeTabUid || !activeTab) return;
+
+    const checkOverflow = () => {
+      if (tabsRef.current && scrollContainerRef.current) {
+        const hasOverflow = tabsRef.current.scrollWidth > scrollContainerRef.current.clientWidth;
+        setShowChevrons(hasOverflow);
+      }
+    };
+
+    checkOverflow();
+    const resizeObserver = new ResizeObserver(checkOverflow);
+    if (scrollContainerRef.current) {
+      resizeObserver.observe(scrollContainerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, [activeTabUid, activeTab, collectionRequestTabs.length, screenWidth, leftSidebarWidth, sidebarCollapsed]);
+
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
       'active': tab.uid === activeTabUid,
@@ -61,13 +84,9 @@ const RequestTabs = () => {
     return null;
   }
 
-  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
   if (!activeTab) {
     return <StyledWrapper>Something went wrong!</StyledWrapper>;
   }
-
-  const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
-  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
 
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
   const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
