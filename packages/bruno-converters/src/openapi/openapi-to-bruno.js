@@ -927,7 +927,7 @@ const getSecurity = (apiSpec) => {
   let defaultSchemes = apiSpec.security || [];
 
   let securitySchemes = get(apiSpec, 'components.securitySchemes', {});
-  if (Object.keys(securitySchemes) === 0) {
+  if (Object.keys(securitySchemes).length === 0) {
     return {
       supported: []
     };
