@@ -1402,6 +1402,10 @@ const registerNetworkIpc = (mainWindow) => {
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
 
+                if (preferencesUtil.shouldStoreCookies()) {
+                  saveCookies(request.url, error.response.headers);
+                }
+
                 timeEnd = Date.now();
                 response = {
                   status: error.response.status,
