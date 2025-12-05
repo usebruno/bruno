@@ -40,7 +40,7 @@ describe('makeJUnitOutput', () => {
             error: 'expected 200 to not equal 200'
           }
         ],
-        runtime: 1.2345678
+        runDuration: 1.2345678
       },
       {
         request: {
@@ -62,7 +62,7 @@ describe('makeJUnitOutput', () => {
             status: 'fail'
           }
         ],
-        runtime: 2.3456789
+        runDuration: 2.3456789
       }
     ];
 
@@ -110,7 +110,7 @@ describe('makeJUnitOutput', () => {
             status: 'fail'
           }
         ],
-        runtime: 1.2345678,
+        runDuration: 1.2345678,
         error: 'timeout of 2000ms exceeded'
       }
     ];
@@ -164,7 +164,7 @@ describe('makeJUnitOutput', () => {
             error: 'expected 200 to equal 404'
           }
         ],
-        runtime: 1.2345678
+        runDuration: 1.2345678
       }
     ];
 

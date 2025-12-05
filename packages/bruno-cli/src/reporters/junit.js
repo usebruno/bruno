@@ -24,7 +24,7 @@ const makeJUnitOutput = async (results, outputPath) => {
       '@tests': totalTests,
       '@timestamp': new Date().toISOString().split('Z')[0],
       '@hostname': os.hostname(),
-      '@time': result.runtime.toFixed(3),
+      '@time': result.runDuration.toFixed(3),
       'testcase': []
     };
 
@@ -34,7 +34,7 @@ const makeJUnitOutput = async (results, outputPath) => {
         '@name': `${assertion.lhsExpr} ${assertion.rhsExpr}`,
         '@status': assertion.status,
         '@classname': result.request.url,
-        '@time': (result.runtime / totalTests).toFixed(3)
+        '@time': (result.runDuration / totalTests).toFixed(3)
       };
 
       if (assertion.status === 'fail') {
@@ -52,7 +52,7 @@ const makeJUnitOutput = async (results, outputPath) => {
         '@name': test.description,
         '@status': test.status,
         '@classname': result.request.url,
-        '@time': (result.runtime / totalTests).toFixed(3)
+        '@time': (result.runDuration / totalTests).toFixed(3)
       };
 
       if (test.status === 'fail') {
@@ -70,7 +70,7 @@ const makeJUnitOutput = async (results, outputPath) => {
         '@name': test.description,
         '@status': test.status,
         '@classname': result.request.url,
-        '@time': (result.runtime / totalTests).toFixed(3)
+        '@time': (result.runDuration / totalTests).toFixed(3)
       };
 
       if (test.status === 'fail') {
@@ -88,7 +88,7 @@ const makeJUnitOutput = async (results, outputPath) => {
         '@name': test.description,
         '@status': test.status,
         '@classname': result.request.url,
-        '@time': (result.runtime / totalTests).toFixed(3)
+        '@time': (result.runDuration / totalTests).toFixed(3)
       };
 
       if (test.status === 'fail') {
@@ -110,7 +110,7 @@ const makeJUnitOutput = async (results, outputPath) => {
           '@name': 'Test suite has no errors',
           '@status': 'fail',
           '@classname': result.request.url,
-          '@time': result.runtime.toFixed(3),
+          '@time': result.runDuration.toFixed(3),
           'error': [{ '@type': 'error', '@message': result.error }]
         }
       ];
