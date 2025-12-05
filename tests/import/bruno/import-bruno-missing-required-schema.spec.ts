@@ -15,10 +15,8 @@ test.describe('Import Bruno Collection - Missing Required Schema Fields', () => 
 
     await page.setInputFiles('input[type="file"]', brunoFile);
 
-    // Check for schema validation error messages
-    const hasImportError = await page.getByText('Unsupported collection format').first().isVisible({ timeout: 5000 });
-
-    expect(hasImportError).toBe(true);
+    const errorMessage = page.getByText('Unsupported collection format').first();
+    await expect(errorMessage).toBeVisible({ timeout: 10000 });
 
     // Cleanup: close any open modals
     await page.getByTestId('modal-close-button').click();

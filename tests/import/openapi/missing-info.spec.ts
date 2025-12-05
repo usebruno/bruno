@@ -15,11 +15,8 @@ test.describe('Invalid OpenAPI - Missing Info Section', () => {
 
     await page.setInputFiles('input[type="file"]', openApiFile);
 
-    // The OpenAPI parser might handle missing info gracefully with defaults
-    const hasError = await page.getByText('Unsupported collection format').first().isVisible();
-
-    // Either should show an error or create an "Untitled Collection"
-    expect(hasError).toBe(true);
+    const errorMessage = page.getByText('Unsupported collection format').first();
+    await expect(errorMessage).toBeVisible({ timeout: 10000 });
 
     // Cleanup: close any open modals
     await page.locator('[data-test-id="modal-close-button"]').click();
