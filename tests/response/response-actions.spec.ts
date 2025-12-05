@@ -23,7 +23,7 @@ test.describe('Response Pane Actions', () => {
       await page.getByPlaceholder('Request Name').fill('copy-test');
       await page.locator('#new-request-url .CodeMirror').click();
       // Using httpbin.org for a simple JSON response
-      await page.locator('textarea').fill('https://httpbin.org/json');
+      await page.locator('textarea').fill('https://www.httpfaker.org/api/random/json?size=1kb');
       await page.getByRole('button', { name: 'Create' }).click();
     });
 
