@@ -14,6 +14,24 @@ const Wrapper = styled.div`
     z-index: 0;
   }
 
+  .tabs-scroll-container {
+    overflow-x: auto;
+    overflow-y: clip;
+    padding-bottom: 10px;
+    margin-bottom: -10px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    scrollbar-width: none;
+
+    ul {
+      margin-bottom: 0;
+      overflow: visible;
+    }
+  }
+
   ul {
     padding: 0 2px;
     margin: 0;
@@ -56,9 +74,40 @@ const Wrapper = styled.div`
         border-color: transparent;
         border-radius: 6px;
 
-        &:hover {
-          background: ${(props) => props.theme.requestTabs.hoverBg || props.theme.requestTabs.bg};
-        }
+      }
+
+      &:nth-last-child(1) {
+        margin-right: 10px;
+      }
+
+      &.has-overflow:not(:hover) .tab-name {
+        mask-image: linear-gradient(
+          to right,
+          black 0%,
+          black calc(100% - 24px),
+          transparent 100%
+        );
+        -webkit-mask-image: linear-gradient(
+          to right,
+          black 0%,
+          black calc(100% - 24px),
+          transparent 100%
+        );
+      }
+
+      &.has-overflow:hover .tab-name {
+        mask-image: linear-gradient(
+          to right,
+          black 0%,
+          black calc(100% - 8px),
+          transparent 100%
+        );
+        -webkit-mask-image: linear-gradient(
+          to right,
+          black 0%,
+          black calc(100% - 8px),
+          transparent 100%
+        );
       }
 
       &.active {
@@ -75,12 +124,12 @@ const Wrapper = styled.div`
           content: '';
           position: absolute;
           bottom: -1px;
-          left: -9px;
+          left: -8px;
           width: 8px;
           height: 8px;
           background: transparent;
           border-bottom-right-radius: 8px;
-          box-shadow: 3px 0 0 0 ${(props) => props.theme.bg || '#ffffff'};
+          box-shadow: 2px 2px 0 0 ${(props) => props.theme.bg || '#ffffff'};
           border-right: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
           border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
         }
@@ -89,12 +138,12 @@ const Wrapper = styled.div`
           content: '';
           position: absolute;
           bottom: -1px;
-          right: -9px;
+          right: -8px;
           width: 8px;
           height: 8px;
           background: transparent;
           border-bottom-left-radius: 8px;
-          box-shadow: -3px 0 0 0 ${(props) => props.theme.bg || '#ffffff'};
+          box-shadow: -2px 2px 0 0 ${(props) => props.theme.bg || '#ffffff'};
           border-left: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
           border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
         }

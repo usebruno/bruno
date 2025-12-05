@@ -7,6 +7,7 @@ const StyledWrapper = styled.div`
 
   .tab-label {
     overflow: hidden;
+    align-items: center;
     position: relative;
     flex: 1;
     min-width: 0;
@@ -24,21 +25,7 @@ const StyledWrapper = styled.div`
     overflow: hidden;
     white-space: nowrap;
     font-size: 0.8125rem;
-  }
-
-  li:hover & .tab-name{
-    mask-image: linear-gradient(
-      to right,
-      black 0%,
-      black calc(100% - 8px),
-      transparent 100%
-    );
-    -webkit-mask-image: linear-gradient(
-      to right,
-      black 0%,
-      black calc(100% - 8px),
-      transparent 100%
-    );
+    text-overflow: ellipsis;
   }
 `;
 

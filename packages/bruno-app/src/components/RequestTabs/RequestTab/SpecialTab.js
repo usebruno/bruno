@@ -57,13 +57,15 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
   };
 
   return (
-    <div
-      className="flex items-center tab-label w-full"
-      onDoubleClick={handleDoubleClick}
-    >
-      {getTabInfo(type, tabName)}
+    <>
+      <div
+        className="flex items-baseline tab-label"
+        onDoubleClick={handleDoubleClick}
+      >
+        {getTabInfo(type, tabName)}
+      </div>
       <GradientCloseButton hasChanges={hasDraft} onClick={(e) => handleCloseClick(e)} />
-    </div>
+    </>
   );
 };
 

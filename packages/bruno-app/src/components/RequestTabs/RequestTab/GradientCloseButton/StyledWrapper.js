@@ -40,8 +40,8 @@ const StyledWrapper = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.12s ease;
@@ -57,8 +57,8 @@ const StyledWrapper = styled.div`
 
   .close-icon {
     color: ${(props) => props.theme.requestTabs.icon.color};
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
     transition: color 0.12s ease;
   }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef, Fragment, useMemo } from 'react';
+import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
@@ -22,7 +22,7 @@ import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
 
-const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
+const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
@@ -229,6 +229,35 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const isWS = item.type === 'ws-request';
   const method = getMethodText(item);
+  const tabNameRef = useRef(null);
+  const lastOverflowStateRef = useRef(null);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (tabNameRef.current && setHasOverflow) {
+        const hasOverflow = tabNameRef.current.scrollWidth > tabNameRef.current.clientWidth;
+        if (lastOverflowStateRef.current !== hasOverflow) {
+          lastOverflowStateRef.current = hasOverflow;
+          setHasOverflow(hasOverflow);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(checkOverflow, 0);
+
+    const resizeObserver = new ResizeObserver(() => {
+      checkOverflow();
+    });
+
+    if (tabNameRef.current) {
+      resizeObserver.observe(tabNameRef.current);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [item.name, method, setHasOverflow]);
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-3">
@@ -284,7 +313,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
           {method}
         </span>
-        <span className="ml-1 tab-name" title={item.name}>
+        <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
         <RequestTabMenu
