@@ -174,4 +174,61 @@ components:
     expect(fieldNames).toContain('file');
     expect(fieldNames).toContain('description');
   });
+
+  it('should handle number and integer types with correct default values', () => {
+    const openApiSpec = `
+openapi: "3.0.0"
+info:
+  version: "1.0.0"
+  title: "Number Type Test"
+servers:
+  - url: "https://api.example.com"
+paths:
+  /orders:
+    post:
+      summary: "Create order"
+      operationId: "createOrder"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                quantity:
+                  type: integer
+                price:
+                  type: number
+                discount:
+                  type: number
+                name:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        '201':
+          description: "Order created"
+`;
+
+    const result = openApiToBruno(openApiSpec);
+
+    expect(result.items.length).toBe(1);
+    const request = result.items[0];
+
+    expect(request.request.body.mode).toBe('json');
+    expect(request.request.body.json).not.toBeNull();
+
+    const bodyJson = JSON.parse(request.request.body.json);
+
+    // integer type should be 0
+    expect(bodyJson.quantity).toBe(0);
+
+    // number type should be 0 (not empty string)
+    expect(bodyJson.price).toBe(0);
+    expect(bodyJson.discount).toBe(0);
+
+    // string type should be empty string
+    expect(bodyJson.name).toBe('');
+
+    // boolean type should be false
+    expect(bodyJson.active).toBe(false);
+  });
 });
