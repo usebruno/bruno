@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
 
-const MIN_LEFT_SIDEBAR_WIDTH = 250;
+const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {

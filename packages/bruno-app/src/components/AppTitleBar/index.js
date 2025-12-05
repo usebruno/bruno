@@ -15,6 +15,7 @@ import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
+import { toTitleCase } from 'utils/common/index';
 
 const AppTitleBar = () => {
   const dispatch = useDispatch();
@@ -55,16 +56,6 @@ const AppTitleBar = () => {
   const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
   const workspaceDropdownTippyRef = useRef();
   const onWorkspaceDropdownCreate = (ref) => (workspaceDropdownTippyRef.current = ref);
-
-  // Helper function to convert workspace names to title case
-  const toTitleCase = (str) => {
-    if (!str) return '';
-    if (str === 'default') return 'Default';
-    return str
-      .split(/[\s-_]+/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
 
   const WorkspaceName = forwardRef((props, ref) => {
     return (
@@ -202,7 +193,7 @@ const AppTitleBar = () => {
         {/* Center section: Bruno logo + text */}
         <div className="titlebar-center">
           <Bruno width={18} />
-          <span className="bruno-text">bruno</span>
+          <span className="bruno-text">Bruno</span>
         </div>
 
         {/* Right section: Action buttons */}

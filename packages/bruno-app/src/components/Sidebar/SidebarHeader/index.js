@@ -148,10 +148,6 @@ const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange
     });
   };
 
-  const openDevTools = () => {
-    ipcRenderer.invoke('renderer:open-devtools');
-  };
-
   const renderModals = () => (
     <>
       {createCollectionModalOpen && (
@@ -272,17 +268,6 @@ const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange
         >
           <IconSquareX size={16} stroke={1.5} className="icon" />
           Close all
-        </div>
-        <div className="label-item">Others</div>
-        <div
-          className="dropdown-item"
-          onClick={(e) => {
-            actionsDropdownTippyRef.current?.hide();
-            openDevTools();
-          }}
-        >
-          <IconDeviceDesktop size={16} stroke={1.5} className="icon" />
-          Devtools
         </div>
       </Dropdown>
 
