@@ -672,26 +672,6 @@ export const runCollectionFolder
         })
       );
 
-      // to only include those requests in the specified order while preserving folder data
-      if (selectedRequestUids && selectedRequestUids.length > 0) {
-        const newItems = [];
-
-        selectedRequestUids.forEach((uid, index) => {
-          const requestItem = findItemInCollection(collectionCopy, uid);
-          if (requestItem) {
-            const clonedRequest = cloneDeep(requestItem);
-            clonedRequest.seq = index + 1;
-            newItems.push(clonedRequest);
-          }
-        });
-
-        if (folder) {
-          folder.items = newItems;
-        } else {
-          collectionCopy.items = newItems;
-        }
-      }
-
       const { ipcRenderer } = window;
       ipcRenderer
         .invoke(
@@ -702,7 +682,8 @@ export const runCollectionFolder
           collectionCopy.runtimeVariables,
           recursive,
           delay,
-          tags
+          tags,
+          selectedRequestUids
         )
         .then(resolve)
         .catch((err) => {

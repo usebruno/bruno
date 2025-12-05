@@ -1057,8 +1057,7 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('fetch-gql-schema', fetchGqlSchemaHandler);
 
   ipcMain.handle(
-    'renderer:run-collection-folder',
-    async (event, folder, collection, environment, runtimeVariables, recursive, delay, tags) => {
+    'renderer:run-collection-folder', async (event, folder, collection, environment, runtimeVariables, recursive, delay, tags, selectedRequestUids) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
@@ -1133,6 +1132,22 @@ const registerNetworkIpc = (mainWindow) => {
             requestTags = draft?.tags || requestTags || [];
             return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
           });
+        }
+
+        // Filter requests based on selectedRequestUids (for "Configure requests to run")
+        if (selectedRequestUids && selectedRequestUids.length > 0) {
+          const uidIndexMap = new Map();
+          selectedRequestUids.forEach((uid, index) => {
+            uidIndexMap.set(uid, index);
+          });
+
+          folderRequests = folderRequests
+            .filter((request) => uidIndexMap.has(request.uid))
+            .sort((a, b) => {
+              const indexA = uidIndexMap.get(a.uid);
+              const indexB = uidIndexMap.get(b.uid);
+              return indexA - indexB;
+            });
         }
 
         let currentRequestIndex = 0;
