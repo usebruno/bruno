@@ -185,21 +185,21 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       let brunoConfig;
 
       if (format === 'yml') {
-        const sourceFilePath = path.join(previousPath, 'opencollection.yml');
-        const content = fs.readFileSync(sourceFilePath, 'utf8');
+        const configFilePath = path.join(previousPath, 'opencollection.yml');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         const {
           brunoConfig: parsedBrunoConfig,
           collectionRoot
-        } = parseCollection(content, { format: 'yml' });
+        } = parseCollection(content, { format });
 
         brunoConfig = parsedBrunoConfig;
         brunoConfig.name = collectionName;
 
-        const newContent = stringifyCollection(collectionRoot, brunoConfig, { format: 'yml' });
+        const newContent = stringifyCollection(collectionRoot, brunoConfig, { format });
         await writeFile(path.join(dirPath, 'opencollection.yml'), newContent);
       } else if (format === 'bru') {
-        const sourceFilePath = path.join(previousPath, 'bruno.json');
-        const content = fs.readFileSync(sourceFilePath, 'utf8');
+        const configFilePath = path.join(previousPath, 'bruno.json');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         brunoConfig = JSON.parse(content);
         brunoConfig.name = collectionName;
         const newContent = await stringifyJson(brunoConfig);
@@ -211,13 +211,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // Now copy all the files matching the collection's filetype along with the dir
       const files = searchForRequestFiles(previousPath);
 
-      for (const sourceFilePath of files) {
-        const relativePath = path.relative(previousPath, sourceFilePath);
+      for (const configFilePath of files) {
+        const relativePath = path.relative(previousPath, configFilePath);
         const newFilePath = path.join(dirPath, relativePath);
 
         // skip if the file is opencollection.yml or bruno.json at the root of the collection
-        const isRootConfigFile = (path.basename(sourceFilePath) === 'opencollection.yml' || path.basename(sourceFilePath) === 'bruno.json')
-          && path.dirname(sourceFilePath) === previousPath;
+        const isRootConfigFile = (path.basename(configFilePath) === 'opencollection.yml' || path.basename(configFilePath) === 'bruno.json')
+          && path.dirname(configFilePath) === previousPath;
 
         if (isRootConfigFile) {
           continue;
@@ -226,7 +226,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         // handle dir of files
         fs.mkdirSync(path.dirname(newFilePath), { recursive: true });
         // copy each files
-        fs.copyFileSync(sourceFilePath, newFilePath);
+        fs.copyFileSync(configFilePath, newFilePath);
       }
 
       const { size, filesCount } = await getCollectionStats(dirPath);
