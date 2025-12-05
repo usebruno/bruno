@@ -11,8 +11,10 @@ const makeJUnitOutput = async (results, outputPath) => {
 
   results.forEach((result) => {
     const assertionTestCount = result.assertionResults ? result.assertionResults.length : 0;
+    const preRequestTestCount = result.preRequestTestResults ? result.preRequestTestResults.length : 0;
     const testCount = result.testResults ? result.testResults.length : 0;
-    const totalTests = assertionTestCount + testCount;
+    const postResponseTestCount = result.postResponseTestResults ? result.postResponseTestResults.length : 0;
+    const totalTests = assertionTestCount + preRequestTestCount + testCount + postResponseTestCount;
 
     const suite = {
       '@name': result.name,
@@ -44,8 +46,44 @@ const makeJUnitOutput = async (results, outputPath) => {
       suite.testcase.push(testcase);
     });
 
+    result.preRequestTestResults
+    && result.preRequestTestResults.forEach((test) => {
+      const testcase = {
+        '@name': test.description,
+        '@status': test.status,
+        '@classname': result.request.url,
+        '@time': (result.runtime / totalTests).toFixed(3)
+      };
+
+      if (test.status === 'fail') {
+        suite['@failures']++;
+
+        testcase.failure = [{ '@type': 'failure', '@message': test.error }];
+      }
+
+      suite.testcase.push(testcase);
+    });
+
     result.testResults
     && result.testResults.forEach((test) => {
+      const testcase = {
+        '@name': test.description,
+        '@status': test.status,
+        '@classname': result.request.url,
+        '@time': (result.runtime / totalTests).toFixed(3)
+      };
+
+      if (test.status === 'fail') {
+        suite['@failures']++;
+
+        testcase.failure = [{ '@type': 'failure', '@message': test.error }];
+      }
+
+      suite.testcase.push(testcase);
+    });
+
+    result.postResponseTestResults
+    && result.postResponseTestResults.forEach((test) => {
       const testcase = {
         '@name': test.description,
         '@status': test.status,
