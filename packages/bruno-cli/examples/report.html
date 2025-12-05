@@ -419,7 +419,7 @@
                   }
                 ],
                 suitename: 'group1/test1',
-                runDuration: 0.1
+                runtime: 0.1
               },
               {
                 test: {
@@ -462,7 +462,7 @@
                 ],
                 testResults: [],
                 suitename: 'group1/test2',
-                runDuration: 0.1
+                runtime: 0.1
               },
               {
                 test: {
@@ -505,7 +505,7 @@
                 ],
                 testResults: [],
                 suitename: 'group1/test3',
-                runDuration: 0.1
+                runtime: 0.1
               },
               {
                 test: {
@@ -554,7 +554,7 @@
                   }
                 ],
                 suitename: 'group2/test1',
-                runDuration: 0.1
+                runtime: 0.1
               },
               {
                 test: {
@@ -587,7 +587,7 @@
                 assertionResults: [],
                 testResults: [],
                 suitename: 'group2/test2',
-                runDuration: 0.1
+                runtime: 0.1
               },
               {
                 test: {
@@ -619,7 +619,7 @@
                 assertionResults: [],
                 testResults: [],
                 suitename: 'test1',
-                runDuration: 0.1
+                runtime: 0.1
               },
               {
                 test: {
@@ -652,7 +652,7 @@
                 assertionResults: [],
                 testResults: [],
                 suitename: 'test2',
-                runDuration: 0.1
+                runtime: 0.1
               },
               {
                 test: {
@@ -702,7 +702,7 @@
                 assertionResults: [],
                 testResults: [],
                 suitename: 'test3',
-                runDuration: 0.1
+                runtime: 0.1
               },
               {
                 test: {
@@ -735,7 +735,7 @@
                 assertionResults: [],
                 testResults: [],
                 suitename: 'test4',
-                runDuration: 0.1
+                runtime: 0.1
               },
               {
                 test: {
@@ -768,7 +768,7 @@
                 assertionResults: [],
                 testResults: [],
                 suitename: 'test5',
-                runDuration: 0.1
+                runtime: 0.1
               }
             ]
           };
@@ -846,7 +846,7 @@
             () => props.res.summary.failedRequests + props.res.summary.failedTests + props.res.summary.failedAssertions
           );
           const summaryErrors = computed(() => props.res.results.filter((r) => r.error).length);
-          const totalRunDuration = computed(() => props.res?.results?.reduce((total, test) => test.runDuration + total, 0));
+          const totalRunDuration = computed(() => props.res?.results?.reduce((total, test) => test.runtime + total, 0));
           return {
             summaryColumns,
             summaryData,
@@ -1021,8 +1021,8 @@
           const hasError = computed(() => !!props.result.error);
           const hasFailure = computed(() => total.value !== totalPassed.value);
           const suitename = computed(() => props.result.suitename.replace(props.group + '/', ''));
-          const testDuration = computed(() => Math.round(props.result.runDuration * 1000) + ' ms');
-          const name = computed(() => props.result.suitename + props.result.runDuration);
+          const testDuration = computed(() => Math.round(props.result.runtime * 1000) + ' ms');
+          const name = computed(() => props.result.suitename + props.result.runtime);
           return {
             headerColumns,
             headerDataRequest,
