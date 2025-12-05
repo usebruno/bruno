@@ -185,11 +185,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       let brunoConfig;
 
       if (format === 'yml') {
-        const content = fs.readFileSync('opencollection.yml', 'utf8');
+        const configFilePath = path.join(previousPath, 'opencollection.yml');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         const {
           brunoConfig: parsedBrunoConfig,
           collectionRoot
-        } = parseCollection(content);
+        } = parseCollection(content, { format });
 
         brunoConfig = parsedBrunoConfig;
         brunoConfig.name = collectionName;
@@ -197,7 +198,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const newContent = stringifyCollection(collectionRoot, brunoConfig, { format });
         await writeFile(path.join(dirPath, 'opencollection.yml'), newContent);
       } else if (format === 'bru') {
-        const content = fs.readFileSync('bruno.json', 'utf8');
+        const configFilePath = path.join(previousPath, 'bruno.json');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         brunoConfig = JSON.parse(content);
         brunoConfig.name = collectionName;
         const newContent = await stringifyJson(brunoConfig);
@@ -213,8 +215,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const relativePath = path.relative(previousPath, sourceFilePath);
         const newFilePath = path.join(dirPath, relativePath);
 
-        // skip if the file is opencollection.yml at the root of the collection
-        if (path.basename(sourceFilePath) === 'opencollection.yml' && path.dirname(sourceFilePath) === previousPath) {
+        // skip if the file is opencollection.yml or bruno.json at the root of the collection
+        const isRootConfigFile = (path.basename(sourceFilePath) === 'opencollection.yml' || path.basename(sourceFilePath) === 'bruno.json')
+          && path.dirname(sourceFilePath) === previousPath;
+
+        if (isRootConfigFile) {
           continue;
         }
 
@@ -238,18 +243,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const format = getCollectionFormat(collectionPathname);
 
       if (format === 'yml') {
-        const content = fs.readFileSync('opencollection.yml', 'utf8');
+        const configFilePath = path.join(collectionPathname, 'opencollection.yml');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         const {
           brunoConfig,
           collectionRoot
-        } = parseCollection(content);
+        } = parseCollection(content, { format: 'yml' });
 
         brunoConfig.name = newName;
 
-        const newContent = stringifyCollection(collectionRoot, brunoConfig, { format });
+        const newContent = stringifyCollection(collectionRoot, brunoConfig, { format: 'yml' });
         await writeFile(path.join(collectionPathname, 'opencollection.yml'), newContent);
       } else if (format === 'bru') {
-        const content = fs.readFileSync('bruno.json', 'utf8');
+        const configFilePath = path.join(collectionPathname, 'bruno.json');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         const brunoConfig = JSON.parse(content);
         brunoConfig.name = newName;
         const newContent = await stringifyJson(brunoConfig);
