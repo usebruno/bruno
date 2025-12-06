@@ -25,7 +25,6 @@ const StyledWrapper = styled.div`
     overflow: hidden;
     white-space: nowrap;
     font-size: 0.8125rem;
-    text-overflow: ellipsis;
   }
 `;
 

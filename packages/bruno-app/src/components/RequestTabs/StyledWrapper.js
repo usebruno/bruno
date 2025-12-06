@@ -72,7 +72,7 @@ const Wrapper = styled.div`
       &:not(.active) {
         background: ${(props) => props.theme.requestTabs.bg};
         border-color: transparent;
-        border-radius: 6px;
+        border-radius: ${(props) => props.theme.border.radius.base};
 
       }
 
@@ -160,7 +160,7 @@ const Wrapper = styled.div`
         color: ${(props) => props.theme.requestTabs.shortTab.color};
         background-color: transparent;
         border: 1px solid transparent;
-        border-radius: 6px;
+        border-radius: ${(props) => props.theme.border.radius.base};
         flex-shrink: 0;
 
         > div {
@@ -168,7 +168,7 @@ const Wrapper = styled.div`
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 4px;
+          border-radius: ${(props) => props.theme.border.radius.sm};
           transition: background-color 0.12s ease, color 0.12s ease;
         }
 

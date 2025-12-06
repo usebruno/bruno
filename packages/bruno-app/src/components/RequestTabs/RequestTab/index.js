@@ -152,7 +152,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
-        className={`flex items-center justify-between tab-container px-3 ${tab.preview ? 'italic' : ''}`}
+        className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
         onMouseUp={handleMouseUp}
       >
         {showConfirmCollectionClose && tab.type === 'collection-settings' && (
@@ -286,7 +286,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }, [item.name, method, setHasOverflow]);
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-3">
+    <StyledWrapper className="flex items-center justify-between tab-container px-2">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
