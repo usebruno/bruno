@@ -15,12 +15,11 @@ test.describe('Invalid OpenAPI - Malformed YAML', () => {
 
     await page.setInputFiles('input[type="file"]', openApiFile);
 
-    // Check for error message - this should fail during YAML parsing
-    const hasParseError = await page.getByText('Failed to parse the file').isVisible();
-    const hasImportError = await page.getByText('Import collection failed').isVisible();
+    const parseError = page.getByText('Failed to parse the file');
+    const importError = page.getByText('Import collection failed');
 
-    // Either parsing error or import error should be shown
-    expect(hasParseError || hasImportError).toBe(true);
+    // Wait for at least one error message to be visible
+    await expect(parseError.or(importError)).toBeVisible({ timeout: 10000 });
 
     // Cleanup: close any open modals
     await page.locator('[data-test-id="modal-close-button"]').click();
