@@ -1,13 +1,44 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: ${(props) => props.theme.requestTabs.bottomBorder};
+    z-index: 0;
+  }
+
+  .tabs-scroll-container {
+    overflow-x: auto;
+    overflow-y: clip;
+    padding-bottom: 10px;
+    margin-bottom: -10px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    scrollbar-width: none;
+
+    ul {
+      margin-bottom: 0;
+      overflow: visible;
+    }
+  }
 
   ul {
-    padding: 0;
+    padding: 0 2px;
     margin: 0;
     display: flex;
-    overflow: scroll;
+    align-items: flex-end;
+    position: relative;
+    z-index: 1;
 
     &::-webkit-scrollbar {
       display: none;
@@ -17,57 +48,128 @@ const Wrapper = styled.div`
 
     li {
       display: inline-flex;
-      max-width: 150px;
-      border: 1px solid transparent;
+      max-width: 180px;
+      min-width: 80px;
       list-style: none;
-      padding-top: 8px;
-      padding-bottom: 8px;
-      padding-left: 0;
-      padding-right: 0;
       cursor: pointer;
-      font-size: ${(props) => props.theme.font.size.base};
-      height: 38px;
-
-      margin-right: 6px;
+      font-size: 0.8125rem;
+      position: relative;
+      margin-right: 3px;
       color: ${(props) => props.theme.requestTabs.color};
-      background: ${(props) => props.theme.requestTabs.bg};
-      border-radius: 0;
+      background: transparent;
+      border: 1px solid transparent;
+      padding: 6px 0;
+      flex-shrink: 0;
+      transition: background-color 0.15s ease;
+      margin-bottom: 4px;
 
       .tab-container {
         width: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+
+      &:not(.active) {
+        background: ${(props) => props.theme.requestTabs.bg};
+        border-color: transparent;
+        border-radius: ${(props) => props.theme.border.radius.base};
+
+      }
+
+      &:nth-last-child(1) {
+        margin-right: 10px;
+      }
+
+      &.has-overflow:not(:hover) .tab-name {
+        mask-image: linear-gradient(
+          to right,
+          ${(props) => props.theme.requestTabs.color} 0%,
+          ${(props) => props.theme.requestTabs.color} calc(100% - 24px),
+          transparent 100%
+        );
+        -webkit-mask-image: linear-gradient(
+          to right,
+          ${(props) => props.theme.requestTabs.color} 0%,
+          ${(props) => props.theme.requestTabs.color} calc(100% - 24px),
+          transparent 100%
+        );
+      }
+
+      &.has-overflow:hover .tab-name {
+        mask-image: linear-gradient(
+          to right,
+          ${(props) => props.theme.requestTabs.color} 0%,
+          ${(props) => props.theme.requestTabs.color} calc(100% - 8px),
+          transparent 100%
+        );
+        -webkit-mask-image: linear-gradient(
+          to right,
+          ${(props) => props.theme.requestTabs.color} 0%,
+          ${(props) => props.theme.requestTabs.color} calc(100% - 8px),
+          transparent 100%
+        );
       }
 
       &.active {
-        background: ${(props) => props.theme.requestTabs.active.bg};
-      }
+        background: ${(props) => props.theme.bg || '#ffffff'};
+        border: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
+        border-bottom-color: ${(props) => props.theme.bg || '#ffffff'};
+        border-radius: 8px 8px 0 0;
+        font-weight: 500;
+        z-index: 2;
+        margin-bottom: -2px;
+        padding-bottom: 12px;
 
-      &.active {
-        .close-icon-container .close-icon {
-          display: block;
+        &::before {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: -8px;
+          width: 8px;
+          height: 8px;
+          background: transparent;
+          border-bottom-right-radius: 8px;
+          box-shadow: 2px 2px 0 0 ${(props) => props.theme.bg || '#ffffff'};
+          border-right: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
+          border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
         }
-      }
 
-      &:hover {
-        .close-icon-container .close-icon {
-          display: block;
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          right: -8px;
+          width: 8px;
+          height: 8px;
+          background: transparent;
+          border-bottom-left-radius: 8px;
+          box-shadow: -2px 2px 0 0 ${(props) => props.theme.bg || '#ffffff'};
+          border-left: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
+          border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
         }
       }
 
       &.short-tab {
-        vertical-align: bottom;
-        width: 34px;
-        min-width: 34px;
-        max-width: 34px;
-        padding: 3px 0px;
+        width: 32px;
+        min-width: 32px;
+        max-width: 32px;
+        padding: 5px 0;
         display: inline-flex;
         justify-content: center;
+        align-items: center;
         color: ${(props) => props.theme.requestTabs.shortTab.color};
-        background-color: ${(props) => props.theme.requestTabs.shortTab.bg};
-        position: relative;
-        top: -1px;
+        background-color: transparent;
+        border: 1px solid transparent;
+        border-radius: ${(props) => props.theme.border.radius.base};
+        flex-shrink: 0;
 
         > div {
-          padding: 3px 4px;
+          padding: 3px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: ${(props) => props.theme.border.radius.sm};
+          transition: background-color 0.12s ease, color 0.12s ease;
         }
 
         > div.home-icon-container {
@@ -81,18 +183,22 @@ const Wrapper = styled.div`
         }
 
         svg {
-          height: 22px;
+          height: 20px;
+          width: 20px;
         }
 
         &:hover {
           > div {
             background-color: ${(props) => props.theme.requestTabs.shortTab.hoverBg};
             color: ${(props) => props.theme.requestTabs.shortTab.hoverColor};
-            border-radius: 3px;
           }
         }
       }
     }
+  }
+
+  &.has-chevrons ul {
+    padding-left: 0;
   }
 `;
 
