@@ -84,24 +84,54 @@ const createCollection = async (page, collectionName: string, collectionLocation
   });
 };
 
+type CreateRequestOptions = {
+  url?: string;
+  inFolder?: boolean;
+};
+
 /**
- * Create a request in a collection
+ * Create a request in a collection or folder
  * @param page - The page object
  * @param requestName - The name of the request to create
- * @param collectionName - The name of the collection
+ * @param parentName - The name of the collection or folder
+ * @param options - Optional settings (url, inFolder)
  * @returns void
  */
-const createRequest = async (page, requestName: string, collectionName: string) => {
-  await test.step(`Create request "${requestName}" in collection "${collectionName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const collection = locators.sidebar.collection(collectionName);
+const createRequest = async (
+  page: Page,
+  requestName: string,
+  parentName: string,
+  options: CreateRequestOptions = {}
+) => {
+  const { url, inFolder = false } = options;
+  const parentType = inFolder ? 'folder' : 'collection';
 
-    await collection.hover();
-    await locators.actions.collectionActions(collectionName).click();
+  await test.step(`Create request "${requestName}" in ${parentType} "${parentName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    if (inFolder) {
+      await locators.sidebar.folder(parentName).hover();
+      await locators.actions.collectionItemActions(parentName).click();
+    } else {
+      await locators.sidebar.collection(parentName).hover();
+      await locators.actions.collectionActions(parentName).click();
+    }
+
     await locators.dropdown.item('New Request').click();
     await page.getByPlaceholder('Request Name').fill(requestName);
+
+    if (url) {
+      await page.locator('#new-request-url .CodeMirror').click();
+      await page.keyboard.type(url);
+    }
+
     await locators.modal.button('Create').click();
-    await expect(locators.sidebar.request(requestName)).toBeVisible();
+
+    if (inFolder) {
+      await expect(locators.sidebar.folderRequest(parentName, requestName)).toBeVisible();
+    } else {
+      await expect(locators.sidebar.request(requestName)).toBeVisible();
+    }
   });
 };
 
@@ -251,69 +281,6 @@ const createFolder = async (
     await page.getByPlaceholder('Folder Name').fill(folderName);
     await locators.modal.button('Create').click();
     await expect(locators.sidebar.folder(folderName)).toBeVisible();
-  });
-};
-
-/**
- * Create a request in a folder
- * @param page - The page object
- * @param requestName - The name of the request
- * @param folderName - The name of the folder
- * @param url - Optional URL for the request
- * @returns void
- */
-const createRequestInFolder = async (
-  page: Page,
-  requestName: string,
-  folderName: string,
-  url?: string
-) => {
-  await test.step(`Create request "${requestName}" in folder "${folderName}"`, async () => {
-    const locators = buildCommonLocators(page);
-
-    await locators.sidebar.folder(folderName).hover();
-    await locators.actions.collectionItemActions(folderName).click();
-    await locators.dropdown.item('New Request').click();
-
-    await page.getByPlaceholder('Request Name').fill(requestName);
-
-    if (url) {
-      await page.locator('#new-request-url .CodeMirror').click();
-      await page.keyboard.type(url);
-    }
-
-    await locators.modal.button('Create').click();
-    await expect(locators.sidebar.folderRequest(folderName, requestName)).toBeVisible();
-  });
-};
-
-/**
- * Create a request with a URL
- * @param page - The page object
- * @param requestName - The name of the request
- * @param collectionName - The name of the collection
- * @param url - The URL for the request
- * @returns void
- */
-const createRequestWithUrl = async (
-  page: Page,
-  requestName: string,
-  collectionName: string,
-  url: string
-) => {
-  await test.step(`Create request "${requestName}" with URL in "${collectionName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const collection = locators.sidebar.collection(collectionName);
-
-    await collection.hover();
-    await locators.actions.collectionActions(collectionName).click();
-    await locators.dropdown.item('New Request').click();
-
-    await page.getByPlaceholder('Request Name').fill(requestName);
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.keyboard.type(url);
-    await locators.modal.button('Create').click();
-    await expect(locators.sidebar.request(requestName)).toBeVisible();
   });
 };
 
@@ -558,8 +525,6 @@ export {
   importCollection,
   removeCollection,
   createFolder,
-  createRequestInFolder,
-  createRequestWithUrl,
   openEnvironmentSelector,
   createEnvironment,
   addEnvironmentVariable,
@@ -574,4 +539,4 @@ export {
   expectResponseContains
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions };

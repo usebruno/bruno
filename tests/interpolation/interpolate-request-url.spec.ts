@@ -9,7 +9,7 @@ test.describe.serial('URL Interpolation', () => {
 
   test('Interpolate basic path params', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
-    await locators.sidebar.collection('interpolate-request-url').click();
+    await locators.sidebar.collection('interpolation').click();
     await locators.sidebar.request('echo-request-url').click();
     await sendRequest(page, 200);
 

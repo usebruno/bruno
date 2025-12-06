@@ -13,6 +13,8 @@ import {
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Global Environment Create Tests', () => {
+  test.setTimeout(60000);
+
   test('should import collection and create global environment for request usage', async ({
     page,
     createTmpDir

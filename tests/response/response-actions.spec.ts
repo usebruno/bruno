@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
-  createRequestWithUrl,
+  createRequest,
   sendRequest
 } from '../utils/page/actions';
 import { buildCommonLocators } from '../utils/page/locators';
@@ -18,7 +18,7 @@ test.describe('Response Pane Actions', () => {
 
     await test.step('Create collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
-      await createRequestWithUrl(page, 'copy-test', collectionName, 'https://httpbin.org/json');
+      await createRequest(page, 'copy-test', collectionName, { url: 'https://httpbin.org/json' });
     });
 
     await test.step('Send request and wait for response', async () => {

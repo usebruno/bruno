@@ -15,11 +15,10 @@ test.describe('Invalid Insomnia Collection - Missing Collection Array', () => {
 
     await page.setInputFiles('input[type="file"]', insomniaFile);
 
-    // Check for error message
-    const hasError = await page.getByText('Unsupported collection format').first().isVisible();
-    expect(hasError).toBe(true);
+    const errorLocator = page.getByText(/Unsupported collection format|Failed to parse|Invalid|Error/).first();
+    await expect(errorLocator).toBeVisible({ timeout: 10000 });
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });

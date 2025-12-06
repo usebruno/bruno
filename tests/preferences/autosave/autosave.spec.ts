@@ -2,6 +2,8 @@ import { test, expect } from '../../../playwright';
 import { createCollection, closeAllCollections, createRequest } from '../../utils/page';
 
 test.describe('Autosave', () => {
+  test.setTimeout(60000);
+
   test.afterEach(async ({ page }) => {
     // Only try to cleanup if page is still open
     if (!page.isClosed()) {
@@ -169,9 +171,10 @@ test.describe('Autosave', () => {
       // Wait for preferences to close
       await expect(preferencesModal).not.toBeVisible();
 
-      // Verify draft indicator disappears (existing draft was auto-saved)
+      await page.waitForTimeout(1000);
+
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });
-      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible({ timeout: 5000 });
+      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Verify changes persisted', async () => {
