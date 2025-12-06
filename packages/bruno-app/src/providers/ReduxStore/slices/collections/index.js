@@ -1228,7 +1228,10 @@ export const collectionsSlice = createSlice({
         return;
       }
 
-      folder.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      if (!folder.draft) {
+        folder.draft = cloneDeep(folder.root);
+      }
+      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,

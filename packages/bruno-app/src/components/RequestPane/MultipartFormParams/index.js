@@ -50,7 +50,10 @@ const MultipartFormParams = ({ item, collection }) => {
           return filePath;
         });
 
-        const updatedParams = params.map((p) => {
+        const currentParams = item.draft
+          ? get(item, 'draft.request.body.multipartForm')
+          : get(item, 'request.body.multipartForm');
+        const updatedParams = (currentParams || []).map((p) => {
           if (p.uid === row.uid) {
             return { ...p, type: 'file', value: processedPaths };
           }
@@ -61,7 +64,7 @@ const MultipartFormParams = ({ item, collection }) => {
       .catch((error) => {
         console.error(error);
       });
-  }, [dispatch, collection.pathname, params, handleParamsChange]);
+  }, [dispatch, collection.pathname, item, handleParamsChange]);
 
   const handleClearFile = useCallback((row) => {
     const updatedParams = params.map((p) => {

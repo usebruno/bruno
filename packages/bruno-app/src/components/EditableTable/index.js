@@ -193,13 +193,13 @@ const EditableTable = ({
         {error && !isEmpty && (
           <span>
             <IconAlertCircle
-              id={`error-${row.uid}-${column.key}`}
+              data-tooltip-id={`error-${row.uid}-${column.key}`}
               className="text-red-600 cursor-pointer"
               size={20}
             />
             <Tooltip
               className="tooltip-mod"
-              anchorId={`error-${row.uid}-${column.key}`}
+              id={`error-${row.uid}-${column.key}`}
               html={error}
             />
           </span>
