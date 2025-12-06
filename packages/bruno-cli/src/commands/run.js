@@ -575,7 +575,7 @@ const handler = async function (argv) {
 
       results.push({
         ...result,
-        runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
+        runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: pathname.replace('.bru', ''),
         name
       });

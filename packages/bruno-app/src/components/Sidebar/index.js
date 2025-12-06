@@ -1,4 +1,4 @@
-import TitleBar from './TitleBar';
+import SidebarHeader from './SidebarHeader';
 import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
 
@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
 
-const MIN_LEFT_SIDEBAR_WIDTH = 221;
+const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
@@ -14,6 +14,8 @@ const Sidebar = () => {
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const lastWidthRef = useRef(leftSidebarWidth);
+  const [showSearch, setShowSearch] = useState(false);
+  const [activeView, setActiveView] = useState('collections'); // 'collections' or any other future tab
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
@@ -80,9 +82,21 @@ const Sidebar = () => {
       <aside className="sidebar" style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}>
         <div className="flex flex-row h-full w-full">
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
-            <div className="flex flex-col flex-grow">
-              <TitleBar />
-              <Collections />
+            <div className="flex flex-col flex-grow" style={{ minHeight: 0, overflow: 'hidden' }}>
+              <SidebarHeader
+                setShowSearch={setShowSearch}
+                activeView={activeView}
+                onViewChange={setActiveView}
+              />
+              {activeView === 'collections' ? (
+                <Collections showSearch={showSearch} />
+              ) : (
+                <div className="second-tab-placeholder">
+                  <p className="text-center text-muted py-8 px-4 text-sm opacity-60">
+                    Second tab content will appear here
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

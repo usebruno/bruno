@@ -6,7 +6,7 @@ import { showInFolder, openCollection } from 'providers/ReduxStore/slices/collec
 import toast from 'react-hot-toast';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
-import CloseWorkspace from 'components/Sidebar/TitleBar/CloseWorkspace';
+import CloseWorkspace from 'components/Sidebar/SidebarHeader/CloseWorkspace';
 import WorkspaceCollections from './WorkspaceCollections';
 import WorkspaceDocs from './WorkspaceDocs';
 import WorkspaceEnvironments from './WorkspaceEnvironments';

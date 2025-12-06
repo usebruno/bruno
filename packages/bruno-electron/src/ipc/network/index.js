@@ -109,7 +109,8 @@ const configureRequest = async (
   globalEnvironmentVariables
 ) => {
   const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
-  if (!protocolRegex.test(request.url)) {
+  const hasVariables = request.url.startsWith('{{');
+  if (!hasVariables && !protocolRegex.test(request.url)) {
     request.url = `http://${request.url}`;
   }
 
@@ -498,6 +499,46 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig,
     runRequestByItemPathname
   ) => {
+    // run post-response vars
+    const postResponseVars = get(request, 'vars.res', []);
+    if (postResponseVars?.length) {
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
+      const result = varsRuntime.runPostResponseVars(
+        postResponseVars,
+        request,
+        response,
+        envVars,
+        runtimeVariables,
+        collectionPath,
+        processEnvVars
+      );
+
+      if (result) {
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: result.envVariables,
+          runtimeVariables: result.runtimeVariables,
+          persistentEnvVariables: result.persistentEnvVariables,
+          requestUid,
+          collectionUid
+        });
+
+        mainWindow.webContents.send('main:persistent-env-variables-update', {
+          persistentEnvVariables: result.persistentEnvVariables,
+          collectionUid
+        });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: result.globalEnvironmentVariables
+        });
+
+        collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
+      }
+
+      if (result?.error) {
+        mainWindow.webContents.send('main:display-error', result.error);
+      }
+    }
+
     // run post-response script
     const responseScript = get(request, 'script.res');
     let scriptResult;
