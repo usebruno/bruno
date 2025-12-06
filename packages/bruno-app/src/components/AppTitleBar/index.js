@@ -16,10 +16,12 @@ import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
 import { toTitleCase } from 'utils/common/index';
+import { isMacOS, isElectron } from 'utils/common/platform';
 
 const AppTitleBar = () => {
   const dispatch = useDispatch();
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isWindowFocused, setIsWindowFocused] = useState(true);
 
   // Listen for fullscreen changes
   useEffect(() => {
@@ -37,6 +39,26 @@ const AppTitleBar = () => {
     return () => {
       removeEnterFullScreenListener();
       removeLeaveFullScreenListener();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isElectron() || !isMacOS()) return;
+
+    const { ipcRenderer } = window;
+    if (!ipcRenderer) return;
+
+    const removeFocusListener = ipcRenderer.on('main:window-focus', () => {
+      setIsWindowFocused(true);
+    });
+
+    const removeBlurListener = ipcRenderer.on('main:window-blur', () => {
+      setIsWindowFocused(false);
+    });
+
+    return () => {
+      removeFocusListener();
+      removeBlurListener();
     };
   }, []);
 
@@ -124,10 +146,22 @@ const AppTitleBar = () => {
     dispatch(savePreferences(updatedPreferences));
   };
 
+  const showTrafficLightPlaceholders = useMemo(() => {
+    return isMacOS() && !isFullScreen && !isWindowFocused;
+  }, [isFullScreen, isWindowFocused]);
+
   return (
-    <StyledWrapper className={`app-titlebar ${isFullScreen ? 'fullscreen' : ''}`}>
+    <StyledWrapper className={`app-titlebar ${isFullScreen ? 'fullscreen' : ''} ${showTrafficLightPlaceholders ? 'unfocused' : ''}`}>
       {createWorkspaceModalOpen && (
         <CreateWorkspace onClose={() => setCreateWorkspaceModalOpen(false)} />
+      )}
+
+      {showTrafficLightPlaceholders && (
+        <div className="traffic-light-placeholders">
+          <div className="traffic-light" />
+          <div className="traffic-light" />
+          <div className="traffic-light" />
+        </div>
       )}
 
       <div className="titlebar-content">

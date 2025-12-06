@@ -181,6 +181,15 @@ app.on('ready', async () => {
     mainWindow.webContents.send('main:leave-full-screen');
   });
 
+  if (isMac) {
+    mainWindow.on('focus', () => {
+      mainWindow.webContents.send('main:window-focus');
+    });
+    mainWindow.on('blur', () => {
+      mainWindow.webContents.send('main:window-blur');
+    });
+  }
+
   mainWindow.on('close', (e) => {
     e.preventDefault();
     terminalManager.cleanup(mainWindow.webContents);

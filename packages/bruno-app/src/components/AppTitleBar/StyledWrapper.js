@@ -8,6 +8,39 @@ const Wrapper = styled.div`
   border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
   -webkit-app-region: drag;
   user-select: none;
+  position: relative;
+
+  .traffic-light-placeholders {
+    position: absolute;
+    left: 13px;
+    top: 12px;
+    width: 52px;
+    height: 12px;
+    z-index: 1;
+    pointer-events: none;
+    -webkit-app-region: no-drag;
+  }
+
+  .traffic-light {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    top: 0;
+  }
+
+  .traffic-light:nth-child(1) {
+    left: 0;
+  }
+
+  .traffic-light:nth-child(2) {
+    left: 20px;
+  }
+
+  .traffic-light:nth-child(3) {
+    left: 40px;
+  }
 
   .titlebar-content {
     display: flex;
