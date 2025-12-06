@@ -40,7 +40,7 @@ export const ThemeProvider = (props) => {
     if (window.ipcRenderer) {
       window.ipcRenderer.send('renderer:theme-change', storedTheme);
     }
-  }, [storedTheme, setDisplayedTheme, window.matchMedia]);
+  }, [storedTheme]);
 
   // storedTheme can have 3 values: 'light', 'dark', 'system'
   // displayedTheme can have 2 values: 'light', 'dark'
