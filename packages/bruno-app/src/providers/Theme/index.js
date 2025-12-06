@@ -36,6 +36,10 @@ export const ThemeProvider = (props) => {
       setDisplayedTheme(storedTheme);
       root.classList.add(storedTheme);
     }
+
+    if (window.ipcRenderer) {
+      window.ipcRenderer.send('renderer:theme-change', storedTheme);
+    }
   }, [storedTheme, setDisplayedTheme, window.matchMedia]);
 
   // storedTheme can have 3 values: 'light', 'dark', 'system'
