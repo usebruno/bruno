@@ -111,10 +111,12 @@ const HttpRequestPane = ({ item, collection }) => {
     responseVars.filter((response) => response.enabled).length;
 
   useEffect(() => {
-    if (activeParamsLength === 0 && body.mode !== 'none') {
-      selectTab('body');
+    if (!focusedTab || !focusedTab.requestPaneTab) {
+      if (activeParamsLength === 0 && body.mode !== 'none') {
+        selectTab('body');
+      }
     }
-  }, []);
+  }, [activeTabUid]);
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
