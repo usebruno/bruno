@@ -62,7 +62,7 @@ export const runCollection = async (page: Page, collectionName: string) => {
     const locators = buildRunnerLocators(page);
 
     // Check if Reset button is visible (means there are existing results)
-    const resetVisible = await locators.resetButton().isVisible().catch(() => false);
+    const resetVisible = await locators.resetButton().isVisible({ timeout: 1000 }).catch(() => false);
     if (resetVisible) {
       await locators.resetButton().click();
       // Wait for the Run Collection button to become visible after reset

@@ -15,7 +15,7 @@ test.describe('Invalid Insomnia Collection - Missing Collection Array', () => {
 
     await page.setInputFiles('input[type="file"]', insomniaFile);
 
-    const errorLocator = page.getByText(/Unsupported collection format|Failed to parse|Invalid|Error/).first();
+    const errorLocator = page.getByText('Unsupported collection format').first();
     await expect(errorLocator).toBeVisible({ timeout: 10000 });
 
     // Cleanup: close any open modals
