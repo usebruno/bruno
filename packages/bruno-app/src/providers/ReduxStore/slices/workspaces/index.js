@@ -61,9 +61,11 @@ export const workspacesSlice = createSlice({
       const { workspaceUid, collectionLocation } = action.payload;
       const workspace = state.workspaces.find((w) => w.uid === workspaceUid);
       if (workspace?.collections) {
-        // Filter by both path and location since path could be relative or absolute
-        workspace.collections = workspace.collections.filter((c) =>
-          c.path !== collectionLocation && c.location !== collectionLocation);
+        const normalizedLocation = collectionLocation?.replace(/\\/g, '/').replace(/\/+$/, '');
+        workspace.collections = workspace.collections.filter((c) => {
+          const normalizedPath = c.path?.replace(/\\/g, '/').replace(/\/+$/, '');
+          return normalizedPath !== normalizedLocation;
+        });
       }
     },
 

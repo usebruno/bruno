@@ -17,8 +17,9 @@ const Collections = ({ showSearch }) => {
 
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
+    const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
     return collections.filter((c) =>
-      activeWorkspace.collections?.some((wc) => wc.path === c.pathname)
+      activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
     );
   }, [activeWorkspace, collections]);
 

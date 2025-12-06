@@ -38,6 +38,8 @@ const WorkspaceCollections = ({ workspace, onImportCollection }) => {
       });
   };
 
+  const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
+
   const workspaceCollections = React.useMemo(() => {
     if (!workspace.collections || workspace.collections.length === 0) {
       return [];
@@ -46,7 +48,7 @@ const WorkspaceCollections = ({ workspace, onImportCollection }) => {
     const result = [];
 
     workspace.collections.forEach((wc) => {
-      const loadedCollection = collections.find((c) => c.pathname === wc.path);
+      const loadedCollection = collections.find((c) => normalizePath(c.pathname) === normalizePath(wc.path));
 
       if (loadedCollection) {
         result.push({
@@ -146,14 +148,13 @@ const WorkspaceCollections = ({ workspace, onImportCollection }) => {
     if (!collectionToRemove) return;
 
     try {
+      const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
+      const isDelete = collectionInfo.isInternal && !collectionInfo.isGitBacked;
+
       await dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collectionToRemove.pathname));
 
-      const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
-
-      if (collectionInfo.isLoaded && !collectionInfo.isGitBacked) {
+      if (isDelete) {
         toast.success(`Deleted "${collectionToRemove.name}" collection`);
-      } else if (collectionInfo.isGitBacked) {
-        toast.success(`Removed git-backed collection "${collectionToRemove.name}" from workspace`);
       } else {
         toast.success(`Removed "${collectionToRemove.name}" from workspace`);
       }
@@ -165,23 +166,32 @@ const WorkspaceCollections = ({ workspace, onImportCollection }) => {
     }
   };
 
+  const isInternalCollection = (collection) => {
+    if (!workspace.pathname || !collection.pathname) return false;
+    const workspaceCollectionsFolder = normalizePath(`${workspace.pathname}/collections`);
+    const collectionPath = normalizePath(collection.pathname);
+    return collectionPath.startsWith(workspaceCollectionsFolder);
+  };
+
   const getCollectionWorkspaceInfo = (collection) => {
     if (collection.hasOwnProperty('isGitBacked')) {
       return {
         isGitBacked: collection.isGitBacked,
         gitRemoteUrl: collection.gitRemoteUrl,
-        isLoaded: collection.isLoaded !== false
+        isLoaded: collection.isLoaded !== false,
+        isInternal: isInternalCollection(collection)
       };
     }
 
     const workspaceCollection = workspace.collections?.find((wc) => {
-      return collection.pathname === wc.path;
+      return normalizePath(collection.pathname) === normalizePath(wc.path);
     });
 
     return {
       isGitBacked: !!workspaceCollection?.remote,
       gitRemoteUrl: workspaceCollection?.remote,
-      isLoaded: true
+      isLoaded: true,
+      isInternal: isInternalCollection(collection)
     };
   };
 
@@ -222,32 +232,31 @@ const WorkspaceCollections = ({ workspace, onImportCollection }) => {
           />
         )}
 
-        {collectionToRemove && (
-          <Modal
-            size="sm"
-            title="Delete Collection"
-            handleCancel={() => setCollectionToRemove(null)}
-            handleConfirm={confirmRemoveCollection}
-            confirmText="Delete Collection"
-            cancelText="Cancel"
-            style="new"
-          >
-            <p className="text-gray-600 dark:text-gray-300">
-              Are you sure you want to delete <strong>"{collectionToRemove.name}"</strong>?
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-              {(() => {
-                const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
+        {collectionToRemove && (() => {
+          const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
+          const isDelete = collectionInfo.isInternal && !collectionInfo.isGitBacked;
 
-                if (collectionInfo.isGitBacked) {
-                  return 'This will remove the git-backed collection reference from workspace.yml. Local files (if any) will not be deleted.';
-                } else {
-                  return 'This will permanently delete the collection files from the workspace collections folder.';
-                }
-              })()}
-            </p>
-          </Modal>
-        )}
+          return (
+            <Modal
+              size="sm"
+              title={isDelete ? 'Delete Collection' : 'Remove Collection'}
+              handleCancel={() => setCollectionToRemove(null)}
+              handleConfirm={confirmRemoveCollection}
+              confirmText={isDelete ? 'Delete' : 'Remove'}
+              cancelText="Cancel"
+              style="new"
+            >
+              <p className="text-gray-600 dark:text-gray-300">
+                Are you sure you want to {isDelete ? 'delete' : 'remove'} <strong>"{collectionToRemove.name}"</strong>?
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+                {isDelete
+                  ? 'This will permanently delete the collection files from the workspace collections folder.'
+                  : 'This will remove the collection from the workspace. The collection files will not be deleted.'}
+              </p>
+            </Modal>
+          );
+        })()}
 
         <div className="h-full overflow-auto">
           {workspaceCollections.length === 0 ? (

@@ -127,7 +127,12 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
         throw new Error('Workspace not found');
       }
 
-      const collection = collectionsState.collections.find((c) => c.pathname === collectionPath);
+      const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
+      const normalizedCollectionPath = normalizePath(collectionPath);
+
+      const collection = collectionsState.collections.find(
+        (c) => normalizePath(c.pathname) === normalizedCollectionPath
+      );
 
       await ipcRenderer.invoke('renderer:remove-collection-from-workspace',
         workspaceUid,
@@ -135,8 +140,9 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
         collectionPath);
 
       if (collection) {
-        const workspaceCollection = workspace.collections?.find((wc) =>
-          wc.path === collectionPath);
+        const workspaceCollection = workspace.collections?.find(
+          (wc) => normalizePath(wc.path) === normalizedCollectionPath
+        );
 
         if (workspaceCollection) {
           dispatch(removeCollection({ collectionUid: collection.uid }));
@@ -156,20 +162,23 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
 };
 
 const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
+  const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
   const openCollectionsFunction = (collectionPaths, workspaceId) => {
     return dispatch(openMultipleCollections(collectionPaths, { workspaceId }));
   };
 
   try {
-    const workspaceCollections = await dispatch(loadWorkspaceCollections(workspace.uid));
+    await dispatch(loadWorkspaceCollections(workspace.uid));
     const updatedWorkspace = await dispatch((_, getState) => getState().workspaces.workspaces.find((w) => w.uid === workspace.uid));
 
     if (updatedWorkspace?.collections?.length > 0) {
-      const alreadyOpenCollections = await dispatch((_, getState) => getState().collections.collections.map((c) => c.pathname));
+      const alreadyOpenCollections = await dispatch((_, getState) =>
+        getState().collections.collections.map((c) => normalizePath(c.pathname))
+      );
 
       const collectionPaths = updatedWorkspace.collections
         .map((wc) => wc.path)
-        .filter((p) => p && !alreadyOpenCollections.includes(p));
+        .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
       if (collectionPaths.length > 0) {
         await openCollectionsFunction(collectionPaths, updatedWorkspace.pathname);
@@ -222,7 +231,7 @@ export const loadWorkspaceCollections = (workspaceUid, force = false) => {
 
       const hasProcessedCollections = workspace.collections
         && workspace.collections.length > 0
-        && workspace.collections.some((c) => c.path && c.path.startsWith('/'));
+        && workspace.collections.some((c) => c.path && path.isAbsolute(c.path));
 
       if (!force && hasProcessedCollections) {
         return workspace.collections;
@@ -329,6 +338,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
       return;
     }
 
+    const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
     const { collections, ...configWithoutCollections } = workspaceConfig;
 
     dispatch(updateWorkspace({
@@ -342,12 +352,12 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
         await dispatch(loadWorkspaceCollections(workspaceUid, true));
 
         const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
-        const openCollections = getState().collections.collections.map((c) => c.pathname);
+        const openCollections = getState().collections.collections.map((c) => normalizePath(c.pathname));
 
         if (workspace?.collections?.length > 0) {
           const newCollectionPaths = workspace.collections
             .map((workspaceCollection) => workspaceCollection.path)
-            .filter((collectionPath) => collectionPath && !openCollections.includes(collectionPath));
+            .filter((collectionPath) => collectionPath && !openCollections.includes(normalizePath(collectionPath)));
 
           if (newCollectionPaths.length > 0) {
             try {
