@@ -11,7 +11,11 @@ const makeRelativePath = (workspacePath, absolutePath) => {
   }
 
   try {
-    return path.relative(workspacePath, absolutePath);
+    const relativePath = path.relative(workspacePath, absolutePath);
+    if (relativePath.startsWith('..') && relativePath.split(path.sep).filter((s) => s === '..').length > 2) {
+      return absolutePath;
+    }
+    return relativePath;
   } catch (error) {
     return absolutePath;
   }
@@ -196,12 +200,11 @@ const getWorkspaceCollections = (workspacePath) => {
   const config = readWorkspaceConfig(workspacePath);
   const collections = config.collections || [];
 
-  // Resolve relative paths to absolute
   return collections.map((collection) => {
     if (collection.path && !path.isAbsolute(collection.path)) {
       return {
         ...collection,
-        path: path.join(workspacePath, collection.path)
+        path: path.resolve(workspacePath, collection.path)
       };
     }
     return collection;
