@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import Modal from 'components/Modal';
-import { IconDownload, IconLoader2, IconAlertTriangle } from '@tabler/icons';
+import { IconDownload, IconLoader2, IconAlertTriangle, IconFileExport } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import Bruno from 'components/Bruno';
 import exportBrunoCollection from 'utils/collections/export';
 import exportPostmanCollection from 'utils/exporters/postman-collection';
+import exportOpenCollection from 'utils/exporters/opencollection';
 import { cloneDeep } from 'lodash';
 import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
 import { useSelector } from 'react-redux';
@@ -48,6 +49,12 @@ const ShareCollection = ({ onClose, collectionUid }) => {
     onClose();
   };
 
+  const handleExportOpenCollection = () => {
+    const collectionCopy = cloneDeep(collection);
+    exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+    onClose();
+  };
+
   return (
     <Modal
       size="md"
@@ -73,6 +80,27 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             <div className="flex-1">
               <div className="font-medium">Bruno Collection</div>
               <div className="text-xs">{isCollectionLoading ? 'Loading collection...' : 'Export in Bruno format'}</div>
+            </div>
+          </div>
+
+          <div
+            className={`flex border border-gray-200 dark:border-gray-600 items-center p-3 rounded-lg transition-colors ${
+              isCollectionLoading
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
+            }`}
+            onClick={isCollectionLoading ? undefined : handleExportOpenCollection}
+          >
+            <div className="mr-3 p-1 rounded-full">
+              {isCollectionLoading ? (
+                <IconLoader2 size={28} className="animate-spin" />
+              ) : (
+                <IconFileExport size={28} strokeWidth={1} />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="font-medium">OpenCollection</div>
+              <div className="text-xs">{isCollectionLoading ? 'Loading collection...' : 'Export in OpenCollection format'}</div>
             </div>
           </div>
 

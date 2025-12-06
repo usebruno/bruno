@@ -8,6 +8,7 @@ import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { isBrunoCollection } from 'utils/importers/bruno-collection';
+import { isOpenCollection } from 'utils/importers/opencollection';
 import FullscreenLoader from './FullscreenLoader/index';
 
 const convertFileToObject = async (file) => {
@@ -72,6 +73,8 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         type = 'postman';
       } else if (isInsomniaCollection(data)) {
         type = 'insomnia';
+      } else if (isOpenCollection(data)) {
+        type = 'opencollection';
       } else if (isBrunoCollection(data)) {
         type = 'bruno';
       } else {
@@ -159,7 +162,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                 </button>
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, Postman, Insomnia, OpenAPI v3, and WSDL formats
+                Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI v3, and WSDL formats
               </p>
             </div>
           </div>
