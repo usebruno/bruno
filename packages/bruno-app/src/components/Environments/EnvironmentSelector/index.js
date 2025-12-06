@@ -3,7 +3,7 @@ import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
 import { IconWorld, IconDatabase, IconCaretDown, IconSettings, IconPlus, IconDownload } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
+import { updateEnvironmentSettingsModalVisibility, updateGlobalEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import toast from 'react-hot-toast';
@@ -20,8 +20,6 @@ const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const [activeTab, setActiveTab] = useState('collection');
-  const [showGlobalSettings, setShowGlobalSettings] = useState(false);
-  const [showCollectionSettings, setShowCollectionSettings] = useState(false);
   const [showCreateGlobalModal, setShowCreateGlobalModal] = useState(false);
   const [showImportGlobalModal, setShowImportGlobalModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
@@ -29,6 +27,8 @@ const EnvironmentSelector = ({ collection }) => {
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
+  const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
+  const isGlobalEnvironmentSettingsModalOpen = useSelector((state) => state.app.isGlobalEnvironmentSettingsModalOpen);
   const activeGlobalEnvironment = activeGlobalEnvironmentUid
     ? find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid)
     : null;
@@ -79,9 +79,8 @@ const EnvironmentSelector = ({ collection }) => {
   const handleSettingsClick = () => {
     if (activeTab === 'collection') {
       dispatch(updateEnvironmentSettingsModalVisibility(true));
-      setShowCollectionSettings(true);
     } else {
-      setShowGlobalSettings(true);
+      dispatch(updateGlobalEnvironmentSettingsModalVisibility(true));
     }
     dropdownTippyRef.current.hide();
   };
@@ -108,9 +107,8 @@ const EnvironmentSelector = ({ collection }) => {
 
   // Modal handlers
   const handleCloseSettings = () => {
-    setShowGlobalSettings(false);
-    setShowCollectionSettings(false);
     dispatch(updateEnvironmentSettingsModalVisibility(false));
+    dispatch(updateGlobalEnvironmentSettingsModalVisibility(false));
   };
 
   // Calculate dropdown width based on the longest environment name.
@@ -220,7 +218,7 @@ const EnvironmentSelector = ({ collection }) => {
       </div>
 
       {/* Modals - Rendered outside dropdown to avoid conflicts */}
-      {showGlobalSettings && (
+      {isGlobalEnvironmentSettingsModalOpen && (
         <GlobalEnvironmentSettings
           globalEnvironments={globalEnvironments}
           collection={collection}
@@ -229,13 +227,15 @@ const EnvironmentSelector = ({ collection }) => {
         />
       )}
 
-      {showCollectionSettings && <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />}
+      {isEnvironmentSettingsModalOpen && (
+        <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />
+      )}
 
       {showCreateGlobalModal && (
         <CreateGlobalEnvironment
           onClose={() => setShowCreateGlobalModal(false)}
           onEnvironmentCreated={() => {
-            setShowGlobalSettings(true);
+            dispatch(updateGlobalEnvironmentSettingsModalVisibility(true));
           }}
         />
       )}
@@ -245,7 +245,7 @@ const EnvironmentSelector = ({ collection }) => {
           type="global"
           onClose={() => setShowImportGlobalModal(false)}
           onEnvironmentCreated={() => {
-            setShowGlobalSettings(true);
+            dispatch(updateGlobalEnvironmentSettingsModalVisibility(true));
           }}
         />
       )}
@@ -255,7 +255,7 @@ const EnvironmentSelector = ({ collection }) => {
           collection={collection}
           onClose={() => setShowCreateCollectionModal(false)}
           onEnvironmentCreated={() => {
-            setShowCollectionSettings(true);
+            dispatch(updateEnvironmentSettingsModalVisibility(true));
           }}
         />
       )}
@@ -266,7 +266,7 @@ const EnvironmentSelector = ({ collection }) => {
           collection={collection}
           onClose={() => setShowImportCollectionModal(false)}
           onEnvironmentCreated={() => {
-            setShowCollectionSettings(true);
+            dispatch(updateEnvironmentSettingsModalVisibility(true));
           }}
         />
       )}

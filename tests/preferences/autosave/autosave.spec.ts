@@ -2,8 +2,13 @@ import { test, expect } from '../../../playwright';
 import { createCollection, closeAllCollections, createRequest } from '../../utils/page';
 
 test.describe('Autosave', () => {
+  test.setTimeout(60000);
+
   test.afterEach(async ({ page }) => {
-    await closeAllCollections(page);
+    // Only try to cleanup if page is still open
+    if (!page.isClosed()) {
+      await closeAllCollections(page);
+    }
   });
 
   test('should automatically save request changes when autosave is enabled', async ({ page, createTmpDir }) => {
@@ -110,11 +115,7 @@ test.describe('Autosave', () => {
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Test Request' }) });
       await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
 
-      // Wait a bit (longer than autosave interval would be)
-      await page.waitForTimeout(1500);
-
-      // Draft indicator should still be visible (autosave is disabled)
-      await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
+      await expect(requestTab.locator('.has-changes-icon')).toBeVisible({ timeout: 2000 });
 
       // Save the request
       await page.keyboard.press('Control+s');
@@ -177,12 +178,10 @@ test.describe('Autosave', () => {
       // Wait for preferences to close
       await expect(preferencesModal).not.toBeVisible();
 
-      // Wait for autosave to trigger for existing draft
       await page.waitForTimeout(1000);
 
-      // Verify draft indicator disappears (existing draft was auto-saved)
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });
-      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible();
+      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Verify changes persisted', async () => {

@@ -21,19 +21,24 @@ test.describe('Import Bruno Collection with Examples', () => {
       await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     });
 
-    await test.step('Upload collection file', async () => {
+    await test.step('Upload collection file and verify location modal appears', async () => {
       await page.setInputFiles('input[type="file"]', brunoFile);
-    });
 
-    await test.step('Verify no parsing errors occurred', async () => {
-      const hasError = await page.getByText('Failed to parse the file').isVisible().catch(() => false);
-      if (hasError) {
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      const errorMessage = page.getByText('Failed to parse the file');
+
+      const result = await Promise.race([
+        locationModal.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'success'),
+        errorMessage.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'error')
+      ]).catch(() => 'timeout');
+
+      if (result === 'error') {
         throw new Error('Collection import failed with parsing error');
       }
-    });
+      if (result === 'timeout') {
+        throw new Error('Import timed out - neither success nor error state was reached');
+      }
 
-    await test.step('Verify location selection modal appears', async () => {
-      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     });
 

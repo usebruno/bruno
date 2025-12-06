@@ -373,7 +373,7 @@ const ClientCertSettings = ({ collection }) => {
           ) : null}
         </div>
         <div className="mt-6 flex flex-row gap-2 items-center">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
+          <button type="submit" className="submit btn btn-sm btn-secondary" data-testid="add-client-cert">
             Add
           </button>
           <div className="h-4 border-l border-gray-600"></div>

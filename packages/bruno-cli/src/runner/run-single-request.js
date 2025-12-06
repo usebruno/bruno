@@ -591,6 +591,21 @@ const runSingleRequest = async function (
     // Log pre-request test results
     logResults(preRequestTestResults, 'Pre-Request Tests');
 
+    // run post-response vars
+    const postResponseVars = get(item, 'request.vars.res');
+    if (postResponseVars?.length) {
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
+      varsRuntime.runPostResponseVars(
+        postResponseVars,
+        request,
+        response,
+        envVariables,
+        runtimeVariables,
+        collectionPath,
+        processEnvVars
+      );
+    }
+
     // run post response script
     const responseScriptFile = get(request, 'script.res');
     if (responseScriptFile?.length) {

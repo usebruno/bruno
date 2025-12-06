@@ -5,7 +5,7 @@ const Wrapper = styled.div`
     height: 1.75rem;
     cursor: pointer;
     user-select: none;
-    padding-left: 8px;
+    padding-left: 4px;
     border: ${(props) => props.theme.dragAndDrop.borderStyle} transparent;
 
     .rotate-90 {

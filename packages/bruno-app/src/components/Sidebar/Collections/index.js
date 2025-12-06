@@ -5,6 +5,7 @@ import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
+import { useMemo } from 'react';
 
 const Collections = ({ showSearch }) => {
   const [searchText, setSearchText] = useState('');
@@ -14,13 +15,12 @@ const Collections = ({ showSearch }) => {
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
 
-  let workspaceCollections = [];
-
-  if (activeWorkspace?.collections?.length) {
-    workspaceCollections = activeWorkspace.collections.map((wc) => {
-      return collections.find((c) => c.pathname === wc.path);
-    }).filter(Boolean);
-  }
+  const workspaceCollections = useMemo(() => {
+    if (!activeWorkspace) return [];
+    return collections.filter((c) =>
+      activeWorkspace.collections?.some((wc) => wc.path === c.pathname)
+    );
+  }, [activeWorkspace, collections]);
 
   if (!workspaceCollections || !workspaceCollections.length) {
     return (
@@ -42,7 +42,7 @@ const Collections = ({ showSearch }) => {
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
-      <div className={`mt-4 flex flex-col overflow-hidden hover:overflow-y-auto absolute ${showSearch ? 'top-16' : 'top-8'} bottom-0 left-0 right-0`}>
+      <div className="collections-list flex flex-col flex-1 overflow-hidden hover:overflow-y-auto">
         {workspaceCollections && workspaceCollections.length
           ? workspaceCollections.map((c) => {
               return (
