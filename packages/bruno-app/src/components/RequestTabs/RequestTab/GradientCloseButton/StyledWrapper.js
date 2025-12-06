@@ -1,6 +1,11 @@
 import styled from 'styled-components';
 
-const StyledWrapper = styled.div`
+const StyledWrapper = styled.div.attrs((props) => ({
+  style: {
+    '--gradient-color': props.theme.requestTabs.bg,
+    '--gradient-color-active': props.theme.bg
+  }
+}))`
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -12,10 +17,10 @@ const StyledWrapper = styled.div`
   padding-right: 4px;
   z-index: 3;
   
-  background: linear-gradient(
+  background-image: linear-gradient(
     90deg,
     transparent 0%,
-    ${(props) => props.theme.requestTabs.bg} 40%
+    var(--gradient-color) 40%
   );
   
   opacity: 0;
@@ -23,10 +28,10 @@ const StyledWrapper = styled.div`
   transition: opacity 0.15s ease;
 
   li.active & {
-    background: linear-gradient(
+    background-image: linear-gradient(
       90deg,
       transparent 0%,
-      ${(props) => props.theme.bg || '#ffffff'} 40%
+      var(--gradient-color-active) 40%
     );
   }
 
@@ -40,8 +45,8 @@ const StyledWrapper = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.12s ease;

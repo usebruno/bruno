@@ -83,14 +83,14 @@ const Wrapper = styled.div`
       &.has-overflow:not(:hover) .tab-name {
         mask-image: linear-gradient(
           to right,
-          black 0%,
-          black calc(100% - 24px),
+          ${(props) => props.theme.requestTabs.color} 0%,
+          ${(props) => props.theme.requestTabs.color} calc(100% - 24px),
           transparent 100%
         );
         -webkit-mask-image: linear-gradient(
           to right,
-          black 0%,
-          black calc(100% - 24px),
+          ${(props) => props.theme.requestTabs.color} 0%,
+          ${(props) => props.theme.requestTabs.color} calc(100% - 24px),
           transparent 100%
         );
       }
@@ -98,14 +98,14 @@ const Wrapper = styled.div`
       &.has-overflow:hover .tab-name {
         mask-image: linear-gradient(
           to right,
-          black 0%,
-          black calc(100% - 8px),
+          ${(props) => props.theme.requestTabs.color} 0%,
+          ${(props) => props.theme.requestTabs.color} calc(100% - 8px),
           transparent 100%
         );
         -webkit-mask-image: linear-gradient(
           to right,
-          black 0%,
-          black calc(100% - 8px),
+          ${(props) => props.theme.requestTabs.color} 0%,
+          ${(props) => props.theme.requestTabs.color} calc(100% - 8px),
           transparent 100%
         );
       }
