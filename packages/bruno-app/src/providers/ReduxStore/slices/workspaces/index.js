@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { normalizePath } from 'utils/common/path';
 
 const DEFAULT_WORKSPACE_UID = 'default';
 
@@ -61,9 +62,9 @@ export const workspacesSlice = createSlice({
       const { workspaceUid, collectionLocation } = action.payload;
       const workspace = state.workspaces.find((w) => w.uid === workspaceUid);
       if (workspace?.collections) {
-        const normalizedLocation = collectionLocation?.replace(/\\/g, '/').replace(/\/+$/, '');
+        const normalizedLocation = normalizePath(collectionLocation);
         workspace.collections = workspace.collections.filter((c) => {
-          const normalizedPath = c.path?.replace(/\\/g, '/').replace(/\/+$/, '');
+          const normalizedPath = normalizePath(c.path);
           return normalizedPath !== normalizedLocation;
         });
       }
