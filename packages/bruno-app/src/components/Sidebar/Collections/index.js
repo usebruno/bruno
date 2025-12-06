@@ -6,6 +6,7 @@ import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import { useMemo } from 'react';
+import { normalizePath } from 'utils/common/path';
 
 const Collections = ({ showSearch }) => {
   const [searchText, setSearchText] = useState('');
@@ -17,7 +18,6 @@ const Collections = ({ showSearch }) => {
 
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
-    const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
     return collections.filter((c) =>
       activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
     );

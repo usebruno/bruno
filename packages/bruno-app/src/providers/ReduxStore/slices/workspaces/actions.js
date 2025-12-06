@@ -12,6 +12,7 @@ import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
 import { removeCollection } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
+import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -127,7 +128,6 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
         throw new Error('Workspace not found');
       }
 
-      const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
       const normalizedCollectionPath = normalizePath(collectionPath);
 
       const collection = collectionsState.collections.find(
@@ -162,7 +162,6 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
 };
 
 const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
-  const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
   const openCollectionsFunction = (collectionPaths, workspaceId) => {
     return dispatch(openMultipleCollections(collectionPaths, { workspaceId }));
   };
@@ -338,7 +337,6 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
       return;
     }
 
-    const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
     const { collections, ...configWithoutCollections } = workspaceConfig;
 
     dispatch(updateWorkspace({

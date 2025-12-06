@@ -12,6 +12,7 @@ import RenameCollection from 'components/Sidebar/Collections/Collection/RenameCo
 import ShareCollection from 'components/ShareCollection';
 import StyledWrapper from './StyledWrapper';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { normalizePath } from 'utils/common/path';
 
 const WorkspaceCollections = ({ workspace, onImportCollection }) => {
   const dispatch = useDispatch();
@@ -37,8 +38,6 @@ const WorkspaceCollections = ({ workspace, onImportCollection }) => {
         toast.error('An error occurred while importing the collection');
       });
   };
-
-  const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
 
   const workspaceCollections = React.useMemo(() => {
     if (!workspace.collections || workspace.collections.length === 0) {

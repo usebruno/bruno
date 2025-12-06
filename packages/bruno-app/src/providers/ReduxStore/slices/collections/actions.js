@@ -7,7 +7,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
@@ -2285,7 +2285,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
 
           const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
           if (activeWorkspace) {
-            const normalizePath = (p) => p?.replace(/\\/g, '/').replace(/\/+$/, '');
             const isAlreadyInWorkspace = activeWorkspace.collections?.some(
               (c) => normalizePath(c.path) === normalizePath(pathname)
             );
