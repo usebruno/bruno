@@ -67,6 +67,7 @@ Remember, these rules are here to make our codebase harmonious. If something doe
 - Use styled component's theme prop to manage CSS colors and not CSS variables when in the context of a styled component or any react component using the styled component 
 - Styled Components are used as wrappers to define both self and children components style, tailwind classes are used specifically for layout based styles. 
 - Styled Component CSS might also change layout but tailwind classes shouldn't define colors. 
+- `data-testid` is preferred for when being used in tests with playwright and jsdom accessors.
 
 ## Readability and Abstractions
 
