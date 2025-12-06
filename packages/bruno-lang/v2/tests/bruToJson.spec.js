@@ -175,5 +175,33 @@ vars:pre-request {
       const output = parser(input);
       expect(output).toEqual(expected);
     });
+
+    it('parses multiline body parts with content type annotation', () => {
+      const input = `
+body:multipart-form {
+  filePart: '''
+    Line1
+    Line2
+  ''' @contentType(text/plain)
+}
+`;
+
+      const expected = {
+        body: {
+          multipartForm: [
+            {
+              name: 'filePart',
+              value: 'Line1\nLine2',
+              enabled: true,
+              type: 'text',
+              contentType: 'text/plain'
+            }
+          ]
+        }
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(expected);
+    });
   });
 });

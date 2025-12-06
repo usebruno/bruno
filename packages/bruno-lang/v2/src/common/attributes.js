@@ -11,6 +11,10 @@ const astBaseAttribute = {
   },
   pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
+    if (Array.isArray(value.ast)) {
+      res[key.ast] = value.ast;
+      return res;
+    }
     res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
@@ -21,33 +25,6 @@ const astBaseAttribute = {
     return (disabled ? disabled.sourceString : '') + chars.ast.join('');
   },
   key(chars) {
-    return chars.sourceString ? chars.sourceString.trim() : '';
-  },
-  value(chars) {
-    if (chars.ctorName === 'list') {
-      return chars.ast;
-    }
-    try {
-      let isBacktickMultiline = chars.sourceString?.startsWith('```') && chars.sourceString?.endsWith('```');
-      if (isBacktickMultiline) {
-        const multilineString = chars.sourceString?.replace(/^```|```$/g, '');
-        return multilineString
-          .split('\n')
-          .map((line) => line.slice(4))
-          .join('\n');
-      }
-      let isQuoteMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
-      if (isQuoteMultiline) {
-        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
-        return multilineString
-          .split('\n')
-          .map((line) => line.slice(4))
-          .join('\n');
-      }
-      return chars.sourceString ? chars.sourceString.trim() : '';
-    } catch (err) {
-      console.error(err);
-    }
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   textblock(line, _1, rest) {
@@ -74,8 +51,19 @@ const astBaseAttribute = {
   multilinetextblockdelimiter(_) {
     return '';
   },
-  multilinetextblock(_1, content, _2) {
-    return content.sourceString.trim();
+  multilinetextblock(_1, content, _2, _3, contentType) {
+    const multilineString = content.sourceString
+      .split('\n')
+      .map((line) => line.slice(4))
+      .join('\n');
+
+    if (!contentType.sourceString) {
+      return multilineString;
+    }
+    return `${multilineString} ${contentType.sourceString}`;
+  },
+  singlelinevalue(chars) {
+    return chars.sourceString?.trim() || '';
   },
   _iter(...elements) {
     return elements.map((e) => e.ast);

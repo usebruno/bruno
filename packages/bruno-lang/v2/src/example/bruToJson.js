@@ -25,7 +25,8 @@ const exampleGrammar = ohm.grammar(`Example {
 
   // Multiline text block surrounded by '''
   multilinetextblockdelimiter = "'''"
-  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter st* contenttypeannotation?
+  contenttypeannotation = "@contentType(" (~")" any)* ")"
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
@@ -38,7 +39,8 @@ const exampleGrammar = ohm.grammar(`Example {
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = multilinetextblock | valuechar*
+  value = list | multilinetextblock | singlelinevalue
+  singlelinevalue = valuechar*
 
   // List
   list = st* "[" nl+ listitems? st* nl+ st* "]"
