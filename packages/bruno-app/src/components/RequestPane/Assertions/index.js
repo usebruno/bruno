@@ -1,122 +1,157 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
-import { addAssertion, updateAssertion, deleteAssertion } from 'providers/ReduxStore/slices/collections';
+import { useTheme } from 'providers/Theme';
+import { moveAssertion, setRequestAssertions } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import AssertionRow from './AssertionRow';
+import SingleLineEditor from 'components/SingleLineEditor';
+import AssertionOperator from './AssertionOperator';
+import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import Table from 'components/Table/index';
-import ReorderTable from 'components/ReorderTable/index';
-import { moveAssertion } from 'providers/ReduxStore/slices/collections/index';
+
+const unaryOperators = [
+  'isEmpty',
+  'isNotEmpty',
+  'isNull',
+  'isUndefined',
+  'isDefined',
+  'isTruthy',
+  'isFalsy',
+  'isJson',
+  'isNumber',
+  'isString',
+  'isBoolean',
+  'isArray'
+];
+
+const parseAssertionOperator = (str = '') => {
+  if (!str || typeof str !== 'string' || !str.length) {
+    return { operator: 'eq', value: str };
+  }
+
+  const operators = [
+    'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn',
+    'contains', 'notContains', 'length', 'matches', 'notMatches',
+    'startsWith', 'endsWith', 'between', ...unaryOperators
+  ];
+
+  const [operator, ...rest] = str.split(' ');
+  const value = rest.join(' ');
+
+  if (unaryOperators.includes(operator)) {
+    return { operator, value: '' };
+  }
+
+  if (operators.includes(operator)) {
+    return { operator, value };
+  }
+
+  return { operator: 'eq', value: str };
+};
+
+const isUnaryOperator = (operator) => unaryOperators.includes(operator);
 
 const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
   const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
-
-  const handleAddAssertion = () => {
-    dispatch(
-      addAssertion({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
-  };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleAssertionChange = (e, _assertion, type) => {
-    const assertion = cloneDeep(_assertion);
-    switch (type) {
-      case 'name': {
-        assertion.name = e.target.value;
-        break;
+
+  const handleAssertionsChange = useCallback((updatedAssertions) => {
+    dispatch(setRequestAssertions({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      assertions: updatedAssertions
+    }));
+  }, [dispatch, collection.uid, item.uid]);
+
+  const handleAssertionDrag = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveAssertion({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      updateReorderedItem
+    }));
+  }, [dispatch, collection.uid, item.uid]);
+
+  const columns = [
+    {
+      key: 'name',
+      name: 'Expr',
+      isKeyField: true,
+      placeholder: 'Expr',
+      width: '30%'
+    },
+    {
+      key: 'operator',
+      name: 'Operator',
+      width: '120px',
+      render: ({ row, value, onChange, isLastEmptyRow }) => {
+        const { operator } = parseAssertionOperator(row.value);
+        const assertionValue = parseAssertionOperator(row.value).value;
+
+        const handleOperatorChange = (newOperator) => {
+          if (isUnaryOperator(newOperator)) {
+            onChange(newOperator);
+          } else {
+            onChange(`${newOperator} ${assertionValue}`);
+          }
+        };
+
+        return (
+          <AssertionOperator
+            operator={operator}
+            onChange={handleOperatorChange}
+          />
+        );
       }
-      case 'value': {
-        assertion.value = e.target.value;
-        break;
-      }
-      case 'enabled': {
-        assertion.enabled = e.target.checked;
-        break;
+    },
+    {
+      key: 'value',
+      name: 'Value',
+      width: '30%',
+      render: ({ row, value, onChange, isLastEmptyRow }) => {
+        const { operator, value: assertionValue } = parseAssertionOperator(value);
+
+        if (isUnaryOperator(operator)) {
+          return <input type="text" className="cursor-default" disabled />;
+        }
+
+        return (
+          <SingleLineEditor
+            value={assertionValue}
+            theme={storedTheme}
+            onSave={onSave}
+            onChange={(newValue) => onChange(`${operator} ${newValue}`)}
+            onRun={handleRun}
+            collection={collection}
+            item={item}
+            placeholder={isLastEmptyRow ? 'Value' : ''}
+          />
+        );
       }
     }
-    dispatch(
-      updateAssertion({
-        assertion: assertion,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
-  };
+  ];
 
-  const handleRemoveAssertion = (assertion) => {
-    dispatch(
-      deleteAssertion({
-        assertUid: assertion.uid,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
-  };
-
-  const handleAssertionDrag = ({ updateReorderedItem }) => {
-    dispatch(
-      moveAssertion({
-        collectionUid: collection.uid,
-        itemUid: item.uid,
-        updateReorderedItem
-      })
-    );
+  const defaultRow = {
+    name: '',
+    value: 'eq ',
+    operator: 'eq'
   };
 
   return (
     <StyledWrapper className="w-full">
-      <Table
-        headers={[
-          { name: 'Expr', accessor: 'expr', width: '30%' },
-          { name: 'Operator', accessor: 'operator', width: '120px' },
-          { name: 'Value', accessor: 'value', width: '30%' },
-          { name: '', accessor: '', width: '15%' }
-        ]}
-      >
-        <ReorderTable updateReorderedItem={handleAssertionDrag}>
-          {assertions && assertions.length
-            ? assertions.map((assertion) => {
-                return (
-                  <tr key={assertion.uid} data-uid={assertion.uid}>
-                    <td className="flex relative">
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={assertion.name}
-                        className="mousetrap"
-                        onChange={(e) => handleAssertionChange(e, assertion, 'name')}
-                      />
-                    </td>
-                    <AssertionRow
-                      key={assertion.uid}
-                      assertion={assertion}
-                      item={item}
-                      collection={collection}
-                      handleAssertionChange={handleAssertionChange}
-                      handleRemoveAssertion={handleRemoveAssertion}
-                      onSave={onSave}
-                      handleRun={handleRun}
-                    />
-                  </tr>
-                );
-              })
-            : null}
-        </ReorderTable>
-      </Table>
-      <button className="btn-add-assertion text-link pr-2 py-3 mt-2 select-none" onClick={handleAddAssertion}>
-        + Add Assertion
-      </button>
+      <EditableTable
+        columns={columns}
+        rows={assertions || []}
+        onChange={handleAssertionsChange}
+        defaultRow={defaultRow}
+        reorderable={true}
+        onReorder={handleAssertionDrag}
+      />
     </StyledWrapper>
   );
 };
+
 export default Assertions;
