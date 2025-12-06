@@ -91,23 +91,6 @@ const RequestTabs = () => {
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
   const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
 
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (tabsRef.current && scrollContainerRef.current) {
-        const hasOverflow = tabsRef.current.scrollWidth > scrollContainerRef.current.clientWidth;
-        setShowChevrons(hasOverflow);
-      }
-    };
-
-    checkOverflow();
-    const resizeObserver = new ResizeObserver(checkOverflow);
-    if (scrollContainerRef.current) {
-      resizeObserver.observe(scrollContainerRef.current);
-    }
-
-    return () => resizeObserver.disconnect();
-  }, [collectionRequestTabs.length, screenWidth, leftSidebarWidth, sidebarCollapsed]);
-
   const leftSlide = () => {
     scrollContainerRef.current?.scrollBy({
       left: -120,
