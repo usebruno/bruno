@@ -21,7 +21,7 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection, collapseFullCollection, setSelectedCollections, toggleCollectionSelection, clearCollectionSelection, setLastClickedCollectionIndex } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
@@ -45,7 +45,7 @@ import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPr
 import { sortByNameThenSequence } from 'utils/common/index';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
-const Collection = ({ collection, searchText }) => {
+const Collection = ({ collection, searchText, collectionIndex, allCollections }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
@@ -60,6 +60,9 @@ const Collection = ({ collection, searchText }) => {
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
+  const selectedCollections = useSelector((state) => state.collections.selectedCollections);
+  const lastClickedIndex = useSelector((state) => state.collections.lastClickedCollectionIndex);
+  const isSelected = selectedCollections.includes(collection.uid);
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
   const MenuIcon = forwardRef((_props, ref) => {
@@ -100,8 +103,40 @@ const Collection = ({ collection, searchText }) => {
 
   const handleClick = (event) => {
     if (event.detail != 1) return;
+
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
+
+    const isMac = navigator.userAgent?.includes('Mac');
+    const isModifierPressed = isMac ? event.metaKey : event.ctrlKey;
+    const isShiftPressed = event.shiftKey;
+
+    if (isModifierPressed && collectionIndex !== undefined) {
+      event.preventDefault();
+      event.stopPropagation();
+      dispatch(toggleCollectionSelection({ collectionUid: collection.uid }));
+      dispatch(setLastClickedCollectionIndex(collectionIndex));
+      return;
+    } else if (isShiftPressed && allCollections && collectionIndex !== undefined) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const startIndex = lastClickedIndex !== null ? lastClickedIndex : 0;
+      const start = Math.min(startIndex, collectionIndex);
+      const end = Math.max(startIndex, collectionIndex);
+      const rangeCollections = allCollections.slice(start, end + 1).map((c) => c.uid);
+
+      dispatch(setSelectedCollections(rangeCollections));
+      return;
+    } else {
+      if (selectedCollections.length > 0) {
+        dispatch(clearCollectionSelection());
+      }
+      if (collectionIndex !== undefined) {
+        dispatch(setLastClickedCollectionIndex(collectionIndex));
+      }
+    }
+
     setTimeout(scrollToTheActiveTab, 50);
 
     ensureCollectionIsMounted();
@@ -254,7 +289,8 @@ const Collection = ({ collection, searchText }) => {
     'item-hovered': isOver && dropType === 'adjacent', // For collection-to-collection moves (show line)
     'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
     'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
-    'collection-keyboard-focused': isKeyboardFocused
+    'collection-keyboard-focused': isKeyboardFocused,
+    'collection-selected': isSelected
   });
 
   // we need to sort request items by seq property
