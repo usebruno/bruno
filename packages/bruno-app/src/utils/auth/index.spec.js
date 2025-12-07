@@ -76,4 +76,23 @@ describe('auth-utils.resolveInheritedAuth', () => {
     expect(resolved.auth.mode).toBe('basic');
     expect(resolved.auth.basic.username).toBe('override');
   });
+
+  it('should preserve resolved auth for code generation (regression test)', () => {
+    // This test ensures the resolved auth is suitable for code generation
+    // and that mode is NOT 'inherit' after resolution
+    const collection = buildCollection();
+    const item = collection.items[0].items[0]; // r1 with mode: 'inherit'
+
+    const resolved = resolveInheritedAuth(item, collection);
+
+    // Critical: mode should NOT be 'inherit' after resolution
+    expect(resolved.auth.mode).not.toBe('inherit');
+    expect(resolved.auth.mode).toBe('basic');
+
+    // Ensure credentials are present for header generation
+    expect(resolved.auth.basic).toBeDefined();
+    expect(resolved.auth.basic.username).toBe('user');
+    expect(resolved.auth.basic.password).toBe('pass');
+  });
 });
+

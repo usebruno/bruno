@@ -111,11 +111,14 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   const resolvedRequest = resolveInheritedAuth(item, collection);
 
   // Create the final item for code generation
+  // IMPORTANT: ensure resolved auth is preserved (resolvedRequest.auth)
   const finalItem = {
     ...item,
     request: {
-      ...resolvedRequest,
       ...requestData.request,
+      ...resolvedRequest,
+      // Explicitly prefer resolved auth (defensive)
+      auth: resolvedRequest.auth || requestData.request.auth || { mode: 'none' },
       url: finalUrl
     }
   };
