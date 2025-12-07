@@ -22,8 +22,8 @@
     "paths": {
       "@usebruno/schema-types": ["packages/bruno-schema-types/dist/index.d.ts"],
       "@usebruno/schema-types/*": ["packages/bruno-schema-types/dist/*"],
-      "@opencollection/types": ["node_modules/@opencollection/types/dist/opencollection.d.ts"],
-      "@opencollection/types/*": ["node_modules/@opencollection/types/dist/*"]
+      "@opencollection/types": ["packages/bruno-filestore/node_modules/@opencollection/types/dist/opencollection.d.ts"],
+      "@opencollection/types/*": ["packages/bruno-filestore/node_modules/@opencollection/types/dist/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.d.ts"],

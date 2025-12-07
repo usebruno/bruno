@@ -1,14 +1,14 @@
 import type { Item as BrunoItem, HttpItemSettings as BrunoHttpItemSettings } from '@usebruno/schema-types/collection/item';
 import type { HttpRequest as BrunoHttpRequest } from '@usebruno/schema-types/requests/http';
-import type { HttpRequest, HttpRequestSettings, HttpRequestExample } from '@opencollection/types/requests/http';
+import type { HttpRequest, HttpRequestSettings, HttpRequestExample, HttpRequestInfo, HttpRequestDetails, HttpRequestRuntime, HttpRequestHeader } from '@opencollection/types/requests/http';
 import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Assertion } from '@opencollection/types/common/assertions';
-import type { HttpRequestParam, HttpHeader, HttpRequestBody } from '@opencollection/types/requests/http';
+import type { HttpRequestParam, HttpRequestBody } from '@opencollection/types/requests/http';
 import { stringifyYml } from '../utils';
 import { toOpenCollectionAuth } from '../common/auth';
-import { toOpenCollectionHttpHeaders } from '../common/headers';
+import { toOpenCollectionHttpHeaders, toOpenCollectionResponseHeaders } from '../common/headers';
 import { toOpenCollectionParams } from '../common/params';
 import { toOpenCollectionBody } from '../common/body';
 import { toOpenCollectionVariables } from '../common/variables';
@@ -18,114 +18,118 @@ import { isNumber, isNonEmptyString } from '../../../utils';
 
 const stringifyHttpRequest = (item: BrunoItem): string => {
   try {
-    const ocRequest: HttpRequest = {
+    const ocRequest: HttpRequest = {};
+    const brunoRequest = item.request as BrunoHttpRequest;
+
+    // info block
+    const info: HttpRequestInfo = {
+      name: isNonEmptyString(item.name) ? item.name : 'Untitled Request',
       type: 'http'
     };
-
-    ocRequest.name = isNonEmptyString(item.name) ? item.name : 'Untitled Request';
-
-    // sequence
     if (item.seq) {
-      ocRequest.seq = item.seq;
+      info.seq = item.seq;
     }
+    if (item.tags?.length) {
+      info.tags = item.tags;
+    }
+    ocRequest.info = info;
 
-    const brunoRequest = item.request as BrunoHttpRequest;
-    // url and method
-    ocRequest.url = isNonEmptyString(brunoRequest.url) ? brunoRequest.url : '';
-    ocRequest.method = isNonEmptyString(brunoRequest.method) ? brunoRequest.method : 'GET';
+    // http block
+    const http: HttpRequestDetails = {
+      method: isNonEmptyString(brunoRequest.method) ? brunoRequest.method : 'GET',
+      url: isNonEmptyString(brunoRequest.url) ? brunoRequest.url : ''
+    };
 
     // headers
-    const headers: HttpHeader[] | undefined = toOpenCollectionHttpHeaders(brunoRequest.headers);
+    const headers: HttpRequestHeader[] | undefined = toOpenCollectionHttpHeaders(brunoRequest.headers);
     if (headers) {
-      ocRequest.headers = headers;
+      http.headers = headers;
     }
 
     // params
     const params: HttpRequestParam[] | undefined = toOpenCollectionParams(brunoRequest.params);
     if (params) {
-      ocRequest.params = params;
+      http.params = params;
     }
 
     // body
     const body: HttpRequestBody | undefined = toOpenCollectionBody(brunoRequest.body);
     if (body) {
-      ocRequest.body = body;
+      http.body = body;
     }
 
-    // auth
-    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
-    if (auth) {
-      ocRequest.auth = auth;
+    ocRequest.http = http;
+
+    // runtime block
+    const runtime: HttpRequestRuntime = {};
+    let hasRuntime = false;
+
+    // variables
+    const variables: Variable[] | undefined = toOpenCollectionVariables(brunoRequest.vars);
+    if (variables) {
+      runtime.variables = variables;
+      hasRuntime = true;
     }
 
     // scripts
     const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
     if (scripts) {
-      ocRequest.scripts = scripts;
-    }
-
-    // variables
-    const variables: Variable[] | undefined = toOpenCollectionVariables(brunoRequest.vars);
-    if (variables) {
-      ocRequest.variables = variables;
+      runtime.scripts = scripts;
+      hasRuntime = true;
     }
 
     // assertions
     const assertions: Assertion[] | undefined = toOpenCollectionAssertions(brunoRequest.assertions);
     if (assertions) {
-      ocRequest.assertions = assertions;
+      runtime.assertions = assertions;
+      hasRuntime = true;
     }
 
-    // docs
-    if (isNonEmptyString(brunoRequest.docs)) {
-      ocRequest.docs = brunoRequest.docs;
+    // auth
+    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
+    if (auth) {
+      runtime.auth = auth;
+      hasRuntime = true;
+    }
+
+    if (hasRuntime) {
+      ocRequest.runtime = runtime;
     }
 
     // settings
     const httpSettings = item.settings as BrunoHttpItemSettings | undefined;
-    ocRequest.settings = {} as HttpRequestSettings;
+    const settings: HttpRequestSettings = {};
     if (httpSettings?.encodeUrl === true) {
-      ocRequest.settings.encodeUrl = true;
+      settings.encodeUrl = true;
     } else if (httpSettings?.encodeUrl === false) {
-      ocRequest.settings.encodeUrl = false;
+      settings.encodeUrl = false;
     } else {
-      // todo: we are defaulting to true for now as bruno config does not yet support inherit for encodeUrl
-      // update this when bruno config supports inherit for encodeUrl
-      ocRequest.settings.encodeUrl = true;
+      settings.encodeUrl = true;
     }
 
     const timeout = httpSettings?.timeout;
     if (isNumber(timeout)) {
-      ocRequest.settings.timeout = timeout;
+      settings.timeout = timeout;
     } else {
-      // todo: we are defaulting to 0 for now as bruno config does not yet support inherit for timeout
-      // update this when bruno config supports inherit for timeout
-      ocRequest.settings.timeout = 0;
+      settings.timeout = 0;
     }
 
     if (httpSettings?.followRedirects === true) {
-      ocRequest.settings.followRedirects = true;
+      settings.followRedirects = true;
     } else if (httpSettings?.followRedirects === false) {
-      ocRequest.settings.followRedirects = false;
+      settings.followRedirects = false;
     } else {
-      // todo: we are defaulting to true for now as bruno config does not yet support inherit for followRedirects
-      // update this when bruno config supports inherit for followRedirects
-      ocRequest.settings.followRedirects = true;
+      settings.followRedirects = true;
     }
 
     const maxRedirects = httpSettings?.maxRedirects;
     if (isNumber(maxRedirects)) {
-      ocRequest.settings.maxRedirects = maxRedirects;
+      settings.maxRedirects = maxRedirects;
     } else {
-      // todo: we are defaulting to 5 for now as bruno config does not yet support inherit for maxRedirects
-      // update this when bruno config supports inherit for maxRedirects
-      ocRequest.settings.maxRedirects = 5;
+      settings.maxRedirects = 5;
     }
 
-    // tags
-    if (item.tags?.length) {
-      ocRequest.tags = item.tags;
-    }
+    ocRequest.settings = settings;
 
     // examples
     if (item.examples?.length) {
@@ -169,7 +173,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
             ocExample.response.statusText = example.response.statusText;
           }
 
-          const responseHeaders = toOpenCollectionHttpHeaders(example.response.headers);
+          const responseHeaders = toOpenCollectionResponseHeaders(example.response.headers);
           if (responseHeaders) {
             ocExample.response.headers = responseHeaders;
           }
@@ -185,10 +189,14 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
         return ocExample;
       });
 
-      // examples
       if (examples?.length) {
         ocRequest.examples = examples;
       }
+    }
+
+    // docs
+    if (isNonEmptyString(brunoRequest.docs)) {
+      ocRequest.docs = brunoRequest.docs;
     }
 
     return stringifyYml(ocRequest);
