@@ -1,15 +1,54 @@
 import get from 'lodash/get';
 
-export const getAuthHeaders = (collectionRootAuth, requestAuth) => {
-  // Discovered edge case where code generation fails when you create a collection which has not been saved yet:
-  // Collection auth therefore null, and request inherits from collection, therefore it is also null
-  // TypeError: Cannot read properties of undefined (reading 'mode')
-  //     at getAuthHeaders
-  if (!collectionRootAuth && !requestAuth) {
+/**
+ * Get authentication headers for code generation.
+ * 
+ * @param {Object} resolvedAuthOrCollectionAuth - Either the resolved auth object (new usage)
+ *                                                 or collection root auth (legacy usage)
+ * @param {Object} requestOrRequestAuth - Either the request object (new usage)
+ *                                         or request auth (legacy usage)
+ * @returns {Array} Array of header objects with enabled, name, and value properties
+ */
+export const getAuthHeaders = (resolvedAuthOrCollectionAuth, requestOrRequestAuth) => {
+  // Handle null/undefined inputs
+  if (!resolvedAuthOrCollectionAuth && !requestOrRequestAuth) {
     return [];
   }
 
-  const auth = collectionRootAuth && ['inherit'].includes(requestAuth?.mode) ? collectionRootAuth : requestAuth;
+  // Determine auth object to use
+  let auth;
+
+  // Check if second param is a legacy requestAuth (has 'mode' directly) or new request object (has 'auth.mode')
+  const isLegacySecondParam = requestOrRequestAuth?.mode !== undefined;
+  const isNewUsageSecondParam = requestOrRequestAuth?.auth?.mode !== undefined;
+
+  if (isLegacySecondParam) {
+    // Legacy usage: first param is collectionAuth, second is requestAuth
+    // Use collectionAuth if requestAuth.mode is 'inherit', otherwise use requestAuth
+    if (requestOrRequestAuth.mode === 'inherit') {
+      auth = resolvedAuthOrCollectionAuth;
+    } else {
+      auth = requestOrRequestAuth;
+    }
+  } else if (isNewUsageSecondParam) {
+    // New usage: request object passed as second param
+    // Prefer first param if it has a valid resolved auth, otherwise use request.auth
+    if (resolvedAuthOrCollectionAuth?.mode &&
+      resolvedAuthOrCollectionAuth.mode !== 'inherit' &&
+      resolvedAuthOrCollectionAuth.mode !== 'none') {
+      auth = resolvedAuthOrCollectionAuth;
+    } else {
+      auth = requestOrRequestAuth.auth;
+    }
+  } else {
+    // First param only - new usage with resolved auth passed directly
+    auth = resolvedAuthOrCollectionAuth;
+  }
+
+  // If no valid auth or mode is none/inherit, return empty
+  if (!auth || !auth.mode || auth.mode === 'none' || auth.mode === 'inherit') {
+    return [];
+  }
 
   switch (auth.mode) {
     case 'basic':
@@ -52,3 +91,4 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth) => {
       return [];
   }
 };
+

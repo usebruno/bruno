@@ -17,11 +17,21 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     let headers = mergeHeaders(collection, request, requestTreePath);
 
-    // Add auth headers if needed
-    if (request.auth && request.auth.mode !== 'none') {
-      const collectionAuth = collection?.draft?.root ? get(collection, 'draft.root.request.auth', null) : get(collection, 'root.request.auth', null);
-      const authHeaders = getAuthHeaders(collectionAuth, request.auth);
+    // Use the final resolved auth on the request (auth should already be resolved
+    // by GenerateCodeItem). Defensive fallback: if auth.mode === 'inherit',
+    // attempt to use collection auth.
+    const resolvedAuth = request.auth;
+    if (resolvedAuth && resolvedAuth.mode && resolvedAuth.mode !== 'none' && resolvedAuth.mode !== 'inherit') {
+      // getAuthHeaders should accept resolved auth directly
+      const authHeaders = getAuthHeaders(resolvedAuth, request);
       headers = [...headers, ...authHeaders];
+    } else if (resolvedAuth && resolvedAuth.mode === 'inherit') {
+      // Fallback: if auth is still 'inherit', try collection auth
+      const collectionAuth = collection?.draft?.root ? get(collection, 'draft.root.request.auth', null) : get(collection, 'root.request.auth', null);
+      if (collectionAuth && collectionAuth.mode !== 'none') {
+        const authHeaders = getAuthHeaders(collectionAuth, request);
+        headers = [...headers, ...authHeaders];
+      }
     }
 
     // Interpolate headers and body if needed
