@@ -183,9 +183,45 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
         await openCollectionsFunction(collectionPaths, updatedWorkspace.pathname);
       }
     }
+
+    // Load API specs for this workspace
+    await dispatch(loadWorkspaceApiSpecs(workspace.uid));
   } catch (error) {
     console.error('Failed to load workspace collections:', error);
   }
+};
+
+export const loadWorkspaceApiSpecs = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    try {
+      const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+      if (!workspace || !workspace.pathname) {
+        return;
+      }
+
+      const apiSpecs = await ipcRenderer.invoke('renderer:load-workspace-apispecs', workspace.pathname);
+
+      dispatch(updateWorkspace({
+        uid: workspaceUid,
+        apiSpecs: apiSpecs
+      }));
+
+      const allApiSpecs = getState().apiSpec.apiSpecs;
+      const alreadyOpenApiSpecs = allApiSpecs.map((a) => a.pathname);
+
+      for (const apiSpec of apiSpecs) {
+        if (apiSpec.path && !alreadyOpenApiSpecs.includes(apiSpec.path)) {
+          try {
+            await ipcRenderer.invoke('renderer:open-api-spec-file', apiSpec.path, workspace.pathname);
+          } catch (error) {
+            console.error('Error opening API spec:', error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading workspace API specs:', error);
+    }
+  };
 };
 
 export const switchWorkspace = (workspaceUid) => {
@@ -337,7 +373,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
       return;
     }
 
-    const { collections, ...configWithoutCollections } = workspaceConfig;
+    const { collections, apiSpecs, ...configWithoutCollections } = workspaceConfig;
 
     dispatch(updateWorkspace({
       uid: workspaceUid,
@@ -364,6 +400,9 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
             }
           }
         }
+
+        // Load API specs when workspace config is updated
+        await dispatch(loadWorkspaceApiSpecs(workspaceUid));
       } catch (error) {
       }
     }

@@ -39,8 +39,10 @@ const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
 const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const registerWorkspaceIpc = require('./ipc/workspace');
+const registerApiSpecIpc = require('./ipc/apiSpec');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
+const ApiSpecWatcher = require('./app/apiSpecsWatcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
@@ -58,6 +60,7 @@ const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
 
 const workspaceWatcher = new WorkspaceWatcher();
+const apiSpecWatcher = new ApiSpecWatcher();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -238,6 +241,7 @@ app.on('ready', async () => {
   registerCollectionsIpc(mainWindow, collectionWatcher);
   registerPreferencesIpc(mainWindow, collectionWatcher);
   registerWorkspaceIpc(mainWindow, workspaceWatcher);
+  registerApiSpecIpc(mainWindow, apiSpecWatcher);
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);
   registerSystemMonitorIpc(mainWindow, systemMonitor);

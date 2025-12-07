@@ -4,6 +4,7 @@ import {
   IconDeviceDesktop,
   IconDotsVertical,
   IconDownload,
+  IconFileCode,
   IconFolder,
   IconPlus,
   IconSearch,
@@ -19,22 +20,19 @@ import { useDispatch, useSelector } from 'react-redux';
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { openApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 
 import Dropdown from 'components/Dropdown';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
+import CreateApiSpec from 'components/Sidebar/ApiSpecs/CreateApiSpec';
 
 import RemoveCollectionsModal from '../Collections/RemoveCollectionsModal/index';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 
-const VIEW_TABS = [
-  { id: 'collections', label: 'Collections', icon: IconBox }
-];
-
-const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange }) => {
+const SidebarHeader = ({ setShowSearch }) => {
   const dispatch = useDispatch();
-  const { ipcRenderer } = window;
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
@@ -48,6 +46,7 @@ const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const [createApiSpecModalOpen, setCreateApiSpecModalOpen] = useState(false);
 
   const handleImportCollection = ({ rawData, type }) => {
     setImportCollectionModalOpen(false);
@@ -148,6 +147,13 @@ const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange
     });
   };
 
+  const handleOpenApiSpec = () => {
+    dispatch(openApiSpec()).catch((err) => {
+      console.error(err);
+      toast.error('An error occurred while opening the API spec');
+    });
+  };
+
   const renderModals = () => (
     <>
       {createCollectionModalOpen && (
@@ -169,10 +175,13 @@ const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange
           handleSubmit={handleImportCollectionLocation}
         />
       )}
+      {createApiSpecModalOpen && (
+        <CreateApiSpec
+          onClose={() => setCreateApiSpecModalOpen(false)}
+        />
+      )}
     </>
   );
-
-  const isSingleView = VIEW_TABS.length === 1;
 
   // Render Collections-specific actions
   const renderCollectionsActions = () => (
@@ -227,6 +236,27 @@ const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange
           Open collection
         </div>
 
+        <div className="label-item mt-2">API Specs</div>
+        <div
+          className="dropdown-item"
+          onClick={() => {
+            setCreateApiSpecModalOpen(true);
+            addDropdownTippyRef.current?.hide();
+          }}
+        >
+          <IconPlus size={16} stroke={1.5} className="icon" />
+          Create API Spec
+        </div>
+        <div
+          className="dropdown-item"
+          onClick={() => {
+            handleOpenApiSpec();
+            addDropdownTippyRef.current?.hide();
+          }}
+        >
+          <IconFileCode size={16} stroke={1.5} className="icon" />
+          Open API Spec
+        </div>
       </Dropdown>
 
       {/* Actions dropdown (sort, close all, etc.) */}
@@ -277,57 +307,18 @@ const SidebarHeader = ({ setShowSearch, activeView = 'collections', onViewChange
     </>
   );
 
-  // Render Second Tab-specific actions
-  const renderSecondTabActions = () => (
-    <>
-      {/* Add second tab actions here */}
-    </>
-  );
-
-  // Render the view switcher - either tabs or single title
-  const renderViewSwitcher = () => {
-    if (isSingleView) {
-      // Single view - just show the title
-      const tab = VIEW_TABS[0];
-      const TabIcon = tab.icon;
-      return (
-        <div className="section-title">
-          <TabIcon size={14} stroke={1.5} />
-          <span>{tab.label}</span>
-        </div>
-      );
-    }
-
-    // Multiple views - show segmented tabs
-    return (
-      <div className="view-tabs">
-        {VIEW_TABS.map((tab) => {
-          const TabIcon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              className={`view-tab ${activeView === tab.id ? 'active' : ''}`}
-              onClick={() => onViewChange?.(tab.id)}
-              title={tab.label}
-            >
-              <TabIcon size={14} stroke={1.5} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
-    <StyledWrapper className={isSingleView ? 'single-view' : ''}>
+    <StyledWrapper>
       {renderModals()}
       <div className="sidebar-header">
-        {renderViewSwitcher()}
+        <div className="section-title">
+          <IconBox size={14} stroke={1.5} />
+          <span>Collections</span>
+        </div>
 
         {/* Action Buttons - Context Sensitive */}
         <div className="header-actions">
-          {activeView === 'collections' ? renderCollectionsActions() : renderSecondTabActions()}
+          {renderCollectionsActions()}
         </div>
       </div>
     </StyledWrapper>

@@ -30,6 +30,7 @@ import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'provide
 import { collectionAddOauth2CredentialsByUrl, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
+import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStore/slices/apiSpec';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -91,9 +92,24 @@ const useIpcEvents = () => {
       }
     };
 
+    const _apiSpecTreeUpdated = (type, val) => {
+      if (window.__IS_DEV__) {
+        console.log('API Spec update:', type);
+        console.log(val);
+      }
+      if (type === 'addFile') {
+        dispatch(apiSpecAddFileEvent({ data: val }));
+      }
+      if (type === 'changeFile') {
+        dispatch(apiSpecChangeFileEvent({ data: val }));
+      }
+    };
+
     ipcRenderer.invoke('renderer:ready');
 
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
+
+    const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);
 
     const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
       dispatch(openCollectionEvent(uid, pathname, brunoConfig));
@@ -267,6 +283,7 @@ const useIpcEvents = () => {
 
     return () => {
       removeCollectionTreeUpdateListener();
+      removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
       removeOpenWorkspaceListener();
       removeWorkspaceConfigUpdatedListener();
