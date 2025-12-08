@@ -1,13 +1,27 @@
 const { forOwn, cloneDeep } = require('lodash');
 const { interpolate } = require('@usebruno/common');
 
-const interpolateString = (str, { envVars, runtimeVariables, processEnvVars }) => {
+const interpolateString = (str, {
+  globalEnvironmentVariables,
+  collectionVariables,
+  envVars,
+  folderVariables,
+  requestVariables,
+  runtimeVariables,
+  processEnvVars,
+  promptVariables
+}) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
   }
 
   processEnvVars = processEnvVars || {};
   runtimeVariables = runtimeVariables || {};
+  globalEnvironmentVariables = globalEnvironmentVariables || {};
+  collectionVariables = collectionVariables || {};
+  folderVariables = folderVariables || {};
+  requestVariables = requestVariables || {};
+  promptVariables = promptVariables || {};
 
   // we clone envVars because we don't want to modify the original object
   envVars = envVars ? cloneDeep(envVars) : {};
@@ -26,8 +40,13 @@ const interpolateString = (str, { envVars, runtimeVariables, processEnvVars }) =
 
   // runtimeVariables take precedence over envVars
   const combinedVars = {
+    ...globalEnvironmentVariables,
+    ...collectionVariables,
     ...envVars,
+    ...folderVariables,
+    ...requestVariables,
     ...runtimeVariables,
+    ...promptVariables,
     process: {
       env: {
         ...processEnvVars

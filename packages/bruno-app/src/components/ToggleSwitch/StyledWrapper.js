@@ -2,11 +2,11 @@ import styled from 'styled-components';
 
 const switchSizes = {
   '2xs': { width: 32, height: 16, buttonSize: 14 },
-  xs: { width: 40, height: 20, buttonSize: 18 },
-  s: { width: 44, height: 22, buttonSize: 20 },
-  m: { width: 50, height: 24, buttonSize: 22 }, // default size
-  l: { width: 56, height: 28, buttonSize: 26 },
-  xl: { width: 64, height: 32, buttonSize: 30 },
+  'xs': { width: 40, height: 20, buttonSize: 18 },
+  's': { width: 44, height: 22, buttonSize: 20 },
+  'm': { width: 50, height: 24, buttonSize: 22 }, // default size
+  'l': { width: 56, height: 28, buttonSize: 26 },
+  'xl': { width: 64, height: 32, buttonSize: 30 },
   '2xl': { width: 72, height: 36, buttonSize: 34 }
 };
 
@@ -26,7 +26,7 @@ export const Checkbox = styled.input`
   height: 0;
 
   &:checked + label div {
-    background-color: ${(props) => props.theme.textLink};
+    background-color: ${(props) => props.activeColor || props.theme.textLink};
   }
 
   &:checked + label div:before {

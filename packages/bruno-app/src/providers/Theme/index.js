@@ -1,3 +1,4 @@
+import React from 'react';
 import themes from 'themes/index';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 
@@ -35,7 +36,11 @@ export const ThemeProvider = (props) => {
       setDisplayedTheme(storedTheme);
       root.classList.add(storedTheme);
     }
-  }, [storedTheme, setDisplayedTheme, window.matchMedia]);
+
+    if (window.ipcRenderer) {
+      window.ipcRenderer.send('renderer:theme-change', storedTheme);
+    }
+  }, [storedTheme]);
 
   // storedTheme can have 3 values: 'light', 'dark', 'system'
   // displayedTheme can have 2 values: 'light', 'dark'

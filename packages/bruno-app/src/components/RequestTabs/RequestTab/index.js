@@ -1,31 +1,83 @@
-import React, { useState, useRef, Fragment } from 'react';
+import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, saveCollectionRoot, saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
-import { findItemInCollection } from 'utils/collections';
+import { findItemInCollection, hasRequestChanges } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
+import ConfirmCollectionClose from './ConfirmCollectionClose';
+import ConfirmFolderClose from './ConfirmFolderClose';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
-import CloseTabIcon from './CloseTabIcon';
-import DraftTabIcon from './DraftTabIcon';
+import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
+import { closeWsConnection } from 'utils/network/index';
+import ExampleTab from '../ExampleTab';
 
-const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
+const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
+  const tabNameRef = useRef(null);
+  const lastOverflowStateRef = useRef(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
+  const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+
+  const item = findItemInCollection(collection, tab.uid);
+
+  const method = useMemo(() => {
+    if (!item) return;
+    switch (item.type) {
+      case 'grpc-request':
+        return 'gRPC';
+      case 'ws-request':
+        return 'WS';
+      case 'graphql-request':
+        return 'GQL';
+      default:
+        return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+    }
+  }, [item]);
+
+  useEffect(() => {
+    if (!item || !tabNameRef.current || !setHasOverflow) return;
+
+    const checkOverflow = () => {
+      if (tabNameRef.current && setHasOverflow) {
+        const hasOverflow = tabNameRef.current.scrollWidth > tabNameRef.current.clientWidth;
+        if (lastOverflowStateRef.current !== hasOverflow) {
+          lastOverflowStateRef.current = hasOverflow;
+          setHasOverflow(hasOverflow);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(checkOverflow, 0);
+    const resizeObserver = new ResizeObserver(() => {
+      checkOverflow();
+    });
+
+    if (tabNameRef.current) {
+      resizeObserver.observe(tabNameRef.current);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [item, item?.name, method, setHasOverflow]);
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -65,19 +117,105 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const getMethodColor = (method = '') => {
-    const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
-    return theme.request.methods[method.toLocaleLowerCase()];
+    const colorMap = {
+      ...theme.request.methods,
+      ...theme.request
+    };
+    return colorMap[method.toLocaleLowerCase()];
+  };
+
+  const handleCloseCollectionSettings = (event) => {
+    if (!collection.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmCollectionClose(true);
   };
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
+
+  const handleCloseFolderSettings = (event) => {
+    if (!folder?.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmFolderClose(true);
+  };
+
+  const hasDraft = tab.type === 'collection-settings' && collection?.draft;
+  const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
+
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
-        className={`flex items-center justify-between tab-container px-1 ${tab.preview ? "italic" : ""}`}
-        onMouseUp={handleMouseUp} // Add middle-click behavior here
+        className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
+        onMouseUp={handleMouseUp}
       >
-        {tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
+        {showConfirmCollectionClose && tab.type === 'collection-settings' && (
+          <ConfirmCollectionClose
+            collection={collection}
+            onCancel={() => setShowConfirmCollectionClose(false)}
+            onCloseWithoutSave={() => {
+              dispatch(deleteCollectionDraft({
+                collectionUid: collection.uid
+              }));
+              dispatch(closeTabs({
+                tabUids: [tab.uid]
+              }));
+              setShowConfirmCollectionClose(false);
+            }}
+            onSaveAndClose={() => {
+              dispatch(saveCollectionRoot(collection.uid))
+                .then(() => {
+                  dispatch(closeTabs({
+                    tabUids: [tab.uid]
+                  }));
+                  setShowConfirmCollectionClose(false);
+                })
+                .catch((err) => {
+                  console.log('err', err);
+                });
+            }}
+          />
+        )}
+        {showConfirmFolderClose && tab.type === 'folder-settings' && (
+          <ConfirmFolderClose
+            folder={folder}
+            onCancel={() => setShowConfirmFolderClose(false)}
+            onCloseWithoutSave={() => {
+              dispatch(deleteFolderDraft({
+                collectionUid: collection.uid,
+                folderUid: folder.uid
+              }));
+              dispatch(closeTabs({
+                tabUids: [tab.uid]
+              }));
+              setShowConfirmFolderClose(false);
+            }}
+            onSaveAndClose={() => {
+              dispatch(saveFolderRoot(collection.uid, folder.uid))
+                .then(() => {
+                  dispatch(closeTabs({
+                    tabUids: [tab.uid]
+                  }));
+                  setShowConfirmFolderClose(false);
+                })
+                .catch((err) => {
+                  console.log('err', err);
+                });
+            }}
+          />
+        )}
+        {tab.type === 'folder-settings' && !folder ? (
+          <RequestTabNotFound handleCloseClick={handleCloseClick} />
+        ) : tab.type === 'folder-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseFolderSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} hasDraft={hasFolderDraft} />
+        ) : tab.type === 'collection-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseCollectionSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={collection?.name} hasDraft={hasDraft} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
@@ -85,7 +223,20 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  const item = findItemInCollection(collection, tab.uid);
+  // Handle response-example tabs specially
+  if (tab.type === 'response-example') {
+    return (
+      <ExampleTab
+        tab={tab}
+        collection={collection}
+        tabIndex={tabIndex}
+        collectionRequestTabs={collectionRequestTabs}
+        folderUid={folderUid}
+      />
+    );
+  }
+
+  const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   if (!item) {
     return (
@@ -105,15 +256,43 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+  const isWS = item.type === 'ws-request';
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (tabNameRef.current && setHasOverflow) {
+        const hasOverflow = tabNameRef.current.scrollWidth > tabNameRef.current.clientWidth;
+        if (lastOverflowStateRef.current !== hasOverflow) {
+          lastOverflowStateRef.current = hasOverflow;
+          setHasOverflow(hasOverflow);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(checkOverflow, 0);
+
+    const resizeObserver = new ResizeObserver(() => {
+      checkOverflow();
+    });
+
+    if (tabNameRef.current) {
+      resizeObserver.observe(tabNameRef.current);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [item.name, method, setHasOverflow]);
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-1">
+    <StyledWrapper className="flex items-center justify-between tab-container px-2">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
+            isWS && closeWsConnection(item.uid);
             dispatch(
               deleteRequestDraft({
                 itemUid: item.uid,
@@ -144,11 +323,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className={`flex items-baseline tab-label pl-2 ${tab.preview ? "italic" : ""}`}
+        className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {
-          if (!item.draft) return handleMouseUp(e);
+          if (!hasChanges) return handleMouseUp(e);
 
           if (e.button === 1) {
             e.stopPropagation();
@@ -157,10 +336,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
+        <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
           {method}
         </span>
-        <span className="ml-1 tab-name" title={item.name}>
+        <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
         <RequestTabMenu
@@ -173,22 +352,19 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           dispatch={dispatch}
         />
       </div>
-      <div
-        className="flex px-2 close-icon-container"
+      <GradientCloseButton
+        hasChanges={hasChanges}
         onClick={(e) => {
-          if (!item.draft) return handleCloseClick(e);
+          if (!hasChanges) {
+            isWS && closeWsConnection(item.uid);
+            return handleCloseClick(e);
+          }
 
           e.stopPropagation();
           e.preventDefault();
           setShowConfirmClose(true);
         }}
-      >
-        {!item.draft ? (
-          <CloseTabIcon />
-        ) : (
-          <DraftTabIcon />
-        )}
-      </div>
+      />
     </StyledWrapper>
   );
 };
@@ -200,6 +376,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   const totalTabs = collectionRequestTabs.length || 0;
   const currentTabUid = collectionRequestTabs[tabIndex]?.uid;
   const currentTabItem = findItemInCollection(collection, currentTabUid);
+  const currentTabHasChanges = useMemo(() => hasRequestChanges(currentTabItem), [currentTabItem]);
 
   const hasLeftTabs = tabIndex !== 0;
   const hasRightTabs = totalTabs > tabIndex + 1;
@@ -216,12 +393,31 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
     try {
       const item = findItemInCollection(collection, tabUid);
       // silently save unsaved changes before closing the tab
-      if (item.draft) {
+      if (hasRequestChanges(item)) {
         await dispatch(saveRequest(item.uid, collection.uid, true));
       }
 
       dispatch(closeTabs({ tabUids: [tabUid] }));
-    } catch (err) {}
+    } catch (err) { }
+  }
+
+  function handleRevertChanges(event) {
+    event.stopPropagation();
+    dropdownTippyRef.current.hide();
+
+    if (!currentTabUid) {
+      return;
+    }
+
+    try {
+      const item = findItemInCollection(collection, currentTabUid);
+      if (item.draft) {
+        dispatch(deleteRequestDraft({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        }));
+      }
+    } catch (err) { }
   }
 
   function handleCloseOtherTabs(event) {
@@ -249,7 +445,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
     event.stopPropagation();
 
     const items = flattenItems(collection?.items);
-    const savedTabs = items?.filter?.((item) => !item.draft);
+    const savedTabs = items?.filter?.((item) => !hasRequestChanges(item));
     const savedTabIds = savedTabs?.map((item) => item.uid) || [];
     dispatch(closeTabs({ tabUids: savedTabIds }));
   }
@@ -261,13 +457,13 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   return (
     <Fragment>
       {showAddNewRequestModal && (
-        <NewRequest collection={collection} onClose={() => setShowAddNewRequestModal(false)} />
+        <NewRequest collectionUid={collection.uid} onClose={() => setShowAddNewRequestModal(false)} />
       )}
 
       {showCloneRequestModal && (
         <CloneCollectionItem
           item={currentTabItem}
-          collection={collection}
+          collectionUid={collection.uid}
           onClose={() => setShowCloneRequestModal(false)}
         />
       )}
@@ -290,6 +486,13 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
           }}
         >
           Clone Request
+        </button>
+        <button
+          className="dropdown-item w-full"
+          onClick={handleRevertChanges}
+          disabled={!currentTabItem?.draft}
+        >
+          Revert Changes
         </button>
         <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
           Close

@@ -1,0 +1,85 @@
+meta {
+  name: setCookies
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+  
+  // Set multiple cookies before the request
+  try {
+    await jar.setCookies('https://example.com', [
+      {
+        key: 'auth',
+        value: 'abc123',
+        path: '/path',          
+        httpOnly: true,
+        secure: true,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      },
+      {
+        key: 'session',
+        value: 'xyz789',
+        path: '/foo',          
+        httpOnly: true,
+        secure: true,
+      }
+    ]);
+    
+    console.log("Multiple cookies set successfully in pre-request script");
+    
+  } catch (error) {
+    console.error("setCookies operation failed in pre-request:", error);
+    throw new Error(`Pre-request setCookies failed: ${error.message || error}`);
+  }
+}
+
+tests {
+  const jar = bru.cookies.jar()
+  
+  test("should have set multiple cookies successfully", function() {
+    console.log("Verifying cookies set in pre-request script");
+  });
+  
+  // Test: Verify first cookie was set correctly
+  const authCookie = await jar.getCookie('https://example.com/path', 'auth');
+  
+  test("should retrieve first cookie with correct properties", function() {
+      expect(authCookie.key).to.equal("auth");
+      expect(authCookie.value).to.equal("abc123");
+      expect(authCookie.path).to.equal("/path");
+      expect(authCookie.httpOnly).to.be.true;
+      expect(authCookie.secure).to.be.true;
+      expect(authCookie.domain).to.include('example.com');
+      console.log("Auth cookie verified:", authCookie);
+  });
+  
+  // Test: Verify second cookie was set correctly
+  const sessionCookie = await jar.getCookie('https://example.com/foo', 'session');
+  
+  test("should retrieve second cookie with correct properties", function() {
+    expect(sessionCookie).to.not.be.null;
+    if (sessionCookie) {
+      expect(sessionCookie.key).to.equal("session");
+      expect(sessionCookie.value).to.equal("xyz789");
+      expect(sessionCookie.path).to.equal("/foo");
+      expect(sessionCookie.httpOnly).to.be.true;
+      expect(sessionCookie.secure).to.be.true;
+      expect(sessionCookie.domain).to.include('example.com');
+      console.log("Session cookie verified:", sessionCookie);
+    }
+  });
+  
+  jar.clear()
+}
+
+settings {
+  encodeUrl: true
+}

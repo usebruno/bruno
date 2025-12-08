@@ -8,17 +8,16 @@ import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
 import ApiKeyAuth from './ApiKeyAuth/';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import OAuth2 from './OAuth2';
 import NTLMAuth from './NTLMAuth';
 
-
 const Auth = ({ collection }) => {
-  const authMode = get(collection, 'root.request.auth.mode');
+  const authMode = collection.draft?.root ? get(collection, 'draft.root.request.auth.mode') : get(collection, 'root.request.auth.mode');
   const dispatch = useDispatch();
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   const getAuthView = () => {
     switch (authMode) {
@@ -36,7 +35,7 @@ const Auth = ({ collection }) => {
       }
       case 'ntlm': {
         return <NTLMAuth collection={collection} />;
-      }       
+      }
       case 'oauth2': {
         return <OAuth2 collection={collection} />;
       }

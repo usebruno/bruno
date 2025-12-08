@@ -47,28 +47,28 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   useEffect(() => {
     // initialize redux state with a default oauth2 grant type
     // authorization_code - default option
-    !oAuth?.grantType &&
-      dispatch(
-        updateAuth({
-          mode: 'oauth2',
-          collectionUid: collection.uid,
-          itemUid: item.uid,
-          content: {
-            grantType: 'authorization_code',
-            accessTokenUrl: '',
-            username: '',
-            password: '',
-            clientId: '',
-            clientSecret: '',
-            scope: '',
-            credentialsPlacement: 'body',
-            credentialsId: 'credentials',
-            tokenPlacement: 'header',
-            tokenHeaderPrefix: 'Bearer',
-            tokenQueryKey: 'access_token',
-          }
-        })
-      );
+    !oAuth?.grantType
+    && dispatch(
+      updateAuth({
+        mode: 'oauth2',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          grantType: 'authorization_code',
+          accessTokenUrl: '',
+          username: '',
+          password: '',
+          clientId: '',
+          clientSecret: '',
+          scope: '',
+          credentialsPlacement: 'body',
+          credentialsId: 'credentials',
+          tokenPlacement: 'header',
+          tokenHeaderPrefix: 'Bearer',
+          tokenQueryKey: 'access_token'
+        }
+      })
+    );
   }, [oAuth]);
 
   return (
@@ -77,7 +77,7 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium">
+        <span className="font-medium">
           Grant Type
         </span>
       </div>
@@ -100,6 +100,15 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
             }}
           >
             Authorization Code
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onGrantTypeChange('implicit');
+            }}
+          >
+            Implicit
           </div>
           <div
             className="dropdown-item"

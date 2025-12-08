@@ -47,3 +47,16 @@ yarn-error.log*
 #dev editor
 bruno.iml
 .idea
+.vscode
+
+# Playwright
+/blob-report/
+
+# Development plan files
+*.plan.md
+
+# packages dist
+packages/bruno-filestore/dist
+packages/bruno-requests/dist
+packages/bruno-schema-types/dist
+packages/bruno-converters/dist

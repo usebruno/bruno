@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
@@ -10,12 +10,17 @@ import { sanitizeName, validateName, validateNameError } from 'utils/common/rege
 import Help from 'components/Help';
 import PathDisplay from 'components/PathDisplay';
 import { useState } from 'react';
-import { IconArrowBackUp, IconEdit } from "@tabler/icons";
+import { IconArrowBackUp, IconEdit } from '@tabler/icons';
+import { findCollectionByUid } from 'utils/collections/index';
+import get from 'lodash/get';
 
-const CloneCollection = ({ onClose, collection }) => {
+const CloneCollection = ({ onClose, collectionUid }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [isEditing, toggleEditing] = useState(false);
+  const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
+  const preferences = useSelector((state) => state.app.preferences);
+  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
   const { name } = collection;
 
   const formik = useFormik({
@@ -23,7 +28,7 @@ const CloneCollection = ({ onClose, collection }) => {
     initialValues: {
       collectionName: `${name} copy`,
       collectionFolderName: `${sanitizeName(name)} copy`,
-      collectionLocation: ''
+      collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
@@ -33,7 +38,7 @@ const CloneCollection = ({ onClose, collection }) => {
       collectionFolderName: Yup.string()
         .min(1, 'must be at least 1 character')
         .max(255, 'must be 255 characters or less')
-        .test('is-valid-collection-name', function(value) {
+        .test('is-valid-collection-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
@@ -46,7 +51,7 @@ const CloneCollection = ({ onClose, collection }) => {
           values.collectionName,
           values.collectionFolderName,
           values.collectionLocation,
-          collection.pathname
+          collection?.pathname
         )
       )
         .then(() => {
@@ -81,9 +86,9 @@ const CloneCollection = ({ onClose, collection }) => {
 
   return (
     <Modal size="sm" title="Clone Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-      <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+      <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
         <div>
-          <label htmlFor="collection-name" className="flex items-center font-semibold">
+          <label htmlFor="collection-name" className="flex items-center font-medium">
             Name
           </label>
           <input
@@ -106,7 +111,7 @@ const CloneCollection = ({ onClose, collection }) => {
             <div className="text-red-500">{formik.errors.collectionName}</div>
           ) : null}
 
-          <label htmlFor="collection-location" className="block font-semibold mt-3">
+          <label htmlFor="collection-location" className="block font-medium mt-3">
             Location
           </label>
           <input
@@ -127,10 +132,8 @@ const CloneCollection = ({ onClose, collection }) => {
           ) : null}
           <div className="mt-1">
             <span
-              className="text-link cursor-pointer hover:underline" onClick={browse}
-              style={{
-                fontSize: '0.8125rem'
-              }}
+              className="text-link cursor-pointer hover:underline"
+              onClick={browse}
             >
               Browse
             </span>
@@ -138,7 +141,7 @@ const CloneCollection = ({ onClose, collection }) => {
 
           <div className="mt-4">
             <div className="flex items-center justify-between">
-              <label htmlFor="filename" className="flex items-center font-semibold">
+              <label htmlFor="filename" className="flex items-center font-medium">
                 Folder Name
                 <Help width="300">
                   <p>
@@ -150,18 +153,18 @@ const CloneCollection = ({ onClose, collection }) => {
                 </Help>
               </label>
               {isEditing ? (
-                <IconArrowBackUp 
-                  className="cursor-pointer opacity-50 hover:opacity-80" 
-                  size={16} 
-                  strokeWidth={1.5} 
-                  onClick={() => toggleEditing(false)} 
+                <IconArrowBackUp
+                  className="cursor-pointer opacity-50 hover:opacity-80"
+                  size={16}
+                  strokeWidth={1.5}
+                  onClick={() => toggleEditing(false)}
                 />
               ) : (
                 <IconEdit
-                  className="cursor-pointer opacity-50 hover:opacity-80" 
-                  size={16} 
+                  className="cursor-pointer opacity-50 hover:opacity-80"
+                  size={16}
                   strokeWidth={1.5}
-                  onClick={() => toggleEditing(true)} 
+                  onClick={() => toggleEditing(true)}
                 />
               )}
             </div>
@@ -179,7 +182,7 @@ const CloneCollection = ({ onClose, collection }) => {
                 value={formik.values.collectionFolderName || ''}
               />
             ) : (
-              <div className='relative flex flex-row gap-1 items-center justify-between'>
+              <div className="relative flex flex-row gap-1 items-center justify-between">
                 <PathDisplay
                   baseName={formik.values.collectionFolderName}
                 />

@@ -17,13 +17,9 @@ import StyledWrapper from './StyledWrapper';
 import { IconWand } from '@tabler/icons';
 
 import onHasCompletion from './onHasCompletion';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-}
+const CodeMirror = require('codemirror');
 
 const md = new MD();
 const AUTO_COMPLETE_AFTER_KEY = /^[a-zA-Z0-9_@(]$/;
@@ -143,6 +139,8 @@ export default class QueryEditor extends React.Component {
       editor.on('beforeChange', this._onBeforeChange);
     }
     this.addOverlay();
+
+    setupLinkAware(editor);
   }
 
   componentDidUpdate(prevProps) {
@@ -175,6 +173,9 @@ export default class QueryEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      if (this.editor?._destroyLinkAware) {
+        this.editor._destroyLinkAware();
+      }
       this.editor.off('change', this._onEdit);
       this.editor.off('keyup', this._onKeyUp);
       this.editor.off('hasCompletion', this._onHasCompletion);

@@ -1,0 +1,45 @@
+meta {
+  name: Logout Request
+  type: http
+  seq: 4
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+body:json {
+  {
+    "args": {},
+    "data": "",
+    "files": {},
+    "form": {},
+    "headers": {
+      "Accept": "application/json",
+      "Accept-Encoding": "gzip, compress, deflate, br",
+      "Host": "echo.usebruno.com",
+      "Request-Start-Time": "1762260355402",
+      "User-Agent": "bruno-runtime/1.99.3",
+      "X-Amzn-Trace-Id": "Root=1-6909f585-57dba07b099d8b143524cc8a"
+    },
+    "json": null,
+    "origin": "180.151.198.14",
+    "url": "https://echo.usebruno.com"
+  }
+}
+
+tests {
+  test("This test will also fail", function() {
+    expect(res.getStatus()).to.equal(500); // Intentional failure
+  });
+  
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

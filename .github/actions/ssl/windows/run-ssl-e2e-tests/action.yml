@@ -1,0 +1,17 @@
+name: 'Run SSL E2E Tests - Windows'
+description: 'Run SSL E2E tests on Windows'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run E2E tests
+      shell: pwsh
+      run: |
+        npm run test:e2e:ssl
+
+    - name: Upload Playwright Report
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-windows
+        path: playwright-report/
+        retention-days: 30

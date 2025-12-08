@@ -74,7 +74,11 @@ async function setup() {
     execCommand('npm run build:graphql-docs', 'Building graphql-docs');
     execCommand('npm run build:bruno-query', 'Building bruno-query');
     execCommand('npm run build:bruno-common', 'Building bruno-common');
-
+    execCommand('npm run build:bruno-converters', 'Building bruno-converters');
+    execCommand('npm run build:bruno-requests', 'Building bruno-requests');
+    execCommand('npm run build:schema-types', 'Building schema-types');
+    execCommand('npm run build:bruno-filestore', 'Building bruno-filestore');
+    
     // Bundle JS sandbox libraries
     execCommand(
       'npm run sandbox:bundle-libraries --workspace=packages/bruno-js',

@@ -1,16 +1,69 @@
+const colors = {
+  BRAND: '#546de5',
+  TEXT: 'rgb(52, 52, 52)',
+  TEXT_LINK: '#1663bb',
+  BACKGROUND: '#fff',
+  WHITE: '#fff',
+  BLACK: '#000',
+  GRAY_1: '#f8f8f8',
+  GRAY_2: '#eaeaea',
+  GRAY_3: '#e5e5e5',
+  GRAY_4: '#cbcbcb',
+
+  CODEMIRROR_TOKENS: {
+    DEFINITION: '#566f4e', // Deep moss
+    PROPERTY: '#4b7bbb', // Muted azure
+    STRING: '#a06e3b', // Warm bronze
+    NUMBER: '#3d8b7c', // Muted jade
+    ATOM: '#8169ad', // Soft plum
+    VARIABLE: '#3f7b6f', // Deep teal
+    KEYWORD: '#b95d6a', // Muted ruby
+    COMMENT: '#8997aa', // Cool gray
+    OPERATOR: '#6b7a8f' // Slate blue
+  }
+};
+
 const lightTheme = {
-  brand: '#546de5',
-  text: 'rgb(52, 52, 52)',
-  textLink: '#1663bb',
-  bg: '#fff',
+  brand: colors.BRAND,
+  text: colors.TEXT,
+  textLink: colors.TEXT_LINK,
+  bg: colors.BACKGROUND,
+
+  font: {
+    size: {
+      xs: '0.6875rem', // 11px
+      sm: '0.75rem', // 12px
+      base: '0.8125rem', // 13px
+      md: '0.875rem', // 14px
+      lg: '1rem', // 16px
+      xl: '1.125rem' // 18px
+    }
+  },
+
+  shadow: {
+    sm: '0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+    md: '0 2px 8px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.06)',
+    lg: '0 2px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+  },
+
+  border: {
+    radius: {
+      sm: '4px',
+      base: '6px',
+      md: '8px',
+      lg: '10px',
+      xl: '12px'
+    }
+  },
 
   colors: {
     text: {
       green: '#047857',
-      danger: 'rgb(185, 28, 28)',
+      danger: '#B91C1C',
+      warning: '#f57c00',
       muted: '#838383',
       purple: '#8e44ad',
-      yellow: '#d97706'
+      yellow: '#cf8730'
     },
     bg: {
       danger: '#dc3545'
@@ -36,17 +89,24 @@ const lightTheme = {
 
     name: {
       color: '#546de5'
+    },
+
+    runtime: {
+      color: 'rgb(0, 0, 0)'
     }
   },
 
   sidebar: {
     color: 'rgb(52, 52, 52)',
     muted: '#4b5563',
-    bg: '#F3F3F3',
-    dragbar: 'rgb(200, 200, 200)',
+    bg: colors.GRAY_1,
+    dragbar: {
+      border: colors.GRAY_3,
+      activeBorder: colors.GRAY_4
+    },
 
     badge: {
-      bg: '#e1e1e1'
+      bg: '#eaeaea'
     },
 
     search: {
@@ -56,11 +116,12 @@ const lightTheme = {
 
     collection: {
       item: {
-        bg: '#e1e1e1',
-        hoverBg: '#e7e7e7',
-        indentBorder: 'solid 1px #e1e1e1',
+        bg: colors.GRAY_2,
+        hoverBg: colors.GRAY_2,
+        focusBorder: colors.GRAY_4,
+        indentBorder: `solid 1px ${colors.GRAY_3}`,
         active: {
-          indentBorder: 'solid 1px #d0d0d0'
+          indentBorder: `solid 1px ${colors.GRAY_3}`
         }
       }
     },
@@ -79,10 +140,49 @@ const lightTheme = {
     color: 'rgb(48 48 48)',
     iconColor: 'rgb(75, 85, 99)',
     bg: '#fff',
-    hoverBg: '#e9e9e9',
+    hoverBg: '#e9ecef',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
     separator: '#e7e7e7',
-    labelBg: '#f3f3f3'
+    labelBg: '#f3f3f3',
+    selectedBg: '#D977060F',
+    selectedColor: '#D97706',
+    mutedText: '#9B9B9B',
+    primaryText: '#343434',
+    secondaryText: '#6B7280',
+    headingText: '#343434'
+  },
+
+  listItem: {
+    hoverBg: '#e7e7e7',
+    activeBg: '#dcdcdc'
+  },
+
+  workspace: {
+    accent: '#D97706',
+    border: '#e7e7e7',
+    borderMuted: '#f3f3f3',
+    card: {
+      bg: '#fff'
+    },
+    button: {
+      bg: '#f3f3f3'
+    },
+    collection: {
+      header: {
+        indentBorder: 'solid 1px #efefef'
+      },
+      item: {
+        indentBorder: 'solid 1px #f9f9f9'
+      }
+    },
+    environments: {
+      bg: '#fbfbfb',
+      indentBorder: 'solid 1px #efefef',
+      activeBg: '#eeeeee',
+      search: {
+        bg: '#fff'
+      }
+    }
   },
 
   request: {
@@ -95,13 +195,19 @@ const lightTheme = {
       patch: '#ca7811',
       options: '#ca7811',
       head: '#ca7811'
-    }
+    },
+    grpc: '#6366f1',
+    ws: '#f59e0b',
+    gql: '#e535ab'
   },
 
   requestTabPanel: {
     url: {
-      bg: '#f3f3f3',
-      icon: '#515151'
+      bg: colors.WHITE,
+      icon: '#515151',
+      iconDanger: '#d91f11',
+      errorHoverBg: '#fef2f2',
+      border: `solid 1px ${colors.GRAY_3}`
     },
     dragbar: {
       border: '#efefef',
@@ -114,6 +220,7 @@ const lightTheme = {
     responseStatus: 'rgb(117 117 117)',
     responseOk: '#047857',
     responseError: 'rgb(185, 28, 28)',
+    responsePending: '#1663bb',
     responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
     card: {
       bg: '#fff',
@@ -129,6 +236,10 @@ const lightTheme = {
           color: 'rgb(75 85 99)'
         }
       }
+    },
+    graphqlDocsExplorer: {
+      bg: '#fff',
+      color: 'rgb(52, 52, 52)'
     }
   },
 
@@ -220,15 +331,26 @@ const lightTheme = {
   },
 
   tabs: {
+    marginRight: '1.2rem',
     active: {
-      color: 'rgb(50, 46, 44)',
-      border: '#546de5'
+      color: '#343434',
+      border: '#cf8730'
+    },
+    secondary: {
+      active: {
+        bg: '#FFFFFF',
+        color: '#343434'
+      },
+      inactive: {
+        bg: '#ECECEE',
+        color: '#989898'
+      }
     }
   },
 
   requestTabs: {
     color: 'rgb(52, 52, 52)',
-    bg: '#f7f7f7',
+    bg: '#f6f6f6',
     bottomBorder: '#efefef',
     icon: {
       color: '#9f9f9f',
@@ -247,20 +369,46 @@ const lightTheme = {
   },
 
   codemirror: {
-    bg: 'white',
-    border: '#efefef',
+    bg: colors.WHITE,
+    border: colors.WHITE,
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.75
+    },
     gutter: {
-      bg: '#f3f3f3'
+      bg: colors.WHITE
     },
     variable: {
       valid: '#047857',
       invalid: 'rgb(185, 28, 28)',
+      prompt: '#186ADE',
       info: {
-        color: 'rgb(52, 52, 52)',
-        bg: 'white',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)'
+        color: '#343434',
+        bg: '#FFFFFF',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
+        editorBg: '#F7F7F7',
+        iconColor: '#989898',
+        editorBorder: '#EFEFEF',
+        editorFocusBorder: '#989898',
+        editableDisplayHoverBg: 'rgba(0,0,0,0.02)',
+        border: '#EFEFEF',
+        editorBorder: '#EFEFEF'
       }
-    }
+    },
+    tokens: {
+      definition: colors.CODEMIRROR_TOKENS.DEFINITION,
+      property: colors.CODEMIRROR_TOKENS.PROPERTY,
+      string: colors.CODEMIRROR_TOKENS.STRING,
+      number: colors.CODEMIRROR_TOKENS.NUMBER,
+      atom: colors.CODEMIRROR_TOKENS.ATOM,
+      variable: colors.CODEMIRROR_TOKENS.VARIABLE,
+      keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
+      comment: colors.CODEMIRROR_TOKENS.COMMENT,
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+    },
+    searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
+    searchMatch: '#B8860B',
+    searchMatchActive: '#DAA520'
   },
 
   table: {
@@ -282,10 +430,191 @@ const lightTheme = {
     color: 'rgb(152 151 149)'
   },
 
+  dragAndDrop: {
+    border: '#8b8b8b', // Using the same gray as focusBorder from input
+    borderStyle: '2px solid',
+    hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
+    transition: 'all 0.1s ease'
+  },
+
+  tooltip: {
+    bg: '#374151',
+    color: '#ffffff',
+    shortcutColor: '#f59e0b'
+  },
+
   infoTip: {
     bg: 'white',
     border: '#e0e0e0',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+  },
+
+  statusBar: {
+    border: '#E9E9E9',
+    color: 'rgb(100, 100, 100)'
+  },
+  console: {
+    bg: '#f8f9fa',
+    headerBg: '#f8f9fa',
+    contentBg: '#ffffff',
+    border: '#dee2e6',
+    titleColor: '#212529',
+    countColor: '#6c757d',
+    buttonColor: '#495057',
+    buttonHoverBg: '#e9ecef',
+    buttonHoverColor: '#212529',
+    messageColor: '#212529',
+    timestampColor: '#6c757d',
+    emptyColor: '#6c757d',
+    logHoverBg: 'rgba(0, 0, 0, 0.03)',
+    resizeHandleHover: '#0d6efd',
+    resizeHandleActive: '#0d6efd',
+    dropdownBg: '#ffffff',
+    dropdownHeaderBg: '#f8f9fa',
+    optionHoverBg: '#f8f9fa',
+    optionLabelColor: '#212529',
+    optionCountColor: '#6c757d',
+    checkboxColor: '#0d6efd',
+    scrollbarTrack: '#f8f9fa',
+    scrollbarThumb: '#ced4da',
+    scrollbarThumbHover: '#adb5bd'
+  },
+
+  grpc: {
+    tabNav: {
+      container: {
+        bg: '#f5f5f5'
+      },
+      button: {
+        active: {
+          bg: '#ffffff',
+          color: '#000000'
+        },
+        inactive: {
+          bg: 'transparent',
+          color: '#525252'
+        }
+      }
+    },
+    importPaths: {
+      container: {
+        bg: '#ffffff'
+      },
+      header: {
+        text: '#838383',
+        button: {
+          color: '#838383',
+          hoverColor: '#343434'
+        }
+      },
+      error: {
+        bg: 'transparent',
+        text: '#B91C1C',
+        link: {
+          color: '#B91C1C',
+          hoverColor: '#dc2626'
+        }
+      },
+      item: {
+        bg: 'transparent',
+        hoverBg: 'rgba(0, 0, 0, 0.05)',
+        text: '#343434',
+        icon: '#838383',
+        checkbox: {
+          color: '#343434'
+        },
+        invalid: {
+          opacity: 0.6,
+          text: '#B91C1C'
+        }
+      },
+      empty: {
+        text: '#838383'
+      },
+      button: {
+        bg: '#e2e6ea',
+        color: '#212529',
+        border: '#dae0e5',
+        hoverBorder: '#696969'
+      }
+    },
+    protoFiles: {
+      container: {
+        bg: '#ffffff'
+      },
+      header: {
+        text: '#838383',
+        button: {
+          color: '#838383',
+          hoverColor: '#343434'
+        }
+      },
+      error: {
+        bg: 'transparent',
+        text: '#B91C1C',
+        link: {
+          color: '#B91C1C',
+          hoverColor: '#dc2626'
+        }
+      },
+      item: {
+        bg: 'transparent',
+        hoverBg: 'rgba(0, 0, 0, 0.05)',
+        selected: {
+          bg: 'rgba(217, 119, 6, 0.2)',
+          border: '#d97706'
+        },
+        text: '#343434',
+        secondaryText: '#838383',
+        icon: '#838383',
+        invalid: {
+          opacity: 0.6,
+          text: '#B91C1C'
+        }
+      },
+      empty: {
+        text: '#838383'
+      },
+      button: {
+        bg: '#e2e6ea',
+        color: '#212529',
+        border: '#dae0e5',
+        hoverBorder: '#696969'
+      }
+    }
+  },
+  deprecationWarning: {
+    bg: 'rgba(217, 31, 17, 0.1)',
+    border: 'rgba(217, 31, 17, 0.1)',
+    icon: '#D91F11',
+    text: '#343434'
+  },
+
+  preferences: {
+    sidebar: {
+      border: '#EFEFEF'
+    }
+  },
+
+  examples: {
+    buttonBg: '#D977061A',
+    buttonColor: '#D97706',
+    buttonText: '#fff',
+    buttonIconColor: '#000',
+    border: '#efefef',
+    urlBar: {
+      border: '#efefef',
+      bg: '#F5F5F5'
+    },
+    table: {
+      thead: {
+        bg: '#f8f9fa',
+        color: '#212529'
+      }
+    },
+    checkbox: {
+      color: '#fff'
+    }
   }
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,26 +16,32 @@ import TestResultsLabel from './TestResultsLabel';
 import ScriptError from './ScriptError';
 import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
-import ResponseSave from 'src/components/ResponsePane/ResponseSave';
-import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import ResponseActions from 'src/components/ResponsePane/ResponseActions';
+import ResponseBookmark from 'src/components/ResponsePane/ResponseBookmark';
+import ResponseCopy from 'src/components/ResponsePane/ResponseCopy';
+import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
+import ResponseLayoutToggle from './ResponseLayoutToggle';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
+import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
+import WSMessagesList from './WsResponsePane/WSMessagesList';
 
-const ResponsePane = ({ rightPaneWidth, item, collection }) => {
+const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const requestTimeline = ([...(collection.timeline || [])]).filter(obj => {
+  const requestTimeline = ([...(collection.timeline || [])]).filter((obj) => {
     if (obj.itemUid === item.uid) return true;
   });
 
   useEffect(() => {
-    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage) {
+    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
       setShowScriptErrorCard(true);
     }
-  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage]);
+  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
 
   const selectTab = (tab) => {
     dispatch(
@@ -48,14 +54,33 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   const response = item.response || {};
 
+  const responseSize = useMemo(() => {
+    if (typeof response.size === 'number') {
+      return response.size;
+    }
+
+    if (!response.dataBuffer) return 0;
+
+    try {
+      // dataBuffer is base64 encoded, so we need to calculate the actual size
+      const buffer = Buffer.from(response.dataBuffer, 'base64');
+      return buffer.length;
+    } catch (error) {
+      return 0;
+    }
+  }, [response.size, response.dataBuffer]);
+
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
+        const isStream = item.response?.stream ?? false;
+        if (isStream) {
+          return <WSMessagesList order={-1} messages={item.response.data} />;
+        }
         return (
           <QueryResult
             item={item}
             collection={collection}
-            width={rightPaneWidth}
             data={response.data}
             dataBuffer={response.dataBuffer}
             headers={response.headers}
@@ -68,10 +93,17 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} width={rightPaneWidth}  />;
+        return <Timeline collection={collection} item={item} />;
       }
       case 'tests': {
-        return <TestResults results={item.testResults} assertionResults={item.assertionResults} />;
+        return (
+          <TestResults
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
+        );
       }
 
       default: {
@@ -79,6 +111,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       }
     }
   };
+
+  if (item.response && item.status === 'skipped') {
+    return (
+      <StyledWrapper className="flex h-full relative">
+        <SkippedRequest />
+      </StyledWrapper>
+    );
+  }
 
   if (isLoading && !item.response) {
     return (
@@ -90,9 +130,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   if (!item.response && !requestTimeline?.length) {
     return (
-      <StyledWrapper className="flex h-full relative">
+      <HeightBoundContainer>
         <Placeholder />
-      </StyledWrapper>
+      </HeightBoundContainer>
     );
   }
 
@@ -112,12 +152,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   };
 
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
-  
-  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage;
+
+  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
+      <div className="flex flex-wrap items-center px-4 tabs" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
@@ -129,51 +169,65 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           Timeline
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
-          <TestResultsLabel results={item.testResults} assertionResults={item.assertionResults} />
+          <TestResultsLabel
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
             {hasScriptError && !showScriptErrorCard && (
-              <ScriptErrorIcon 
-                itemUid={item.uid} 
-                onClick={() => setShowScriptErrorCard(true)} 
+              <ScriptErrorIcon
+                itemUid={item.uid}
+                onClick={() => setShowScriptErrorCard(true)}
               />
             )}
-            {focusedTab?.responsePaneTab === "timeline" ? (
+            <ResponseLayoutToggle />
+            {focusedTab?.responsePaneTab === 'timeline' ? (
               <ClearTimeline item={item} collection={collection} />
-            ) : item?.response ? (
+            ) : (item?.response && !item?.response?.error) ? (
               <>
-                <ResponseClear item={item} collection={collection} />
-                <ResponseSave item={item} />
-                <StatusCode status={response.status} />
-                <ResponseTime duration={response.duration} />
-                <ResponseSize size={response.size} />
+                <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
+                <ResponseCopy item={item} />
+                <ResponseActions item={item} collection={collection} />
+                <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
+                {item.response?.stream?.running
+                  ? <ResponseStopWatch startMillis={response.duration} />
+                  : <ResponseTime duration={response.duration} />}
+                <ResponseSize size={responseSize} />
               </>
             ) : null}
           </div>
         ) : null}
       </div>
       <section
-        className={`flex flex-col flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className="flex flex-col min-h-0 relative px-4 auto overflow-auto"
+        style={{
+          flex: '1 1 0',
+          height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'
+        }}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
-          <ScriptError 
-            item={item} 
-            onClose={() => setShowScriptErrorCard(false)} 
+          <ScriptError
+            item={item}
+            onClose={() => setShowScriptErrorCard(false)}
           />
         )}
-        {!item?.response ? (
-          focusedTab?.responsePaneTab === "timeline" && requestTimeline?.length ? (
-            <Timeline
-              collection={collection}
-              item={item}
-              width={rightPaneWidth}
-            />
-          ) : null
-        ) : (
-          <>{getTabPanel(focusedTab.responsePaneTab)}</>
-        )}
+        <div className="flex-1 overflow-y-auto">
+          {!item?.response ? (
+            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
+              <Timeline
+                collection={collection}
+                item={item}
+              />
+            ) : null
+          ) : (
+            <>{getTabPanel(focusedTab.responsePaneTab)}</>
+          )}
+        </div>
       </section>
     </StyledWrapper>
   );

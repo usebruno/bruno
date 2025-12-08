@@ -23,8 +23,8 @@ describe('regex validators', () => {
     });
 
     it('should remove trailing periods', () => {
-      expect(sanitizeName('.file')).toBe('file');
-      expect(sanitizeName('.file.')).toBe('file');
+      expect(sanitizeName('.file')).toBe('.file');
+      expect(sanitizeName('.file.')).toBe('.file');
       expect(sanitizeName('file.')).toBe('file');
       expect(sanitizeName('file.name.')).toBe('file.name');
       expect(sanitizeName('hello world.')).toBe('hello world');
@@ -83,11 +83,11 @@ describe('regex validators', () => {
 
     it('should handle filenames with multiple consecutive periods (only remove trailing)', () => {
       expect(sanitizeName('file.name...')).toBe('file.name');
-      expect(sanitizeName('...file')).toBe('file');
+      expect(sanitizeName('...file')).toBe('...file');
       expect(sanitizeName('file.name...  ')).toBe('file.name');
-      expect(sanitizeName('  ...file')).toBe('file');
-      expect(sanitizeName('  ...file   ')).toBe('file');
-      expect(sanitizeName('  ...file....   ')).toBe('file');
+      expect(sanitizeName('  ...file')).toBe('...file');
+      expect(sanitizeName('  ...file   ')).toBe('...file');
+      expect(sanitizeName('  ...file....   ')).toBe('...file');
     });
 
     it('should handle very long filenames', () => {
@@ -110,7 +110,6 @@ describe('regex validators', () => {
       expect(sanitizeName('สวัสดีชาวโลก!?@#$%^&*()')).toBe('สวัสดีชาวโลก!-@#$%^&-()');
       expect(sanitizeName('γειά σου κόσμος!?@#$%^&*()')).toBe('γειά σου κόσμος!-@#$%^&-()');
     });
-    
   });
 });
 
@@ -124,7 +123,7 @@ describe('sanitizeName and validateName', () => {
       'file/with?invalid*chars'
     ];
 
-    validNames.forEach(name => {
+    validNames.forEach((name) => {
       const sanitized = sanitizeName(name);
       expect(validateName(sanitized)).toBe(true);
     });
@@ -132,8 +131,8 @@ describe('sanitizeName and validateName', () => {
 
   it('should sanitize and then validate names with reserved device names', () => {
     const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'LPT2'];
-    
-    reservedNames.forEach(name => {
+
+    reservedNames.forEach((name) => {
       const sanitized = sanitizeName(name);
       expect(validateName(sanitized)).toBe(false);
     });
@@ -143,10 +142,10 @@ describe('sanitizeName and validateName', () => {
     const invalidNames = [
       '  <>:"/\\|?*  ',
       '   ...   ',
-      '    ',
+      '    '
     ];
 
-    invalidNames.forEach(name => {
+    invalidNames.forEach((name) => {
       const sanitized = sanitizeName(name);
       expect(validateName(sanitized)).toBe(false);
     });
@@ -158,7 +157,7 @@ describe('sanitizeName and validateName', () => {
       '   COM1   '
     ];
 
-    mixedNames.forEach(name => {
+    mixedNames.forEach((name) => {
       const sanitized = sanitizeName(name);
       expect(validateName(sanitized)).toBe(false);
     });

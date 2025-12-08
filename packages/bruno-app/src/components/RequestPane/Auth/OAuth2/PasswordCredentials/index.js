@@ -1,4 +1,5 @@
 import React, { useRef, forwardRef } from 'react';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -9,41 +10,44 @@ import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
+import AdditionalParams from '../AdditionalParams/index';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 
 const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
   const oAuth = get(request, 'auth.oauth2', {});
+  const { isSensitive } = useDetectSensitiveField(collection);
 
-  const { 
-    accessTokenUrl, 
-    username, 
-    password, 
-    clientId, 
-    clientSecret, 
-    scope, 
-    credentialsPlacement, 
-    credentialsId, 
-    tokenPlacement, 
-    tokenHeaderPrefix, 
-    tokenQueryKey, 
+  const {
+    accessTokenUrl,
+    username,
+    password,
+    clientId,
+    clientSecret,
+    scope,
+    credentialsPlacement,
+    credentialsId,
+    tokenPlacement,
+    tokenHeaderPrefix,
+    tokenQueryKey,
     refreshTokenUrl,
     autoRefreshToken,
-    autoFetchToken
+    autoFetchToken,
+    additionalParameters
   } = oAuth;
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
-  const handleSave = () => { save(); }
+  const handleSave = () => { save(); };
 
   const TokenPlacementIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {tokenPlacement == 'url' ?  'URL' : 'Headers'}
+        {tokenPlacement == 'url' ? 'URL' : 'Headers'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
@@ -52,7 +56,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
   const CredentialsPlacementIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {credentialsPlacement == 'body' ?  'Request Body' : 'Basic Auth Header'}
+        {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
@@ -80,6 +84,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
+          additionalParameters,
           [key]: value
         }
       })
@@ -93,18 +98,21 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium">
+        <span className="font-medium">
           Configuration
         </span>
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
+        const value = oAuth[key] || '';
+        const { showWarning, warningMessage } = isSensitive(value);
+
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
             <label className="block min-w-[140px]">{label}</label>
-            <div className="single-line-editor-wrapper flex-1">
+            <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
-                value={oAuth[key] || ''}
+                value={value}
                 theme={storedTheme}
                 onSave={handleSave}
                 onChange={(val) => handleChange(key, val)}
@@ -113,11 +121,12 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                 item={item}
                 isSecret={isSecret}
               />
+              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
             </div>
           </div>
         );
       })}
-      <div className="flex items-center gap-4 w-full" key={`input-credentials-placement`}>
+      <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
         <label className="block min-w-[140px]">Add Credentials to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <Dropdown onCreate={onDropdownCreate} icon={<CredentialsPlacementIcon />} placement="bottom-end">
@@ -146,11 +155,11 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span className="font-medium text-gray-800 dark:text-gray-200">
           Token
         </span>
       </div>
-      <div className="flex items-center gap-4 w-full" key={`input-token-name`}>
+      <div className="flex items-center gap-4 w-full" key="input-token-name">
         <label className="block min-w-[140px]">Token ID</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
@@ -164,7 +173,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           />
         </div>
       </div>
-      <div className="flex items-center gap-4 w-full" key={`input-token-placement`}>
+      <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
@@ -190,40 +199,43 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         </div>
       </div>
       {
-        tokenPlacement === 'header' ?
-          <div className="flex items-center gap-4 w-full" key={`input-token-prefix`}>
-            <label className="block min-w-[140px]">Header Prefix</label>
-            <div className="single-line-editor-wrapper flex-1">
-              <SingleLineEditor
-                value={oAuth['tokenHeaderPrefix'] || ''}
-                theme={storedTheme}
-                onSave={handleSave}
-                onChange={(val) => handleChange('tokenHeaderPrefix', val)}
-                onRun={handleRun}
-                collection={collection}
-              />
-            </div>
-          </div>
-          :
-          <div className="flex items-center gap-4 w-full" key={`input-token-query-param-key`}>
-            <label className="block font-medium min-w-[140px]">Query Param Key</label>
-            <div className="single-line-editor-wrapper flex-1">
-              <SingleLineEditor
-                value={oAuth['tokenQueryKey'] || ''}
-                theme={storedTheme}
-                onSave={handleSave}
-                onChange={(val) => handleChange('tokenQueryKey', val)}
-                onRun={handleRun}
-                collection={collection}
-              />
-            </div>
-          </div>
+        tokenPlacement === 'header'
+          ? (
+              <div className="flex items-center gap-4 w-full" key="input-token-prefix">
+                <label className="block min-w-[140px]">Header Prefix</label>
+                <div className="single-line-editor-wrapper flex-1">
+                  <SingleLineEditor
+                    value={oAuth['tokenHeaderPrefix'] || ''}
+                    theme={storedTheme}
+                    onSave={handleSave}
+                    onChange={(val) => handleChange('tokenHeaderPrefix', val)}
+                    onRun={handleRun}
+                    collection={collection}
+                  />
+                </div>
+              </div>
+            )
+          : (
+              <div className="flex items-center gap-4 w-full" key="input-token-query-param-key">
+                <label className="block font-medium min-w-[140px]">Query Param Key</label>
+                <div className="single-line-editor-wrapper flex-1">
+                  <SingleLineEditor
+                    value={oAuth['tokenQueryKey'] || ''}
+                    theme={storedTheme}
+                    onSave={handleSave}
+                    onChange={(val) => handleChange('tokenQueryKey', val)}
+                    onRun={handleRun}
+                    collection={collection}
+                  />
+                </div>
+              </div>
+            )
       }
       <div className="flex items-center gap-2.5 mt-4 mb-2">
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span className="font-medium text-gray-800 dark:text-gray-200">
           Advanced Settings
         </span>
       </div>
@@ -235,29 +247,18 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
             value={get(request, 'auth.oauth2.refreshTokenUrl', '')}
             theme={storedTheme}
             onSave={handleSave}
-            onChange={(val) => handleChange("refreshTokenUrl", val)}
+            onChange={(val) => handleChange('refreshTokenUrl', val)}
             collection={collection}
             item={item}
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-4 w-full mb-4">
-        <label className="block min-w-[140px]">Auto-refresh token</label>
-        <input
-          type="checkbox"
-          className="cursor-pointer w-4 h-4 accent-indigo-600"
-          checked={get(request, 'auth.oauth2.autoRefreshToken', false)}
-          onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
-        />
-        <span className="text-xs text-gray-500">Automatically refresh the token when it expires</span>
-      </div>
-
       <div className="flex items-center gap-2.5 mt-4">
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium">Settings</span>
+        <span className="font-medium">Settings</span>
       </div>
 
       {/* Automatically Fetch Token */}
@@ -298,6 +299,13 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           </div>
         </div>
       </div>
+      <AdditionalParams
+        item={item}
+        request={request}
+        collection={collection}
+        updateAuth={updateAuth}
+        handleSave={handleSave}
+      />
       <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
     </StyledWrapper>
   );

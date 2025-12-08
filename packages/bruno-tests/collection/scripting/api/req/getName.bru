@@ -1,0 +1,17 @@
+meta {
+  name: getName
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("Check if request name is getName", function () {
+      expect(req.getName()).to.eql("getName");
+  });
+}

@@ -1,29 +1,72 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
+import DraggableTab from './DraggableTab';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
+  const scrollContainerRef = useRef();
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
+  const [tabOverflowStates, setTabOverflowStates] = useState({});
+  const [showChevrons, setShowChevrons] = useState(false);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
+  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
+
+  const createSetHasOverflow = useCallback((tabUid) => {
+    return (hasOverflow) => {
+      setTabOverflowStates((prev) => {
+        if (prev[tabUid] === hasOverflow) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [tabUid]: hasOverflow
+        };
+      });
+    };
+  }, []);
+
+  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+  const activeCollection = find(collections, (c) => c.uid === activeTab?.collectionUid);
+  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
+
+  useEffect(() => {
+    if (!activeTabUid || !activeTab) return;
+
+    const checkOverflow = () => {
+      if (tabsRef.current && scrollContainerRef.current) {
+        const hasOverflow = tabsRef.current.scrollWidth > scrollContainerRef.current.clientWidth;
+        setShowChevrons(hasOverflow);
+      }
+    };
+
+    checkOverflow();
+    const resizeObserver = new ResizeObserver(checkOverflow);
+    if (scrollContainerRef.current) {
+      resizeObserver.observe(scrollContainerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, [activeTabUid, activeTab, collectionRequestTabs.length, screenWidth, leftSidebarWidth, sidebarCollapsed]);
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
-      active: tab.uid === activeTabUid,
-      'last-tab': tabs && tabs.length && index === tabs.length - 1
+      'active': tab.uid === activeTabUid,
+      'last-tab': tabs && tabs.length && index === tabs.length - 1,
+      'has-overflow': tabOverflowStates[tab.uid]
     });
   };
 
@@ -41,30 +84,22 @@ const RequestTabs = () => {
     return null;
   }
 
-  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
   if (!activeTab) {
     return <StyledWrapper>Something went wrong!</StyledWrapper>;
   }
 
-  const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
-  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
-
-  const maxTablistWidth = screenWidth - leftSidebarWidth - 150;
-  const tabsWidth = collectionRequestTabs.length * 150 + 34; // 34: (+)icon
-  const showChevrons = maxTablistWidth < tabsWidth;
+  const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
+  const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
 
   const leftSlide = () => {
-    tabsRef.current.scrollBy({
+    scrollContainerRef.current?.scrollBy({
       left: -120,
       behavior: 'smooth'
     });
   };
 
-  // todo: bring new tab to focus if its not in focus
-  // tabsRef.current.scrollLeft
-
   const rightSlide = () => {
-    tabsRef.current.scrollBy({
+    scrollContainerRef.current?.scrollBy({
       left: 120,
       behavior: 'smooth'
     });
@@ -79,12 +114,12 @@ const RequestTabs = () => {
   return (
     <StyledWrapper className={getRootClassname()}>
       {newRequestModalOpen && (
-        <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)} />
+        <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center pl-4">
+          <div className="flex items-center pl-2">
             <ul role="tablist">
               {showChevrons ? (
                 <li className="select-none short-tab" onClick={leftSlide}>
@@ -100,29 +135,40 @@ const RequestTabs = () => {
                 </div>
               </li> */}
             </ul>
-            <ul role="tablist" style={{ maxWidth: maxTablistWidth }} ref={tabsRef}>
-              {collectionRequestTabs && collectionRequestTabs.length
-                ? collectionRequestTabs.map((tab, index) => {
-                    return (
-                      <li
-                        key={tab.uid}
-                        className={getTabClassname(tab, index)}
-                        role="tab"
-                        onClick={() => handleClick(tab)}
-                      >
-                        <RequestTab
-                          collectionRequestTabs={collectionRequestTabs}
-                          tabIndex={index}
+            <div className="tabs-scroll-container" style={{ maxWidth: maxTablistWidth }} ref={scrollContainerRef}>
+              <ul role="tablist" ref={tabsRef}>
+                {collectionRequestTabs && collectionRequestTabs.length
+                  ? collectionRequestTabs.map((tab, index) => {
+                      return (
+                        <DraggableTab
                           key={tab.uid}
-                          tab={tab}
-                          collection={activeCollection}
-                          folderUid={tab.folderUid}
-                        />
-                      </li>
-                    );
-                  })
-                : null}
-            </ul>
+                          id={tab.uid}
+                          index={index}
+                          onMoveTab={(source, target) => {
+                            dispatch(reorderTabs({
+                              sourceUid: source,
+                              targetUid: target
+                            }));
+                          }}
+                          className={getTabClassname(tab, index)}
+                          onClick={() => handleClick(tab)}
+                        >
+                          <RequestTab
+                            collectionRequestTabs={collectionRequestTabs}
+                            tabIndex={index}
+                            key={tab.uid}
+                            tab={tab}
+                            collection={activeCollection}
+                            folderUid={tab.folderUid}
+                            hasOverflow={tabOverflowStates[tab.uid]}
+                            setHasOverflow={createSetHasOverflow(tab.uid)}
+                          />
+                        </DraggableTab>
+                      );
+                    })
+                  : null}
+              </ul>
+            </div>
 
             <ul role="tablist">
               {showChevrons ? (

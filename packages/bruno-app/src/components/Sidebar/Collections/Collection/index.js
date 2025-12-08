@@ -1,27 +1,49 @@
 import React, { useState, forwardRef, useRef, useEffect } from 'react';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
-import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
+import {
+  IconChevronRight,
+  IconDots,
+  IconLoader2,
+  IconFilePlus,
+  IconFolderPlus,
+  IconCopy,
+  IconClipboard,
+  IconPlayerPlay,
+  IconEdit,
+  IconShare,
+  IconFoldDown,
+  IconX,
+  IconSettings,
+  IconTerminal2
+} from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { collapseCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveItemToRootOfCollection, moveCollectionAndPersist } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
+import { hideApiSpecPage, hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest } from 'utils/collections';
+import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
-import { areItemsLoading, findItemInCollection } from 'utils/collections';
+import { areItemsLoading } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
+import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
+import { sortByNameThenSequence } from 'utils/common/index';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -30,13 +52,17 @@ const Collection = ({ collection, searchText }) => {
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const [dropType, setDropType] = useState(null);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
 
+  const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
+  const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
-  const MenuIcon = forwardRef((props, ref) => {
+  const MenuIcon = forwardRef((_props, ref) => {
     return (
       <div ref={ref} className="pr-2">
         <IconDots size={22} />
@@ -55,14 +81,15 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const ensureCollectionIsMounted = () => {
-    if (collection.mountStatus === 'unmounted') {
-      dispatch(mountCollection({
-        collectionUid: collection.uid,
-        collectionPathname: collection.pathname,
-        brunoConfig: collection.brunoConfig
-      }));
+    if (collection.mountStatus === 'mounted') {
+      return;
     }
-  }
+    dispatch(mountCollection({
+      collectionUid: collection.uid,
+      collectionPathname: collection.pathname,
+      brunoConfig: collection.brunoConfig
+    }));
+  };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
   const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
@@ -76,34 +103,44 @@ const Collection = ({ collection, searchText }) => {
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
-    
+
     ensureCollectionIsMounted();
 
-    dispatch(collapseCollection(collection.uid));
-  
-    if(!isChevronClick) {
+    if (collection.collapsed) {
+      dispatch(toggleCollection(collection.uid));
+    }
+
+    if (!isChevronClick) {
+      dispatch(hideHomePage()); // @TODO Playwright tests are often stuck on home page, rather than collection settings tab. Revisit for a proper fix.
+      dispatch(hideApiSpecPage());
       dispatch(
         addTab({
           uid: collection.uid,
           collectionUid: collection.uid,
-          type: 'collection-settings',
+          type: 'collection-settings'
         })
       );
     }
   };
 
-  const handleDoubleClick = (event) => {
-    dispatch(makeTabPermanent({ uid: collection.uid }))
+  const handleDoubleClick = (_event) => {
+    dispatch(makeTabPermanent({ uid: collection.uid }));
   };
 
   const handleCollectionCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
     ensureCollectionIsMounted();
-    dispatch(collapseCollection(collection.uid));
-  }
+    dispatch(toggleCollection(collection.uid));
+  };
 
-  const handleRightClick = (event) => {
+  // prevent the parent's double-click handler from firing
+  const handleCollectionDoubleClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
+  const handleRightClick = (_event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
     if (_menuDropdown) {
       let menuDropdownBehavior = 'show';
@@ -112,6 +149,10 @@ const Collection = ({ collection, searchText }) => {
       }
       _menuDropdown[menuDropdownBehavior]();
     }
+  };
+
+  const handleCollapseFullCollection = () => {
+    dispatch(collapseFullCollection({ collectionUid: collection.uid }));
   };
 
   const viewCollectionSettings = () => {
@@ -124,40 +165,85 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
-  const isCollectionItem = (itemType) => {
-    return itemType.startsWith('collection-item');
+  const handlePasteItem = () => {
+    menuDropdownTippyRef.current.hide();
+    dispatch(pasteItem(collection.uid, null))
+      .then(() => {
+        toast.success('Item pasted successfully');
+      })
+      .catch((err) => {
+        toast.error(err ? err.message : 'An error occurred while pasting the item');
+      });
   };
-  
-  const [{ isDragging }, drag] = useDrag({
-    type: "collection",
+
+  // Keyboard shortcuts handler for collection
+  const handleKeyDown = (e) => {
+    // Detect Mac by checking both metaKey and platform
+    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
+    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
+
+    if (isModifierPressed && e.key.toLowerCase() === 'v') {
+      e.preventDefault();
+      e.stopPropagation();
+      handlePasteItem();
+    }
+  };
+
+  const handleFocus = () => {
+    setIsKeyboardFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsKeyboardFocused(false);
+  };
+
+  const isCollectionItem = (itemType) => {
+    return itemType === 'collection-item';
+  };
+
+  const [{ isDragging }, drag, dragPreview] = useDrag({
+    type: 'collection',
     item: collection,
     collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
+      isDragging: monitor.isDragging()
     }),
     options: {
-      dropEffect: "move"
+      dropEffect: 'move'
     }
   });
-  
+
   const [{ isOver }, drop] = useDrop({
-    accept: ["collection", `collection-item-${collection.uid}`],
+    accept: ['collection', 'collection-item'],
+    hover: (_draggedItem, monitor) => {
+      const itemType = monitor.getItemType();
+      if (isCollectionItem(itemType)) {
+        // For collection items, always show full highlight (inside drop)
+        setDropType('inside');
+      } else {
+        // For collections, show line indicator (adjacent drop)
+        setDropType('adjacent');
+      }
+    },
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid))
+        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
       } else {
-        dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
+        dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));
       }
+      setDropType(null);
     },
     canDrop: (draggedItem) => {
       return draggedItem.uid !== collection.uid;
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
+      isOver: monitor.isOver()
+    })
   });
 
-  drag(drop(collectionRef));
+  useEffect(() => {
+    dragPreview(getEmptyImage(), { captureDraggingState: true });
+  }, []);
 
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
@@ -166,40 +252,47 @@ const Collection = ({ collection, searchText }) => {
   }
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-      'item-hovered': isOver
-    });
+    'item-hovered': isOver && dropType === 'adjacent', // For collection-to-collection moves (show line)
+    'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
+    'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
+    'collection-keyboard-focused': isKeyboardFocused
+  });
 
   // we need to sort request items by seq property
-  const sortRequestItems = (items = []) => {
+  const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
 
-  // we need to sort folder items by name alphabetically
-  const sortFolderItems = (items = []) => {
-    return items.sort((a, b) => a.name.localeCompare(b.name));
-  };
-
-  const requestItems = sortRequestItems(filter(collection.items, (i) => isItemARequest(i)));
-  const folderItems = sortFolderItems(filter(collection.items, (i) => isItemAFolder(i)));
+  const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i)));
+  const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i)));
 
   return (
-    <StyledWrapper className="flex flex-col">
-      {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)} />}
-      {showNewFolderModal && <NewFolder collection={collection} onClose={() => setShowNewFolderModal(false)} />}
+    <StyledWrapper className="flex flex-col" id={`collection-${collection.name.replace(/\s+/g, '-').toLowerCase()}`}>
+      {showNewRequestModal && <NewRequest collectionUid={collection.uid} onClose={() => setShowNewRequestModal(false)} />}
+      {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
       {showRenameCollectionModal && (
-        <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)} />
+        <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
       )}
       {showRemoveCollectionModal && (
-        <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />
+        <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
       {showShareCollectionModal && (
-        <ShareCollection collection={collection} onClose={() => setShowShareCollectionModal(false)} />
+        <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
       )}
       {showCloneCollectionModalOpen && (
-        <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
+        <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
-      <div className={collectionRowClassName}
-      ref={collectionRef}
+      <CollectionItemDragPreview />
+      <div
+        className={collectionRowClassName}
+        ref={(node) => {
+          collectionRef.current = node;
+          drag(drop(node));
+        }}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
@@ -213,103 +306,165 @@ const Collection = ({ collection, searchText }) => {
             className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
             onClick={handleCollectionCollapse}
+            onDoubleClick={handleCollectionDoubleClick}
           />
-          <div className="ml-1 w-full" id="sidebar-collection-name">
+          <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div className="collection-actions">
+        <div className="collection-actions" data-testid="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowNewRequestModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconFilePlus size={16} strokeWidth={2} />
+              </span>
               New Request
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowNewFolderModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconFolderPlus size={16} strokeWidth={2} />
+              </span>
               New Folder
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
-                setShowCloneCollectionModalOpen(true);
-              }}
-            >
-              Clone
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 handleRun();
               }}
             >
+              <span className="dropdown-icon">
+                <IconPlayerPlay size={16} strokeWidth={2} />
+              </span>
               Run
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              data-testid="clone-collection"
+              onClick={(_e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowCloneCollectionModalOpen(true);
+              }}
+            >
+              <span className="dropdown-icon">
+                <IconCopy size={16} strokeWidth={2} />
+              </span>
+              Clone
+            </div>
+            {hasCopiedItems && (
+              <div
+                className="dropdown-item"
+                onClick={handlePasteItem}
+              >
+                <span className="dropdown-icon">
+                  <IconClipboard size={16} strokeWidth={2} />
+                </span>
+                Paste
+              </div>
+            )}
+            <div
+              className="dropdown-item"
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowRenameCollectionModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconEdit size={16} strokeWidth={2} />
+              </span>
               Rename
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowShareCollectionModal(true);
               }}
             >
+              <span className="dropdown-icon">
+                <IconShare size={16} strokeWidth={2} />
+              </span>
               Share
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
-                setShowRemoveCollectionModal(true);
+                handleCollapseFullCollection();
               }}
             >
-              Close
+              <span className="dropdown-icon">
+                <IconFoldDown size={16} strokeWidth={2} />
+              </span>
+              Collapse
             </div>
+            <div className="dropdown-separator"></div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 viewCollectionSettings();
               }}
             >
+              <span className="dropdown-icon">
+                <IconSettings size={16} strokeWidth={2} />
+              </span>
               Settings
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={async (_e) => {
+                menuDropdownTippyRef.current.hide();
+                const collectionCwd = collection.pathname;
+                await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
+              }}
+            >
+              <span className="dropdown-icon">
+                <IconTerminal2 size={16} strokeWidth={2} />
+              </span>
+              Open in Terminal
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(_e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowRemoveCollectionModal(true);
+              }}
+            >
+              <span className="dropdown-icon">
+                <IconX size={16} strokeWidth={2} />
+              </span>
+              Remove
             </div>
           </Dropdown>
         </div>
       </div>
-
       <div>
         {!collectionIsCollapsed ? (
           <div>
-            {folderItems && folderItems.length
-              ? folderItems.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
-              : null}
-            {requestItems && requestItems.length
-              ? requestItems.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
-              : null}
+            {folderItems?.map?.((i) => {
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+            })}
+            {requestItems?.map?.((i) => {
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+            })}
           </div>
         ) : null}
       </div>

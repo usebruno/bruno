@@ -1,20 +1,34 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .collections-badge {
-    margin-inline: 0.5rem;
-    background-color: ${(props) => props.theme.sidebar.badge.bg};
-    border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 4px;
 
-    .caret {
-      margin-left: 0.25rem;
-      color: rgb(140, 140, 140);
-      fill: rgb(140, 140, 140);
+  .collections-list {
+    min-height: 0;
+    padding-top: 4px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
     }
-  }
 
-  span.close-icon {
-    color: ${(props) => props.theme.colors.text.muted};
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: ${(props) => props.theme.scrollbar.color};
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: ${(props) => props.theme.scrollbar.color};
+    }
   }
 `;
 

@@ -40,11 +40,10 @@ const isDirectory = (dirPath) => {
 
 const hasSubDirectories = (dir) => {
   const files = fs.readdirSync(dir);
-  return files.some(file => fs.statSync(path.join(dir, file)).isDirectory());
+  return files.some((file) => fs.statSync(path.join(dir, file)).isDirectory());
 };
 
 const normalizeAndResolvePath = (pathname) => {
-
   if (isWSLPath(pathname)) {
     return normalizeWSLPath(pathname);
   }
@@ -64,8 +63,7 @@ const normalizeAndResolvePath = (pathname) => {
 function isWSLPath(pathname) {
   // Check if the path starts with the WSL prefix
   // eg. "\\wsl.localhost\Ubuntu\home\user\bruno\collection\scripting\api\req\getHeaders.bru"
-    return pathname.startsWith('\\\\') || pathname.startsWith('//') || pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost');
-
+  return pathname.startsWith('\\\\') || pathname.startsWith('//') || pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost');
 }
 
 function normalizeWSLPath(pathname) {
@@ -74,11 +72,10 @@ function normalizeWSLPath(pathname) {
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
 }
 
-
 const writeFile = async (pathname, content, isBinary = false) => {
   try {
     await safeWriteFile(pathname, content, {
-      encoding: !isBinary ? "utf-8" : null
+      encoding: !isBinary ? 'utf-8' : null
     });
   } catch (err) {
     console.error(`Error writing file at ${pathname}:`, err);
@@ -94,6 +91,17 @@ const hasJsonExtension = (filename) => {
 const hasBruExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['bru'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
+};
+
+const hasRequestExtension = (filename, format = null) => {
+  if (!filename || typeof filename !== 'string') return false;
+
+  if (format) {
+    const ext = format === 'yml' ? 'yml' : 'bru';
+    return filename.toLowerCase().endsWith(`.${ext}`);
+  }
+
+  return ['bru', 'yml'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 
 const createDirectory = async (dir) => {
@@ -157,39 +165,83 @@ const searchForFiles = (dir, extension) => {
   return results;
 };
 
-const searchForBruFiles = (dir) => {
-  return searchForFiles(dir, '.bru');
+// Search for request files based on collection filetype by reading config
+const searchForRequestFiles = (dir, collectionPath = null) => {
+  const format = getCollectionFormat(collectionPath || dir);
+  if (format === 'yml') {
+    return searchForFiles(dir, '.yml');
+  } else if (format === 'bru') {
+    return searchForFiles(dir, '.bru');
+  } else {
+    throw new Error(`Invalid format: ${format}`);
+  }
 };
 
 const sanitizeName = (name) => {
   const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
   name = name
-    .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
-    .replace(/^[.\s]+/, '')               // remove leading dots and and spaces
-    .replace(/[.\s]+$/, '');               // remove trailing dots and spaces (keep trailing hyphens)
+    .replace(invalidCharacters, '-') // replace invalid characters with hyphens
+    .replace(/^[\s\-]+/, '') // remove leading spaces and hyphens
+    .replace(/[.\s]+$/, ''); // remove trailing dots and spaces
   return name;
 };
 
 const isWindowsOS = () => {
   return os.platform() === 'win32';
-}
-
-const validateName = (name) => {
-    const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-    const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
-    const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no invalid characters
-    const lastCharacter = /[^.\s]$/;  // no dot or space at end, hyphen allowed
-    if (name.length > 255) return false;          // max name length
-
-    if (reservedDeviceNames.test(name)) return false; // windows reserved names
-
-    return (
-        firstCharacter.test(name) &&
-        middleCharacters.test(name) &&
-        lastCharacter.test(name)
-    );
 };
 
+/**
+ * Generate a unique name by adding a "copy" suffix if needed
+ *
+ * @param {string} baseName - The base name
+ * @param {Function} checkExists - Function that takes a name and returns true if it exists
+ * @returns {string} - A unique name
+ */
+const generateUniqueName = (baseName, checkExists) => {
+  if (!checkExists(baseName)) {
+    return baseName;
+  }
+
+  let counter = 1;
+  let uniqueName = `${baseName} copy`;
+
+  while (checkExists(uniqueName)) {
+    counter++;
+    uniqueName = `${baseName} copy ${counter}`;
+  }
+  return uniqueName;
+};
+
+const getCollectionFormat = (collectionPath) => {
+  const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+  if (fs.existsSync(ocYmlPath)) {
+    return 'yml';
+  }
+
+  const brunoJsonPath = path.join(collectionPath, 'bruno.json');
+  if (fs.existsSync(brunoJsonPath)) {
+    return 'bru';
+  }
+
+  throw new Error(`No collection configuration found at: ${collectionPath}`);
+};
+
+const validateName = (name) => {
+  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // keeping this for informational purpose
+  const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
+  const firstCharacter = /^[^\s\-<>:"/\\|?*\x00-\x1F]/; // no space, hyphen and `invalidCharacters`
+  const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/; // no `invalidCharacters`
+  const lastCharacter = /[^.\s<>:"/\\|?*\x00-\x1F]$/; // no dot, space and `invalidCharacters`
+  if (name.length > 255) return false; // max name length
+
+  if (reservedDeviceNames.test(name)) return false; // windows reserved names
+
+  return (
+    firstCharacter.test(name)
+    && middleCharacters.test(name)
+    && lastCharacter.test(name)
+  );
+};
 
 const safeToRename = (oldPath, newPath) => {
   try {
@@ -253,11 +305,11 @@ const getCollectionStats = async (directoryPath) => {
   maxFileSize = sizeInMB(maxFileSize);
 
   return { size, filesCount, maxFileSize };
-}
+};
 
 const sizeInMB = (size) => {
   return size / (1024 * 1024);
-}
+};
 
 const getSafePathToWrite = (filePath) => {
   const MAX_FILENAME_LENGTH = 255; // Common limit on most filesystems
@@ -265,22 +317,134 @@ const getSafePathToWrite = (filePath) => {
   let ext = path.extname(filePath);
   let base = path.basename(filePath, ext);
   if (base.length + ext.length > MAX_FILENAME_LENGTH) {
-      base = sanitizeName(base);
-      base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
+    base = sanitizeName(base);
+    base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
   }
   let safePath = path.join(dir, base + ext);
   return safePath;
-}
+};
 
 async function safeWriteFile(filePath, data, options) {
   const safePath = getSafePathToWrite(filePath);
-  await fs.writeFile(safePath, data, options);
+
+  try {
+    const fsExtra = require('fs-extra');
+    fsExtra.outputFileSync(safePath, data, options);
+  } catch (err) {
+    console.error(`Error writing file at ${safePath}:`, err);
+    return Promise.reject(err);
+  }
 }
 
 function safeWriteFileSync(filePath, data) {
   const safePath = getSafePathToWrite(filePath);
   fs.writeFileSync(safePath, data);
 }
+
+// Recursively copies a source <file/directory> to a destination <directory>.
+const copyPath = async (source, destination) => {
+  let targetPath = `${destination}/${path.basename(source)}`;
+
+  const targetPathExists = await fsPromises.access(targetPath).then(() => true).catch(() => false);
+  if (targetPathExists) {
+    throw new Error(`Cannot copy, ${path.basename(source)} already exists in ${path.basename(destination)}`);
+  }
+
+  const copy = async (source, destination) => {
+    const stat = await fsPromises.lstat(source);
+    if (stat.isDirectory()) {
+      await fsPromises.mkdir(destination, { recursive: true });
+      const entries = await fsPromises.readdir(source);
+      for (const entry of entries) {
+        const srcPath = path.join(source, entry);
+        const destPath = path.join(destination, entry);
+        await copy(srcPath, destPath);
+      }
+    } else {
+      await fsPromises.copyFile(source, destination);
+    }
+  };
+
+  await copy(source, targetPath);
+};
+
+// Recursively removes a source <file/directory>.
+const removePath = async (source) => {
+  const stat = await fsPromises.lstat(source);
+  if (stat.isDirectory()) {
+    const entries = await fsPromises.readdir(source);
+    for (const entry of entries) {
+      const entryPath = path.join(source, entry);
+      await removePath(entryPath);
+    }
+    await fsPromises.rmdir(source);
+  } else {
+    await fsPromises.unlink(source);
+  }
+};
+
+// Recursively gets paths.
+const getPaths = async (source) => {
+  let paths = [];
+  const _getPaths = async (source) => {
+    const stat = await fsPromises.lstat(source);
+    paths.push(source);
+    if (stat.isDirectory()) {
+      const entries = await fsPromises.readdir(source);
+      for (const entry of entries) {
+        const entryPath = path.join(source, entry);
+        await _getPaths(entryPath);
+      }
+    }
+  };
+  await _getPaths(source);
+  return paths;
+};
+
+/**
+ * Checks if a file is larger than a given threshold.
+ * @param {string} filePath - The path to the file.
+ * @param {number} threshold - The threshold in bytes. Default is 10MB.
+ * @returns {boolean} True if the file is larger than the threshold, false otherwise.
+ */
+const isLargeFile = (filePath, threshold = 10 * 1024 * 1024) => {
+  if (!isFile(filePath)) {
+    throw new Error(`File ${filePath} is not a file`);
+  }
+
+  const size = fs.statSync(filePath).size;
+
+  return size > threshold;
+};
+
+const isDotEnvFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === '.env';
+};
+
+const isBrunoConfigFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'bruno.json';
+};
+
+const isBruEnvironmentConfig = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const envDirectory = path.join(collectionPath, 'environments');
+  const basename = path.basename(pathname);
+
+  return dirname === envDirectory && hasBruExtension(basename);
+};
+
+const isCollectionRootBruFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'collection.bru';
+};
 
 module.exports = {
   isValidPathname,
@@ -294,12 +458,13 @@ module.exports = {
   writeFile,
   hasJsonExtension,
   hasBruExtension,
+  hasRequestExtension,
   createDirectory,
   browseDirectory,
   browseFiles,
   chooseFileToSave,
   searchForFiles,
-  searchForBruFiles,
+  searchForRequestFiles,
   sanitizeName,
   isWindowsOS,
   safeToRename,
@@ -308,5 +473,15 @@ module.exports = {
   getCollectionStats,
   sizeInMB,
   safeWriteFile,
-  safeWriteFileSync
+  safeWriteFileSync,
+  copyPath,
+  removePath,
+  getPaths,
+  isLargeFile,
+  generateUniqueName,
+  getCollectionFormat,
+  isDotEnvFile,
+  isBrunoConfigFile,
+  isBruEnvironmentConfig,
+  isCollectionRootBruFile
 };

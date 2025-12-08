@@ -8,7 +8,7 @@ import Modal from 'components/Modal';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { validateName, validateNameError } from 'utils/common/regex';
 
-const CreateEnvironment = ({ onClose }) => {
+const CreateEnvironment = ({ onClose, onEnvironmentCreated }) => {
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
 
   const validateEnvironmentName = (name) => {
@@ -27,7 +27,7 @@ const CreateEnvironment = ({ onClose }) => {
       name: Yup.string()
         .min(1, 'Must be at least 1 character')
         .max(255, 'Must be 255 characters or less')
-        .test('is-valid-filename', function(value) {
+        .test('is-valid-filename', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
@@ -39,6 +39,10 @@ const CreateEnvironment = ({ onClose }) => {
         .then(() => {
           toast.success('Global environment created!');
           onClose();
+          // Call the callback if provided
+          if (onEnvironmentCreated) {
+            onEnvironmentCreated();
+          }
         })
         .catch(() => toast.error('An error occurred while creating the environment'));
     }
@@ -58,14 +62,14 @@ const CreateEnvironment = ({ onClose }) => {
     <Portal>
       <Modal
         size="sm"
-        title={'Create Global Environment'}
+        title="Create Global Environment"
         confirmText="Create"
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
-        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label htmlFor="name" className="block font-semibold">
+            <label htmlFor="name" className="block font-medium">
               Environment Name
             </label>
             <div className="flex items-center mt-2">

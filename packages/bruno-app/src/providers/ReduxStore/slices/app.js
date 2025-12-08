@@ -1,15 +1,18 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
-import toast from 'react-hot-toast';
+import brunoClipboard from 'utils/bruno-clipboard';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
-  leftSidebarWidth: 222,
+  leftSidebarWidth: 250,
+  sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
+  showApiSpecPage: false,
   isEnvironmentSettingsModalOpen: false,
+  isGlobalEnvironmentSettingsModalOpen: false,
   preferences: {
     request: {
       sslVerification: true,
@@ -24,11 +27,26 @@ const initialState = {
     },
     font: {
       codeFont: 'default'
+    },
+    general: {
+      defaultCollectionLocation: ''
+    },
+    autoSave: {
+      enabled: false,
+      interval: 1000
     }
+  },
+  generateCode: {
+    mainLanguage: 'Shell',
+    library: 'curl',
+    shouldInterpolate: true
   },
   cookies: [],
   taskQueue: [],
-  systemProxyEnvVariables: {}
+  systemProxyEnvVariables: {},
+  clipboard: {
+    hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
+  }
 };
 
 export const appSlice = createSlice({
@@ -50,11 +68,23 @@ export const appSlice = createSlice({
     updateEnvironmentSettingsModalVisibility: (state, action) => {
       state.isEnvironmentSettingsModalOpen = action.payload;
     },
+    updateGlobalEnvironmentSettingsModalVisibility: (state, action) => {
+      state.isGlobalEnvironmentSettingsModalOpen = action.payload;
+    },
     showHomePage: (state) => {
       state.showHomePage = true;
+      state.showApiSpecPage = false;
     },
     hideHomePage: (state) => {
       state.showHomePage = false;
+    },
+    showApiSpecPage: (state) => {
+      state.showHomePage = false;
+      state.showPreferences = false;
+      state.showApiSpecPage = true;
+    },
+    hideApiSpecPage: (state) => {
+      state.showApiSpecPage = false;
     },
     showPreferences: (state, action) => {
       state.showPreferences = action.payload;
@@ -76,6 +106,19 @@ export const appSlice = createSlice({
     },
     updateSystemProxyEnvVariables: (state, action) => {
       state.systemProxyEnvVariables = action.payload;
+    },
+    updateGenerateCode: (state, action) => {
+      state.generateCode = {
+        ...state.generateCode,
+        ...action.payload
+      };
+    },
+    toggleSidebarCollapse: (state) => {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+    },
+    setClipboard: (state, action) => {
+      // Update clipboard UI state
+      state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     }
   }
 });
@@ -86,15 +129,21 @@ export const {
   updateLeftSidebarWidth,
   updateIsDragging,
   updateEnvironmentSettingsModalVisibility,
+  updateGlobalEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
+  showApiSpecPage,
+  hideApiSpecPage,
   showPreferences,
   updatePreferences,
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,
   removeAllTasksFromQueue,
-  updateSystemProxyEnvVariables
+  updateSystemProxyEnvVariables,
+  updateGenerateCode,
+  toggleSidebarCollapse,
+  setClipboard
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -103,14 +152,9 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:save-preferences', preferences)
-      .then(() => toast.success('Preferences saved successfully'))
       .then(() => dispatch(updatePreferences(preferences)))
       .then(resolve)
-      .catch((err) => {
-        toast.error('An error occurred while saving preferences');
-        console.error(err);
-        reject(err);
-      });
+      .catch(reject);
   });
 };
 
@@ -163,6 +207,12 @@ export const createCookieString = (cookieObj) => () => {
 export const completeQuitFlow = () => (dispatch, getState) => {
   const { ipcRenderer } = window;
   return ipcRenderer.invoke('main:complete-quit-flow');
+};
+
+export const copyRequest = (item) => (dispatch, getState) => {
+  brunoClipboard.write(item);
+  dispatch(setClipboard({ hasCopiedItems: true }));
+  return Promise.resolve();
 };
 
 export default appSlice.reducer;

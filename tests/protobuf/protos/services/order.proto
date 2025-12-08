@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package order;
+
+service Order {
+  rpc CreateOrder (OrderRequest) returns (OrderResponse);
+  rpc GetOrder (OrderId) returns (OrderResponse);
+  rpc ListOrders (ListOrdersRequest) returns (ListOrdersResponse);
+  rpc UpdateOrder (OrderRequest) returns (OrderResponse);
+  rpc DeleteOrder (OrderId) returns (DeleteOrderResponse);
+  
+  // Stream of order status updates
+  rpc TrackOrderStatus (OrderId) returns (stream OrderStatusUpdate);
+}
+
+message OrderId {
+  string id = 1;
+}
+
+message OrderItem {
+  int32 product_id = 1;
+  int32 quantity = 2;
+  float unit_price = 3;
+}
+
+message OrderRequest {
+  string id = 1;
+  string user_id = 2;
+  repeated OrderItem items = 3;
+  string shipping_address = 4;
+  float total_amount = 5;
+  OrderStatus status = 6;
+}
+
+message OrderResponse {
+  string id = 1;
+  string user_id = 2;
+  repeated OrderItem items = 3;
+  string shipping_address = 4;
+  float total_amount = 5;
+  OrderStatus status = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+enum OrderStatus {
+  PENDING = 0;
+  PROCESSING = 1;
+  SHIPPED = 2;
+  DELIVERED = 3;
+  CANCELLED = 4;
+}
+
+message ListOrdersRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ListOrdersResponse {
+  repeated OrderResponse orders = 1;
+  int32 total_count = 2;
+}
+
+message DeleteOrderResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message OrderStatusUpdate {
+  string order_id = 1;
+  OrderStatus status = 2;
+  string timestamp = 3;
+  string message = 4;
+} 
