@@ -9,7 +9,7 @@ const isRequestSaved = async (saveButton: Locator) => {
 };
 
 const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Promise<string>) => {
-  await page.locator('.plus-icon-button').click();
+  await page.getByTestId('collections-header-add-menu').click();
   await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
   await page.getByLabel('Name').fill('source-collection');
   const locationInput = page.getByLabel('Location');

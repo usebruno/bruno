@@ -9,7 +9,7 @@ test.describe('Move tabs', () => {
 
   test('Verify tab move by drag and drop', async ({ page, createTmpDir }) => {
     // Create a collection
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('source-collection-drag-drop');
     const locationInput = page.locator('.bruno-modal').getByLabel('Location');
@@ -100,7 +100,7 @@ test.describe('Move tabs', () => {
 
   test('Verify tab move by keyboard shortcut', async ({ page, createTmpDir }) => {
     // Create a collection
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('source-collection-keyboard-shortcut');
     const locationInput2 = page.locator('.bruno-modal').getByLabel('Location');

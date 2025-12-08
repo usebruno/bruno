@@ -12,7 +12,7 @@ test.describe('Collection Environment Import Tests', () => {
     const envFile = path.join(__dirname, 'fixtures', 'collection-env.json');
 
     // Import test collection
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     const importModal = page.locator('[data-testid="import-collection-modal"]');

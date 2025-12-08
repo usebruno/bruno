@@ -17,7 +17,7 @@ export const buildCommonLocators = (page: Page) => ({
       const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
       return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
     },
-    closeAllCollectionsButton: () => page.getByTestId('close-all-collections-button'),
+    closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow: (name: string) => page.locator('.collection-name').filter({
       has: page.locator('#sidebar-collection-name', { hasText: name })
     })
@@ -81,7 +81,7 @@ export const buildCommonLocators = (page: Page) => ({
     copyButton: () => page.locator('button[title="Copy response to clipboard"]')
   },
   plusMenu: {
-    button: () => page.locator('.plus-icon-button'),
+    button: () => page.getByTestId('collections-header-add-menu'),
     createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },

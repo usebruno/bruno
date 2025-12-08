@@ -12,7 +12,7 @@ test.describe('OpenAPI Newline Handling', () => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-newline-in-operation-name.yaml');
 
     // start the import process
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // wait for the import collection modal to appear

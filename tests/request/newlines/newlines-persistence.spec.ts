@@ -10,7 +10,7 @@ test('should persist request with newlines across app restarts', async ({ create
   const app1 = await launchElectronApp({ userDataPath });
   const page = await app1.firstWindow();
 
-  await page.locator('.plus-icon-button').click();
+  await page.getByTestId('collections-header-add-menu').click();
   await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
   await page.locator('.bruno-modal').getByLabel('Name').fill('newlines-persistence');
   await page.locator('.bruno-modal').getByLabel('Location').fill(collectionPath);

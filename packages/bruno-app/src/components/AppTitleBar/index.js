@@ -1,5 +1,6 @@
+import React from 'react';
 import { IconCheck, IconChevronDown, IconFolder, IconHome, IconLayoutColumns, IconLayoutRows, IconPin, IconPinned, IconPlus } from '@tabler/icons';
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -9,7 +10,8 @@ import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slice
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
 
 import Bruno from 'components/Bruno';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
+import ActionIcon from 'ui/ActionIcon';
 import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 
@@ -53,13 +55,10 @@ const AppTitleBar = () => {
   }, [workspaces, preferences]);
 
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
-  const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
-  const workspaceDropdownTippyRef = useRef();
-  const onWorkspaceDropdownCreate = (ref) => (workspaceDropdownTippyRef.current = ref);
 
   const WorkspaceName = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="workspace-name-container" onClick={() => setShowWorkspaceDropdown(!showWorkspaceDropdown)}>
+      <div ref={ref} className="workspace-name-container" {...props}>
         <span className="workspace-name">{toTitleCase(activeWorkspace?.name) || 'Default Workspace'}</span>
         <IconChevronDown size={14} stroke={1.5} className="chevron-icon" />
       </div>
@@ -72,12 +71,10 @@ const AppTitleBar = () => {
 
   const handleWorkspaceSwitch = (workspaceUid) => {
     dispatch(switchWorkspace(workspaceUid));
-    setShowWorkspaceDropdown(false);
     toast.success(`Switched to ${workspaces.find((w) => w.uid === workspaceUid)?.name}`);
   };
 
   const handleOpenWorkspace = async () => {
-    setShowWorkspaceDropdown(false);
     try {
       await dispatch(openWorkspaceDialog());
       toast.success('Workspace opened successfully');
@@ -87,7 +84,6 @@ const AppTitleBar = () => {
   };
 
   const handleCreateWorkspace = () => {
-    setShowWorkspaceDropdown(false);
     setCreateWorkspaceModalOpen(true);
   };
 
@@ -124,6 +120,59 @@ const AppTitleBar = () => {
     dispatch(savePreferences(updatedPreferences));
   };
 
+  // Build workspace menu items
+  const workspaceMenuItems = useMemo(() => {
+    const items = sortedWorkspaces.map((workspace) => {
+      const isActive = workspace.uid === activeWorkspaceUid;
+      const isPinned = preferences?.workspaces?.pinnedWorkspaceUids?.includes(workspace.uid);
+
+      return {
+        id: workspace.uid,
+        label: toTitleCase(workspace.name),
+        onClick: () => handleWorkspaceSwitch(workspace.uid),
+        className: `workspace-item ${isActive ? 'active' : ''}`,
+        rightSection: (
+          <div className="workspace-actions">
+            {workspace.type !== 'default' && (
+              <ActionIcon
+                className={`pin-btn ${isPinned ? 'pinned' : ''}`}
+                onClick={(e) => handlePinWorkspace(workspace.uid, e)}
+                label={isPinned ? 'Unpin workspace' : 'Pin workspace'}
+                size="sm"
+              >
+                {isPinned ? (
+                  <IconPinned size={14} stroke={1.5} />
+                ) : (
+                  <IconPin size={14} stroke={1.5} />
+                )}
+              </ActionIcon>
+            )}
+            {isActive && <IconCheck size={16} stroke={1.5} className="check-icon" />}
+          </div>
+        )
+      };
+    });
+
+    // Add label and action items
+    items.push(
+      { type: 'label', label: 'Workspaces' },
+      {
+        id: 'create-workspace',
+        leftSection: IconPlus,
+        label: 'Create workspace',
+        onClick: handleCreateWorkspace
+      },
+      {
+        id: 'open-workspace',
+        leftSection: IconFolder,
+        label: 'Open workspace',
+        onClick: handleOpenWorkspace
+      }
+    );
+
+    return items;
+  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace]);
+
   return (
     <StyledWrapper className={`app-titlebar ${isFullScreen ? 'fullscreen' : ''}`}>
       {createWorkspaceModalOpen && (
@@ -133,61 +182,24 @@ const AppTitleBar = () => {
       <div className="titlebar-content">
         {/* Left section: Home + Workspace */}
         <div className="titlebar-left">
-          <button className="home-button" onClick={handleHomeClick} title="Home">
+          <ActionIcon
+            onClick={handleHomeClick}
+            label="Home"
+            size="lg"
+            className="home-button"
+          >
             <IconHome size={16} stroke={1.5} />
-          </button>
+          </ActionIcon>
 
           {/* Workspace Dropdown */}
-          <Dropdown
-            onCreate={onWorkspaceDropdownCreate}
-            icon={<WorkspaceName />}
+          <MenuDropdown
+            data-testid="workspace-menu"
+            items={workspaceMenuItems}
             placement="bottom-start"
-            style="new"
-            visible={showWorkspaceDropdown}
-            onClickOutside={() => setShowWorkspaceDropdown(false)}
+            selectedItemId={activeWorkspaceUid}
           >
-            {sortedWorkspaces.map((workspace) => {
-              const isActive = workspace.uid === activeWorkspaceUid;
-              const isPinned = preferences?.workspaces?.pinnedWorkspaceUids?.includes(workspace.uid);
-
-              return (
-                <div
-                  key={workspace.uid}
-                  className={`dropdown-item workspace-item ${isActive ? 'active' : ''}`}
-                  onClick={() => handleWorkspaceSwitch(workspace.uid)}
-                >
-                  <span className="workspace-name">{toTitleCase(workspace.name)}</span>
-                  <div className="workspace-actions">
-                    {workspace.type !== 'default' && (
-                      <button
-                        className={`pin-btn ${isPinned ? 'pinned' : ''}`}
-                        onClick={(e) => handlePinWorkspace(workspace.uid, e)}
-                        title={isPinned ? 'Unpin workspace' : 'Pin workspace'}
-                      >
-                        {isPinned ? (
-                          <IconPinned size={14} stroke={1.5} />
-                        ) : (
-                          <IconPin size={14} stroke={1.5} />
-                        )}
-                      </button>
-                    )}
-                    {isActive && <IconCheck size={16} stroke={1.5} className="check-icon" />}
-                  </div>
-                </div>
-              );
-            })}
-
-            <div className="label-item border-top">Workspaces</div>
-
-            <div className="dropdown-item" onClick={handleCreateWorkspace}>
-              <IconPlus size={16} stroke={1.5} className="icon" />
-              Create workspace
-            </div>
-            <div className="dropdown-item" onClick={handleOpenWorkspace}>
-              <IconFolder size={16} stroke={1.5} className="icon" />
-              Open workspace
-            </div>
-          </Dropdown>
+            <WorkspaceName />
+          </MenuDropdown>
         </div>
 
         {/* Center section: Bruno logo + text */}
@@ -199,33 +211,30 @@ const AppTitleBar = () => {
         {/* Right section: Action buttons */}
         <div className="titlebar-right">
           {/* Toggle sidebar */}
-          <button
-            className="titlebar-action-button"
+          <ActionIcon
             onClick={handleToggleSidebar}
-            title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            aria-label="Toggle Sidebar"
+            label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+            size="lg"
             data-testid="toggle-sidebar-button"
           >
             <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} />
-          </button>
+          </ActionIcon>
 
           {/* Toggle devtools */}
-          <button
-            className="titlebar-action-button"
+          <ActionIcon
             onClick={handleToggleDevtools}
-            title={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
-            aria-label="Toggle Devtools"
+            label={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
+            size="lg"
             data-testid="toggle-devtools-button"
           >
             <IconBottombarToggle collapsed={!isConsoleOpen} size={16} strokeWidth={1.5} />
-          </button>
+          </ActionIcon>
 
           {/* Toggle vertical layout */}
-          <button
-            className="titlebar-action-button"
+          <ActionIcon
             onClick={handleToggleVerticalLayout}
-            title={orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout'}
-            aria-label="Toggle Vertical Layout"
+            label={orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout'}
+            size="lg"
             data-testid="toggle-vertical-layout-button"
           >
             {orientation === 'horizontal' ? (
@@ -233,8 +242,7 @@ const AppTitleBar = () => {
             ) : (
               <IconLayoutRows size={16} stroke={1.5} />
             )}
-          </button>
-
+          </ActionIcon>
         </div>
       </div>
     </StyledWrapper>
