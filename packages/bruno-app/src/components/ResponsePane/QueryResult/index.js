@@ -181,7 +181,8 @@ const QueryResult = ({
       // for all other content types, return preview-text
       return 'preview-text';
     }
-  }, [selectedFormat, contentType, dataBuffer]);
+    return 'preview-text';
+  }, [selectedFormat, detectedContentType]);
 
   const codeMirrorMode = useMemo(() => {
     return PREVIEW_FORMAT_OPTIONS

@@ -13,6 +13,7 @@ const ButtonIcon = forwardRef(({ disabled, className, style, prefix, selectedLab
         'h-7 rounded-[6px] border px-2 transition-colors',
         { 'opacity-50 cursor-not-allowed': disabled },
         className)}
+      disabled={disabled}
       data-testid={props['data-testid']}
       style={style}
       role="button"
