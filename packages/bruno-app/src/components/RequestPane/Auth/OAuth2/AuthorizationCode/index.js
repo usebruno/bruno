@@ -2,7 +2,7 @@ import React, { useRef, forwardRef } from 'react';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -15,7 +15,9 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
   const { storedTheme } = useTheme();
+  const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const { isSensitive } = useDetectSensitiveField(collection);
@@ -132,6 +134,24 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <span className="font-medium">
           Configuration
         </span>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-callbackUrl">
+        <label className="block min-w-[140px]">Callback URL</label>
+        <div className="flex flex-col gap-1 w-full">
+          <div className="single-line-editor-wrapper flex-1 flex items-center">
+            <SingleLineEditor
+              value={callbackUrl}
+              theme={storedTheme}
+              onSave={handleSave}
+              onChange={(val) => handleChange('callbackUrl', val)}
+              onRun={handleRun}
+              collection={collection}
+              item={item}
+              placeholder="https://oauth2.usebruno.com/callback"
+            />
+          </div>
+          <div className="text-xs opacity-50">{useSystemBrowser ? 'Using system browser callback URL from preferences' : ''}</div>
+        </div>
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;

@@ -1,7 +1,7 @@
 import React, { useRef, forwardRef, useMemo } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -15,6 +15,8 @@ import { interpolate } from '@usebruno/common';
 
 const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
+  const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -87,6 +89,24 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <span className="font-medium">
           Configuration
         </span>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-callbackUrl">
+        <label className="block min-w-[140px]">Callback URL</label>
+        <div className="flex flex-col gap-1 w-full">
+          <div className="oauth2-input-wrapper flex-1 flex items-center">
+            <SingleLineEditor
+              value={callbackUrl}
+              theme={storedTheme}
+              onSave={handleSave}
+              onChange={(val) => handleChange('callbackUrl', val)}
+              onRun={handleRun}
+              collection={collection}
+              item={item}
+              placeholder="https://oauth2.usebruno.com/callback"
+            />
+          </div>
+          <div className="text-xs opacity-50">{useSystemBrowser ? 'Using system browser callback URL from preferences' : ''}</div>
+        </div>
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;

@@ -2548,6 +2548,24 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
   });
 };
 
+export const isOauth2AuthorizationRequestInProgress = () => async () => {
+  return new Promise((resolve, reject) => {
+    window.ipcRenderer
+      .invoke('renderer:is-oauth2-authorization-request-in-progress')
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const cancelOauth2AuthorizationRequest = () => async () => {
+  return new Promise((resolve, reject) => {
+    window.ipcRenderer
+      .invoke('renderer:cancel-oauth2-authorization-request')
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
 // todo: could be removed
 export const loadRequestViaWorker
   = ({ collectionUid, pathname }) =>
