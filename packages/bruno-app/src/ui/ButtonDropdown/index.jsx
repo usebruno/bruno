@@ -68,6 +68,7 @@ const ButtonDropdown = ({
 
   const handleOptionSelect = (optionValue) => {
     onChange(optionValue);
+    dropdownTippyRef.current?.hide();
   };
 
   // Flatten options for rendering
@@ -129,7 +130,7 @@ const ButtonDropdown = ({
       >
         <div {...(props['data-testid'] && { 'data-testid': props['data-testid'] + '-dropdown' })}>
           {header && (
-            <div className="dropdown-header-container">
+            <div className="dropdown-header-container" onClick={() => dropdownTippyRef.current?.hide()}>
               {header}
               <div className="dropdown-divider"></div>
             </div>

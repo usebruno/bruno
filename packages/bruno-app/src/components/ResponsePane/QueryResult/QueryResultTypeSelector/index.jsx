@@ -18,7 +18,7 @@ const QueryResultTypeSelector = ({
         isOn={selectedTab === 'preview'}
         handleToggle={(e) => {
           e.preventDefault();
-          e.stopPropagation();
+          // e.stopPropagation();
           onPreviewTabSelect();
         }}
         size="2xs"
