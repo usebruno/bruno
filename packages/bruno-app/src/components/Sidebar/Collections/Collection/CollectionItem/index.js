@@ -200,7 +200,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   });
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
-    'item-focused-in-tab': isTabForItemActive && !isKeyboardFocused,
+    'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
     'drop-target': isOver && dropType === 'inside',
     'drop-target-above': isOver && dropType === 'adjacent',

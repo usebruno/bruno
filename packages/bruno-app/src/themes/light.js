@@ -63,7 +63,7 @@ const lightTheme = {
       warning: '#f57c00',
       muted: '#838383',
       purple: '#8e44ad',
-      yellow: '#d97706'
+      yellow: '#cf8730'
     },
     bg: {
       danger: '#dc3545'
@@ -118,7 +118,7 @@ const lightTheme = {
       item: {
         bg: colors.GRAY_2,
         hoverBg: colors.GRAY_2,
-        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
+        focusBorder: colors.GRAY_4,
         indentBorder: `solid 1px ${colors.GRAY_3}`,
         active: {
           indentBorder: `solid 1px ${colors.GRAY_3}`
@@ -331,9 +331,10 @@ const lightTheme = {
   },
 
   tabs: {
+    marginRight: '1.2rem',
     active: {
       color: '#343434',
-      border: '#D97706'
+      border: '#cf8730'
     },
     secondary: {
       active: {
@@ -349,7 +350,7 @@ const lightTheme = {
 
   requestTabs: {
     color: 'rgb(52, 52, 52)',
-    bg: '#f7f7f7',
+    bg: '#f6f6f6',
     bottomBorder: '#efefef',
     icon: {
       color: '#9f9f9f',
