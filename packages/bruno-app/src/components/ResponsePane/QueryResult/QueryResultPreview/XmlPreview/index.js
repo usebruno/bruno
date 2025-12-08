@@ -1,4 +1,4 @@
-import ErrorAlert from 'components/ErrorAlert/index';
+import ErrorAlert from 'ui/ErrorAlert/index';
 import React, { useState, useMemo } from 'react';
 import StyledWrapper from './StyledWrapper';
 

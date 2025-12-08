@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactJson from 'react-json-view';
-import ErrorAlert from 'components/ErrorAlert/index';
+import ErrorAlert from 'ui/ErrorAlert/index';
 
 const JsonPreview = ({ data, displayedTheme }) => {
   // Helper function to validate and parse JSON data
