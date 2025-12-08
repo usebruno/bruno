@@ -12,7 +12,7 @@ test.describe('OpenAPI Path-Based Grouping', () => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-path-grouping.json');
 
     // Start the import process
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready

@@ -8,7 +8,7 @@ test.describe('Create collection', () => {
   });
 
   test('Create collection and add a simple HTTP request', async ({ page, createTmpDir }) => {
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('test-collection');

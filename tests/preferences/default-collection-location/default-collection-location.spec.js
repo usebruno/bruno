@@ -56,7 +56,7 @@ test.describe('Default Collection Location Feature', () => {
 
   test('Should use default location in Create Collection modal', async ({ pageWithUserData: page }) => {
     // test Create Collection modal
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
     // verify the default location is pre-filled (if location input is visible)

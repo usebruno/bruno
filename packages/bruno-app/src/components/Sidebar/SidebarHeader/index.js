@@ -234,8 +234,7 @@ const SidebarHeader = ({ setShowSearch }) => {
       label: getSortLabel(),
       onClick: () => {
         handleSortCollections();
-      },
-      testId: 'sort-collections-button'
+      }
     },
     {
       id: 'close-all',
@@ -243,8 +242,7 @@ const SidebarHeader = ({ setShowSearch }) => {
       label: 'Close all',
       onClick: () => {
         selectAllCollectionsToClose();
-      },
-      testId: 'close-all-collections-button'
+      }
     }
   ];
 

@@ -35,7 +35,7 @@ test.describe('Import Postman Collection with Examples', () => {
     }, { importDir });
 
     await test.step('Open import collection modal', async () => {
-      await page.locator('.plus-icon-button').click();
+      await page.getByTestId('collections-header-add-menu').click();
       await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
     });
 

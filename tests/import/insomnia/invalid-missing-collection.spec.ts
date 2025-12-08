@@ -5,7 +5,7 @@ test.describe('Invalid Insomnia Collection - Missing Collection Array', () => {
   test('Handle Insomnia v5 collection missing collection array', async ({ page }) => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5-invalid-missing-collection.yaml');
 
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready

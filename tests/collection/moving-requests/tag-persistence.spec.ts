@@ -9,7 +9,7 @@ test.describe('Tag persistence', () => {
 
   test('Verify tag persistence while moving requests within a collection', async ({ page, createTmpDir }) => {
     // Create first collection - click plus icon button to open dropdown
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('test-collection');
     const locationInput = page.locator('.bruno-modal').getByLabel('Location');
@@ -79,7 +79,7 @@ test.describe('Tag persistence', () => {
 
   test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
     // Create first collection - click plus icon button to open dropdown
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('test-collection');
     const locationInput = page.locator('.bruno-modal').getByLabel('Location');

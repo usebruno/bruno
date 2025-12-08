@@ -226,7 +226,7 @@ const MenuDropdown = ({
 
   // Render divider item
   const renderDivider = (item, index) => (
-    <div key={item.id || `divider-${index}`} className="dropdown-divider" role="separator" />
+    <div key={item.id || `divider-${index}`} className="dropdown-separator" role="separator" />
   );
 
   // Render menu content
