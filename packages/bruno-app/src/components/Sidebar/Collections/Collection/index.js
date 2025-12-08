@@ -44,6 +44,8 @@ import ShareCollection from 'components/ShareCollection/index';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import BulkActionsDropdown from './BulkActions';
+import RemoveCollectionsModal from '../RemoveCollectionsModal';
 
 const Collection = ({ collection, searchText, collectionIndex, allCollections }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -54,6 +56,9 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+  const [showBulkActionsDropdown, setShowBulkActionsDropdown] = useState(false);
+  const [bulkActionsPosition, setBulkActionsPosition] = useState({ x: 0, y: 0 });
+  const [collectionsToRemove, setCollectionsToRemove] = useState([]);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
@@ -174,7 +179,16 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
     e.preventDefault();
   };
 
-  const handleRightClick = (_event) => {
+  const handleRightClick = (event) => {
+    if (selectedCollections.length > 0 && isSelected) {
+      event.preventDefault();
+      event.stopPropagation();
+      setBulkActionsPosition({ x: event.clientX, y: event.clientY });
+      setShowBulkActionsDropdown(true);
+      return;
+    }
+
+    // Otherwise, show the regular menu dropdown
     const _menuDropdown = menuDropdownTippyRef.current;
     if (_menuDropdown) {
       let menuDropdownBehavior = 'show';
@@ -316,6 +330,17 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+      )}
+      {showBulkActionsDropdown && (
+        <BulkActionsDropdown
+          visible={showBulkActionsDropdown}
+          onClose={() => setShowBulkActionsDropdown(false)}
+          position={bulkActionsPosition}
+          closeCollections={setCollectionsToRemove}
+        />
+      )}
+      {collectionsToRemove.length > 0 && (
+        <RemoveCollectionsModal collectionUids={collectionsToRemove} onClose={() => setCollectionsToRemove([])} />
       )}
       <CollectionItemDragPreview />
       <div
