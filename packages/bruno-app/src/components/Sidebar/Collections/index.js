@@ -27,7 +27,7 @@ const Collections = ({ showSearch }) => {
   }, [activeWorkspace, collections]);
 
   const handleContainerClick = (e) => {
-    if (e.target.classList.contains('collections-list')) {
+    if (e.currentTarget === e.target) {
       dispatch(clearCollectionSelection());
     }
   };
