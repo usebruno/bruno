@@ -150,6 +150,43 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  ipcMain.handle('renderer:load-workspace-apispecs', async (event, workspacePath) => {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is undefined');
+      }
+
+      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+
+      if (!fs.existsSync(workspaceFilePath)) {
+        throw new Error('Invalid workspace: workspace.yml not found');
+      }
+
+      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
+      const workspaceConfig = yaml.load(yamlContent);
+
+      if (!workspaceConfig || typeof workspaceConfig !== 'object') {
+        return [];
+      }
+
+      const apiSpecs = workspaceConfig.apiSpecs || [];
+
+      const resolvedApiSpecs = apiSpecs.map((apiSpec) => {
+        if (apiSpec.path && !path.isAbsolute(apiSpec.path)) {
+          return {
+            ...apiSpec,
+            path: path.join(workspacePath, apiSpec.path)
+          };
+        }
+        return apiSpec;
+      });
+
+      return resolvedApiSpecs;
+    } catch (error) {
+      throw error;
+    }
+  });
+
   ipcMain.handle('renderer:get-last-opened-workspaces', async () => {
     try {
       const workspaces = lastOpenedWorkspaces.getAll();

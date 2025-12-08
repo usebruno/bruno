@@ -8,10 +8,6 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-  }
-
-  /* Section Title (single view mode) - with separator */
-  &.single-view {
     border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
   }
 

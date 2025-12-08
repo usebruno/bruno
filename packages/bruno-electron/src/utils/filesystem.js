@@ -417,6 +417,35 @@ const isLargeFile = (filePath, threshold = 10 * 1024 * 1024) => {
   return size > threshold;
 };
 
+const isDotEnvFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === '.env';
+};
+
+const isBrunoConfigFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'bruno.json';
+};
+
+const isBruEnvironmentConfig = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const envDirectory = path.join(collectionPath, 'environments');
+  const basename = path.basename(pathname);
+
+  return dirname === envDirectory && hasBruExtension(basename);
+};
+
+const isCollectionRootBruFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'collection.bru';
+};
+
 module.exports = {
   isValidPathname,
   exists,
@@ -450,5 +479,9 @@ module.exports = {
   getPaths,
   isLargeFile,
   generateUniqueName,
-  getCollectionFormat
+  getCollectionFormat,
+  isDotEnvFile,
+  isBrunoConfigFile,
+  isBruEnvironmentConfig,
+  isCollectionRootBruFile
 };

@@ -8,6 +8,7 @@ import CollectionSearch from './CollectionSearch/index';
 import { useMemo } from 'react';
 import { normalizePath } from 'utils/common/path';
 import { clearCollectionSelection } from 'providers/ReduxStore/slices/collections';
+import ApiSpecs from '../ApiSpecs/index';
 
 const Collections = ({ showSearch }) => {
   const [searchText, setSearchText] = useState('');
@@ -68,6 +69,8 @@ const Collections = ({ showSearch }) => {
               );
             })
           : null}
+        <div className="w-full my-2" style={{ height: 1 }}></div>
+        <ApiSpecs />
       </div>
     </StyledWrapper>
   );
