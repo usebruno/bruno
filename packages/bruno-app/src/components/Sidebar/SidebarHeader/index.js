@@ -13,7 +13,7 @@ import {
   IconSquareX,
   IconTrash
 } from '@tabler/icons';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -22,7 +22,8 @@ import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { openApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
+import ActionIcon from 'ui/ActionIcon';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import CreateApiSpec from 'components/Sidebar/ApiSpecs/CreateApiSpec';
@@ -74,12 +75,6 @@ const SidebarHeader = ({ setShowSearch }) => {
         toast.error('An error occurred while importing the collection');
       });
   };
-
-  const addDropdownTippyRef = useRef();
-  const onAddDropdownCreate = (ref) => (addDropdownTippyRef.current = ref);
-
-  const actionsDropdownTippyRef = useRef();
-  const onActionsDropdownCreate = (ref) => (actionsDropdownTippyRef.current = ref);
 
   const handleToggleSearch = () => {
     if (setShowSearch) {
@@ -183,123 +178,114 @@ const SidebarHeader = ({ setShowSearch }) => {
     </>
   );
 
+  // Configuration for Add/Create dropdown items
+  const addDropdownItems = [
+    {
+      id: 'create',
+      leftSection: IconPlus,
+      label: 'Create collection',
+      onClick: () => {
+        setCreateCollectionModalOpen(true);
+      }
+    },
+    {
+      id: 'import',
+      leftSection: IconDownload,
+      label: 'Import collection',
+      onClick: () => {
+        setImportCollectionModalOpen(true);
+      }
+    },
+    {
+      id: 'open',
+      leftSection: IconFolder,
+      label: 'Open collection',
+      onClick: () => {
+        handleOpenCollection();
+      }
+    },
+    {
+      type: 'label',
+      label: 'API Specs'
+    },
+    {
+      id: 'create-api-spec',
+      leftSection: IconPlus,
+      label: 'Create API Spec',
+      onClick: () => {
+        setCreateApiSpecModalOpen(true);
+      }
+    },
+    {
+      id: 'open-api-spec',
+      leftSection: IconFileCode,
+      label: 'Open API Spec',
+      onClick: () => {
+        handleOpenApiSpec();
+      }
+    }
+  ];
+
+  // Configuration for Actions dropdown items
+  const actionsDropdownItems = [
+    {
+      id: 'sort',
+      leftSection: getSortIcon(),
+      label: getSortLabel(),
+      onClick: () => {
+        handleSortCollections();
+      },
+      testId: 'sort-collections-button'
+    },
+    {
+      id: 'close-all',
+      leftSection: IconSquareX,
+      label: 'Close all',
+      onClick: () => {
+        selectAllCollectionsToClose();
+      },
+      testId: 'close-all-collections-button'
+    }
+  ];
+
   // Render Collections-specific actions
   const renderCollectionsActions = () => (
     <>
-      <button
-        className="action-button"
+      <ActionIcon
         onClick={handleToggleSearch}
-        title="Search requests"
+        label="Search requests"
       >
-        <IconSearch size={14} stroke={1.5} />
-      </button>
-      {/* Add/Create dropdown */}
-      <Dropdown
-        onCreate={onAddDropdownCreate}
-        icon={(
-          <button className="action-button plus-icon-button" title="Add new">
-            <IconPlus size={14} stroke={1.5} />
-          </button>
-        )}
-        placement="bottom-end"
-        style="new"
-      >
-        <div className="label-item">Collections</div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            setCreateCollectionModalOpen(true);
-            addDropdownTippyRef.current?.hide();
-          }}
-        >
-          <IconPlus size={16} stroke={1.5} className="icon" />
-          Create collection
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            addDropdownTippyRef.current?.hide();
-            setImportCollectionModalOpen(true);
-          }}
-        >
-          <IconDownload size={16} stroke={1.5} className="icon" />
-          Import collection
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            handleOpenCollection();
-            addDropdownTippyRef.current?.hide();
-          }}
-        >
-          <IconFolder size={16} stroke={1.5} className="icon" />
-          Open collection
-        </div>
+        <IconSearch size={14} stroke={1.5} aria-hidden="true" />
+      </ActionIcon>
 
-        <div className="label-item mt-2">API Specs</div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            setCreateApiSpecModalOpen(true);
-            addDropdownTippyRef.current?.hide();
-          }}
-        >
-          <IconPlus size={16} stroke={1.5} className="icon" />
-          Create API Spec
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            handleOpenApiSpec();
-            addDropdownTippyRef.current?.hide();
-          }}
-        >
-          <IconFileCode size={16} stroke={1.5} className="icon" />
-          Open API Spec
-        </div>
-      </Dropdown>
-
-      {/* Actions dropdown (sort, close all, etc.) */}
-      <Dropdown
-        onCreate={onActionsDropdownCreate}
-        icon={(
-          <button className="action-button" title="More actions">
-            <IconDotsVertical size={14} stroke={1.5} />
-          </button>
-        )}
+      {/* Add Collection dropdown */}
+      <MenuDropdown
+        data-testid="collections-header-add-menu"
+        items={[
+          { type: 'label', label: 'Collections' },
+          ...addDropdownItems
+        ]}
         placement="bottom-end"
-        style="new"
       >
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            handleSortCollections();
-            actionsDropdownTippyRef.current?.hide();
-          }}
-          aria-label="Sort collections"
-          title="Sort collections"
-          data-testid="sort-collections-button"
+        <ActionIcon
+          label="Add new collection"
         >
-          {(() => {
-            const SortIcon = getSortIcon();
-            return <SortIcon size={16} stroke={1.5} className="icon" />;
-          })()}
-          {getSortLabel()}
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            selectAllCollectionsToClose();
-            actionsDropdownTippyRef.current?.hide();
-          }}
-          aria-label="Close all collections"
-          title="Close all collections"
-          data-testid="close-all-collections-button"
+          <IconPlus size={14} stroke={1.5} aria-hidden="true" />
+        </ActionIcon>
+      </MenuDropdown>
+
+      {/* More Actions dropdown (sort, close all, etc.) */}
+      <MenuDropdown
+        data-testid="collections-header-actions-menu"
+        items={actionsDropdownItems}
+        placement="bottom-end"
+      >
+        <ActionIcon
+          label="More actions"
         >
-          <IconSquareX size={16} stroke={1.5} className="icon" />
-          Close all
-        </div>
-      </Dropdown>
+          <IconDotsVertical size={14} stroke={1.5} aria-hidden="true" />
+        </ActionIcon>
+      </MenuDropdown>
 
       {collectionsToClose.length > 0 && (
         <RemoveCollectionsModal collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
