@@ -667,7 +667,7 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       'Accept': 'application/json'
     };
     if (credentialsPlacement === 'basic_auth_header') {
-      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret || ''}`).toString('base64')}`;
     }
     axiosRequestConfig.url = url;
     axiosRequestConfig.responseType = 'arraybuffer';

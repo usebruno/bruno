@@ -106,6 +106,9 @@ const handleOauth2ProtocolUrl = (url) => {
       resolveOauth2AuthorizationRequest(code);
       return;
     }
+
+    // No code or access_token found - reject with error
+    rejectOauth2AuthorizationRequest(new Error('Invalid OAuth2 callback: missing code or access_token'));
   } catch (err) {
     console.error('Error handling protocol URL:', err);
   }
