@@ -61,7 +61,7 @@ const Wrapper = styled.div`
       padding: 6px 0;
       flex-shrink: 0;
       transition: background-color 0.15s ease;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
 
       .tab-container {
         width: 100%;
@@ -84,13 +84,13 @@ const Wrapper = styled.div`
         mask-image: linear-gradient(
           to right,
           ${(props) => props.theme.requestTabs.color} 0%,
-          ${(props) => props.theme.requestTabs.color} calc(100% - 24px),
+          ${(props) => props.theme.requestTabs.color} calc(100% - 12px),
           transparent 100%
         );
         -webkit-mask-image: linear-gradient(
           to right,
           ${(props) => props.theme.requestTabs.color} 0%,
-          ${(props) => props.theme.requestTabs.color} calc(100% - 24px),
+          ${(props) => props.theme.requestTabs.color} calc(100% - 12px),
           transparent 100%
         );
       }
@@ -115,7 +115,6 @@ const Wrapper = styled.div`
         border: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
         border-bottom-color: ${(props) => props.theme.bg || '#ffffff'};
         border-radius: 8px 8px 0 0;
-        font-weight: 500;
         z-index: 2;
         margin-bottom: -2px;
         padding-bottom: 12px;

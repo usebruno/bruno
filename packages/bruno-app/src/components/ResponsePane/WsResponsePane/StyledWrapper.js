@@ -11,7 +11,7 @@ const StyledWrapper = styled.div`
       padding: 6px 0px;
       border: none;
       border-bottom: solid 2px transparent;
-      margin-right: 1.25rem;
+      margin-right: ${(props) => props.theme.tabs.marginRight};;
       color: var(--color-tab-inactive);
       cursor: pointer;
 

@@ -115,7 +115,7 @@ const darkTheme = {
       item: {
         bg: '#37373D',
         hoverBg: '#2A2D2F',
-        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
+        focusBorder: '#4e4e4e',
         indentBorder: 'solid 1px #585858',
         active: {
           indentBorder: 'solid 1px #4c4c4c'
@@ -327,6 +327,7 @@ const darkTheme = {
   },
 
   tabs: {
+    marginRight: '1.1rem',
     active: {
       color: '#CCCCCC',
       border: '#d9a342'

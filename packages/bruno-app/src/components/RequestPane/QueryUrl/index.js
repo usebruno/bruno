@@ -127,7 +127,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               handleGenerateCode(e);
             }}
           >
-            <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className="cursor-pointer" />
+            <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
             <span className="infotiptext text-xs">Generate Code</span>
           </div>
           <div
@@ -142,7 +142,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             <IconDeviceFloppy
               color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
               strokeWidth={1.5}
-              size={22}
+              size={20}
               className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
             />
             <span className="infotiptext text-xs">
@@ -153,7 +153,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             <IconSquareRoundedX
               color={theme.requestTabPanel.url.iconDanger}
               strokeWidth={1.5}
-              size={22}
+              size={20}
               data-testid="cancel-request-icon"
               onClick={handleCancelRequest}
             />
@@ -161,7 +161,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             <IconArrowRight
               color={theme.requestTabPanel.url.icon}
               strokeWidth={1.5}
-              size={22}
+              size={20}
               data-testid="send-arrow-icon"
             />
           )}
