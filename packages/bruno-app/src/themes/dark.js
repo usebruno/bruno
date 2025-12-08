@@ -392,8 +392,7 @@ const darkTheme = {
         editorBorder: colors.GRAY_3,
         editorFocusBorder: '#CCCCCC',
         editableDisplayHoverBg: 'rgba(255,255,255,0.03)',
-        border: '#4F4F4F',
-        editorBorder: colors.GRAY_3
+        border: '#4F4F4F'
       }
     },
     tokens: {
@@ -639,7 +638,7 @@ const darkTheme = {
             color: colors.GREEN
           },
           developerMode: {
-            bg: 'rgb(217, 163, 66, 0.11)',
+            bg: 'rgba(217, 163, 66, 0.11)',
             color: colors.YELLOW
           }
         }

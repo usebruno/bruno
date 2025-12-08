@@ -398,8 +398,7 @@ const lightTheme = {
         editorBorder: '#EFEFEF',
         editorFocusBorder: '#989898',
         editableDisplayHoverBg: 'rgba(0,0,0,0.02)',
-        border: '#EFEFEF',
-        editorBorder: '#EFEFEF'
+        border: '#EFEFEF'
       }
     },
     tokens: {
