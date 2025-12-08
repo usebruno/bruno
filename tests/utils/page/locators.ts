@@ -85,7 +85,7 @@ export const buildCommonLocators = (page: Page) => ({
     formatTabDropdown: () => page.getByTestId('format-response-tab-dropdown'),
     previewContainer: () => page.getByTestId('response-preview-container'),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
-    jsonTreeLine: () => page.locator('.response-pane .object-content'),
+    jsonTreeLine: () => page.locator('.response-pane .object-content')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
