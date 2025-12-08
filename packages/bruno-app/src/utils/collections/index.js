@@ -1629,3 +1629,7 @@ export const isVariableSecret = (scopeInfo) => {
 
   return false;
 };
+
+export const getOtherCollections = (collections, selectedCollections) => {
+  return collections.filter((c) => !selectedCollections.includes(c.uid));
+};
