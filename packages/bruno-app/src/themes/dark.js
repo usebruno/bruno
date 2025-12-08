@@ -327,7 +327,7 @@ const darkTheme = {
   },
 
   tabs: {
-    marginRight: '1.1rem',
+    marginRight: '1.2rem',
     active: {
       color: '#CCCCCC',
       border: '#d9a342'
