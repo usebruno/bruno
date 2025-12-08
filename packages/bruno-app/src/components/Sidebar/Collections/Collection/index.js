@@ -293,6 +293,7 @@ const Collection = ({ collection, searchText }) => {
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        data-testid="sidebar-collection-row"
       >
         <div
           className="flex flex-grow items-center overflow-hidden"

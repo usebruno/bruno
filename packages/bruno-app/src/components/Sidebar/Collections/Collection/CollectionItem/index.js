@@ -504,6 +504,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        data-testid="sidebar-collection-item-row"
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
