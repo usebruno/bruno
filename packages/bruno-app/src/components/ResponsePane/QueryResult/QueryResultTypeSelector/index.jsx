@@ -1,6 +1,6 @@
 import React from 'react';
 import { IconEye } from '@tabler/icons';
-import ButtonDropdown from 'components/ButtonDropdown';
+import ButtonDropdown from 'ui/ButtonDropdown';
 import ToggleSwitch from 'components/ToggleSwitch';
 import StyledWrapper from './StyledWrapper';
 
@@ -16,7 +16,11 @@ const QueryResultTypeSelector = ({
       <span className="text-[0.8125rem] preview-response-tab-label">Preview</span>
       <ToggleSwitch
         isOn={selectedTab === 'preview'}
-        handleToggle={onPreviewTabSelect}
+        handleToggle={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onPreviewTabSelect();
+        }}
         size="2xs"
         data-testid="preview-response-tab"
         title={selectedTab === 'preview' ? 'Turn off Preview Mode' : 'Turn on Preview Mode'}

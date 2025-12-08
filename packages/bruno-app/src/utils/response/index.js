@@ -73,6 +73,7 @@ export const escapeHtml = (text) => {
  * Helper to detect if buffer contains text data
  */
 const isLikelyText = (buffer) => {
+  if (!buffer || buffer.length === 0) return false;
   let textChars = 0;
   const sampleSize = Math.min(buffer.length, 512);
 
@@ -162,6 +163,7 @@ export const isValidHtmlSnippet = (snippet) => {
       return false;
     }
 
+    // HTML parser is lenient; if we reach here with valid tags, consider it valid
     return true;
   } catch (error) {
     return false;

@@ -1,5 +1,6 @@
 import ErrorAlert from 'components/ErrorAlert/index';
 import React, { useState, useMemo } from 'react';
+import StyledWrapper from './StyledWrapper';
 
 // The expected "data" prop must be an XML string.
 export default function XmlPreview({ data, defaultExpanded = true }) {
@@ -55,17 +56,60 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
   }
 
   return (
-    <div className="font-mono text-[12px] leading-[20px] p-4 overflow-auto text-black dark:text-white">
-      <XmlNode
-        node={rootNode}
-        nodeName={rootNodeName}
-        isRoot={true}
-        isLast={true}
-        defaultExpanded={defaultExpanded}
-      />
-    </div>
+    <StyledWrapper>
+      <div className="xml-container">
+        <XmlNode
+          node={rootNode}
+          nodeName={rootNodeName}
+          isRoot={true}
+          isLast={true}
+          defaultExpanded={defaultExpanded}
+        />
+      </div>
+    </StyledWrapper>
   );
 }
+
+// Component for rendering array entries with expand/collapse functionality
+const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true }) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    setExpanded((v) => !v);
+  };
+
+  return (
+    <div style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
+      <div className="flex items-center mb-1">
+        <button
+          onClick={toggle}
+          className="xml-array-toggle-button"
+          tabIndex={-1}
+          aria-expanded={expanded}
+        >
+          {expanded ? '▼' : '▶'}
+        </button>
+        <span className="xml-node-name">{arrayKey}</span>
+        <span className="xml-count">[{items.length}]</span>
+      </div>
+      {expanded && (
+        <div className="array-content">
+          {items.map((item, itemIdx) => (
+            <XmlNode
+              key={`${arrayKey}-${itemIdx}`}
+              node={item}
+              nodeName={`${itemIdx}`}
+              isLast={itemIdx === items.length - 1}
+              defaultExpanded={false}
+              depth={depth + 2}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const XmlNode = ({
   node,
@@ -115,11 +159,11 @@ const XmlNode = ({
       <div className="flex items-start mb-1" style={{ paddingLeft: `${depth * 20}px` }}>
         {displayNodeName && (
           <>
-            <span className="text-black dark:text-[#f9f8f5]">{displayNodeName}</span>
-            <span className="text-[#666] dark:text-[#808080] mx-2">:</span>
+            <span className="xml-node-name">{displayNodeName}</span>
+            <span className="xml-separator">:</span>
           </>
         )}
-        <span className="text-black dark:text-[#d4d4d4] whitespace-pre-wrap break-all">{value}</span>
+        <span className="xml-value">{value}</span>
       </div>
     );
   }
@@ -135,9 +179,9 @@ const XmlNode = ({
         <div className="flex items-center mb-1" style={{ paddingLeft: `${depth * 20}px` }}>
           {displayNodeName && (
             <>
-              <span className="text-black dark:text-[#f9f8f5]">{displayNodeName}</span>
-              <span className="text-[#666] dark:text-[#808080] mx-2">:</span>
-              <span className="text-[#666] dark:text-[#808080]">{'{}'}</span>
+              <span className="xml-node-name">{displayNodeName}</span>
+              <span className="xml-separator">:</span>
+              <span className="xml-empty-value">{'{}'}</span>
             </>
           )}
         </div>
@@ -181,18 +225,19 @@ const XmlNode = ({
       <div className="flex items-center mb-1">
         <button
           onClick={toggle}
-          className="mr-2 cursor-pointer w-4 h-4 flex items-center justify-center text-[#666] dark:text-[#569cd6] flex-shrink-0 rounded transition-colors hover:bg-[#e0e0e0] dark:hover:bg-[#2d2e30]"
+          className="xml-toggle-button"
           tabIndex={-1}
+          aria-expanded={expanded}
         >
           {expanded ? '▼' : '▶'}
         </button>
 
-        <span className="text-black dark:text-[#f9f8f5] font-medium">
+        <span className="xml-node-name">
           {displayNodeName}
         </span>
 
         {childCount > 0 && (
-          <span className="text-[#666] dark:text-[#808080] ml-2">
+          <span className="xml-count">
             {`{${childCount}}`}
           </span>
         )}
@@ -207,15 +252,12 @@ const XmlNode = ({
             // Handle attributes
             if (isAttribute) {
               const displayValue = value === '' ? 'value' : value;
-              const valueColorClass = value === ''
-                ? 'text-[#999] dark:text-[#808080]'
-                : 'text-black dark:text-[#d4d4d4]';
 
               return (
                 <div key={key + idx} className="flex items-start mb-1" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
-                  <span className="text-black dark:text-[#f9f8f5]">{key}</span>
-                  <span className="text-[#666] dark:text-[#808080] mx-2">:</span>
-                  <span className={valueColorClass}>{displayValue}</span>
+                  <span className="xml-node-name">{key}</span>
+                  <span className="xml-separator">:</span>
+                  <span className={value === '' ? 'xml-empty-value' : 'xml-value'}>{displayValue}</span>
                 </div>
               );
             }
@@ -224,41 +266,14 @@ const XmlNode = ({
             const isArrayChild = Array.isArray(value);
 
             if (isArrayChild) {
-              // Render array notation with count
               return (
-                <div key={key + idx} style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
-                  <div className="flex items-center mb-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const target = e.currentTarget.parentElement.parentElement;
-                        const content = target.querySelector('.array-content');
-                        if (content) {
-                          content.classList.toggle('hidden');
-                          e.currentTarget.textContent = content.classList.contains('hidden') ? '▶' : '▼';
-                        }
-                      }}
-                      className="mr-2 cursor-pointer w-4 h-4 flex items-center justify-center text-[#666] dark:text-[#569cd6] flex-shrink-0 rounded transition-colors hover:bg-[#e0e0e0] dark:hover:bg-[#2d2e30]"
-                      tabIndex={-1}
-                    >
-                      ▼
-                    </button>
-                    <span className="text-black dark:text-[#f9f8f5] font-medium">{key}</span>
-                    <span className="text-[#666] dark:text-[#808080] ml-2">[{value.length}]</span>
-                  </div>
-                  <div className="array-content">
-                    {value.map((item, itemIdx) => (
-                      <XmlNode
-                        key={itemIdx}
-                        node={item}
-                        nodeName={`${itemIdx}`}
-                        isLast={itemIdx === value.length - 1}
-                        defaultExpanded={false}
-                        depth={depth + 2}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <XmlArrayNode
+                  key={`${key}-${idx}`}
+                  arrayKey={key}
+                  items={value}
+                  depth={depth}
+                  defaultExpanded={true}
+                />
               );
             }
 

@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
   border-top: 1px solid transparent;
   border-right: 1px solid transparent;
   border-bottom: 1px solid transparent;
-  border-radius: 0.375rem;
+  border-radius: ${(props) => props.theme.border.radius.base};
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   max-height: 200px;
   min-height: 70px;

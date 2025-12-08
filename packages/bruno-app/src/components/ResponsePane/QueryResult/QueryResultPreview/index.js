@@ -11,7 +11,7 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
 GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
-import XmlPreview from './XmlPreview';
+import XmlPreview from './XmlPreview/index';
 import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';

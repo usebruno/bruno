@@ -46,6 +46,7 @@ const ResponseBookmark = ({ item, collection, responseSize, children }) => {
     }
 
     if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
       handleSaveClick(e);
     }
   };
@@ -140,7 +141,7 @@ const ResponseBookmark = ({ item, collection, responseSize, children }) => {
   return (
     <>
       <div
-        role="button"
+        role={!!children ? 'button' : undefined}
         tabIndex={isDisabled ? -1 : 0}
         aria-disabled={isDisabled}
         onKeyDown={handleKeyDown}

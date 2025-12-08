@@ -26,12 +26,13 @@ const ResponseClear = ({ collection, item, children }) => {
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
       clearResponse();
     }
   };
 
   return (
-    <div role="button" tabIndex={0} onClick={clearResponse} title={!children ? 'Clear response' : null} onKeyDown={handleKeyDown}>
+    <div role={!!children ? 'button' : undefined} tabIndex={0} onClick={clearResponse} title={!children ? 'Clear response' : null} onKeyDown={handleKeyDown}>
       {children ? children : (
         <StyledWrapper className="flex items-center">
           <button className="p-1">

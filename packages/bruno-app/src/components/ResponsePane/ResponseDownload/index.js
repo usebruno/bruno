@@ -33,13 +33,14 @@ const ResponseDownload = ({ item, children }) => {
     }
 
     if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
       saveResponseToFile();
     }
   };
 
   return (
     <div
-      role="button"
+      role={!!children ? 'button' : undefined}
       tabIndex={isDisabled ? -1 : 0}
       aria-disabled={isDisabled}
       onClick={saveResponseToFile}

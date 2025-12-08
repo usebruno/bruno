@@ -547,8 +547,9 @@ export function isHexFormat(str) {
   const hexOnly = trimmed.replace(/\s+/g, '');
   if (hexOnly.length > 0 && /^[0-9a-fA-F]+$/i.test(hexOnly)) {
     // Make sure it's not too short (could be a regular number) and has even length
-    // or is a reasonable hex representation
-    if (hexOnly.length >= 4 && hexOnly.length % 2 === 0) {
+    // Require minimum length of 6 to reduce false positives (e.g., "dead", "beef")
+    // Also require at least one digit 0-9 to avoid matching all-letter words
+    if (hexOnly.length >= 6 && hexOnly.length % 2 === 0 && /[0-9]/.test(hexOnly)) {
       return true;
     }
   }

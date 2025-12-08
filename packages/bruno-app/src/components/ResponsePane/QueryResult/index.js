@@ -58,7 +58,7 @@ export const useInitialResponseFormat = (dataBuffer, headers) => {
     const contentType = getContentType(headers);
 
     // Wait until both content types are available
-    if (detectedContentType === undefined || contentType === undefined) {
+    if (detectedContentType === null || contentType === undefined) {
       return { initialFormat: null, initialTab: null };
     }
 
@@ -186,7 +186,7 @@ const QueryResult = ({
   const codeMirrorMode = useMemo(() => {
     return PREVIEW_FORMAT_OPTIONS
       .flatMap((option) => option.options)
-      .find((option) => option.value === selectedFormat)?.codeMirrorMode || 'application/text';
+      .find((option) => option.value === selectedFormat)?.codeMirrorMode || 'text/plain';
   }, [selectedFormat]);
 
   const queryFilterEnabled = useMemo(() => codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor', [codeMirrorMode, selectedFormat, selectedTab]);

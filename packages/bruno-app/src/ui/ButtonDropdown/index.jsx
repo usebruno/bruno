@@ -4,6 +4,29 @@ import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 
+const ButtonIcon = forwardRef(({ disabled, className, style, prefix, selectedLabel, suffix, ...props }, ref) => {
+  return (
+    <button
+      ref={ref}
+      className={classnames('button-dropdown-button flex items-center gap-1.5 text-xs',
+        'cursor-pointer select-none',
+        'h-7 rounded-[6px] border px-2 transition-colors',
+        { 'opacity-50 cursor-not-allowed': disabled },
+        className)}
+      data-testid={props['data-testid']}
+      style={style}
+      role="button"
+      {...props}
+    >
+      {prefix && <span>{prefix}</span>}
+      <span className="active">{selectedLabel}</span>
+      {suffix && <span>{suffix}</span>}
+      <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
+    </button>
+  );
+});
+ButtonIcon.displayName = 'ButtonIcon';
+
 const ButtonDropdown = ({
   label,
   options,
@@ -96,49 +119,11 @@ const ButtonDropdown = ({
     }
   };
 
-  const ButtonIcon = forwardRef((iconProps, ref) => {
-    return (
-      <button
-        ref={ref}
-        className={classnames('flex items-center gap-1.5 text-xs',
-          'cursor-pointer select-none',
-          'h-7 rounded-[4px] border px-2 transition-colors',
-          // Text color
-          'text-gray-700 dark:text-gray-300',
-          // Border color
-          'border-gray-300 dark:border-[#343434]',
-          // Background color
-          // Hover background color
-          'hover:bg-gray-200 dark:hover:bg-[#303030]',
-          {
-            // Disabled styles
-            'opacity-50 cursor-not-allowed': disabled
-          },
-          className)}
-        data-testid={props['data-testid']}
-        style={style}
-        role="button"
-        {...iconProps}
-      >
-        {prefix && (
-          <span>{prefix}</span>
-        )}
-        <span className="active">{selectedLabel}</span>
-        {suffix && (
-          <span>{suffix}</span>
-        )}
-        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
-      </button>
-    );
-  });
-
-  ButtonIcon.displayName = 'ButtonIcon';
-
   return (
     <StyledWrapper>
       <Dropdown
         onCreate={onDropdownCreate}
-        icon={<ButtonIcon {...props} />}
+        icon={<ButtonIcon selectedLabel={selectedLabel} prefix={prefix} suffix={suffix} disabled={disabled} className={className} style={style} {...props} />}
         placement="bottom-end"
         disabled={disabled}
       >
@@ -146,7 +131,7 @@ const ButtonDropdown = ({
           {header && (
             <div className="dropdown-header-container">
               {header}
-              <div className="h-px bg-[#e7e7e7] dark:bg-[#444] my-1"></div>
+              <div className="dropdown-divider"></div>
             </div>
           )}
           {renderOptions()}

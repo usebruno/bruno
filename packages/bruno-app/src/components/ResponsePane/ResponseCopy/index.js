@@ -39,6 +39,7 @@ const ResponseCopy = ({ item, children }) => {
 
   const handleKeyDown = (e) => {
     if ((e.key === 'Enter' || e.key === ' ') && hasData) {
+      e.preventDefault();
       copyResponse();
     }
   };
@@ -50,7 +51,7 @@ const ResponseCopy = ({ item, children }) => {
   };
 
   return (
-    <div role="button" tabIndex={0} onClick={handleClick} title={!children ? 'Copy response to clipboard' : null} onKeyDown={handleKeyDown}>
+    <div role={!!children ? 'button' : undefined} tabIndex={0} onClick={handleClick} title={!children ? 'Copy response to clipboard' : null} onKeyDown={handleKeyDown}>
       {children ? children : (
         <StyledWrapper className="flex items-center">
           <button className="p-1" disabled={!hasData}>
