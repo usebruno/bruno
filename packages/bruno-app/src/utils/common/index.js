@@ -5,6 +5,10 @@ import fastJsonFormat from 'fast-json-format';
 import { format, applyEdits } from 'jsonc-parser';
 import { patternHasher } from '@usebruno/common/utils';
 
+export const isPlaywright = () => {
+  return typeof window !== 'undefined' && window.isPlaywright === true;
+};
+
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
   // https://github.com/ai/nanoid/blob/main/url-alphabet/index.js
