@@ -119,7 +119,7 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   toolbar: {
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
     latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
-    clearResponse: () => page.getByRole('button', { name: 'Clear Response' })
+    clearResponse: () => page.getByTestId('response-clear-button')
   }
 });
 
