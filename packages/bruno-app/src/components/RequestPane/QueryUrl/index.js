@@ -89,84 +89,89 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
   return (
     <StyledWrapper className="flex items-center">
-      <div className="flex flex-1 items-center h-full method-selector-container">
-        {isGrpc ? (
-          <div className="flex items-center justify-center h-full w-16">
-            <span className="text-xs text-indigo-500 font-bold">gRPC</span>
-          </div>
-        ) : (
-          <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
-        )}
-      </div>
-      <div
-        id="request-url"
-        className="flex items-center flex-grow input-container h-full"
-        style={{
-          color: 'yellow',
-          width: `calc(100% - ${methodSelectorWidth}px)`,
-          maxWidth: `calc(100% - ${methodSelectorWidth}px)`
-        }}
-      >
-        <SingleLineEditor
-          ref={editorRef}
-          value={url}
-          onSave={(finalValue) => onSave(finalValue)}
-          theme={storedTheme}
-          onChange={(newValue) => onUrlChange(newValue)}
-          onRun={handleRun}
-          collection={collection}
-          highlightPathParams={true}
-          item={item}
-          showNewlineArrow={true}
-        />
-        <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
-          <div
-            title="Generate Code"
-            className="infotip mr-3"
-            onClick={(e) => {
-              handleGenerateCode(e);
-            }}
-          >
-            <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
-            <span className="infotiptext text-xs">Generate Code</span>
-          </div>
-          <div
-            title="Save Request"
-            className="infotip mr-3"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!hasChanges) return;
-              onSave();
-            }}
-          >
-            <IconDeviceFloppy
-              color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={20}
-              className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
-            />
-            <span className="infotiptext text-xs">
-              Save <span className="shortcut">({saveShortcut})</span>
-            </span>
-          </div>
-          {isLoading || item.response?.stream?.running ? (
-            <IconSquareRoundedX
-              color={theme.requestTabPanel.url.iconDanger}
-              strokeWidth={1.5}
-              size={20}
-              data-testid="cancel-request-icon"
-              onClick={handleCancelRequest}
-            />
+      <div className="unified-input-container">
+        <div className="flex flex-1 items-center h-full method-selector-container">
+          {isGrpc ? (
+            <div className="flex items-center justify-center h-full w-16">
+              <span className="text-xs text-indigo-500 font-bold">gRPC</span>
+            </div>
           ) : (
-            <IconArrowRight
-              color={theme.requestTabPanel.url.icon}
-              strokeWidth={1.5}
-              size={20}
-              data-testid="send-arrow-icon"
-            />
+            <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
           )}
         </div>
+        <div
+          id="request-url"
+          className="flex items-center flex-grow input-container h-full"
+          style={{
+            color: 'yellow',
+            width: `calc(100% - ${methodSelectorWidth}px)`,
+            maxWidth: `calc(100% - ${methodSelectorWidth}px)`
+          }}
+        >
+          <SingleLineEditor
+            ref={editorRef}
+            value={url}
+            onSave={(finalValue) => onSave(finalValue)}
+            theme={storedTheme}
+            onChange={(newValue) => onUrlChange(newValue)}
+            onRun={handleRun}
+            collection={collection}
+            highlightPathParams={true}
+            item={item}
+            showNewlineArrow={true}
+          />
+          <div className="flex items-center h-full cursor-pointer mx-2" id="send-request" onClick={handleRun}>
+            <div
+              title="Generate Code"
+              className="infotip mr-3"
+              onClick={(e) => {
+                handleGenerateCode(e);
+              }}
+            >
+              <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
+              <span className="infotiptext text-xs">Generate Code</span>
+            </div>
+            <div
+              title="Save Request"
+              className="infotip"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!hasChanges) return;
+                onSave();
+              }}
+            >
+              <IconDeviceFloppy
+                color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+                strokeWidth={1.5}
+                size={20}
+                className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
+              />
+              <span className="infotiptext text-xs">
+                Save <span className="shortcut">({saveShortcut})</span>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
+      {isLoading || item.response?.stream?.running ? (
+        <button
+          type="button"
+          className="cancel-button"
+          onClick={handleCancelRequest}
+          data-testid="cancel-request-icon"
+        >
+          Cancel
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="send-button"
+          onClick={handleRun}
+          data-testid="send-arrow-icon"
+        >
+          Send
+        </button>
+      )}
       {generateCodeItemModalOpen && (
         <GenerateCodeItem
           collectionUid={collection.uid}
