@@ -1,4 +1,4 @@
-const { indentString } = require('../utils');
+const { getValueString } = require('../utils');
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -13,7 +13,7 @@ const quoteKey = (key) => {
 };
 
 // Custom indentation function for proper spacing
-const indentStringCustom = (str, spaces = 4) => {
+const indentStringCustom = (str, spaces = 2) => {
   if (!str || !str.length) {
     return str || '';
   }
@@ -34,11 +34,11 @@ const jsonToExampleBru = (json) => {
   let bru = '';
 
   if (name) {
-    bru += `name: ${name}\n`;
+    bru += `name: ${getValueString(name)}\n`;
   }
 
   if (description) {
-    bru += `description: ${description}\n`;
+    bru += `description: ${getValueString(description)}\n`;
   }
 
   // Request block
@@ -60,7 +60,7 @@ const jsonToExampleBru = (json) => {
     if (queryParams.length) {
       bru += '  params:query: {\n';
       bru += `${indentStringCustom(queryParams
-        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${item.value}`)
+        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n'), 4)}`;
       bru += '\n  }\n\n';
     }
@@ -68,7 +68,7 @@ const jsonToExampleBru = (json) => {
     if (pathParams.length) {
       bru += '  params:path: {\n';
       bru += `${indentStringCustom(pathParams
-        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${item.value}`)
+        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n'), 4)}`;
       bru += '\n  }\n\n';
     }
@@ -77,7 +77,7 @@ const jsonToExampleBru = (json) => {
   if (headers && headers.length) {
     bru += '  headers: {\n';
     bru += `${indentStringCustom(headers
-      .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${item.value}`)
+      .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${getValueString(item.value)}`)
       .join('\n'), 4)}`;
     bru += '\n  }\n\n';
   }
@@ -111,11 +111,11 @@ const jsonToExampleBru = (json) => {
     bru += `  body:form-urlencoded: {\n`;
     const enabledValues = body.formUrlEncoded
       .filter((item) => item.enabled)
-      .map((item) => `${quoteKey(item.name)}: ${item.value}`)
+      .map((item) => `${quoteKey(item.name)}: ${getValueString(item.value)}`)
       .join('\n');
     const disabledValues = body.formUrlEncoded
       .filter((item) => !item.enabled)
-      .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
+      .map((item) => `~${quoteKey(item.name)}: ${getValueString(item.value)}`)
       .join('\n');
 
     if (enabledValues) {
@@ -138,7 +138,7 @@ const jsonToExampleBru = (json) => {
             = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
 
           if (item.type === 'text') {
-            return `${enabled}${quoteKey(item.name)}: ${item.value}${contentType}`;
+            return `${enabled}${quoteKey(item.name)}: ${getValueString(item.value)}${contentType}`;
           }
 
           if (item.type === 'file') {
@@ -189,7 +189,7 @@ const jsonToExampleBru = (json) => {
     if (responseHeaders && responseHeaders.length) {
       bru += '  headers: {\n';
       bru += `${indentStringCustom(responseHeaders
-        .map((item) => `${quoteKey(item.name)}: ${item.value}`)
+        .map((item) => `${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n'), 4)}`;
       bru += '\n  }\n\n';
     }

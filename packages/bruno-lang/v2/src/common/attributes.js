@@ -39,9 +39,12 @@ const astBaseAttribute = {
       let isQuoteMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
       if (isQuoteMultiline) {
         const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
-        return multilineString
-          .split('\n')
-          .map((line) => line.slice(4))
+        const lines = multilineString.split('\n');
+        // Detect indentation from first non-empty content line
+        const firstContentLine = lines.find((line) => line.trim().length > 0);
+        const indent = firstContentLine ? firstContentLine.match(/^(\s*)/)[1].length : 0;
+        return lines
+          .map((line) => line.slice(indent))
           .join('\n');
       }
       return chars.sourceString ? chars.sourceString.trim() : '';

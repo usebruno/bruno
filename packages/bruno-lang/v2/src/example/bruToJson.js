@@ -51,8 +51,8 @@ const exampleGrammar = ohm.grammar(`Example {
   textchar = ~nl any
 
   // Root level properties
-  name =  "name" st* ":" st* valuechar* st*
-  description = "description" st* ":" st* valuechar* st*
+  name =  "name" st* ":" st* value st*
+  description = "description" st* ":" st* value st*
 
   // Request block
   request = nl* "request" st* ":" st* "{" nl* requestcontent+ nl* "}" nl*
@@ -78,12 +78,12 @@ const astExampleAttribute = {
   // Root level properties
   name(_1, _2, _3, _4, value, _6) {
     return {
-      name: value.sourceString ? value.sourceString.trim() : ''
+      name: value.ast ? (typeof value.ast === 'string' ? value.ast.trim() : value.ast) : ''
     };
   },
   description(_1, _2, _3, _4, value, _6) {
     return {
-      description: value.sourceString ? value.sourceString.trim() : ''
+      description: value.ast ? (typeof value.ast === 'string' ? value.ast.trim() : value.ast) : ''
     };
   },
   request(_1, _2, _3, _4, _5, _6, _7, requestcontent, _8, _9, _10) {
