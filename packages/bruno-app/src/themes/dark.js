@@ -206,7 +206,7 @@ const darkTheme = {
   requestTabPanel: {
     url: {
       bg: colors.BG,
-      icon: 'rgb(204, 204, 204)',
+      icon: '#F59E0B',
       iconDanger: '#fa5343',
       errorHoverBg: '#4a2a2a',
       border: `solid 1px ${colors.GRAY_2}`

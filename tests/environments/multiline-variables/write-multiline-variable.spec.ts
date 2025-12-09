@@ -62,7 +62,7 @@ test.describe('Multiline Variables - Write Test', () => {
     await page.locator('.close.cursor-pointer').click();
 
     // send request
-    const sendButton = page.locator('#send-request').getByRole('img').nth(2);
+    const sendButton = page.getByTestId('send-arrow-icon');
     await expect(sendButton).toBeVisible();
     await sendButton.click();
 

@@ -76,7 +76,7 @@ test.describe.serial('Create and Delete Response Examples', () => {
     });
 
     await test.step('Test form reset', async () => {
-      await page.locator('#send-request').getByRole('img').nth(2).click();
+      await page.getByTestId('send-arrow-icon').click();
       await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
 
       await page.getByTestId('create-example-name-input').fill('Test Name');

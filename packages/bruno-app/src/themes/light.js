@@ -211,7 +211,7 @@ const lightTheme = {
   requestTabPanel: {
     url: {
       bg: colors.WHITE,
-      icon: '#515151',
+      icon: '#D97706',
       iconDanger: '#d91f11',
       errorHoverBg: '#fef2f2',
       border: `solid 1px ${colors.GRAY_4}`

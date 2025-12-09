@@ -122,78 +122,81 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex items-center h-full">
-        <div className="flex items-center input-container flex-1 w-full input-container pr-2 h-full relative">
-          <div className="flex items-center justify-center w-16">
-            <span className="text-xs font-bold method-ws">WS</span>
+
+      <div className="flex items-center input-container flex-1 unified-input-container h-full relative">
+        <div className="flex items-center justify-center w-16">
+          <span className="text-xs font-bold method-ws">WS</span>
+        </div>
+        <SingleLineEditor
+          value={url}
+          onSave={(finalValue) => onSave(finalValue)}
+          onChange={handleUrlChange}
+          placeholder="ws://localhost:8080 or wss://example.com"
+          className="flex-1 min-w-0"
+          theme={displayedTheme}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+        />
+        <div className="flex items-center h-full mx-2">
+          <div
+            className="infotip"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!hasChanges) return;
+              onSave();
+            }}
+          >
+            <IconDeviceFloppy
+              color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              strokeWidth={1.5}
+              size={22}
+              className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
+            />
+            <span className="infotip-text text-xs">
+              Save <span className="shortcut">({saveShortcut})</span>
+            </span>
           </div>
-          <SingleLineEditor
-            value={url}
-            onSave={(finalValue) => onSave(finalValue)}
-            onChange={handleUrlChange}
-            placeholder="ws://localhost:8080 or wss://example.com"
-            className="w-full"
-            theme={displayedTheme}
-            onRun={handleRun}
-            collection={collection}
-            item={item}
-          />
-          <div className="flex items-center h-full mr-2 cursor-pointer">
-            <div
-              className="infotip mr-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!hasChanges) return;
-                onSave();
-              }}
-            >
-              <IconDeviceFloppy
-                color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
-                strokeWidth={1.5}
-                size={22}
-                className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
-              />
-              <span className="infotip-text text-xs">
-                Save <span className="shortcut">({saveShortcut})</span>
-              </span>
-            </div>
 
-            {connectionStatus === 'connected' && (
-              <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
-                <div className="infotip" onClick={(e) => handleDisconnect(e, true)}>
-                  <IconPlugConnectedX
-                    color={theme.colors.text.danger}
-                    strokeWidth={1.5}
-                    size={22}
-                    className="cursor-pointer"
-                  />
-                  <span className="infotip-text text-xs">Close Connection</span>
-                </div>
+          {connectionStatus === 'connected' && (
+            <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
+              <div className="infotip" onClick={(e) => handleDisconnect(e, true)}>
+                <IconPlugConnectedX
+                  color={theme.colors.text.danger}
+                  strokeWidth={1.5}
+                  size={22}
+                  className="cursor-pointer"
+                />
+                <span className="infotip-text text-xs">Close Connection</span>
               </div>
-            )}
-
-            {connectionStatus !== 'connected' && (
-              <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
-                <div className="infotip" onClick={handleConnect}>
-                  <IconPlugConnected
-                    className={classnames('cursor-pointer', {
-                      'animate-pulse': connectionStatus === CONNECTION_STATUS.CONNECTING
-                    })}
-                    color={theme.colors.text.green}
-                    strokeWidth={1.5}
-                    size={22}
-                  />
-                  <span className="infotip-text text-xs">Connect</span>
-                </div>
-              </div>
-            )}
-
-            <div data-testid="run-button" className="cursor-pointer" onClick={handleRunClick}>
-              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
             </div>
-          </div>
+          )}
+
+          {connectionStatus !== 'connected' && (
+            <div className="connection-controls relative flex items-center h-full gap-3">
+              <div className="infotip" onClick={handleConnect}>
+                <IconPlugConnected
+                  className={classnames('cursor-pointer', {
+                    'animate-pulse': connectionStatus === CONNECTION_STATUS.CONNECTING
+                  })}
+                  color={theme.colors.text.green}
+                  strokeWidth={1.5}
+                  size={22}
+                />
+                <span className="infotip-text text-xs">Connect</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+      <button
+        type="button"
+        className="send-button"
+        onClick={handleRunClick}
+        data-testid="run-button"
+      >
+        Send
+      </button>
 
       {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
     </StyledWrapper>

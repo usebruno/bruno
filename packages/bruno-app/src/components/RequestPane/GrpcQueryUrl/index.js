@@ -295,136 +295,139 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   return (
     <StyledWrapper className="flex items-center relative" data-testid="grpc-query-url-container">
-      <div className="flex items-center h-full method-selector-container">
-        <div className="flex items-center justify-center h-full w-16" data-testid="grpc-method-indicator">
-          <span className="text-xs text-indigo-500 font-bold">gRPC</span>
+      <div className="unified-input-container">
+        <div className="flex items-center h-full method-selector-container">
+          <div className="flex items-center justify-center h-full w-16" data-testid="grpc-method-indicator">
+            <span className="text-xs text-indigo-500 font-bold">gRPC</span>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center w-full input-container h-full relative">
-        <SingleLineEditor
-          ref={editorRef}
-          value={url}
-          onSave={(finalValue) => onSave(finalValue)}
-          theme={storedTheme}
-          onChange={(newValue) => debouncedOnUrlChange(newValue)}
-          onRun={handleRun}
-          collection={collection}
-          highlightPathParams={true}
-          item={item}
-        />
-
-        <MethodDropdown
-          grpcMethods={grpcMethods}
-          selectedGrpcMethod={selectedGrpcMethod}
-          onMethodSelect={handleGrpcMethodSelect}
-          onMethodDropdownCreate={onMethodDropdownCreate}
-        />
-        <div className="flex items-center h-full mr-2 gap-3" id="send-request">
-          <ProtoFileDropdown
+        <div className="flex items-center flex-1 min-w-0 input-container h-full relative">
+          <SingleLineEditor
+            ref={editorRef}
+            value={url}
+            onSave={(finalValue) => onSave(finalValue)}
+            theme={storedTheme}
+            onChange={(newValue) => debouncedOnUrlChange(newValue)}
+            onRun={handleRun}
             collection={collection}
+            highlightPathParams={true}
             item={item}
-            isReflectionMode={isReflectionMode}
-            protoFilePath={protoFilePath}
-            showProtoDropdown={showProtoDropdown}
-            setShowProtoDropdown={setShowProtoDropdown}
-            onProtoDropdownCreate={onProtoDropdownCreate}
-            onReflectionModeToggle={handleReflectionModeToggle}
-            onProtoFileLoad={handleProtoFileLoad}
           />
 
-          <div
-            className="infotip"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isReflectionMode) {
-                handleReflection(url, true);
-              } else if (protoFilePath) {
-                handleProtoFileLoad(protoFilePath, true);
-              } else {
-                toast.error('No proto file selected');
-              }
-            }}
-          >
-            <IconRefresh
-              color={theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={22}
-              className={`${(isReflectionMode ? reflectionManagement.isLoadingMethods : protoFileManagement.isLoadingMethods) ? 'animate-spin' : 'cursor-pointer'}`}
-              data-testid="refresh-methods-icon"
+          <MethodDropdown
+            grpcMethods={grpcMethods}
+            selectedGrpcMethod={selectedGrpcMethod}
+            onMethodSelect={handleGrpcMethodSelect}
+            onMethodDropdownCreate={onMethodDropdownCreate}
+          />
+          <div className="flex items-center h-full mx-2 gap-3" id="send-request">
+            <ProtoFileDropdown
+              collection={collection}
+              item={item}
+              isReflectionMode={isReflectionMode}
+              protoFilePath={protoFilePath}
+              showProtoDropdown={showProtoDropdown}
+              setShowProtoDropdown={setShowProtoDropdown}
+              onProtoDropdownCreate={onProtoDropdownCreate}
+              onReflectionModeToggle={handleReflectionModeToggle}
+              onProtoFileLoad={handleProtoFileLoad}
             />
-            <span className="infotip-text text-xs">
-              {isReflectionMode ? 'Refresh server reflection' : 'Refresh proto file methods'}
-            </span>
-          </div>
 
-          <div
-            className="infotip"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleGrpcurl(url);
-            }}
-          >
-            <IconCode
-              color={theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={22}
-            />
-            <span className="infotip-text text-xs">Generate grpcurl command</span>
-          </div>
-
-          <div
-            className="infotip"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!item.draft) return;
-              onSave();
-            }}
-          >
-            <IconDeviceFloppy
-              color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={22}
-              className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
-            />
-            <span className="infotip-text text-xs">
-              Save <span className="shortcut">({saveShortcut})</span>
-            </span>
-          </div>
-
-          {isConnectionActive && isStreamingMethod && (
-            <div className="connection-controls relative flex items-center h-full gap-3">
-              <div className="infotip" onClick={handleCancelConnection} data-testid="grpc-cancel-connection-button">
-                <IconX color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className="cursor-pointer" />
-                <span className="infotip-text text-xs">Cancel</span>
-              </div>
-
-              {isClientStreamingMethod && (
-                <div onClick={handleEndConnection} data-testid="grpc-end-connection-button">
-                  <IconCheck
-                    color={theme.colors.text.green}
-                    strokeWidth={2}
-                    size={22}
-                    className="cursor-pointer"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {(!isConnectionActive || !isStreamingMethod) && (
             <div
-              className="cursor-pointer"
-              data-testid="grpc-send-request-button"
+              className="infotip"
               onClick={(e) => {
                 e.stopPropagation();
-                handleRun(e);
+                if (isReflectionMode) {
+                  handleReflection(url, true);
+                } else if (protoFilePath) {
+                  handleProtoFileLoad(protoFilePath, true);
+                } else {
+                  toast.error('No proto file selected');
+                }
               }}
             >
-              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+              <IconRefresh
+                color={theme.requestTabs.icon.color}
+                strokeWidth={1.5}
+                size={22}
+                className={`${(isReflectionMode ? reflectionManagement.isLoadingMethods : protoFileManagement.isLoadingMethods) ? 'animate-spin' : 'cursor-pointer'}`}
+                data-testid="refresh-methods-icon"
+              />
+              <span className="infotip-text text-xs">
+                {isReflectionMode ? 'Refresh server reflection' : 'Refresh proto file methods'}
+              </span>
             </div>
-          )}
+
+            <div
+              className="infotip"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleGrpcurl(url);
+              }}
+            >
+              <IconCode
+                color={theme.requestTabs.icon.color}
+                strokeWidth={1.5}
+                size={22}
+              />
+              <span className="infotip-text text-xs">Generate grpcurl command</span>
+            </div>
+
+            <div
+              className="infotip"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!item.draft) return;
+                onSave();
+              }}
+            >
+              <IconDeviceFloppy
+                color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+                strokeWidth={1.5}
+                size={22}
+                className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
+              />
+              <span className="infotip-text text-xs">
+                Save <span className="shortcut">({saveShortcut})</span>
+              </span>
+            </div>
+
+            {isConnectionActive && isStreamingMethod && (
+              <div className="connection-controls relative flex items-center h-full gap-3">
+                <div className="infotip" onClick={handleCancelConnection} data-testid="grpc-cancel-connection-button">
+                  <IconX color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className="cursor-pointer" />
+                  <span className="infotip-text text-xs">Cancel</span>
+                </div>
+
+                {isClientStreamingMethod && (
+                  <div onClick={handleEndConnection} data-testid="grpc-end-connection-button">
+                    <IconCheck
+                      color={theme.colors.text.green}
+                      strokeWidth={2}
+                      size={22}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+      {(!isConnectionActive || !isStreamingMethod) && (
+        <button
+          type="button"
+          className="send-button"
+
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRun(e);
+          }}
+          data-testid="grpc-send-request-button"
+        >
+          Send
+        </button>
+      )}
       {isConnectionActive && isStreamingMethod && (
         <div className="connection-status-strip"></div>
       )}

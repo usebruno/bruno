@@ -3,11 +3,16 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   height: 2.1rem;
   position: relative;
-  border: ${(props) => props.theme.requestTabPanel.url.border};
-  border-radius: ${(props) => props.theme.border.radius.base};
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 
-  .input-container {
-    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+  .unified-input-container {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    border: ${(props) => props.theme.requestTabPanel.url.border};
     border-radius: ${(props) => props.theme.border.radius.base};
 
     input {
@@ -52,6 +57,8 @@ const StyledWrapper = styled.div`
     position: relative;
     display: inline-block;
     cursor: pointer;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.25rem;
   }
 
   .infotip:hover .infotip-text {
@@ -98,6 +105,44 @@ const StyledWrapper = styled.div`
         background-color: ${(props) => props.theme.requestTabPanel.url.errorHoverBg};
       }
     }
+  }
+
+   .send-button, .cancel-button {
+    color: white;
+    border: none;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    width:4.5rem;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s ease;
+    outline: none;
+    box-shadow: none;
+    flex-shrink: 0;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &:active {
+      opacity: 0.8;
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: none;
+    }
+  }
+
+  .send-button {
+    background: ${(props) => props.theme.requestTabPanel.url.icon};
+  }
+
+  .cancel-button {
+    background: ${(props) => props.theme.requestTabPanel.url.iconDanger};
   }
 `;
 
