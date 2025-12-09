@@ -132,7 +132,7 @@ const createUntitledRequest = async (
 
     // Add tag if provided
     if (tag) {
-      await page.getByRole('tab', { name: 'Settings' }).click();
+      await selectRequestPaneTab(page, 'Settings');
       await page.waitForTimeout(200);
       const tagInput = await page.getByTestId('tag-input').getByRole('textbox');
       await tagInput.fill(tag);
@@ -563,6 +563,33 @@ const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
 };
 
+const selectRequestPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Select request pane tab "${tabName}"`, async () => {
+    const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
+    const overflowButton = page.locator('.tabs .more-tabs');
+
+    // Check if tab is directly visible
+    if (await visibleTab.isVisible()) {
+      await visibleTab.click();
+      return;
+    }
+
+    // Check if there's an overflow dropdown
+    if (await overflowButton.isVisible()) {
+      await overflowButton.click();
+
+      // Wait for dropdown to appear and click the tab
+      const dropdownTab = page.locator('.tippy-content').getByRole('tab', { name: tabName });
+      await expect(dropdownTab).toBeVisible();
+      await dropdownTab.click();
+      return;
+    }
+
+    // If neither found, fail with a helpful message
+    throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+  });
+};
+
 /**
  * Verify response contains specific text
  * @param page - The page object
@@ -599,7 +626,8 @@ export {
   openRequest,
   openFolderRequest,
   getResponseBody,
-  expectResponseContains
+  expectResponseContains,
+  selectRequestPaneTab
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions };

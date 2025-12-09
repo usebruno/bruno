@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createUntitledRequest } from '../../utils/page';
+import { closeAllCollections, createUntitledRequest, selectRequestPaneTab } from '../../utils/page';
 
 test.describe('Tag persistence', () => {
   test.afterEach(async ({ page }) => {
@@ -62,7 +62,7 @@ test.describe('Tag persistence', () => {
     // Click on the moved request (now first) to verify the tag persisted after the move
     await untitledRequests.first().click();
     await page.locator('.request-tab.active').waitFor({ state: 'visible' });
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
     // Verify the tag is still present after the move
     await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
@@ -116,11 +116,11 @@ test.describe('Tag persistence', () => {
     await page.waitForTimeout(200);
 
     // Add a tag to the request
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
-    const tagInput = await page.getByTestId('tag-input').getByRole('textbox');
-    await tagInput.fill('smoke');
-    await tagInput.press('Enter');
+    const tagInput2 = await page.getByTestId('tag-input').getByRole('textbox');
+    await tagInput2.fill('smoke');
+    await tagInput2.press('Enter');
     await page.waitForTimeout(200);
     await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
     await page.keyboard.press('Meta+s');
@@ -157,7 +157,7 @@ test.describe('Tag persistence', () => {
     // Click on request-2 to verify the tag persisted after the move
     await page.locator('.collection-item-name').filter({ hasText: 'request-2' }).click();
     await page.locator('.request-tab.active').filter({ hasText: 'request-2' }).waitFor({ state: 'visible' });
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
     await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
   });
