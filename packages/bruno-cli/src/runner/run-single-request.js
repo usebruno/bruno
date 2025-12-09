@@ -724,6 +724,10 @@ const runSingleRequest = async function (
           nextRequestName = error.partialResults.nextRequestName;
         }
 
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
         logResults(postResponseTestResults, 'Post-Response Tests');
       }
     }
@@ -787,6 +791,10 @@ const runSingleRequest = async function (
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
         }
 
         logResults(testResults, 'Tests');
