@@ -24,6 +24,9 @@ const StyledWrapper = styled.div`
     overflow: hidden;
     white-space: nowrap;
     font-size: 0.8125rem;
+
+    // so that the name does not cutoff when italicized
+    padding-right: 2px;
   }
 `;
 

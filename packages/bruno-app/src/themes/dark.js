@@ -334,6 +334,7 @@ const darkTheme = {
   tabs: {
     marginRight: '1.2rem',
     active: {
+      fontWeight: 400,
       color: '#CCCCCC',
       border: '#d9a342'
     },

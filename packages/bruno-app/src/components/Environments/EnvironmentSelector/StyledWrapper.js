@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   .current-environment {
     border-radius: ${(props) => props.theme.border.radius.base};
-    padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+    padding: 0.25rem 0.3rem 0.25rem 0.5rem;
     user-select: none;
     background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.bg};
     border: 1px solid ${(props) => props.theme.app.collection.toolbar.environmentSelector.border};
@@ -34,7 +34,7 @@ const Wrapper = styled.div`
 
     .env-separator {
       color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator};
-      margin: 0 0.25rem;
+      margin: 0 0.35rem;
     }
 
     .env-text-inactive {
