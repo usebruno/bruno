@@ -25,7 +25,7 @@ test.describe.serial('Response Format Select and Preview', () => {
     const responseFormatTab = locators.response.formatTab();
     const codeLine = locators.response.codeLine();
     const previewContainer = locators.response.previewContainer();
-    await page.pause();
+
     await test.step('Verify response pane and default JSON editor formatting', async () => {
       await expect(responseBody).toBeVisible();
       await expect(responseFormatTab).toHaveText('JSON');
