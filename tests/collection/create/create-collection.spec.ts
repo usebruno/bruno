@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createUntitledRequest } from '../../utils/page';
 
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
@@ -24,12 +24,13 @@ test.describe('Create collection', () => {
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
-    // Create a new request
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByPlaceholder('Request Name').fill('r1');
-    await page.locator('#new-request-url .CodeMirror').click();
+    // Create a new request using the new dropdown flow
+    await createUntitledRequest(page, { requestType: 'HTTP' });
+
+    // Set the URL
+    await page.locator('#request-url .CodeMirror').click();
     await page.locator('textarea').fill('http://localhost:8081');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('#send-request').getByTitle('Save Request').click();
 
     // Send a request
     await page.locator('#request-url .CodeMirror').click();

@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createUntitledRequest } from '../../utils/page';
 
 test.describe('Code Generation URL Encoding', () => {
   test.afterEach(async ({ page }) => {
@@ -33,15 +33,14 @@ test.describe('Code Generation URL Encoding', () => {
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByPlaceholder('Request Name').fill('unencoded-request');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('http://base.source?name=John Doe');
-    await page.getByRole('button', { name: 'Create' }).click();
+    // Create a new request using the new dropdown flow
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'http://base.source?name=John Doe'
+    });
 
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'unencoded-request' })).toBeVisible();
-
-    await page.locator('.collection-item-name').filter({ hasText: 'unencoded-request' }).click();
+    // Find the untitled request and click on it
+    await page.locator('.item-name').filter({ hasText: /^Untitled/ }).first().click();
 
     await page.locator('#send-request .infotip').first().click();
 
@@ -79,15 +78,14 @@ test.describe('Code Generation URL Encoding', () => {
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByPlaceholder('Request Name').fill('encoded-request');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('http://base.source?name=John%20Doe');
-    await page.getByRole('button', { name: 'Create' }).click();
+    // Create a new request using the new dropdown flow
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'http://base.source?name=John%20Doe'
+    });
 
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'encoded-request' })).toBeVisible();
-
-    await page.locator('.collection-item-name').filter({ hasText: 'encoded-request' }).click();
+    // Find the untitled request and click on it
+    await page.locator('.item-name').filter({ hasText: /^Untitled/ }).first().click();
 
     await page.locator('#send-request .infotip').first().click();
 

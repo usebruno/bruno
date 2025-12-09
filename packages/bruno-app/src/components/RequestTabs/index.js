@@ -10,6 +10,7 @@ import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
+import CreateUntitledRequest from 'components/CreateUntitledRequest';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -77,8 +78,6 @@ const RequestTabs = () => {
       })
     );
   };
-
-  const createNewTab = () => setNewRequestModalOpen(true);
 
   if (!activeTabUid) {
     return null;
@@ -178,19 +177,16 @@ const RequestTabs = () => {
                   </div>
                 </li>
               ) : null}
-              <li className="select-none short-tab" id="create-new-tab" onClick={createNewTab}>
-                <div className="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="22"
-                    height="22"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                  >
-                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-                  </svg>
-                </div>
-              </li>
+              <div className="flex items-center short-tab">
+
+                {activeCollection && (
+                  <CreateUntitledRequest
+                    collectionUid={activeCollection.uid}
+                    itemUid={null}
+                    placement="bottom-start"
+                  />
+                )}
+              </div>
               {/* Moved to post mvp */}
               {/* <li className="select-none new-tab choose-request">
                 <div className="flex items-center">
