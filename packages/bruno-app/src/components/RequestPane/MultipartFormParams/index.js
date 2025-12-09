@@ -11,6 +11,7 @@ import {
   moveMultipartFormParam
 } from 'providers/ReduxStore/slices/collections';
 import MultiLineEditor from 'components/MultiLineEditor';
+import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor';
@@ -161,7 +162,7 @@ const MultipartFormParams = ({ item, collection }) => {
                       )}
                     </td>
                     <td>
-                      <MultiLineEditor
+                      <SingleLineEditor
                         onSave={onSave}
                         theme={storedTheme}
                         placeholder="Auto"
