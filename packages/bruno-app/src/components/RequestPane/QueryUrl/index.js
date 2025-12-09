@@ -90,7 +90,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper className="flex items-center">
       <div className="unified-input-container">
-        <div className="flex flex-1 items-center h-full method-selector-container">
+        <div className="h-full method-selector-container">
           {isGrpc ? (
             <div className="flex items-center justify-center h-full w-16">
               <span className="text-xs text-indigo-500 font-bold">gRPC</span>
@@ -103,7 +103,6 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           id="request-url"
           className="flex items-center flex-grow input-container h-full"
           style={{
-            color: 'yellow',
             width: `calc(100% - ${methodSelectorWidth}px)`,
             maxWidth: `calc(100% - ${methodSelectorWidth}px)`
           }}
