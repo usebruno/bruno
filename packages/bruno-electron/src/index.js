@@ -110,22 +110,23 @@ app.on('ready', async () => {
   const { maximized, x, y, width, height } = loadWindowState();
 
   // Get dynamic icons based on holiday
-  // Window icon - uses naming convention: 256x256-christmas.png
+  // Window icon - uses naming convention: 256x256-xmas.png
   const windowIconPath = getHolidayIconPath(
     path.join(__dirname, 'about'),
     '256x256.png'
   );
 
   // Set dock icon dynamically (macOS only)
-  // Uses naming convention: icon-christmas.icns
+  // Uses PNG format for better compatibility with nativeImage
   if (isMac && app.dock) {
     const { nativeImage } = require('electron');
-    const dockIconPath = getHolidayDockIconPath(
-      path.join(__dirname, '../resources/icons/mac'),
-      'icon.icns'
+    // Use the same PNG as window icon - it's in the app bundle and works reliably
+    const dockIconPath = getHolidayIconPath(
+      path.join(__dirname, 'about'),
+      '256x256.png'
     );
 
-    if (dockIconPath) {
+    if (dockIconPath && fs.existsSync(dockIconPath)) {
       try {
         const dockIcon = nativeImage.createFromPath(dockIconPath);
         if (!dockIcon.isEmpty()) {
