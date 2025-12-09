@@ -18,7 +18,7 @@ test.describe('Response Pane Actions', () => {
 
     await test.step('Create collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
-      await createRequest(page, 'copy-test', collectionName, { url: 'https://httpbin.org/json' });
+      await createRequest(page, 'copy-test', collectionName, { url: 'https://testbench-sanity.usebruno.com/ping' });
     });
 
     await test.step('Send request and wait for response', async () => {

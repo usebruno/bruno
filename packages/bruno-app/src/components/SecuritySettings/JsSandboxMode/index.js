@@ -24,6 +24,7 @@ const JsSandboxMode = ({ collection }) => {
       {jsSandboxMode === 'safe' && (
         <div
           className="sandbox-icon safe-mode"
+          data-testid="sandbox-mode-selector"
           onClick={viewSecuritySettings}
           title="Safe Mode"
         >
@@ -33,6 +34,7 @@ const JsSandboxMode = ({ collection }) => {
       {jsSandboxMode === 'developer' && (
         <div
           className="sandbox-icon developer-mode"
+          data-testid="sandbox-mode-selector"
           onClick={viewSecuritySettings}
           title="Developer Mode"
         >
