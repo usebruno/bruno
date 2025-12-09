@@ -51,7 +51,7 @@ const ResponseCopy = ({ item, children }) => {
   };
 
   return (
-    <div role={!!children ? 'button' : undefined} tabIndex={0} onClick={handleClick} title={!children ? 'Copy response to clipboard' : null} onKeyDown={handleKeyDown}>
+    <div role={!!children ? 'button' : undefined} tabIndex={0} onClick={handleClick} title={!children ? 'Copy response to clipboard' : null} onKeyDown={handleKeyDown} data-testid="response-copy-btn">
       {children ? children : (
         <StyledWrapper className="flex items-center">
           <button className="p-1" disabled={!hasData}>
