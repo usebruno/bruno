@@ -46,7 +46,8 @@ const initialState = {
   systemProxyEnvVariables: {},
   clipboard: {
     hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
-  }
+  },
+  currentHoliday: null // Current holiday theme (e.g., 'christmas')
 };
 
 export const appSlice = createSlice({
@@ -119,6 +120,9 @@ export const appSlice = createSlice({
     setClipboard: (state, action) => {
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
+    },
+    setCurrentHoliday: (state, action) => {
+      state.currentHoliday = action.payload;
     }
   }
 });
@@ -143,7 +147,8 @@ export const {
   updateSystemProxyEnvVariables,
   updateGenerateCode,
   toggleSidebarCollapse,
-  setClipboard
+  setClipboard,
+  setCurrentHoliday
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

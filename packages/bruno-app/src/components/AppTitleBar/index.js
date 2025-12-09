@@ -10,6 +10,7 @@ import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slice
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
 
 import Bruno from 'components/Bruno';
+import BrunoXmas from 'components/Bruno/xmas';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
@@ -47,6 +48,7 @@ const AppTitleBar = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  const currentHoliday = useSelector((state) => state.app.currentHoliday);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
   // Sort workspaces according to preferences
@@ -204,7 +206,11 @@ const AppTitleBar = () => {
 
         {/* Center section: Bruno logo + text */}
         <div className="titlebar-center">
-          <Bruno width={18} />
+          {currentHoliday === 'xmas' ? (
+            <BrunoXmas width={18} />
+          ) : (
+            <Bruno width={18} />
+          )}
           <span className="bruno-text">Bruno</span>
         </div>
 

@@ -54,6 +54,7 @@ const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
+const { getHolidayIconPath, getCurrentHoliday, getHolidayDockIconPath } = require('./utils/holidays');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
@@ -108,6 +109,34 @@ app.on('ready', async () => {
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
 
+  // Get dynamic icons based on holiday
+  // Window icon - uses naming convention: 256x256-christmas.png
+  const windowIconPath = getHolidayIconPath(
+    path.join(__dirname, 'about'),
+    '256x256.png'
+  );
+
+  // Set dock icon dynamically (macOS only)
+  // Uses naming convention: icon-christmas.icns
+  if (isMac && app.dock) {
+    const { nativeImage } = require('electron');
+    const dockIconPath = getHolidayDockIconPath(
+      path.join(__dirname, '../resources/icons/mac'),
+      'icon.icns'
+    );
+
+    if (dockIconPath) {
+      try {
+        const dockIcon = nativeImage.createFromPath(dockIconPath);
+        if (!dockIcon.isEmpty()) {
+          app.dock.setIcon(dockIcon);
+        }
+      } catch (err) {
+        console.warn('Failed to set dock icon:', err);
+      }
+    }
+  }
+
   mainWindow = new BrowserWindow({
     x,
     y,
@@ -123,7 +152,7 @@ app.on('ready', async () => {
       webviewTag: true
     },
     title: 'Bruno',
-    icon: path.join(__dirname, 'about/256x256.png'),
+    icon: windowIconPath,
     // Custom title bar – ensure React titlebar occupies the window chrome on all OSes
     titleBarStyle: isMac ? 'hiddenInset' : isWindows ? 'hidden' : 'default',
     titleBarOverlay: isWindows ? { height: 36 } : undefined,
@@ -231,7 +260,8 @@ app.on('ready', async () => {
     }
 
     mainWindow.webContents.send('main:app-loaded', {
-      isRunningInRosetta: getIsRunningInRosetta()
+      isRunningInRosetta: getIsRunningInRosetta(),
+      currentHoliday: getCurrentHoliday()
     });
   });
 

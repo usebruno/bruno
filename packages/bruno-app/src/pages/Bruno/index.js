@@ -8,8 +8,9 @@ import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
 // import ErrorCapture from 'components/ErrorCapture';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
+import { setCurrentHoliday } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
@@ -53,6 +54,7 @@ require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
 
 export default function Main() {
+  const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const isDragging = useSelector((state) => state.app.isDragging);
@@ -82,6 +84,9 @@ export default function Main() {
         mainSectionRef.current.setAttribute('data-app-state', 'loaded');
       }
       setShowRosettaBanner(init.isRunningInRosetta);
+      if (init.currentHoliday) {
+        dispatch(setCurrentHoliday(init.currentHoliday));
+      }
     });
 
     return () => {
