@@ -32,6 +32,11 @@ const WorkspaceOverview = ({ workspace }) => {
   }, [workspace?.collections, collections]);
 
   const handleCreateCollection = async () => {
+    if (!workspace?.pathname) {
+      toast.error('Workspace path not found');
+      return;
+    }
+
     try {
       const { ipcRenderer } = window;
       await ipcRenderer.invoke('renderer:ensure-collections-folder', workspace.pathname);
