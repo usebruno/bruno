@@ -18,7 +18,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
   const { showWarning, warningMessage } = isSensitive(basicAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
   };

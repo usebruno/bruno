@@ -1,4 +1,4 @@
-const { default: postmanTranslation } = require("../../../../src/postman/postman-translations");
+const { default: postmanTranslation } = require('../../../../src/postman/postman-translations');
 
 describe('postmanTranslations - request commands', () => {
   test('should handle request commands', () => {
@@ -42,4 +42,4 @@ describe('postmanTranslations - request commands', () => {
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
-}); 
+});

@@ -9,13 +9,7 @@ import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-
-
-
-
 const NTLMAuth = ({ collection }) => {
-
-
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -24,7 +18,6 @@ const NTLMAuth = ({ collection }) => {
   const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
-
 
   const handleUsernameChange = (username) => {
     dispatch(
@@ -67,10 +60,7 @@ const NTLMAuth = ({ collection }) => {
         }
       })
     );
-  };  
-
-
-
+  };
 
   return (
     <StyledWrapper className="mt-2 w-full">

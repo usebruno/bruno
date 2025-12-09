@@ -24,19 +24,19 @@ const getTestStatus = (results) => {
 };
 
 const allTestsPassed = (item) => {
-  return item.status !== 'error' &&
-    item.testStatus === 'pass' &&
-    item.assertionStatus === 'pass' &&
-    item.preRequestTestStatus === 'pass' &&
-    item.postResponseTestStatus === 'pass';
+  return item.status !== 'error'
+    && item.testStatus === 'pass'
+    && item.assertionStatus === 'pass'
+    && item.preRequestTestStatus === 'pass'
+    && item.postResponseTestStatus === 'pass';
 };
 
 const anyTestFailed = (item) => {
-  return item.status === 'error' ||
-    item.testStatus === 'fail' ||
-    item.assertionStatus === 'fail' ||
-    item.preRequestTestStatus === 'fail' ||
-    item.postResponseTestStatus === 'fail';
+  return item.status === 'error'
+    || item.testStatus === 'fail'
+    || item.assertionStatus === 'fail'
+    || item.preRequestTestStatus === 'fail'
+    || item.postResponseTestStatus === 'fail';
 };
 
 // === Centralized filters definition ===
@@ -123,7 +123,7 @@ export default function RunnerResults({ collection }) {
         filename: info.filename,
         pathname: info.pathname,
         displayName: getDisplayName(collection.pathname, info.pathname, info.name),
-        tags: [...(info.request?.tags || [])].sort(),
+        tags: [...(info.request?.tags || [])].sort()
       };
       if (newItem.status !== 'error' && newItem.status !== 'skipped' && newItem.status !== 'running') {
         newItem.testStatus = getTestStatus(newItem.testResults);
@@ -193,7 +193,7 @@ export default function RunnerResults({ collection }) {
   }, [collection.runnerConfiguration, configureMode, delay]);
 
   const ensureCollectionIsMounted = () => {
-    if(collection.mountStatus === 'mounted'){
+    if (collection.mountStatus === 'mounted') {
       return;
     }
     dispatch(mountCollection({
@@ -252,7 +252,7 @@ export default function RunnerResults({ collection }) {
   };
 
   useEffect(() => {
-    if(tagsEnabled) {
+    if (tagsEnabled) {
       setConfigureMode(false);
     }
   }, [tagsEnabled]);
@@ -283,7 +283,7 @@ export default function RunnerResults({ collection }) {
                 </span>
               )}
             </div>
-            {isCollectionLoading ? <div className='my-1 danger'>Requests in this collection are still loading.</div> : null}
+            {isCollectionLoading ? <div className="my-1 danger">Requests in this collection are still loading.</div> : null}
             <div className="mt-6">
               <label>Delay (in ms)</label>
               <input
@@ -299,7 +299,7 @@ export default function RunnerResults({ collection }) {
             </div>
 
             {/* Tags for the collection run */}
-            <RunnerTags collectionUid={collection.uid} className='mb-6' />
+            <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
             {/* Configure requests option */}
             <div className="flex flex-col border-b pb-6 mb-6 border-gray-200 dark:border-gray-700">
@@ -316,7 +316,7 @@ export default function RunnerResults({ collection }) {
               </div>
             </div>
 
-            <div className='flex flex-row gap-2'>
+            <div className="flex flex-row gap-2">
               <button
                 type="submit"
                 className="submit btn btn-sm btn-secondary"
@@ -325,8 +325,7 @@ export default function RunnerResults({ collection }) {
               >
                 {configureMode && selectedRequestItems.length > 0
                   ? `Run ${selectedRequestItems.length} Selected Request${selectedRequestItems.length > 1 ? 's' : ''}`
-                  : "Run Collection"
-                }
+                  : 'Run Collection'}
               </button>
 
               <button className="submit btn btn-sm btn-close" onClick={resetRunner}>
@@ -405,7 +404,7 @@ export default function RunnerResults({ collection }) {
           {tagsEnabled && areTagsAdded && (
             <div className="pb-2 text-xs flex flex-row gap-1">
               Tags:
-              <div className='flex flex-row items-center gap-x-2'>
+              <div className="flex flex-row items-center gap-x-2">
                 <div className="text-green-500">
                   {tags.include.join(', ')}
                 </div>
@@ -415,10 +414,12 @@ export default function RunnerResults({ collection }) {
               </div>
             </div>
           )}
-          {runnerInfo?.statusText ?
-            <div className="pb-2 font-medium danger">
-              {runnerInfo?.statusText}
-            </div>
+          {runnerInfo?.statusText
+            ? (
+                <div className="pb-2 font-medium danger">
+                  {runnerInfo?.statusText}
+                </div>
+              )
             : null}
 
           {/* Items list */}
@@ -429,14 +430,14 @@ export default function RunnerResults({ collection }) {
                   <div className="item-path mt-2">
                     <div className="flex items-center">
                       <span>
-                        {allTestsPassed(item) ?
-                          <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
+                        {allTestsPassed(item)
+                          ? <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                           : null}
-                        {item.status === 'skipped' ?
-                          <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
+                        {item.status === 'skipped'
+                          ? <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
                           : null}
-                        {anyTestFailed(item) ?
-                          <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
+                        {anyTestFailed(item)
+                          ? <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                           : null}
                       </span>
                       <span
@@ -460,7 +461,7 @@ export default function RunnerResults({ collection }) {
                     </div>
                     {tagsEnabled && areTagsAdded && item?.tags?.length > 0 && (
                       <div className="pl-7 text-xs text-gray-500">
-                        Tags: {item.tags.filter(t => tags.include.includes(t)).join(', ')}
+                        Tags: {item.tags.filter((t) => tags.include.includes(t)).join(', ')}
                       </div>
                     )}
                     {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
@@ -468,63 +469,63 @@ export default function RunnerResults({ collection }) {
                     <ul className="pl-8">
                       {item.preRequestTestResults
                         ? filterTestResults(item.preRequestTestResults).map((result) => (
-                          <li key={result.uid}>
-                            {result.status === 'pass' ? (
-                              <span className="test-success flex items-center">
-                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
-                                {result.description}
-                              </span>
-                            ) : (
-                              <>
-                                <span className="test-failure flex items-center">
-                                  <IconX size={18} strokeWidth={2} className="mr-2" />
+                            <li key={result.uid}>
+                              {result.status === 'pass' ? (
+                                <span className="test-success flex items-center">
+                                  <IconCheck size={18} strokeWidth={2} className="mr-2" />
                                   {result.description}
                                 </span>
-                                <span className="error-message pl-8 text-xs">{result.error}</span>
-                              </>
-                            )}
-                          </li>
-                        ))
+                              ) : (
+                                <>
+                                  <span className="test-failure flex items-center">
+                                    <IconX size={18} strokeWidth={2} className="mr-2" />
+                                    {result.description}
+                                  </span>
+                                  <span className="error-message pl-8 text-xs">{result.error}</span>
+                                </>
+                              )}
+                            </li>
+                          ))
                         : null}
                       {item.postResponseTestResults
                         ? filterTestResults(item.postResponseTestResults).map((result) => (
-                          <li key={result.uid}>
-                            {result.status === 'pass' ? (
-                              <span className="test-success flex items-center">
-                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
-                                {result.description}
-                              </span>
-                            ) : (
-                              <>
-                                <span className="test-failure flex items-center">
-                                  <IconX size={18} strokeWidth={2} className="mr-2" />
+                            <li key={result.uid}>
+                              {result.status === 'pass' ? (
+                                <span className="test-success flex items-center">
+                                  <IconCheck size={18} strokeWidth={2} className="mr-2" />
                                   {result.description}
                                 </span>
-                                <span className="error-message pl-8 text-xs">{result.error}</span>
-                              </>
-                            )}
-                          </li>
-                        ))
+                              ) : (
+                                <>
+                                  <span className="test-failure flex items-center">
+                                    <IconX size={18} strokeWidth={2} className="mr-2" />
+                                    {result.description}
+                                  </span>
+                                  <span className="error-message pl-8 text-xs">{result.error}</span>
+                                </>
+                              )}
+                            </li>
+                          ))
                         : null}
                       {item.testResults
                         ? filterTestResults(item.testResults).map((result) => (
-                          <li key={result.uid}>
-                            {result.status === 'pass' ? (
-                              <span className="test-success flex items-center">
-                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
-                                {result.description}
-                              </span>
-                            ) : (
-                              <>
-                                <span className="test-failure flex items-center">
-                                  <IconX size={18} strokeWidth={2} className="mr-2" />
+                            <li key={result.uid}>
+                              {result.status === 'pass' ? (
+                                <span className="test-success flex items-center">
+                                  <IconCheck size={18} strokeWidth={2} className="mr-2" />
                                   {result.description}
                                 </span>
-                                <span className="error-message pl-8 text-xs">{result.error}</span>
-                              </>
-                            )}
-                          </li>
-                        ))
+                              ) : (
+                                <>
+                                  <span className="test-failure flex items-center">
+                                    <IconX size={18} strokeWidth={2} className="mr-2" />
+                                    {result.description}
+                                  </span>
+                                  <span className="error-message pl-8 text-xs">{result.error}</span>
+                                </>
+                              )}
+                            </li>
+                          ))
                         : null}
                       {filterTestResults(item.assertionResults).map((result) => (
                         <li key={result.uid}>

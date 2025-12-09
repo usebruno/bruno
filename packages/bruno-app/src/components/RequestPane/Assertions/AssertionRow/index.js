@@ -160,8 +160,7 @@ const AssertionRow = ({
               },
               assertion,
               'value'
-            )
-          }
+            )}
         />
       </td>
       <td>
@@ -179,9 +178,8 @@ const AssertionRow = ({
                 },
                 assertion,
                 'value'
-              )
-              }
-            }
+              );
+            }}
             onRun={handleRun}
             collection={collection}
             item={item}

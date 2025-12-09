@@ -19,4 +19,4 @@ export interface WorkerTask {
 
 export interface Lane {
   maxSize: number;
-} 
+}

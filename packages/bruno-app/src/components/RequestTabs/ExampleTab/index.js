@@ -8,8 +8,7 @@ import ExampleIcon from 'components/Icons/ExampleIcon';
 import ConfirmRequestClose from '../RequestTab/ConfirmRequestClose';
 import RequestTabNotFound from '../RequestTab/RequestTabNotFound';
 import StyledWrapper from '../RequestTab/StyledWrapper';
-import CloseTabIcon from '../RequestTab/CloseTabIcon';
-import DraftTabIcon from '../RequestTab/DraftTabIcon';
+import GradientCloseButton from '../RequestTab/GradientCloseButton';
 
 const ExampleTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
@@ -59,7 +58,7 @@ const ExampleTab = ({ tab, collection }) => {
   if (!item || !example) {
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container px-1"
+        className="flex items-center justify-between tab-container px-3"
         onMouseUp={(e) => {
           if (e.button === 1) {
             e.preventDefault();
@@ -75,7 +74,7 @@ const ExampleTab = ({ tab, collection }) => {
   }
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-1">
+    <StyledWrapper className="flex items-center justify-between tab-container px-3">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
@@ -116,13 +115,13 @@ const ExampleTab = ({ tab, collection }) => {
           }
         }}
       >
-        <ExampleIcon size={16} color="currentColor" className="mr-2 text-gray-500 flex-shrink-0" />
+        <ExampleIcon size={14} color="currentColor" className="mr-1.5 text-gray-500 flex-shrink-0" />
         <span className="tab-name" title={example.name}>
           {example.name}
         </span>
       </div>
-      <div
-        className="flex px-2 close-icon-container"
+      <GradientCloseButton
+        hasChanges={hasChanges}
         onClick={(e) => {
           if (!hasChanges) {
             return handleCloseClick(e);
@@ -132,13 +131,7 @@ const ExampleTab = ({ tab, collection }) => {
           e.preventDefault();
           setShowConfirmClose(true);
         }}
-      >
-        {!hasChanges ? (
-          <CloseTabIcon />
-        ) : (
-          <DraftTabIcon />
-        )}
-      </div>
+      />
     </StyledWrapper>
   );
 };

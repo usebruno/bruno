@@ -28,18 +28,6 @@ const Wrapper = styled.div`
         top: -0.625rem;
       }
     }
-
-    .collection-filter {
-      input {
-        border: ${(props) => props.theme.sidebar.search.border};
-        border-radius: 2px;
-        background-color: ${(props) => props.theme.sidebar.search.bg};
-
-        &:focus {
-          outline: none;
-        }
-      }
-    }
   }
 
   div.sidebar-drag-handle {
@@ -64,6 +52,15 @@ const Wrapper = styled.div`
       height: 100%;
       border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.activeBorder};
     }
+  }
+
+  .second-tab-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: ${(props) => props.theme.sidebar.muted};
   }
 `;
 

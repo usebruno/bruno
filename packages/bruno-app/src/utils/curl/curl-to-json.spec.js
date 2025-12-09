@@ -27,7 +27,7 @@ describe('curlToJson', () => {
       raw_url: 'https://www.usebruno.com',
       method: 'get',
       headers: {
-        Accept: 'application/json, text/plain, */*',
+        'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8'
       }
     });
@@ -50,11 +50,11 @@ describe('curlToJson', () => {
       raw_url: 'https://www.usebruno.com',
       method: 'post',
       headers: {
-        Accept: 'application/json, text/plain, */*',
+        'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
         'Content-Type': 'application/json;charset=utf-8',
-        Origin: 'https://www.usebruno.com',
-        Referer: 'https://www.usebruno.com/'
+        'Origin': 'https://www.usebruno.com',
+        'Referer': 'https://www.usebruno.com/'
       },
       data: '{"email":"test@usebruno.com","password":"test"}'
     });
@@ -71,7 +71,7 @@ describe('curlToJson', () => {
       raw_url: 'https://www.usebruno.com',
       method: 'get',
       headers: {
-        cookie: "val_1=''; val_2=\\^373:0\\^373:0; val_3=hello"
+        cookie: 'val_1=\'\'; val_2=\\^373:0\\^373:0; val_3=hello'
       }
     });
   });
@@ -104,11 +104,11 @@ describe('curlToJson', () => {
       raw_url: 'https://www.usebruno.com',
       method: 'post',
       headers: {
-        Accept: 'application/json, text/plain, */*',
+        'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
         'Content-Type': 'application/json;charset=utf-8',
-        Origin: 'https://www.usebruno.com',
-        Referer: 'https://www.usebruno.com/'
+        'Origin': 'https://www.usebruno.com',
+        'Referer': 'https://www.usebruno.com/'
       },
       isDataBinary: true,
       data: [

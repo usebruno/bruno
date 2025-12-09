@@ -4,27 +4,27 @@ import path from 'node:path';
 
 const sizeInMB = (size: number): number => {
   return size / (1024 * 1024);
-}
+};
 
 const getSize = (data: any): number => {
   return sizeInMB(typeof data === 'string' ? Buffer.byteLength(data, 'utf8') : Buffer.byteLength(JSON.stringify(data), 'utf8'));
-}
+};
 
 /**
  * Lanes are used to determine which worker queue to use based on the size of the data.
- * 
+ *
  * The first lane is for smaller files (<0.1MB), the second lane is for larger files (>=0.1MB).
  * This helps with parsing performance.
  */
 const LANES: Lane[] = [{
   maxSize: 0.005
-},{
+}, {
   maxSize: 0.1
-},{
+}, {
   maxSize: 1
-},{
+}, {
   maxSize: 10
-},{
+}, {
   maxSize: 100
 }];
 
@@ -38,7 +38,7 @@ class BruParserWorker {
   private workerQueues: WorkerQueueWithSize[];
 
   constructor() {
-    this.workerQueues = LANES?.map(lane => ({
+    this.workerQueues = LANES?.map((lane) => ({
       maxSize: lane?.maxSize,
       workerQueue: new WorkerQueue()
     }));
@@ -47,7 +47,7 @@ class BruParserWorker {
   private getWorkerQueue(size: number): WorkerQueue {
     // Find the first queue that can handle the given size
     // or fallback to the last queue for largest files
-    const queueForSize = this.workerQueues.find((queue) => 
+    const queueForSize = this.workerQueues.find((queue) =>
       queue.maxSize >= size
     );
 
@@ -58,12 +58,12 @@ class BruParserWorker {
     const size = getSize(data);
     const workerQueue = this.getWorkerQueue(size);
     const workerScriptPath = path.join(__dirname, './workers/worker-script.js');
-    
+
     return workerQueue.enqueue({
       data: { data, format },
       priority: size,
       scriptPath: workerScriptPath,
-      taskType,
+      taskType
     });
   }
 
@@ -76,11 +76,11 @@ class BruParserWorker {
   }
 
   async cleanup(): Promise<void> {
-    const cleanupPromises = this.workerQueues.map(({ workerQueue }) => 
+    const cleanupPromises = this.workerQueues.map(({ workerQueue }) =>
       workerQueue.cleanup()
     );
     await Promise.allSettled(cleanupPromises);
   }
 }
 
-export default BruParserWorker; 
+export default BruParserWorker;

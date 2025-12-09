@@ -38,11 +38,11 @@ export interface AuthApiKey {
   placement?: 'header' | 'queryparams' | null;
 }
 
-export type OAuthGrantType =
-  | 'client_credentials'
-  | 'password'
-  | 'authorization_code'
-  | 'implicit';
+export type OAuthGrantType
+  = | 'client_credentials'
+    | 'password'
+    | 'authorization_code'
+    | 'implicit';
 
 export interface OAuthAdditionalParameter {
   name?: string | null;
@@ -80,17 +80,17 @@ export interface OAuth2 {
   additionalParameters?: OAuthAdditionalParameters | null;
 }
 
-export type AuthMode =
-  | 'inherit'
-  | 'none'
-  | 'awsv4'
-  | 'basic'
-  | 'bearer'
-  | 'digest'
-  | 'ntlm'
-  | 'oauth2'
-  | 'wsse'
-  | 'apikey';
+export type AuthMode
+  = | 'inherit'
+    | 'none'
+    | 'awsv4'
+    | 'basic'
+    | 'bearer'
+    | 'digest'
+    | 'ntlm'
+    | 'oauth2'
+    | 'wsse'
+    | 'apikey';
 
 export interface Auth {
   mode: AuthMode;
@@ -103,4 +103,3 @@ export interface Auth {
   wsse?: AuthWsse | null;
   apikey?: AuthApiKey | null;
 }
-

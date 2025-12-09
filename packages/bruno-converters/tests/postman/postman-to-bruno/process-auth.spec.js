@@ -1,5 +1,4 @@
-const { processAuth } = require("../../../src/postman/postman-to-bruno");
-
+const { processAuth } = require('../../../src/postman/postman-to-bruno');
 
 describe('processAuth', () => {
   let requestObject;
@@ -466,7 +465,7 @@ describe('processAuth', () => {
 
   it('should handle auth object with null type', () => {
     const auth = {
-      type: null,
+      type: null
     };
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('none');
@@ -498,7 +497,7 @@ describe('processAuth', () => {
 
   it('should handle auth object with boolean type value', () => {
     const auth = {
-      type: "unknown_auth_type",
+      type: 'unknown_auth_type',
       unknown_auth_type: {
         accessKey: 'test-access-key',
         secretKey: 'test-secret-key'

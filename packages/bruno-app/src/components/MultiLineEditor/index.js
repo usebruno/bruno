@@ -25,6 +25,7 @@ class MultiLineEditor extends Component {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
   }
+
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
@@ -67,15 +68,14 @@ class MultiLineEditor extends Component {
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
         // Tabbing disabled to make tabindex work
-        Tab: false,
+        'Tab': false,
         'Shift-Tab': false
       }
     });
 
-
     const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
-    
+
     // Setup AutoComplete Helper
     const autoCompleteOptions = {
       showHintsFor: ['variables'],
@@ -89,7 +89,7 @@ class MultiLineEditor extends Component {
     );
 
     setupLinkAware(this.editor);
-    
+
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);

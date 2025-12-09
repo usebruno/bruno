@@ -2,7 +2,7 @@ import find from 'lodash/find';
 import { updateRequestPaneTabHeight, updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch, useSelector } from 'react-redux';
 
-const MIN_TOP_PANE_HEIGHT = 150;
+const MIN_TOP_PANE_HEIGHT = 380;
 
 export function useTabPaneBoundaries(activeTabUid) {
   const DEFAULT_PANE_WIDTH_DIVISOR = 2.2;
@@ -12,7 +12,7 @@ export function useTabPaneBoundaries(activeTabUid) {
   const screenWidth = useSelector((state) => state.app.screenWidth);
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const left = focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / DEFAULT_PANE_WIDTH_DIVISOR;
-  const top = focusedTab?.requestPaneHeight;
+  const top = focusedTab?.requestPaneHeight || MIN_TOP_PANE_HEIGHT;
   const dispatch = useDispatch();
 
   return {

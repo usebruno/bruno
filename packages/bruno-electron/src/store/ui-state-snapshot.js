@@ -19,7 +19,7 @@ class UiStateSnapshotStore {
   getCollectionByPathname({ pathname }) {
     let collections = this.getCollections();
 
-    let collection = collections.find(c => c?.pathname === pathname);
+    let collection = collections.find((c) => c?.pathname === pathname);
     if (!collection) {
       collection = { pathname };
       collections.push(collection);
@@ -32,7 +32,7 @@ class UiStateSnapshotStore {
   setCollectionByPathname({ collection }) {
     let collections = this.getCollections();
 
-    collections = collections.filter(c => c?.pathname !== collection.pathname);
+    collections = collections.filter((c) => c?.pathname !== collection.pathname);
     collections.push({ ...collection });
     this.saveCollections(collections);
 
@@ -46,7 +46,7 @@ class UiStateSnapshotStore {
   }
 
   update({ type, data }) {
-    switch(type) {
+    switch (type) {
       case 'COLLECTION_ENVIRONMENT':
         const { collectionPath, environmentName } = data;
         this.updateCollectionEnvironment({ collectionPath, environmentName });

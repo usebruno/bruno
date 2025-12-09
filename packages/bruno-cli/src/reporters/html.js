@@ -17,7 +17,7 @@ const makeHtmlOutput = async (results, outputPath, runCompletionTime, environmen
     runnerResults = results;
   }
 
-  const htmlString = generateHtmlReport({ 
+  const htmlString = generateHtmlReport({
     runnerResults: runnerResults,
     version: `usebruno v${CLI_VERSION}`,
     environment: environment,

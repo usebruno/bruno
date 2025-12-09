@@ -628,7 +628,6 @@ if (!SERVER_RENDERED) {
     let token = cm.getTokenAt(pos, true);
 
     if (token) {
-
       const line = cm.getLine(pos.line);
 
       // Find the opening {{ before the cursor
@@ -694,10 +693,10 @@ if (!SERVER_RENDERED) {
 
     const popupBox = popup.getBoundingClientRect();
     const popupStyle = popup.currentStyle || window.getComputedStyle(popup);
-    const popupWidth =
-      popupBox.right - popupBox.left + parseFloat(popupStyle.marginLeft) + parseFloat(popupStyle.marginRight);
-    const popupHeight =
-      popupBox.bottom - popupBox.top + parseFloat(popupStyle.marginTop) + parseFloat(popupStyle.marginBottom);
+    const popupWidth
+      = popupBox.right - popupBox.left + parseFloat(popupStyle.marginLeft) + parseFloat(popupStyle.marginRight);
+    const popupHeight
+      = popupBox.bottom - popupBox.top + parseFloat(popupStyle.marginTop) + parseFloat(popupStyle.marginBottom);
 
     const GAP_REM = 0.5;
     const EDGE_MARGIN_REM = 0.9375;

@@ -127,8 +127,7 @@ const VarsTable = ({ collection, vars, varType }) => {
                             },
                             _var,
                             'value'
-                          )
-                        }
+                          )}
                         collection={collection}
                       />
                     </td>

@@ -18,11 +18,15 @@ test.describe('Code Generation URL Encoding', () => {
     page,
     createTmpDir
   }) => {
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
+    // Use plus icon button in new workspace UI
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('unencoded-test-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('unencoded-test-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    const locationInput = page.getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(await createTmpDir('unencoded-test-collection'));
+    }
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'unencoded-test-collection' })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'unencoded-test-collection' }).click();
@@ -60,11 +64,15 @@ test.describe('Code Generation URL Encoding', () => {
     page,
     createTmpDir
   }) => {
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
+    // Use plus icon button in new workspace UI
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('encoded-test-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('encoded-test-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    const locationInput = page.getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(await createTmpDir('encoded-test-collection'));
+    }
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'encoded-test-collection' })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'encoded-test-collection' }).click();

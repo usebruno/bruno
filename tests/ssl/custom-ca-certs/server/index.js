@@ -6,11 +6,11 @@ const https = require('node:https');
 const { killProcessOnPort } = require('./helpers/platform');
 
 function createServer(certsDir, port = 8090) {
-  const serverOptions =  {
+  const serverOptions = {
     key: fs.readFileSync(path.join(certsDir, 'localhost-key.pem')),
     cert: fs.readFileSync(path.join(certsDir, 'localhost-cert.pem')),
     ca: fs.readFileSync(path.join(certsDir, 'ca-cert.pem'))
-  }
+  };
 
   const server = https.createServer(serverOptions, (req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=UTF-8');
@@ -31,9 +31,9 @@ function createServer(certsDir, port = 8090) {
 function shutdownServer(server, cleanup) {
   const shutdown = (signal) => {
     console.log(`🛑 Received ${signal}, shutting down`);
-    
+
     if (cleanup) cleanup();
-    
+
     if (server) {
       server.close(() => process.exit(0));
     } else {
@@ -56,11 +56,10 @@ async function startServer() {
 
     console.log(`🌐 Creating server on port ${port}`);
     const server = await createServer(certsDir, port);
-    
+
     shutdownServer(server, () => {
       console.log('✨ Server cleanup completed');
     });
-
   } catch (error) {
     console.error('❌ Server startup failed:', error.message);
     process.exit(1);

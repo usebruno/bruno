@@ -63,7 +63,7 @@ const lightTheme = {
       warning: '#f57c00',
       muted: '#838383',
       purple: '#8e44ad',
-      yellow: '#d97706'
+      yellow: '#cf8730'
     },
     bg: {
       danger: '#dc3545'
@@ -118,7 +118,7 @@ const lightTheme = {
       item: {
         bg: colors.GRAY_2,
         hoverBg: colors.GRAY_2,
-        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
+        focusBorder: colors.GRAY_4,
         indentBorder: `solid 1px ${colors.GRAY_3}`,
         active: {
           indentBorder: `solid 1px ${colors.GRAY_3}`
@@ -150,6 +150,39 @@ const lightTheme = {
     primaryText: '#343434',
     secondaryText: '#6B7280',
     headingText: '#343434'
+  },
+
+  listItem: {
+    hoverBg: '#e7e7e7',
+    activeBg: '#dcdcdc'
+  },
+
+  workspace: {
+    accent: '#D97706',
+    border: '#e7e7e7',
+    borderMuted: '#f3f3f3',
+    card: {
+      bg: '#fff'
+    },
+    button: {
+      bg: '#f3f3f3'
+    },
+    collection: {
+      header: {
+        indentBorder: 'solid 1px #efefef'
+      },
+      item: {
+        indentBorder: 'solid 1px #f9f9f9'
+      }
+    },
+    environments: {
+      bg: '#fbfbfb',
+      indentBorder: 'solid 1px #efefef',
+      activeBg: '#eeeeee',
+      search: {
+        bg: '#fff'
+      }
+    }
   },
 
   request: {
@@ -298,9 +331,10 @@ const lightTheme = {
   },
 
   tabs: {
+    marginRight: '1.2rem',
     active: {
       color: '#343434',
-      border: '#D97706'
+      border: '#cf8730'
     },
     secondary: {
       active: {
@@ -316,7 +350,7 @@ const lightTheme = {
 
   requestTabs: {
     color: 'rgb(52, 52, 52)',
-    bg: '#f7f7f7',
+    bg: '#f6f6f6',
     bottomBorder: '#efefef',
     icon: {
       color: '#9f9f9f',

@@ -27,6 +27,7 @@ export const HotkeysProvider = (props) => {
   const collections = useSelector((state) => state.collections.collections);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
+  const isGlobalEnvironmentSettingsModalOpen = useSelector((state) => state.app.isGlobalEnvironmentSettingsModalOpen);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false);
@@ -43,7 +44,7 @@ export const HotkeysProvider = (props) => {
   // save hotkey
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('save')], (e) => {
-      if (isEnvironmentSettingsModalOpen) {
+      if (isEnvironmentSettingsModalOpen || isGlobalEnvironmentSettingsModalOpen) {
         console.log('todo: save environment settings');
       } else {
         const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -70,7 +71,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('save')]);
     };
-  }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen]);
+  }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen, isGlobalEnvironmentSettingsModalOpen]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {
@@ -82,19 +83,18 @@ export const HotkeysProvider = (props) => {
         if (collection) {
           const item = findItemInCollection(collection, activeTab.uid);
           if (item) {
-
-            if(item.type === 'grpc-request') {
+            if (item.type === 'grpc-request') {
               const request = item.draft ? item.draft.request : item.request;
-              if(!request.url) {
+              if (!request.url) {
                 toast.error('Please enter a valid gRPC server URL');
                 return;
               }
-              if(!request.method) {
+              if (!request.method) {
                 toast.error('Please select a gRPC method');
                 return;
               }
             }
-            
+
             dispatch(sendRequest(item, collection.uid)).catch((err) =>
               toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
                 duration: 5000

@@ -122,9 +122,9 @@ ${indentString(`password: ${auth.digest.password}`)}
 
 `;
   }
- 
-if (auth && auth.ntlm) {
-  bru += `auth:ntlm {
+
+  if (auth && auth.ntlm) {
+    bru += `auth:ntlm {
 ${indentString(`username: ${auth.ntlm.username}`)}
 ${indentString(`password: ${auth.ntlm.password}`)}
 ${indentString(`domain: ${auth.ntlm.domain}`)}
@@ -237,105 +237,105 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
 
     if (auth?.oauth2?.additionalParameters) {
       const { authorization: authorizationParams, token: tokenParams, refresh: refreshParams } = auth?.oauth2?.additionalParameters;
-      const authorizationHeaders = authorizationParams?.filter(p => p?.sendIn == 'headers');
+      const authorizationHeaders = authorizationParams?.filter((p) => p?.sendIn == 'headers');
       if (authorizationHeaders?.length) {
         bru += `auth:oauth2:additional_params:auth_req:headers {
 ${indentString(
   authorizationHeaders
-    .filter(item => item?.name?.length)
+    .filter((item) => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
-  )}
+)}
 }
 
 `;
       }
-      const authorizationQueryParams = authorizationParams?.filter(p => p?.sendIn == 'queryparams');
+      const authorizationQueryParams = authorizationParams?.filter((p) => p?.sendIn == 'queryparams');
       if (authorizationQueryParams?.length) {
         bru += `auth:oauth2:additional_params:auth_req:queryparams {
 ${indentString(
   authorizationQueryParams
-    .filter(item => item?.name?.length)
+    .filter((item) => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
-  )}
+)}
 }
 
 `;
       }
-      const tokenHeaders = tokenParams?.filter(p => p?.sendIn == 'headers');
+      const tokenHeaders = tokenParams?.filter((p) => p?.sendIn == 'headers');
       if (tokenHeaders?.length) {
         bru += `auth:oauth2:additional_params:access_token_req:headers {
 ${indentString(
   tokenHeaders
-    .filter(item => item?.name?.length)
+    .filter((item) => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
-  )}
+)}
 }
 
 `;
       }
-      const tokenQueryParams = tokenParams?.filter(p => p?.sendIn == 'queryparams');
+      const tokenQueryParams = tokenParams?.filter((p) => p?.sendIn == 'queryparams');
       if (tokenQueryParams?.length) {
         bru += `auth:oauth2:additional_params:access_token_req:queryparams {
 ${indentString(
   tokenQueryParams
-    .filter(item => item?.name?.length)
+    .filter((item) => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n'))}
 }
 
 `;
       }
-      const tokenBodyValues = tokenParams?.filter(p => p?.sendIn == 'body');
+      const tokenBodyValues = tokenParams?.filter((p) => p?.sendIn == 'body');
       if (tokenBodyValues?.length) {
         bru += `auth:oauth2:additional_params:access_token_req:body {
 ${indentString(
   tokenBodyValues
-    .filter(item => item?.name?.length)
+    .filter((item) => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
-  )}
+)}
 }
 
 `;
       }
-      const refreshHeaders = refreshParams?.filter(p => p?.sendIn == 'headers');
+      const refreshHeaders = refreshParams?.filter((p) => p?.sendIn == 'headers');
       if (refreshHeaders?.length) {
         bru += `auth:oauth2:additional_params:refresh_token_req:headers {
 ${indentString(
   refreshHeaders
-    .filter(item => item?.name?.length)
+    .filter((item) => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
-  )}
+)}
 }
 
 `;
       }
-      const refreshQueryParams = refreshParams?.filter(p => p?.sendIn == 'queryparams');
+      const refreshQueryParams = refreshParams?.filter((p) => p?.sendIn == 'queryparams');
       if (refreshQueryParams?.length) {
         bru += `auth:oauth2:additional_params:refresh_token_req:queryparams {
 ${indentString(
   refreshQueryParams
-    .filter(item => item?.name?.length)
+    .filter((item) => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
-  )}
+)}
 }
 
 `;
       }
-      const refreshBodyValues = refreshParams?.filter(p => p?.sendIn == 'body');
+      const refreshBodyValues = refreshParams?.filter((p) => p?.sendIn == 'body');
       if (refreshBodyValues?.length) {
         bru += `auth:oauth2:additional_params:refresh_token_req:body {
 ${indentString(
   refreshBodyValues
-    .filter(item => item?.name?.length)
+    .filter((item) => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
-  )}
+)}
 }
 
 `;

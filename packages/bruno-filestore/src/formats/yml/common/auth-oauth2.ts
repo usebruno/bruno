@@ -163,7 +163,7 @@ const buildClientCredentialsFlow = (oauth: BrunoOAuth2): OAuth2ClientCredentials
 const buildResourceOwnerPasswordFlow = (oauth: BrunoOAuth2): OAuth2ResourceOwnerPasswordFlow => {
   const flow: OAuth2ResourceOwnerPasswordFlow = {
     type: 'oauth2',
-    flow: 'resource_owner_password'
+    flow: 'resource_owner_password_credentials'
   };
 
   isNonEmptyString(oauth.accessTokenUrl) && (flow.accessTokenUrl = oauth.accessTokenUrl);
@@ -394,7 +394,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
       }
       break;
 
-    case 'resource_owner_password':
+    case 'resource_owner_password_credentials':
       brunoOAuth.grantType = 'password';
       if (oauth.accessTokenUrl) brunoOAuth.accessTokenUrl = oauth.accessTokenUrl;
       if (oauth.refreshTokenUrl) brunoOAuth.refreshTokenUrl = oauth.refreshTokenUrl;

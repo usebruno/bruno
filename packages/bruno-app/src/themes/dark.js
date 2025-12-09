@@ -115,7 +115,7 @@ const darkTheme = {
       item: {
         bg: '#37373D',
         hoverBg: '#2A2D2F',
-        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
+        focusBorder: '#4e4e4e',
         indentBorder: 'solid 1px #585858',
         active: {
           indentBorder: 'solid 1px #4c4c4c'
@@ -147,6 +147,39 @@ const darkTheme = {
     primaryText: '#D4D4D4',
     secondaryText: '#9CA3AF',
     headingText: '#FFFFFF'
+  },
+
+  listItem: {
+    hoverBg: '#2A2D2F',
+    activeBg: '#3D3D3D'
+  },
+
+  workspace: {
+    accent: '#F59E0B',
+    border: '#444',
+    borderMuted: '#585858',
+    card: {
+      bg: '#2A2D2F'
+    },
+    button: {
+      bg: '#242424'
+    },
+    collection: {
+      header: {
+        indentBorder: 'solid 1px #444444'
+      },
+      item: {
+        indentBorder: 'solid 1px #313131'
+      }
+    },
+    environments: {
+      bg: '#212121',
+      indentBorder: 'solid 1px #313131',
+      activeBg: '#37373c',
+      search: {
+        bg: '#3D3D3D'
+      }
+    }
   },
 
   request: {
@@ -294,6 +327,7 @@ const darkTheme = {
   },
 
   tabs: {
+    marginRight: '1.2rem',
     active: {
       color: '#CCCCCC',
       border: '#d9a342'

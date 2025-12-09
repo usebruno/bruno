@@ -15,10 +15,14 @@ interface WebSocketRequestWithSettings extends WebSocketRequest {
 }
 
 const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoItem => {
+  const info = ocRequest.info;
+  const websocket = ocRequest.websocket;
+  const runtime = ocRequest.runtime;
+
   const brunoRequest: BrunoWebSocketRequest = {
-    url: ocRequest.url || '',
-    headers: toBrunoHttpHeaders(ocRequest.headers) || [],
-    auth: toBrunoAuth(ocRequest.auth),
+    url: websocket?.url || '',
+    headers: toBrunoHttpHeaders(websocket?.headers) || [],
+    auth: toBrunoAuth(runtime?.auth),
     body: {
       mode: 'ws',
       ws: []
@@ -37,8 +41,8 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
   };
 
   // message
-  if (ocRequest.message) {
-    const message = ocRequest.message as WebSocketMessage;
+  if (websocket?.message) {
+    const message = websocket.message as WebSocketMessage;
     if (message.data?.trim().length) {
       brunoRequest.body.ws = [{
         name: '',
@@ -49,7 +53,7 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
   }
 
   // scripts
-  const scripts = toBrunoScripts(ocRequest.scripts);
+  const scripts = toBrunoScripts(runtime?.scripts);
   if (scripts?.script && brunoRequest.script) {
     if (scripts.script.req) {
       brunoRequest.script.req = scripts.script.req;
@@ -63,7 +67,7 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
   }
 
   // variables
-  const variables = toBrunoVariables(ocRequest.variables);
+  const variables = toBrunoVariables(runtime?.variables);
   brunoRequest.vars = variables;
 
   // docs
@@ -90,9 +94,9 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'ws-request',
-    seq: ocRequest.seq || 1,
-    name: ocRequest.name || 'Untitled Request',
-    tags: ocRequest.tags || [],
+    seq: info?.seq || 1,
+    name: info?.name || 'Untitled Request',
+    tags: info?.tags || [],
     request: brunoRequest,
     settings: wsSettings as any,
     fileContent: null,

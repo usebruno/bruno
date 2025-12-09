@@ -8,4 +8,3 @@ export interface FileEntry {
 }
 
 export type FileList = FileEntry[];
-

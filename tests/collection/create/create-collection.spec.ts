@@ -8,14 +8,17 @@ test.describe('Create collection', () => {
   });
 
   test('Create collection and add a simple HTTP request', async ({ page, createTmpDir }) => {
-    // Create a new collection
-    await page.getByLabel('Create Collection').click();
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('test-collection');
     await page.getByLabel('Name').press('Tab');
-    await page.getByLabel('Location').fill(await createTmpDir('test-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-    await page.getByText('test-collection').click();
+    const locationInput = page.locator('.bruno-modal').getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(await createTmpDir('test-collection'));
+    }
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'test-collection' }).click();
 
     // Select safe mode
     await page.getByLabel('Safe Mode').check();

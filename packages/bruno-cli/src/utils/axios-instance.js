@@ -33,17 +33,16 @@ const createRedirectConfig = (error, redirectUrl) => {
   if (METHOD_CHANGING_REDIRECTS.includes(statusCode) && originalMethod !== 'head') {
     requestConfig.method = 'get';
     requestConfig.data = undefined;
-    
+
     // Clean up headers that are no longer relevant
     delete requestConfig.headers['content-length'];
     delete requestConfig.headers['Content-Length'];
-    delete requestConfig.headers['content-type']; 
+    delete requestConfig.headers['content-type'];
     delete requestConfig.headers['Content-Type'];
   } else {
     // For 307, 308 and other status codes: preserve method and body
-    if (requestConfig.data && typeof requestConfig.data === 'object' && 
-        requestConfig.data.constructor && requestConfig.data.constructor.name === 'FormData') {
-      
+    if (requestConfig.data && typeof requestConfig.data === 'object'
+      && requestConfig.data.constructor && requestConfig.data.constructor.name === 'FormData') {
       const formData = requestConfig.data;
       if (formData._released || (formData._streams && formData._streams.length === 0)) {
         if (error.config._originalMultipartData && error.config.collectionPath) {
@@ -51,7 +50,7 @@ const createRedirectConfig = (error, redirectUrl) => {
           requestConfig.data = recreatedForm;
           const formHeaders = recreatedForm.getHeaders();
           Object.assign(requestConfig.headers, formHeaders);
-          
+
           // preserve the original data for potential future redirects
           requestConfig._originalMultipartData = error.config._originalMultipartData;
           requestConfig.collectionPath = error.config.collectionPath;
@@ -80,7 +79,7 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
     proxy: false,
     maxRedirects: 0,
     headers: {
-      "User-Agent": `bruno-runtime/${CLI_VERSION}`
+      'User-Agent': `bruno-runtime/${CLI_VERSION}`
     }
   });
 
@@ -133,7 +132,7 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
             redirectUrl = URL.resolve(error.config.url, locationHeader);
           }
 
-          if (!disableCookies){
+          if (!disableCookies) {
             saveCookies(error.config.url, error.response.headers);
           }
 

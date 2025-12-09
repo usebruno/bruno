@@ -125,7 +125,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         );
 
         if (!isEmpty(validationErrors)) {
-          toast.error(Object.values(validationErrors).join("\n"));
+          toast.error(Object.values(validationErrors).join('\n'));
           return;
         }
 
@@ -208,7 +208,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       onClose={onClose}
       handleCancel={onClose}
       handleConfirm={onSubmit}
-      customHeader={
+      customHeader={(
         <div className="flex items-center justify-between w-full">
           <h2 className="font-bold">{title}</h2>
           <div className="ml-auto flex items-center ">
@@ -223,7 +223,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             <label className="font-normal mr-4 normal-case">Edit Raw</label>
           </div>
         </div>
-      }
+      )}
     >
       <form onSubmit={(e) => e.preventDefault()} className="px-2">
         {isRawMode ? (

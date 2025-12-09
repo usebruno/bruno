@@ -8,15 +8,17 @@ const Network = ({ logs }) => {
           }
           const nextLog = logs[index + 1];
           const isSameLogType = nextLog?.type === currentLog?.type;
-          return <>
-            <NetworkLogsEntry key={index} entry={currentLog} />
-              {!isSameLogType && <div className="mt-4"/>}
-            </>;
+          return (
+            <>
+              <NetworkLogsEntry key={index} entry={currentLog} />
+              {!isSameLogType && <div className="mt-4" />}
+            </>
+          );
         })}
       </pre>
     </div>
-  )
-}
+  );
+};
 
 const NetworkLogsEntry = ({ entry }) => {
   const { type, message } = entry;
@@ -49,6 +51,5 @@ const NetworkLogsEntry = ({ entry }) => {
     </div>
   );
 };
-
 
 export default Network;

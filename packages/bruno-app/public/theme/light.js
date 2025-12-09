@@ -1,6 +1,6 @@
 const lightTheme = {
-  brand: '#546de5',
-  text: 'rgb(52 52 52)',
+  'brand': '#546de5',
+  'text': 'rgb(52 52 52)',
   'primary-text': 'rgb(52 52 52)',
   'primary-theme': '#ffffff',
   'secondary-text': '#929292',

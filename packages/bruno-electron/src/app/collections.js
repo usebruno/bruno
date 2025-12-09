@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
-const { isDirectory, getCollectionStats } = require('../utils/filesystem');
+const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
@@ -132,7 +132,21 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
   }
 };
 
+const openCollectionsByPathname = async (win, watcher, collectionPaths, options = {}) => {
+  for (const collectionPath of collectionPaths) {
+    const resolvedPath = path.isAbsolute(collectionPath)
+      ? collectionPath
+      : normalizeAndResolvePath(collectionPath);
+    if (isDirectory(resolvedPath)) {
+      await openCollection(win, watcher, resolvedPath, options);
+    } else {
+      console.error(`Cannot open unknown folder: "${resolvedPath}"`);
+    }
+  }
+};
+
 module.exports = {
   openCollection,
-  openCollectionDialog
+  openCollectionDialog,
+  openCollectionsByPathname
 };

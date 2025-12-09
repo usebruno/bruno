@@ -22,7 +22,7 @@
   "devDependencies": {
     "@babel/preset-env": "^7.22.0",
     "@babel/preset-typescript": "^7.22.0",
-    "@opencollection/types": "0.1.0",
+    "@opencollection/types": "0.2.0",
     "@usebruno/schema-types": "0.0.1",
     "@rollup/plugin-commonjs": "^23.0.2",
     "@rollup/plugin-json": "^6.1.0",

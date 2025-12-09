@@ -5,8 +5,9 @@ test.describe('Multiline Variables - Read Environment Test', () => {
     test.setTimeout(30 * 1000);
 
     // open the collection
-    await expect(page.getByTitle('multiline-variables')).toBeVisible();
-    await page.getByTitle('multiline-variables').click();
+    const collection = page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'multiline-variables' });
+    await expect(collection).toBeVisible();
+    await collection.click();
 
     // open request
     await expect(page.getByTitle('request', { exact: true })).toBeVisible();

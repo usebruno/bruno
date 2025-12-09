@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .current-environment {
-    border-radius: 0.9375rem;
+    border-radius: ${(props) => props.theme.border.radius.base};
     padding: 0.25rem 0.5rem 0.25rem 0.75rem;
     user-select: none;
     background-color: transparent;

@@ -7,7 +7,6 @@ import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
 import ResponsePane from 'components/ResponsePane';
 import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
-import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
@@ -34,6 +33,7 @@ import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
+import WorkspaceHome from 'components/WorkspaceHome';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -137,7 +137,7 @@ const RequestTabPanel = () => {
   }, [dragging]);
 
   if (!activeTabUid) {
-    return <Welcome />;
+    return <WorkspaceHome />;
   }
 
   if (!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
@@ -243,7 +243,7 @@ const RequestTabPanel = () => {
         isVerticalLayout ? 'vertical-layout' : ''
       }`}
     >
-      <div className="pt-4 pb-3 px-4">
+      <div className="pt-3 pb-3 px-4">
         {
           isGrpcRequest
             ? <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />

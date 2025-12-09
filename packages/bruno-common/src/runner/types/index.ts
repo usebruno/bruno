@@ -5,7 +5,7 @@ type T_AssertionPassResult = {
   rhsOperand: string;
   operator: string;
   status: string;
-}
+};
 
 type T_AssertionFailResult = {
   lhsExpr: string;
@@ -14,7 +14,7 @@ type T_AssertionFailResult = {
   operator: string;
   status: string;
   error: string;
-}
+};
 
 type T_AssertionResult = T_AssertionPassResult | T_AssertionFailResult;
 
@@ -40,7 +40,7 @@ type T_EmptyRequest = {
   headers?: null | undefined;
   data?: null | undefined;
   isHtml?: boolean | undefined;
-}
+};
 
 // request types
 type T_Request = {
@@ -58,7 +58,7 @@ type T_EmptyResponse = {
   data?: null | undefined;
   responseTime?: number | undefined;
   isHtml?: boolean | undefined;
-}
+};
 
 type T_SkippedResponse = {
   status?: string | null | undefined;
@@ -67,7 +67,7 @@ type T_SkippedResponse = {
   data?: null | undefined;
   responseTime?: number | undefined;
   isHtml?: boolean | undefined;
-}
+};
 
 // response types
 type T_Response = {
@@ -92,14 +92,14 @@ export type T_RunnerRequestExecutionResult = {
   preRequestTestResults?: T_TestResult[];
   postResponseTestResults?: T_TestResult[];
   runDuration: number;
-}
+};
 
 export type T_RunnerResults = {
   iterationIndex: number;
   iterationData?: any; // todo - csv/json row data
   results: T_RunnerRequestExecutionResult[];
   summary: T_RunSummary;
-}
+};
 
 // run summary type
 export type T_RunSummary = {
@@ -120,4 +120,4 @@ export type T_RunSummary = {
   totalPostResponseTests: number;
   passedPostResponseTests: number;
   failedPostResponseTests: number;
-}
+};

@@ -32,7 +32,7 @@ function parseQueryParams(query: string, { decode = false }: ExtractQueryParamsO
     const [queryString, ...hashParts] = query.split('#');
     const pairs = queryString.split('&');
 
-    const params = pairs.map(pair => {
+    const params = pairs.map((pair) => {
       const [name, ...valueParts] = pair.split('=');
 
       if (!name) {

@@ -27,7 +27,7 @@ const QueryParams = ({ item, collection }) => {
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
-  
+
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const handleAddQueryParam = () => {
@@ -213,7 +213,7 @@ const QueryParams = ({ item, collection }) => {
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
-              template is used in the URL. <br/> For example:
+              template is used in the URL. <br /> For example:
               <code className="font-mono mx-2">
                 https://example.com/v1/users/<span>:id</span>
               </code>
@@ -257,8 +257,7 @@ const QueryParams = ({ item, collection }) => {
                                 }
                               },
                               path
-                            )
-                          }
+                            )}
                           onRun={handleRun}
                           collection={collection}
                           item={item}
