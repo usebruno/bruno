@@ -120,7 +120,7 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
   return (
     <StyledWrapper ref={actionsRef} className="flex items-center gap-2">
       {showMenu ? (
-        <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-end">
+        <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon data-testid="response-actions-menu" />} placement="bottom-end">
 
           {/* Response Copy */}
           <ResponseCopy item={item}>

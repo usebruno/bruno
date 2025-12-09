@@ -678,6 +678,18 @@ const expectResponseContains = async (page: Page, texts: string[]) => {
   });
 };
 
+// Create a action to click a response action
+const clickResponseAction = async (page: Page, actionTestId: string) => {
+  const actionButton = await page.getByTestId(actionTestId);
+  if (await actionButton.isVisible()) {
+    await actionButton.click();
+  } else {
+    const menu = await page.getByTestId('response-actions-menu');
+    await menu.click();
+    await actionButton.click();
+  }
+};
+
 export {
   closeAllCollections,
   openCollectionAndAcceptSandbox,
@@ -704,7 +716,8 @@ export {
   sendRequestAndWaitForResponse,
   switchResponseFormat,
   switchToPreviewTab,
-  switchToEditorTab
+  switchToEditorTab,
+  clickResponseAction
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions };
