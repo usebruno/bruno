@@ -4,6 +4,28 @@ const { marshallToVm } = require('../../utils');
 
 const methods = ['get', 'post', 'put', 'patch', 'delete'];
 
+const buildAxiosErrorData = (err) => {
+  return {
+    message: err.message,
+    ...(err.response && {
+      response: {
+        status: err.response.status,
+        statusText: err.response.statusText,
+        headers: err.response.headers,
+        data: err.response.data
+      }
+    }),
+    ...(err.config && {
+      config: {
+        url: err.config.url,
+        method: err.config.method,
+        headers: err.config.headers,
+        data: err.config.data
+      }
+    })
+  };
+};
+
 const addAxiosShimToContext = async (vm) => {
   methods?.forEach((method) => {
     const axiosHandle = vm.newFunction(method, (...args) => {
@@ -15,26 +37,7 @@ const addAxiosShimToContext = async (vm) => {
           promise.resolve(marshallToVm(cleanJson({ status, headers, data }), vm));
         })
         .catch((err) => {
-          const errorData = {
-            message: err.message,
-            ...(err.response && {
-              response: {
-                status: err.response.status,
-                statusText: err.response.statusText,
-                headers: err.response.headers,
-                data: err.response.data
-              }
-            }),
-            ...(err.config && {
-              config: {
-                url: err.config.url,
-                method: err.config.method,
-                headers: err.config.headers,
-                data: err.config.data
-              }
-            })
-          };
-          promise.reject(marshallToVm(cleanJson(errorData), vm));
+          promise.reject(marshallToVm(cleanJson(buildAxiosErrorData(err)), vm));
         });
       promise.settled.then(vm.runtime.executePendingJobs);
       return promise.handle;
@@ -51,26 +54,7 @@ const addAxiosShimToContext = async (vm) => {
         promise.resolve(marshallToVm(cleanJson({ status, headers, data }), vm));
       })
       .catch((err) => {
-        const errorData = {
-          message: err.message,
-          ...(err.response && {
-            response: {
-              status: err.response.status,
-              statusText: err.response.statusText,
-              headers: err.response.headers,
-              data: err.response.data
-            }
-          }),
-          ...(err.config && {
-            config: {
-              url: err.config.url,
-              method: err.config.method,
-              headers: err.config.headers,
-              data: err.config.data
-            }
-          })
-        };
-        promise.reject(marshallToVm(cleanJson(errorData), vm));
+        promise.reject(marshallToVm(cleanJson(buildAxiosErrorData(err)), vm));
       });
     promise.settled.then(vm.runtime.executePendingJobs);
     return promise.handle;

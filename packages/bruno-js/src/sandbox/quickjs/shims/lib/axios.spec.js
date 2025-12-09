@@ -1,4 +1,4 @@
-const { describe, it, expect, beforeAll, beforeEach } = require('@jest/globals');
+const { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } = require('@jest/globals');
 const { newQuickJSWASMModule } = require('quickjs-emscripten');
 const addAxiosShimToContext = require('./axios');
 
@@ -17,6 +17,28 @@ describe('axios shim tests', () => {
     vm = module.newContext();
     await addAxiosShimToContext(vm);
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    if (vm) {
+      try {
+        vm.dispose();
+      } catch (err) {
+        console.error('Error disposing vm', err);
+      }
+      vm = null;
+    }
+  });
+
+  afterAll(() => {
+    if (module) {
+      try {
+        module.dispose();
+      } catch (err) {
+        console.error('Error disposing module', err);
+      }
+      module = null;
+    }
   });
 
   describe('successful requests', () => {
