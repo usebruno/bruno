@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
 import Dropdown from 'components/Dropdown';
-import { IconDots } from '@tabler/icons';
+import { IconChevronDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const DROPDOWN_WIDTH = 60;
@@ -154,8 +154,9 @@ const RequestPaneTabs = ({
       {overflowTabs.length > 0 && (
         <Dropdown
           icon={(
-            <div className="tab more-tabs select-none flex items-center cursor-pointer rounded-md" style={{ padding: '2px 8px' }}>
-              <IconDots size={18} />
+            <div className="more-tabs select-none flex items-center cursor-pointer gap-1">
+              <span>More</span>
+              <IconChevronDown size={14} strokeWidth={2} />
             </div>
           )}
           placement="bottom-start"

@@ -3,11 +3,8 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   &.tabs {
     div.more-tabs {
-      color: ${(props) => props.theme.text} !important;
-      background-color: ${(props) => props.theme.requestTabs.bg} !important;
-      &:hover {
-        background-color: ${(props) => props.theme.requestTabs.icon.hoverBg} !important;
-      }
+      color: var(--color-tab-inactive) !important;
+      border-bottom: solid 2px transparent;
     }
 
     div.tab {
@@ -34,6 +31,7 @@ const StyledWrapper = styled.div`
       }
 
       &.active {
+        font-weight: ${(props) => props.theme.tabs.active.fontWeight} !important;
         color: ${(props) => props.theme.tabs.active.color} !important;
         border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }

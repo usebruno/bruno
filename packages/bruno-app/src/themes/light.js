@@ -7,6 +7,7 @@ const colors = {
 
   WHITE: '#fff',
   BLACK: '#000',
+  SLATE_BLACK: '#343434',
   GREEN: '#047857',
   YELLOW: '#cf8730',
 
@@ -340,7 +341,8 @@ const lightTheme = {
   tabs: {
     marginRight: '1.2rem',
     active: {
-      color: '#343434',
+      fontWeight: 400,
+      color: colors.SLATE_BLACK,
       border: '#cf8730'
     },
     secondary: {
