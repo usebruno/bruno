@@ -7,7 +7,7 @@ import { saveWorkspaceDocs } from 'providers/ReduxStore/slices/workspaces/action
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconEdit, IconX, IconFileText } from '@tabler/icons';
+import { IconFileText, IconEdit, IconX } from '@tabler/icons';
 import toast from 'react-hot-toast';
 
 const WorkspaceDocs = ({ workspace }) => {
@@ -51,97 +51,76 @@ const WorkspaceDocs = ({ workspace }) => {
     }
   };
 
+  const handleAddDocumentation = () => {
+    setIsEditing(true);
+  };
+
+  const hasDocs = localDocs && localDocs.trim().length > 0;
+
   return (
-    <StyledWrapper className="h-full w-full relative flex flex-col p-4">
-      <div className="flex flex-row w-full justify-between items-center mb-4">
-        <div className="text-lg font-medium flex items-center gap-2">
-          <IconFileText size={20} strokeWidth={1.5} />
-          Workspace Documentation
+    <StyledWrapper className="h-full w-full flex flex-col">
+      <div className="docs-header">
+        <div className="docs-title">
+          <IconFileText size={16} strokeWidth={1.5} />
+          <span>Documentation</span>
         </div>
-        <div className="flex flex-row gap-2 items-center justify-center">
-          {isEditing ? (
-            <>
-              <div className="editing-mode" role="tab" onClick={handleDiscardChanges}>
-                <IconX className="cursor-pointer" size={20} strokeWidth={1.5} />
-              </div>
-              <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
+        {hasDocs && !isEditing && (
+          <button className="edit-btn" onClick={toggleViewMode}>
+            <IconEdit size={14} strokeWidth={1.5} />
+          </button>
+        )}
+        {isEditing && (
+          <button className="edit-btn" onClick={handleDiscardChanges}>
+            <IconX size={14} strokeWidth={1.5} />
+          </button>
+        )}
+      </div>
+
+      <div className="docs-content">
+        {isEditing ? (
+          <div className="editor-container">
+            <CodeEditor
+              theme={displayedTheme}
+              value={localDocs}
+              onEdit={onEdit}
+              onSave={onSave}
+              mode="markdown"
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+            />
+            <div className="editor-actions">
+              <button className="save-btn" onClick={onSave}>
                 Save
               </button>
-            </>
-          ) : (
-            <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-              <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />
             </div>
-          )}
-        </div>
-      </div>
-      {isEditing ? (
-        <CodeEditor
-          theme={displayedTheme}
-          value={localDocs}
-          onEdit={onEdit}
-          onSave={onSave}
-          mode="markdown"
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-        />
-      ) : (
-        <div className="h-full overflow-auto pl-1">
-          <div className="h-[1px] min-h-[500px]">
-            {
-              localDocs?.length > 0
-                ? <Markdown onDoubleClick={toggleViewMode} content={localDocs} />
-                : <Markdown onDoubleClick={toggleViewMode} content={workspaceDocumentationPlaceholder} />
-            }
           </div>
-        </div>
-      )}
+        ) : hasDocs ? (
+          <div className="docs-markdown">
+            <Markdown onDoubleClick={toggleViewMode} content={localDocs} />
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-icon-wrapper">
+              <IconFileText size={28} strokeWidth={1} />
+            </div>
+            <p className="empty-text">
+              Add documentation to help your team work smoothly.
+            </p>
+            <p className="empty-subtext">You can include:</p>
+            <ul className="suggestions-list">
+              <li>Project overview</li>
+              <li>Setup instructions</li>
+              <li>Key workflows</li>
+              <li>Resources & FAQs</li>
+            </ul>
+            <button className="add-docs-btn" onClick={handleAddDocumentation}>
+              Add Documentation
+            </button>
+          </div>
+        )}
+      </div>
     </StyledWrapper>
   );
 };
 
 export default WorkspaceDocs;
-
-const workspaceDocumentationPlaceholder = `
-# Welcome to your Workspace Documentation
-
-This is your workspace documentation area where you can document your entire project, team guidelines, and shared resources.
-
-## What to Document Here
-
-### Project Overview
-- Project goals and objectives
-- Architecture overview
-- Key stakeholders and team members
-- Project timeline and milestones
-
-### Development Guidelines
-- Coding standards and conventions
-- Git workflow and branching strategy
-- Code review process
-- Testing guidelines
-
-### API Documentation
-- Authentication methods
-- Base URLs and environments
-- Common headers and parameters
-- Error handling standards
-
-### Team Resources
-- Useful links and references
-- Development environment setup
-- Deployment procedures
-- Troubleshooting guides
-
-## Markdown Support
-
-This documentation supports full Markdown formatting:
-
-- **Bold** and *italic* text
-- \`inline code\` and code blocks
-- Lists and tables
-- [Links](https://usebruno.com) and images
-- Headers and sections
-
-**Tip:** Double-click anywhere in this area to start editing!
-`;
