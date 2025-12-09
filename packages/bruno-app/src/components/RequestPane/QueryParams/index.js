@@ -220,19 +220,18 @@ const QueryParams = ({ item, collection }) => {
             </div>
           </InfoTip>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <td>Name</td>
-              <td>Value</td>
-            </tr>
-          </thead>
+        <Table
+          headers={[
+            { name: 'Name', accessor: 'name', width: '31%' },
+            { name: 'Value', accessor: 'value', width: '56%' }
+          ]}
+        >
           <tbody>
             {pathParams && pathParams.length
               ? pathParams.map((path, index) => {
                   return (
                     <tr key={path.uid}>
-                      <td>
+                      <td className="flex relative">
                         <input
                           type="text"
                           autoComplete="off"
@@ -268,7 +267,7 @@ const QueryParams = ({ item, collection }) => {
                 })
               : null}
           </tbody>
-        </table>
+        </Table>
         {!(pathParams && pathParams.length) ? <div className="title pr-2 py-3 mt-2 text-xs"></div> : null}
       </div>
     </StyledWrapper>
