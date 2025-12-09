@@ -7,7 +7,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
@@ -672,26 +672,6 @@ export const runCollectionFolder
         })
       );
 
-      // to only include those requests in the specified order while preserving folder data
-      if (selectedRequestUids && selectedRequestUids.length > 0) {
-        const newItems = [];
-
-        selectedRequestUids.forEach((uid, index) => {
-          const requestItem = findItemInCollection(collectionCopy, uid);
-          if (requestItem) {
-            const clonedRequest = cloneDeep(requestItem);
-            clonedRequest.seq = index + 1;
-            newItems.push(clonedRequest);
-          }
-        });
-
-        if (folder) {
-          folder.items = newItems;
-        } else {
-          collectionCopy.items = newItems;
-        }
-      }
-
       const { ipcRenderer } = window;
       ipcRenderer
         .invoke(
@@ -702,7 +682,8 @@ export const runCollectionFolder
           collectionCopy.runtimeVariables,
           recursive,
           delay,
-          tags
+          tags,
+          selectedRequestUids
         )
         .then(resolve)
         .catch((err) => {
@@ -2278,7 +2259,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .validate(collection)
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
-          // Expand sidebar if it's collapsed after collection is successfully opened
           const state = getState();
           if (state.app.sidebarCollapsed) {
             dispatch(toggleSidebarCollapse());
@@ -2286,7 +2266,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
 
           const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
           if (activeWorkspace) {
-            const isAlreadyInWorkspace = activeWorkspace.collections?.some((c) => c.path === pathname);
+            const isAlreadyInWorkspace = activeWorkspace.collections?.some(
+              (c) => normalizePath(c.path) === normalizePath(pathname)
+            );
 
             if (!isAlreadyInWorkspace) {
               const workspaceCollection = {
@@ -2294,8 +2276,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
                 path: pathname
               };
 
-              // The electron handler will automatically trigger workspace config update
-              // which will cause the app to react and reload collections
               ipcRenderer
                 .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
                 .catch((err) => {

@@ -1,24 +1,23 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
+import { closeAllCollections, openCollectionAndAcceptSandbox, sendRequest } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe.serial('Dynamic Variable Interpolation', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {
-    // cleanup: close all collections
     await closeAllCollections(page);
   });
 
   test('Verifying if the bru.setVar method interpolates random generator functions properly', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+
     // Open collection and accept sandbox mode
     await openCollectionAndAcceptSandbox(page, 'dynamic-variable-interpolation', 'safe');
 
     // Navigate to the request
-    await page.getByRole('complementary').getByText('set-var-dynamic-variable').click();
+    await locators.sidebar.request('set-var-dynamic-variable').click();
 
     // Send the request
-    await page.getByTestId('send-arrow-icon').click();
-
-    // Wait for the response and verify status code
-    await expect(page.getByTestId('response-status-code')).toHaveText(/200/);
+    await sendRequest(page, 200);
 
     // Verify response contains the title field and that it's not the literal interpolation string
     const responsePane = page.locator('.response-pane');

@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 
 test.describe('File Input Acceptance', () => {
   test('File input accepts expected file types', async ({ page }) => {
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Check that file input exists (even if hidden)

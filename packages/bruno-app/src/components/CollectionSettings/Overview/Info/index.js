@@ -3,14 +3,22 @@ import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { IconBox, IconFolder, IconWorld, IconApi, IconShare } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
+import { updateEnvironmentSettingsModalVisibility, updateGlobalEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
 
 const Info = ({ collection }) => {
+  const dispatch = useDispatch();
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
 
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
+
+  const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
+
+  const collectionEnvironmentCount = collection.environments?.length || 0;
+  const globalEnvironmentCount = globalEnvironments?.length || 0;
 
   const handleToggleShowShareCollectionModal = (value) => (e) => {
     toggleShowShareCollectionModal(value);
@@ -39,9 +47,24 @@ const Info = ({ collection }) => {
               <IconWorld className="w-5 h-5 text-green-500" stroke={1.5} />
             </div>
             <div className="ml-4">
-              <div className="font-medium">Environments</div>
-              <div className="mt-1 text-muted text-xs">
-                {collection.environments?.length || 0} environment{collection.environments?.length !== 1 ? 's' : ''} configured
+              <div className="font-medium text-sm">Environments</div>
+              <div className="mt-1 flex flex-col gap-1">
+                <button
+                  type="button"
+                  className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
+                  onClick={() => {
+                    dispatch(updateEnvironmentSettingsModalVisibility(true));
+                  }}
+                >
+                  {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
+                  onClick={() => dispatch(updateGlobalEnvironmentSettingsModalVisibility(true))}
+                >
+                  {globalEnvironmentCount} global environment{globalEnvironmentCount !== 1 ? 's' : ''}
+                </button>
               </div>
             </div>
           </div>

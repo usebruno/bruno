@@ -9,6 +9,7 @@ import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
 
 import Dropdown from 'components/Dropdown';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
+import { toTitleCase } from 'utils/common/index';
 
 const WorkspaceSelector = () => {
   const dispatch = useDispatch();
@@ -26,15 +27,6 @@ const WorkspaceSelector = () => {
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
-  const toTitleCase = (str) => {
-    if (!str) return '';
-    if (str === 'default') return 'Default';
-    return str
-      .split(/[\s-_]+/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
 
   const WorkspaceName = forwardRef((props, ref) => {
     return (

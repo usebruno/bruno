@@ -338,3 +338,23 @@ export const prettifyJsonString = (jsonDataString) => {
   }
   return jsonDataString;
 };
+
+/**
+ * Returns the given string value converted to title case.
+ * - If the value is falsy, returns an empty string.
+ * - Special-case: if the value is 'default', returns 'Default'.
+ * - Otherwise, splits the string on whitespace, hyphens, or underscores,
+ *   uppercases the first letter of each word, and lowercases the rest.
+ *
+ * @param {string} str - The input string to convert.
+ * @returns {string} - The converted title-case string.
+ */
+
+export const toTitleCase = (str) => {
+  if (!str) return '';
+  if (str === 'default') return 'Default';
+  return str
+    .split(/[\s-_]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};

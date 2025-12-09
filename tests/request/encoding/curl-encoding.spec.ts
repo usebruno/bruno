@@ -19,7 +19,7 @@ test.describe('Code Generation URL Encoding', () => {
     createTmpDir
   }) => {
     // Use plus icon button in new workspace UI
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('unencoded-test-collection');
     const locationInput = page.getByLabel('Location');
@@ -65,7 +65,7 @@ test.describe('Code Generation URL Encoding', () => {
     createTmpDir
   }) => {
     // Use plus icon button in new workspace UI
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('encoded-test-collection');
     const locationInput = page.getByLabel('Location');

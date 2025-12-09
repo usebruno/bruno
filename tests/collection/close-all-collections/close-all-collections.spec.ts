@@ -17,7 +17,7 @@ const restartAppAndGetLocators = async (restartApp: (options?: { initUserDataPat
 };
 
 // TODO: These tests need to be updated for the new workspace UI
-// The CollectionsHeader component (with close-all-collections-button) is not rendered in workspace mode
+// The CollectionsHeader component (with collections-header-actions-menu-close-all) is not rendered in workspace mode
 // The "Remove from workspace" flow is different from the old "Close collection" flow
 test.describe.skip('Close All Collections', () => {
   test.afterAll(async () => {

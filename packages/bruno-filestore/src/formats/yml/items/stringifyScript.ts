@@ -1,10 +1,10 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
-import type { Script } from '@opencollection/types/collection/item';
+import type { ScriptFile } from '@opencollection/types/collection/item';
 import { stringifyYml } from '../utils';
 
 const stringifyScript = (item: BrunoItem): string => {
   try {
-    const ocScript: Script = {
+    const ocScript: ScriptFile = {
       type: 'script'
     };
 

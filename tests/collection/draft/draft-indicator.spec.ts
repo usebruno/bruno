@@ -146,7 +146,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await keyFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
 
     // Click Add button
-    await page.getByRole('button', { name: 'Add' }).click();
+    await page.getByTestId('add-client-cert').click();
 
     // Verify draft indicator appears
     await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();

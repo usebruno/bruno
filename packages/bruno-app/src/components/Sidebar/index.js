@@ -1,4 +1,4 @@
-import TitleBar from './TitleBar';
+import SidebarHeader from './SidebarHeader';
 import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
 
@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
 
-const MIN_LEFT_SIDEBAR_WIDTH = 221;
+const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
@@ -14,6 +14,7 @@ const Sidebar = () => {
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const lastWidthRef = useRef(leftSidebarWidth);
+  const [showSearch, setShowSearch] = useState(false);
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
@@ -80,9 +81,11 @@ const Sidebar = () => {
       <aside className="sidebar" style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}>
         <div className="flex flex-row h-full w-full">
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
-            <div className="flex flex-col flex-grow">
-              <TitleBar />
-              <Collections />
+            <div className="flex flex-col flex-grow" style={{ minHeight: 0, overflow: 'hidden' }}>
+              <SidebarHeader
+                setShowSearch={setShowSearch}
+              />
+              <Collections showSearch={showSearch} />
             </div>
           </div>
         </div>

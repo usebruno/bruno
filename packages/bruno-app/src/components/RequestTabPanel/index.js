@@ -243,7 +243,7 @@ const RequestTabPanel = () => {
         isVerticalLayout ? 'vertical-layout' : ''
       }`}
     >
-      <div className="pt-4 pb-3 px-4">
+      <div className="pt-3 pb-3 px-4">
         {
           isGrpcRequest
             ? <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />

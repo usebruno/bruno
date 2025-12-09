@@ -1,6 +1,6 @@
 import type { OpenCollection } from '@opencollection/types';
 import type { ProtoFileItem, ProtoFileImportPath } from '@opencollection/types/config/protobuf';
-import type { HttpHeader } from '@opencollection/types/requests/http';
+import type { HttpRequestHeader } from '@opencollection/types/requests/http';
 import type { ClientCertificate, PemCertificate, Pkcs12Certificate } from '@opencollection/types/config/certificates';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Scripts } from '@opencollection/types/common/scripts';
@@ -128,7 +128,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
 
       // headers
       if (collectionRoot.request?.headers?.length) {
-        const ocHeaders: HttpHeader[] | undefined = toOpenCollectionHttpHeaders(collectionRoot.request?.headers);
+        const ocHeaders: HttpRequestHeader[] | undefined = toOpenCollectionHttpHeaders(collectionRoot.request?.headers);
         if (ocHeaders) {
           oc.request.headers = ocHeaders;
         }

@@ -2,17 +2,17 @@ import React, { useEffect, useState, useRef } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
-import { IconDownload, IconSearch, IconPlus, IconCheck, IconX } from '@tabler/icons';
+import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
-import ImportEnvironment from '../ImportEnvironment';
+import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { addGlobalEnvironment, renameGlobalEnvironment, selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 
-const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified, collection }) => {
+const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified, collection, setShowExportModal }) => {
   const dispatch = useDispatch();
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
 
@@ -258,6 +258,12 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
     }
   };
 
+  const handleExportClick = () => {
+    if (setShowExportModal) {
+      setShowExportModal(true);
+    }
+  };
+
   const handleConfirmSwitch = (saveChanges) => {
     if (!saveChanges) {
       setSwitchEnvConfirmClose(false);
@@ -270,7 +276,7 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
   return (
     <StyledWrapper>
       {openCreateModal && <CreateEnvironment onClose={() => setOpenCreateModal(false)} />}
-      {openImportModal && <ImportEnvironment onClose={() => setOpenImportModal(false)} />}
+      {openImportModal && <ImportEnvironmentModal type="global" onClose={() => setOpenImportModal(false)} />}
 
       <div className="environments-container">
         {switchEnvConfirmClose && (
@@ -289,6 +295,9 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
               </button>
               <button className="btn-action" onClick={() => handleImportClick()} title="Import environment">
                 <IconDownload size={16} strokeWidth={1.5} />
+              </button>
+              <button className="btn-action" onClick={() => handleExportClick()} title="Export environment">
+                <IconUpload size={16} strokeWidth={1.5} />
               </button>
             </div>
           </div>

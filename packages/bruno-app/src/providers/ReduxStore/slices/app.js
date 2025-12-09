@@ -5,12 +5,14 @@ import brunoClipboard from 'utils/bruno-clipboard';
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
-  leftSidebarWidth: 222,
+  leftSidebarWidth: 250,
   sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
+  showApiSpecPage: false,
   isEnvironmentSettingsModalOpen: false,
+  isGlobalEnvironmentSettingsModalOpen: false,
   preferences: {
     request: {
       sslVerification: true,
@@ -66,11 +68,23 @@ export const appSlice = createSlice({
     updateEnvironmentSettingsModalVisibility: (state, action) => {
       state.isEnvironmentSettingsModalOpen = action.payload;
     },
+    updateGlobalEnvironmentSettingsModalVisibility: (state, action) => {
+      state.isGlobalEnvironmentSettingsModalOpen = action.payload;
+    },
     showHomePage: (state) => {
       state.showHomePage = true;
+      state.showApiSpecPage = false;
     },
     hideHomePage: (state) => {
       state.showHomePage = false;
+    },
+    showApiSpecPage: (state) => {
+      state.showHomePage = false;
+      state.showPreferences = false;
+      state.showApiSpecPage = true;
+    },
+    hideApiSpecPage: (state) => {
+      state.showApiSpecPage = false;
     },
     showPreferences: (state, action) => {
       state.showPreferences = action.payload;
@@ -115,8 +129,11 @@ export const {
   updateLeftSidebarWidth,
   updateIsDragging,
   updateEnvironmentSettingsModalVisibility,
+  updateGlobalEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
+  showApiSpecPage,
+  hideApiSpecPage,
   showPreferences,
   updatePreferences,
   updateCookies,
