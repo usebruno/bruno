@@ -88,6 +88,7 @@ const ResponseLayoutToggle = ({ children }) => {
       onClick={toggleOrientation}
       title={title}
       onKeyDown={handleKeyDown}
+      data-testid="response-layout-toggle-button"
     >
       {children ? children : (
         <StyledWrapper className="flex items-center w-full">
