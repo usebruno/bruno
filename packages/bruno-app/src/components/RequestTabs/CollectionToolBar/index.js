@@ -49,22 +49,24 @@ const CollectionToolBar = ({ collection }) => {
           <span className="ml-2 mr-4 font-medium">{collection?.name}</span>
         </div>
         <div className="flex flex-3 items-center justify-end">
-          <span className="mr-2">
-            <JsSandboxMode collection={collection} />
-          </span>
           <span className="mr-3">
             <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place="bottom">
-              <IconRun className="cursor-pointer" size={18} strokeWidth={1.5} onClick={handleRun} />
+              <IconRun className="cursor-pointer" size={16} strokeWidth={1.5} onClick={handleRun} />
             </ToolHint>
           </span>
           <span className="mr-3">
             <ToolHint text="Variables" toolhintId="VariablesToolhintId">
-              <IconEye className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewVariables} />
+              <IconEye className="cursor-pointer" size={16} strokeWidth={1.5} onClick={viewVariables} />
             </ToolHint>
           </span>
           <span className="mr-3">
             <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
-              <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
+              <IconSettings className="cursor-pointer" size={16} strokeWidth={1.5} onClick={viewCollectionSettings} />
+            </ToolHint>
+          </span>
+          <span className="mr-2">
+            <ToolHint text="Javascript Sandbox" toolhintId="JavascriptSandboxToolhintId" place="bottom">
+              <JsSandboxMode collection={collection} />
             </ToolHint>
           </span>
           <span>
