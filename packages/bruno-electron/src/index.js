@@ -12,7 +12,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeImage } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -119,7 +119,6 @@ app.on('ready', async () => {
   // Set dock icon dynamically (macOS only)
   // Uses PNG format for better compatibility with nativeImage
   if (isMac && app.dock) {
-    const { nativeImage } = require('electron');
     // Use the same PNG as window icon - it's in the app bundle and works reliably
     const dockIconPath = getHolidayIconPath(
       path.join(__dirname, 'about'),
