@@ -4,7 +4,7 @@ import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
-
+import { writeFileSync } from 'node:fs';
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
     return '';
@@ -1646,18 +1646,20 @@ export const generateUniqueRequestName = async (collection, baseName = 'Untitled
   const parentItem = itemUid ? findItemInCollection(collection, itemUid) : null;
   const parentItems = parentItem ? (parentItem.items || []) : (collection.items || []);
   const baseNamePattern = new RegExp(`^${baseName}(\\d+)?$`);
+  // Support .bru, .yml, and .yaml file extensions
+  const requestExtensions = /\.(bru|yml|yaml)$/i;
   const matchingItems = parentItems
     .filter((item) => {
       if (item.type === 'folder') return false;
 
       const filename = trim(item.filename);
-      if (!filename.endsWith('.bru')) return false;
+      if (!requestExtensions.test(filename)) return false;
 
-      const filenameWithoutExt = filename.replace(/\.bru$/, '');
+      const filenameWithoutExt = filename.replace(requestExtensions, '');
       return baseNamePattern.test(filenameWithoutExt);
     })
     .map((item) => {
-      const filenameWithoutExt = trim(item.filename).replace(/\.bru$/, '');
+      const filenameWithoutExt = trim(item.filename).replace(requestExtensions, '');
       const match = filenameWithoutExt.match(baseNamePattern);
 
       if (!match) return null;

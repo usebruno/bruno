@@ -89,6 +89,68 @@ type CreateRequestOptions = {
   inFolder?: boolean;
 };
 
+type CreateUntitledRequestOptions = {
+  requestType?: 'HTTP' | 'GraphQL' | 'WebSocket' | 'gRPC';
+  requestName?: string;
+  url?: string;
+  tag?: string;
+};
+
+/**
+ * Create an untitled request using the new dropdown flow (from tabs area)
+ * @param page - The page object
+ * @param options - Optional settings (requestType, url, tag)
+ * @returns void
+ */
+const createUntitledRequest = async (
+  page: Page,
+  options: CreateUntitledRequestOptions = {}
+) => {
+  const { requestType = 'HTTP', url, tag } = options;
+
+  await test.step(`Create untitled ${requestType} request${url ? ' with URL' : ''}${tag ? ' with tag' : ''}`, async () => {
+    // Click the + icon to open the dropdown
+    const createButton = page.locator('.short-tab').locator('svg').first();
+    await createButton.waitFor({ state: 'visible' });
+    await createButton.click();
+
+    // Select the request type from dropdown
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: requestType }).waitFor({ state: 'visible' });
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: requestType }).click();
+
+    // Wait for the request tab to be active
+    await page.locator('.request-tab.active').waitFor({ state: 'visible' });
+    await page.waitForTimeout(300);
+
+    // Fill URL if provided
+    if (url) {
+      await page.locator('#request-url .CodeMirror').click();
+      await page.locator('#request-url textarea').fill(url);
+      await page.locator('#send-request').getByTitle('Save Request').click();
+      await page.waitForTimeout(200);
+    }
+
+    // Add tag if provided
+    if (tag) {
+      await page.getByRole('tab', { name: 'Settings' }).click();
+      await page.waitForTimeout(200);
+      const tagInput = await page.getByTestId('tag-input').getByRole('textbox');
+      await tagInput.fill(tag);
+      await tagInput.press('Enter');
+      await page.waitForTimeout(200);
+      await expect(page.locator('.tag-item', { hasText: tag })).toBeVisible();
+      await page.keyboard.press('Meta+s');
+      await page.waitForTimeout(200);
+    }
+
+    // Wait for toast message to ensure request creation is complete
+    // This helps prevent race conditions when creating multiple requests
+    await expect(page.getByText('New request created!')).toBeVisible({ timeout: 10000 }).catch(() => {
+      // Toast might have already disappeared, that's okay
+    });
+  });
+};
+
 /**
  * Create a request in a collection or folder
  * @param page - The page object
@@ -521,6 +583,7 @@ export {
   openCollectionAndAcceptSandbox,
   createCollection,
   createRequest,
+  createUntitledRequest,
   deleteRequest,
   importCollection,
   removeCollection,
@@ -539,4 +602,4 @@ export {
   expectResponseContains
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions };
