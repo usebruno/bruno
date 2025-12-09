@@ -148,7 +148,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           try {
             variables = JSON.parse(variables);
           } catch (error) {
-            variables = variables;
+            // Keep variables as-is if JSON parsing fails
           }
           dispatch(updateRequestGraphqlVariables({
             itemUid: item.uid,
