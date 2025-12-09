@@ -5,43 +5,52 @@ const Wrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.base};
     padding: 0.25rem 0.5rem 0.25rem 0.75rem;
     user-select: none;
-    background-color: transparent;
-    border: 1px solid ${(props) => props.theme.dropdown.selectedColor};
+    background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.bg};
+    border: 1px solid ${(props) => props.theme.app.collection.toolbar.environmentSelector.border};
     line-height: 1rem;
+    transition: all 0.15s ease;
+
+    &:hover {
+      border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder};
+      background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBg};
+    }
 
     .caret {
       margin-left: 0.25rem;
-      color: rgb(140, 140, 140);
-      fill: rgb(140, 140, 140);
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.caret};
+      fill: ${(props) => props.theme.app.collection.toolbar.environmentSelector.caret};
+      align-self: center;
     }
 
     .env-icon {
       margin-right: 0.25rem;
-      color: ${(props) => props.theme.dropdown.selectedColor};
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.icon};
     }
 
     .env-text {
-      color: ${(props) => props.theme.dropdown.selectedColor};
-      font-size: ${(props) => props.theme.font.size.base};
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.text};
       display: block;
     }
 
     .env-separator {
-      color: #8c8c8c;
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator};
       margin: 0 0.25rem;
-      opacity: 0.7;
     }
 
     .env-text-inactive {
-      color: ${(props) => props.theme.dropdown.color};
-      font-size: ${(props) => props.theme.font.size.base};
-      opacity: 0.7;
+      color: ${(props) => props.theme.colors.text.muted};
+      font-size: ${(props) => props.theme.font.size.sm};
     }
 
     &.no-environments {
-      background-color: ${(props) => props.theme.sidebar.badge.bg};
-      border: 1px solid transparent;
-      color: ${(props) => props.theme.dropdown.secondaryText};
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.text};
+      background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.bg};
+      border: 1px dashed ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.border};
+
+      &:hover {
+        border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.hoverBorder};
+        background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.hoverBg};
+      }
     }
   }
 

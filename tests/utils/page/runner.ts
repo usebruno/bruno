@@ -84,8 +84,7 @@ export const runCollection = async (page: Page, collectionName: string) => {
  * @returns Object with locators for sandbox elements
  */
 export const buildSandboxLocators = (page: Page) => ({
-  developerModeBadge: () => page.locator('.developer-mode').filter({ hasText: 'Developer Mode' }),
-  safeModeBadge: () => page.locator('.safe-mode').filter({ hasText: 'Safe Mode' }),
+  sandboxModeSelector: () => page.getByTestId('sandbox-mode-selector'),
   safeModeRadio: () => page.getByLabel('Safe Mode'),
   developerModeRadio: () => page.getByLabel('Developer Mode(use only if'),
   jsSandboxHeading: () => page.getByText('JavaScript Sandbox'),
@@ -109,16 +108,10 @@ export const setSandboxMode = async (page: Page, collectionName: string, mode: '
     await sidebarCollection.click();
 
     // Check if there's already a mode selected - if so, we need to click the badge to open settings tab
-    const developerBadgeVisible = await sandboxLocators.developerModeBadge().isVisible().catch(() => false);
-    const safeBadgeVisible = await sandboxLocators.safeModeBadge().isVisible().catch(() => false);
-
+    const sandboxBadgeVisible = await sandboxLocators.sandboxModeSelector().isVisible().catch(() => false);
     // If a badge exists, click it to open the security settings tab
-    if (developerBadgeVisible || safeBadgeVisible) {
-      if (developerBadgeVisible) {
-        await sandboxLocators.developerModeBadge().click();
-      } else {
-        await sandboxLocators.safeModeBadge().click();
-      }
+    if (sandboxBadgeVisible) {
+      await sandboxLocators.sandboxModeSelector().click();
 
       // Wait for the security settings tab to be active
       await sandboxLocators.jsSandboxHeading().waitFor({ state: 'visible', timeout: 10000 });
