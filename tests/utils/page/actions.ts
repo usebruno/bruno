@@ -531,14 +531,29 @@ const sendRequest = async (
  * @param requestName - The name of the request to open
  * @returns void
  */
-const openRequest = async (page: Page, requestName: string) => {
-  await test.step(`Open request "${requestName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    await locators.sidebar.request(requestName).click();
-    await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+// const openRequest = async (page: Page, requestName: string) => {
+//   await test.step(`Open request "${requestName}"`, async () => {
+//     const locators = buildCommonLocators(page);
+//     await locators.sidebar.request(requestName).click();
+//     await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+//   });
+// };
+
+/**
+* Navigate to a collection and open a request
+* @param page - The page object
+* @param collectionName - The name of the collection
+* @param requestName - The name of the request
+*/
+const openRequest = async (page: Page, collectionName: string, requestName: string) => {
+  await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
+    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
+    await collectionContainer.click();
+    const collectionWrapper = collectionContainer.locator('..');
+    const request = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
+    await request.click();
   });
 };
-
 /**
  * Open a request within a folder
  * @param page - The page object
@@ -551,6 +566,64 @@ const openFolderRequest = async (page: Page, folderName: string, requestName: st
     const locators = buildCommonLocators(page);
     await locators.sidebar.folderRequest(folderName, requestName).click();
     await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+  });
+};
+
+/**
+* Send a request and wait for the response
+ * @param page - The page object
+ * @param expectedStatusCode - The expected status code (default: '200')
+ * @param options - The options for sending the request (default: { timeout: 15000 })
+ */
+const sendRequestAndWaitForResponse = async (page: Page,
+  expectedStatusCode: string = '200',
+  options: {
+    ignoreCase?: boolean;
+    timeout?: number;
+    useInnerText?: boolean;
+  } = { timeout: 15000 }) => {
+  await test.step(`Send request and wait for status code ${expectedStatusCode}`, async () => {
+    await page.getByTestId('send-arrow-icon').click();
+    await expect(page.getByTestId('response-status-code')).toContainText(expectedStatusCode, options);
+  });
+};
+
+/**
+ * Switch the response format
+ * @param page - The page object
+ * @param format - The format to switch to (e.g., 'JSON', 'HTML', 'XML', 'JavaScript', 'Raw', 'Hex', 'Base64')
+ */
+const switchResponseFormat = async (page: Page, format: string) => {
+  await test.step(`Switch response format to ${format}`, async () => {
+    const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.click();
+    await page.getByTestId('format-response-tab-dropdown').getByText(format).click();
+  });
+};
+
+/**
+ * Switch to the preview tab
+ * @param page - The page object
+ */
+const switchToPreviewTab = async (page: Page) => {
+  await test.step('Switch to preview tab', async () => {
+    const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.click();
+    const previewTab = page.getByTestId('preview-response-tab');
+    await previewTab.click();
+  });
+};
+
+/**
+ * Switch to the editor tab
+ * @param page - The page object
+ */
+const switchToEditorTab = async (page: Page) => {
+  await test.step('Switch to editor tab', async () => {
+    const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.click();
+    const previewTab = page.getByTestId('preview-response-tab');
+    await previewTab.click();
   });
 };
 
@@ -605,6 +678,18 @@ const expectResponseContains = async (page: Page, texts: string[]) => {
   });
 };
 
+// Create a action to click a response action
+const clickResponseAction = async (page: Page, actionTestId: string) => {
+  const actionButton = await page.getByTestId(actionTestId);
+  if (await actionButton.isVisible()) {
+    await actionButton.click();
+  } else {
+    const menu = await page.getByTestId('response-actions-menu');
+    await menu.click();
+    await actionButton.click();
+  }
+};
+
 export {
   closeAllCollections,
   openCollectionAndAcceptSandbox,
@@ -627,7 +712,12 @@ export {
   openFolderRequest,
   getResponseBody,
   expectResponseContains,
-  selectRequestPaneTab
+  selectRequestPaneTab,
+  sendRequestAndWaitForResponse,
+  switchResponseFormat,
+  switchToPreviewTab,
+  switchToEditorTab,
+  clickResponseAction
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions };

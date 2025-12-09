@@ -103,6 +103,8 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
 
   if (contentType.includes('json')) {
     return 'application/ld+json';
+  } else if (contentType.includes('javascript') || contentType.includes('ecmascript')) {
+    return 'application/javascript';
   } else if (contentType.includes('image')) {
     return 'application/image';
   } else if (contentType.includes('xml')) {
