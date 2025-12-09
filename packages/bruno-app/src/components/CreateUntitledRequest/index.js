@@ -115,7 +115,6 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   };
 
-
   return (
     <Dropdown onCreate={onDropdownCreate} icon={<IconPlus size={16} strokeWidth={2} />} placement={placement}>
       <div
@@ -171,4 +170,3 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
 };
 
 export default CreateUntitledRequest;
-
