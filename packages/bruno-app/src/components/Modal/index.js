@@ -85,7 +85,9 @@ const Modal = ({
         return closeModal({ type: 'esc' });
       }
       case ENTER_KEY_CODE: {
-        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm) {
+        // Skip if a submit button is focused - let native button click handle it to avoid double-fire
+        const isSubmitButton = event.target?.type === 'submit';
+        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm && !isSubmitButton) {
           return handleConfirm();
         }
       }
