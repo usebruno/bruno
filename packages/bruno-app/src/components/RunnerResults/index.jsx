@@ -320,7 +320,7 @@ export default function RunnerResults({ collection }) {
               <button
                 type="submit"
                 className="submit btn btn-sm btn-secondary"
-                disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading}
+                disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading || runnerInfo.status === 'started'}
                 onClick={runCollection}
               >
                 {configureMode && selectedRequestItems.length > 0
