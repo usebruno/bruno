@@ -63,18 +63,18 @@ test.describe('Variable Tooltip', () => {
     });
 
     await test.step('Test secret variable with toggle', async () => {
-      // Move mouse away to dismiss any active tooltip
       await page.mouse.move(0, 0);
 
-      // Add header with secret
       await page.getByRole('tab', { name: 'Headers' }).click();
-      await page.locator('button.btn-action').filter({ hasText: 'Add Header' }).click();
 
-      const headerNameEditor = page.locator('table tbody tr').first().locator('td').first().locator('.CodeMirror');
+      const headerTable = page.locator('table').first();
+      const headerRow = headerTable.locator('tbody tr').first();
+
+      const headerNameEditor = headerRow.locator('.CodeMirror').first();
       await headerNameEditor.click();
       await page.keyboard.type('Authorization');
 
-      const headerValueEditor = page.locator('table tbody tr').first().locator('td').nth(1).locator('.CodeMirror');
+      const headerValueEditor = headerRow.locator('.CodeMirror').nth(1);
       await headerValueEditor.click();
       await page.keyboard.type('Bearer {{secretToken}}');
       await page.keyboard.press('Control+s');

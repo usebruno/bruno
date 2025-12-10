@@ -1203,8 +1203,14 @@ export const collectionsSlice = createSlice({
 
       if (!collection.draft) {
         collection.draft = {
-          root: cloneDeep(collection.root)
+          root: cloneDeep(collection.root) || {}
         };
+      }
+      if (!collection.draft.root) {
+        collection.draft.root = {};
+      }
+      if (!collection.draft.root.request) {
+        collection.draft.root.request = {};
       }
 
       collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
