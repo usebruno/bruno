@@ -245,6 +245,16 @@ const Collection = ({ collection, searchText }) => {
     dragPreview(getEmptyImage(), { captureDraggingState: true });
   }, []);
 
+  useEffect(() => {
+    if (isCollectionFocused && collectionRef.current) {
+      try {
+        collectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        // ignore scroll errors
+      }
+    }
+  }, [isCollectionFocused]);
+
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
       return null;

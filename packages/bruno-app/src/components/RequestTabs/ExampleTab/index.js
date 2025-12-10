@@ -74,7 +74,7 @@ const ExampleTab = ({ tab, collection }) => {
   }
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-3">
+    <StyledWrapper className="flex items-center justify-between tab-container px-2">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
@@ -102,7 +102,7 @@ const ExampleTab = ({ tab, collection }) => {
         />
       )}
       <div
-        className={`flex items-center tab-label pl-2 ${tab.preview ? 'italic' : ''}`}
+        className={`flex items-center tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {

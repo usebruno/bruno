@@ -33,7 +33,7 @@ const Wrapper = styled.div`
   }
 
   ul {
-    padding: 0 2px;
+    padding: 0 3px;
     margin: 0;
     display: flex;
     align-items: flex-end;
@@ -122,13 +122,13 @@ const Wrapper = styled.div`
         &::before {
           content: '';
           position: absolute;
-          bottom: -1px;
+          bottom: 1px;
           left: -8px;
           width: 8px;
           height: 8px;
           background: transparent;
-          border-bottom-right-radius: 8px;
-          box-shadow: 2px 2px 0 0 ${(props) => props.theme.bg || '#ffffff'};
+          border-bottom-right-radius: 6px;
+          box-shadow: 3px 3px 0 0 ${(props) => props.theme.bg || '#ffffff'};
           border-right: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
           border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
         }
@@ -136,13 +136,13 @@ const Wrapper = styled.div`
         &::after {
           content: '';
           position: absolute;
-          bottom: -1px;
+          bottom: 1px;
           right: -8px;
           width: 8px;
           height: 8px;
           background: transparent;
-          border-bottom-left-radius: 8px;
-          box-shadow: -2px 2px 0 0 ${(props) => props.theme.bg || '#ffffff'};
+          border-bottom-left-radius: 6px;
+          box-shadow: -3px 3px 0 0 ${(props) => props.theme.bg || '#ffffff'};
           border-left: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
           border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
         }
