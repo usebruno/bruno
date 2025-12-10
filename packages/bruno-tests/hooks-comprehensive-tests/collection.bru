@@ -65,10 +65,6 @@ script:hooks {
     bru.setEnvVar('api-token', 'mock-token-12345');
     bru.setEnvVar('setup-timestamp', Date.now().toString());
     
-    // Test: Setup - Initialize counters
-    bru.setVar('request-counter', '0');
-    bru.setVar('success-counter', '0');
-    
     console.log('[onBeforeCollectionRun] Setup complete - token and counters initialized');
   });
   
@@ -136,8 +132,6 @@ script:hooks {
     bru.deleteVar('async-start-time');
     bru.deleteVar('setup-token');
     bru.deleteVar('setup-complete');
-    bru.deleteVar('request-counter');
-    bru.deleteVar('success-counter');
     bru.deleteVar('request-count');
     bru.deleteVar('success-count');
     bru.deleteVar('final-stats');

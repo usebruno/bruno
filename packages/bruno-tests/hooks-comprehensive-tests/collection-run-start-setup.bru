@@ -21,11 +21,6 @@ tests {
     expect(apiToken).to.equal('mock-token-12345');
   });
   
-  test("setup should have initialized counters", function() {
-    const requestCounter = bru.getVar('request-counter');
-    expect(requestCounter).to.equal('0');
-  });
-  
   test("request should have access to setup vars", function() {
     const setupComplete = bru.getVar('setup-complete');
     expect(setupComplete).to.equal('true');
