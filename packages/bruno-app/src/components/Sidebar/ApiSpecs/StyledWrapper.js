@@ -17,23 +17,6 @@ const Wrapper = styled.div`
     padding-bottom: 4px;
     overflow-y: auto;
     overflow-x: hidden;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: ${(props) => props.theme.scrollbar.color};
-      border-radius: 3px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-      background: ${(props) => props.theme.scrollbar.color};
-    }
   }
 
   .api-spec-item {
