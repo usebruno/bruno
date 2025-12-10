@@ -377,12 +377,12 @@ test.describe('Variable Tooltip', () => {
       await expect(varRow).toBeVisible();
 
       // Check variable name
-      const varNameInput = varRow.locator('td').first().locator('input[type="text"]');
+      const varNameInput = varRow.locator('td').nth(1).getByRole('textbox');
       await expect(varNameInput).toBeVisible();
       await expect(varNameInput).toHaveValue('myApiKey');
 
       // Check variable value
-      const varValueTd = varRow.locator('td').nth(1);
+      const varValueTd = varRow.locator('td').nth(2);
       const varValue = varValueTd.locator('.CodeMirror');
       await expect(varValue).toBeVisible();
       const varValueContent = await varValue.locator('.CodeMirror-line').textContent();

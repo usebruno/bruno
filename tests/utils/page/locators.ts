@@ -123,7 +123,7 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   }
 });
 
-export const getTableCell = (row, index) => row.locator('td').nth(index);
+export const getTableCell = (row, index) => row.locator('td').nth(index + 1);
 
 export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),

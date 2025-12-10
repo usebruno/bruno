@@ -30,7 +30,7 @@ test('should persist request with newlines across app restarts', async ({ create
 
   await page.getByRole('tab', { name: 'Params' }).click();
   const paramRow = page.locator('table tbody tr').first();
-  await getTableCell(paramRow, 0).locator('input[type="text"]').fill('queryParamKey');
+  await getTableCell(paramRow, 0).getByRole('textbox').fill('queryParamKey');
 
   await page.getByRole('tab', { name: 'Headers' }).click();
   const headerRow = page.locator('table tbody tr').first();
@@ -41,12 +41,12 @@ test('should persist request with newlines across app restarts', async ({ create
 
   await page.getByRole('tab', { name: 'Vars' }).click();
   const preReqRow = page.locator('table').first().locator('tbody tr').first();
-  await getTableCell(preReqRow, 0).locator('input[type="text"]').fill('preRequestVar');
+  await getTableCell(preReqRow, 0).getByRole('textbox').fill('preRequestVar');
   await getTableCell(preReqRow, 1).locator('.CodeMirror').click();
   await getTableCell(preReqRow, 1).locator('textarea').fill('pre\nRequest\nValue');
 
   const postResRow = page.locator('table').nth(1).locator('tbody tr').first();
-  await getTableCell(postResRow, 0).locator('input[type="text"]').fill('postResponseVar');
+  await getTableCell(postResRow, 0).getByRole('textbox').fill('postResponseVar');
   await getTableCell(postResRow, 1).locator('.CodeMirror').click();
   await getTableCell(postResRow, 1).locator('textarea').fill('post\nResponse\nValue');
 
@@ -62,16 +62,16 @@ test('should persist request with newlines across app restarts', async ({ create
 
   // Verify params persisted
   await page2.getByRole('tab', { name: 'Params' }).click();
-  await expect(page2.locator('table tbody tr')).toHaveCount(1);
+  await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify headers persisted
   await page2.getByRole('tab', { name: 'Headers' }).click();
-  await expect(page2.locator('table tbody tr')).toHaveCount(1);
+  await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify vars persisted
   await page2.getByRole('tab', { name: 'Vars' }).click();
-  await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(1);
-  await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(1);
+  await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(2);
+  await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(2);
 
   await app2.close();
 });
