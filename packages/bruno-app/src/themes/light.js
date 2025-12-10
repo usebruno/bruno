@@ -1,14 +1,22 @@
 const colors = {
-  BRAND: '#546de5',
+  BRAND: '#cf8730',
   TEXT: 'rgb(52, 52, 52)',
+  TEXT_MUTED: '#838383',
   TEXT_LINK: '#1663bb',
   BACKGROUND: '#fff',
+
   WHITE: '#fff',
   BLACK: '#000',
+  SLATE_BLACK: '#343434',
+  GREEN: '#047857',
+  YELLOW: '#cf8730',
+
   GRAY_1: '#f8f8f8',
-  GRAY_2: '#eaeaea',
-  GRAY_3: '#e5e5e5',
-  GRAY_4: '#cbcbcb',
+  GRAY_2: '#f3f3f3',
+  GRAY_3: '#eaeaea',
+  GRAY_4: '#e5e5e5',
+  GRAY_5: '#cbcbcb',
+  GRAY_6: '#b0b0b0',
 
   CODEMIRROR_TOKENS: {
     DEFINITION: '#566f4e', // Deep moss
@@ -58,12 +66,12 @@ const lightTheme = {
 
   colors: {
     text: {
-      green: '#047857',
+      green: colors.GREEN,
       danger: '#B91C1C',
       warning: '#f57c00',
       muted: '#838383',
       purple: '#8e44ad',
-      yellow: '#d97706'
+      yellow: colors.YELLOW
     },
     bg: {
       danger: '#dc3545'
@@ -101,8 +109,8 @@ const lightTheme = {
     muted: '#4b5563',
     bg: colors.GRAY_1,
     dragbar: {
-      border: colors.GRAY_3,
-      activeBorder: colors.GRAY_4
+      border: colors.GRAY_4,
+      activeBorder: colors.GRAY_5
     },
 
     badge: {
@@ -116,12 +124,12 @@ const lightTheme = {
 
     collection: {
       item: {
-        bg: colors.GRAY_2,
-        hoverBg: colors.GRAY_2,
-        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
-        indentBorder: `solid 1px ${colors.GRAY_3}`,
+        bg: colors.GRAY_3,
+        hoverBg: colors.GRAY_3,
+        focusBorder: colors.GRAY_5,
+        indentBorder: `solid 1px ${colors.GRAY_4}`,
         active: {
-          indentBorder: `solid 1px ${colors.GRAY_3}`
+          indentBorder: `solid 1px ${colors.GRAY_4}`
         }
       }
     },
@@ -207,7 +215,7 @@ const lightTheme = {
       icon: '#515151',
       iconDanger: '#d91f11',
       errorHoverBg: '#fef2f2',
-      border: `solid 1px ${colors.GRAY_3}`
+      border: `solid 1px ${colors.GRAY_4}`
     },
     dragbar: {
       border: '#efefef',
@@ -331,9 +339,11 @@ const lightTheme = {
   },
 
   tabs: {
+    marginRight: '1.2rem',
     active: {
-      color: '#343434',
-      border: '#D97706'
+      fontWeight: 400,
+      color: colors.SLATE_BLACK,
+      border: '#cf8730'
     },
     secondary: {
       active: {
@@ -349,7 +359,7 @@ const lightTheme = {
 
   requestTabs: {
     color: 'rgb(52, 52, 52)',
-    bg: '#f7f7f7',
+    bg: '#f6f6f6',
     bottomBorder: '#efefef',
     icon: {
       color: '#9f9f9f',
@@ -390,8 +400,7 @@ const lightTheme = {
         editorBorder: '#EFEFEF',
         editorFocusBorder: '#989898',
         editableDisplayHoverBg: 'rgba(0,0,0,0.02)',
-        border: '#EFEFEF',
-        editorBorder: '#EFEFEF'
+        border: '#EFEFEF'
       }
     },
     tokens: {
@@ -613,6 +622,41 @@ const lightTheme = {
     },
     checkbox: {
       color: '#fff'
+    }
+  },
+
+  app: {
+    collection: {
+      toolbar: {
+        environmentSelector: {
+          bg: colors.WHITE,
+          border: colors.GRAY_4,
+          icon: colors.BRAND,
+          text: colors.TEXT,
+          caret: colors.GRAY_6,
+          separator: colors.GRAY_4,
+          hoverBg: colors.WHITE,
+          hoverBorder: colors.GRAY_5,
+
+          noEnvironment: {
+            text: colors.TEXT_MUTED,
+            bg: colors.WHITE,
+            border: colors.GRAY_5,
+            hoverBg: colors.WHITE,
+            hoverBorder: colors.GRAY_6
+          }
+        },
+        sandboxMode: {
+          safeMode: {
+            bg: 'rgba(4, 120, 87, 0.12)',
+            color: colors.GREEN
+          },
+          developerMode: {
+            bg: 'rgba(204, 145, 73, 0.15)',
+            color: colors.YELLOW
+          }
+        }
+      }
     }
   }
 };

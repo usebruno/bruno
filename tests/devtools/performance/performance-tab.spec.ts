@@ -121,7 +121,7 @@ test.describe('DevTools Performance Tab', () => {
     await expect(performanceTab).not.toHaveClass(/active/);
 
     // Verify Console tab content is shown
-    await expect(page.locator('.tab-content')).toBeVisible();
+    await expect(page.locator('.console-empty')).toBeVisible();
 
     // Switch back to Performance tab
     await performanceTab.click();

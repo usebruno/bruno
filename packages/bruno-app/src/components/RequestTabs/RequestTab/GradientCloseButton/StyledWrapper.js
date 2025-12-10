@@ -47,7 +47,7 @@ const StyledWrapper = styled.div.attrs((props) => ({
     align-items: center;
     width: 22px;
     height: 22px;
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.base};
     cursor: pointer;
     transition: background-color 0.12s ease;
 
@@ -68,8 +68,8 @@ const StyledWrapper = styled.div.attrs((props) => ({
   }
 
   .has-changes-icon {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
 
   .draft-icon-wrapper { 

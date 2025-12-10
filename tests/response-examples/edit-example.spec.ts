@@ -1,6 +1,7 @@
 import { test, expect } from '../../playwright';
 import { execSync } from 'child_process';
 import path from 'path';
+import { clickResponseAction } from '../utils/page/actions';
 
 test.describe.serial('Edit Response Examples', () => {
   test.afterAll(async () => {
@@ -16,7 +17,7 @@ test.describe.serial('Edit Response Examples', () => {
 
     await test.step('Make a successful request and create an example', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click();
+      await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Test Example');
       await page.getByTestId('create-example-description-input').fill('This is a test example');
@@ -51,7 +52,7 @@ test.describe.serial('Edit Response Examples', () => {
 
     await test.step('Create example to update', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
+      await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Original Example Name');
       await page.getByTestId('create-example-description-input').fill('Original description');
@@ -85,7 +86,7 @@ test.describe.serial('Edit Response Examples', () => {
 
     await test.step('Create example to update description', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
+      await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Description Test Example');
       await page.getByTestId('create-example-description-input').fill('Original description');
@@ -119,7 +120,7 @@ test.describe.serial('Edit Response Examples', () => {
 
     await test.step('Create example to test cancel functionality', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
+      await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Cancel Test Example');
       await page.getByTestId('create-example-description-input').fill('Original description for cancel test');
@@ -154,7 +155,7 @@ test.describe.serial('Edit Response Examples', () => {
 
     await test.step('Create example to test keyboard shortcut', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
+      await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Keyboard Shortcut Test Example');
       await page.getByTestId('create-example-description-input').fill('Original description for keyboard test');

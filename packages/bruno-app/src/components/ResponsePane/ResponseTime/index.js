@@ -17,6 +17,6 @@ const ResponseTime = ({ duration }) => {
     return null;
   }
 
-  return <StyledWrapper className="ml-4">{durationToDisplay}</StyledWrapper>;
+  return <StyledWrapper className="ml-2">{durationToDisplay}</StyledWrapper>;
 };
 export default ResponseTime;

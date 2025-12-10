@@ -1,5 +1,6 @@
 import { test, expect } from '../../playwright';
 import {
+  clickResponseAction,
   closeAllCollections,
   createCollection,
   createRequest,
@@ -18,7 +19,7 @@ test.describe('Response Pane Actions', () => {
 
     await test.step('Create collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
-      await createRequest(page, 'copy-test', collectionName, { url: 'https://httpbin.org/json' });
+      await createRequest(page, 'copy-test', collectionName, { url: 'https://testbench-sanity.usebruno.com/ping' });
     });
 
     await test.step('Send request and wait for response', async () => {
@@ -26,8 +27,7 @@ test.describe('Response Pane Actions', () => {
     });
 
     await test.step('Copy response to clipboard', async () => {
-      await expect(locators.response.copyButton()).toBeVisible();
-      await locators.response.copyButton().click();
+      await clickResponseAction(page, 'response-copy-btn');
       await expect(page.getByText('Response copied to clipboard')).toBeVisible();
     });
   });

@@ -39,7 +39,7 @@ import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
-import { hideHomePage } from 'providers/ReduxStore/slices/app';
+import { hideHomePage, hideApiSpecPage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
@@ -200,7 +200,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   });
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
-    'item-focused-in-tab': isTabForItemActive && !isKeyboardFocused,
+    'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
     'drop-target': isOver && dropType === 'inside',
     'drop-target-above': isOver && dropType === 'adjacent',
@@ -222,6 +222,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     const isRequest = isItemARequest(item);
     if (isRequest) {
       dispatch(hideHomePage());
+      dispatch(hideApiSpecPage());
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
@@ -239,6 +240,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         })
       );
     } else {
+      dispatch(hideHomePage());
+      dispatch(hideApiSpecPage());
       dispatch(
         addTab({
           uid: item.uid,
@@ -501,6 +504,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        data-testid="sidebar-collection-item-row"
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length

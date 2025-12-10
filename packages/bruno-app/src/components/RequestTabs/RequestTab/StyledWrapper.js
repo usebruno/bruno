@@ -15,7 +15,6 @@ const StyledWrapper = styled.div`
 
   .tab-method {
     font-size: 0.6875rem;
-    font-weight: 600;
     letter-spacing: 0.02em;
     flex-shrink: 0;
   }
@@ -25,6 +24,9 @@ const StyledWrapper = styled.div`
     overflow: hidden;
     white-space: nowrap;
     font-size: 0.8125rem;
+
+    // so that the name does not cutoff when italicized
+    padding-right: 2px;
   }
 `;
 

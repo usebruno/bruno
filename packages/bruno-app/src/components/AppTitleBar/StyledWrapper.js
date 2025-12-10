@@ -29,7 +29,6 @@ const Wrapper = styled.div`
   .workspace-name-container,
   .dropdown-item,
   .home-button,
-  .env-selector-trigger,
   .dropdown,
   button {
     -webkit-app-region: no-drag;
@@ -47,25 +46,6 @@ const Wrapper = styled.div`
   /* When in full screen, no traffic lights so remove margin-left */
   &.fullscreen .titlebar-left {
     margin-left: 0px;
-  }
-
-  /* Home button */
-  .home-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    background: transparent;
-    border-radius: 6px;
-    cursor: pointer;
-    color: ${(props) => props.theme.sidebar.color};
-    transition: background 0.15s ease;
-
-    &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    }
   }
 
   /* Workspace Name Dropdown Trigger */
@@ -112,7 +92,7 @@ const Wrapper = styled.div`
     .bruno-text {
       font-size: 13px;
       font-weight: 600;
-      color: ${(props) => props.theme.sidebar.muted};
+      color: ${(props) => props.theme.text};
       letter-spacing: 0.5px;
     }
   }
@@ -123,36 +103,6 @@ const Wrapper = styled.div`
     align-items: center;
     justify-content: flex-end;
     flex-shrink: 0;
-  }
-
-  /* Action buttons in right section */
-  .titlebar-action-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    background: transparent;
-    border-radius: 6px;
-    cursor: pointer;
-    color: ${(props) => props.theme.sidebar.color};
-    transition: background 0.15s ease;
-
-    &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    }
-
-    svg {
-      color: ${(props) => props.theme.sidebar.color};
-    }
-  }
-
-  /* Draggable region */
-  .drag-region {
-    flex: 1;
-    height: 100%;
-    -webkit-app-region: drag;
   }
 
   /* Workspace Dropdown Styles */

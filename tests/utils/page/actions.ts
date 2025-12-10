@@ -64,7 +64,7 @@ type CreateCollectionOptions = {
  */
 const createCollection = async (page, collectionName: string, collectionLocation: string, options: CreateCollectionOptions = {}) => {
   await test.step(`Create collection "${collectionName}"`, async () => {
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
     const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
@@ -87,6 +87,68 @@ const createCollection = async (page, collectionName: string, collectionLocation
 type CreateRequestOptions = {
   url?: string;
   inFolder?: boolean;
+};
+
+type CreateUntitledRequestOptions = {
+  requestType?: 'HTTP' | 'GraphQL' | 'WebSocket' | 'gRPC';
+  requestName?: string;
+  url?: string;
+  tag?: string;
+};
+
+/**
+ * Create an untitled request using the new dropdown flow (from tabs area)
+ * @param page - The page object
+ * @param options - Optional settings (requestType, url, tag)
+ * @returns void
+ */
+const createUntitledRequest = async (
+  page: Page,
+  options: CreateUntitledRequestOptions = {}
+) => {
+  const { requestType = 'HTTP', url, tag } = options;
+
+  await test.step(`Create untitled ${requestType} request${url ? ' with URL' : ''}${tag ? ' with tag' : ''}`, async () => {
+    // Click the + icon to open the dropdown
+    const createButton = page.locator('.short-tab').locator('svg').first();
+    await createButton.waitFor({ state: 'visible' });
+    await createButton.click();
+
+    // Select the request type from dropdown
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: requestType }).waitFor({ state: 'visible' });
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: requestType }).click();
+
+    // Wait for the request tab to be active
+    await page.locator('.request-tab.active').waitFor({ state: 'visible' });
+    await page.waitForTimeout(300);
+
+    // Fill URL if provided
+    if (url) {
+      await page.locator('#request-url .CodeMirror').click();
+      await page.locator('#request-url textarea').fill(url);
+      await page.locator('#send-request').getByTitle('Save Request').click();
+      await page.waitForTimeout(200);
+    }
+
+    // Add tag if provided
+    if (tag) {
+      await selectRequestPaneTab(page, 'Settings');
+      await page.waitForTimeout(200);
+      const tagInput = await page.getByTestId('tag-input').getByRole('textbox');
+      await tagInput.fill(tag);
+      await tagInput.press('Enter');
+      await page.waitForTimeout(200);
+      await expect(page.locator('.tag-item', { hasText: tag })).toBeVisible();
+      await page.keyboard.press('Meta+s');
+      await page.waitForTimeout(200);
+    }
+
+    // Wait for toast message to ensure request creation is complete
+    // This helps prevent race conditions when creating multiple requests
+    await expect(page.getByText('New request created!')).toBeVisible({ timeout: 10000 }).catch(() => {
+      // Toast might have already disappeared, that's okay
+    });
+  });
 };
 
 /**
@@ -184,7 +246,7 @@ const importCollection = async (
   await test.step(`Import collection from "${filePath}"`, async () => {
     const locators = buildCommonLocators(page);
 
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import modal
@@ -469,14 +531,29 @@ const sendRequest = async (
  * @param requestName - The name of the request to open
  * @returns void
  */
-const openRequest = async (page: Page, requestName: string) => {
-  await test.step(`Open request "${requestName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    await locators.sidebar.request(requestName).click();
-    await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+// const openRequest = async (page: Page, requestName: string) => {
+//   await test.step(`Open request "${requestName}"`, async () => {
+//     const locators = buildCommonLocators(page);
+//     await locators.sidebar.request(requestName).click();
+//     await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+//   });
+// };
+
+/**
+* Navigate to a collection and open a request
+* @param page - The page object
+* @param collectionName - The name of the collection
+* @param requestName - The name of the request
+*/
+const openRequest = async (page: Page, collectionName: string, requestName: string) => {
+  await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
+    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
+    await collectionContainer.click();
+    const collectionWrapper = collectionContainer.locator('..');
+    const request = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
+    await request.click();
   });
 };
-
 /**
  * Open a request within a folder
  * @param page - The page object
@@ -493,12 +570,97 @@ const openFolderRequest = async (page: Page, folderName: string, requestName: st
 };
 
 /**
+* Send a request and wait for the response
+ * @param page - The page object
+ * @param expectedStatusCode - The expected status code (default: '200')
+ * @param options - The options for sending the request (default: { timeout: 15000 })
+ */
+const sendRequestAndWaitForResponse = async (page: Page,
+  expectedStatusCode: string = '200',
+  options: {
+    ignoreCase?: boolean;
+    timeout?: number;
+    useInnerText?: boolean;
+  } = { timeout: 15000 }) => {
+  await test.step(`Send request and wait for status code ${expectedStatusCode}`, async () => {
+    await page.getByTestId('send-arrow-icon').click();
+    await expect(page.getByTestId('response-status-code')).toContainText(expectedStatusCode, options);
+  });
+};
+
+/**
+ * Switch the response format
+ * @param page - The page object
+ * @param format - The format to switch to (e.g., 'JSON', 'HTML', 'XML', 'JavaScript', 'Raw', 'Hex', 'Base64')
+ */
+const switchResponseFormat = async (page: Page, format: string) => {
+  await test.step(`Switch response format to ${format}`, async () => {
+    const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.click();
+    await page.getByTestId('format-response-tab-dropdown').getByText(format).click();
+  });
+};
+
+/**
+ * Switch to the preview tab
+ * @param page - The page object
+ */
+const switchToPreviewTab = async (page: Page) => {
+  await test.step('Switch to preview tab', async () => {
+    const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.click();
+    const previewTab = page.getByTestId('preview-response-tab');
+    await previewTab.click();
+  });
+};
+
+/**
+ * Switch to the editor tab
+ * @param page - The page object
+ */
+const switchToEditorTab = async (page: Page) => {
+  await test.step('Switch to editor tab', async () => {
+    const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.click();
+    const previewTab = page.getByTestId('preview-response-tab');
+    await previewTab.click();
+  });
+};
+
+/**
  * Get the response body text
  * @param page - The page object
  * @returns The response body text
  */
 const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
+};
+
+const selectRequestPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Select request pane tab "${tabName}"`, async () => {
+    const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
+    const overflowButton = page.locator('.tabs .more-tabs');
+
+    // Check if tab is directly visible
+    if (await visibleTab.isVisible()) {
+      await visibleTab.click();
+      return;
+    }
+
+    // Check if there's an overflow dropdown
+    if (await overflowButton.isVisible()) {
+      await overflowButton.click();
+
+      // Wait for dropdown to appear and click the tab
+      const dropdownTab = page.locator('.tippy-content').getByRole('tab', { name: tabName });
+      await expect(dropdownTab).toBeVisible();
+      await dropdownTab.click();
+      return;
+    }
+
+    // If neither found, fail with a helpful message
+    throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+  });
 };
 
 /**
@@ -516,11 +678,24 @@ const expectResponseContains = async (page: Page, texts: string[]) => {
   });
 };
 
+// Create a action to click a response action
+const clickResponseAction = async (page: Page, actionTestId: string) => {
+  const actionButton = await page.getByTestId(actionTestId);
+  if (await actionButton.isVisible()) {
+    await actionButton.click();
+  } else {
+    const menu = await page.getByTestId('response-actions-menu');
+    await menu.click();
+    await actionButton.click();
+  }
+};
+
 export {
   closeAllCollections,
   openCollectionAndAcceptSandbox,
   createCollection,
   createRequest,
+  createUntitledRequest,
   deleteRequest,
   importCollection,
   removeCollection,
@@ -536,7 +711,13 @@ export {
   openRequest,
   openFolderRequest,
   getResponseBody,
-  expectResponseContains
+  expectResponseContains,
+  selectRequestPaneTab,
+  sendRequestAndWaitForResponse,
+  switchResponseFormat,
+  switchToPreviewTab,
+  switchToEditorTab,
+  clickResponseAction
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions };

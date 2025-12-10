@@ -3,7 +3,8 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { IconCopy, IconCheck } from '@tabler/icons';
 
-const ResponseCopy = ({ item }) => {
+// Hook to get copy response function
+export const useResponseCopy = (item) => {
   const response = item.response || {};
   const [copied, setCopied] = useState(false);
 
@@ -30,16 +31,39 @@ const ResponseCopy = ({ item }) => {
     }
   };
 
+  return { copyResponse, copied, hasData: !!response.data };
+};
+
+const ResponseCopy = ({ item, children }) => {
+  const { copyResponse, copied, hasData } = useResponseCopy(item);
+
+  const handleKeyDown = (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && hasData) {
+      e.preventDefault();
+      copyResponse();
+    }
+  };
+
+  const handleClick = () => {
+    if (hasData) {
+      copyResponse();
+    }
+  };
+
   return (
-    <StyledWrapper className="ml-2 flex items-center">
-      <button onClick={copyResponse} disabled={!response.data} title="Copy response to clipboard">
-        {copied ? (
-          <IconCheck size={16} strokeWidth={1.5} />
-        ) : (
-          <IconCopy size={16} strokeWidth={1.5} />
-        )}
-      </button>
-    </StyledWrapper>
+    <div role={!!children ? 'button' : undefined} tabIndex={0} onClick={handleClick} title={!children ? 'Copy response to clipboard' : null} onKeyDown={handleKeyDown} data-testid="response-copy-btn">
+      {children ? children : (
+        <StyledWrapper className="flex items-center">
+          <button className="p-1" disabled={!hasData}>
+            {copied ? (
+              <IconCheck size={16} strokeWidth={2} />
+            ) : (
+              <IconCopy size={16} strokeWidth={2} />
+            )}
+          </button>
+        </StyledWrapper>
+      )}
+    </div>
   );
 };
 

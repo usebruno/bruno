@@ -5,7 +5,7 @@ test.describe('Invalid OpenAPI - Missing Info Section', () => {
   test('Handle OpenAPI specification missing required info section', async ({ page }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-missing-info.yaml');
 
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
