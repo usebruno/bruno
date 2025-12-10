@@ -28,11 +28,10 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 16px;
     padding: 6px 4px 6px 8px;
     min-height: 28px;
     height: 28px;
-    cursor: pointer;
     user-select: none;
     transition: background-color 0.15s ease;
     flex-shrink: 0;
@@ -44,6 +43,8 @@ const StyledWrapper = styled.div`
       gap: 6px;
       flex: 1;
       min-width: 0;
+      cursor: pointer;
+
 
       &:hover {
         .section-toggle {
