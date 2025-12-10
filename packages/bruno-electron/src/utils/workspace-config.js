@@ -4,6 +4,7 @@ const yaml = require('js-yaml');
 const { writeFile, validateName } = require('./filesystem');
 
 const WORKSPACE_TYPE = 'workspace';
+const OPENCOLLECTION_VERSION = '1.0.0';
 
 const makeRelativePath = (workspacePath, absolutePath) => {
   if (!path.isAbsolute(absolutePath)) {
@@ -61,13 +62,25 @@ const validateWorkspaceDirectory = (dirPath) => {
 };
 
 const createWorkspaceConfig = (workspaceName) => ({
-  name: workspaceName,
-  type: WORKSPACE_TYPE,
-  version: '1.0.0',
-  docs: '',
+  opencollection: OPENCOLLECTION_VERSION,
+  info: {
+    name: workspaceName,
+    type: WORKSPACE_TYPE
+  },
   collections: [],
-  apiSpecs: []
+  specs: [],
+  docs: ''
 });
+
+const normalizeWorkspaceConfig = (config) => {
+  return {
+    ...config,
+    name: config.info?.name,
+    type: config.info?.type,
+    collections: config.collections || [],
+    apiSpecs: config.specs || []
+  };
+};
 
 const readWorkspaceConfig = (workspacePath) => {
   const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
@@ -83,15 +96,69 @@ const readWorkspaceConfig = (workspacePath) => {
     throw new Error('Invalid workspace: workspace.yml is malformed');
   }
 
-  return workspaceConfig;
+  return normalizeWorkspaceConfig(workspaceConfig);
+};
+
+const generateYamlContent = (config) => {
+  const yamlLines = [];
+  yamlLines.push(`opencollection: ${config.opencollection || OPENCOLLECTION_VERSION}`);
+  yamlLines.push('info:');
+  yamlLines.push(`  name: ${config.info?.name || config.name}`);
+  yamlLines.push(`  type: ${config.info?.type || config.type || WORKSPACE_TYPE}`);
+  yamlLines.push('');
+
+  const collections = config.collections || [];
+  if (collections.length > 0) {
+    yamlLines.push('collections:');
+    for (const collection of collections) {
+      yamlLines.push(`  - name: ${collection.name}`);
+      yamlLines.push(`    path: ${collection.path}`);
+      if (collection.remote) {
+        yamlLines.push(`    remote: ${collection.remote}`);
+      }
+      if (collection.type) {
+        yamlLines.push(`    type: ${collection.type}`);
+      }
+    }
+  } else {
+    yamlLines.push('collections:');
+  }
+  yamlLines.push('');
+
+  const specs = config.specs || [];
+  if (specs.length > 0) {
+    yamlLines.push('specs:');
+    for (const spec of specs) {
+      yamlLines.push(`  - name: ${spec.name}`);
+      yamlLines.push(`    path: ${spec.path}`);
+    }
+  } else {
+    yamlLines.push('specs:');
+  }
+  yamlLines.push('');
+
+  const docs = config.docs || '';
+  if (docs) {
+    const escapedDocs = docs.includes('\n')
+      ? `|-\n  ${docs.split('\n').join('\n  ')}`
+      : `'${docs.replace(/'/g, '\'\'')}'`;
+    yamlLines.push(`docs: ${escapedDocs}`);
+  } else {
+    yamlLines.push('docs: \'\'');
+  }
+
+  if (config.activeEnvironmentUid) {
+    yamlLines.push('');
+    yamlLines.push(`activeEnvironmentUid: ${config.activeEnvironmentUid}`);
+  }
+
+  yamlLines.push('');
+
+  return yamlLines.join('\n');
 };
 
 const writeWorkspaceConfig = async (workspacePath, config) => {
-  const yamlContent = yaml.dump(config, {
-    indent: 2,
-    lineWidth: -1,
-    noRefs: true
-  });
+  const yamlContent = generateYamlContent(config);
   await writeFile(path.join(workspacePath, 'workspace.yml'), yamlContent);
 };
 
@@ -100,11 +167,13 @@ const validateWorkspaceConfig = (config) => {
     throw new Error('Workspace configuration must be an object');
   }
 
-  if (config.type !== WORKSPACE_TYPE) {
+  const type = config.info?.type || config.type;
+  if (type !== WORKSPACE_TYPE) {
     throw new Error('Invalid workspace: not a bruno workspace');
   }
 
-  if (!config.name || typeof config.name !== 'string') {
+  const name = config.info?.name || config.name;
+  if (!name || typeof name !== 'string') {
     throw new Error('Workspace must have a valid name');
   }
 
@@ -114,6 +183,9 @@ const validateWorkspaceConfig = (config) => {
 const updateWorkspaceName = async (workspacePath, newName) => {
   const config = readWorkspaceConfig(workspacePath);
   config.name = newName;
+  if (config.info) {
+    config.info.name = newName;
+  }
   await writeWorkspaceConfig(workspacePath, config);
   return config;
 };
@@ -132,7 +204,6 @@ const addCollectionToWorkspace = async (workspacePath, collection) => {
     config.collections = [];
   }
 
-  // Normalize collection entry
   const normalizedCollection = {
     name: collection.name,
     path: collection.path
@@ -142,7 +213,6 @@ const addCollectionToWorkspace = async (workspacePath, collection) => {
     normalizedCollection.remote = collection.remote;
   }
 
-  // Check if collection already exists
   const existingIndex = config.collections.findIndex((c) => c.name === normalizedCollection.name || c.path === normalizedCollection.path);
 
   if (existingIndex >= 0) {
@@ -168,7 +238,6 @@ const removeCollectionFromWorkspace = async (workspacePath, collectionPath) => {
       return true;
     }
 
-    // Convert to absolute path for comparison
     const absoluteCollectionPath = path.isAbsolute(collectionPathFromYml)
       ? collectionPathFromYml
       : path.resolve(workspacePath, collectionPathFromYml);
@@ -176,16 +245,15 @@ const removeCollectionFromWorkspace = async (workspacePath, collectionPath) => {
     if (path.normalize(absoluteCollectionPath) === path.normalize(collectionPath)) {
       removedCollection = c;
 
-      // Delete files only for workspace collections (not remote, not external absolute paths)
       const hasRemote = c.remote;
       const isExternalPath = path.isAbsolute(collectionPathFromYml);
 
       shouldDeleteFiles = !hasRemote && !isExternalPath;
 
-      return false; // Remove from array
+      return false;
     }
 
-    return true; // Keep in array
+    return true;
   });
 
   await writeWorkspaceConfig(workspacePath, config);
@@ -214,67 +282,63 @@ const getWorkspaceCollections = (workspacePath) => {
 
 const getWorkspaceApiSpecs = (workspacePath) => {
   const config = readWorkspaceConfig(workspacePath);
-  const apiSpecs = config.apiSpecs || [];
+  const specs = config.specs || [];
 
-  // Resolve relative paths to absolute
-  return apiSpecs.map((apiSpec) => {
-    if (apiSpec.path && !path.isAbsolute(apiSpec.path)) {
+  return specs.map((spec) => {
+    if (spec.path && !path.isAbsolute(spec.path)) {
       return {
-        ...apiSpec,
-        path: path.join(workspacePath, apiSpec.path)
+        ...spec,
+        path: path.join(workspacePath, spec.path)
       };
     }
-    return apiSpec;
+    return spec;
   });
 };
 
 const addApiSpecToWorkspace = async (workspacePath, apiSpec) => {
   const config = readWorkspaceConfig(workspacePath);
 
-  if (!config.apiSpecs) {
-    config.apiSpecs = [];
+  if (!config.specs) {
+    config.specs = [];
   }
 
-  // Normalize API spec entry with relative path
-  const normalizedApiSpec = {
+  const normalizedSpec = {
     name: apiSpec.name,
     path: makeRelativePath(workspacePath, apiSpec.path)
   };
 
-  // Check if API spec already exists
-  const existingIndex = config.apiSpecs.findIndex(
-    (a) => a.name === normalizedApiSpec.name || a.path === normalizedApiSpec.path
+  const existingIndex = config.specs.findIndex(
+    (a) => a.name === normalizedSpec.name || a.path === normalizedSpec.path
   );
 
   if (existingIndex >= 0) {
-    config.apiSpecs[existingIndex] = normalizedApiSpec;
+    config.specs[existingIndex] = normalizedSpec;
   } else {
-    config.apiSpecs.push(normalizedApiSpec);
+    config.specs.push(normalizedSpec);
   }
 
   await writeWorkspaceConfig(workspacePath, config);
-  return config.apiSpecs;
+  return config.specs;
 };
 
 const removeApiSpecFromWorkspace = async (workspacePath, apiSpecPath) => {
   const config = readWorkspaceConfig(workspacePath);
 
-  if (!config.apiSpecs) {
+  if (!config.specs) {
     return { removedApiSpec: null, updatedConfig: config };
   }
 
   let removedApiSpec = null;
 
-  config.apiSpecs = config.apiSpecs.filter((a) => {
-    const apiSpecPathFromYml = a.path;
-    if (!apiSpecPathFromYml) return true;
+  config.specs = config.specs.filter((a) => {
+    const specPathFromYml = a.path;
+    if (!specPathFromYml) return true;
 
-    // Convert to absolute path for comparison
-    const absoluteApiSpecPath = path.isAbsolute(apiSpecPathFromYml)
-      ? apiSpecPathFromYml
-      : path.resolve(workspacePath, apiSpecPathFromYml);
+    const absoluteSpecPath = path.isAbsolute(specPathFromYml)
+      ? specPathFromYml
+      : path.resolve(workspacePath, specPathFromYml);
 
-    if (path.normalize(absoluteApiSpecPath) === path.normalize(apiSpecPath)) {
+    if (path.normalize(absoluteSpecPath) === path.normalize(apiSpecPath)) {
       removedApiSpec = a;
       return false;
     }
@@ -306,5 +370,6 @@ module.exports = {
   getWorkspaceCollections,
   getWorkspaceApiSpecs,
   addApiSpecToWorkspace,
-  removeApiSpecFromWorkspace
+  removeApiSpecFromWorkspace,
+  generateYamlContent
 };
