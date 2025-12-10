@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "name": "Multiline ContentType Test",
+    "type": "http",
+    "seq": "1"
+  },
+  "http": {
+    "method": "post",
+    "url": "{{host}}/test",
+    "body": "multipartForm"
+  },
+  "examples": [
+    {
+      "name": "Example with multiline strings and contentType",
+      "request": {
+        "url": "{{host}}/test",
+        "method": "POST",
+        "body": {
+          "mode": "multipartForm",
+          "multipartForm": [
+            {
+              "name": "test",
+              "value": "{\n\"hello\" : \"there\"\n}",
+              "enabled": true,
+              "type": "text",
+              "contentType": "application/json"
+            },
+            {
+              "name": "simple",
+              "value": "cat and mouse",
+              "enabled": true,
+              "type": "text",
+              "contentType": "text/plain"
+            },
+            {
+              "name": "array",
+              "value": "[\n\"coolade\", \n\"blast\"\n]",
+              "enabled": true,
+              "type": "text",
+              "contentType": ""
+            },
+            {
+              "name": "jsonValue",
+              "value": "{\n  \"key\": \"value\",\n  \"nested\": {\n    \"data\": 123\n  }\n}",
+              "enabled": true,
+              "type": "text",
+              "contentType": "application/json"
+            },
+            {
+              "name": "textValue",
+              "value": "This is a\nmultiline text\nvalue",
+              "enabled": true,
+              "type": "text",
+              "contentType": "text/plain"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK",
+        "body": {
+          "type": "json",
+          "content": "{\n  \"status\": \"success\",\n  \"message\": \"Data received\"\n}"
+        }
+      }
+    }
+  ]
+}
+

@@ -9,6 +9,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import MultiLineEditor from 'components/MultiLineEditor';
+import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
@@ -178,7 +179,7 @@ const MultipartFormParams = ({ item, collection }) => {
       placeholder: 'Auto',
       width: '20%',
       render: ({ row, value, onChange, isLastEmptyRow }) => (
-        <MultiLineEditor
+        <SingleLineEditor
           onSave={onSave}
           theme={storedTheme}
           placeholder={isLastEmptyRow ? 'Auto' : ''}
