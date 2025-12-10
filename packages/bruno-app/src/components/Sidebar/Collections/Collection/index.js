@@ -245,6 +245,16 @@ const Collection = ({ collection, searchText }) => {
     dragPreview(getEmptyImage(), { captureDraggingState: true });
   }, []);
 
+  useEffect(() => {
+    if (isCollectionFocused && collectionRef.current) {
+      try {
+        collectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        // ignore scroll errors
+      }
+    }
+  }, [isCollectionFocused]);
+
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
       return null;
@@ -293,6 +303,7 @@ const Collection = ({ collection, searchText }) => {
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        data-testid="sidebar-collection-row"
       >
         <div
           className="flex flex-grow items-center overflow-hidden"

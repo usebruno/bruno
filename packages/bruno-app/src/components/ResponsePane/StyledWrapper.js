@@ -20,6 +20,7 @@ const StyledWrapper = styled.div`
       }
 
       &.active {
+        font-weight: ${(props) => props.theme.tabs.active.fontWeight} !important;
         color: ${(props) => props.theme.tabs.active.color} !important;
         border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }
@@ -32,6 +33,12 @@ const StyledWrapper = styled.div`
 
   .all-tests-passed {
     color: ${(props) => props.theme.colors.text.green} !important;
+  }
+
+  .separator {
+    height: 16px;
+    border-left: 1px solid ${(props) => props.theme.preferences.sidebar.border};
+    margin: 0 8px;  
   }
 `;
 

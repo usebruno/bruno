@@ -25,6 +25,7 @@ const StyledWrapper = styled.div`
       }
 
       &.active {
+        font-weight: ${(props) => props.theme.tabs.active.fontWeight} !important;
         color: ${(props) => props.theme.tabs.active.color} !important;
         border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }

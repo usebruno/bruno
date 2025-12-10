@@ -78,7 +78,14 @@ export const buildCommonLocators = (page: Page) => ({
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
     pane: () => page.locator('.response-pane'),
-    copyButton: () => page.locator('button[title="Copy response to clipboard"]')
+    copyButton: () => page.locator('button[title="Copy response to clipboard"]'),
+    body: () => page.locator('.response-pane'),
+    editorContainer: () => page.locator('.response-pane .editor-container'),
+    formatTab: () => page.getByTestId('format-response-tab'),
+    formatTabDropdown: () => page.getByTestId('format-response-tab-dropdown'),
+    previewContainer: () => page.getByTestId('response-preview-container'),
+    codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
+    jsonTreeLine: () => page.locator('.response-pane .object-content')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
@@ -89,7 +96,8 @@ export const buildCommonLocators = (page: Page) => ({
     modal: () => page.locator('[data-testid="import-collection-modal"]'),
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
-    fileInput: () => page.locator('input[type="file"]')
+    fileInput: () => page.locator('input[type="file"]'),
+    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   }
 });
 
@@ -111,11 +119,11 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   toolbar: {
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
     latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
-    clearResponse: () => page.getByRole('button', { name: 'Clear Response' })
+    clearResponse: () => page.getByTestId('response-clear-button')
   }
 });
 
-export const getTableCell = (row, index) => row.locator('td').nth(index);
+export const getTableCell = (row, index) => row.locator('td').nth(index + 1);
 
 export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),

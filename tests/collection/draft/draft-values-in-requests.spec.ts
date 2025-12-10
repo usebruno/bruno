@@ -17,23 +17,15 @@ test.describe('Draft values are used in requests', () => {
     // Verify the collection settings tab is open
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Collection' })).toBeVisible();
 
-    // Add collection header in draft (unsaved)
-    // Click on Headers tab
     await page.locator('.tab.headers').click();
 
-    // Add a new header
-    await page.getByRole('button', { name: 'Add Header' }).click();
-
-    // Fill in header name and value
     const headerTable = page.locator('table').first();
     const headerRow = headerTable.locator('tbody tr').first();
 
-    // Fill in the name field
     const nameEditor = headerRow.locator('.CodeMirror').first();
     await nameEditor.click();
     await page.keyboard.type('X-Draft-Header');
 
-    // Fill in the value field
     const valueEditor = headerRow.locator('.CodeMirror').nth(1);
     await valueEditor.click();
     await page.keyboard.type('draft-value-123');
@@ -52,17 +44,18 @@ test.describe('Draft values are used in requests', () => {
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await page.locator('.collection-item-name').filter({ hasText: 'Test Folder' }).click();
 
-    // Wait for the folder to be created
     await expect(page.locator('.collection-item-name').filter({ hasText: 'Test Folder' })).toBeVisible();
     const folder = page.locator('.collection-item-name').filter({ hasText: 'Test Folder' });
 
-    // Add a header to the folder
-    await page.getByRole('button', { name: 'Add Header' }).click();
+    const folderHeaderTable = page.locator('table').first();
+    const folderHeaderRow = folderHeaderTable.locator('tbody tr').first();
 
-    await nameEditor.click();
+    const folderNameEditor = folderHeaderRow.locator('.CodeMirror').first();
+    await folderNameEditor.click();
     await page.keyboard.type('X-Folder-Draft-Header');
 
-    await valueEditor.click();
+    const folderValueEditor = folderHeaderRow.locator('.CodeMirror').nth(1);
+    await folderValueEditor.click();
     await page.keyboard.type('folder-draft-value-123');
 
     // Create a request in the collection

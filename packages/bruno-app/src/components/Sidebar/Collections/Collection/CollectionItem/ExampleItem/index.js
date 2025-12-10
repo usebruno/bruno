@@ -26,6 +26,7 @@ const ExampleItem = ({ example, item, collection }) => {
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const dropdownTippyRef = useRef(null);
+  const exampleRef = useRef(null);
 
   // Calculate indentation: item depth + 1 for examples
   const indents = range((item.depth || 0) + 1);
@@ -56,6 +57,16 @@ const ExampleItem = ({ example, item, collection }) => {
   useEffect(() => {
     setEditName(example.name);
   }, [example.name]);
+
+  useEffect(() => {
+    if (isExampleActive && exampleRef.current) {
+      try {
+        exampleRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        // ignore scroll errors
+      }
+    }
+  }, [isExampleActive]);
 
   const handleClone = async () => {
     // Calculate the index where the cloned example will be saved
@@ -137,6 +148,7 @@ const ExampleItem = ({ example, item, collection }) => {
 
   return (
     <StyledWrapper
+      ref={exampleRef}
       className={itemRowClassName}
       onClick={handleExampleClick}
       onDoubleClick={handleDoubleClick}

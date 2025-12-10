@@ -1,4 +1,5 @@
 import { test, expect } from '../../../playwright';
+import { selectRequestPaneTab } from '../../utils/page';
 
 test.describe('Max Redirects Settings Tests', () => {
   test('should configure and test max redirects settings', async ({
@@ -13,7 +14,7 @@ test.describe('Max Redirects Settings Tests', () => {
     await page.getByRole('complementary').getByText('max-redirects').click();
 
     // Go to Settings tab
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    await selectRequestPaneTab(page, 'Settings');
 
     // Test Max Redirects Settings
     const maxRedirectsInput = page.locator('input[id="maxRedirects"]');

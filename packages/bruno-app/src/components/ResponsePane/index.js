@@ -16,12 +16,11 @@ import TestResultsLabel from './TestResultsLabel';
 import ScriptError from './ScriptError';
 import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
-import ResponseActions from 'src/components/ResponsePane/ResponseActions';
-import ResponseBookmark from 'src/components/ResponsePane/ResponseBookmark';
-import ResponseCopy from 'src/components/ResponsePane/ResponseCopy';
+import ResponsePaneActions from './ResponsePaneActions';
+import QueryResultTypeSelector from './QueryResult/QueryResultTypeSelector/index';
+import { useInitialResponseFormat, useResponsePreviewFormatOptions } from './QueryResult/index';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
-import ResponseLayoutToggle from './ResponseLayoutToggle';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import WSMessagesList from './WsResponsePane/WSMessagesList';
@@ -32,6 +31,19 @@ const ResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState('raw');
+  const [selectedTab, setSelectedTab] = useState('editor');
+
+  // Initialize format and tab only once when data loads
+  const { initialFormat, initialTab } = useInitialResponseFormat(item.response?.dataBuffer, item.response?.headers);
+  const previewFormatOptions = useResponsePreviewFormatOptions(item.response?.dataBuffer, item.response?.headers);
+
+  useEffect(() => {
+    if (initialFormat !== null && initialTab !== null) {
+      setSelectedFormat(initialFormat);
+      setSelectedTab(initialTab);
+    }
+  }, [initialFormat, initialTab]);
 
   const requestTimeline = ([...(collection.timeline || [])]).filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -86,6 +98,8 @@ const ResponsePane = ({ item, collection }) => {
             headers={response.headers}
             error={response.error}
             key={item.filename}
+            selectedFormat={selectedFormat}
+            selectedTab={selectedTab}
           />
         );
       }
@@ -157,7 +171,7 @@ const ResponsePane = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center px-4 tabs" role="tablist">
+      <div className="flex items-center px-4 tabs" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
@@ -177,33 +191,50 @@ const ResponsePane = ({ item, collection }) => {
           />
         </div>
         {!isLoading ? (
-          <div className="flex flex-grow justify-end items-center">
+          <div className="flex flex-grow justify-end items-center right-side-container">
             {hasScriptError && !showScriptErrorCard && (
               <ScriptErrorIcon
                 itemUid={item.uid}
                 onClick={() => setShowScriptErrorCard(true)}
               />
             )}
-            <ResponseLayoutToggle />
-            {focusedTab?.responsePaneTab === 'timeline' ? (
-              <ClearTimeline item={item} collection={collection} />
-            ) : (item?.response && !item?.response?.error) ? (
+            {focusedTab?.responsePaneTab === 'response' ? (
               <>
-                <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
-                <ResponseCopy item={item} />
-                <ResponseActions item={item} collection={collection} />
-                <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
-                {item.response?.stream?.running
-                  ? <ResponseStopWatch startMillis={response.duration} />
-                  : <ResponseTime duration={response.duration} />}
-                <ResponseSize size={responseSize} />
+                <QueryResultTypeSelector
+                  formatOptions={previewFormatOptions}
+                  formatValue={selectedFormat}
+                  onFormatChange={(newFormat) => {
+                    setSelectedFormat(newFormat);
+                  }}
+                  onPreviewTabSelect={() => {
+                    setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
+                  }}
+                  selectedTab={selectedTab}
+                />
+                <div className="separator" />
               </>
             ) : null}
+            <div className="flex items-center response-pane-status">
+              <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
+              {item.response?.stream?.running
+                ? <ResponseStopWatch startMillis={response.duration} />
+                : <ResponseTime duration={response.duration} />}
+              <ResponseSize size={responseSize} />
+            </div>
+
+            <div className="separator" />
+            <div className="flex items-center response-pane-actions">
+              {focusedTab?.responsePaneTab === 'timeline' ? (
+                <ClearTimeline item={item} collection={collection} />
+              ) : (item?.response && !item?.response?.error) ? (
+                <ResponsePaneActions item={item} collection={collection} responseSize={responseSize} />
+              ) : null}
+            </div>
           </div>
         ) : null}
       </div>
       <section
-        className="flex flex-col min-h-0 relative px-4 auto overflow-auto"
+        className="flex flex-col min-h-0 relative px-4 pt-3 auto overflow-auto"
         style={{
           flex: '1 1 0',
           height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'

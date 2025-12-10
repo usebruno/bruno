@@ -27,7 +27,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   const [isEditing, toggleEditing] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const [showExternalLocation, setShowExternalLocation] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(true);
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
@@ -47,7 +47,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
       collectionName: '',
       collectionFolderName: '',
       collectionLocation: defaultLocation || '',
-      format: 'yml'
+      format: 'bru'
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()

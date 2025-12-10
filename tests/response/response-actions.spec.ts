@@ -1,5 +1,6 @@
 import { test, expect } from '../../playwright';
 import {
+  clickResponseAction,
   closeAllCollections,
   createCollection,
   createRequest,
@@ -26,8 +27,7 @@ test.describe('Response Pane Actions', () => {
     });
 
     await test.step('Copy response to clipboard', async () => {
-      await expect(locators.response.copyButton()).toBeVisible();
-      await locators.response.copyButton().click();
+      await clickResponseAction(page, 'response-copy-btn');
       await expect(page.getByText('Response copied to clipboard')).toBeVisible();
     });
   });
