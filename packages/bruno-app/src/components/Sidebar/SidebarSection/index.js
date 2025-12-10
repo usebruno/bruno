@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { IconChevronRight, IconChevronDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from '../SidebarAccordionContext';
+import ActionIcon from 'ui/ActionIcon/index';
 
 const SidebarSection = ({
   id,
@@ -43,13 +44,13 @@ const SidebarSection = ({
         >
           <div className="section-header-left">
             <div className="section-icon-wrapper">
-              <div className="section-toggle">
+              <ActionIcon size="sm" className="section-toggle">
                 {localExpanded ? (
                   <IconChevronDown size={12} stroke={1.5} />
                 ) : (
                   <IconChevronRight size={12} stroke={1.5} />
                 )}
-              </div>
+              </ActionIcon>
               {Icon && <Icon size={14} stroke={1.5} className="section-icon" />}
             </div>
             <span className="section-title">{title}</span>

@@ -36,18 +36,7 @@ const StyledWrapper = styled.div`
     user-select: none;
     transition: background-color 0.15s ease;
     flex-shrink: 0;
-
-    &:hover {
-      background-color: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-
-      .section-toggle {
-        display: flex;
-      }
-
-      .section-icon {
-        display: none;
-      }
-    }
+    border-bottom: 1px solid transparent;
 
     .section-header-left {
       display: flex;
@@ -55,12 +44,27 @@ const StyledWrapper = styled.div`
       gap: 6px;
       flex: 1;
       min-width: 0;
+
+      &:hover {
+        .section-toggle {
+          display: flex;
+        }
+
+        .section-toggle {
+          background: ${(props) => props.theme.dropdown.hoverBg};
+          color: ${(props) => props.theme.text} !important;
+        }
+
+        .section-icon {
+            display: none;
+          }
+        }
+      }
     }
 
     .section-icon-wrapper {
-      position: relative;
-      width: 16px;
-      height: 16px;
+      width: 24px;
+      height: 24px;
       flex-shrink: 0;
       display: flex;
       align-items: center;
@@ -69,14 +73,6 @@ const StyledWrapper = styled.div`
 
     .section-toggle {
       display: none;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      position: absolute;
-      top: 0;
-      left: 0;
-      color: ${(props) => props.theme.sidebar.muted};
     }
 
     .section-icon {
