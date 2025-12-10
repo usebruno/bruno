@@ -96,6 +96,7 @@ const EditableTable = ({
       return row;
     });
 
+    // Only add a new empty row when the key field is filled
     if (showAddRow && isLast && wasEmpty && isKeyFieldChange && value && value.trim() !== '') {
       emptyRowUidRef.current = uuid();
       updatedRows.push({
@@ -105,11 +106,22 @@ const EditableTable = ({
       });
     }
 
+    const hasAnyValue = (row) => {
+      for (const col of columns) {
+        const val = col.getValue ? col.getValue(row) : row[col.key];
+        const defaultVal = defaultRow[col.key];
+        if (val && val !== defaultVal && (typeof val !== 'string' || val.trim() !== '')) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     const result = updatedRows.filter((row, i) => {
-      if (showAddRow && i === updatedRows.length - 1) return false;
-      if (!showAddRow) return true;
-      const keyVal = keyColumn ? (keyColumn.getValue ? keyColumn.getValue(row) : row[keyColumn.key]) : '';
-      return keyVal && (typeof keyVal !== 'string' || keyVal.trim() !== '');
+      if (showAddRow && i === updatedRows.length - 1) {
+        return hasAnyValue(row);
+      }
+      return true;
     });
 
     onChange(result);
@@ -253,7 +265,7 @@ const EditableTable = ({
                       {reorderable && canDrag && (
                         <div
                           draggable
-                          className="drag-handle group absolute z-10 left-[-4px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                          className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
                         >
                           {hoveredRow === rowIndex && (
                             <>

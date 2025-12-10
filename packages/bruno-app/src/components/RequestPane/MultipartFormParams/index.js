@@ -67,7 +67,8 @@ const MultipartFormParams = ({ item, collection }) => {
   }, [dispatch, collection.pathname, item, handleParamsChange]);
 
   const handleClearFile = useCallback((row) => {
-    const updatedParams = params.map((p) => {
+    const currentParams = params || [];
+    const updatedParams = currentParams.map((p) => {
       if (p.uid === row.uid) {
         return { ...p, type: 'text', value: '' };
       }
@@ -77,13 +78,19 @@ const MultipartFormParams = ({ item, collection }) => {
   }, [params, handleParamsChange]);
 
   const handleValueChange = useCallback((row, newValue, onChange) => {
-    const updatedParams = params.map((p) => {
-      if (p.uid === row.uid) {
-        return { ...p, type: 'text', value: newValue };
-      }
-      return p;
-    });
-    handleParamsChange(updatedParams);
+    const currentParams = params || [];
+    const existingParam = currentParams.find((p) => p.uid === row.uid);
+    if (existingParam) {
+      const updatedParams = currentParams.map((p) => {
+        if (p.uid === row.uid) {
+          return { ...p, type: 'text', value: newValue };
+        }
+        return p;
+      });
+      handleParamsChange(updatedParams);
+    } else {
+      onChange(newValue);
+    }
   }, [params, handleParamsChange]);
 
   const getFileName = (filePaths) => {

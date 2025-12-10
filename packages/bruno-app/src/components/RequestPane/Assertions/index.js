@@ -87,21 +87,30 @@ const Assertions = ({ item, collection }) => {
       key: 'operator',
       name: 'Operator',
       width: '120px',
+      getValue: (row) => parseAssertionOperator(row.value).operator,
       render: ({ row, rowIndex, isLastEmptyRow }) => {
         const { operator } = parseAssertionOperator(row.value);
         const assertionValue = parseAssertionOperator(row.value).value;
 
         const handleOperatorChange = (newOperator) => {
-          const updatedAssertions = assertions.map((assertion, idx) => {
-            if (idx === rowIndex) {
-              return {
-                ...assertion,
-                value: isUnaryOperator(newOperator) ? newOperator : `${newOperator} ${assertionValue}`
-              };
-            }
-            return assertion;
-          });
-          handleAssertionsChange(updatedAssertions);
+          const currentAssertions = assertions || [];
+          const existingAssertion = currentAssertions.find((a) => a.uid === row.uid);
+          const newValue = isUnaryOperator(newOperator) ? newOperator : `${newOperator} ${assertionValue}`;
+
+          if (existingAssertion) {
+            const updatedAssertions = currentAssertions.map((assertion) => {
+              if (assertion.uid === row.uid) {
+                return {
+                  ...assertion,
+                  value: newValue
+                };
+              }
+              return assertion;
+            });
+            handleAssertionsChange(updatedAssertions);
+          } else {
+            handleAssertionsChange([...currentAssertions, { ...row, value: newValue }]);
+          }
         };
 
         return (

@@ -20,7 +20,7 @@ const Wrapper = styled.div`
 
     td {
       vertical-align: middle;
-      padding: 0 12px;
+      padding: 2px 10px;
 
       &:nth-child(1) {
         width: 25px;

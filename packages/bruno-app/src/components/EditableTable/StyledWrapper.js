@@ -36,7 +36,7 @@ const StyledWrapper = styled.div`
       vertical-align: middle;
 
       &:nth-child(1) {
-        width: 25px;
+        width: 25px !important;
         border-right: none;
       }
 
@@ -55,7 +55,7 @@ const StyledWrapper = styled.div`
       }
 
       td {
-        padding: 4px 12px;
+        padding: 2px 10px;
         border-top: none !important;
         border-left: none !important;
         border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
@@ -65,6 +65,14 @@ const StyledWrapper = styled.div`
         &:nth-child(1) {
           width: 25px;
           border-right: none;
+          text-align: center;
+          vertical-align: middle;
+          line-height: 1;
+
+          input[type='checkbox'] {
+            vertical-align: baseline;
+            display: inline-block;
+          }
         }
 
         &:last-child {
@@ -132,7 +140,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     border: none;
     outline: none;
-    padding: 4px 8px;
+    padding: 2px 8px;
     font-size: 12px;
     cursor: pointer;
 
