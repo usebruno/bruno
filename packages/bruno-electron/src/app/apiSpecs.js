@@ -1,6 +1,17 @@
 const { dialog, ipcMain } = require('electron');
-const { isDirectory, normalizeAndResolvePath } = require('../utils/filesystem');
+const { normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
+const { generateYamlContent } = require('../utils/workspace-config');
+
+const normalizeWorkspaceConfig = (config) => {
+  return {
+    ...config,
+    name: config.info?.name,
+    type: config.info?.type,
+    collections: config.collections || [],
+    apiSpecs: config.specs || []
+  };
+};
 
 const openApiSpecDialog = async (win, watcher, options = {}) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
@@ -32,7 +43,7 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
         const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
         const workspaceConfig = yaml.load(yamlContent);
 
-        workspaceConfig.apiSpecs = workspaceConfig.apiSpecs || [];
+        const specs = workspaceConfig.specs || [];
 
         let relativePath = apiSpecPath;
         try {
@@ -44,32 +55,28 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
           console.log('Using absolute path for API spec:', error.message);
         }
 
-        const apiSpecName = path.basename(apiSpecPath, path.extname(apiSpecPath));
-        const apiSpecEntry = {
-          name: apiSpecName,
+        const specName = path.basename(apiSpecPath, path.extname(apiSpecPath));
+        const specEntry = {
+          name: specName,
           path: relativePath
         };
 
-        const existingApiSpec = workspaceConfig.apiSpecs.find((a) => {
+        const existingSpec = specs.find((a) => {
           const existingPath = path.isAbsolute(a.path)
             ? a.path
             : path.resolve(options.workspacePath, a.path);
-          return existingPath === apiSpecPath || a.name === apiSpecName;
+          return existingPath === apiSpecPath || a.name === specName;
         });
 
-        if (!existingApiSpec) {
-          workspaceConfig.apiSpecs.push(apiSpecEntry);
+        if (!existingSpec) {
+          workspaceConfig.specs = [...specs, specEntry];
 
-          const updatedYamlContent = yaml.dump(workspaceConfig, {
-            indent: 2,
-            lineWidth: -1,
-            noRefs: true
-          });
+          const updatedYamlContent = generateYamlContent(workspaceConfig);
           fs.writeFileSync(workspaceFilePath, updatedYamlContent);
 
-          // Notify frontend that workspace config was updated
+          const normalizedConfig = normalizeWorkspaceConfig(workspaceConfig);
           const workspaceUid = generateUidBasedOnHash(options.workspacePath);
-          win.webContents.send('main:workspace-config-updated', options.workspacePath, workspaceUid, workspaceConfig);
+          win.webContents.send('main:workspace-config-updated', options.workspacePath, workspaceUid, normalizedConfig);
         }
       }
     }

@@ -1,11 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
-const yaml = require('js-yaml');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { writeFile, createDirectory } = require('../utils/filesystem');
 const { getPreferences, savePreferences } = require('./preferences');
 const { globalEnvironmentsStore } = require('./global-environments');
+const { generateYamlContent } = require('../utils/workspace-config');
+
+const OPENCOLLECTION_VERSION = '1.0.0';
 
 class DefaultWorkspaceManager {
   constructor() {
@@ -112,22 +114,21 @@ class DefaultWorkspaceManager {
     await createDirectory(path.join(workspacePath, 'environments'));
 
     const workspaceConfig = {
-      name: 'My Workspace',
-      type: 'default',
-      version: '1.0.0',
-      docs: '',
-      collections: []
+      opencollection: OPENCOLLECTION_VERSION,
+      info: {
+        name: 'My Workspace',
+        type: 'default'
+      },
+      collections: [],
+      specs: [],
+      docs: ''
     };
 
     if (migrateFromPreferences) {
       await this.migrateFromPreferences(workspacePath, workspaceConfig);
     }
 
-    const yamlContent = yaml.dump(workspaceConfig, {
-      indent: 2,
-      lineWidth: -1,
-      noRefs: true
-    });
+    const yamlContent = generateYamlContent(workspaceConfig);
     await writeFile(path.join(workspacePath, 'workspace.yml'), yamlContent);
 
     await this.setDefaultWorkspacePath(workspacePath);
