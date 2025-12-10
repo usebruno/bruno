@@ -1,7 +1,7 @@
 import { setActiveApiSpecUid } from 'providers/ReduxStore/slices/apiSpec';
 import { showApiSpecPage as _showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import Dropdown from 'components/Dropdown';
-import { IconDots } from '@tabler/icons';
+import { IconDots, IconX } from '@tabler/icons';
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import CloseApiSpec from '../CloseApiSpec/index';
@@ -53,7 +53,10 @@ const ApiSpecItem = ({ apiSpec }) => {
               setCloseApiSpecModal(true);
             }}
           >
-            Close
+            <span className="dropdown-icon">
+              <IconX size={16} strokeWidth={2} />
+            </span>
+            Remove
           </div>
         </Dropdown>
       </div>

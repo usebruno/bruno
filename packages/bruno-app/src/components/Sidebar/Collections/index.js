@@ -7,7 +7,6 @@ import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import { useMemo } from 'react';
 import { normalizePath } from 'utils/common/path';
-import ApiSpecs from '../ApiSpecs/index';
 
 const Collections = ({ showSearch }) => {
   const [searchText, setSearchText] = useState('');
@@ -44,7 +43,7 @@ const Collections = ({ showSearch }) => {
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
-      <div className="collections-list flex flex-col flex-1 overflow-hidden hover:overflow-y-auto">
+      <div className="collections-list">
         {workspaceCollections && workspaceCollections.length
           ? workspaceCollections.map((c) => {
               return (
@@ -52,8 +51,6 @@ const Collections = ({ showSearch }) => {
               );
             })
           : null}
-        <div className="w-full my-2" style={{ height: 1 }}></div>
-        <ApiSpecs />
       </div>
     </StyledWrapper>
   );
