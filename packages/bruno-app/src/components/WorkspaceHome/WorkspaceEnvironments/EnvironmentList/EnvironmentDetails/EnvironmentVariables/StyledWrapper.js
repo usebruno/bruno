@@ -18,11 +18,14 @@ const Wrapper = styled.div`
     table-layout: fixed;
     font-size: 12px;
 
-    thead,
     td {
-      padding: 4px 12px;
+      vertical-align: middle;
+      padding: 2px 10px;
 
-      &:nth-child(1),
+      &:nth-child(1) {
+        width: 25px;
+        border-right: none;
+      }
       &:nth-child(4) {
         width: 80px;
       }
@@ -36,19 +39,15 @@ const Wrapper = styled.div`
     }
 
     thead {
-      color: ${(props) => props.theme.colors.text.muted};
+      color: ${(props) => props.theme.colors.text};
       background: ${(props) => props.theme.sidebar.bg};
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
       
       td {
         padding: 8px 10px;
         border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
         border-right: ${(props) => props.theme.workspace.environments.indentBorder};
-        font-weight: 600;
         
         &:last-child {
           border-right: none;
@@ -59,10 +58,6 @@ const Wrapper = styled.div`
     tbody {
       tr {
         transition: background 0.1s ease;
-        
-        &:hover {
-          background: ${(props) => props.theme.sidebar.bg};
-        }
         
         &:last-child td {
           border-bottom: none;
@@ -111,7 +106,7 @@ const Wrapper = styled.div`
     outline: none !important;
     background-color: transparent;
     color: ${(props) => props.theme.text};
-    padding: 5px 8px;
+    padding: 0;
     font-size: 12px;
     border-radius: 4px;
     transition: all 0.15s ease;
@@ -126,6 +121,8 @@ const Wrapper = styled.div`
     width: 14px;
     height: 14px;
     accent-color: ${(props) => props.theme.workspace.accent};
+    vertical-align: middle;
+    margin: 0;
   }
   
   button {

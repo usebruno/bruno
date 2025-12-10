@@ -29,12 +29,12 @@ test.describe('Create collection', () => {
 
     // Set the URL
     await page.locator('#request-url .CodeMirror').click();
-    await page.locator('textarea').fill('http://localhost:8081');
+    await page.locator('#request-url').locator('textarea').fill('http://localhost:8081');
     await page.locator('#send-request').getByTitle('Save Request').click();
 
     // Send a request
     await page.locator('#request-url .CodeMirror').click();
-    await page.locator('textarea').fill('/ping');
+    await page.locator('#request-url').locator('textarea').fill('/ping');
     await page.locator('#send-request').getByTitle('Save Request').click();
     await page.locator('#send-request').getByRole('img').nth(2).click();
 

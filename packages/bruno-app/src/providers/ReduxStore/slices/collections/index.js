@@ -939,12 +939,12 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
-      const newQueryParams = map(params, ({ name = '', value = '', enabled = true }) => ({
-        uid: uuid(),
+      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', type = 'query', enabled = true }) => ({
+        uid: uid || uuid(),
         name,
         value,
-        description: '',
-        type: 'query',
+        description,
+        type,
         enabled
       }));
 
@@ -1185,12 +1185,12 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.headers = map(action.payload.headers, ({ name = '', value = '', enabled = true }) => ({
-        uid: uuid(),
-        name: name,
-        value: value,
-        description: '',
-        enabled: enabled
+      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
       }));
     },
     setCollectionHeaders: (state, action) => {
@@ -1203,16 +1203,22 @@ export const collectionsSlice = createSlice({
 
       if (!collection.draft) {
         collection.draft = {
-          root: cloneDeep(collection.root)
+          root: cloneDeep(collection.root) || {}
         };
       }
+      if (!collection.draft.root) {
+        collection.draft.root = {};
+      }
+      if (!collection.draft.root.request) {
+        collection.draft.root.request = {};
+      }
 
-      collection.draft.root.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
-        uid: uuid(),
-        name: name,
-        value: value,
-        description: '',
-        enabled: enabled
+      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
       }));
     },
     setFolderHeaders: (state, action) => {
@@ -1228,12 +1234,18 @@ export const collectionsSlice = createSlice({
         return;
       }
 
-      folder.root.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
-        uid: uuid(),
-        name: name,
-        value: value,
-        description: '',
-        enabled: enabled
+      if (!folder.draft) {
+        folder.draft = cloneDeep(folder.root) || {};
+      }
+      if (!folder.draft.request) {
+        folder.draft.request = {};
+      }
+      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
       }));
     },
     addFormUrlEncodedParam: (state, action) => {
@@ -1294,6 +1306,25 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setFormUrlEncodedParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) return;
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.body.formUrlEncoded = map(params, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
+      }));
+    },
     moveFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1301,12 +1332,10 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
-          // Ensure item.draft is a deep clone of item if not already present
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
 
-          // Extract payload data
           const { updateReorderedItem } = action.payload;
           const params = item.draft.request.body.formUrlEncoded;
 
@@ -1378,6 +1407,26 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setMultipartFormParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) return;
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        contentType,
+        type,
+        enabled
+      }));
+    },
     moveMultipartFormParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1385,12 +1434,10 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
-          // Ensure item.draft is a deep clone of item if not already present
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
 
-          // Extract payload data
           const { updateReorderedItem } = action.payload;
           const params = item.draft.request.body.multipartForm;
 
@@ -1711,6 +1758,25 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setRequestAssertions: (state, action) => {
+      const { collectionUid, itemUid, assertions } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) return;
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        operator,
+        enabled
+      }));
+    },
     moveAssertion: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1718,12 +1784,10 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
-          // Ensure item.draft is a deep clone of item if not already present
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
 
-          // Extract payload data
           const { updateReorderedItem } = action.payload;
           const params = item.draft.request.assertions;
 
@@ -1826,6 +1890,31 @@ export const collectionsSlice = createSlice({
             item.draft.request.vars.res = item.draft.request.vars.res.filter((v) => v.uid !== action.payload.varUid);
           }
         }
+      }
+    },
+    setRequestVars: (state, action) => {
+      const { collectionUid, itemUid, vars, type } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) return;
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.vars = item.draft.request.vars || {};
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        enabled,
+        ...(type === 'response' ? { local } : {})
+      }));
+      if (type === 'request') {
+        item.draft.request.vars.req = mappedVars;
+      } else if (type === 'response') {
+        item.draft.request.vars.res = mappedVars;
       }
     },
     moveVar: (state, action) => {
@@ -2134,6 +2223,29 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setFolderVars: (state, action) => {
+      const { collectionUid, folderUid, vars, type } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const folder = collection ? findItemInCollection(collection, folderUid) : null;
+      if (!folder) {
+        return;
+      }
+      if (!folder.draft) {
+        folder.draft = cloneDeep(folder.root);
+      }
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        enabled,
+        ...(type === 'response' ? { local } : {})
+      }));
+      if (type === 'request') {
+        set(folder, 'draft.request.vars.req', mappedVars);
+      } else if (type === 'response') {
+        set(folder, 'draft.request.vars.res', mappedVars);
+      }
+    },
     updateFolderRequestScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -2343,6 +2455,30 @@ export const collectionsSlice = createSlice({
           vars = filter(vars, (h) => h.uid !== action.payload.varUid);
           set(collection, 'draft.root.request.vars.res', vars);
         }
+      }
+    },
+    setCollectionVars: (state, action) => {
+      const { collectionUid, vars, type } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+      if (!collection.draft) {
+        collection.draft = {
+          root: cloneDeep(collection.root)
+        };
+      }
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        enabled,
+        ...(type === 'response' ? { local } : {})
+      }));
+      if (type === 'request') {
+        set(collection, 'draft.root.request.vars.req', mappedVars);
+      } else if (type === 'response') {
+        set(collection, 'draft.root.request.vars.res', mappedVars);
       }
     },
     collectionAddFileEvent: (state, action) => {
@@ -3259,10 +3395,12 @@ export const {
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam,
+  setFormUrlEncodedParams,
   moveFormUrlEncodedParam,
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
+  setMultipartFormParams,
   addFile,
   updateFile,
   deleteFile,
@@ -3280,10 +3418,12 @@ export const {
   addAssertion,
   updateAssertion,
   deleteAssertion,
+  setRequestAssertions,
   moveAssertion,
   addVar,
   updateVar,
   deleteVar,
+  setRequestVars,
   moveVar,
   addFolderHeader,
   updateFolderHeader,
@@ -3291,6 +3431,7 @@ export const {
   addFolderVar,
   updateFolderVar,
   deleteFolderVar,
+  setFolderVars,
   updateFolderRequestScript,
   updateFolderResponseScript,
   updateFolderTests,
@@ -3300,6 +3441,7 @@ export const {
   addCollectionVar,
   updateCollectionVar,
   deleteCollectionVar,
+  setCollectionVars,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,
