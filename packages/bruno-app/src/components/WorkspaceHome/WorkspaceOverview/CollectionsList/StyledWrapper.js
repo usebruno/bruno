@@ -41,7 +41,6 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 10px;
     padding: 10px 0;
-    background: ${(props) => props.theme.workspace.card.bg};
     border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
     cursor: pointer;
 
