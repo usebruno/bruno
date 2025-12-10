@@ -24,7 +24,7 @@ import Dropdown from 'components/Dropdown';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
-import { hideHomePage } from 'providers/ReduxStore/slices/app';
+import { hideApiSpecPage, hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -112,6 +112,7 @@ const Collection = ({ collection, searchText }) => {
 
     if (!isChevronClick) {
       dispatch(hideHomePage()); // @TODO Playwright tests are often stuck on home page, rather than collection settings tab. Revisit for a proper fix.
+      dispatch(hideApiSpecPage());
       dispatch(
         addTab({
           uid: collection.uid,
@@ -292,6 +293,7 @@ const Collection = ({ collection, searchText }) => {
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        data-testid="sidebar-collection-row"
       >
         <div
           className="flex flex-grow items-center overflow-hidden"

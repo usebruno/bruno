@@ -10,7 +10,6 @@ const Wrapper = styled.div`
 
   .collections-list {
     min-height: 0;
-    padding: 0 4px;
     padding-top: 4px;
     overflow-y: auto;
 

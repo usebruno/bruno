@@ -61,7 +61,7 @@ const config = {
     target: [
       {
         target: 'nsis',
-        arch: ['x64']
+        arch: ['x64', 'arm64']
       }
     ],
     sign: null,

@@ -11,7 +11,11 @@ const makeRelativePath = (workspacePath, absolutePath) => {
   }
 
   try {
-    return path.relative(workspacePath, absolutePath);
+    const relativePath = path.relative(workspacePath, absolutePath);
+    if (relativePath.startsWith('..') && relativePath.split(path.sep).filter((s) => s === '..').length > 2) {
+      return absolutePath;
+    }
+    return relativePath;
   } catch (error) {
     return absolutePath;
   }
@@ -61,7 +65,8 @@ const createWorkspaceConfig = (workspaceName) => ({
   type: WORKSPACE_TYPE,
   version: '1.0.0',
   docs: '',
-  collections: []
+  collections: [],
+  apiSpecs: []
 });
 
 const readWorkspaceConfig = (workspacePath) => {
@@ -196,16 +201,93 @@ const getWorkspaceCollections = (workspacePath) => {
   const config = readWorkspaceConfig(workspacePath);
   const collections = config.collections || [];
 
-  // Resolve relative paths to absolute
   return collections.map((collection) => {
     if (collection.path && !path.isAbsolute(collection.path)) {
       return {
         ...collection,
-        path: path.join(workspacePath, collection.path)
+        path: path.resolve(workspacePath, collection.path)
       };
     }
     return collection;
   });
+};
+
+const getWorkspaceApiSpecs = (workspacePath) => {
+  const config = readWorkspaceConfig(workspacePath);
+  const apiSpecs = config.apiSpecs || [];
+
+  // Resolve relative paths to absolute
+  return apiSpecs.map((apiSpec) => {
+    if (apiSpec.path && !path.isAbsolute(apiSpec.path)) {
+      return {
+        ...apiSpec,
+        path: path.join(workspacePath, apiSpec.path)
+      };
+    }
+    return apiSpec;
+  });
+};
+
+const addApiSpecToWorkspace = async (workspacePath, apiSpec) => {
+  const config = readWorkspaceConfig(workspacePath);
+
+  if (!config.apiSpecs) {
+    config.apiSpecs = [];
+  }
+
+  // Normalize API spec entry with relative path
+  const normalizedApiSpec = {
+    name: apiSpec.name,
+    path: makeRelativePath(workspacePath, apiSpec.path)
+  };
+
+  // Check if API spec already exists
+  const existingIndex = config.apiSpecs.findIndex(
+    (a) => a.name === normalizedApiSpec.name || a.path === normalizedApiSpec.path
+  );
+
+  if (existingIndex >= 0) {
+    config.apiSpecs[existingIndex] = normalizedApiSpec;
+  } else {
+    config.apiSpecs.push(normalizedApiSpec);
+  }
+
+  await writeWorkspaceConfig(workspacePath, config);
+  return config.apiSpecs;
+};
+
+const removeApiSpecFromWorkspace = async (workspacePath, apiSpecPath) => {
+  const config = readWorkspaceConfig(workspacePath);
+
+  if (!config.apiSpecs) {
+    return { removedApiSpec: null, updatedConfig: config };
+  }
+
+  let removedApiSpec = null;
+
+  config.apiSpecs = config.apiSpecs.filter((a) => {
+    const apiSpecPathFromYml = a.path;
+    if (!apiSpecPathFromYml) return true;
+
+    // Convert to absolute path for comparison
+    const absoluteApiSpecPath = path.isAbsolute(apiSpecPathFromYml)
+      ? apiSpecPathFromYml
+      : path.resolve(workspacePath, apiSpecPathFromYml);
+
+    if (path.normalize(absoluteApiSpecPath) === path.normalize(apiSpecPath)) {
+      removedApiSpec = a;
+      return false;
+    }
+
+    return true;
+  });
+
+  await writeWorkspaceConfig(workspacePath, config);
+
+  return {
+    removedApiSpec,
+    updatedConfig: config
+  };
 };
 
 module.exports = {
@@ -221,5 +303,8 @@ module.exports = {
   updateWorkspaceDocs,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
-  getWorkspaceCollections
+  getWorkspaceCollections,
+  getWorkspaceApiSpecs,
+  addApiSpecToWorkspace,
+  removeApiSpecFromWorkspace
 };

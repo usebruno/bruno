@@ -168,7 +168,7 @@ const StyledWrapper = styled.div`
         position: sticky;
         top: 0;
         z-index: 10;
-        
+
         td {
           padding: 8px 12px;
           font-weight: 500;
@@ -256,10 +256,8 @@ const StyledWrapper = styled.div`
   }
 
   .response-body-container {
-    border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 4px;
     overflow: hidden;
-    background: ${(props) => props.theme.console.headerBg};
     height: 400px;
     display: flex;
     flex-direction: column;
@@ -267,13 +265,11 @@ const StyledWrapper = styled.div`
     .w-full.h-full.relative.flex {
       height: 100% !important;
       width: 100% !important;
-      background: ${(props) => props.theme.console.headerBg} !important;
       display: flex !important;
       flex-direction: column !important;
     }
 
     div[role="tablist"] {
-      background: ${(props) => props.theme.console.dropdownHeaderBg};
       padding: 8px 12px;
       border-bottom: 1px solid ${(props) => props.theme.console.border};
       display: flex !important;
@@ -282,27 +278,16 @@ const StyledWrapper = styled.div`
       align-items: center !important;
       min-height: 40px !important;
       flex-shrink: 0 !important;
-      
+
       > div {
         color: ${(props) => props.theme.console.buttonColor};
         font-size: ${(props) => props.theme.font.size.sm} !important;
-        padding: 6px 12px !important;
-        border-radius: 4px;
-        transition: all 0.2s ease;
         cursor: pointer;
-        border: 1px solid ${(props) => props.theme.console.border};
-        background: ${(props) => props.theme.console.contentBg};
         white-space: nowrap !important;
         min-width: auto !important;
         height: auto !important;
         line-height: 1.2 !important;
         font-weight: 500 !important;
-
-        &:hover {
-          background: ${(props) => props.theme.console.buttonHoverBg};
-          color: ${(props) => props.theme.console.buttonHoverColor};
-          border-color: ${(props) => props.theme.console.buttonHoverBg};
-        }
 
         &.active {
           background: ${(props) => props.theme.console.checkboxColor};

@@ -162,7 +162,7 @@ const EnvironmentSelector = ({ collection }) => {
         )}
       </>
     ) : (
-      <span className="env-text-inactive max-w-36 truncate no-wrap">No environments</span>
+      <span className="env-text-inactive max-w-36 truncate no-wrap">No Environment</span>
     );
 
     return (
@@ -174,7 +174,7 @@ const EnvironmentSelector = ({ collection }) => {
         data-testid="environment-selector-trigger"
       >
         {displayContent}
-        <IconCaretDown className="caret" size={14} strokeWidth={2} />
+        <IconCaretDown className="caret flex items-center justify-center" size={12} strokeWidth={2} />
       </div>
     );
   });

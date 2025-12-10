@@ -17,7 +17,10 @@ export const buildCommonLocators = (page: Page) => ({
       const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
       return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
     },
-    closeAllCollectionsButton: () => page.getByTestId('close-all-collections-button')
+    closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
+    collectionRow: (name: string) => page.locator('.collection-name').filter({
+      has: page.locator('#sidebar-collection-name', { hasText: name })
+    })
   },
   actions: {
     collectionActions: (collectionName: string) =>
@@ -28,14 +31,15 @@ export const buildCommonLocators = (page: Page) => ({
       page.locator('.collection-item-name')
         .filter({ hasText: itemName })
         .locator('.menu-icon')
-
   },
   dropdown: {
-    item: (text: string) => page.locator('.dropdown-item').filter({ hasText: text })
+    item: (text: string) => page.locator('.dropdown-item').filter({ hasText: text }),
+    tippyItem: (text: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: text })
   },
   tabs: {
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
-    activeRequestTab: () => page.locator('.request-tab.active')
+    activeRequestTab: () => page.locator('.request-tab.active'),
+    closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).locator('.close-icon')
   },
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
@@ -44,12 +48,55 @@ export const buildCommonLocators = (page: Page) => ({
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
     button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
-    closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button')
+    closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button'),
+    card: () => page.locator('.bruno-modal-card'),
+    footer: () => page.locator('.bruno-modal-footer'),
+    submitButton: () => page.locator('.bruno-modal-footer .submit')
   },
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
     collectionTab: () => page.getByTestId('env-tab-collection'),
     globalTab: () => page.getByTestId('env-tab-global'),
+    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
+    currentEnvironment: () => page.locator('.current-environment'),
+    addVariableButton: () => page.locator('button[data-testid="add-variable"]'),
+    variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
+    variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
+    variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
+    createEnvButton: () => page.locator('button[id="create-env"]'),
+    envNameInput: () => page.locator('input[name="name"]')
+  },
+  request: {
+    urlInput: () => page.locator('#request-url .CodeMirror'),
+    urlLine: () => page.locator('#request-url .CodeMirror-line'),
+    sendButton: () => page.getByTestId('send-arrow-icon'),
+    methodDropdown: () => page.getByTestId('request-method-selector'),
+    newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
+    requestNameInput: () => page.getByPlaceholder('Request Name'),
+    requestTestId: () => page.getByTestId('request-name')
+  },
+  response: {
+    statusCode: () => page.getByTestId('response-status-code'),
+    pane: () => page.locator('.response-pane'),
+    copyButton: () => page.locator('button[title="Copy response to clipboard"]'),
+    body: () => page.locator('.response-pane'),
+    editorContainer: () => page.locator('.response-pane .editor-container'),
+    formatTab: () => page.getByTestId('format-response-tab'),
+    formatTabDropdown: () => page.getByTestId('format-response-tab-dropdown'),
+    previewContainer: () => page.getByTestId('response-preview-container'),
+    codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
+    jsonTreeLine: () => page.locator('.response-pane .object-content')
+  },
+  plusMenu: {
+    button: () => page.getByTestId('collections-header-add-menu'),
+    createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
+    importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
+  },
+  import: {
+    modal: () => page.locator('[data-testid="import-collection-modal"]'),
+    locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
+    locationInput: () => page.locator('#collection-location'),
+    fileInput: () => page.locator('input[type="file"]'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   }
 });
@@ -72,7 +119,7 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   toolbar: {
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
     latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
-    clearResponse: () => page.getByRole('button', { name: 'Clear Response' })
+    clearResponse: () => page.getByTestId('response-clear-button')
   }
 });
 

@@ -1,18 +1,15 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  padding: 8px 4px 6px 10px;
+
 
   .sidebar-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-  }
-
-  /* Section Title (single view mode) - with separator */
-  &.single-view {
     border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    padding: 6px 4px 6px 10px;
   }
 
   /* Section Title (single view mode) */

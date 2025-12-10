@@ -1,14 +1,25 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  div.tabs {
+  &.tabs {
+    div.more-tabs {
+      color: var(--color-tab-inactive) !important;
+      border-bottom: solid 2px transparent;
+    }
+
     div.tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
       padding: 6px 0px;
       border: none;
       border-bottom: solid 2px transparent;
-      margin-right: 1.25rem;
+      margin-right: ${(props) => props.theme.tabs.marginRight};
       color: var(--color-tab-inactive);
       cursor: pointer;
+      white-space: nowrap;
+      vertical-align: middle;
+      flex-shrink: 0;
 
       &:focus,
       &:active,
@@ -20,12 +31,21 @@ const StyledWrapper = styled.div`
       }
 
       &.active {
+        font-weight: ${(props) => props.theme.tabs.active.fontWeight} !important;
         color: ${(props) => props.theme.tabs.active.color} !important;
         border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }
 
       .content-indicator {
-        color: ${(props) => props.theme.text}
+        color: ${(props) => props.theme.text};
+      }
+
+      sup {
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+        vertical-align: baseline;
+        margin-left: 0;
       }
     }
   }

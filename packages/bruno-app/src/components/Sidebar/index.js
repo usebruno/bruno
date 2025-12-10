@@ -15,7 +15,6 @@ const Sidebar = () => {
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const lastWidthRef = useRef(leftSidebarWidth);
   const [showSearch, setShowSearch] = useState(false);
-  const [activeView, setActiveView] = useState('collections'); // 'collections' or any other future tab
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
@@ -85,18 +84,8 @@ const Sidebar = () => {
             <div className="flex flex-col flex-grow" style={{ minHeight: 0, overflow: 'hidden' }}>
               <SidebarHeader
                 setShowSearch={setShowSearch}
-                activeView={activeView}
-                onViewChange={setActiveView}
               />
-              {activeView === 'collections' ? (
-                <Collections showSearch={showSearch} />
-              ) : (
-                <div className="second-tab-placeholder">
-                  <p className="text-center text-muted py-8 px-4 text-sm opacity-60">
-                    Second tab content will appear here
-                  </p>
-                </div>
-              )}
+              <Collections showSearch={showSearch} />
             </div>
           </div>
         </div>

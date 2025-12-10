@@ -1,6 +1,7 @@
 import { test, expect } from '../../playwright';
 import { execSync } from 'child_process';
 import path from 'path';
+import { clickResponseAction } from '../utils/page/actions';
 
 test.describe.serial('Response Example Menu Operations', () => {
   test.setTimeout(1 * 60 * 1000); // 1 minute for all tests in this describe block, default is 30 seconds.
@@ -17,7 +18,7 @@ test.describe.serial('Response Example Menu Operations', () => {
 
     await test.step('Create example', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click();
+      await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Clone');
       await page.getByRole('button', { name: 'Create Example' }).click();
@@ -48,7 +49,7 @@ test.describe.serial('Response Example Menu Operations', () => {
 
     await test.step('Create example to delete', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
+      await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Delete');
       await page.getByTestId('create-example-description-input').fill('This example will be deleted');
@@ -81,7 +82,7 @@ test.describe.serial('Response Example Menu Operations', () => {
 
     await test.step('Create example to rename', async () => {
       await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-bookmark-btn').click({ timeout: 30000 });
+      await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Rename');
       await page.getByTestId('create-example-description-input').fill('This example will be renamed');

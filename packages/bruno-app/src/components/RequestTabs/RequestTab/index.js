@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef, Fragment, useMemo } from 'react';
+import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
@@ -17,16 +17,17 @@ import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
-import CloseTabIcon from './CloseTabIcon';
-import DraftTabIcon from './DraftTabIcon';
+import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
 
-const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
+const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
+  const tabNameRef = useRef(null);
+  const lastOverflowStateRef = useRef(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
   const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
@@ -35,6 +36,48 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const item = findItemInCollection(collection, tab.uid);
+
+  const method = useMemo(() => {
+    if (!item) return;
+    switch (item.type) {
+      case 'grpc-request':
+        return 'gRPC';
+      case 'ws-request':
+        return 'WS';
+      case 'graphql-request':
+        return 'GQL';
+      default:
+        return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+    }
+  }, [item]);
+
+  useEffect(() => {
+    if (!item || !tabNameRef.current || !setHasOverflow) return;
+
+    const checkOverflow = () => {
+      if (tabNameRef.current && setHasOverflow) {
+        const hasOverflow = tabNameRef.current.scrollWidth > tabNameRef.current.clientWidth;
+        if (lastOverflowStateRef.current !== hasOverflow) {
+          lastOverflowStateRef.current = hasOverflow;
+          setHasOverflow(hasOverflow);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(checkOverflow, 0);
+    const resizeObserver = new ResizeObserver(() => {
+      checkOverflow();
+    });
+
+    if (tabNameRef.current) {
+      resizeObserver.observe(tabNameRef.current);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [item, item?.name, method, setHasOverflow]);
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -105,11 +148,12 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;
   const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
+
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
-        className={`flex items-center justify-between tab-container px-1 ${tab.preview ? 'italic' : ''}`}
-        onMouseUp={handleMouseUp} // Add middle-click behavior here
+        className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
+        onMouseUp={handleMouseUp}
       >
         {showConfirmCollectionClose && tab.type === 'collection-settings' && (
           <ConfirmCollectionClose
@@ -192,21 +236,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  const getMethodText = useCallback((item) => {
-    if (!item) return;
-
-    switch (item.type) {
-      case 'grpc-request':
-        return 'gRPC';
-      case 'ws-request':
-        return 'WS';
-      case 'graphql-request':
-        return 'GQL';
-      default:
-        return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
-    }
-  }, [item]);
-
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   if (!item) {
@@ -228,10 +257,36 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }
 
   const isWS = item.type === 'ws-request';
-  const method = getMethodText(item);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (tabNameRef.current && setHasOverflow) {
+        const hasOverflow = tabNameRef.current.scrollWidth > tabNameRef.current.clientWidth;
+        if (lastOverflowStateRef.current !== hasOverflow) {
+          lastOverflowStateRef.current = hasOverflow;
+          setHasOverflow(hasOverflow);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(checkOverflow, 0);
+
+    const resizeObserver = new ResizeObserver(() => {
+      checkOverflow();
+    });
+
+    if (tabNameRef.current) {
+      resizeObserver.observe(tabNameRef.current);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [item.name, method, setHasOverflow]);
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-1">
+    <StyledWrapper className="flex items-center justify-between tab-container px-2">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
@@ -268,7 +323,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className={`flex items-baseline tab-label pl-2 ${tab.preview ? 'italic' : ''}`}
+        className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {
@@ -284,7 +339,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
           {method}
         </span>
-        <span className="ml-1 tab-name" title={item.name}>
+        <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
         <RequestTabMenu
@@ -297,25 +352,19 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           dispatch={dispatch}
         />
       </div>
-      <div
-        className="flex px-2 close-icon-container"
+      <GradientCloseButton
+        hasChanges={hasChanges}
         onClick={(e) => {
           if (!hasChanges) {
             isWS && closeWsConnection(item.uid);
             return handleCloseClick(e);
-          };
+          }
 
           e.stopPropagation();
           e.preventDefault();
           setShowConfirmClose(true);
         }}
-      >
-        {!hasChanges ? (
-          <CloseTabIcon />
-        ) : (
-          <DraftTabIcon />
-        )}
-      </div>
+      />
     </StyledWrapper>
   );
 };
@@ -349,7 +398,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
       }
 
       dispatch(closeTabs({ tabUids: [tabUid] }));
-    } catch (err) {}
+    } catch (err) { }
   }
 
   function handleRevertChanges(event) {
@@ -368,7 +417,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
           collectionUid: collection.uid
         }));
       }
-    } catch (err) {}
+    } catch (err) { }
   }
 
   function handleCloseOtherTabs(event) {

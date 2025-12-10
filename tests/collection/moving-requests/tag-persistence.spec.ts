@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createUntitledRequest, selectRequestPaneTab } from '../../utils/page';
 
 test.describe('Tag persistence', () => {
   test.afterEach(async ({ page }) => {
@@ -9,7 +9,7 @@ test.describe('Tag persistence', () => {
 
   test('Verify tag persistence while moving requests within a collection', async ({ page, createTmpDir }) => {
     // Create first collection - click plus icon button to open dropdown
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('test-collection');
     const locationInput = page.locator('.bruno-modal').getByLabel('Location');
@@ -20,58 +20,49 @@ test.describe('Tag persistence', () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: 'test-collection' }).click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
+    await page.waitForTimeout(1000);
+    // Create three requests, each with URL and tag (auto-saved after each is completely created)
+    // The createUntitledRequest function now waits for each request to be fully created
+    // before returning, ensuring unique names are generated
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'https://httpfaker.org/api/echo',
+      tag: 'smoke'
+    });
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'https://httpfaker.org/api/echo',
+      tag: 'smoke'
+    });
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'https://httpfaker.org/api/echo',
+      tag: 'smoke'
+    });
 
-    // Create a new request
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('request-1');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
+    // Wait for all 3 requests to be visible in the sidebar
+    const untitledRequests = page.locator('.item-name').filter({ hasText: /^Untitled/ });
+    await expect(untitledRequests).toHaveCount(3);
 
-    // create another request
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('request-2');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    // create another request
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('request-3');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    await page.waitForTimeout(200);
-
-    // Add a tag to the request
-    await page.getByRole('tab', { name: 'Settings' }).click();
-    await page.waitForTimeout(200);
-    const tagInput = await page.getByTestId('tag-input').getByRole('textbox');
-    await tagInput.fill('smoke');
-    await tagInput.press('Enter');
-    await page.waitForTimeout(200);
-    // Verify the tag was added
-    await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
-    await page.keyboard.press('Meta+s');
-
-    // Move the request-3 request to just above request-1 within the same collection
-    const r3Request = page.locator('.collection-item-name').filter({ hasText: 'request-3' });
-    const r1Request = page.locator('.collection-item-name').filter({ hasText: 'request-1' });
+    // Move the last untitled request to just above the first untitled request within the same collection
+    const r3Request = untitledRequests.nth(2); // Third request (0-indexed)
+    const r1Request = untitledRequests.first(); // First request
 
     await expect(r3Request).toBeVisible();
     await expect(r1Request).toBeVisible();
 
-    // Perform drag and drop operation to move request-3 below request-1 using source position
+    // Perform drag and drop operation to move the last request above the first using source position
     await r3Request.dragTo(r1Request, {
       targetPosition: { x: 0, y: 1 }
     });
 
-    // Verify the requests are still in the collection and request-3 is now above request-1
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'request-3' })).toBeVisible();
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'request-1' })).toBeVisible();
+    // Verify the requests are still in the collection
+    await expect(untitledRequests).toHaveCount(3);
 
-    // Click on request-3 to verify the tag persisted after the move
-    await page.locator('.collection-item-name').filter({ hasText: 'request-3' }).click();
-    await page.locator('.request-tab.active').filter({ hasText: 'request-3' }).waitFor({ state: 'visible' });
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    // Click on the moved request (now first) to verify the tag persisted after the move
+    await untitledRequests.first().click();
+    await page.locator('.request-tab.active').waitFor({ state: 'visible' });
+    await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
     // Verify the tag is still present after the move
     await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
@@ -79,7 +70,7 @@ test.describe('Tag persistence', () => {
 
   test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
     // Create first collection - click plus icon button to open dropdown
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('test-collection');
     const locationInput = page.locator('.bruno-modal').getByLabel('Location');
@@ -125,11 +116,11 @@ test.describe('Tag persistence', () => {
     await page.waitForTimeout(200);
 
     // Add a tag to the request
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
-    const tagInput = await page.getByTestId('tag-input').getByRole('textbox');
-    await tagInput.fill('smoke');
-    await tagInput.press('Enter');
+    const tagInput2 = await page.getByTestId('tag-input').getByRole('textbox');
+    await tagInput2.fill('smoke');
+    await tagInput2.press('Enter');
     await page.waitForTimeout(200);
     await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
     await page.keyboard.press('Meta+s');
@@ -166,7 +157,7 @@ test.describe('Tag persistence', () => {
     // Click on request-2 to verify the tag persisted after the move
     await page.locator('.collection-item-name').filter({ hasText: 'request-2' }).click();
     await page.locator('.request-tab.active').filter({ hasText: 'request-2' }).waitFor({ state: 'visible' });
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
     await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
   });

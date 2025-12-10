@@ -3,14 +3,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 
-const IconDockToBottom = () => {
+export const IconDockToBottom = () => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="16"
       height="16"
       viewBox="0 0 24 24"
-      strokeWidth="1.5"
+      strokeWidth="2"
       stroke="currentColor"
       fill="none"
     >
@@ -25,14 +25,14 @@ const IconDockToBottom = () => {
   );
 };
 
-const IconDockToRight = () => {
+export const IconDockToRight = () => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="16"
       height="16"
       viewBox="0 0 24 24"
-      strokeWidth="1.5"
+      strokeWidth="2"
       stroke="currentColor"
       fill="none"
     >
@@ -48,7 +48,8 @@ const IconDockToRight = () => {
   );
 };
 
-const ResponseLayoutToggle = () => {
+// Hook to get orientation and toggle function
+export const useResponseLayoutToggle = () => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const orientation = preferences?.layout?.responsePaneOrientation || 'horizontal';
@@ -65,19 +66,42 @@ const ResponseLayoutToggle = () => {
     dispatch(savePreferences(updatedPreferences));
   };
 
+  return { orientation, toggleOrientation };
+};
+
+const ResponseLayoutToggle = ({ children }) => {
+  const { orientation, toggleOrientation } = useResponseLayoutToggle();
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleOrientation();
+    }
+  };
+
+  const title = !children ? (orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout') : null;
+
   return (
-    <StyledWrapper className="ml-2 flex items-center">
-      <button
-        onClick={toggleOrientation}
-        title={orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout'}
-      >
-        {orientation === 'horizontal' ? (
-          <IconDockToBottom />
-        ) : (
-          <IconDockToRight />
-        )}
-      </button>
-    </StyledWrapper>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={toggleOrientation}
+      title={title}
+      onKeyDown={handleKeyDown}
+      data-testid="response-layout-toggle-button"
+    >
+      {children ? children : (
+        <StyledWrapper className="flex items-center w-full">
+          <button className="p-1">
+            {orientation === 'horizontal' ? (
+              <IconDockToBottom />
+            ) : (
+              <IconDockToRight />
+            )}
+          </button>
+        </StyledWrapper>
+      )}
+    </div>
   );
 };
 

@@ -90,6 +90,7 @@ export const test = baseTest.extend<
             ...process.env,
             ELECTRON_USER_DATA_PATH: userDataPath,
             DISABLE_SAMPLE_COLLECTION_IMPORT: 'true',
+            PLAYWRIGHT: 'true',
             ...dotEnv
           }
         });
