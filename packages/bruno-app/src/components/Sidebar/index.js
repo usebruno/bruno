@@ -11,6 +11,17 @@ import ApiSpecsSection from './Sections/ApiSpecsSection/index';
 const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
+const SIDEBAR_SECTIONS = [
+  {
+    id: 'collections',
+    component: CollectionsSection
+  },
+  {
+    id: 'api-specs',
+    component: ApiSpecsSection
+  }
+];
+
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
@@ -76,17 +87,6 @@ const Sidebar = () => {
   useEffect(() => {
     setAsideWidth(leftSidebarWidth);
   }, [leftSidebarWidth]);
-
-  const SIDEBAR_SECTIONS = [
-    {
-      id: 'collections',
-      component: CollectionsSection
-    },
-    {
-      id: 'api-specs',
-      component: ApiSpecsSection
-    }
-  ];
 
   return (
     <SidebarAccordionProvider defaultExpanded={['collections']}>

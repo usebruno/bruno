@@ -39,11 +39,11 @@ export const SidebarAccordionProvider = ({ children, defaultExpanded = ['collect
 
   const isExpanded = useCallback((sectionId) => {
     return expandedSections.has(sectionId);
-  });
+  }, [expandedSections]);
 
   const getExpandedCount = useCallback(() => {
     return expandedSections.size;
-  });
+  }, [expandedSections]);
 
   return (
     <SidebarAccordionContext.Provider

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IconChevronRight, IconChevronDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from '../SidebarAccordionContext';
@@ -13,7 +13,7 @@ const SidebarSection = ({
 }) => {
   const { isExpanded, setSectionExpanded, getExpandedCount } = useSidebarAccordion();
   const [localExpanded, setLocalExpanded] = useState(() => isExpanded(id));
-  const sectionRef = React.useRef(null);
+  const sectionRef = useRef(null);
 
   // Sync with context
   useEffect(() => {
@@ -36,7 +36,6 @@ const SidebarSection = ({
       <div
         ref={sectionRef}
         className={`sidebar-section ${localExpanded ? 'expanded' : ''} ${isOnlyExpanded ? 'single-expanded' : ''} ${expandedCount > 1 && localExpanded ? 'multi-expanded' : ''}`}
-        style={expandedCount > 1 && localExpanded ? { flex: '1 1 0%', marginBottom: 0 } : {}}
       >
         <div
           className="section-header"

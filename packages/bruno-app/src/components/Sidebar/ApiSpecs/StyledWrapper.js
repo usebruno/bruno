@@ -19,7 +19,7 @@ const Wrapper = styled.div`
     overflow-x: hidden;
 
     &::-webkit-scrollbar {
-      width: 6px;zzzz
+      width: 6px;
     }
 
     &::-webkit-scrollbar-track {
