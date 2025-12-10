@@ -16,16 +16,13 @@ const StyledWrapper = styled.div`
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   thead {
-    color: ${(props) => props.theme.colors.text.muted} !important;
+    color: ${(props) => props.theme.colors.text} !important;
     background: ${(props) => props.theme.sidebar.bg};
-    font-size: ${(props) => props.theme.font.size.xs} !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    font-size: ${(props) => props.theme.font.size.base};
     user-select: none;
 
     border: none !important;
@@ -36,6 +33,12 @@ const StyledWrapper = styled.div`
       border-left: none !important;
       border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
       border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+      vertical-align: middle;
+
+      &:nth-child(1) {
+        width: 25px;
+        border-right: none;
+      }
 
       &:last-child {
         border-right: none;
@@ -47,10 +50,6 @@ const StyledWrapper = styled.div`
     tr {
       transition: background 0.1s ease;
 
-      &:hover {
-        background: ${(props) => props.theme.sidebar.bg};
-      }
-
       &:last-child td {
         border-bottom: none;
       }
@@ -61,6 +60,12 @@ const StyledWrapper = styled.div`
         border-left: none !important;
         border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
         border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+        vertical-align: middle;
+
+        &:nth-child(1) {
+          width: 25px;
+          border-right: none;
+        }
 
         &:last-child {
           border-right: none;
@@ -79,7 +84,7 @@ const StyledWrapper = styled.div`
     outline: none !important;
     background-color: transparent;
     color: ${(props) => props.theme.text};
-    padding: 5px 8px;
+    padding: 0;
     font-size: 12px;
     border-radius: 4px;
     transition: all 0.15s ease;
@@ -94,6 +99,8 @@ const StyledWrapper = styled.div`
     width: 14px;
     height: 14px;
     accent-color: ${(props) => props.theme.workspace.accent};
+    vertical-align: middle;
+    margin: 0;
   }
 
   button {

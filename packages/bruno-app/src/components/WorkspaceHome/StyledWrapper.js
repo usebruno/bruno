@@ -108,6 +108,7 @@ const StyledWrapper = styled.div`
     &.active {
       border-bottom-color: ${(props) => props.theme.colors.text.yellow};
       color: ${(props) => props.theme.tabs.active.color};
+      font-weight: 500;
     }
   }
 

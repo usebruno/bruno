@@ -219,8 +219,8 @@ const WorkspaceHome = () => {
         )}
 
         <div className="flex items-center gap-5 p-4 pb-2 workspace-header">
-          <div className="text-xl font-semibold flex items-center gap-2">
-            <IconCategory size={24} stroke={2} />
+          <div className="text-sm font-semibold flex items-center gap-2">
+            <IconCategory size={18} stroke={2} />
             {isRenamingWorkspace ? (
               <div className="workspace-rename-container" ref={workspaceRenameContainerRef}>
                 <input
@@ -302,7 +302,7 @@ const WorkspaceHome = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 py-2 text-sm border-b-2 transition-colors tab-item ${activeTab === tab.id ? 'active' : ''}`}
+                  className={`flex items-center gap-2 pt-2 pb-1.5 text-sm border-b-2 transition-colors tab-item ${activeTab === tab.id ? 'active' : ''}`}
                 >
                   {tab.label}
                 </button>

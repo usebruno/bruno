@@ -217,7 +217,7 @@ const EditableTable = ({
           <thead>
             <tr>
               {showCheckbox && (
-                <td className="text-center" style={{ width: '50px' }}>{checkboxLabel}</td>
+                <td className="text-center">{checkboxLabel}</td>
               )}
               {columns.map((column) => (
                 <td
