@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { openApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 import ApiSpecItem from './ApiSpecItem';
-import ApiSpecsBadge from './ApiSpecBadge';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 
@@ -47,8 +46,7 @@ const ApiSpecs = () => {
   if (!apiSpecs || !apiSpecs.length) {
     return (
       <StyledWrapper>
-        <ApiSpecsBadge />
-        <div className="text-xs text-center placeholder mt-4">
+        <div className="text-xs text-center placeholder py-4">
           <div>No API Specs found.</div>
           <div className="mt-2">
             <OpenLink /> API Spec.
@@ -60,15 +58,12 @@ const ApiSpecs = () => {
 
   return (
     <StyledWrapper>
-      <div className="relative">
-        <ApiSpecsBadge />
-        <div className="flex flex-col top-32 bottom-10 left-0 right-0 py-4">
-          {apiSpecs && apiSpecs.length
-            ? apiSpecs.map((apiSpec) => {
-                return <ApiSpecItem apiSpec={apiSpec} key={apiSpec.uid} />;
-              })
-            : null}
-        </div>
+      <div className="api-specs-list">
+        {apiSpecs && apiSpecs.length
+          ? apiSpecs.map((apiSpec) => {
+              return <ApiSpecItem apiSpec={apiSpec} key={apiSpec.uid} />;
+            })
+          : null}
       </div>
     </StyledWrapper>
   );
