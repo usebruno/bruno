@@ -43,7 +43,15 @@ const SidebarSection = ({
           onClick={handleToggle}
         >
           <div className="section-header-left">
-            <div className="section-icon-wrapper">
+            <div
+              className="section-icon-wrapper"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault(); handleToggle();
+                }
+              }}
+            >
               <ActionIcon size="sm" className="section-toggle">
                 {localExpanded ? (
                   <IconChevronDown size={12} stroke={1.5} />

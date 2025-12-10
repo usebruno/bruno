@@ -23,7 +23,7 @@ export const SidebarAccordionProvider = ({ children, defaultExpanded = ['collect
       }
       return newSet;
     });
-  });
+  }, []);
 
   const setSectionExpanded = useCallback((sectionId, expanded) => {
     setExpandedSections((prev) => {
@@ -35,7 +35,7 @@ export const SidebarAccordionProvider = ({ children, defaultExpanded = ['collect
       }
       return newSet;
     });
-  });
+  }, []);
 
   const isExpanded = useCallback((sectionId) => {
     return expandedSections.has(sectionId);
