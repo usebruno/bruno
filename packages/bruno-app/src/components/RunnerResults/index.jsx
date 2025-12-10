@@ -310,7 +310,7 @@ export default function RunnerResults({ collection }) {
             <div className="flex flex-row gap-2">
               <Button
                 type="submit"
-                disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading}
+                disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading || runnerInfo.status === 'started'}
                 onClick={runCollection}
               >
                 {configureMode && selectedRequestItems.length > 0
