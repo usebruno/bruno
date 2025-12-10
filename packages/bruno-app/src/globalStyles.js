@@ -294,6 +294,11 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.codemirror.variable.info.color};
     font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Scope Badge */
@@ -305,6 +310,7 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.sm};
     color: #D97706;
     letter-spacing: 0.03125rem;
+    flex-shrink: 0;
   }
 
   /* Value Container */
