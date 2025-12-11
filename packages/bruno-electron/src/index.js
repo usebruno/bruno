@@ -91,9 +91,8 @@ let appProtocolUrl;
 
 // Register custom protocol handler (must be called before app is ready)
 // In dev mode, we need to pass the Electron executable path and script path
-if (os.platform() !== 'linux') {
-  app.setAsDefaultProtocolClient('bruno');
-} else {
+app.setAsDefaultProtocolClient('bruno');
+if (os.platform() === 'linux') {
   try {
     execSync('xdg-mime default bruno.desktop x-scheme-handler/bruno');
   } catch (err) {}
