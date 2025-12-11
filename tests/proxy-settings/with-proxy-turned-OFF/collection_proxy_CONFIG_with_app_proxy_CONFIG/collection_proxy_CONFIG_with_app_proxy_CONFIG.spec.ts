@@ -1,39 +1,34 @@
 import { test, expect } from '../../../../playwright';
+import { buildCommonLocators, setSandboxMode } from '../../../utils/page';
 
 test.describe.serial('collection proxy CONFIG with app proxy CONFIG - `proxy server OFF`', () => {
   test('developer mode - should fail when proxy server not running', async ({ pageWithUserData: page }) => {
-    // init dev mode
-    await page.getByText('proxy-object').click();
-    await page.getByLabel('Developer Mode(use only if').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    const locators = buildCommonLocators(page);
 
-    // close collection settings tab
-    await page.getByTestId('collection-settings-tab-close-button').click();
+    // Configure developer mode
+    await setSandboxMode(page, 'proxy-object', 'developer');
 
+    // Open request and send
     await page.getByText('test-request').click();
+    await locators.request.sendButton().click();
 
-    // send the request
-    await page.locator('#send-request').getByRole('img').nth(2).click();
-
-    // check that request failed (proxy not available)
-    await expect(page.getByText('ECONNREFUSED', { exact: false })).toBeVisible({ timeout: 2 * 60 * 1000 });
+    // Expect proxy error
+    await expect(page.getByText('ECONNREFUSED', { exact: false }))
+      .toBeVisible({ timeout: 2 * 60 * 1000 });
   });
 
   test('safe mode - should fail when proxy server not running', async ({ pageWithUserData: page }) => {
-    // init safe mode
-    await page.getByText('Developer Mode').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    const locators = buildCommonLocators(page);
 
-    // close security settings tab
-    await page.getByTestId('security-settings-tab-close-button').click();
+    // Configure safe mode
+    await setSandboxMode(page, 'proxy-object', 'safe');
 
+    // Open request and send
     await page.getByText('test-request').nth(1).click();
+    await locators.request.sendButton().click();
 
-    // send the request
-    await page.locator('#send-request').getByRole('img').nth(2).click();
-
-    // check that request failed (proxy not available)
-    await expect(page.getByText('ECONNREFUSED', { exact: false })).toBeVisible({ timeout: 2 * 60 * 1000 });
+    // Expect proxy error
+    await expect(page.getByText('ECONNREFUSED', { exact: false }))
+      .toBeVisible({ timeout: 2 * 60 * 1000 });
   });
 });

@@ -1,4 +1,5 @@
 import { test, expect } from '../../../../playwright';
+import { buildCommonLocators, setSandboxMode } from '../../../utils/page';
 
 // Declare global proxy server reference to share across test files
 declare global {
@@ -7,40 +8,32 @@ declare global {
 
 test.describe.serial('collection proxy FALSE with app proxy FALSE - `proxy server ON`', () => {
   test('developer mode - should succeed when proxy server is running', async ({ pageWithUserData: page }) => {
-    // init dev mode
-    await page.getByText('proxy-false').click();
-    await page.getByLabel('Developer Mode(use only if').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    const locators = buildCommonLocators(page);
 
-    // close collection settings tab
-    await page.getByTestId('collection-settings-tab-close-button').click();
+    // Configure developer mode
+    await setSandboxMode(page, 'proxy-false', 'developer');
 
+    // Open request and send
     await page.getByText('test-request').click();
+    await locators.request.sendButton().click();
 
-    // send the request
-    await page.locator('#send-request').getByRole('img').nth(2).click();
-
-    // check that request was successful (proxy working)
-    await page.getByTestId('response-status-code').waitFor({ state: 'visible' });
-    await expect(page.getByTestId('response-status-code')).toHaveText(/200/);
+    // Collection proxy FALSE ignores app proxy - should succeed (no proxy used)
+    await locators.response.statusCode().waitFor({ state: 'visible' });
+    await expect(locators.response.statusCode()).toHaveText(/200/);
   });
 
   test('safe mode - should succeed when proxy server is running', async ({ pageWithUserData: page }) => {
-    // init safe mode
-    await page.getByText('Developer Mode').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    const locators = buildCommonLocators(page);
 
-    // close security settings tab
-    await page.getByTestId('security-settings-tab-close-button').click();
+    // Configure safe mode
+    await setSandboxMode(page, 'proxy-false', 'safe');
 
+    // Open request and send
     await page.getByText('test-request').nth(1).click();
+    await locators.request.sendButton().click();
 
-    // send the request
-    await page.locator('#send-request').getByRole('img').nth(2).click();
-
-    // check that request was successful (proxy working)
-    await page.getByTestId('response-status-code').waitFor({ state: 'visible' });
-    await expect(page.getByTestId('response-status-code')).toHaveText(/200/);
+    // Collection proxy FALSE ignores app proxy - should succeed (no proxy used)
+    await locators.response.statusCode().waitFor({ state: 'visible' });
+    await expect(locators.response.statusCode()).toHaveText(/200/);
   });
 });

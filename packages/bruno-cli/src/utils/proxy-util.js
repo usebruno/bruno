@@ -132,13 +132,13 @@ const getProxyConfig = ({ brunoConfig, noproxy }) => {
     return { proxyMode: 'on', proxyConfig: collectionProxyConfig };
   }
 
-  if (collectionProxyEnabled === 'global') {
-    // Use system proxy (CLI doesn't have app-level preferences, so use system environment variables)
-    const proxyConfig = getSystemProxyEnvVariables();
-    return { proxyMode: 'system', proxyConfig };
+  if (collectionProxyEnabled === false) {
+    return { proxyMode: 'off', proxyConfig: {} };
   }
 
-  return { proxyMode: 'off', proxyConfig: {} };
+  // Use system proxy (CLI doesn't have app-level preferences, so use system environment variables) as default
+  const proxyConfig = getSystemProxyEnvVariables();
+  return { proxyMode: 'system', proxyConfig };
 };
 
 module.exports = {

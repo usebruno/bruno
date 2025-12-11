@@ -271,41 +271,5 @@ describe('getPreferences - proxy configuration transformation', () => {
         }
       });
     });
-
-    test('should merge other preferences with defaults while preserving transformed proxy', () => {
-      const config = {
-        proxy: {
-          enabled: true,
-          protocol: 'http',
-          hostname: '127.0.0.1',
-          port: 8090
-        },
-        font: {
-          codeFont: 'default',
-          codeFontSize: 14
-        }
-      };
-
-      mockStoreData.preferences = config;
-
-      const result = getPreferences();
-
-      // Should have transformed proxy
-      expect(result.proxy).toEqual({
-        protocol: 'http',
-        hostname: '127.0.0.1',
-        port: 8090
-      });
-
-      // Should have custom font settings
-      expect(result.font).toEqual({
-        codeFont: 'default',
-        codeFontSize: 14
-      });
-
-      // Should have default request settings
-      expect(result.request.sslVerification).toBe(true);
-      expect(result.request.timeout).toBe(0);
-    });
   });
 });

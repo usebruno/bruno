@@ -201,4 +201,53 @@ describe('Proxy configuration logic', () => {
       expect(result.proxyConfig).toEqual({});
     });
   });
+
+  describe('legacy collection proxy format with enabled flag', () => {
+    test('should return proxyMode: "on" when legacy enabled: true', () => {
+      const legacyProxyConfig = {
+        enabled: true,
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: 8090,
+        auth: {
+          enabled: false,
+          username: '',
+          password: ''
+        }
+      };
+
+      const result = getProxyConfig({ brunoConfig: { proxy: legacyProxyConfig } });
+
+      expect(result.proxyMode).toBe('on');
+      expect(result.proxyConfig).toEqual(legacyProxyConfig);
+    });
+
+    test('should use system proxy when legacy enabled: "global"', () => {
+      const legacyProxyConfig = {
+        enabled: 'global',
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: 8090
+      };
+
+      const result = getProxyConfig({ brunoConfig: { proxy: legacyProxyConfig } });
+
+      expect(result.proxyMode).toBe('system');
+      expect(result.proxyConfig).toEqual({});
+    });
+
+    test('should return proxyMode: "off" for other legacy enabled values', () => {
+      const legacyProxyConfig = {
+        enabled: false,
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: 8090
+      };
+
+      const result = getProxyConfig({ brunoConfig: { proxy: legacyProxyConfig } });
+
+      expect(result.proxyMode).toBe('off');
+      expect(result.proxyConfig).toEqual({});
+    });
+  });
 });

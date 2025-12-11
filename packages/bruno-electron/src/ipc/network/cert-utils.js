@@ -146,6 +146,10 @@ const getProxyConfig = ({ brunoConfig }) => {
     return { proxyMode, proxyConfig };
   }
 
+  if (collectionProxyEnabled === false) {
+    return { proxyMode: 'off', proxyConfig: {} };
+  }
+
   return { proxyMode: 'inherit', proxyConfig: {} };
 };
 
