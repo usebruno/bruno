@@ -2141,7 +2141,17 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
-        // Cleanup: Clear hook managers map (will be garbage collected)
+        // Cleanup: Dispose all HookManagers to free VM resources, then clear the map
+        // This is critical to prevent memory leaks from persisted QuickJS VMs
+        hookManagersMap.forEach((hookManager) => {
+          if (hookManager && typeof hookManager.dispose === 'function') {
+            try {
+              hookManager.dispose();
+            } catch (e) {
+              // Ignore disposal errors
+            }
+          }
+        });
         hookManagersMap.clear();
 
         deleteCancelToken(cancelTokenUid);
@@ -2162,7 +2172,17 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
-        // Cleanup: Clear hook managers map even on error
+        // Cleanup: Dispose all HookManagers to free VM resources, then clear the map
+        // This is critical to prevent memory leaks from persisted QuickJS VMs
+        hookManagersMap.forEach((hookManager) => {
+          if (hookManager && typeof hookManager.dispose === 'function') {
+            try {
+              hookManager.dispose();
+            } catch (e) {
+              // Ignore disposal errors
+            }
+          }
+        });
         hookManagersMap.clear();
 
         deleteCancelToken(cancelTokenUid);
