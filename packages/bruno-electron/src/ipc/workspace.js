@@ -28,6 +28,16 @@ const {
 const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   const lastOpenedWorkspaces = new LastOpenedWorkspaces();
 
+  // Helper to get the correct workspace UID
+  // For default workspace, always use 'default', otherwise generate hash
+  const getWorkspaceUid = (workspacePath) => {
+    const defaultWorkspacePath = defaultWorkspaceManager.getDefaultWorkspacePath();
+    if (defaultWorkspacePath && path.normalize(workspacePath) === path.normalize(defaultWorkspacePath)) {
+      return defaultWorkspaceManager.getDefaultWorkspaceUid();
+    }
+    return generateUidBasedOnHash(workspacePath);
+  };
+
   ipcMain.handle('renderer:create-workspace',
     async (event, workspaceName, workspaceFolderName, workspaceLocation) => {
       try {
@@ -338,7 +348,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const updatedCollections = await addCollectionToWorkspace(workspacePath, normalizedCollection);
 
       const workspaceConfig = readWorkspaceConfig(workspacePath);
-      const workspaceUid = generateUidBasedOnHash(workspacePath);
+      const workspaceUid = getWorkspaceUid(workspacePath);
       mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, workspaceConfig);
 
       return updatedCollections;
@@ -379,7 +389,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         await fsExtra.remove(collectionPath);
       }
 
-      const correctWorkspaceUid = generateUidBasedOnHash(workspacePath);
+      const correctWorkspaceUid = getWorkspaceUid(workspacePath);
       mainWindow.webContents.send('main:workspace-config-updated', workspacePath, correctWorkspaceUid, result.updatedConfig);
 
       return true;
