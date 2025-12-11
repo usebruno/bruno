@@ -213,7 +213,7 @@ const addCollectionToWorkspace = async (workspacePath, collection) => {
     normalizedCollection.remote = collection.remote;
   }
 
-  const existingIndex = config.collections.findIndex((c) => c.name === normalizedCollection.name || c.path === normalizedCollection.path);
+  const existingIndex = config.collections.findIndex((c) => c.path === normalizedCollection.path);
 
   if (existingIndex >= 0) {
     config.collections[existingIndex] = normalizedCollection;
