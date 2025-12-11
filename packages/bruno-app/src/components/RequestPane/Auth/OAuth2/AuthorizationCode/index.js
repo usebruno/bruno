@@ -12,6 +12,8 @@ import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
+import toast from 'react-hot-toast';
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
@@ -124,6 +126,29 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     );
   };
 
+  const handleUseSystemBrowserToggle = (e) => {
+    const newValue = e.target.checked;
+    dispatch(
+      savePreferences({
+        ...preferences,
+        request: {
+          ...preferences.request,
+          oauth2: {
+            ...preferences.request.oauth2,
+            useSystemBrowser: newValue
+          }
+        }
+      })
+    )
+      .then(() => {
+        toast.success('Preference updated successfully');
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error('Failed to update preference');
+      });
+  };
+
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
@@ -147,10 +172,29 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
               onRun={handleRun}
               collection={collection}
               item={item}
-              placeholder="https://oauth2.usebruno.com/callback"
+              placeholder={useSystemBrowser ? 'https://oauth2.usebruno.com/callback' : undefined}
             />
           </div>
-          <div className="text-xs opacity-50">{useSystemBrowser ? 'Using system browser callback URL from preferences' : ''}</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-use-system-browser">
+        <label className="block min-w-[140px]"></label>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={Boolean(useSystemBrowser)}
+            onChange={handleUseSystemBrowserToggle}
+            className="cursor-pointer"
+          />
+          <label
+            className="block cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              handleUseSystemBrowserToggle({ target: { checked: !useSystemBrowser } });
+            }}
+          >
+            Use system browser for OAuth
+          </label>
         </div>
       </div>
       {inputsConfig.map((input) => {
