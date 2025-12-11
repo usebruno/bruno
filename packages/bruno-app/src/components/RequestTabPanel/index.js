@@ -52,6 +52,7 @@ const RequestTabPanel = () => {
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
   // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
   let collections = produce(_collections, (draft) => {
@@ -73,6 +74,7 @@ const RequestTabPanel = () => {
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const { left: leftPaneWidth, top: topPaneHeight, reset: resetPaneBoundaries, setTop: setTopPaneHeight, setLeft: setLeftPaneWidth } = useTabPaneBoundaries(activeTabUid);
+  const previousTopPaneHeight = useRef(null); // Store height before devtools opens
 
   // Not a recommended pattern here to have the child component
   // make a callback to set state, but treating this as an exception
@@ -135,6 +137,30 @@ const RequestTabPanel = () => {
       document.removeEventListener('mousemove', handleMouseMove);
     };
   }, [dragging]);
+
+  // When devtools opens in vertical layout, reduce request pane height to ensure response pane is visible
+  // When devtools closes, restore the previous height
+  useEffect(() => {
+    if (!isVerticalLayout) return;
+
+    if (isConsoleOpen) {
+      // Store current height before reducing
+      if (previousTopPaneHeight.current === null) {
+        previousTopPaneHeight.current = topPaneHeight;
+      }
+      // Reduce request pane height to make room for response pane when devtools is open
+      const maxHeight = 200;
+      if (topPaneHeight > maxHeight) {
+        setTopPaneHeight(maxHeight);
+      }
+    } else {
+      // Restore previous height when devtools closes
+      if (previousTopPaneHeight.current !== null) {
+        setTopPaneHeight(previousTopPaneHeight.current);
+        previousTopPaneHeight.current = null;
+      }
+    }
+  }, [isConsoleOpen, isVerticalLayout]);
 
   if (!activeTabUid) {
     return <WorkspaceHome />;
