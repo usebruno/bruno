@@ -4,13 +4,22 @@ const Wrapper = styled.div`
   position: relative;
   .menu-icon {
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+    visibility: hidden;
+    transition: none;
+
+    .action-icon {
+      background: transparent !important;
+      &:hover {
+        background: transparent !important;
+      }
+    }
 
     .dropdown {
       div[aria-expanded='true'] {
         visibility: visible;
       }
       div[aria-expanded='false'] {
-        visibility: hidden;
+        visibility: visible;
       }
     }
   }
@@ -97,11 +106,7 @@ const Wrapper = styled.div`
     &.item-hovered {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
+        visibility: visible;
       }
     }
 
