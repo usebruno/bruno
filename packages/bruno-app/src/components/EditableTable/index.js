@@ -223,7 +223,7 @@ const EditableTable = ({
   const reorderableRowCount = showAddRow ? rowsWithEmpty.length - 1 : rowsWithEmpty.length;
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className={showCheckbox ? 'has-checkbox' : 'no-checkbox'}>
       <div className="table-container" ref={tableRef}>
         <table>
           <thead>

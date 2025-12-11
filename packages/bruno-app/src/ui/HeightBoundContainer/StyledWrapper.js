@@ -17,7 +17,9 @@ const StyledWrapper = styled.div`
   /* flex container - enforces boundaries */
   .flex-boundary {
     width: 100%;
+    min-width: 0;
     display: flex;
+    flex-direction: column;
     overflow-y: auto;
   }
 `;

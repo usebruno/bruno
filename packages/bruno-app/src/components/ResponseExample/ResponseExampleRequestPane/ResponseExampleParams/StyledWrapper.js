@@ -50,6 +50,14 @@ const StyledWrapper = styled.div`
       }
     }
   }
+
+  /* Override styles for EditableTable to prevent uppercase transformation and ensure proper spacing */
+  /* The .table-container is from EditableTable component */
+  .table-container table thead td {
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    padding: 8px 10px !important;
+  }
   
 
   tr {

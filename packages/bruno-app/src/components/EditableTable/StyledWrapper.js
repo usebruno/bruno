@@ -35,15 +35,15 @@ const StyledWrapper = styled.div`
       border-right: ${(props) => props.theme.workspace.environments.indentBorder};
       vertical-align: middle;
 
-      &:nth-child(1) {
-        width: 25px !important;
-        border-right: none;
-      }
-
       &:last-child {
         border-right: none;
       }
     }
+  }
+
+  &.has-checkbox thead td:nth-child(1) {
+    width: 25px !important;
+    border-right: none;
   }
 
   tbody {
@@ -62,23 +62,23 @@ const StyledWrapper = styled.div`
         border-right: ${(props) => props.theme.workspace.environments.indentBorder};
         vertical-align: middle;
 
-        &:nth-child(1) {
-          width: 25px;
-          border-right: none;
-          text-align: center;
-          vertical-align: middle;
-          line-height: 1;
-
-          input[type='checkbox'] {
-            vertical-align: baseline;
-            display: inline-block;
-          }
-        }
-
         &:last-child {
           border-right: none;
         }
       }
+    }
+  }
+
+  &.has-checkbox tbody td:nth-child(1) {
+    width: 25px;
+    border-right: none;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 1;
+
+    input[type='checkbox'] {
+      vertical-align: baseline;
+      display: inline-block;
     }
   }
 
