@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, forwardRef, useCallback, useMemo } from 'react';
 import { debounce } from 'lodash';
 import styled from 'styled-components';
-import { IconDots, IconDownload, IconEraser, IconBookmark, IconCopy } from '@tabler/icons';
+import { IconDots, IconDownload, IconEraser, IconBookmark, IconCopy, IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import ResponseDownload from '../ResponseDownload';
 import ResponseBookmark from '../ResponseBookmark';
 import ResponseClear from '../ResponseClear';
-import ResponseLayoutToggle, { useResponseLayoutToggle, IconDockToBottom, IconDockToRight } from '../ResponseLayoutToggle';
+import ResponseLayoutToggle, { useResponseLayoutToggle } from '../ResponseLayoutToggle';
 import ResponseCopy from '../ResponseCopy/index';
 import StyledWrapper from '../StyledWrapper';
 
@@ -166,7 +166,7 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
           <ResponseLayoutToggle>
             <div className="dropdown-item" onClick={closeDropdown}>
               <span className="dropdown-icon">
-                {orientation === 'horizontal' ? <IconDockToBottom /> : <IconDockToRight />}
+                {orientation === 'horizontal' ? <IconLayoutColumns size={16} strokeWidth={1.5} /> : <IconLayoutRows size={16} strokeWidth={1.5} />}
               </span>
               <span>Change layout</span>
             </div>
