@@ -13,6 +13,20 @@ const processHeaders = (headers) => {
   });
 };
 
+const placeOAuth2Token = (grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey) => {
+  if (tokenPlacement === 'header') {
+    grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
+  } else {
+    try {
+      const url = new URL(grpcRequest.url);
+      url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
+      grpcRequest.url = url?.toString();
+    } catch (error) {
+      console.error('Failed to parse URL for OAuth2 token placement:', error);
+    }
+  }
+};
+
 const configureRequest = async (grpcRequest, request, collection, envVars, runtimeVariables, processEnvVars, promptVariables, certsAndProxyConfig) => {
   if (grpcRequest.oauth2) {
     let requestCopy = cloneDeep(grpcRequest);
@@ -23,43 +37,19 @@ const configureRequest = async (grpcRequest, request, collection, envVars, runti
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
         grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
-          try {
-            const url = new URL(grpcRequest.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            grpcRequest.url = url?.toString();
-          } catch (error) { }
-        }
+        placeOAuth2Token(grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey);
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
         grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
-          try {
-            const url = new URL(grpcRequest.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            grpcRequest.url = url?.toString();
-          } catch (error) { }
-        }
+        placeOAuth2Token(grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey);
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
         grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
-          try {
-            const url = new URL(grpcRequest.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            grpcRequest.url = url?.toString();
-          } catch (error) { }
-        }
+        placeOAuth2Token(grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey);
         break;
     }
   }
