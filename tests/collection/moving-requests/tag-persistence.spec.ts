@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createUntitledRequest, selectRequestPaneTab } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Tag persistence', () => {
   test.afterEach(async ({ page }) => {
@@ -8,16 +9,17 @@ test.describe('Tag persistence', () => {
   });
 
   test('Verify tag persistence while moving requests within a collection', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
     // Create first collection - click plus icon button to open dropdown
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.createCollection().click();
     await page.getByLabel('Name').fill('test-collection');
-    const locationInput = page.locator('.bruno-modal').getByLabel('Location');
+    const locationInput = locators.modal.byTitle('Create Collection').getByLabel('Location');
     if (await locationInput.isVisible()) {
       await locationInput.fill(await createTmpDir('test-collection'));
     }
-    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'test-collection' }).click();
+    await locators.modal.button('Create').click();
+    await locators.sidebar.collection('test-collection').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
     await page.waitForTimeout(1000);
@@ -61,104 +63,101 @@ test.describe('Tag persistence', () => {
 
     // Click on the moved request (now first) to verify the tag persisted after the move
     await untitledRequests.first().click();
-    await page.locator('.request-tab.active').waitFor({ state: 'visible' });
+    await locators.tabs.activeRequestTab().waitFor({ state: 'visible' });
     await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
     // Verify the tag is still present after the move
-    await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
+    await expect(locators.tags.item('smoke')).toBeVisible();
   });
 
   test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
     // Create first collection - click plus icon button to open dropdown
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.createCollection().click();
     await page.getByLabel('Name').fill('test-collection');
-    const locationInput = page.locator('.bruno-modal').getByLabel('Location');
+    const locationInput = locators.modal.byTitle('Create Collection').getByLabel('Location');
     if (await locationInput.isVisible()) {
       await locationInput.fill(await createTmpDir('test-collection'));
     }
-    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'test-collection' }).click();
+    await locators.modal.button('Create').click();
+    await locators.sidebar.collection('test-collection').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a new folder
-    await page.locator('.collection-name')
-      .filter({ hasText: 'test-collection' }).hover();
-    await page.locator('.collection-name')
-      .filter({ hasText: 'test-collection' }).locator('.collection-actions .icon').click();
+    await locators.sidebar.collectionRow('test-collection').hover();
+    await locators.actions.collectionActions('test-collection').click();
     await page.waitForTimeout(1);
-    await page.getByText('New Folder').click();
+    await locators.dropdown.item('New Folder').click();
     await page.locator('#folder-name').fill('folder-1');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await locators.modal.button('Create').click();
     await page.waitForTimeout(100);
 
     // Create a new request within folder-1 folder
-    await page.getByText('folder-1').click();
+    await locators.sidebar.folder('folder-1').click();
     await page.waitForTimeout(200);
 
-    await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).hover();
-    await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).locator('.menu-icon').click();
-    await page.locator('.dropdown-item').getByText('New Request').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('request-1');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await locators.sidebar.folder('folder-1').hover();
+    await locators.actions.collectionItemActions('folder-1').click();
+    await locators.dropdown.item('New Request').click();
+    await locators.request.requestNameInput().fill('request-1');
+    await locators.request.newRequestUrl().click();
+    await page.keyboard.type('https://httpfaker.org/api/echo');
+    await locators.modal.button('Create').click();
 
     // create another request within folder-1 folder
-    await page.locator('.collection-item-name')
-      .filter({ hasText: 'folder-1' }).hover();
-    await page.locator('.collection-item-name')
-      .filter({ hasText: 'folder-1' }).locator('.menu-icon').click();
-    await page.locator('.dropdown-item').getByText('New Request').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('request-2');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await locators.sidebar.folder('folder-1').hover();
+    await locators.actions.collectionItemActions('folder-1').click();
+    await locators.dropdown.item('New Request').click();
+    await locators.request.requestNameInput().fill('request-2');
+    await locators.request.newRequestUrl().click();
+    await page.keyboard.type('https://httpfaker.org/api/echo');
+    await locators.modal.button('Create').click();
     await page.waitForTimeout(200);
 
     // Add a tag to the request
     await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
-    const tagInput2 = await page.getByTestId('tag-input').getByRole('textbox');
-    await tagInput2.fill('smoke');
-    await tagInput2.press('Enter');
+    await locators.tags.input().fill('smoke');
+    await locators.tags.input().press('Enter');
     await page.waitForTimeout(200);
-    await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
+    await expect(locators.tags.item('smoke')).toBeVisible();
     await page.keyboard.press('Meta+s');
 
     // Create another folder
-    await page.locator('.collection-name')
-      .filter({ hasText: 'test-collection' }).hover();
-    await page.locator('.collection-name')
-      .filter({ hasText: 'test-collection' }).locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').getByText('New Folder').click();
+    await locators.sidebar.collectionRow('test-collection').hover();
+    await locators.actions.collectionActions('test-collection').click();
+    await locators.dropdown.item('New Folder').click();
     await page.locator('#folder-name').fill('folder-2');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await locators.modal.button('Create').click();
 
     // open folder-2 folder
-    await page.getByText('folder-2').click();
-    await page.locator('.collection-item-name')
-      .filter({ hasText: 'folder-2' }).hover();
-    await page.locator('.collection-item-name')
-      .filter({ hasText: 'folder-2' }).locator('.menu-icon').click();
-    await page.locator('.dropdown-item').getByText('New Request').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('request-3');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await locators.sidebar.folder('folder-2').click();
+    await locators.sidebar.folder('folder-2').hover();
+    await locators.actions.collectionItemActions('folder-2').click();
+    await locators.dropdown.item('New Request').click();
+    await locators.request.requestNameInput().fill('request-3');
+    await locators.request.newRequestUrl().click();
+    await page.keyboard.type('https://httpfaker.org/api/echo');
+    await locators.modal.button('Create').click();
 
     // Drag and drop request-2 request to folder-2 folder
-    const r2Request = page.locator('.collection-item-name').filter({ hasText: 'request-2' });
-    const f2Folder = page.locator('.collection-item-name').filter({ hasText: 'folder-2' });
+    const r2Request = locators.sidebar.request('request-2');
+    const f2Folder = locators.sidebar.folder('folder-2');
     await r2Request.dragTo(f2Folder);
 
     // Verify the requests are still in the collection and request-2 is now in folder-2 folder
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'request-2' })).toBeVisible();
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'folder-2' })).toBeVisible();
+    await expect(locators.sidebar.request('request-2')).toBeVisible();
+    await expect(locators.sidebar.folder('folder-2')).toBeVisible();
 
     // Click on request-2 to verify the tag persisted after the move
-    await page.locator('.collection-item-name').filter({ hasText: 'request-2' }).click();
-    await page.locator('.request-tab.active').filter({ hasText: 'request-2' }).waitFor({ state: 'visible' });
+    await locators.sidebar.request('request-2').click();
+    await page.waitForTimeout(200);
+
+    await locators.tabs.requestTab('request-2').waitFor({ state: 'visible' });
     await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
-    await expect(page.locator('.tag-item', { hasText: 'smoke' })).toBeVisible();
+    await expect(locators.tags.item('smoke')).toBeVisible();
   });
 });
