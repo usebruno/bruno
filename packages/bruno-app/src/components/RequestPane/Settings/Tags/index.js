@@ -2,6 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { addRequestTag, deleteRequestTag, updateCollectionTagsList } from 'providers/ReduxStore/slices/collections';
+import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import TagList from 'components/TagList/index';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
@@ -26,6 +27,7 @@ const Tags = ({ item, collection }) => {
           collectionUid: collection.uid
         })
       );
+      dispatch(makeTabPermanent({ uid: item.uid }));
     }
   }, [dispatch, tags, item.uid, collection.uid]);
 
@@ -37,6 +39,7 @@ const Tags = ({ item, collection }) => {
         collectionUid: collection.uid
       })
     );
+    dispatch(makeTabPermanent({ uid: item.uid }));
   }, [dispatch, item.uid, collection.uid]);
 
   const handleRequestSave = () => {

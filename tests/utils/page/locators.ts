@@ -75,6 +75,10 @@ export const buildCommonLocators = (page: Page) => ({
     requestNameInput: () => page.getByPlaceholder('Request Name'),
     requestTestId: () => page.getByTestId('request-name')
   },
+  tags: {
+    input: () => page.getByTestId('tag-input').getByRole('textbox'),
+    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+  },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
     pane: () => page.locator('.response-pane'),
