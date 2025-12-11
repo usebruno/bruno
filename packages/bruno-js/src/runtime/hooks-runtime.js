@@ -83,6 +83,8 @@ class HooksRuntime {
     }
 
     // Execute hooks script
+    // Note: Hooks need the VM to persist so registered handlers can be called later
+    // The cleanup function is registered with the HookManager and called when dispose() is invoked
     if (this.runtime === 'nodevm') {
       await runScriptInNodeVm({
         script: hooksFile,
@@ -100,11 +102,19 @@ class HooksRuntime {
       };
     }
 
-    await executeQuickJsVmAsync({
+    // For QuickJS, persist the VM so hook handlers can be called later during the collection run
+    // The cleanup function is registered with the HookManager to be called when dispose() is invoked
+    const result = await executeQuickJsVmAsync({
       script: hooksFile,
       context: context,
-      collectionPath
+      collectionPath,
+      persistVm: true // Keep VM alive for hook handler calls
     });
+
+    // Register VM cleanup with HookManager so it's disposed when HookManager.dispose() is called
+    if (result?.cleanup && typeof activeHookManager.registerCleanup === 'function') {
+      activeHookManager.registerCleanup(result.cleanup);
+    }
 
     return {
       hookManager: activeHookManager,
