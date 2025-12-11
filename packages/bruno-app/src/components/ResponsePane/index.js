@@ -175,7 +175,7 @@ const ResponsePane = ({ item, collection }) => {
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
+        <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')} data-testid="response-headers-tab">
           Headers
           {responseHeadersCount > 0 && <sup className="ml-1 font-medium">{responseHeadersCount}</sup>}
         </div>
