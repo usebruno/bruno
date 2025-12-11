@@ -1,7 +1,7 @@
 const { dialog, ipcMain } = require('electron');
 const { normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { generateYamlContent } = require('../utils/workspace-config');
+const { generateYamlContent, getWorkspaceUid } = require('../utils/workspace-config');
 
 const normalizeWorkspaceConfig = (config) => {
   return {
@@ -75,8 +75,12 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
           fs.writeFileSync(workspaceFilePath, updatedYamlContent);
 
           const normalizedConfig = normalizeWorkspaceConfig(workspaceConfig);
-          const workspaceUid = generateUidBasedOnHash(options.workspacePath);
-          win.webContents.send('main:workspace-config-updated', options.workspacePath, workspaceUid, normalizedConfig);
+          const workspaceUid = getWorkspaceUid(options.workspacePath);
+          const isDefault = workspaceUid === 'default';
+          win.webContents.send('main:workspace-config-updated', options.workspacePath, workspaceUid, {
+            ...normalizedConfig,
+            type: isDefault ? 'default' : normalizedConfig.type
+          });
         }
       }
     }

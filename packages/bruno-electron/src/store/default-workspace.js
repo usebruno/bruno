@@ -70,8 +70,8 @@ class DefaultWorkspaceManager {
 
     const existingPath = this.getDefaultWorkspacePath();
 
-    // If existing path is valid, return it
     if (this.isValidDefaultWorkspace(existingPath)) {
+      this.defaultWorkspacePath = existingPath;
       return {
         workspacePath: existingPath,
         workspaceUid: this.getDefaultWorkspaceUid()
