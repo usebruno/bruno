@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 const { writeFile, validateName } = require('./filesystem');
-const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { generateUidBasedOnHash } = require('./common');
 
 const WORKSPACE_TYPE = 'workspace';
@@ -357,6 +356,7 @@ const removeApiSpecFromWorkspace = async (workspacePath, apiSpecPath) => {
 };
 
 const getWorkspaceUid = (workspacePath) => {
+  const { defaultWorkspaceManager } = require('../store/default-workspace');
   const defaultWorkspacePath = defaultWorkspaceManager.getDefaultWorkspacePath();
   if (defaultWorkspacePath && path.normalize(workspacePath) === path.normalize(defaultWorkspacePath)) {
     return defaultWorkspaceManager.getDefaultWorkspaceUid();
