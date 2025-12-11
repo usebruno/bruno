@@ -78,11 +78,10 @@ class DefaultWorkspaceManager {
       };
     }
 
-    // Need to create/recreate default workspace
     this.initializationPromise = (async () => {
       try {
         const shouldMigrate = this.needsMigration();
-        const newWorkspacePath = await this.initializeDefaultWorkspace(existingPath, { migrateFromPreferences: shouldMigrate });
+        const newWorkspacePath = await this.initializeDefaultWorkspace({ migrateFromPreferences: shouldMigrate });
 
         return {
           workspacePath: newWorkspacePath,
@@ -99,21 +98,17 @@ class DefaultWorkspaceManager {
     return this.initializationPromise;
   }
 
-  async initializeDefaultWorkspace(existingPath = null, options = {}) {
+  async initializeDefaultWorkspace(options = {}) {
     const { migrateFromPreferences = true } = options;
 
-    let workspacePath = existingPath;
+    const configDir = app.getPath('userData');
+    const baseWorkspacePath = path.join(configDir, 'default-workspace');
 
-    if (!workspacePath || !fs.existsSync(workspacePath)) {
-      const configDir = app.getPath('userData');
-      const baseWorkspacePath = path.join(configDir, 'default-workspace');
-
-      workspacePath = baseWorkspacePath;
-      let counter = 1;
-      while (fs.existsSync(workspacePath)) {
-        workspacePath = `${baseWorkspacePath}-${counter}`;
-        counter++;
-      }
+    let workspacePath = baseWorkspacePath;
+    let counter = 1;
+    while (fs.existsSync(workspacePath)) {
+      workspacePath = `${baseWorkspacePath}-${counter}`;
+      counter++;
     }
 
     fs.mkdirSync(workspacePath, { recursive: true });
