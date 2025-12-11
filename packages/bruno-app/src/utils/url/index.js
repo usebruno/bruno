@@ -107,7 +107,7 @@ export const interpolateUrlPathParams = (url, params) => {
         if (segment.startsWith(':')) {
           const name = segment.slice(1);
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          return pathParam ? pathParam.value : segment;
+          return pathParam ? encodeURIComponent(pathParam.value) : segment;
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -131,7 +131,7 @@ export const interpolateUrlPathParams = (url, params) => {
 
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
           if (pathParam) {
-            result = result.replace(':' + match[1], pathParam.value);
+            result = result.replace(':' + match[1], encodeURIComponent(pathParam.value));
           }
         }
         return result;
