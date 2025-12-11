@@ -2,17 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { writeFile, createDirectory } = require('../utils/filesystem');
+const { writeFile } = require('../utils/filesystem');
 const { getPreferences, savePreferences } = require('./preferences');
 const { globalEnvironmentsStore } = require('./global-environments');
-const { generateYamlContent } = require('../utils/workspace-config');
+const { generateYamlContent, readWorkspaceConfig, validateWorkspaceConfig } = require('../utils/workspace-config');
 
 const OPENCOLLECTION_VERSION = '1.0.0';
+const WORKSPACE_TYPE = 'workspace';
+const DEFAULT_WORKSPACE_UID = 'default';
 
 class DefaultWorkspaceManager {
   constructor() {
     this.defaultWorkspacePath = null;
-    this.defaultWorkspaceUid = null;
     this.initializationPromise = null;
   }
 
@@ -27,16 +28,7 @@ class DefaultWorkspaceManager {
   }
 
   getDefaultWorkspaceUid() {
-    const workspacePath = this.getDefaultWorkspacePath();
-    if (!workspacePath) {
-      return null;
-    }
-
-    if (!this.defaultWorkspaceUid) {
-      this.defaultWorkspaceUid = generateUidBasedOnHash(workspacePath);
-    }
-
-    return this.defaultWorkspaceUid;
+    return DEFAULT_WORKSPACE_UID;
   }
 
   async setDefaultWorkspacePath(workspacePath) {
@@ -48,9 +40,27 @@ class DefaultWorkspaceManager {
     await savePreferences(preferences);
 
     this.defaultWorkspacePath = workspacePath;
-    this.defaultWorkspaceUid = generateUidBasedOnHash(workspacePath);
 
     return workspacePath;
+  }
+
+  isValidDefaultWorkspace(workspacePath) {
+    if (!workspacePath || !fs.existsSync(workspacePath)) {
+      return false;
+    }
+
+    const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
+    if (!fs.existsSync(workspaceYmlPath)) {
+      return false;
+    }
+
+    try {
+      const config = readWorkspaceConfig(workspacePath);
+      validateWorkspaceConfig(config);
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   async ensureDefaultWorkspaceExists() {
@@ -60,27 +70,27 @@ class DefaultWorkspaceManager {
 
     const existingPath = this.getDefaultWorkspacePath();
 
-    if (existingPath && fs.existsSync(existingPath)) {
+    // If existing path is valid, return it
+    if (this.isValidDefaultWorkspace(existingPath)) {
       return {
         workspacePath: existingPath,
         workspaceUid: this.getDefaultWorkspaceUid()
       };
     }
 
+    // Need to create/recreate default workspace
     this.initializationPromise = (async () => {
       try {
         const shouldMigrate = this.needsMigration();
-        const newWorkspacePath = await this.initializeDefaultWorkspace(null, { migrateFromPreferences: shouldMigrate });
-        const workspaceYmlPath = path.join(newWorkspacePath, 'workspace.yml');
-        if (!fs.existsSync(workspaceYmlPath)) {
-          this.defaultWorkspacePath = null;
-          return null;
-        } else {
-          return {
-            workspacePath: newWorkspacePath,
-            workspaceUid: this.getDefaultWorkspaceUid()
-          };
-        }
+        const newWorkspacePath = await this.initializeDefaultWorkspace(existingPath, { migrateFromPreferences: shouldMigrate });
+
+        return {
+          workspacePath: newWorkspacePath,
+          workspaceUid: this.getDefaultWorkspaceUid()
+        };
+      } catch (error) {
+        console.error('Failed to initialize default workspace:', error);
+        return null;
       } finally {
         this.initializationPromise = null;
       }
@@ -89,35 +99,32 @@ class DefaultWorkspaceManager {
     return this.initializationPromise;
   }
 
-  async initializeDefaultWorkspace(workspacePath = null, options = {}) {
+  async initializeDefaultWorkspace(existingPath = null, options = {}) {
     const { migrateFromPreferences = true } = options;
 
-    if (!workspacePath) {
+    let workspacePath = existingPath;
+
+    if (!workspacePath || !fs.existsSync(workspacePath)) {
       const configDir = app.getPath('userData');
       const baseWorkspacePath = path.join(configDir, 'default-workspace');
 
-      let finalPath = baseWorkspacePath;
+      workspacePath = baseWorkspacePath;
       let counter = 1;
-      while (fs.existsSync(finalPath)) {
-        finalPath = `${baseWorkspacePath}-${counter}`;
+      while (fs.existsSync(workspacePath)) {
+        workspacePath = `${baseWorkspacePath}-${counter}`;
         counter++;
       }
-
-      workspacePath = finalPath;
     }
 
-    if (!fs.existsSync(workspacePath)) {
-      await createDirectory(workspacePath);
-    }
-
-    await createDirectory(path.join(workspacePath, 'collections'));
-    await createDirectory(path.join(workspacePath, 'environments'));
+    fs.mkdirSync(workspacePath, { recursive: true });
+    fs.mkdirSync(path.join(workspacePath, 'collections'), { recursive: true });
+    fs.mkdirSync(path.join(workspacePath, 'environments'), { recursive: true });
 
     const workspaceConfig = {
       opencollection: OPENCOLLECTION_VERSION,
       info: {
         name: 'My Workspace',
-        type: 'default'
+        type: WORKSPACE_TYPE
       },
       collections: [],
       specs: [],

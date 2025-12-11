@@ -425,20 +425,12 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   ipcMain.handle('renderer:get-default-workspace', async (event) => {
     try {
       const result = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
-
       if (!result) {
         return null;
       }
 
       const { workspacePath, workspaceUid } = result;
-
-      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-      if (!fs.existsSync(workspaceFilePath)) {
-        return null;
-      }
-
-      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-      const workspaceConfig = yaml.load(yamlContent);
+      const workspaceConfig = readWorkspaceConfig(workspacePath);
 
       return {
         workspaceConfig: {
@@ -449,32 +441,30 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         workspacePath
       };
     } catch (error) {
+      console.error('Error getting default workspace:', error);
       return null;
     }
   });
 
   ipcMain.on('main:renderer-ready', async (win) => {
     try {
+      // Load default workspace
       const defaultResult = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
       if (defaultResult) {
         const { workspacePath, workspaceUid } = defaultResult;
-        const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+        const workspaceConfig = readWorkspaceConfig(workspacePath);
 
-        if (fs.existsSync(workspaceFilePath)) {
-          const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-          const workspaceConfig = yaml.load(yamlContent);
+        win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, {
+          ...workspaceConfig,
+          type: 'default'
+        });
 
-          win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, {
-            ...workspaceConfig,
-            type: 'default'
-          });
-
-          if (workspaceWatcher) {
-            workspaceWatcher.addWatcher(win, workspacePath);
-          }
+        if (workspaceWatcher) {
+          workspaceWatcher.addWatcher(win, workspacePath);
         }
       }
 
+      // Load other workspaces
       const workspacePaths = lastOpenedWorkspaces.getAll();
       const invalidPaths = [];
 
