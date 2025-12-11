@@ -7,8 +7,17 @@ const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { parseEnvironment } = require('@usebruno/filestore');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
+const { defaultWorkspaceManager } = require('../store/default-workspace');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
+
+const getWorkspaceUid = (workspacePath) => {
+  const defaultWorkspacePath = defaultWorkspaceManager.getDefaultWorkspacePath();
+  if (defaultWorkspacePath && path.normalize(workspacePath) === path.normalize(defaultWorkspacePath)) {
+    return defaultWorkspaceManager.getDefaultWorkspaceUid();
+  }
+  return generateUidBasedOnHash(workspacePath);
+};
 
 const envHasSecrets = (environment) => {
   const secrets = _.filter(environment.variables, (v) => v.secret === true);
@@ -42,7 +51,7 @@ const handleWorkspaceFileChange = (win, workspacePath) => {
       return;
     }
 
-    const workspaceUid = generateUidBasedOnHash(workspacePath);
+    const workspaceUid = getWorkspaceUid(workspacePath);
 
     win.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, workspaceConfig);
   } catch (error) {
@@ -123,7 +132,7 @@ class WorkspaceWatcher {
   addWatcher(win, workspacePath) {
     const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
     const environmentsDir = path.join(workspacePath, 'environments');
-    const workspaceUid = generateUidBasedOnHash(workspacePath);
+    const workspaceUid = getWorkspaceUid(workspacePath);
 
     if (this.watchers[workspacePath]) {
       this.watchers[workspacePath].close();
