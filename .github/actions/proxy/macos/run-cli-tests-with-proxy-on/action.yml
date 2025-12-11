@@ -1,0 +1,55 @@
+name: 'run cli tests with proxy ON - macos'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Proxy CLI tests for `proxy-object` with proxy turned `on`
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        echo "Running proxy-object collection tests..."
+
+        cd tests/proxy-settings/collections/proxy-object
+
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json
+        grep '"status": "pass"' report.json || {
+          echo "Test failed: error occurred while proxying request."
+          exit 1
+        }
+
+        # Test with --noproxy flag (should disable collection proxy)
+        echo "Running with --noproxy flag..."
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json --noproxy
+        grep '"status": "pass"' report.json || {
+          echo "Test failed: should not use proxy."
+          exit 1
+        }
+
+    - name: Run Proxy CLI tests for `proxy-inherit` with proxy turned `on`
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        echo "Running proxy-inherit collection tests..."
+
+        cd tests/proxy-settings/collections/proxy-inherit
+
+        # Test with --noproxy flag (should disable system proxy)
+        echo "Running with --noproxy flag..."
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json --noproxy
+        grep '"status": "pass"' report.json || {
+          echo "Test failed: should not use proxy."
+          exit 1
+        }
+        
+        # Test with system proxy environment variables set
+        echo "Running with HTTP_PROXY environment variable..."
+        export HTTPS_PROXY=http://127.0.0.1:8091
+        node ../../../../packages/bruno-cli/bin/bru.js run --reporter-json report.json
+        env
+        cat report.json
+        grep '"status": "pass"' report.json || {
+          echo "Test failed: error occured while proxying request."
+          exit 1
+        }
+        export HTTPS_PROXY=

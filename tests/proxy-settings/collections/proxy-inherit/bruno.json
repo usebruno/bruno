@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "name": "proxy-inherit",
+  "type": "collection",
+  "proxy": "inherit",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

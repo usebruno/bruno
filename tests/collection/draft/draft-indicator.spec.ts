@@ -163,8 +163,8 @@ test.describe('Draft indicator in collection and folder settings', () => {
     // Click on Proxy tab
     await page.locator('.tab.proxy').click();
 
-    // Enable proxy - select "enabled" radio button
-    await page.locator('input[name="enabled"][value="true"]').check();
+    // Enable proxy - select "mode" radio button
+    await page.locator('input[name="mode"][value="on"]').check();
 
     // Fill in hostname and port
     await page.locator('#hostname').fill('localhost');
