@@ -37,7 +37,7 @@ const config = {
     notarize: false,
     protocols: [
       {
-        name: 'bruno',
+        name: 'Bruno',
         schemes: [
           'bruno'
         ]
@@ -67,7 +67,7 @@ const config = {
         schemes: ['bruno']
       }
     ],
-    category: 'Utility',
+    category: 'Development',
     desktop: {
       MimeType: 'x-scheme-handler/bruno;'
     }
