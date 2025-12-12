@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { updateResponseExampleFileBodyParams } from 'providers/ReduxStore/slices/collections';
 import mime from 'mime-types';
 import path from 'utils/common/path';
+import { uuid } from 'utils/common';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
@@ -50,6 +51,8 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
           if (newFilePath) {
             const contentType = mime.contentType(path.extname(newFilePath));
             updated.contentType = contentType || '';
+          } else {
+            updated.contentType = '';
           }
           return updated;
         }
@@ -107,6 +110,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     const deselectedParams = params.map((p) => ({ ...p, selected: false }));
 
     const newParam = {
+      uid: uuid(),
       filePath: '',
       contentType: '',
       selected: true
