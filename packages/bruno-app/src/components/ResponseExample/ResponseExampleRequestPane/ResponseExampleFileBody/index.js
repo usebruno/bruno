@@ -23,8 +23,6 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     return Array.isArray(_params) ? _params : [];
   }, [item.draft, item.examples, item, exampleUid]);
 
-  const [enabledFileUid, setEnableFileUid] = useState(params.length > 0 ? params[0].uid : '');
-
   const handleParamsChange = useCallback((updatedParams) => {
     if (!editMode) return;
 
@@ -85,10 +83,6 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       selected: p.uid === row.uid ? checked : false
     }));
 
-    if (checked) {
-      setEnableFileUid(row.uid);
-    }
-
     handleParamsChange(updatedParams);
   }, [editMode, params, handleParamsChange]);
 
@@ -110,13 +104,15 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
   const addFile = () => {
     if (!editMode) return;
 
+    const deselectedParams = params.map((p) => ({ ...p, selected: false }));
+
     const newParam = {
       filePath: '',
       contentType: '',
       selected: true
     };
 
-    const updatedParams = [...params, newParam];
+    const updatedParams = [...deselectedParams, newParam];
 
     dispatch(updateResponseExampleFileBodyParams({
       itemUid: item.uid,
