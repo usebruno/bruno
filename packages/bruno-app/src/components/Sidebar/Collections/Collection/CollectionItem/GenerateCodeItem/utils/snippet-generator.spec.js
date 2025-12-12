@@ -426,6 +426,54 @@ describe('Snippet Generator - Simple Tests', () => {
 
     expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
+
+  it('should interpolate path params with collection variables (issue #6365)', () => {
+    const requestWithPathParam = {
+      uid: 'test-request-with-path-param',
+      name: 'test path param interpolation',
+      type: 'http-request',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/en',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        assertions: [],
+        tests: '',
+        docs: '',
+        params: [
+          { uid: 'p1', name: 'language', value: 'en', type: 'path', enabled: true }
+        ],
+        vars: { req: [] }
+      }
+    };
+
+    const collectionWithLanguageVar = {
+      root: {
+        request: {
+          auth: { mode: 'none' },
+          headers: []
+        }
+      },
+      globalEnvironmentVariables: {
+        current_language: 'en'
+      },
+      runtimeVariables: {},
+      processEnvVariables: {}
+    };
+
+    const result = generateSnippet({
+      language: curlLanguage,
+      item: requestWithPathParam,
+      collection: collectionWithLanguageVar,
+      shouldInterpolate: false
+    });
+
+    // The URL should have the interpolated path param
+    expect(result).toContain('https://api.example.com/en');
+    // And not contain the placeholder
+    expect(result).not.toContain('{{current_language}}');
+  });
 });
 
 // Snippet should include inherited headers
