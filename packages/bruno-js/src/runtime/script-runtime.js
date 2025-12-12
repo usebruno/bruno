@@ -67,35 +67,9 @@ class ScriptRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
-    if (this.runtime === 'nodevm') {
-      await runScriptInNodeVm({
-        script,
-        context,
-        collectionPath,
-        scriptingConfig
-      });
-
-      return {
-        request,
-        envVariables: cleanJson(envVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        results: cleanJson(__brunoTestResults.getResults()),
-        nextRequestName: bru.nextRequest,
-        skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution
-      };
-    }
-
-    // default runtime is `quickjs`
-    await executeQuickJsVmAsync({
-      script: script,
-      context: context,
-      collectionPath
-    });
-
-    return {
+    // Helper to build the result object for pre-request scripts
+    // Extracted to avoid duplication across runtime branches
+    const buildRequestScriptResult = () => ({
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
@@ -105,7 +79,52 @@ class ScriptRuntime {
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution
-    };
+    });
+
+    // Track script errors to attach partial results before re-throwing
+    // This ensures that any test() calls that passed before the error are preserved
+    // Similar pattern to test-runtime.js which already handles this correctly
+    let scriptError = null;
+
+    if (this.runtime === 'nodevm') {
+      try {
+        await runScriptInNodeVm({
+          script,
+          context,
+          collectionPath,
+          scriptingConfig
+        });
+      } catch (error) {
+        scriptError = error;
+      }
+
+      // If script errored, attach partial results so callers can display passed tests
+      // before the error occurred (e.g., 2 tests pass, then script throws)
+      if (scriptError) {
+        scriptError.partialResults = buildRequestScriptResult();
+        throw scriptError;
+      }
+
+      return buildRequestScriptResult();
+    }
+
+    // default runtime is `quickjs`
+    try {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath
+      });
+    } catch (error) {
+      scriptError = error;
+    }
+
+    if (scriptError) {
+      scriptError.partialResults = buildRequestScriptResult();
+      throw scriptError;
+    }
+
+    return buildRequestScriptResult();
   }
 
   async runResponseScript(
@@ -164,35 +183,9 @@ class ScriptRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
-    if (this.runtime === 'nodevm') {
-      await runScriptInNodeVm({
-        script,
-        context,
-        collectionPath,
-        scriptingConfig
-      });
-
-      return {
-        response,
-        envVariables: cleanJson(envVariables),
-        persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        results: cleanJson(__brunoTestResults.getResults()),
-        nextRequestName: bru.nextRequest,
-        skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution
-      };
-    }
-
-    // default runtime is `quickjs`
-    await executeQuickJsVmAsync({
-      script: script,
-      context: context,
-      collectionPath
-    });
-
-    return {
+    // Helper to build the result object for post-response scripts
+    // Extracted to avoid duplication across runtime branches
+    const buildResponseScriptResult = () => ({
       response,
       envVariables: cleanJson(envVariables),
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
@@ -202,7 +195,52 @@ class ScriptRuntime {
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution
-    };
+    });
+
+    // Track script errors to attach partial results before re-throwing
+    // This ensures that any test() calls that passed before the error are preserved
+    // Similar pattern to test-runtime.js which already handles this correctly
+    let scriptError = null;
+
+    if (this.runtime === 'nodevm') {
+      try {
+        await runScriptInNodeVm({
+          script,
+          context,
+          collectionPath,
+          scriptingConfig
+        });
+      } catch (error) {
+        scriptError = error;
+      }
+
+      // If script errored, attach partial results so callers can display passed tests
+      // before the error occurred (e.g., 2 tests pass, then script throws)
+      if (scriptError) {
+        scriptError.partialResults = buildResponseScriptResult();
+        throw scriptError;
+      }
+
+      return buildResponseScriptResult();
+    }
+
+    // default runtime is `quickjs`
+    try {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath
+      });
+    } catch (error) {
+      scriptError = error;
+    }
+
+    if (scriptError) {
+      scriptError.partialResults = buildResponseScriptResult();
+      throw scriptError;
+    }
+
+    return buildResponseScriptResult();
   }
 }
 
