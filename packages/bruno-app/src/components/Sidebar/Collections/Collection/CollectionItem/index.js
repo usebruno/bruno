@@ -671,9 +671,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               placement="bottom-start"
               data-testid="collection-item-menu"
             >
-              <ActionIcon label="Collection item menu">
-                <IconDots size={22} />
-              </ActionIcon>
+              <IconDots size={22} />
             </MenuDropdown>
           </div>
         </div>

@@ -208,9 +208,7 @@ const ExampleItem = ({ example, item, collection }) => {
           placement="bottom-start"
           data-testid="response-example-menu"
         >
-          <ActionIcon label="Example menu" data-testid="response-example-menu-icon">
-            <IconDots size={22} />
-          </ActionIcon>
+          <IconDots size={22} data-testid="response-example-menu-icon" />
         </MenuDropdown>
       </div>
 

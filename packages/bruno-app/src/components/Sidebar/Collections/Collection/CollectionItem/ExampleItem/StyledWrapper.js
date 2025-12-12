@@ -6,14 +6,6 @@ const StyledWrapper = styled.div`
   .menu-icon {
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
     visibility: hidden;
-    transition: none;
-
-    .action-icon {
-      background: transparent !important;
-      &:hover {
-        background: transparent !important;
-      }
-    }
 
     .dropdown {
       div[aria-expanded='true'] {
