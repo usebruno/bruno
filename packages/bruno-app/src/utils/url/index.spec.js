@@ -348,4 +348,39 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
 
     expect(result).toEqual(expectedUrl);
   });
+
+  it('should interpolate variables in path param values (issue #6365)', () => {
+    const url = 'https://api.example.com/:language';
+    const params = [{ name: 'language', type: 'path', enabled: true, value: '{{current_language}}' }];
+    const variables = { current_language: 'en' };
+    const expectedUrl = 'https://api.example.com/en';
+
+    const result = interpolateUrlPathParams(url, params, variables);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should handle path params without variables parameter', () => {
+    const url = 'https://api.example.com/:language';
+    const params = [{ name: 'language', type: 'path', enabled: true, value: '{{current_language}}' }];
+    const expectedUrl = 'https://api.example.com/{{current_language}}';
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should interpolate multiple variables in path param values', () => {
+    const url = 'https://api.example.com/:lang/:version';
+    const params = [
+      { name: 'lang', type: 'path', enabled: true, value: '{{current_language}}' },
+      { name: 'version', type: 'path', enabled: true, value: '{{api_version}}' }
+    ];
+    const variables = { current_language: 'en', api_version: 'v2' };
+    const expectedUrl = 'https://api.example.com/en/v2';
+
+    const result = interpolateUrlPathParams(url, params, variables);
+
+    expect(result).toEqual(expectedUrl);
+  });
 });

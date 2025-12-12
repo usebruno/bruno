@@ -98,7 +98,7 @@ export const interpolateUrl = ({ url, variables }) => {
   return interpolate(url, variables);
 };
 
-export const interpolateUrlPathParams = (url, params) => {
+export const interpolateUrlPathParams = (url, params, variables) => {
   const getInterpolatedBasePath = (pathname, params) => {
     return pathname
       .split('/')
@@ -107,7 +107,11 @@ export const interpolateUrlPathParams = (url, params) => {
         if (segment.startsWith(':')) {
           const name = segment.slice(1);
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          return pathParam ? pathParam.value : segment;
+          if (pathParam) {
+            const value = variables ? interpolate(pathParam.value, variables) : pathParam.value;
+            return value;
+          }
+          return segment;
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -131,7 +135,9 @@ export const interpolateUrlPathParams = (url, params) => {
 
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
           if (pathParam) {
-            result = result.replace(':' + match[1], pathParam.value);
+            // Interpolate the param value if variables are provided
+            const value = variables ? interpolate(pathParam.value, variables) : pathParam.value;
+            result = result.replace(':' + match[1], value);
           }
         }
         return result;
