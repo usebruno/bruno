@@ -33,12 +33,44 @@ const config = {
     hardenedRuntime: true,
     identity: 'Anoop MD (W7LPPWA48L)',
     entitlements: 'resources/entitlements.mac.plist',
-    entitlementsInherit: 'resources/entitlements.mac.plist'
+    entitlementsInherit: 'resources/entitlements.mac.plist',
+    notarize: false,
+    protocols: [
+      {
+        name: 'Bruno',
+        schemes: [
+          'bruno'
+        ]
+      }
+    ]
   },
   linux: {
-    artifactName: '${name}_${version}_${arch}_linux.${ext}',
+    artifactName: '${name}_${version}_${arch}_${os}.${ext}',
     icon: 'resources/icons/png',
-    target: ['AppImage', 'deb', 'snap', 'rpm']
+    target: [
+      {
+        target: 'AppImage',
+        arch: ['x64', 'arm64']
+      },
+      {
+        target: 'deb',
+        arch: ['x64', 'arm64']
+      },
+      {
+        target: 'rpm',
+        arch: ['x64', 'arm64']
+      }
+    ],
+    protocols: [
+      {
+        name: 'Bruno',
+        schemes: ['bruno']
+      }
+    ],
+    category: 'Development',
+    desktop: {
+      MimeType: 'x-scheme-handler/bruno;'
+    }
   },
   deb: {
     // Docs: https://www.electron.build/configuration/linux#debian-package-options

@@ -56,6 +56,9 @@ const General = ({ close }) => {
       }
       return true;
     }),
+    oauth2: Yup.object({
+      useSystemBrowser: Yup.boolean()
+    }),
     defaultCollectionLocation: Yup.string().max(1024)
   });
 
@@ -75,6 +78,9 @@ const General = ({ close }) => {
       autoSave: {
         enabled: get(preferences, 'autoSave.enabled', false),
         interval: get(preferences, 'autoSave.interval', 1000)
+      },
+      oauth2: {
+        useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
       },
       defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', '')
     },
@@ -104,7 +110,10 @@ const General = ({ close }) => {
           },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
-          sendCookies: newPreferences.sendCookies
+          sendCookies: newPreferences.sendCookies,
+          oauth2: {
+            useSystemBrowser: newPreferences.oauth2.useSystemBrowser
+          }
         },
         autoSave: {
           enabled: newPreferences.autoSave.enabled,
@@ -256,6 +265,19 @@ const General = ({ close }) => {
           />
           <label className="block ml-2 select-none" htmlFor="sendCookies">
             Send Cookies automatically
+          </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="oauth2.useSystemBrowser"
+            type="checkbox"
+            name="oauth2.useSystemBrowser"
+            checked={formik.values.oauth2.useSystemBrowser}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="oauth2.useSystemBrowser">
+            Use System Browser for OAuth2 Authorization
           </label>
         </div>
         <div className="flex flex-col mt-6">

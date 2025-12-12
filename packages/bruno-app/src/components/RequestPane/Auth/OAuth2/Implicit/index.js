@@ -1,7 +1,7 @@
 import React, { useRef, forwardRef, useMemo } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -12,9 +12,13 @@ import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
 import { getAllVariables } from 'utils/collections/index';
 import { interpolate } from '@usebruno/common';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
+import toast from 'react-hot-toast';
 
 const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
+  const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -77,6 +81,29 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     handleChange('autoFetchToken', e.target.checked);
   };
 
+  const handleUseSystemBrowserToggle = (e) => {
+    const newValue = e.target.checked;
+    dispatch(
+      savePreferences({
+        ...preferences,
+        request: {
+          ...preferences.request,
+          oauth2: {
+            ...preferences.request.oauth2,
+            useSystemBrowser: newValue
+          }
+        }
+      })
+    )
+      .then(() => {
+        toast.success('Preference updated successfully');
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error('Failed to update preference');
+      });
+  };
+
   return (
     <Wrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={authorizationUrl} credentialsId={credentialsId} />
@@ -87,6 +114,43 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <span className="font-medium">
           Configuration
         </span>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-callbackUrl">
+        <label className="block min-w-[140px]">Callback URL</label>
+        <div className="flex flex-col gap-1 w-full">
+          <div className="oauth2-input-wrapper flex-1 flex items-center">
+            <SingleLineEditor
+              value={callbackUrl}
+              theme={storedTheme}
+              onSave={handleSave}
+              onChange={(val) => handleChange('callbackUrl', val)}
+              onRun={handleRun}
+              collection={collection}
+              item={item}
+              placeholder={useSystemBrowser ? 'https://oauth2.usebruno.com/callback' : undefined}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-use-system-browser">
+        <label className="block min-w-[140px]"></label>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={Boolean(useSystemBrowser)}
+            onChange={handleUseSystemBrowserToggle}
+            className="cursor-pointer"
+          />
+          <label
+            className="block cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              handleUseSystemBrowserToggle({ target: { checked: !useSystemBrowser } });
+            }}
+          >
+            Use system browser for OAuth
+          </label>
+        </div>
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
