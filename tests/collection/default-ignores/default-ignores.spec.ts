@@ -5,6 +5,10 @@ import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Default ignores for node_modules and .git', () => {
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
   test('Should always ignore node_modules even when user has custom ignore config', async ({
     page,
     electronApp,
@@ -90,9 +94,6 @@ get {
 
     // node_modules folder should not appear in the sidebar
     await expect(locators.sidebar.folder('node_modules')).not.toBeVisible();
-
-    // Cleanup
-    await closeAllCollections(page);
   });
 
   test('Should always ignore .git even when user has custom ignore config', async ({
@@ -180,8 +181,5 @@ get {
 
     // .git folder should not appear in the sidebar
     await expect(locators.sidebar.folder('.git')).not.toBeVisible();
-
-    // Cleanup
-    await closeAllCollections(page);
   });
 });
