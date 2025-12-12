@@ -83,6 +83,41 @@ const ResponsePane = ({ item, collection }) => {
       return 0;
     }
   }, [response.size, response.dataBuffer]);
+  const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
+
+  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
+
+  const allTabs = useMemo(() => {
+    return [
+      {
+        key: 'response',
+        label: 'Response',
+        indicator: null
+      },
+      {
+        key: 'headers',
+        label: 'Headers',
+        indicator: responseHeadersCount > 0 ? <sup className="ml-1 font-medium">{responseHeadersCount}</sup> : null
+      },
+      {
+        key: 'timeline',
+        label: 'Timeline',
+        indicator: null
+      },
+      {
+        key: 'tests',
+        label: (
+          <TestResultsLabel
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
+        ),
+        indicator: null
+      }
+    ];
+  }, [responseHeadersCount, item.testResults, item.assertionResults, item.preRequestTestResults, item.postResponseTestResults]);
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -160,42 +195,6 @@ const ResponsePane = ({ item, collection }) => {
   if (!focusedTab || !focusedTab.uid || !focusedTab.responsePaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
-
-  const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
-
-  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
-
-  const allTabs = useMemo(() => {
-    return [
-      {
-        key: 'response',
-        label: 'Response',
-        indicator: null
-      },
-      {
-        key: 'headers',
-        label: 'Headers',
-        indicator: responseHeadersCount > 0 ? <sup className="ml-1 font-medium">{responseHeadersCount}</sup> : null
-      },
-      {
-        key: 'timeline',
-        label: 'Timeline',
-        indicator: null
-      },
-      {
-        key: 'tests',
-        label: (
-          <TestResultsLabel
-            results={item.testResults}
-            assertionResults={item.assertionResults}
-            preRequestTestResults={item.preRequestTestResults}
-            postResponseTestResults={item.postResponseTestResults}
-          />
-        ),
-        indicator: null
-      }
-    ];
-  }, [responseHeadersCount, item.testResults, item.assertionResults, item.preRequestTestResults, item.postResponseTestResults]);
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex justify-end items-center right-side-container gap-3">

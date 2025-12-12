@@ -10,7 +10,6 @@ const StyledWrapper = styled.div`
   }
 
   div.tabs {
-    overflow-x: hidden;
     overflow: hidden;
     min-width: 0;
     max-width: 100%;
@@ -79,7 +78,7 @@ const StyledWrapper = styled.div`
   .separator {
     height: 16px;
     border-left: 1px solid ${(props) => props.theme.preferences.sidebar.border};
-    margin: 0 8px;  
+    margin: 0 8px;
   }
 `;
 

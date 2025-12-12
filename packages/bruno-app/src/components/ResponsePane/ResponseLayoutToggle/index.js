@@ -84,7 +84,7 @@ const ResponseLayoutToggle = ({ children }) => {
 
   return (
     <div
-      role={!!children ? 'button' : undefined}
+      role={children ? 'button' : undefined}
       tabIndex={0}
       onClick={toggleOrientation}
       title={title}
