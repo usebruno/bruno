@@ -104,9 +104,9 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
           <ResponseLayoutToggle>
             <div className="dropdown-item" onClick={closeDropdown}>
               <span className="dropdown-icon">
-                {orientation === 'horizontal' ? <IconLayoutColumns size={16} strokeWidth={1.5} /> : <IconLayoutRows size={16} strokeWidth={1.5} />}
+                {orientation === 'vertical' ? <IconLayoutColumns size={16} strokeWidth={1.5} /> : <IconLayoutRows size={16} strokeWidth={1.5} />}
               </span>
-              <span>Toggle layout</span>
+              <span>Change layout</span>
             </div>
           </ResponseLayoutToggle>
         </Dropdown>

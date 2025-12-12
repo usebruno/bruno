@@ -80,7 +80,7 @@ const ResponseLayoutToggle = ({ children }) => {
     }
   };
 
-  const title = !children ? 'Toggle layout' : null;
+  const title = !children ? (orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout') : null;
 
   return (
     <div
@@ -94,7 +94,7 @@ const ResponseLayoutToggle = ({ children }) => {
       {children ? children : (
         <StyledWrapper className="flex items-center w-full">
           <button className="p-1">
-            {orientation === 'horizontal' ? (
+            {orientation === 'vertical' ? (
               <IconLayoutColumns size={16} strokeWidth={1.5} />
             ) : (
               <IconLayoutRows size={16} strokeWidth={1.5} />
