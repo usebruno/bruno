@@ -169,8 +169,10 @@ class SingleLineEditor extends Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
+      const cursor = this.editor.getCursor();
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value ?? ''));
+      this.editor.setCursor(cursor);
 
       // Update newline markers after value change
       if (this.props.showNewlineArrow) {
