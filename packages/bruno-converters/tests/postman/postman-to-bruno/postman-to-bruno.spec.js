@@ -127,9 +127,6 @@ describe('postman-collection', () => {
 
     const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
 
-    console.log('here here');
-    console.log(brunoCollection.items.map((item) => item.request.url));
-
     expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
       'https://httpbin.org/api/v1/resource'
     ]);
@@ -183,9 +180,6 @@ describe('postman-collection', () => {
 
     const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
 
-    console.log('here here');
-    console.log(brunoCollection.items.map((item) => item.request.url));
-
     expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
       'https://httpbin.org/api/v1/resource/'
     ]);
@@ -238,9 +232,6 @@ describe('postman-collection', () => {
     };
 
     const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
-
-    console.log('here here');
-    console.log(brunoCollection.items.map((item) => item.request.url));
 
     expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
       'https://httpbin.org/api//resource'
