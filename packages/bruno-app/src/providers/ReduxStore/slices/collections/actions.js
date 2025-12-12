@@ -150,13 +150,10 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
-    console.log('[saveRequest action] Starting IPC save...');
-
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave, collection.format))
       .then(() => {
-        console.log('[saveRequest action] IPC returned, dispatching _saveRequest reducer');
         if (!silent) {
           toast.success('Request saved successfully');
         }
