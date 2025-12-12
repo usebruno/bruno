@@ -680,7 +680,7 @@ const expectResponseContains = async (page: Page, texts: string[]) => {
 
 // Create a action to click a response action
 const clickResponseAction = async (page: Page, actionTestId: string) => {
-  const actionButton = await page.getByTestId(actionTestId);
+  const actionButton = await page.getByTestId(actionTestId).first();
   if (await actionButton.isVisible()) {
     await actionButton.click();
   } else {
