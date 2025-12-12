@@ -30,8 +30,8 @@ const StyledWrapper = styled.div`
   }
 
   .caret {
-    color: rgb(140, 140, 140);
-    fill: rgb(140 140 140);
+    color: ${(props) => props.theme.colors.text.muted};
+    fill: ${(props) => props.theme.colors.text.muted};
   }
 `;
 

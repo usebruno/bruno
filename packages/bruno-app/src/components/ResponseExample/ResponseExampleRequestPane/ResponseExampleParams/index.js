@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import get from 'lodash/get';
-import { moveResponseExampleParam, setResponseExampleParams, updateResponseExampleParam } from 'providers/ReduxStore/slices/collections';
+import { moveResponseExampleParam, setResponseExampleParams } from 'providers/ReduxStore/slices/collections';
 import EditableTable from 'components/EditableTable';
 import SingleLineEditor from 'components/SingleLineEditor';
 import BulkEditor from 'components/BulkEditor';

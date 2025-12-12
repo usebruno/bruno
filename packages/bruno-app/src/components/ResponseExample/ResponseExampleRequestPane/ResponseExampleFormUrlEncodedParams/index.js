@@ -33,7 +33,7 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
 
     const reorderedParams = updateReorderedItem.map((uid) => {
       return params.find((p) => p.uid === uid);
-    });
+    }).filter(Boolean);
 
     dispatch(updateResponseExampleFormUrlEncodedParams({
       itemUid: item.uid,

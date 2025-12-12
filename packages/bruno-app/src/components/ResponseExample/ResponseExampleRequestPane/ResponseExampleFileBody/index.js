@@ -97,7 +97,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
 
     const reorderedParams = updateReorderedItem.map((uid) => {
       return params.find((p) => p.uid === uid);
-    });
+    }).filter(Boolean);
 
     dispatch(updateResponseExampleFileBodyParams({
       itemUid: item.uid,
@@ -176,7 +176,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
             id={`file-${row.uid}`}
             name="selectedFile"
             value={row.uid}
-            checked={enabledFileUid === row.uid || row.selected}
+            checked={row.selected}
             onChange={(e) => handleSelectedChange(row, e.target.checked)}
             disabled={!editMode}
             className="mr-1 mousetrap"
