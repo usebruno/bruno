@@ -2,12 +2,21 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   &.tabs {
-    div.more-tabs {
+    overflow: hidden;
+    min-width: 0;
+
+    > div:first-child {
+      overflow: hidden;
+      min-width: 0;
+      flex-shrink: 1;
+    }
+
+    .more-tabs {
       color: var(--color-tab-inactive) !important;
       border-bottom: solid 2px transparent;
     }
 
-    div.tab {
+    .tab {
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;

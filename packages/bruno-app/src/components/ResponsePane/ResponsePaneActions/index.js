@@ -168,7 +168,7 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
               <span className="dropdown-icon">
                 {orientation === 'horizontal' ? <IconLayoutColumns size={16} strokeWidth={1.5} /> : <IconLayoutRows size={16} strokeWidth={1.5} />}
               </span>
-              <span>Change layout</span>
+              <span>Toggle layout</span>
             </div>
           </ResponseLayoutToggle>
         </Dropdown>

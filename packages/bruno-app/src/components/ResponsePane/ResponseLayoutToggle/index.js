@@ -80,7 +80,7 @@ const ResponseLayoutToggle = ({ children }) => {
     }
   };
 
-  const title = !children ? 'Change layout' : null;
+  const title = !children ? 'Toggle layout' : null;
 
   return (
     <div
