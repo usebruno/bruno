@@ -40,7 +40,7 @@ const PresetsSettings = ({ collection }) => {
       </div>
       <div className="bruno-form">
         <div className="mb-3 flex items-center">
-          <label className="settings-label flex  items-center" htmlFor="enabled">
+          <label className="settings-label flex items-center" htmlFor="http">
             Request Type
           </label>
           <div className="flex items-center">
@@ -98,7 +98,7 @@ const PresetsSettings = ({ collection }) => {
           </div>
         </div>
         <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="requestUrl">
+          <label className="settings-label" htmlFor="request-url">
             Base URL
           </label>
           <div className="flex items-center w-full">
