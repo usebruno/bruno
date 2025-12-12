@@ -89,7 +89,7 @@ const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed)
   if ((isSecret || isMasked) && !isRevealed) {
     valueDisplay.textContent = getMaskedDisplay(value);
   } else {
-    valueDisplay.textContent = value || '';
+    valueDisplay.textContent = !value && value !== 0 ? '' : typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
   }
 };
 
