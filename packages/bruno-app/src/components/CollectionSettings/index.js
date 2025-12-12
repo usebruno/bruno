@@ -9,6 +9,7 @@ import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
+import Presets from './Presets';
 import Protobuf from './Protobuf';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
@@ -58,6 +59,8 @@ const CollectionSettings = ({ collection }) => {
   const protobufConfig = collection.draft?.brunoConfig
     ? get(collection, 'draft.brunoConfig.protobuf', {})
     : get(collection, 'brunoConfig.protobuf', {});
+  const presets = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.presets', {}) : get(collection, 'brunoConfig.presets', {});
+  const hasPresets = presets && presets.requestUrl !== '';
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -78,6 +81,9 @@ const CollectionSettings = ({ collection }) => {
       }
       case 'tests': {
         return <Test collection={collection} />;
+      }
+      case 'presets': {
+        return <Presets collection={collection} />;
       }
       case 'proxy': {
         return <ProxySettings collection={collection} />;
@@ -122,6 +128,10 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
           {hasTests && <StatusDot />}
+        </div>
+        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
+          Presets
+          {hasPresets && <StatusDot />}
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
