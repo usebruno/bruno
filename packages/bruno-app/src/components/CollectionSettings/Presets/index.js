@@ -109,7 +109,7 @@ const PresetsSettings = ({ collection }) => {
         </div>
 
         <div className="mt-6">
-          <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
             Save
           </button>
         </div>
