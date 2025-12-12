@@ -99,6 +99,20 @@ export const interpolateUrl = ({ url, variables }) => {
 };
 
 export const interpolateUrlPathParams = (url, params) => {
+  if (!url || typeof url !== 'string') {
+    return url;
+  }
+
+  // If there are no params or no enabled path params, return the URL as-is
+  if (!params || !params.length) {
+    return url;
+  }
+
+  const hasPathParams = params.some((p) => p?.type === 'path' && p?.enabled);
+  if (!hasPathParams) {
+    return url;
+  }
+
   const getInterpolatedBasePath = (pathname, params) => {
     return pathname
       .split('/')

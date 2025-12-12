@@ -348,4 +348,45 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
 
     expect(result).toEqual(expectedUrl);
   });
+
+  it('should replace path params with values containing variable placeholders (issue #6365)', () => {
+    const url = 'https://api.example.com/:language';
+    const params = [{ name: 'language', type: 'path', enabled: true, value: '{{current_language}}' }];
+    const expectedUrl = 'https://api.example.com/{{current_language}}';
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should handle path params combined with variable interpolation (full flow)', () => {
+    const url = 'https://api.example.com/:language';
+    const params = [{ name: 'language', type: 'path', enabled: true, value: '{{current_language}}' }];
+    const variables = { current_language: 'en' };
+
+    // Step 1: Replace path params
+    const urlWithPathParams = interpolateUrlPathParams(url, params);
+    expect(urlWithPathParams).toEqual('https://api.example.com/{{current_language}}');
+
+    // Step 2: Interpolate variables
+    const result = interpolateUrl({ url: urlWithPathParams, variables });
+    expect(result).toEqual('https://api.example.com/en');
+  });
+
+  it('should handle multiple path params with variable placeholders', () => {
+    const url = 'https://api.example.com/:lang/:version';
+    const params = [
+      { name: 'lang', type: 'path', enabled: true, value: '{{current_language}}' },
+      { name: 'version', type: 'path', enabled: true, value: '{{api_version}}' }
+    ];
+    const variables = { current_language: 'en', api_version: 'v2' };
+
+    // Step 1: Replace path params
+    const urlWithPathParams = interpolateUrlPathParams(url, params);
+    expect(urlWithPathParams).toEqual('https://api.example.com/{{current_language}}/{{api_version}}');
+
+    // Step 2: Interpolate variables
+    const result = interpolateUrl({ url: urlWithPathParams, variables });
+    expect(result).toEqual('https://api.example.com/en/v2');
+  });
 });

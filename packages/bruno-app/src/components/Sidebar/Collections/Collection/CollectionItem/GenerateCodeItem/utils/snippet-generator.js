@@ -2,6 +2,7 @@ import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { interpolateHeaders, interpolateBody } from './interpolation';
+import { interpolateUrl } from 'utils/url/index';
 import { get } from 'lodash';
 
 const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
@@ -11,7 +12,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     const variables = getAllVariables(collection, item);
 
-    const request = item.request;
+    const request = { ...item.request };
 
     // Get the request tree path and merge headers
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
@@ -24,8 +25,10 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       headers = [...headers, ...authHeaders];
     }
 
-    // Interpolate headers and body if needed
+    // Interpolate URL, headers, and body if needed
     if (shouldInterpolate) {
+      request.url = interpolateUrl({ url: request.url, variables });
+
       headers = interpolateHeaders(headers, variables);
       if (request.body) {
         request.body = interpolateBody(request.body, variables);
