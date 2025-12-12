@@ -85,7 +85,12 @@ class ApiSpecWatcher {
       this.watcherWorkspaces[watchPath] = workspacePath;
     }
 
-    const ignores = brunoConfig?.ignore || [];
+    // Always ignore node_modules and .git, regardless of user config
+    // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
+    const defaultIgnores = ['node_modules', '.git'];
+    const userIgnores = brunoConfig?.ignore || [];
+    const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
+
     const self = this;
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
@@ -94,6 +99,12 @@ class ApiSpecWatcher {
         ignored: (filepath) => {
           const normalizedPath = filepath.replace(/\\/g, '/');
           const relativePath = path.relative(watchPath, normalizedPath);
+
+          // Check if any path segment matches a default ignore pattern (handles symlinks)
+          const pathSegments = relativePath.split(path.sep);
+          if (pathSegments.some((segment) => defaultIgnores.includes(segment))) {
+            return true;
+          }
 
           return ignores.some((ignorePattern) => {
             const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
