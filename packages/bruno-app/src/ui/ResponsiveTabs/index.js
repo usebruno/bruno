@@ -8,6 +8,12 @@ const DROPDOWN_WIDTH = 60;
 const CALCULATION_DELAY_DEFAULT = 20;
 const CALCULATION_DELAY_EXTENDED = 150;
 
+// Compare two tab arrays by their keys
+const areTabArraysEqual = (a, b) => {
+  if (a.length !== b.length) return false;
+  return a.every((tab, index) => tab.key === b[index].key);
+};
+
 const ResponsiveTabs = ({
   tabs,
   activeTab,
@@ -68,8 +74,9 @@ const ResponsiveTabs = ({
       }
     }
 
-    setVisibleTabs(visible);
-    setOverflowTabs(overflow);
+    // Only update state if arrays actually changed (prevents infinite loops)
+    setVisibleTabs((prev) => (areTabArraysEqual(prev, visible) ? prev : visible));
+    setOverflowTabs((prev) => (areTabArraysEqual(prev, overflow) ? prev : overflow));
   }, [tabs, activeTab, rightContentRef]);
 
   // Recalculate on tab/activeTab changes
@@ -82,7 +89,7 @@ const ResponsiveTabs = ({
     return () => clearTimeout(timeoutId);
   }, [calculateTabVisibility, activeTab, delayedTabs]);
 
-  // Recalculate on container resize
+  // Recalculate on container resize only (not rightContent to avoid feedback loops)
   useEffect(() => {
     let frameId = null;
 
@@ -96,9 +103,6 @@ const ResponsiveTabs = ({
     if (tabsContainerRef.current) {
       observer.observe(tabsContainerRef.current);
     }
-    if (rightContentRef?.current) {
-      observer.observe(rightContentRef.current);
-    }
 
     return () => {
       if (frameId) {
@@ -106,7 +110,7 @@ const ResponsiveTabs = ({
       }
       observer.disconnect();
     };
-  }, [calculateTabVisibility, rightContentRef]);
+  }, [calculateTabVisibility]);
 
   // Clean up stale refs when tabs change
   useEffect(() => {
