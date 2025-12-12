@@ -8,7 +8,7 @@ import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
-import { detectContentTypeFromBuffer } from 'utils/response/index';
+import { detectContentTypeFromBase64 } from 'utils/response/index';
 
 const PREVIEW_FORMAT_OPTIONS = [
   {
@@ -46,15 +46,7 @@ const formatErrorMessage = (error) => {
 // Custom hook to determine the initial format and tab based on the data buffer and headers
 export const useInitialResponseFormat = (dataBuffer, headers) => {
   return useMemo(() => {
-    let buffer = null;
-    try {
-      buffer = dataBuffer ? Buffer.from(dataBuffer, 'base64') : null;
-    } catch (error) {
-      console.error('Error converting dataBuffer to Buffer:', error);
-      buffer = null;
-    }
-
-    const detectedContentType = detectContentTypeFromBuffer(buffer);
+    const detectedContentType = detectContentTypeFromBase64(dataBuffer);
     const contentType = getContentType(headers);
 
     // Wait until both content types are available
@@ -70,15 +62,7 @@ export const useInitialResponseFormat = (dataBuffer, headers) => {
 // Custom hook to determine preview format options based on content type
 export const useResponsePreviewFormatOptions = (dataBuffer, headers) => {
   return useMemo(() => {
-    let buffer = null;
-    try {
-      buffer = dataBuffer ? Buffer.from(dataBuffer, 'base64') : null;
-    } catch (error) {
-      console.error('Error converting dataBuffer to Buffer:', error);
-      buffer = null;
-    }
-
-    const detectedContentType = detectContentTypeFromBuffer(buffer);
+    const detectedContentType = detectContentTypeFromBase64(dataBuffer);
     const contentType = getContentType(headers);
 
     const byteFormatTypes = ['image', 'video', 'audio', 'pdf', 'zip'];
@@ -115,14 +99,7 @@ const QueryResult = ({
   selectedFormat, // one of the options in PREVIEW_FORMAT_OPTIONS
   selectedTab // 'editor' or 'preview'
 }) => {
-  let buffer = null;
-  try {
-    buffer = Buffer.from(dataBuffer, 'base64'); // dataBuffer is already a base64 string, convert it to actual Buffer
-  } catch (error) {
-    console.error('Error converting dataBuffer to Buffer:', error);
-    buffer = null;
-  }
-  const detectedContentType = detectContentTypeFromBuffer(buffer);
+  const detectedContentType = detectContentTypeFromBase64(dataBuffer);
   const contentType = getContentType(headers);
   const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
