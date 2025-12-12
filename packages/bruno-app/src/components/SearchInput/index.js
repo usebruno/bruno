@@ -34,6 +34,7 @@ const SearchInput = ({
         spellCheck="false"
         className="block w-full pl-7 py-2 rounded-md"
         value={searchText}
+        autoFocus
         onChange={handleChange}
         {...props}
       />

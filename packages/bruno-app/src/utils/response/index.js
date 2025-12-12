@@ -171,6 +171,23 @@ export const isValidHtmlSnippet = (snippet) => {
 };
 
 /**
+ * Decode only the first N bytes from a Base64 string
+ */
+const decodeBase64Head = (base64, byteCount) => {
+  // Remove data URL prefix
+  base64 = base64.replace(/^data:.*;base64,/, '');
+
+  // How many base64 chars needed to reconstruct "byteCount" bytes
+  const neededChars = Math.ceil(byteCount / 3) * 4;
+
+  // Slice only required chars
+  const slice = base64.slice(0, neededChars);
+
+  // Decode and trim to requested bytes
+  return Buffer.from(slice, 'base64').subarray(0, byteCount);
+};
+
+/**
 * Detects content type from buffer by checking magic numbers (file signatures)
 * @param {Buffer} buffer - The data buffer to analyze
 * @returns {string|null} - Detected MIME type or null
@@ -255,6 +272,26 @@ export const detectContentTypeFromBuffer = (buffer) => {
   if (isLikelyText(buffer.slice(0, Math.min(512, buffer.length)))) {
     return 'text/plain';
   }
+
+  return null;
+};
+
+/**
+ * Main: detect from base64 string
+ */
+export const detectContentTypeFromBase64 = (base64) => {
+  if (!base64) return null;
+
+  // 1. Decode first 12 bytes (magic numbers)
+  const magicHead = decodeBase64Head(base64, 12);
+
+  const magicType = detectContentTypeFromBuffer(magicHead);
+  if (magicType) return magicType;
+
+  // 2. If not binary → decode up to 512 bytes for text detection
+  const textHead = decodeBase64Head(base64, 512);
+
+  if (isLikelyText(textHead)) return 'text/plain';
 
   return null;
 };

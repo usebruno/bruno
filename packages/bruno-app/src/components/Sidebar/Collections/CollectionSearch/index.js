@@ -13,6 +13,7 @@ const CollectionSearch = ({ searchText, setSearchText }) => {
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
+        autoFocus
         spellCheck="false"
         value={searchText}
         onChange={(e) => setSearchText(e.target.value.toLowerCase())}
