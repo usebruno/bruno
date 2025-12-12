@@ -246,6 +246,7 @@ const ResponsePane = ({ item, collection }) => {
           onTabSelect={selectTab}
           rightContent={rightContent}
           rightContentRef={rightContentRef}
+          rightContentExpandedWidth={375}
         />
       </div>
       <section
