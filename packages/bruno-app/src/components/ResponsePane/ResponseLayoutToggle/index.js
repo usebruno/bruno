@@ -2,6 +2,7 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import { IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
 
 export const IconDockToBottom = () => {
   return (
@@ -83,7 +84,7 @@ const ResponseLayoutToggle = ({ children }) => {
 
   return (
     <div
-      role="button"
+      role={children ? 'button' : undefined}
       tabIndex={0}
       onClick={toggleOrientation}
       title={title}
@@ -93,10 +94,10 @@ const ResponseLayoutToggle = ({ children }) => {
       {children ? children : (
         <StyledWrapper className="flex items-center w-full">
           <button className="p-1">
-            {orientation === 'horizontal' ? (
-              <IconDockToBottom />
+            {orientation === 'vertical' ? (
+              <IconLayoutColumns size={16} strokeWidth={1.5} />
             ) : (
-              <IconDockToRight />
+              <IconLayoutRows size={16} strokeWidth={1.5} />
             )}
           </button>
         </StyledWrapper>

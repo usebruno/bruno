@@ -15,7 +15,7 @@ import Tests from 'components/RequestPane/Tests';
 import Settings from 'components/RequestPane/Settings';
 import Documentation from 'components/Documentation/index';
 import StatusDot from 'components/StatusDot';
-import RequestPaneTabs from 'components/RequestPane/RequestPaneTabs';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 
 const MULTIPLE_CONTENT_TABS = new Set(['params', 'script', 'vars', 'auth', 'docs']);
@@ -137,7 +137,7 @@ const HttpRequestPane = ({ item, collection }) => {
 
   return (
     <div className="flex flex-col h-full relative">
-      <RequestPaneTabs
+      <ResponsiveTabs
         tabs={allTabs}
         activeTab={requestPaneTab}
         onTabSelect={selectTab}
