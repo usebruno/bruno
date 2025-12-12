@@ -632,17 +632,22 @@ export const collectionsSlice = createSlice({
       }
     },
     saveRequest: (state, action) => {
+      console.log('[_saveRequest reducer] Running');
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && item.draft) {
+          console.log('[_saveRequest reducer] draft.url:', item.draft.request?.url);
           item.request = item.draft.request;
           if (item.draft.settings) {
             item.settings = item.draft.settings;
           }
           item.draft = null;
+          console.log('[_saveRequest reducer] Draft cleared');
+        } else {
+          console.log('[_saveRequest reducer] No draft to save');
         }
       }
     },
@@ -2645,6 +2650,10 @@ export const collectionsSlice = createSlice({
               item.draft = null;
             }
           } else {
+            console.log('[collectionChangeFileEvent] Request file changed');
+            console.log('  file.url:', file.data.request?.url);
+            console.log('  item.draft?.url:', item.draft?.request?.url);
+
             item.name = file.data.name;
             item.type = file.data.type;
             item.seq = file.data.seq;
@@ -2654,7 +2663,17 @@ export const collectionsSlice = createSlice({
             item.examples = file.data.examples;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
-            item.draft = null;
+
+            // Only clear draft if it matches the file content
+            // This preserves characters typed during autosave
+            if (item.draft && areItemsTheSameExceptSeqUpdate(item.draft, file.data)) {
+              item.draft = null;
+              console.log('  → Draft matches file, cleared');
+            } else if (item.draft) {
+              console.log('  → Draft has newer changes, keeping it');
+            } else {
+              console.log('  → No draft');
+            }
           }
         }
       }
