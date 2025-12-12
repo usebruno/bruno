@@ -21,6 +21,11 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+
+    > * {
+      flex: 1 1 0;
+      min-height: 0;
+    }
   }
 `;
 

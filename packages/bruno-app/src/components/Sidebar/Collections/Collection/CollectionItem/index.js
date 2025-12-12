@@ -69,6 +69,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
+  const menuDropdownRef = useRef(null);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -281,7 +282,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     e.preventDefault();
   };
 
-  // Note: Right-click to show menu is handled by MenuDropdown's trigger element
+  // Handle right-click context menu
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    menuDropdownRef.current?.open();
+  };
 
   let indents = range(item.depth);
 
@@ -605,6 +611,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onContextMenu={handleContextMenu}
         data-testid="sidebar-collection-item-row"
       >
         <div className="flex items-center h-full w-full">
@@ -659,6 +666,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           </div>
           <div className="menu-icon pr-2">
             <MenuDropdown
+              ref={menuDropdownRef}
               items={buildMenuItems()}
               placement="bottom-start"
               data-testid="collection-item-menu"

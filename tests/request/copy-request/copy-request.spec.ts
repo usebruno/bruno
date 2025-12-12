@@ -11,7 +11,7 @@ test.describe('Copy and Paste Requests', () => {
 
     // Create a new request
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection' });
-    await collection.locator('.collection-actions').hover();
+    await collection.hover();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('original-request');
@@ -23,6 +23,7 @@ test.describe('Copy and Paste Requests', () => {
 
     // Copy the request
     const requestItem = page.locator('.collection-item-name').filter({ hasText: 'original-request' });
+    await requestItem.hover();
     await requestItem.locator('.menu-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Copy' }).click();
 
@@ -37,7 +38,7 @@ test.describe('Copy and Paste Requests', () => {
 
   test('should paste request into a folder', async ({ page, createTmpDir }) => {
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection' });
-    await collection.locator('.collection-actions').hover();
+    await collection.hover();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('test-folder');

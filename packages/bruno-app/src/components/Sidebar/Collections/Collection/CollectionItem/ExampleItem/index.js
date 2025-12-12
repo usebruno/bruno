@@ -30,6 +30,7 @@ const ExampleItem = ({ example, item, collection }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const exampleRef = useRef(null);
+  const menuDropdownRef = useRef(null);
 
   // Calculate indentation: item depth + 1 for examples
   const indents = range((item.depth || 0) + 1);
@@ -162,6 +163,13 @@ const ExampleItem = ({ example, item, collection }) => {
     ];
   };
 
+  // Handle right-click context menu
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    menuDropdownRef.current?.open();
+  };
+
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': isExampleActive
   });
@@ -172,6 +180,7 @@ const ExampleItem = ({ example, item, collection }) => {
       className={itemRowClassName}
       onClick={handleExampleClick}
       onDoubleClick={handleDoubleClick}
+      onContextMenu={handleContextMenu}
     >
       {indents && indents.length
         ? indents.map((i) => (
@@ -194,6 +203,7 @@ const ExampleItem = ({ example, item, collection }) => {
       </div>
       <div className="menu-icon pr-2">
         <MenuDropdown
+          ref={menuDropdownRef}
           items={buildMenuItems()}
           placement="bottom-start"
           data-testid="response-example-menu"
