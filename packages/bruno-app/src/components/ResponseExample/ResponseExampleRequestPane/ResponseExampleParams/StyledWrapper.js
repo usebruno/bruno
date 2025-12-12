@@ -43,10 +43,6 @@ const StyledWrapper = styled.div`
     tbody {
       tr {
         border-bottom: 1px solid ${(props) => props.theme.table.border};
-        
-        &:hover {
-          background: ${(props) => props.theme.plainGrid.hoverBg};
-        }
       }
     }
   }

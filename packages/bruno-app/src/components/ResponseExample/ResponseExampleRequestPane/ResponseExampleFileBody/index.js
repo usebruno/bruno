@@ -5,7 +5,6 @@ import { useTheme } from 'providers/Theme';
 import { updateResponseExampleFileBodyParams } from 'providers/ReduxStore/slices/collections';
 import mime from 'mime-types';
 import path from 'utils/common/path';
-import { uuid } from 'utils/common';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
@@ -60,18 +59,20 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       });
     } else {
       // Add new param (from EditableTable's empty row)
+      // Deselect all existing params and select the new one
+      const deselectedParams = currentParams.map((p) => ({ ...p, selected: false }));
       const newParam = {
         uid: row.uid,
         filePath: newFilePath,
         contentType: '',
-        selected: currentParams.length === 0 // Select first file by default
+        selected: true
       };
       // Auto-detect content type from file extension
       if (newFilePath) {
         const contentType = mime.contentType(path.extname(newFilePath));
         newParam.contentType = contentType || '';
       }
-      updatedParams = [...currentParams, newParam];
+      updatedParams = [...deselectedParams, newParam];
     }
 
     handleParamsChange(updatedParams);
@@ -103,28 +104,6 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       params: reorderedParams
     }));
   }, [editMode, dispatch, item.uid, collection.uid, exampleUid, params]);
-
-  const addFile = () => {
-    if (!editMode) return;
-
-    const deselectedParams = params.map((p) => ({ ...p, selected: false }));
-
-    const newParam = {
-      uid: uuid(),
-      filePath: '',
-      contentType: '',
-      selected: true
-    };
-
-    const updatedParams = [...deselectedParams, newParam];
-
-    dispatch(updateResponseExampleFileBodyParams({
-      itemUid: item.uid,
-      collectionUid: collection.uid,
-      exampleUid: exampleUid,
-      params: updatedParams
-    }));
-  };
 
   const columns = [
     {
@@ -209,16 +188,6 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
         showAddRow={editMode}
         showCheckbox={false}
       />
-      {editMode && (
-        <div className="flex justify-end mt-2">
-          <button
-            className="btn-action pr-2 py-3 select-none"
-            onClick={addFile}
-          >
-            + Add File
-          </button>
-        </div>
-      )}
     </StyledWrapper>
   );
 };
