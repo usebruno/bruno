@@ -36,9 +36,11 @@ const ResponsePane = ({ item, collection }) => {
   const [selectedTab, setSelectedTab] = useState('editor');
   const rightContentRef = useRef(null);
 
-  // Initialize format and tab only once when data loads
-  const { initialFormat, initialTab } = useInitialResponseFormat(item.response?.dataBuffer, item.response?.headers);
-  const previewFormatOptions = useResponsePreviewFormatOptions(item.response?.dataBuffer, item.response?.headers);
+  const response = item.response || {};
+
+  // Initialize format and tab only once when data loads.
+  const { initialFormat, initialTab } = useInitialResponseFormat(response?.dataBuffer, response?.headers);
+  const previewFormatOptions = useResponsePreviewFormatOptions(response?.dataBuffer, response?.headers);
 
   useEffect(() => {
     if (initialFormat !== null && initialTab !== null) {
@@ -65,9 +67,6 @@ const ResponsePane = ({ item, collection }) => {
       })
     );
   };
-
-  const response = item.response || {};
-
   const responseSize = useMemo(() => {
     if (typeof response.size === 'number') {
       return response.size;

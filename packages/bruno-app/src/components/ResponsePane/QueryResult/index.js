@@ -2,13 +2,11 @@ import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
 import { formatResponse, getContentType } from 'utils/common';
-import { getEncoding } from 'utils/common/index';
-import { getDefaultResponseFormat } from 'utils/response';
+import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
-import { detectContentTypeFromBase64 } from 'utils/response/index';
 
 const PREVIEW_FORMAT_OPTIONS = [
   {
@@ -99,11 +97,9 @@ const QueryResult = ({
   selectedFormat, // one of the options in PREVIEW_FORMAT_OPTIONS
   selectedTab // 'editor' or 'preview'
 }) => {
-  const detectedContentType = detectContentTypeFromBase64(dataBuffer);
   const contentType = getContentType(headers);
   const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
-  const responseEncoding = getEncoding(headers);
   const { displayedTheme } = useTheme();
 
   const responseSize = useMemo(() => {
@@ -112,18 +108,18 @@ const QueryResult = ({
       return response.size;
     }
 
-    if (!dataBuffer) return 0;
-
-    try {
-      // dataBuffer is base64 encoded, so we need to calculate the actual size
-      const buffer = Buffer.from(dataBuffer, 'base64');
-      return buffer.length;
-    } catch (error) {
-      return 0;
+    // Fallback: estimate from base64 length (base64 is ~4/3 of original size)
+    if (dataBuffer && typeof dataBuffer === 'string') {
+      return Math.floor(dataBuffer.length * 0.75);
     }
+    return 0;
   }, [dataBuffer, item.response]);
 
   const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
+
+  const detectedContentType = useMemo(() => {
+    return detectContentTypeFromBase64(dataBuffer);
+  }, [dataBuffer, isLargeResponse]);
 
   const formattedData = useMemo(
     () => {
@@ -132,7 +128,7 @@ const QueryResult = ({
       }
       return formatResponse(data, dataBuffer, selectedFormat, filter);
     },
-    [data, dataBuffer, responseEncoding, selectedFormat, filter, isLargeResponse, showLargeResponse]
+    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
   );
 
   const debouncedResultFilterOnChange = debounce((e) => {
