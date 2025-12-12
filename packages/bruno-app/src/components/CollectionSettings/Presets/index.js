@@ -82,6 +82,19 @@ const PresetsSettings = ({ collection }) => {
             <label htmlFor="grpc" className="ml-1 cursor-pointer select-none">
               gRPC
             </label>
+
+            <input
+              id="ws"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={handleRequestTypeChange}
+              value="ws"
+              checked={(currentPresets.requestType || 'http') === 'ws'}
+            />
+            <label htmlFor="ws" className="ml-1 cursor-pointer select-none">
+              WebSocket
+            </label>
           </div>
         </div>
         <div className="mb-3 flex items-center">
