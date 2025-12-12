@@ -50,14 +50,15 @@ const interpolate = (
     return str;
   }
 
-  return replace(str, obj);
+  return replace(str, obj, new Set<string>(), new Map<string, string>(), escapeJSONStrings);
 };
 
 const replace = (
   str: string,
   obj: Record<string, any>,
   visited = new Set<string>(),
-  results = new Map<string, string>()
+  results = new Map<string, string>(),
+  escapeJSONStrings = false
 ): string => {
   let resultStr = str;
   let matchFound = true;
@@ -75,9 +76,33 @@ const replace = (
         return results.get(match);
       }
 
+      // Process mock data functions ({{$keyword}}) in the replacement value
+      if (typeof replacement === 'string') {
+        const mockDataPatternRegex = /\{\{\$(\w+)\}\}/g;
+        replacement = replacement.replace(mockDataPatternRegex, (mockMatch, keyword) => {
+          let mockReplacement = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.();
+
+          if (mockReplacement === undefined) return mockMatch;
+          mockReplacement = String(mockReplacement);
+
+          if (!escapeJSONStrings) return mockReplacement;
+
+          // All the below chars inside of a JSON String field
+          // will make it invalid JSON. So we will have to escape them with `\`.
+          // This is not exhaustive but selective to what faker-js can output.
+          if (!/[\\\n\r\t\"]/.test(mockReplacement)) return mockReplacement;
+          return mockReplacement
+            .replace(/\\/g, '\\\\')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t')
+            .replace(/\"/g, '\\"');
+        });
+      }
+
       if (patternRegex.test(replacement) && !visited.has(match)) {
         visited.add(match);
-        const result = replace(replacement, obj, visited, results);
+        const result = replace(replacement, obj, visited, results, escapeJSONStrings);
         results.set(match, result);
 
         matchFound = true;
