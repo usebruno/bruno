@@ -76,7 +76,8 @@ const createCollection = async (page, collectionName: string, collectionLocation
     }
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
-    await createCollectionModal.waitFor({ state: 'detached' });
+    await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
+    await page.waitForTimeout(200);
 
     if (options.openWithSandboxMode != undefined) {
       await openCollectionAndAcceptSandbox(page, collectionName, options.openWithSandboxMode);
