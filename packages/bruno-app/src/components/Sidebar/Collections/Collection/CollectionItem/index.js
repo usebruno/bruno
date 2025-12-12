@@ -28,7 +28,6 @@ import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest } from 'providers/ReduxStore/slices/app';
 import MenuDropdown from 'ui/MenuDropdown';
-import ActionIcon from 'ui/ActionIcon';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import RenameCollectionItem from './RenameCollectionItem';

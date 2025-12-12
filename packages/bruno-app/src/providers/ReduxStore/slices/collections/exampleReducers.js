@@ -958,6 +958,28 @@ export const setResponseExampleParams = (state, action) => {
     enabled: enabled,
     type: type
   }));
+
+  // Update URL when query parameters change
+  const queryParams = filter(example.request.params, (p) => p.enabled && p.type === 'query');
+  const query = stringifyQueryParams(queryParams);
+
+  if (!example.request.url) {
+    example.request.url = '';
+  }
+
+  const parts = splitOnFirst(example.request.url, '?');
+
+  if (!query || !query.length) {
+    if (parts.length) {
+      example.request.url = parts[0];
+    }
+  } else {
+    if (!parts.length) {
+      example.request.url += '?' + query;
+    } else {
+      example.request.url = parts[0] + '?' + query;
+    }
+  }
 };
 
 // Response Example Body Types
