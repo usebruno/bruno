@@ -5,20 +5,6 @@ import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Default ignores for node_modules and .git', () => {
-  let originalShowOpenDialog;
-
-  test.beforeAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      originalShowOpenDialog = dialog.showOpenDialog;
-    });
-  });
-
-  test.afterAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = originalShowOpenDialog;
-    });
-  });
-
   test('Should always ignore node_modules even when user has custom ignore config', async ({
     page,
     electronApp,
