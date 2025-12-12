@@ -22,7 +22,7 @@ describe('makeJUnitOutput', () => {
     const results = [
       {
         description: 'description provided',
-        suitename: 'Tests/Suite A',
+        name: 'Tests/Suite A',
         request: {
           method: 'GET',
           url: 'https://ima.test'
@@ -40,14 +40,14 @@ describe('makeJUnitOutput', () => {
             error: 'expected 200 to not equal 200'
           }
         ],
-        runtime: 1.2345678
+        runDuration: 1.2345678
       },
       {
         request: {
           method: 'GET',
           url: 'https://imanother.test'
         },
-        suitename: 'Tests/Suite B',
+        name: 'Tests/Suite B',
         testResults: [
           {
             lhsExpr: 'res.status',
@@ -62,7 +62,7 @@ describe('makeJUnitOutput', () => {
             status: 'fail'
           }
         ],
-        runtime: 2.3456789
+        runDuration: 2.3456789
       }
     ];
 
@@ -98,7 +98,7 @@ describe('makeJUnitOutput', () => {
     const results = [
       {
         description: 'description provided',
-        suitename: 'Tests/Suite A',
+        name: 'Tests/Suite A',
         request: {
           method: 'GET',
           url: 'https://ima.test'
@@ -110,7 +110,7 @@ describe('makeJUnitOutput', () => {
             status: 'fail'
           }
         ],
-        runtime: 1.2345678,
+        runDuration: 1.2345678,
         error: 'timeout of 2000ms exceeded'
       }
     ];
@@ -131,5 +131,70 @@ describe('makeJUnitOutput', () => {
     expect(failcase.error).toBeDefined;
     expect(failcase.error[0]['@type']).toBe('error');
     expect(failcase.error[0]['@message']).toBe('timeout of 2000ms exceeded');
+  });
+
+  it('should include preRequestTestResults and postResponseTestResults in the junit output', () => {
+    const results = [
+      {
+        name: 'Tests/Suite A',
+        request: {
+          method: 'GET',
+          url: 'https://ima.test'
+        },
+        preRequestTestResults: [
+          {
+            description: 'A test from Pre Request Script',
+            status: 'pass'
+          }
+        ],
+        testResults: [
+          {
+            description: 'A test from Tests tab',
+            status: 'pass'
+          }
+        ],
+        postResponseTestResults: [
+          {
+            description: 'A test from Post Response Script',
+            status: 'pass'
+          },
+          {
+            description: 'A failing test from Post Response Script',
+            status: 'fail',
+            error: 'expected 200 to equal 404'
+          }
+        ],
+        runDuration: 1.2345678
+      }
+    ];
+
+    makeJUnitOutput(results, '/tmp/testfile.xml');
+    expect(createStub).toBeCalled;
+
+    const junit = xmlbuilder.create.mock.calls[0][0];
+
+    expect(junit.testsuites).toBeDefined;
+    expect(junit.testsuites.testsuite.length).toBe(1);
+    expect(junit.testsuites.testsuite[0].testcase.length).toBe(4);
+    expect(junit.testsuites.testsuite[0]['@tests']).toBe(4);
+
+    const testcase1 = junit.testsuites.testsuite[0].testcase[0];
+    expect(testcase1['@name']).toBe('A test from Pre Request Script');
+    expect(testcase1['@status']).toBe('pass');
+
+    const testcase2 = junit.testsuites.testsuite[0].testcase[1];
+    expect(testcase2['@name']).toBe('A test from Tests tab');
+    expect(testcase2['@status']).toBe('pass');
+
+    const testcase3 = junit.testsuites.testsuite[0].testcase[2];
+    expect(testcase3['@name']).toBe('A test from Post Response Script');
+    expect(testcase3['@status']).toBe('pass');
+
+    const failcase = junit.testsuites.testsuite[0].testcase[3];
+    expect(failcase['@name']).toBe('A failing test from Post Response Script');
+    expect(failcase['@status']).toBe('fail');
+    expect(failcase.failure).toBeDefined;
+    expect(failcase.failure[0]['@type']).toBe('failure');
+    expect(failcase.failure[0]['@message']).toBe('expected 200 to equal 404');
   });
 });

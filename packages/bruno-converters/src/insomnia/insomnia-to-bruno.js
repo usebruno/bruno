@@ -2,13 +2,14 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
+import { buildV5Environments, buildV4Environments } from './env-utils';
 
 const parseGraphQL = (text) => {
   try {
     const graphql = JSON.parse(text);
 
     return {
-      query: graphql.query,
+      query: normalizeVariables(graphql.query),
       variables: JSON.stringify(graphql.variables, null, 2)
     };
   } catch (e) {
@@ -49,7 +50,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     name,
     type: 'http-request',
     request: {
-      url: request.url,
+      url: normalizeVariables(request.url),
       method: request.method,
       auth: {
         mode: 'none',
@@ -74,7 +75,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     brunoRequestItem.request.headers.push({
       uid: uuid(),
       name: header.name,
-      value: header.value,
+      value: normalizeVariables(header.value),
       description: header.description,
       enabled: !header.disabled
     });
@@ -84,7 +85,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     brunoRequestItem.request.params.push({
       uid: uuid(),
       name: param.name,
-      value: param.value,
+      value: normalizeVariables(param.value),
       description: param.description,
       type: 'query',
       enabled: !param.disabled
@@ -95,7 +96,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     brunoRequestItem.request.params.push({
       uid: uuid(),
       name: param.name,
-      value: param.value,
+      value: normalizeVariables(param.value),
       description: '',
       type: 'path',
       enabled: true
@@ -121,14 +122,14 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
 
   if (mimeType === 'application/json') {
     brunoRequestItem.request.body.mode = 'json';
-    brunoRequestItem.request.body.json = request.body.text;
+    brunoRequestItem.request.body.json = normalizeVariables(request.body.text);
   } else if (mimeType === 'application/x-www-form-urlencoded') {
     brunoRequestItem.request.body.mode = 'formUrlEncoded';
     each(request.body.params, (param) => {
       brunoRequestItem.request.body.formUrlEncoded.push({
         uid: uuid(),
         name: param.name,
-        value: param.value,
+        value: normalizeVariables(param.value),
         description: param.description,
         enabled: !param.disabled
       });
@@ -140,17 +141,17 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
         uid: uuid(),
         type: 'text',
         name: param.name,
-        value: param.value,
+        value: normalizeVariables(param.value),
         description: param.description,
         enabled: !param.disabled
       });
     });
   } else if (mimeType === 'text/plain') {
     brunoRequestItem.request.body.mode = 'text';
-    brunoRequestItem.request.body.text = request.body.text;
+    brunoRequestItem.request.body.text = normalizeVariables(request.body.text);
   } else if (mimeType === 'text/xml' || mimeType === 'application/xml') {
     brunoRequestItem.request.body.mode = 'xml';
-    brunoRequestItem.request.body.xml = request.body.text;
+    brunoRequestItem.request.body.xml = normalizeVariables(request.body.text);
   } else if (mimeType === 'application/graphql') {
     brunoRequestItem.type = 'graphql-request';
     brunoRequestItem.request.body.mode = 'graphql';
@@ -158,8 +159,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   }
 
   const settings = {
-    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false, // handles v4 and v5 import
-  }
+    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false // handles v4 and v5 import
+  };
 
   brunoRequestItem.settings = settings;
 
@@ -229,7 +230,7 @@ const parseInsomniaV5Collection = (data) => {
 
     // Parse environments if available
     if (data.environments) {
-      // Handle environments implementation if needed
+      brunoCollection.environments = buildV5Environments(data.environments);
     }
 
     return brunoCollection;
@@ -258,13 +259,13 @@ const parseInsomniaCollection = (data) => {
 
     brunoCollection.name = insomniaCollection.name;
 
-    const requestsAndFolders =
-    insomniaResources.filter((resource) => resource._type === 'request' || resource._type === 'request_group') ||
-    [];
+    const requestsAndFolders
+      = insomniaResources.filter((resource) => resource._type === 'request' || resource._type === 'request_group')
+        || [];
 
     function createFolderStructure(resources, parentId = null) {
-      const requestGroups =
-        resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
+      const requestGroups
+        = resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
       const requests = resources.filter((resource) => resource._type === 'request' && resource.parentId === parentId);
 
       const folders = requestGroups.map((folder, index, allFolder) => {
@@ -273,12 +274,12 @@ const parseInsomniaCollection = (data) => {
           (resource) => resource._type === 'request' && resource.parentId === folder._id
         );
 
-    return {
+        return {
           uid: uuid(),
           name,
           type: 'folder',
           items: createFolderStructure(resources, folder._id).concat(
-            requests.filter(r => r.parentId === folder._id).map(transformInsomniaRequestItem)
+            requests.filter((r) => r.parentId === folder._id).map(transformInsomniaRequestItem)
           )
         };
       });
@@ -287,6 +288,9 @@ const parseInsomniaCollection = (data) => {
     }
 
     brunoCollection.items = createFolderStructure(requestsAndFolders, insomniaCollection._id);
+
+    // Build environments from resources
+    brunoCollection.environments = buildV4Environments(insomniaResources, insomniaCollection._id);
     return brunoCollection;
   } catch (err) {
     console.error('Error parsing collection:', err);
@@ -296,7 +300,7 @@ const parseInsomniaCollection = (data) => {
 
 export const insomniaToBruno = (insomniaCollection) => {
   try {
-    if(typeof insomniaCollection !== 'object') {
+    if (typeof insomniaCollection !== 'object') {
       insomniaCollection = jsyaml.load(insomniaCollection);
     }
     let collection;
@@ -305,7 +309,7 @@ export const insomniaToBruno = (insomniaCollection) => {
     } else {
       collection = parseInsomniaCollection(insomniaCollection);
     }
-    
+
     const transformedCollection = transformItemsInCollection(collection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     const validatedCollection = validateSchema(hydratedCollection);

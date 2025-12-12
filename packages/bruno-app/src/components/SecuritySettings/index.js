@@ -26,10 +26,10 @@ const SecuritySettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
-      <div className='font-semibold mt-2'>JavaScript Sandbox</div>
+      <div className="font-medium mt-2">JavaScript Sandbox</div>
 
-      <div className='mt-4'>
-      The collection might include JavaScript code in Variables, Scripts, Tests, and Assertions.
+      <div className="mt-4">
+        The collection might include JavaScript code in Variables, Scripts, Tests, and Assertions.
       </div>
 
       <div className="flex flex-col mt-4">
@@ -48,7 +48,7 @@ const SecuritySettings = ({ collection }) => {
               Safe Mode
             </span>
           </label>
-          <p className='text-sm text-muted mt-1'>
+          <p className="text-muted mt-1">
             JavaScript code is executed in a secure sandbox and cannot access your filesystem or execute system commands.
           </p>
 
@@ -64,10 +64,10 @@ const SecuritySettings = ({ collection }) => {
             />
             <span className={jsSandboxMode === 'developer' ? 'font-medium' : 'font-normal'}>
               Developer Mode
-              <span className='ml-1 developer-mode-warning'>(use only if you trust the authors of the collection)</span>
+              <span className="ml-1 developer-mode-warning">(use only if you trust the authors of the collection)</span>
             </span>
           </label>
-          <p className='text-sm text-muted mt-1'>
+          <p className="text-muted mt-1">
             JavaScript code has access to the filesystem, can execute system commands and access sensitive information.
           </p>
         </div>

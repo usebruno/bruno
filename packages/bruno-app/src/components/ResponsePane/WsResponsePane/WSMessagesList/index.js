@@ -117,7 +117,7 @@ const WSMessageItem = ({ message, inFocus }) => {
       >
         <div className="flex min-w-0 shrink">
           <span
-            className={classnames('font-semibold flex items-center gap-1',
+            className={classnames('font-medium flex items-center gap-1',
               {
                 'text-green-700': isIncoming,
                 'text-yellow-700': isOutgoing,
@@ -195,7 +195,7 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
     <StyledWrapper className="ws-messages-list mt-1 flex flex-col">
       {ordered.map((msg, idx, src) => {
         const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
-        return <WSMessageItem inFocus={inFocus} id={idx} message={msg} />;
+        return <WSMessageItem key={msg.timestamp} inFocus={inFocus} id={idx} message={msg} />;
       })}
     </StyledWrapper>
   );

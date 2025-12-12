@@ -9,11 +9,14 @@ const isRequestSaved = async (saveButton: Locator) => {
 };
 
 const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Promise<string>) => {
-  await page.locator('.dropdown-icon').click();
-  await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
+  await page.getByTestId('collections-header-add-menu').click();
+  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
   await page.getByLabel('Name').fill('source-collection');
-  await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  const locationInput = page.getByLabel('Location');
+  if (await locationInput.isVisible()) {
+    await locationInput.fill(await createTmpDir('source-collection'));
+  }
+  await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
   await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
   await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
   await page.getByLabel('Safe Mode').check();
@@ -24,7 +27,7 @@ const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Pro
   await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
   await page.getByPlaceholder('Request Name').fill('test-request');
   await page.locator('#new-request-url .CodeMirror').click();
-  await page.locator('textarea').fill('https://httpbin.org/get');
+  await page.locator('textarea').fill('https://echo.usebruno.com');
   await page.getByRole('button', { name: 'Create' }).click();
   await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
 };
@@ -39,7 +42,7 @@ test.describe.serial('save requests', () => {
     await setup(page, createTmpDir);
 
     const locators = buildCommonLocators(page);
-    const originalUrl = 'https://httpbin.org/get';
+    const originalUrl = 'https://echo.usebruno.com';
     const replacementUrl = 'ws://localhost:8082';
 
     const clearText = async (text: string) => {

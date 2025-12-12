@@ -27,7 +27,7 @@ const CreateEnvironment = ({ onClose, onEnvironmentCreated }) => {
       name: Yup.string()
         .min(1, 'Must be at least 1 character')
         .max(255, 'Must be 255 characters or less')
-        .test('is-valid-filename', function(value) {
+        .test('is-valid-filename', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
@@ -62,14 +62,14 @@ const CreateEnvironment = ({ onClose, onEnvironmentCreated }) => {
     <Portal>
       <Modal
         size="sm"
-        title={'Create Global Environment'}
+        title="Create Global Environment"
         confirmText="Create"
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
-        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label htmlFor="name" className="block font-semibold">
+            <label htmlFor="name" className="block font-medium">
               Environment Name
             </label>
             <div className="flex items-center mt-2">

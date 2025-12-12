@@ -20,7 +20,7 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
       name: Yup.string()
         .min(1, 'must be at least 1 character')
         .max(255, 'Must be 255 characters or less')
-        .test('is-valid-filename', function(value) {
+        .test('is-valid-filename', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
@@ -53,14 +53,14 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
     <Portal>
       <Modal
         size="sm"
-        title={'Rename Environment'}
+        title="Rename Environment"
         confirmText="Rename"
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
-        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label htmlFor="name" className="block font-semibold">
+            <label htmlFor="name" className="block font-medium">
               Environment Name
             </label>
             <input

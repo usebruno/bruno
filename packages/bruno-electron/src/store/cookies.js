@@ -57,12 +57,11 @@ class CookiesStore {
     const decryptedCookies = [];
 
     // Filter and decrypt cookies
-    Object.values(cookieStore).forEach(domainCookies => {
+    Object.values(cookieStore).forEach((domainCookies) => {
       if (!Array.isArray(domainCookies)) return;
 
-      domainCookies.forEach(cookie => {
+      domainCookies.forEach((cookie) => {
         try {
-
           // Create cookie with decrypted value
           const decryptedCookie = {
             ...cookie,
@@ -87,7 +86,7 @@ class CookiesStore {
     try {
       // Organize cookies by domain
       const cookiesByDomain = {};
-      cookies.cookies.forEach(cookie => {
+      cookies.cookies.forEach((cookie) => {
         try {
           if (!cookiesByDomain[cookie.domain]) {
             cookiesByDomain[cookie.domain] = [];
@@ -152,7 +151,6 @@ class CookiesStore {
     try {
       const serialized = cookieJar.serializeSync();
       this.setCookies(serialized);
-
     } catch (err) {
       console.warn('Failed to save cookie jar:', err);
     } finally {
@@ -182,7 +180,6 @@ class CookiesStore {
       this.#saveTimerId = null;
     }, DEBOUNCE_MS);
   }
-
 }
 
 // Create singleton instance

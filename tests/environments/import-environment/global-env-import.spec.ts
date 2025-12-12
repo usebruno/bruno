@@ -1,30 +1,30 @@
 import { test, expect } from '../../../playwright';
 import path from 'path';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Global Environment Import Tests', () => {
-  test('should import global environment from file', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('should import global environment from file', async ({ newPage: page, createTmpDir }) => {
     const openApiFile = path.join(__dirname, 'fixtures', 'collection.json');
     const globalEnvFile = path.join(__dirname, 'fixtures', 'global-env.json');
 
     // Import test collection
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     const importModal = page.locator('[data-testid="import-collection-modal"]');
     await importModal.waitFor({ state: 'visible' });
 
     await page.setInputFiles('input[type="file"]', openApiFile);
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
     await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     await expect(locationModal.getByText('Environment Test Collection')).toBeVisible();
 
     await page.locator('#collection-location').fill(await createTmpDir('global-env-import-test'));
-    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await locationModal.getByRole('button', { name: 'Import' }).click();
 
     await expect(
-      page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })
-    ).toBeVisible();
+      page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })).toBeVisible({ timeout: 10000 });
 
     // Configure collection
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
@@ -32,16 +32,15 @@ test.describe('Global Environment Import Tests', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Import global environment
-    await page.locator('[data-testid="environment-selector-trigger"]').click();
-    await page.locator('[data-testid="env-tab-global"]').click();
-    await expect(page.locator('[data-testid="env-tab-global"]')).toHaveClass(/active/);
-    await page.locator('button[id="import-env"]').click();
+    await page.getByTestId('environment-selector-trigger').click();
+    await page.getByTestId('env-tab-global').click();
+    await page.getByText('Import', { exact: true }).click();
     const importGlobalEnvModal = page.locator('[data-testid="import-global-environment-modal"]');
     await expect(importGlobalEnvModal).toBeVisible();
 
     // Import environment file
     const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('button[data-testid="import-postman-global-environment"]').click();
+    await page.locator('[data-testid="import-global-environment"]').click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(globalEnvFile);
 
@@ -80,14 +79,7 @@ test.describe('Global Environment Import Tests', () => {
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('201');
 
-    // Cleanup
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
-    await page
-      .locator('.collection-name')
-      .filter({ has: page.locator('#sidebar-collection-name:has-text("Environment Test Collection")') })
-      .locator('.collection-actions')
-      .click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
-    await page.getByRole('button', { name: 'Close' }).click();
+    // cleanup: close all collections
+    await closeAllCollections(page);
   });
 });

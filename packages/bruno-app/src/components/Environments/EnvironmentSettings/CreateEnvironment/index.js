@@ -12,9 +12,9 @@ const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
- const validateEnvironmentName = (name) => {
-   return !collection?.environments?.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
- };
+  const validateEnvironmentName = (name) => {
+    return !collection?.environments?.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
+  };
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -25,7 +25,7 @@ const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
       name: Yup.string()
         .min(1, 'Must be at least 1 character')
         .max(255, 'Must be 255 characters or less')
-        .test('is-valid-filename', function(value) {
+        .test('is-valid-filename', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
@@ -60,14 +60,14 @@ const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
     <Portal>
       <Modal
         size="sm"
-        title={'Create Environment'}
+        title="Create Environment"
         confirmText="Create"
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
-        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label htmlFor="name" className="block font-semibold">
+            <label htmlFor="name" className="block font-medium">
               Environment Name
             </label>
             <div className="flex items-center mt-2">

@@ -6,25 +6,18 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-
-
-
-
 const NTLMAuth = ({ collection }) => {
-
-
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const ntlmAuth = get(collection, 'root.request.auth.ntlm', {});
+  const ntlmAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.ntlm', {}) : get(collection, 'root.request.auth.ntlm', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
-
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   const handleUsernameChange = (username) => {
     dispatch(
@@ -67,10 +60,7 @@ const NTLMAuth = ({ collection }) => {
         }
       })
     );
-  };  
-
-
-
+  };
 
   return (
     <StyledWrapper className="mt-2 w-full">

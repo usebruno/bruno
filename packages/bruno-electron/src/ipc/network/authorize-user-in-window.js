@@ -33,7 +33,12 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
     // Ensure the browser window complies with "SSL/TLS Certificate Verification" preference
     window.webContents.on('certificate-error', (event, url, error, certificate, callback) => {
       event.preventDefault();
-      callback(!preferencesUtil.shouldVerifyTls());
+      const shouldAllow = !preferencesUtil.shouldVerifyTls();
+      if (!shouldAllow) {
+        console.error(`Bruno OAuth: SSL Certificate verification failed for ${url}. Error: ${error}`);
+        console.error('Bruno OAuth: Disable "SSL/TLS Certificate Verification" in settings to proceed with OAuth flows that use self-signed certificates.');
+      }
+      callback(shouldAllow);
     });
 
     const { session: webSession } = window.webContents;
@@ -61,7 +66,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
           },
           fromCache: false,
           completed: true,
-          requests: [], // No sub-requests in this context
+          requests: [] // No sub-requests in this context
         };
         // Add to mainRequests
 
@@ -75,14 +80,14 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
 
     webSession.webRequest.onBeforeSendHeaders((details, callback) => {
       const { id: requestId, requestHeaders, method, url } = details;
-      
+
       if (details.resourceType === 'mainFrame' && Object.keys(additionalHeaders).length > 0) {
         // Add our custom headers
         for (const [name, value] of Object.entries(additionalHeaders)) {
           requestHeaders[name] = value;
         }
       }
-      
+
       if (currentMainRequest?.requestId === requestId) {
         currentMainRequest.request = {
           url,
@@ -180,7 +185,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
             const urlWithHash = new URL(finalUrl);
             const hash = urlWithHash.hash.substring(1); // Remove the leading #
             const hashParams = new URLSearchParams(hash);
-            
+
             // Extract tokens from hash fragment
             const implicitTokens = {
               access_token: hashParams.get('access_token'),
@@ -189,7 +194,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
               state: hashParams.get('state'),
               scope: hashParams.get('scope')
             };
-            
+
             return resolve({ implicitTokens, debugInfo });
           } else {
             // Default case - authorization code flow

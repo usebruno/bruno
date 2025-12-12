@@ -10,7 +10,7 @@ import { findCollectionByUid } from 'utils/collections/index';
 const RenameCollection = ({ collectionUid, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
-  const collection = useSelector(state => findCollectionByUid(state.collections.collections, collectionUid));
+  const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -43,9 +43,9 @@ const RenameCollection = ({ collectionUid, onClose }) => {
 
   return (
     <Modal size="sm" title="Rename Collection" confirmText="Rename" handleConfirm={onSubmit} handleCancel={onClose}>
-      <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+      <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
         <div>
-          <label htmlFor="name" className="block font-semibold">
+          <label htmlFor="name" className="block font-medium">
             Name
           </label>
           <input

@@ -3,15 +3,15 @@ import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
-import { IconDownload, IconShieldLock } from '@tabler/icons';
-import ImportEnvironment from '../ImportEnvironment';
+import { IconDownload, IconShieldLock, IconUpload } from '@tabler/icons';
+import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ToolHint from 'components/ToolHint';
 import { isEqual } from 'lodash';
 
-const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified, onClose }) => {
+const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified, onClose, setShowExportModal }) => {
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
@@ -25,7 +25,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
 
   useEffect(() => {
     if (selectedEnvironment) {
-      const _selectedEnvironment = environments?.find(env => env?.uid === selectedEnvironment?.uid);
+      const _selectedEnvironment = environments?.find((env) => env?.uid === selectedEnvironment?.uid);
       const hasSelectedEnvironmentChanged = !isEqual(selectedEnvironment, _selectedEnvironment);
       if (hasSelectedEnvironmentChanged) {
         setSelectedEnvironment(_selectedEnvironment);
@@ -96,7 +96,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   return (
     <StyledWrapper>
       {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
-      {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
+      {openImportModal && <ImportEnvironmentModal type="collection" collection={collection} onClose={() => setOpenImportModal(false)} />}
       {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
 
       <div className="flex">
@@ -107,16 +107,16 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
             </div>
           )}
           <div className="environments-sidebar flex flex-col">
-            {environments &&
-              environments.length &&
-              environments.map((env) => (
+            {environments
+              && environments.length
+              && environments.map((env) => (
                 <ToolHint key={env.uid} text={env.name} toolhintId={env.uid} place="right">
                   <div
                     id={env.uid}
                     className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
                     onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
                   >
-                      <span className="break-all">{env.name}</span>
+                    <span className="break-all">{env.name}</span>
                   </div>
                 </ToolHint>
               ))}
@@ -128,6 +128,10 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
               <div className="flex items-center" onClick={() => handleImportClick()}>
                 <IconDownload size={12} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Import</span>
+              </div>
+              <div className="flex items-center mt-2" onClick={() => setShowExportModal(true)}>
+                <IconUpload size={12} strokeWidth={2} />
+                <span className="label ml-1 text-xs">Export</span>
               </div>
               <div className="flex items-center mt-2" onClick={() => handleSecretsClick()}>
                 <IconShieldLock size={12} strokeWidth={2} />

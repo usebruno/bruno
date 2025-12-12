@@ -4,10 +4,34 @@ meta {
   seq: 1
 }
 
-get {
-  url: https://httpbin.org/json
-  body: none
+post {
+  url: https://echo.usebruno.com
+  body: json
   auth: none
+}
+
+body:json {
+  {
+    "slideshow": {
+      "author": "Yours Truly",
+      "date": "date of publication",
+      "slides": [
+        {
+          "title": "Wake up to WonderWidgets!",
+          "type": "all"
+        },
+        {
+          "items": [
+            "Why <em>WonderWidgets</em> are great",
+            "Who <em>buys</em> WonderWidgets"
+          ],
+          "title": "Overview",
+          "type": "all"
+        }
+      ],
+      "title": "Sample Slide Show"
+    }
+  }
 }
 
 headers {

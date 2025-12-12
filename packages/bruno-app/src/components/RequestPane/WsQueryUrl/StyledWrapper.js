@@ -1,13 +1,14 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  height: 2.3rem;
+  height: 2.1rem;
   position: relative;
+  border: ${(props) => props.theme.requestTabPanel.url.border};
+  border-radius: ${(props) => props.theme.border.radius.base};
 
   .input-container {
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
-    border-top-right-radius: 3px;
-    border-bottom-right-radius: 3px;
+    border-radius: ${(props) => props.theme.border.radius.base};
 
     input {
       background-color: ${(props) => props.theme.requestTabPanel.url.bg};

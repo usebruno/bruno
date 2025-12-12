@@ -13,8 +13,6 @@ const useWsEventListeners = () => {
       return () => {};
     }
 
-    ipcRenderer.invoke('renderer:ready');
-
     // Handle WebSocket requestSent event
     const removeWsRequestSentListener = ipcRenderer.on('main:ws:request', (requestId, collectionUid, eventData) => {
       dispatch(runWsRequestEvent({

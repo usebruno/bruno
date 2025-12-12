@@ -1,157 +1,163 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createUntitledRequest, selectRequestPaneTab } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Tag persistence', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
   });
 
-  test('Verify tag persistence while moving requests within a collection', async ({ pageWithUserData: page, createTmpDir }) => {
-    // Create first collection - click dropdown menu first
-    await page.getByLabel('Create Collection').click();
+  test('Verify tag persistence while moving requests within a collection', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    // Create first collection - click plus icon button to open dropdown
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.createCollection().click();
     await page.getByLabel('Name').fill('test-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('test-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-    await page.getByText('test-collection').click();
+    const locationInput = locators.modal.byTitle('Create Collection').getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(await createTmpDir('test-collection'));
+    }
+    await locators.modal.button('Create').click();
+    await locators.sidebar.collection('test-collection').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
+    await page.waitForTimeout(1000);
+    // Create three requests, each with URL and tag (auto-saved after each is completely created)
+    // The createUntitledRequest function now waits for each request to be fully created
+    // before returning, ensuring unique names are generated
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'https://httpfaker.org/api/echo',
+      tag: 'smoke'
+    });
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'https://httpfaker.org/api/echo',
+      tag: 'smoke'
+    });
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'https://httpfaker.org/api/echo',
+      tag: 'smoke'
+    });
 
-    // Create a new request
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('r1');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
+    // Wait for all 3 requests to be visible in the sidebar
+    const untitledRequests = page.locator('.item-name').filter({ hasText: /^Untitled/ });
+    await expect(untitledRequests).toHaveCount(3);
 
-    // create another request
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('r2');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
+    // Move the last untitled request to just above the first untitled request within the same collection
+    const r3Request = untitledRequests.nth(2); // Third request (0-indexed)
+    const r1Request = untitledRequests.first(); // First request
 
-    // create another request
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('r3');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    await page.waitForTimeout(200);
-
-    // Add a tag to the request
-    await page.getByRole('tab', { name: 'Settings' }).click();
-    await page.getByText('Tagse.g., smoke, regression').click();
-    await page.getByRole('textbox').nth(2).fill('smoke');
-    await page.getByRole('textbox').nth(2).press('Enter');
-
-    // Verify the tag was added
-    await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
-    await page.keyboard.press('Meta+s');
-
-    // Move the r2 request to just above r1 within the same collection
-    const r3Request = page.locator('.collection-item-name').filter({ hasText: 'r3' });
-    const r1Request = page.locator('.collection-item-name').filter({ hasText: 'r1' });
-    
     await expect(r3Request).toBeVisible();
     await expect(r1Request).toBeVisible();
 
-    // Perform drag and drop operation to move r3 below r1 using source position
+    // Perform drag and drop operation to move the last request above the first using source position
     await r3Request.dragTo(r1Request, {
       targetPosition: { x: 0, y: 1 }
     });
 
-    // Verify the requests are still in the collection and r3 is now above r1
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'r3' })).toBeVisible();
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'r1' })).toBeVisible();
+    // Verify the requests are still in the collection
+    await expect(untitledRequests).toHaveCount(3);
 
-    // Click on r3 to verify the tag persisted after the move
-    await page.locator('.collection-item-name').filter({ hasText: 'r3' }).click();
-    await page.locator('.request-tab.active', { hasText: 'r3' }).waitFor({ state: 'visible' });
-    await page.getByRole('tab', { name: 'Settings' }).click();
-    
+    // Click on the moved request (now first) to verify the tag persisted after the move
+    await untitledRequests.first().click();
+    await locators.tabs.activeRequestTab().waitFor({ state: 'visible' });
+    await selectRequestPaneTab(page, 'Settings');
+    await page.waitForTimeout(200);
     // Verify the tag is still present after the move
-    await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
+    await expect(locators.tags.item('smoke')).toBeVisible();
   });
 
-  test('verify tag persistence while moving requests between folders', async ({ pageWithUserData: page, createTmpDir }) => {
-    // Create first collection - click dropdown menu first
-    await page.getByLabel('Create Collection').click();
+  test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    // Create first collection - click plus icon button to open dropdown
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.createCollection().click();
     await page.getByLabel('Name').fill('test-collection');
-    await page.getByLabel('Location').fill(await createTmpDir('test-collection'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-    await page.getByText('test-collection').click();
+    const locationInput = locators.modal.byTitle('Create Collection').getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(await createTmpDir('test-collection'));
+    }
+    await locators.modal.button('Create').click();
+    await locators.sidebar.collection('test-collection').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a new folder
-    await page.getByTitle('test-collection').click({
-      button: 'right'
-    });
-    await page.waitForTimeout(200);
-    await page.getByText('New Folder').click();
-    await page.locator('#collection-name').fill('f1');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await locators.sidebar.collectionRow('test-collection').hover();
+    await locators.actions.collectionActions('test-collection').click();
+    await page.waitForTimeout(1);
+    await locators.dropdown.item('New Folder').click();
+    await page.locator('#folder-name').fill('folder-1');
+    await locators.modal.button('Create').click();
+    await page.waitForTimeout(100);
+
+    // Create a new request within folder-1 folder
+    await locators.sidebar.folder('folder-1').click();
     await page.waitForTimeout(200);
 
-    // Create a new request within f1 folder
-    await page.getByText('f1').click();
-    await page.waitForTimeout(200);
-    await page.getByTitle('f1', { exact: true }).click({
-      button: 'right'
-    });
-    await page.locator('.dropdown-item').getByText('New Request').click()
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('r1');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await locators.sidebar.folder('folder-1').hover();
+    await locators.actions.collectionItemActions('folder-1').click();
+    await locators.dropdown.item('New Request').click();
+    await locators.request.requestNameInput().fill('request-1');
+    await locators.request.newRequestUrl().click();
+    await page.keyboard.type('https://httpfaker.org/api/echo');
+    await locators.modal.button('Create').click();
 
-    // create another request within f1 folder
-    await page.getByTitle('f1', { exact: true }).click({
-      button: 'right'
-    });
-    await page.locator('.dropdown-item').getByText('New Request').click()
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('r2');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
+    // create another request within folder-1 folder
+    await locators.sidebar.folder('folder-1').hover();
+    await locators.actions.collectionItemActions('folder-1').click();
+    await locators.dropdown.item('New Request').click();
+    await locators.request.requestNameInput().fill('request-2');
+    await locators.request.newRequestUrl().click();
+    await page.keyboard.type('https://httpfaker.org/api/echo');
+    await locators.modal.button('Create').click();
     await page.waitForTimeout(200);
 
     // Add a tag to the request
-    await page.getByRole('tab', { name: 'Settings' }).click();
-    await page.getByText('Tagse.g., smoke, regression').click();
-    await page.getByRole('textbox').nth(2).fill('smoke');
-    await page.getByRole('textbox').nth(2).press('Enter');
-    await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
+    await selectRequestPaneTab(page, 'Settings');
+    await page.waitForTimeout(200);
+    await locators.tags.input().fill('smoke');
+    await locators.tags.input().press('Enter');
+    await page.waitForTimeout(200);
+    await expect(locators.tags.item('smoke')).toBeVisible();
     await page.keyboard.press('Meta+s');
 
     // Create another folder
-    await page.getByTitle('test-collection').click({
-      button: 'right'
-    });
-    await page.locator('.dropdown-item').getByText('New Folder').click();
-    await page.locator('#collection-name').fill('f2');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await locators.sidebar.collectionRow('test-collection').hover();
+    await locators.actions.collectionActions('test-collection').click();
+    await locators.dropdown.item('New Folder').click();
+    await page.locator('#folder-name').fill('folder-2');
+    await locators.modal.button('Create').click();
 
-    // open f2 folder
-    await page.getByText('f2').click();
-    await page.getByTitle('f2', { exact: true }).click({
-      button: 'right'
-    });
-    await page.locator('.dropdown-item').getByText('New Request').click();
-    await page.getByRole('textbox', { name: 'Request Name' }).fill('r3');
-    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
-    await page.getByRole('button', { name: 'Create' }).click();
-    
-    // Drag and drop r2 request to f2 folder
-    const r2Request = page.locator('.collection-item-name').filter({ hasText: 'r2' });
-    const f2Folder = page.locator('.collection-item-name').filter({ hasText: 'f2' });
+    // open folder-2 folder
+    await locators.sidebar.folder('folder-2').click();
+    await locators.sidebar.folder('folder-2').hover();
+    await locators.actions.collectionItemActions('folder-2').click();
+    await locators.dropdown.item('New Request').click();
+    await locators.request.requestNameInput().fill('request-3');
+    await locators.request.newRequestUrl().click();
+    await page.keyboard.type('https://httpfaker.org/api/echo');
+    await locators.modal.button('Create').click();
+
+    // Drag and drop request-2 request to folder-2 folder
+    const r2Request = locators.sidebar.request('request-2');
+    const f2Folder = locators.sidebar.folder('folder-2');
     await r2Request.dragTo(f2Folder);
-    
-    // Verify the requests are still in the collection and r2 is now in f2 folder
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'r2' })).toBeVisible();
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'f2' })).toBeVisible();
 
-    // Click on r2 to verify the tag persisted after the move
-    await page.locator('.collection-item-name').filter({ hasText: 'r2' }).click();
-    await page.locator('.request-tab.active', { hasText: 'r2' }).waitFor({ state: 'visible' });
-    await page.getByRole('tab', { name: 'Settings' }).click();
-    await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
+    // Verify the requests are still in the collection and request-2 is now in folder-2 folder
+    await expect(locators.sidebar.request('request-2')).toBeVisible();
+    await expect(locators.sidebar.folder('folder-2')).toBeVisible();
+
+    // Click on request-2 to verify the tag persisted after the move
+    await locators.sidebar.request('request-2').click();
+    await page.waitForTimeout(200);
+
+    await locators.tabs.requestTab('request-2').waitFor({ state: 'visible' });
+    await selectRequestPaneTab(page, 'Settings');
+    await page.waitForTimeout(200);
+    await expect(locators.tags.item('smoke')).toBeVisible();
   });
 });

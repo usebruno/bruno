@@ -12,9 +12,9 @@ import StyledWrapper from './StyledWrapper';
 import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash, IconChevronDown, IconChevronUp } from '@tabler/icons';
 import ToolHint from 'components/ToolHint/index';
 import { toastError } from 'utils/common/error';
-import { format, applyEdits } from 'jsonc-parser';
-import toast from 'react-hot-toast'
+import toast from 'react-hot-toast';
 import { getAbsoluteFilePath } from 'utils/common/path';
+import { prettifyJsonString } from 'utils/common/index';
 
 const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCollapsed, onToggleCollapse, handleRun, canClientSendMultipleMessages }) => {
   const dispatch = useDispatch();
@@ -33,7 +33,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 
   const onEdit = (value) => {
     const currentMessages = [...(body.grpc || [])];
-    
+
     currentMessages[index] = {
       name: name ? name : `message ${index + 1}`,
       content: value
@@ -41,8 +41,8 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 
     dispatch(updateRequestBody({
       content: currentMessages,
-            itemUid: item.uid,
-            collectionUid: collection.uid
+      itemUid: item.uid,
+      collectionUid: collection.uid
     }));
   };
 
@@ -130,8 +130,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
 
   const onPrettify = () => {
     try {
-      const edits = format(content, undefined, { tabSize: 2, insertSpaces: true });
-      const prettyBodyJson = applyEdits(content, edits);
+      const prettyBodyJson = prettifyJsonString(content);
 
       const currentMessages = [...(body.grpc || [])];
       currentMessages[index] = {
@@ -160,7 +159,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
           {isCollapsed
             ? <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
             : <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />}
-          <span className="font-medium text-sm">{`Message ${canClientStream ? index + 1 : ''}`}</span>
+          <span className="font-medium">{`Message ${canClientStream ? index + 1 : ''}`}</span>
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <ToolHint text="Format JSON with proper indentation and spacing" toolhintId={`prettify-msg-${index}`}>
@@ -187,6 +186,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
                 onClick={onSend}
                 disabled={!isConnectionActive}
                 className={`p-1 rounded ${isConnectionActive ? 'hover:bg-zinc-200 dark:hover:bg-zinc-600' : 'opacity-50 cursor-not-allowed'} transition-colors`}
+                data-testid={`grpc-send-message-${index}`}
               >
                 <IconSend
                   size={16}
@@ -250,9 +250,9 @@ const GrpcBody = ({ item, collection, handleRun }) => {
   }, [body?.grpc?.length]);
 
   const toggleMessageCollapse = (index) => {
-    setCollapsedMessages(prev => {
+    setCollapsedMessages((prev) => {
       if (prev.includes(index)) {
-        return prev.filter(i => i !== index);
+        return prev.filter((i) => i !== index);
       } else {
         return [...prev, index];
       }
@@ -287,7 +287,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
               className="flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
             >
               <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">Add First Message</span>
+              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add First Message</span>
             </button>
           </ToolHint>
         </div>
@@ -300,6 +300,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
       <div
         ref={messagesContainerRef}
         id="grpc-messages-container"
+        data-testid="grpc-messages-container"
         className={`flex-1 ${body.grpc.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'overflow-y-auto'} ${canClientSendMultipleMessages && 'pb-16'}`}
       >
         {body.grpc
@@ -326,9 +327,10 @@ const GrpcBody = ({ item, collection, handleRun }) => {
             <button
               onClick={addNewMessage}
               className="add-message-btn flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors shadow-md"
+              data-testid="grpc-add-message-button"
             >
               <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">Add Message</span>
+              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add Message</span>
             </button>
           </ToolHint>
         </div>

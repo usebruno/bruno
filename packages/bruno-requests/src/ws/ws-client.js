@@ -1,5 +1,6 @@
 import ws from 'ws';
 import { hexy as hexdump } from 'hexy';
+import { getParsedWsUrlObject } from './ws-url';
 
 /**
  * Safely parse JSON string with error handling
@@ -18,46 +19,6 @@ const safeParseJSON = (jsonString, context = 'JSON string') => {
       parseError: error
     });
     throw new Error(errorMessage);
-  }
-};
-
-/**
- * Get parsed WebSocket URL object
- * @param {string} url - The WebSocket URL
- * @returns {Object} Parsed URL object with protocol, host, path
- */
-const getParsedWsUrlObject = (url) => {
-  const addProtocolIfMissing = (str) => {
-    if (str.includes('://')) return str;
-
-    // For localhost, default to insecure (grpc://) for local development
-    if (str.includes('localhost') || str.includes('127.0.0.1')) {
-      return `ws://${str}`;
-    }
-
-    // For other hosts, default to secure
-    return `wss://${str}`;
-  };
-
-  const removeTrailingSlash = (str) => (str.endsWith('/') ? str.slice(0, -1) : str);
-
-  if (!url) return { host: '', path: '' };
-
-  try {
-    const urlObj = new URL(addProtocolIfMissing(url.toLowerCase()));
-    return {
-      protocol: urlObj.protocol,
-      host: urlObj.host,
-      path: removeTrailingSlash(urlObj.pathname),
-      search: urlObj.search,
-      fullUrl: urlObj.href
-    };
-  } catch (err) {
-    console.error({ err });
-    return {
-      host: '',
-      path: ''
-    };
   }
 };
 
@@ -90,7 +51,13 @@ class WsClient {
 
     try {
       // Create WebSocket connection
-      const protocols = [].concat([headers['Sec-WebSocket-Protocol'], headers['sec-websocket-protocol']]).filter(Boolean);
+      // Note: unlike the standard Websocket constructor the `ws` library doesn't support adding Protocols as a single string
+      // and instead needs it broken down manually, make sure this tested with multiple protocols again.
+      const protocols = [].concat([headers['Sec-WebSocket-Protocol'], headers['sec-websocket-protocol']])
+        .filter(Boolean)
+        .map((d) => d.split(','))
+        .flat().map((d) => d.trim());
+
       const protocolVersion = headers['Sec-WebSocket-Version'] || headers['sec-websocket-version'];
 
       const wsOptions = {
@@ -100,7 +67,11 @@ class WsClient {
       };
 
       if (protocolVersion) {
-        wsOptions.protocolVersion = protocolVersion;
+        // Force convert to number since `ws` doesn't do it for you
+        const asNumber = Number(protocolVersion);
+        if (!isNaN(asNumber)) {
+          wsOptions.protocolVersion = asNumber;
+        }
       }
 
       const wsConnection = new ws.WebSocket(parsedUrl.fullUrl, protocols, wsOptions);
@@ -388,6 +359,19 @@ class WsClient {
         activeConnectionIds: this.getActiveConnectionIds()
       });
     }
+  }
+
+  /**
+   * Get the connection status of a connection
+   * @param {string} requestId - The request ID to get the connection status of
+   * @returns {string} - The connection status
+   */
+  // Returns "disconnected", "connecting", "connected"
+  connectionStatus(requestId) {
+    const connectionMeta = this.activeConnections.get(requestId);
+    if (connectionMeta?.connection?.readyState === ws.WebSocket.CONNECTING) return 'connecting';
+    if (connectionMeta?.connection?.readyState === ws.WebSocket.OPEN) return 'connected';
+    return 'disconnected';
   }
 }
 

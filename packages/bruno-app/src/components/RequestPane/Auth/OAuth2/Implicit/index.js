@@ -67,7 +67,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           tokenHeaderPrefix,
           tokenQueryKey,
           autoFetchToken,
-          [key]: value,
+          [key]: value
         }
       })
     );
@@ -84,7 +84,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium">
+        <span className="font-medium">
           Configuration
         </span>
       </div>
@@ -113,12 +113,12 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span className="font-medium text-gray-800 dark:text-gray-200">
           Token
         </span>
       </div>
 
-      <div className="flex items-center gap-4 w-full" key={`input-token-name`}>
+      <div className="flex items-center gap-4 w-full" key="input-token-name">
         <label className="block min-w-[140px]">Token ID</label>
         <div className="oauth2-input-wrapper flex-1">
           <SingleLineEditor
@@ -133,7 +133,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         </div>
       </div>
 
-      <div className="flex items-center gap-4 w-full" key={`input-token-placement`}>
+      <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add Token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
@@ -160,7 +160,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
       </div>
 
       {tokenPlacement == 'header' ? (
-        <div className="flex items-center gap-4 w-full" key={`input-token-header-prefix`}>
+        <div className="flex items-center gap-4 w-full" key="input-token-header-prefix">
           <label className="block min-w-[140px]">Header Prefix</label>
           <div className="oauth2-input-wrapper flex-1">
             <SingleLineEditor
@@ -175,7 +175,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-4 w-full" key={`input-token-query-key`}>
+        <div className="flex items-center gap-4 w-full" key="input-token-query-key">
           <label className="block min-w-[140px]">URL Query Key</label>
           <div className="oauth2-input-wrapper flex-1">
             <SingleLineEditor
@@ -195,7 +195,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
         </div>
-        <span className="text-sm font-medium">
+        <span className="font-medium">
           Advanced Options
         </span>
       </div>
@@ -230,4 +230,4 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
   );
 };
 
-export default OAuth2Implicit; 
+export default OAuth2Implicit;

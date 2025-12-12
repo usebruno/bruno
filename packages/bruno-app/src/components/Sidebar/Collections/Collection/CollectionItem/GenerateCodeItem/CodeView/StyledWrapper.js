@@ -9,18 +9,18 @@ const StyledWrapper = styled.div`
 
     .CodeMirror {
       height: 100%;
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       line-height: 1.5;
       padding: 0;
 
       .CodeMirror-gutters {
-        background: ${props => props.theme.codemirror.gutter.bg};
-        border-right: 1px solid ${props => props.theme.codemirror.border};
+        background: ${(props) => props.theme.codemirror.gutter.bg};
+        border-right: 1px solid ${(props) => props.theme.codemirror.border};
       }
 
       .CodeMirror-linenumber {
-        color: ${props => props.theme.colors.text.muted};
-        font-size: 11px;
+        color: ${(props) => props.theme.colors.text.muted};
+        font-size: ${(props) => props.theme.font.size.xs};
         padding: 0 3px 0 5px;
       }
 
@@ -41,7 +41,7 @@ const StyledWrapper = styled.div`
     z-index: 10;
     background: transparent;
     border: none;
-    color: ${props => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.colors.text.muted};
     cursor: pointer;
     padding: 6px;
     opacity: 0.7;
@@ -49,7 +49,7 @@ const StyledWrapper = styled.div`
 
     &:hover {
       opacity: 1;
-      color: ${props => props.theme.text};
+      color: ${(props) => props.theme.text};
     }
 
     &:active {

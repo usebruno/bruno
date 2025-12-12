@@ -15,11 +15,12 @@ const Wrapper = styled.div`
 
     section.request-pane,
     section.response-pane {
+      overflow: hidden;
     }
   }
 
   .fw-600 {
-    font-weight: 600;
+    font-weight: 500;
   }
 `;
 

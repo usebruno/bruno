@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "https://httpbin.org",
-      "description": "HTTPBin test server"
+      "url": "https://echo.usebruno.com",
+      "description": "Echo test server"
     }
   ],
   "paths": {

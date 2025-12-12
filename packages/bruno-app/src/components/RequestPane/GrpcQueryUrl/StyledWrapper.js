@@ -1,18 +1,20 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  height: 2.3rem;
+  height: 2.1rem;
+  border: ${(props) => props.theme.requestTabPanel.url.border};
+  border-radius: ${(props) => props.theme.border.radius.base};
 
   .method-selector-container {
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
-    border-top-left-radius: 3px;
-    border-bottom-left-radius: 3px;
+    border-top-left-radius: ${(props) => props.theme.border.radius.base};
+    border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
   }
 
   .input-container {
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
-    border-top-right-radius: 3px;
-    border-bottom-right-radius: 3px;
+    border-top-right-radius: ${(props) => props.theme.border.radius.base};
+    border-bottom-right-radius: ${(props) => props.theme.border.radius.base};
 
     input {
       background-color: ${(props) => props.theme.requestTabPanel.url.bg};

@@ -19,4 +19,4 @@ const grpcStatusCodePhraseMap = {
   16: 'Unauthenticated'
 };
 
-export default grpcStatusCodePhraseMap; 
+export default grpcStatusCodePhraseMap;

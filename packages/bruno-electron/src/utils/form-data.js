@@ -3,18 +3,60 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-/**
- * @param {Array.<object>} params The request body Array
- * @returns {string} Returns a order respecting standard compliant string of form encoded values
- */
-const buildFormUrlEncodedPayload = (params) => {
-  const resultParams = new URLSearchParams();
-  for (const param of params) {
-    resultParams.append(param.name, param.value);
+const formatMultipartData = (multipartData, boundary) => {
+  if (!Array.isArray(multipartData) || multipartData.length === 0) {
+    return '';
   }
-  return resultParams.toString();
-};
 
+  const normalizeBoundary = (b) => {
+    const value = b || 'boundary';
+    return value.replace(/^--+/, '').replace(/--+$/, '');
+  };
+
+  const getFileName = (filePath) => {
+    if (typeof filePath === 'string' && filePath.trim()) {
+      return path.basename(filePath) || 'file';
+    }
+    return 'file';
+  };
+
+  const formatValue = (value) => {
+    if (Array.isArray(value)) {
+      return value.map((v) => String(v ?? '')).join(', ');
+    }
+    return String(value ?? '');
+  };
+
+  const boundaryValue = normalizeBoundary(boundary);
+  const parts = [];
+
+  multipartData.forEach((field) => {
+    if (!field || !field.name) return;
+
+    parts.push(`----${boundaryValue}`);
+    parts.push('Content-Disposition: form-data');
+
+    if (field.type === 'file') {
+      const filePaths = Array.isArray(field.value) ? field.value : (field.value ? [field.value] : ['']);
+      filePaths.forEach((filePath) => {
+        parts.push(`----${boundaryValue}`);
+        parts.push('Content-Disposition: form-data');
+        const fileName = getFileName(filePath);
+        parts.push(`name: ${field.name}`);
+        parts.push(`value: [File: ${fileName}]`);
+        parts.push('');
+      });
+    } else {
+      const value = formatValue(field.value);
+      parts.push(`name: ${field.name}`);
+      parts.push(`value: ${value}`);
+      parts.push('');
+    }
+  });
+
+  parts.push(`----${boundaryValue}--`);
+  return parts.join('\n');
+};
 
 const createFormData = (data, collectionPath) => {
   // make axios work in node using form data
@@ -51,6 +93,6 @@ const createFormData = (data, collectionPath) => {
 };
 
 module.exports = {
-  buildFormUrlEncodedPayload,
-  createFormData
+  createFormData,
+  formatMultipartData
 };

@@ -17,18 +17,23 @@ const StyledWrapper = styled.div`
     background-color: ${(props) => props.theme.sidebar.bg};
     border: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
     border-radius: 3px;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
     color: ${(props) => props.theme.text};
     max-width: 200px;
     transition: all 0.2s ease;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    cursor: default;
 
-    &:hover {
+    &:has(.tag-remove:hover) {
       background-color: ${(props) => props.theme.requestTabs.active.bg};
       border-color: ${(props) => props.theme.requestTabs.active.border || props.theme.requestTabs.bottomBorder};
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transform: translateY(-1px);
+    }
+
+    .tag-remove {
+      cursor: pointer;
     }
   }
 
@@ -96,15 +101,15 @@ const StyledWrapper = styled.div`
   }
 
   .empty-title {
-    font-weight: 600;
+    font-weight: 500;
     margin: 0 0 4px 0;
-    font-size: 14px;
+    font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.text};
   }
 
   .empty-subtitle {
     margin: 0;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     opacity: 0.8;
     line-height: 1.5;
     color: ${(props) => props.theme.textSecondary || props.theme.text};
@@ -118,7 +123,7 @@ const StyledWrapper = styled.div`
     
     .tag-item {
       padding: 4px 8px;
-      font-size: 11px;
+      font-size: ${(props) => props.theme.font.size.xs};
     }
     
     .empty-state {
@@ -129,4 +134,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

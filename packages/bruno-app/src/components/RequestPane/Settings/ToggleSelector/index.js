@@ -50,13 +50,13 @@ const ToggleSelector = ({
           relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors
           focus:outline-none focus:ring-1 focus:ring-offset-1
           ${disabled
-            ? 'opacity-50 cursor-not-allowed'
-            : 'cursor-pointer'
-          }
+      ? 'opacity-50 cursor-not-allowed'
+      : 'cursor-pointer'
+    }
           ${checked
-            ? 'bg-blue-600 dark:bg-blue-500'
-            : 'bg-gray-200 dark:bg-gray-700'
-          }
+      ? 'bg-blue-600 dark:bg-blue-500'
+      : 'bg-gray-200 dark:bg-gray-700'
+    }
         `}
         role="switch"
         aria-checked={checked}

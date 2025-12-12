@@ -80,6 +80,21 @@ describe('parseCurlCommand', () => {
       });
     });
 
+    it('should parse single header (no space in header value)', () => {
+      const result = parseCurlCommand(`
+        curl --header "Content-Type:application/json" https://api.example.com
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        url: 'https://api.example.com',
+        urlWithoutQuery: 'https://api.example.com'
+      });
+    });
+
     it('should parse multiple headers', () => {
       const result = parseCurlCommand(`
         curl -H "Content-Type: application/json" \
@@ -303,9 +318,9 @@ describe('parseCurlCommand', () => {
       expect(result).toEqual({
         method: 'get',
         headers: {
-          'Cookie': 'session=abc123'
+          Cookie: 'session=abc123'
         },
-        cookieString: "session=abc123",
+        cookieString: 'session=abc123',
         cookies: {
           session: 'abc123'
         },
@@ -322,9 +337,9 @@ describe('parseCurlCommand', () => {
       expect(result).toEqual({
         method: 'get',
         headers: {
-          'Cookie': 'session=abc123; user=john'
+          Cookie: 'session=abc123; user=john'
         },
-        cookieString: "session=abc123; user=john",
+        cookieString: 'session=abc123; user=john',
         cookies: {
           session: 'abc123',
           user: 'john'
@@ -342,9 +357,9 @@ describe('parseCurlCommand', () => {
       expect(result).toEqual({
         method: 'get',
         headers: {
-          'Cookie': 'session=abc123; user=john'
+          Cookie: 'session=abc123; user=john'
         },
-        cookieString: "session=abc123; user=john",
+        cookieString: 'session=abc123; user=john',
         cookies: {
           session: 'abc123',
           user: 'john'
@@ -363,15 +378,15 @@ describe('parseCurlCommand', () => {
       expect(result).toEqual({
         method: 'get',
         headers: {
-          'Cookie': 'session=abc123; user=john; path=/; domain=example.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; HttpOnly'
+          Cookie: 'session=abc123; user=john; path=/; domain=example.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; HttpOnly'
         },
-        cookieString: "session=abc123; user=john; path=/; domain=example.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; HttpOnly",
+        cookieString: 'session=abc123; user=john; path=/; domain=example.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; HttpOnly',
         cookies: {
           session: 'abc123',
           user: 'john',
           path: '/',
           domain: 'example.com',
-          expires: 'Thu, 01 Jan 1970 00:00:00 GMT',
+          expires: 'Thu, 01 Jan 1970 00:00:00 GMT'
         },
         url: 'https://api.example.com',
         urlWithoutQuery: 'https://api.example.com'

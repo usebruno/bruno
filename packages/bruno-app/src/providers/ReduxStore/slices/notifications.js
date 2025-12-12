@@ -33,7 +33,7 @@ export const filterNotificationsByVersion = (notifications, currentVersion) => {
 
     if (!currentVersion) return notifications;
 
-    return notifications.filter(notification => {
+    return notifications.filter((notification) => {
       const { minVersion, maxVersion } = notification;
       if (!minVersion && !maxVersion) return true;
       if (!minVersion) return semver.lte(currentVersion, maxVersion);
@@ -103,10 +103,10 @@ export const notificationSlice = createSlice({
   }
 });
 
-export const { setNotifications, setFetchingStatus, markNotificationAsRead, markAllNotificationsAsRead } =
-  notificationSlice.actions;
+export const { setNotifications, setFetchingStatus, markNotificationAsRead, markAllNotificationsAsRead }
+  = notificationSlice.actions;
 
-export const fetchNotifications = ({currentVersion}) => (dispatch, getState) => {
+export const fetchNotifications = ({ currentVersion }) => (dispatch, getState) => {
   return new Promise((resolve) => {
     const { ipcRenderer } = window;
     dispatch(setFetchingStatus(true));

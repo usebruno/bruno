@@ -10,6 +10,7 @@ const ToolHint = ({
   children,
   tooltipStyle = {},
   place = 'top',
+  hidden = false,
   offset,
   positionStrategy,
   theme = null,
@@ -47,6 +48,7 @@ const ToolHint = ({
           className="toolhint"
           offset={offset}
           place={place}
+          hidden={hidden}
           positionStrategy={positionStrategy}
           noArrow={true}
           delayShow={delayShow}

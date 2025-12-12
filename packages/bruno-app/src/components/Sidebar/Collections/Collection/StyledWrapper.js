@@ -2,11 +2,10 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .collection-name {
-    height: 1.875rem;
+    height: 1.6rem;
     cursor: pointer;
     user-select: none;
-    padding-left: 8px;
-    font-weight: 600;
+    padding-left: 4px;
     border: ${(props) => props.theme.dragAndDrop.borderStyle} transparent;
 
     .rotate-90 {
@@ -93,6 +92,15 @@ const Wrapper = styled.div`
 
       &:hover {
         background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
+      }
+    }
+
+    &.collection-keyboard-focused {
+      background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg};
+      outline: none;
+
+      &:hover {
+        background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg} !important;
       }
     }
   }

@@ -26,8 +26,21 @@ const { setAuthHeaders } = require('./prepare-request');
 
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
-  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
+  const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
+  const brunoConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig', {}) : get(collection, 'brunoConfig', {});
+  const rawHeaders = cloneDeep(request.headers ?? []);
   const headers = {};
+
+  const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  if (requestTreePath && requestTreePath.length > 0) {
+    mergeHeaders(collection, request, requestTreePath);
+    mergeScripts(collection, request, requestTreePath, scriptFlow);
+    mergeVars(collection, request, requestTreePath);
+    mergeAuth(collection, request, requestTreePath);
+    request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
+    request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
+  }
 
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name?.toLowerCase() === 'content-type') {
@@ -41,11 +54,20 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     }
   });
 
+  const socketProtocols = rawHeaders.filter((header) => {
+    return header.name && header.name.toLowerCase() === 'sec-websocket-protocol' && header.enabled;
+  }).map((d) => d.value.trim()).join(',');
+
+  if (socketProtocols.length > 0) {
+    headers['Sec-WebSocket-Protocol'] = socketProtocols;
+  }
+
   const envVars = getEnvVars(environment);
   const processEnvVars = getProcessEnvVars(collection.uid);
 
   let wsRequest = {
     uid: item.uid,
+    mode: request.body.mode,
     url: request.url,
     headers,
     processEnvVars,
@@ -257,15 +279,43 @@ const registerWsEventHandlers = (window) => {
     }
   });
 
-  ipcMain.handle('renderer:ws:queue-message', (event, requestId, collectionUid, message) => {
-    try {
-      wsClient.queueMessage(requestId, collectionUid, message);
-      return { success: true };
-    } catch (error) {
-      console.error('Error queuing WebSocket message:', error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle('renderer:ws:queue-message',
+    async (event, { item, collection, environment, runtimeVariables, messageContent }) => {
+      try {
+        const itemCopy = cloneDeep(item);
+        const preparedRequest = await prepareWsRequest(itemCopy, collection, environment, runtimeVariables, {});
+
+        // If messageContent is provided, find and queue that specific message (interpolated)
+        // Otherwise, queue all messages
+        if (messageContent !== undefined && messageContent !== null) {
+          // Find the message index in the original request
+          const originalMessages = itemCopy.draft?.request?.body?.ws || itemCopy.request?.body?.ws || [];
+          const messageIndex = originalMessages.findIndex((msg) => msg.content === messageContent);
+
+          if (messageIndex >= 0 && preparedRequest.body?.ws?.[messageIndex]) {
+            // Queue the interpolated version of the specific message
+            wsClient.queueMessage(preparedRequest.uid, collection.uid, preparedRequest.body.ws[messageIndex].content);
+          } else {
+            // Message not found in request body, queue as-is (shouldn't happen in normal flow)
+            wsClient.queueMessage(preparedRequest.uid, collection.uid, messageContent);
+          }
+        } else {
+          // Queue all messages (they are already interpolated by prepareWsRequest -> interpolateVars)
+          if (preparedRequest.body && preparedRequest.body.ws && Array.isArray(preparedRequest.body.ws)) {
+            preparedRequest.body.ws
+              .filter((message) => message && message.content)
+              .forEach((message) => {
+                wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content);
+              });
+          }
+        }
+
+        return { success: true };
+      } catch (error) {
+        console.error('Error queuing WebSocket message:', error);
+        return { success: false, error: error.message };
+      }
+    });
 
   // Send a message to an existing WebSocket connection
   ipcMain.handle('renderer:ws:send-message', (event, requestId, collectionUid, message) => {
@@ -297,6 +347,21 @@ const registerWsEventHandlers = (window) => {
     } catch (error) {
       console.error('Error checking WebSocket connection status:', error);
       return { success: false, error: error.message, isActive: false };
+    }
+  });
+
+  /**
+   * Get the connection status of a connection
+   * @param {string} requestId - The request ID to get the connection status of
+   * @returns {string} - The connection status
+   */
+  ipcMain.handle('renderer:ws:connection-status', (event, requestId) => {
+    try {
+      const status = wsClient.connectionStatus(requestId);
+      return { success: true, status };
+    } catch (error) {
+      console.error('Error getting WebSocket connection status:', error);
+      return { success: false, error: error.message, status: 'disconnected' };
     }
   });
 };

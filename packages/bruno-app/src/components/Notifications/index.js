@@ -89,7 +89,7 @@ const Notifications = () => {
             className={`select-none ${1 == 2 ? 'opacity-50' : 'text-link mark-as-read cursor-pointer hover:underline'}`}
             onClick={() => dispatch(markAllNotificationsAsRead())}
           >
-            {'Mark all as read'}
+            Mark all as read
           </button>
         </>
       )}
@@ -123,88 +123,89 @@ const Notifications = () => {
 
       {showNotificationsModal && (
         <Portal>
-        <Modal
-          size="lg"
-          title="Notifications"
-          confirmText={'Close'}
-          handleConfirm={() => {
-            setShowNotificationsModal(false);
-          }}
-          handleCancel={() => {
-            setShowNotificationsModal(false);
-          }}
-          hideFooter={true}
-          customHeader={modalCustomHeader}
-          disableCloseOnOutsideClick={true}
-          disableEscapeKey={true}
-        >
-          <div className="notifications-modal">
-            {notifications?.length > 0 ? (
-              <div className="grid grid-cols-4 flex flex-row text-sm">
-                <div className="col-span-1 flex flex-col">
-                  <ul
-                    className="notifications w-full flex flex-col h-[50vh] max-h-[50vh] overflow-y-auto"
-                    style={{ maxHeight: '50vh', height: '46vh' }}
-                  >
-                    {notifications?.slice(notificationsStartIndex, notificationsEndIndex)?.map((notification) => (
-                      <li
-                        key={notification.id}
-                        className={`p-4 flex flex-col justify-center ${
-                          selectedNotification?.id == notification.id ? 'active' : notification.read ? 'read' : ''
+          <Modal
+            size="lg"
+            title="Notifications"
+            confirmText="Close"
+            handleConfirm={() => {
+              setShowNotificationsModal(false);
+            }}
+            handleCancel={() => {
+              setShowNotificationsModal(false);
+            }}
+            hideFooter={true}
+            customHeader={modalCustomHeader}
+            disableCloseOnOutsideClick={true}
+            disableEscapeKey={true}
+          >
+            <div className="notifications-modal">
+              {notifications?.length > 0 ? (
+                <div className="grid grid-cols-4 flex flex-row">
+                  <div className="col-span-1 flex flex-col">
+                    <ul
+                      className="notifications w-full flex flex-col h-[50vh] max-h-[50vh] overflow-y-auto"
+                      style={{ maxHeight: '50vh', height: '46vh' }}
+                    >
+                      {notifications?.slice(notificationsStartIndex, notificationsEndIndex)?.map((notification) => (
+                        <li
+                          key={notification.id}
+                          className={`p-4 flex flex-col justify-center ${
+                            selectedNotification?.id == notification.id ? 'active' : notification.read ? 'read' : ''
+                          }`}
+                          onClick={handleNotificationItemClick(notification)}
+                        >
+                          <div className="notification-title w-full">{notification?.title}</div>
+                          <div className="notification-date text-xs py-2">{relativeDate(notification?.date)}</div>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="w-full pagination flex flex-row gap-4 justify-center p-2 items-center text-xs">
+                      <button
+                        className={`pl-2 pr-2 py-3 select-none ${
+                          pageNumber <= 1 ? 'opacity-50' : 'text-link cursor-pointer hover:underline'
                         }`}
-                        onClick={handleNotificationItemClick(notification)}
+                        onClick={handlePrev}
                       >
-                        <div className="notification-title w-full">{notification?.title}</div>
-                        <div className="notification-date text-xs py-2">{relativeDate(notification?.date)}</div>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="w-full pagination flex flex-row gap-4 justify-center p-2 items-center text-xs">
-                    <button
-                      className={`pl-2 pr-2 py-3 select-none ${
-                        pageNumber <= 1 ? 'opacity-50' : 'text-link cursor-pointer hover:underline'
-                      }`}
-                      onClick={handlePrev}
-                    >
-                      {'Prev'}
-                    </button>
-                    <div className="flex flex-row items-center justify-center gap-1">
-                      Page
-                      <div className="w-[20px] flex justify-center" style={{ width: '20px' }}>
-                        {pageNumber}
+                        Prev
+                      </button>
+                      <div className="flex flex-row items-center justify-center gap-1">
+                        Page
+                        <div className="w-[20px] flex justify-center" style={{ width: '20px' }}>
+                          {pageNumber}
+                        </div>
+                        of
+                        <div className="w-[20px] flex justify-center" style={{ width: '20px' }}>
+                          {totalPages}
+                        </div>
                       </div>
-                      of
-                      <div className="w-[20px] flex justify-center" style={{ width: '20px' }}>
-                        {totalPages}
-                      </div>
+                      <button
+                        className={`pl-2 pr-2 py-3 select-none ${
+                          pageNumber == totalPages ? 'opacity-50' : 'text-link cursor-pointer hover:underline'
+                        }`}
+                        onClick={handleNext}
+                      >
+                        Next
+                      </button>
                     </div>
-                    <button
-                      className={`pl-2 pr-2 py-3 select-none ${
-                        pageNumber == totalPages ? 'opacity-50' : 'text-link cursor-pointer hover:underline'
-                      }`}
-                      onClick={handleNext}
+                  </div>
+                  <div className="flex w-full col-span-3 p-4 flex-col">
+                    <div className="w-full text-lg flex flex-wrap h-fit mb-1">{selectedNotification?.title}</div>
+                    <div className="w-full notification-date text-xs mb-4">
+                      {humanizeDate(selectedNotification?.date)}
+                    </div>
+                    <iframe
+                      src={`data:text/html,${getSanitizedDescription(selectedNotification?.description)}`}
+                      sandbox="allow-popups"
+                      style={{ width: '100%', height: '100%' }}
                     >
-                      {'Next'}
-                    </button>
+                    </iframe>
                   </div>
                 </div>
-                <div className="flex w-full col-span-3 p-4 flex-col">
-                  <div className="w-full text-lg flex flex-wrap h-fit mb-1">{selectedNotification?.title}</div>
-                  <div className="w-full notification-date text-xs mb-4">
-                    {humanizeDate(selectedNotification?.date)}
-                  </div>
-                  <iframe
-                    src={`data:text/html,${getSanitizedDescription(selectedNotification?.description)}`}
-                    sandbox="allow-popups"
-                    style={{ width: '100%', height: '100%' }}
-                  ></iframe>
-                </div>
-              </div>
-            ) : (
-              <div className="opacity-50 italic text-xs p-12 flex justify-center">You are all caught up!</div>
-            )}
-          </div>
-        </Modal>
+              ) : (
+                <div className="opacity-50 italic text-xs p-12 flex justify-center">You are all caught up!</div>
+              )}
+            </div>
+          </Modal>
         </Portal>
       )}
     </StyledWrapper>

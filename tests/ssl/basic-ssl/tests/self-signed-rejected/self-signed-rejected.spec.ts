@@ -1,59 +1,40 @@
-import { test, expect } from '../../../../../playwright';
+import { test } from '../../../../../playwright';
+import { setSandboxMode, runCollection, validateRunnerResults } from '../../../../utils/page';
 
 test.describe.serial('self signed rejected', () => {
   test('developer mode', async ({ pageWithUserData: page }) => {
-
-    // init dev mode
-    await page.getByText('self-signed-badssl').click();
-    await page.getByLabel('Developer Mode(use only if').check();
-    await page.getByRole('button', { name: 'Save' }).click();
-
     test.setTimeout(2 * 60 * 1000);
-    await page.locator('.collection-actions').hover();
-    await page.locator('.collection-actions .icon').click();
-    await page.getByText('Run', { exact: true }).click();
-    await page.getByRole('button', { name: 'Run Collection' }).click();
-    await page.getByRole('button', { name: 'Run Again' }).waitFor({ timeout: 2 * 60 * 1000 });
 
-    const result = await page.getByText('Total Requests: ').innerText();
-    const matches = result.match(/Total Requests: (\d+), Passed: (\d+), Failed: (\d+), Skipped: (\d+)/);
-    if (!matches) {
-      throw new Error('Could not parse test results');
-    }
-    const [totalRequests, passed, failed, skipped] = matches.slice(1);
-    
-    await expect(parseInt(totalRequests)).toBe(1);
-    await expect(parseInt(passed)).toBe(0);
-    await expect(parseInt(failed)).toBe(1);
-    await expect(parseInt(skipped)).toBe(0);
-    await expect(parseInt(passed)).toBe(parseInt(totalRequests) - parseInt(skipped) - parseInt(failed));
+    // Set up developer mode
+    await setSandboxMode(page, 'self-signed-badssl', 'developer');
+
+    // Run the collection
+    await runCollection(page, 'self-signed-badssl');
+
+    // Validate test results
+    await validateRunnerResults(page, {
+      totalRequests: 1,
+      passed: 0,
+      failed: 1,
+      skipped: 0
+    });
   });
 
   test('safe mode', async ({ pageWithUserData: page }) => {
-    
-    // init safe mode
-    await page.getByText('Developer Mode').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
-
     test.setTimeout(2 * 60 * 1000);
-    await page.locator('.collection-actions').hover();
-    await page.locator('.collection-actions .icon').click();
-    await page.getByText('Run', { exact: true }).click();
-    await page.getByRole('button', { name: 'Run Collection' }).click();
-    await page.getByRole('button', { name: 'Run Again' }).waitFor({ timeout: 2 * 60 * 1000 });
 
-    const result = await page.getByText('Total Requests: ').innerText();
-    const matches = result.match(/Total Requests: (\d+), Passed: (\d+), Failed: (\d+), Skipped: (\d+)/);
-    if (!matches) {
-      throw new Error('Could not parse test results');
-    }
-    const [totalRequests, passed, failed, skipped] = matches.slice(1);
+    // Set up safe mode
+    await setSandboxMode(page, 'self-signed-badssl', 'safe');
 
-    await expect(parseInt(totalRequests)).toBe(1);
-    await expect(parseInt(passed)).toBe(0);
-    await expect(parseInt(failed)).toBe(1);
-    await expect(parseInt(skipped)).toBe(0);
-    await expect(parseInt(passed)).toBe(parseInt(totalRequests) - parseInt(skipped) - parseInt(failed));
+    // Run the collection
+    await runCollection(page, 'self-signed-badssl');
+
+    // Validate test results
+    await validateRunnerResults(page, {
+      totalRequests: 1,
+      passed: 0,
+      failed: 1,
+      skipped: 0
+    });
   });
 });

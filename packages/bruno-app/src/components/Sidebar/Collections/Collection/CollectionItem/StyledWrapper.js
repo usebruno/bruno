@@ -20,7 +20,7 @@ const Wrapper = styled.div`
   }
 
   .collection-item-name {
-    height: 1.875rem;
+    height: 1.6rem;
     cursor: pointer;
     user-select: none;
     position: relative;
@@ -129,6 +129,12 @@ const Wrapper = styled.div`
       .indent-block {
         border-right: ${(props) => props.theme.sidebar.collection.item.active.indentBorder} !important;
       }
+    }
+
+    &.item-keyboard-focused {
+      border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      outline: none;
     }
 
     div.tippy-box {

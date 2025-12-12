@@ -21,7 +21,7 @@ const StyledWrapper = styled.div`
   }
 
   .warning-title {
-    font-weight: 600;
+    font-weight: 500;
     color: ${(props) => props.theme.text};
     margin-bottom: 1rem;
   }

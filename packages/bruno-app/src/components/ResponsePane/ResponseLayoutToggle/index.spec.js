@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent} from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from 'providers/Theme';
 import { configureStore, createSlice } from '@reduxjs/toolkit';
@@ -24,12 +24,12 @@ const mockLocalStorage = {
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: jest.fn().mockImplementation(query => ({
+    value: jest.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
       addEventListener: jest.fn(),
       removeEventListener: jest.fn()
-    })),
+    }))
   });
   Object.defineProperty(window, 'localStorage', {
     value: mockLocalStorage
@@ -84,7 +84,7 @@ describe('ResponseLayoutToggle', () => {
   describe('Initial Render', () => {
     it('should render with horizontal orientation by default', () => {
       renderWithProviders(<ResponseLayoutToggle />);
-      const button = screen.getByRole('button');
+      const button = screen.getByTestId('response-layout-toggle-button');
       expect(button).toBeInTheDocument();
       expect(button).toHaveAttribute('title', 'Switch to vertical layout');
     });
@@ -100,7 +100,7 @@ describe('ResponseLayoutToggle', () => {
         }
       };
       renderWithProviders(<ResponseLayoutToggle />, customState);
-      const button = screen.getByRole('button');
+      const button = screen.getByTestId('response-layout-toggle-button');
       expect(button).toBeInTheDocument();
       expect(button).toHaveAttribute('title', 'Switch to horizontal layout');
     });
@@ -109,11 +109,11 @@ describe('ResponseLayoutToggle', () => {
   describe('Interaction', () => {
     it('should switch to vertical layout when clicked in horizontal mode', () => {
       const { store } = renderWithProviders(<ResponseLayoutToggle />);
-      const button = screen.getByRole('button');
-      
+      const button = screen.getByTestId('response-layout-toggle-button');
+
       // Initial state check
       expect(button).toHaveAttribute('title', 'Switch to vertical layout');
-      
+
       fireEvent.click(button);
 
       // Check if action was called
@@ -145,11 +145,11 @@ describe('ResponseLayoutToggle', () => {
         }
       };
       const { store } = renderWithProviders(<ResponseLayoutToggle />, customState);
-      const button = screen.getByRole('button');
-      
+      const button = screen.getByTestId('response-layout-toggle-button');
+
       // Initial state check
       expect(button).toHaveAttribute('title', 'Switch to horizontal layout');
-      
+
       fireEvent.click(button);
 
       // Check if action was called

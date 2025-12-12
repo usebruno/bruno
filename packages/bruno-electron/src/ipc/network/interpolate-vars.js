@@ -1,5 +1,5 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find } = require('lodash');
+const { each, forOwn, cloneDeep } = require('lodash');
 const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
@@ -18,7 +18,7 @@ const getRawQueryString = (url) => {
   return queryIndex !== -1 ? url.slice(queryIndex) : '';
 };
 
-const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}, promptVariables = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
   const collectionVariables = request?.collectionVariables || {};
@@ -52,6 +52,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       ...requestVariables,
       ...oauth2CredentialVariables,
       ...runtimeVariables,
+      ...promptVariables,
       process: {
         env: {
           ...processEnvVars
@@ -65,6 +66,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   };
 
   request.url = _interpolate(request.url);
+  const isGrpcRequest = request.mode === 'grpc';
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
@@ -72,33 +74,52 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   const contentType = getContentType(request.headers);
-  const isGrpcBody = request.mode === 'grpc';
 
-  if (isGrpcBody) {
+  if (isGrpcRequest) {
     const jsonDoc = JSON.stringify(request.body);
     const parsed = _interpolate(jsonDoc, {
       escapeJSONStrings: true
     });
     request.body = JSON.parse(parsed);
   }
+  // Interpolate WebSocket message body
+  const isWsRequest = request.mode === 'ws';
+  if (isWsRequest && request.body && request.body.ws && Array.isArray(request.body.ws)) {
+    request.body.ws.forEach((message) => {
+      if (message && message.content) {
+        // Try to detect if content is JSON for proper escaping
+        let isJson = false;
+        try {
+          JSON.parse(message.content);
+          isJson = true;
+        } catch (e) {
+          // Not JSON, treat as regular string
+        }
+
+        message.content = _interpolate(message.content, {
+          escapeJSONStrings: isJson
+        });
+      }
+    });
+  }
 
   if (typeof contentType === 'string') {
     /*
-      We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode. 
+      We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode.
       Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
     */
     if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
-            escapeJSONStrings: true,
+            escapeJSONStrings: true
           });
         }
       } else if (typeof request.data === 'object') {
         try {
           const jsonDoc = JSON.stringify(request.data);
           const parsed = _interpolate(jsonDoc, {
-            escapeJSONStrings: true,
+            escapeJSONStrings: true
           });
           request.data = JSON.parse(parsed);
         } catch (err) {}
@@ -113,7 +134,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     } else if (contentType === 'multipart/form-data') {
       if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
         try {
-          request.data = request?.data?.map(d => ({
+          request.data = request?.data?.map((d) => ({
             ...d,
             value: _interpolate(d?.value)
           }));
@@ -130,7 +151,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   if (request?.pathParams?.length) {
     let url = request.url;
-    const urlSearchRaw = getRawQueryString(request.url)
+    const urlSearchRaw = getRawQueryString(request.url);
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
@@ -141,22 +162,44 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
-    const paramRegex = /[:](\w+)/g;
     const urlPathnameInterpolatedWithPathParams = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        const matches = path.match(paramRegex);
-        if (matches) {
-          const paramName = matches[0].slice(1); // Remove the : prefix
-          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+        // traditional path parameters
+        if (path.startsWith(':')) {
+          const paramName = path.slice(1);
+          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
           if (!existingPathParam) {
             return '/' + path;
           }
-          return '/' + path.replace(':' + paramName, existingPathParam.value);
-        } else {
-          return '/' + path;
+          return '/' + existingPathParam.value;
         }
+
+        // for OData-style parameters (parameters inside parentheses)
+        // Check if path matches valid OData syntax:
+        // 1. EntitySet('key') or EntitySet(key)
+        // 2. EntitySet(Key1=value1,Key2=value2)
+        // 3. Function(param=value)
+        if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
+          const paramRegex = /[:](\w+)/g;
+          let match;
+          let result = path;
+          while ((match = paramRegex.exec(path))) {
+            if (match[1]) {
+              let name = match[1].replace(/[')"`]+$/, '');
+              name = name.replace(/^[('"`]+/, '');
+              if (name) {
+                const existingPathParam = request.pathParams.find((param) => param.name === name);
+                if (existingPathParam) {
+                  result = result.replace(':' + match[1], existingPathParam.value);
+                }
+              }
+            }
+          }
+          return '/' + result;
+        }
+        return '/' + path;
       })
       .join('');
 
@@ -257,7 +300,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     if (request.oauth2.additionalParameters) {
       // Interpolate authorization parameters
       if (Array.isArray(request.oauth2.additionalParameters.authorization)) {
-        request.oauth2.additionalParameters.authorization.forEach(param => {
+        request.oauth2.additionalParameters.authorization.forEach((param) => {
           if (param && param.enabled !== false) {
             param.name = _interpolate(param.name) || '';
             param.value = _interpolate(param.value) || '';
@@ -267,7 +310,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
       // Interpolate token parameters
       if (Array.isArray(request.oauth2.additionalParameters.token)) {
-        request.oauth2.additionalParameters.token.forEach(param => {
+        request.oauth2.additionalParameters.token.forEach((param) => {
           if (param && param.enabled !== false) {
             param.name = _interpolate(param.name) || '';
             param.value = _interpolate(param.value) || '';
@@ -277,7 +320,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
       // Interpolate refresh parameters
       if (Array.isArray(request.oauth2.additionalParameters.refresh)) {
-        request.oauth2.additionalParameters.refresh.forEach(param => {
+        request.oauth2.additionalParameters.refresh.forEach((param) => {
           if (param && param.enabled !== false) {
             param.name = _interpolate(param.name) || '';
             param.value = _interpolate(param.value) || '';
@@ -313,10 +356,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
-    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
   }
 
-  if(request?.auth) delete request.auth;
+  if (request?.auth) delete request.auth;
 
   return request;
 };

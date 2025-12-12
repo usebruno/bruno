@@ -84,10 +84,10 @@ const constructUrlFromParts = (url) => {
 
   const { protocol = 'http', host, path, port, query, hash } = url || {};
   const hostStr = Array.isArray(host) ? host.filter(Boolean).join('.') : host || '';
-  const pathStr = Array.isArray(path) ? path.filter(Boolean).join('/') : path || '';
+  const pathStr = Array.isArray(path) ? path.join('/') : path || '';
   const portStr = port ? `:${port}` : '';
-  const queryStr =
-    query && Array.isArray(query) && query.length > 0
+  const queryStr
+    = query && Array.isArray(query) && query.length > 0
       ? `?${query
         .filter((q) => q && q.key)
         .map((q) => `${q.key}=${q.value || ''}`)
@@ -131,7 +131,7 @@ const importScriptsFromEvents = (events, requestObject) => {
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.req = postmanTranslation(event.script.exec)
+          requestObject.script.req = postmanTranslation(event.script.exec);
         } else {
           requestObject.script.req = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -144,7 +144,7 @@ const importScriptsFromEvents = (events, requestObject) => {
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.res = postmanTranslation(event.script.exec)
+          requestObject.script.res = postmanTranslation(event.script.exec);
         } else {
           requestObject.script.res = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -155,7 +155,7 @@ const importScriptsFromEvents = (events, requestObject) => {
 };
 
 const importCollectionLevelVariables = (variables, requestObject) => {
-  const vars = variables.filter(v => !(v.key == null && v.value == null)).map((v) => ({
+  const vars = variables.filter((v) => !(v.key == null && v.value == null)).map((v) => ({
     uid: uuid(),
     name: (v.key ?? '').replace(invalidVariableCharacterRegex, '_'),
     value: v.value ?? '',
@@ -216,7 +216,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       requestObject.auth.apikey = {
         key: authValues.key || '',
         value: authValues.value?.toString() || '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
-        placement: 'header' //By default we are placing the apikey values in headers!
+        placement: 'header' // By default we are placing the apikey values in headers!
       };
       break;
     case AUTH_TYPES.DIGEST:
@@ -266,14 +266,14 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
             ...baseOAuth2Config,
             authorizationUrl: findValueUsingKey('authUrl'),
             callbackUrl: findValueUsingKey('redirect_uri'),
-            pkce: true, // Explicitly set pkce to true for this grant type
+            pkce: true // Explicitly set pkce to true for this grant type
           };
           break;
         case 'password_credentials':
           requestObject.auth.oauth2 = {
             ...baseOAuth2Config,
             username: findValueUsingKey('username'),
-            password: findValueUsingKey('password'),
+            password: findValueUsingKey('password')
           };
           break;
         case 'client_credentials':
@@ -358,9 +358,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       }
 
       folderMap[folderName] = brunoFolderItem;
-
     } else if (i.request) {
-      const method =  i?.request?.method?.toUpperCase();
+      const method = i?.request?.method?.toUpperCase();
       if (!method || typeof method !== 'string' || !method.trim()) {
         console.warn('Missing or invalid request.method', method);
         return;
@@ -410,7 +409,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
 
       const settings = {
         encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
-      }
+      };
 
       // Handle followRedirects setting
       if (i.protocolProfileBehavior?.followRedirects !== undefined) {
@@ -439,7 +438,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                 brunoRequestItem.request.script = {};
               }
               if (event.script.exec && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec)
+                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec);
               } else {
                 brunoRequestItem.request.script.req = '';
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -450,13 +449,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                 brunoRequestItem.request.script = {};
               }
               if (event.script.exec && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec)
+                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec);
               } else {
                 brunoRequestItem.request.script.res = '';
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
-
           });
         }
       }
@@ -569,11 +567,170 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         });
       });
 
+      // Handle Postman examples (responses)
+      if (i.response && Array.isArray(i.response)) {
+        brunoRequestItem.examples = [];
+
+        i.response.forEach((response, responseIndex) => {
+          const exampleName = response.name || `Example ${responseIndex + 1}`;
+
+          // Convert originalRequest to Bruno request format
+          const originalRequest = response.originalRequest || {};
+          const exampleUrl = constructUrl(originalRequest.url);
+          const exampleMethod = originalRequest.method?.toUpperCase() || method;
+
+          const example = {
+            uid: uuid(),
+            itemUid: brunoRequestItem.uid,
+            name: exampleName,
+            description: '',
+            type: 'http-request',
+            request: {
+              url: exampleUrl,
+              method: exampleMethod,
+              headers: [],
+              params: [],
+              body: {
+                mode: 'none',
+                json: null,
+                text: null,
+                xml: null,
+                formUrlEncoded: [],
+                multipartForm: []
+              }
+            },
+            response: {
+              status: response.status || '',
+              statusText: response.code ? response.code.toString() : '',
+              headers: [],
+              body: {
+                type: getBodyTypeFromContentTypeHeader(response.header),
+                content: response.body || ''
+              }
+            }
+          };
+
+          // Convert original request headers
+          if (originalRequest.header && Array.isArray(originalRequest.header)) {
+            originalRequest.header.forEach((header) => {
+              example.request.headers.push({
+                uid: uuid(),
+                name: header.key,
+                value: header.value,
+                description: transformDescription(header.description),
+                enabled: !header.disabled
+              });
+            });
+          }
+
+          // Convert original request query parameters
+          if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
+            originalRequest.url.query.forEach((param) => {
+              example.request.params.push({
+                uid: uuid(),
+                name: param.key,
+                value: param.value,
+                description: transformDescription(param.description),
+                type: 'query',
+                enabled: !param.disabled
+              });
+            });
+          }
+
+          if (originalRequest.url && originalRequest.url.variable && Array.isArray(originalRequest.url.variable)) {
+            originalRequest.url.variable.forEach((param) => {
+              example.request.params.push({
+                uid: uuid(),
+                name: param.key,
+                value: param.value ?? '',
+                description: transformDescription(param.description),
+                type: 'path',
+                enabled: true
+              });
+            });
+          }
+
+          // Convert original request body
+          if (originalRequest.body) {
+            const bodyMode = originalRequest.body.mode;
+            if (bodyMode === 'formdata') {
+              example.request.body.mode = 'multipartForm';
+              if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
+                originalRequest.body.formdata.forEach((param) => {
+                  const isFile = param.type === 'file';
+                  let value;
+                  let type;
+
+                  if (isFile) {
+                    value = Array.isArray(param.src) ? param.src : typeof param.src === 'string' ? [param.src] : null;
+                    type = 'file';
+                  } else {
+                    value = param.value;
+                    type = 'text';
+                  }
+
+                  example.request.body.multipartForm.push({
+                    uid: uuid(),
+                    type: type,
+                    name: param.key,
+                    value: value,
+                    description: transformDescription(param.description),
+                    enabled: !param.disabled
+                  });
+                });
+              }
+            } else if (bodyMode === 'urlencoded') {
+              example.request.body.mode = 'formUrlEncoded';
+              if (originalRequest.body.urlencoded && Array.isArray(originalRequest.body.urlencoded)) {
+                originalRequest.body.urlencoded.forEach((param) => {
+                  example.request.body.formUrlEncoded.push({
+                    uid: uuid(),
+                    name: param.key,
+                    value: param.value,
+                    description: transformDescription(param.description),
+                    enabled: !param.disabled
+                  });
+                });
+              }
+            } else if (bodyMode === 'raw') {
+              let language = get(originalRequest, 'body.options.raw.language');
+              if (!language) {
+                language = searchLanguageByHeader(originalRequest.header || []);
+              }
+              if (language === 'json') {
+                example.request.body.mode = 'json';
+                example.request.body.json = originalRequest.body.raw;
+              } else if (language === 'xml') {
+                example.request.body.mode = 'xml';
+                example.request.body.xml = originalRequest.body.raw;
+              } else {
+                example.request.body.mode = 'text';
+                example.request.body.text = originalRequest.body.raw;
+              }
+            }
+          }
+
+          // Convert response headers
+          if (response.header && Array.isArray(response.header)) {
+            response.header.forEach((header) => {
+              example.response.headers.push({
+                uid: uuid(),
+                name: header.key,
+                value: header.value,
+                description: transformDescription(header.description),
+                enabled: true
+              });
+            });
+          }
+
+          brunoRequestItem.examples.push(example);
+        });
+      }
+
       requestMap[requestName] = brunoRequestItem;
     }
   });
 };
-
 
 const searchLanguageByHeader = (headers) => {
   let contentType;
@@ -588,6 +745,26 @@ const searchLanguageByHeader = (headers) => {
     }
   });
   return contentType;
+};
+
+const getBodyTypeFromContentTypeHeader = (headers) => {
+  // Check if headers is null, undefined, or not an array
+  if (!headers || !Array.isArray(headers)) {
+    return 'text';
+  }
+
+  const contentTypeHeader = headers.find((header) => header.key.toLowerCase() === 'content-type');
+  if (contentTypeHeader) {
+    const contentType = contentTypeHeader.value?.toLowerCase();
+    if (contentType?.includes('application/json')) {
+      return 'json';
+    } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {
+      return 'xml';
+    } else if (contentType?.includes('text/html')) {
+      return 'html';
+    }
+  }
+  return 'text';
 };
 
 const importPostmanV2Collection = async (collection, { useWorkers = false }) => {
@@ -644,7 +821,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
 
       // Apply translated scripts to all items in the collection
       const applyScriptsToItems = (items) => {
-        items.forEach(item => {
+        items.forEach((item) => {
           if (item.type === 'folder') {
             // Apply scripts to the folder
             if (translatedScripts.has(item.uid)) {
@@ -686,7 +863,6 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
       };
 
       applyScriptsToItems(brunoCollection.items);
-
     } catch (error) {
       console.error('Error in script translation worker:', error);
     } finally {
@@ -696,7 +872,6 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
 
   return brunoCollection;
 };
-
 
 const parsePostmanCollection = async (collection, { useWorkers = false }) => {
   try {
@@ -726,7 +901,6 @@ const parsePostmanCollection = async (collection, { useWorkers = false }) => {
 
 const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) => {
   try {
-
     const parsedPostmanCollection = await parsePostmanCollection(postmanCollection, { useWorkers });
     const transformedCollection = transformItemsInCollection(parsedPostmanCollection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);

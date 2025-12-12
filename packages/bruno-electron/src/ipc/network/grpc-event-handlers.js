@@ -1,138 +1,14 @@
 // To implement grpc event handlers
 const { ipcMain, app } = require('electron');
-const { GrpcClient } = require("@usebruno/requests") 
+const { GrpcClient } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
-const { cloneDeep, each, get } = require('lodash');
-const interpolateVars = require('./interpolate-vars');
+const { cloneDeep, get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
 const { getCertsAndProxyConfig } = require('./cert-utils');
-const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
-const { getProcessEnvVars } = require('../../store/process-env');
-const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
-const { setAuthHeaders } = require('./prepare-request');
-
-const prepareRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
-  const request = item.draft ? item.draft.request : item.request;
-  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
-  const headers = {};
-  const url = request.url;
-  let contentTypeDefined = false;
-
-  each(get(collectionRoot, 'request.headers', []), (h) => {
-    if (h.enabled && h.name?.toLowerCase() === 'content-type') {
-      contentTypeDefined = true;
-      return false;
-    }
-  });
-
-  const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-  if (requestTreePath && requestTreePath.length > 0) {
-    mergeAuth(collection, request, requestTreePath);
-    mergeHeaders(collection, request, requestTreePath);
-    mergeScripts(collection, request, requestTreePath, scriptFlow);
-    mergeVars(collection, request, requestTreePath);
-    request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
-    request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
-  }
-
-  each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name.length > 0) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
-    }
-  });
-  
-  const processEnvVars = getProcessEnvVars(collection.uid);
-  const envVars = getEnvVars(environment);
-
-  let grpcRequest = {
-    uid: item.uid,
-    mode: request.body.mode,
-    method: request.method,
-    methodType: request.methodType,
-    url,
-    headers,
-    processEnvVars,
-    envVars,
-    runtimeVariables,
-    body: request.body,
-    protoPath: request.protoPath,
-    // Add variable properties for interpolation
-    vars: request.vars,
-    collectionVariables: request.collectionVariables,
-    folderVariables: request.folderVariables,
-    requestVariables: request.requestVariables,
-    globalEnvironmentVariables: request.globalEnvironmentVariables,
-    oauth2CredentialVariables: request.oauth2CredentialVariables,
-  }
-
-  grpcRequest = setAuthHeaders(grpcRequest, request, collectionRoot);
-
-  if (grpcRequest.oauth2) {
-    let requestCopy = cloneDeep(grpcRequest);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
-    let credentials, credentialsId, oauth2Url, debugInfo;
-    switch (grantType) {
-      case 'authorization_code':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
-        grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
-        }
-        break;
-      case 'client_credentials':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
-        grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
-        }
-        break;
-      case 'password':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfig }));
-        grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          }
-          catch(error) {}
-        }
-        break;
-    }
-  }
-
-  interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars);
-
-  return grpcRequest;
-}
+const prepareGrpcRequest = require('./prepare-grpc-request');
+const { configureRequest } = require('./prepare-grpc-request');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
@@ -141,7 +17,7 @@ let grpcClient;
  * Register IPC handlers for gRPC
  */
 const registerGrpcEventHandlers = (window) => {
-   const sendEvent = (eventName, ...args) => {
+  const sendEvent = (eventName, ...args) => {
     if (window && window.webContents) {
       window.webContents.send(eventName, ...args);
     } else {
@@ -150,34 +26,48 @@ const registerGrpcEventHandlers = (window) => {
   };
 
   grpcClient = new GrpcClient(sendEvent);
- 
+
   ipcMain.handle('connections-changed', (event) => {
     sendEvent('grpc:connections-changed', event);
   });
 
   // Start a new gRPC connection
   ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables }) => {
-    
     try {
       const requestCopy = cloneDeep(request);
-    
+      const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
 
-      const preparedRequest = await prepareRequest(requestCopy, collection, environment, runtimeVariables, {});
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
 
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
-        request: requestCopy.request,
+        collection,
+        request: preparedRequest,
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
-        collectionPath: collection.pathname
+        collectionPath: collection.pathname,
+        globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
-   
+
+      await configureRequest(
+        preparedRequest,
+        requestCopy,
+        collection,
+        preparedRequest.envVars,
+        runtimeVariables,
+        preparedRequest.processEnvVars,
+        preparedRequest.promptVariables,
+        certsAndProxyConfig
+      );
 
       // Extract certificate information from the config
       const { httpsAgentRequestFields } = certsAndProxyConfig;
-      
+
       // Configure verify options
       const verifyOptions = {
         rejectUnauthorized: preferencesUtil.shouldVerifyTls()
@@ -191,17 +81,17 @@ const registerGrpcEventHandlers = (window) => {
       const pfx = httpsAgentRequestFields.pfx;
 
       const requestSent = {
-        type: "request",
+        type: 'request',
         url: preparedRequest.url,
         method: preparedRequest.method,
         methodType: preparedRequest.methodType,
         headers: preparedRequest.headers,
         body: preparedRequest.body,
         timestamp: Date.now()
-      }
+      };
       // Start gRPC connection with the processed request and certificates
       await grpcClient.startConnection({
-        request: preparedRequest, 
+        request: preparedRequest,
         collection,
         rootCertificate,
         privateKey,
@@ -212,7 +102,7 @@ const registerGrpcEventHandlers = (window) => {
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
-      
+
       // Send OAuth credentials update if available
       if (preparedRequest?.oauth2Credentials) {
         window.webContents.send('main:credentials-update', {
@@ -221,7 +111,7 @@ const registerGrpcEventHandlers = (window) => {
           collectionUid: collection.uid,
           credentialsId: preparedRequest.oauth2Credentials?.credentialsId,
           ...(preparedRequest.oauth2Credentials?.folderUid ? { folderUid: preparedRequest.oauth2Credentials.folderUid } : { itemUid: preparedRequest.uid }),
-          debugInfo: preparedRequest.oauth2Credentials.debugInfo,
+          debugInfo: preparedRequest.oauth2Credentials.debugInfo
         });
       }
 
@@ -293,21 +183,39 @@ const registerGrpcEventHandlers = (window) => {
   ipcMain.handle('grpc:load-methods-reflection', async (event, { request, collection, environment, runtimeVariables }) => {
     try {
       const requestCopy = cloneDeep(request);
-      const preparedRequest = await prepareRequest(requestCopy, collection, environment, runtimeVariables);
-      
+      const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables);
+
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
+
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
-        request: requestCopy.request,
+        collection,
+        request: preparedRequest,
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
-        collectionPath: collection.pathname
+        collectionPath: collection.pathname,
+        globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
+
+      await configureRequest(
+        preparedRequest,
+        requestCopy,
+        collection,
+        preparedRequest.envVars,
+        runtimeVariables,
+        preparedRequest.processEnvVars,
+        preparedRequest.promptVariables,
+        certsAndProxyConfig
+      );
 
       // Extract certificate information from the config
       const { httpsAgentRequestFields } = certsAndProxyConfig;
-      
+
       // Configure verify options
       const verifyOptions = {
         rejectUnauthorized: preferencesUtil.shouldVerifyTls()
@@ -320,7 +228,6 @@ const registerGrpcEventHandlers = (window) => {
       const passphrase = httpsAgentRequestFields.passphrase;
       const pfx = httpsAgentRequestFields.pfx;
 
-
       // Send OAuth credentials update if available
       if (preparedRequest?.oauth2Credentials) {
         window.webContents.send('main:credentials-update', {
@@ -329,24 +236,23 @@ const registerGrpcEventHandlers = (window) => {
           collectionUid: collection.uid,
           credentialsId: preparedRequest.oauth2Credentials?.credentialsId,
           ...(preparedRequest.oauth2Credentials?.folderUid ? { folderUid: preparedRequest.oauth2Credentials.folderUid } : { itemUid: preparedRequest.uid }),
-          debugInfo: preparedRequest.oauth2Credentials.debugInfo,
+          debugInfo: preparedRequest.oauth2Credentials.debugInfo
         });
       }
 
-
-      const methods = await grpcClient.loadMethodsFromReflection({ 
+      const methods = await grpcClient.loadMethodsFromReflection({
         request: preparedRequest,
         collectionUid: collection.uid,
-        rootCertificate, 
-        privateKey, 
-        certificateChain, 
+        rootCertificate,
+        privateKey,
+        certificateChain,
         passphrase,
         pfx,
         verifyOptions,
         sendEvent
       });
-      
-      return { success: true, methods: safeParseJSON(safeStringifyJSON(methods))};
+
+      return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };
     } catch (error) {
       console.error('Error loading gRPC methods from reflection:', error);
       return { success: false, error: error.message };
@@ -357,7 +263,7 @@ const registerGrpcEventHandlers = (window) => {
   ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, includeDirs }) => {
     try {
       const methods = await grpcClient.loadMethodsFromProtoFile(filePath, includeDirs);
-      return { success: true, methods: safeParseJSON(safeStringifyJSON(methods))};
+      return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };
     } catch (error) {
       console.error('Error loading gRPC methods from proto file:', error);
       return { success: false, error: error.message };
@@ -373,24 +279,24 @@ const registerGrpcEventHandlers = (window) => {
         // Parse existing message if provided
         existingMessage: existingMessage ? safeParseJSON(existingMessage) : null
       });
-      
+
       if (!result.success) {
-        return { 
-          success: false, 
-          error: result.error || 'Failed to generate sample message' 
+        return {
+          success: false,
+          error: result.error || 'Failed to generate sample message'
         };
       }
-      
+
       // Convert the message to a JSON string for safe transfer through IPC
-      return { 
-        success: true, 
-        message: JSON.stringify(result.message, null, 2) 
+      return {
+        success: true,
+        message: JSON.stringify(result.message, null, 2)
       };
     } catch (error) {
       console.error('Error generating gRPC sample message:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Failed to generate sample message' 
+      return {
+        success: false,
+        error: error.message || 'Failed to generate sample message'
       };
     }
   });
@@ -399,7 +305,13 @@ const registerGrpcEventHandlers = (window) => {
   ipcMain.handle('grpc:generate-grpcurl', async (event, { request, collection, environment, runtimeVariables }) => {
     try {
       const requestCopy = cloneDeep(request);
-      const preparedRequest = await prepareRequest(requestCopy, collection, environment, runtimeVariables, {});
+      const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
+
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
+
       const interpolationOptions = {
         envVars: preparedRequest.envVars,
         runtimeVariables,
@@ -407,11 +319,11 @@ const registerGrpcEventHandlers = (window) => {
       };
       let caCertFilePath, certFilePath, keyFilePath;
 
-      if(preferencesUtil.shouldUseCustomCaCertificate()) {
+      if (preferencesUtil.shouldUseCustomCaCertificate()) {
         caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
       }
 
-      const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+      const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
 
       for (let clientCert of clientCertConfig) {
         const domain = interpolateString(clientCert?.domain, interpolationOptions);
@@ -454,11 +366,11 @@ if (app && typeof app.on === 'function') {
     if (grpcClient && typeof grpcClient.clearAllConnections === 'function') {
       try {
         grpcClient.clearAllConnections();
-    } catch (error) {
-      console.error('Error clearing gRPC connections:', error);
+      } catch (error) {
+        console.error('Error clearing gRPC connections:', error);
+      }
     }
-  }
-});
+  });
 }
 
-module.exports = registerGrpcEventHandlers
+module.exports = registerGrpcEventHandlers;

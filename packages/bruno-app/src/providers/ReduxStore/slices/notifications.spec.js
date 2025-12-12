@@ -53,9 +53,9 @@ describe('filterNotificationsByVersion - basic', () => {
 describe('filterNotificationsByVersion - semver', () => {
   it('should filter out notifications outside version range', () => {
     const notifications = [
-      { minVersion: '1.0.0', maxVersion: '1.1.0' },  // should be included
-      { minVersion: '2.0.0', maxVersion: '2.1.0' },  // should be filtered out
-      { minVersion: '0.5.0', maxVersion: '0.9.0' }   // should be filtered out
+      { minVersion: '1.0.0', maxVersion: '1.1.0' }, // should be included
+      { minVersion: '2.0.0', maxVersion: '2.1.0' }, // should be filtered out
+      { minVersion: '0.5.0', maxVersion: '0.9.0' } // should be filtered out
     ];
     const currentVersion = '1.0.5';
     const filteredNotifications = filterNotificationsByVersion(notifications, currentVersion);
@@ -66,10 +66,10 @@ describe('filterNotificationsByVersion - semver', () => {
 
   it('should handle mixed valid and invalid version ranges', () => {
     const notifications = [
-      { minVersion: '1.0.0', maxVersion: '2.0.0' },  // should be included
-      { minVersion: '3.0.0', maxVersion: '4.0.0' },  // should be filtered out
-      { minVersion: '1.5.0', maxVersion: '1.8.0' },  // should be included
-      { minVersion: '0.1.0', maxVersion: '0.5.0' }   // should be filtered out
+      { minVersion: '1.0.0', maxVersion: '2.0.0' }, // should be included
+      { minVersion: '3.0.0', maxVersion: '4.0.0' }, // should be filtered out
+      { minVersion: '1.5.0', maxVersion: '1.8.0' }, // should be included
+      { minVersion: '0.1.0', maxVersion: '0.5.0' } // should be filtered out
     ];
     const currentVersion = '1.6.0';
     const filteredNotifications = filterNotificationsByVersion(notifications, currentVersion);
@@ -81,9 +81,9 @@ describe('filterNotificationsByVersion - semver', () => {
 
   it('should handle edge cases of version ranges', () => {
     const notifications = [
-      { minVersion: '1.0.0', maxVersion: '1.0.0' },  // should be included
-      { minVersion: '1.0.1', maxVersion: '2.0.0' },  // should be filtered out
-      { minVersion: '0.9.9', maxVersion: '1.0.0' }   // should be included
+      { minVersion: '1.0.0', maxVersion: '1.0.0' }, // should be included
+      { minVersion: '1.0.1', maxVersion: '2.0.0' }, // should be filtered out
+      { minVersion: '0.9.9', maxVersion: '1.0.0' } // should be included
     ];
     const currentVersion = '1.0.0';
     const filteredNotifications = filterNotificationsByVersion(notifications, currentVersion);

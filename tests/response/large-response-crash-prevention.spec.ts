@@ -1,0 +1,40 @@
+import { test, expect } from '../../playwright';
+import { closeAllCollections, createCollection, createUntitledRequest } from '../utils/page/actions';
+
+test.describe('Large Response Crash/High Memory Usage Prevention', () => {
+  // Increase timeout to 1 minute for all tests in this describe block, default is 30 seconds.
+  // Prevents tests from failing due to timeout while waiting for the response, especially on slower internet connections.
+  test.setTimeout(1 * 60 * 1000); // 1 minute
+
+  test.afterAll(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('Show appropriate warning for responses over 10MB', async ({ page, createTmpDir }) => {
+    const collectionName = 'size-warning-test';
+
+    // Create collection
+    await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
+
+    // Create request using the new dropdown flow
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'https://samples.json-format.com/employees/json/employees_50MB.json'
+    });
+
+    // Send request
+    const sendButton = page.getByTestId('send-arrow-icon');
+    await sendButton.click();
+
+    // Verify warning appears
+    await expect(page.getByText('Large Response Warning')).toBeVisible({ timeout: 60000 });
+
+    // Verify warning content
+    await expect(page.getByText('Handling responses over')).toBeVisible();
+    await expect(page.getByText('could degrade performance')).toBeVisible();
+
+    // Verify action button
+    await expect(page.getByRole('button', { name: 'View', exact: true })).toBeVisible();
+  });
+});
