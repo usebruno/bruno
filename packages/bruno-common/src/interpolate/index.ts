@@ -14,6 +14,40 @@
 import { mockDataFunctions } from '../utils/faker-functions';
 import { get } from 'lodash-es';
 
+// regex to match {{$keyword}}
+const MOCK_DATA_PATTERN = /\{\{\$(\w+)\}\}/g;
+// regex to match {{variableName}}
+const PLACEHOLDER_PATTERN = /\{\{([^}]+)\}\}/g;
+// non-global version for .test() to avoid state pollution
+const PLACEHOLDER_TEST_PATTERN = /\{\{([^}]+)\}\}/;
+
+const escapeJSONString = (str: string): string => {
+  if (!/[\\\n\r\t\"]/.test(str)) {
+    return str;
+  }
+
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/\"/g, '\\"');
+};
+
+const processMockData = (replacement: string, escapeJSONStrings: boolean): string => {
+  return replacement.replace(MOCK_DATA_PATTERN, (match, keyword) => {
+    let mockReplacement = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.();
+
+    if (mockReplacement === undefined) {
+      return match;
+    }
+
+    mockReplacement = String(mockReplacement);
+
+    return escapeJSONStrings ? escapeJSONString(mockReplacement) : mockReplacement;
+  });
+};
+
 const interpolate = (
   str: string,
   obj: Record<string, any>,
@@ -25,47 +59,28 @@ const interpolate = (
 
   const { escapeJSONStrings } = options;
 
-  const patternRegex = /\{\{\$(\w+)\}\}/g;
-  str = str.replace(patternRegex, (match, keyword) => {
-    let replacement = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.();
-
-    if (replacement === undefined) return match;
-    replacement = String(replacement);
-
-    if (!escapeJSONStrings) return replacement;
-
-    // All the below chars inside of a JSON String field
-    // will make it invalid JSON. So we will have to escape them with `\`.
-    // This is not exhaustive but selective to what faker-js can output.
-    if (!/[\\\n\r\t\"]/.test(replacement)) return replacement;
-    return replacement
-      .replace(/\\/g, '\\\\')
-      .replace(/\n/g, '\\n')
-      .replace(/\r/g, '\\r')
-      .replace(/\t/g, '\\t')
-      .replace(/\"/g, '\\"');
-  });
+  str = processMockData(str, escapeJSONStrings ?? false);
 
   if (!obj || typeof obj !== 'object') {
     return str;
   }
 
-  return replace(str, obj);
+  return replace(str, obj, new Set<string>(), new Map<string, string>(), escapeJSONStrings ?? false);
 };
 
 const replace = (
   str: string,
   obj: Record<string, any>,
   visited = new Set<string>(),
-  results = new Map<string, string>()
+  results = new Map<string, string>(),
+  escapeJSONStrings = false
 ): string => {
   let resultStr = str;
-  let matchFound = true;
+  let matchFound;
 
-  while (matchFound) {
-    const patternRegex = /\{\{([^}]+)\}\}/g;
+  do {
     matchFound = false;
-    resultStr = resultStr.replace(patternRegex, (match, placeholder) => {
+    resultStr = resultStr.replace(PLACEHOLDER_PATTERN, (match, placeholder) => {
       let replacement = get(obj, placeholder);
       if (typeof replacement === 'object' && replacement !== null) {
         replacement = JSON.stringify(replacement);
@@ -75,9 +90,16 @@ const replace = (
         return results.get(match);
       }
 
-      if (patternRegex.test(replacement) && !visited.has(match)) {
+      // Process mock data functions ({{$keyword}}) in the replacement value
+      if (typeof replacement === 'string') {
+        replacement = processMockData(replacement, escapeJSONStrings);
+      }
+
+      // Check for nested placeholders using non-global regex to avoid state pollution
+      const hasNestedPlaceholders = typeof replacement === 'string' && PLACEHOLDER_TEST_PATTERN.test(replacement);
+      if (hasNestedPlaceholders && !visited.has(match)) {
         visited.add(match);
-        const result = replace(replacement, obj, visited, results);
+        const result = replace(replacement, obj, visited, results, escapeJSONStrings);
         results.set(match, result);
 
         matchFound = true;
@@ -91,7 +113,7 @@ const replace = (
       matchFound = true;
       return result;
     });
-  }
+  } while (matchFound);
 
   return resultStr;
 };
