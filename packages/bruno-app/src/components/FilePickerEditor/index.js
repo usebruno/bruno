@@ -55,16 +55,30 @@ const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = fa
   return filenames.length > 0 ? (
     <div
       className={buttonClass}
-      style={{ fontWeight: 400, width: '100%', textOverflow: 'ellipsis', overflowX: 'hidden' }}
+      style={{
+        fontWeight: 400,
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        overflow: 'hidden'
+      }}
       title={title}
     >
       {!readOnly && (
-        <button className="align-middle" onClick={clear}>
+        <button className="align-middle" onClick={clear} style={{ flexShrink: 0 }}>
           <IconX size={18} />
         </button>
       )}
       {!readOnly && <>&nbsp;</>}
-      {renderButtonText(filenames)}
+      <span style={{
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        flex: 1
+      }}
+      >
+        {renderButtonText(filenames)}
+      </span>
     </div>
   ) : (
     <button className={buttonClass} style={{ width: '100%' }} onClick={!readOnly ? browse : undefined} disabled={readOnly}>

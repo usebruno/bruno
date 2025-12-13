@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
-import CloseTabIcon from './CloseTabIcon';
+import GradientCloseButton from './GradientCloseButton';
 
 const RequestTabNotFound = ({ handleCloseClick }) => {
   const [showErrorMessage, setShowErrorMessage] = useState(false);
@@ -28,9 +28,7 @@ const RequestTabNotFound = ({ handleCloseClick }) => {
           </>
         ) : null}
       </div>
-      <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
-        <CloseTabIcon />
-      </div>
+      <GradientCloseButton onClick={handleCloseClick} hasChanges={true} />
     </>
   );
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import { useRef, useCallback, useState } from 'react';
 import Dropdown from 'components/Dropdown';
 
@@ -36,8 +36,9 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {string} props.className - Optional className for the dropdown
  * @param {string} props.selectedItemId - Optional ID of the selected/active item to focus on open
  * @param {Object} props.dropdownProps - Other props passed to underlying Dropdown component
+ * @param {React.Ref} ref - Optional ref to expose open/close methods
  */
-const MenuDropdown = ({
+const MenuDropdown = forwardRef(({
   items = [],
   children,
   placement = 'bottom-end',
@@ -45,9 +46,16 @@ const MenuDropdown = ({
   selectedItemId,
   'data-testid': testId = 'menu-dropdown',
   ...dropdownProps
-}) => {
+}, ref) => {
   const tippyRef = useRef();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Expose open/close methods via ref
+  useImperativeHandle(ref, () => ({
+    open: () => setIsOpen(true),
+    close: () => setIsOpen(false),
+    toggle: () => setIsOpen((prev) => !prev)
+  }), []);
 
   // Get all focusable menu items from the menu dropdown
   const getMenuItems = useCallback(() => {
@@ -274,6 +282,6 @@ const MenuDropdown = ({
       </div>
     </Dropdown>
   );
-};
+});
 
 export default MenuDropdown;

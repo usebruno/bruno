@@ -9,6 +9,14 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .request-pane {
+    flex-shrink: 0;
+  }
+
+  .response-pane {
+    min-width: 0;
+  }
+
   div.dragbar-wrapper {
     display: flex;
     align-items: center;

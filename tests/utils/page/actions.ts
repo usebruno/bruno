@@ -217,6 +217,7 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
     const collectionWrapper = collectionContainer.locator('..');
     const request = collectionWrapper.locator('.collection-item-name').filter({ hasText: requestName });
 
+    await request.hover();
     await request.locator('.menu-icon').click();
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();

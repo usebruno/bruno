@@ -329,8 +329,8 @@ export const setResponseExampleHeaders = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.response.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
-    uid: uuid(),
+  example.response.headers = map(headers, ({ uid, name = '', value = '', enabled = true }) => ({
+    uid: uid || uuid(),
     name: name,
     value: value,
     description: '',
@@ -921,8 +921,8 @@ export const setResponseExampleRequestHeaders = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
-    uid: uuid(),
+  example.request.headers = map(headers, ({ uid, name = '', value = '', enabled = true }) => ({
+    uid: uid || uuid(),
     name: name,
     value: value,
     description: '',
@@ -950,14 +950,36 @@ export const setResponseExampleParams = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.request.params = map(params, ({ name = '', value = '', enabled = true, type = 'query' }) => ({
-    uid: uuid(),
+  example.request.params = map(params, ({ uid, name = '', value = '', enabled = true, type = 'query' }) => ({
+    uid: uid || uuid(),
     name: name,
     value: value,
     description: '',
     enabled: enabled,
     type: type
   }));
+
+  // Update URL when query parameters change
+  const queryParams = filter(example.request.params, (p) => p.enabled && p.type === 'query');
+  const query = stringifyQueryParams(queryParams);
+
+  if (!example.request.url) {
+    example.request.url = '';
+  }
+
+  const parts = splitOnFirst(example.request.url, '?');
+
+  if (!query || !query.length) {
+    if (parts.length) {
+      example.request.url = parts[0];
+    }
+  } else {
+    if (!parts.length) {
+      example.request.url += '?' + query;
+    } else {
+      example.request.url = parts[0] + '?' + query;
+    }
+  }
 };
 
 // Response Example Body Types
