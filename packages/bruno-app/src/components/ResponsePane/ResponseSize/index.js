@@ -8,11 +8,7 @@ const ResponseSize = ({ size }) => {
 
   let sizeToDisplay = '';
 
-  if (size >= 1024 * 1024) {
-    // Show as MB with two decimals
-    const mb = size / (1024 * 1024);
-    sizeToDisplay = mb.toFixed(2) + 'MB';
-  } else if (size >= 1024) {
+  if (size >= 1024) {
     // Show as KB with two decimals
     const kb = size / 1024;
     sizeToDisplay = kb.toFixed(2) + 'KB';
