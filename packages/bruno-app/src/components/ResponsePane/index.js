@@ -26,6 +26,9 @@ import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import WSMessagesList from './WsResponsePane/WSMessagesList';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 
+// Width threshold for expanded right-side action buttons
+const RIGHT_CONTENT_EXPANDED_WIDTH = 375;
+
 const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -246,7 +249,7 @@ const ResponsePane = ({ item, collection }) => {
           onTabSelect={selectTab}
           rightContent={rightContent}
           rightContentRef={rightContentRef}
-          rightContentExpandedWidth={375}
+          rightContentExpandedWidth={RIGHT_CONTENT_EXPANDED_WIDTH}
         />
       </div>
       <section

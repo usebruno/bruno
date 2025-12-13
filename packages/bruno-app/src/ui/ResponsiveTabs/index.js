@@ -26,7 +26,7 @@ const ResponsiveTabs = ({
 }) => {
   const [visibleTabs, setVisibleTabs] = useState([]);
   const [overflowTabs, setOverflowTabs] = useState([]);
-  const [rightSideExpandible, setRightSideExpandible] = useState(false);
+  const [rightSideExpandable, setRightSideExpandable] = useState(false);
 
   const tabsContainerRef = useRef(null);
   const tabRefsMap = useRef({});
@@ -84,8 +84,8 @@ const ResponsiveTabs = ({
     // Only calculate expandibility if rightContentExpandedWidth is provided
     if (rightContentExpandedWidth) {
       const leftContentWidth = currentWidth + (overflow.length ? DROPDOWN_WIDTH : 0);
-      const expandible = containerWidth - leftContentWidth - GAP_BETWEEN_LEFT_AND_RIGHT_CONTENT > rightContentExpandedWidth;
-      setRightSideExpandible((prev) => (prev === expandible ? prev : expandible));
+      const expandable = containerWidth - leftContentWidth - GAP_BETWEEN_LEFT_AND_RIGHT_CONTENT > rightContentExpandedWidth;
+      setRightSideExpandable((prev) => (prev === expandable ? prev : expandable));
     }
   }, [tabs, activeTab, rightContentRef, rightContentExpandedWidth]);
 
@@ -184,7 +184,7 @@ const ResponsiveTabs = ({
 
   // Only add data attribute if rightContentExpandedWidth is provided
   const rightContentProps = rightContentExpandedWidth
-    ? { 'data-right-side-expandible': rightSideExpandible }
+    ? { 'data-right-side-expandable': rightSideExpandable }
     : {};
 
   return (
