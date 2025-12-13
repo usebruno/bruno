@@ -2,8 +2,10 @@ const { ipcMain } = require('electron');
 const { openApiSpecDialog, openApiSpec } = require('../app/apiSpecs');
 const { writeFile } = require('../utils/filesystem');
 const { removeApiSpecUid } = require('../cache/apiSpecUids');
+const { generateYamlContent } = require('../utils/workspace-config');
 const path = require('path');
 const fs = require('fs');
+const yaml = require('js-yaml');
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) => {
   ipcMain.handle('renderer:open-api-spec', (event, workspacePath = null) => {
@@ -47,32 +49,29 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
         removeApiSpecUid(pathname);
 
         if (workspacePath) {
-          const yaml = require('js-yaml');
           const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
 
           if (fs.existsSync(workspaceFilePath)) {
             const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
             const workspaceConfig = yaml.load(yamlContent);
 
-            if (workspaceConfig.apiSpecs) {
-              workspaceConfig.apiSpecs = workspaceConfig.apiSpecs.filter((a) => {
-                const apiSpecPathFromYml = a.path;
-                if (!apiSpecPathFromYml) return true;
+            const specs = workspaceConfig.specs || [];
 
-                const absoluteApiSpecPath = path.isAbsolute(apiSpecPathFromYml)
-                  ? apiSpecPathFromYml
-                  : path.resolve(workspacePath, apiSpecPathFromYml);
+            const filteredSpecs = specs.filter((a) => {
+              const specPathFromYml = a.path;
+              if (!specPathFromYml) return true;
 
-                return absoluteApiSpecPath !== pathname;
-              });
+              const absoluteSpecPath = path.isAbsolute(specPathFromYml)
+                ? specPathFromYml
+                : path.resolve(workspacePath, specPathFromYml);
 
-              const updatedYamlContent = yaml.dump(workspaceConfig, {
-                indent: 2,
-                lineWidth: -1,
-                noRefs: true
-              });
-              fs.writeFileSync(workspaceFilePath, updatedYamlContent);
-            }
+              return absoluteSpecPath !== pathname;
+            });
+
+            workspaceConfig.specs = filteredSpecs;
+
+            const updatedYamlContent = generateYamlContent(workspaceConfig);
+            fs.writeFileSync(workspaceFilePath, updatedYamlContent);
           }
         }
       }

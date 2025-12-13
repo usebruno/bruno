@@ -19,7 +19,7 @@ import Documentation from 'components/Documentation/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
-import RequestPaneTabs from 'components/RequestPane/RequestPaneTabs';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
 
 const MULTIPLE_CONTENT_TABS = new Set(['script', 'vars', 'auth', 'docs']);
 
@@ -146,7 +146,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
 
   return (
     <div className="flex flex-col h-full relative">
-      <RequestPaneTabs
+      <ResponsiveTabs
         tabs={allTabs}
         activeTab={requestPaneTab}
         onTabSelect={selectTab}

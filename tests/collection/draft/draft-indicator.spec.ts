@@ -24,23 +24,15 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
     await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
-    // Click on Headers tab
     await page.locator('.tab.headers').click();
 
-    // Add a new header
-    await page.getByRole('button', { name: 'Add Header' }).click();
-
-    // Fill in header name and value in the table
-    // Target the table and get the first row's CodeMirror editors
     const headerTable = page.locator('table').first();
     const headerRow = headerTable.locator('tbody tr').first();
 
-    // Fill in the name field (first CodeMirror in the row)
     const nameEditor = headerRow.locator('.CodeMirror').first();
     await nameEditor.click();
     await page.keyboard.type('X-Custom-Header');
 
-    // Fill in the value field (second CodeMirror in the row)
     const valueEditor = headerRow.locator('.CodeMirror').nth(1);
     await valueEditor.click();
     await page.keyboard.type('custom-value');
@@ -196,25 +188,17 @@ test.describe('Draft indicator in collection and folder settings', () => {
     // Verify initially there is NO draft indicator
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
 
-    // Click on Vars tab
     await page.locator('.tab.vars').click();
 
-    // Add a new variable in the Pre Request section
-    await page.locator('.btn-add-var').first().click();
-
-    // Fill in variable name and value in the table
-    // Target the vars table and get the first row
     const varsTable = page.locator('table').first();
     const varRow = varsTable.locator('tbody tr').first();
 
-    // Fill in the name field (regular input)
     const varNameInput = varRow.locator('input[type="text"]');
     await varNameInput.click();
     await varNameInput.fill('testVar');
 
-    // Fill in the value field (CodeMirror editor)
-    const valueEditor = varRow.locator('.CodeMirror');
-    await valueEditor.click();
+    const varValueEditor = varRow.locator('.CodeMirror');
+    await varValueEditor.click();
     await page.keyboard.type('testValue');
 
     // Verify draft indicator appears
@@ -252,23 +236,16 @@ test.describe('Draft indicator in collection and folder settings', () => {
     const folderTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'test-folder' }) });
     await expect(folderTab).toBeVisible();
 
-    // Verify initially there is NO draft indicator
     await expect(folderTab.locator('.close-icon')).toBeVisible();
     await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
 
-    // Headers tab should be selected by default, add a new header
-    await page.getByRole('button', { name: 'Add Header' }).click();
-
-    // Fill in header name and value in the table
     const headerTable = page.locator('table').first();
     const headerRow = headerTable.locator('tbody tr').first();
 
-    // Fill in the name field (first CodeMirror in the row)
     const nameEditor = headerRow.locator('.CodeMirror').first();
     await nameEditor.click();
     await page.keyboard.type('X-Folder-Header');
 
-    // Fill in the value field (second CodeMirror in the row)
     const valueEditor = headerRow.locator('.CodeMirror').nth(1);
     await valueEditor.click();
     await page.keyboard.type('folder-value');
@@ -323,27 +300,19 @@ test.describe('Draft indicator in collection and folder settings', () => {
     const folderTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'test-folder' }) });
     await expect(folderTab).toBeVisible();
 
-    // Verify initially no draft indicator
     await expect(folderTab.locator('.close-icon')).toBeVisible();
 
-    // Click on Vars tab
     await page.locator('.tab.vars').click();
 
-    // Add a new variable in the Pre Request section
-    await page.locator('.btn-add-var').first().click();
-
-    // Fill in variable name and value in the table
     const varsTable = page.locator('table').first();
     const varRow = varsTable.locator('tbody tr').first();
 
-    // Fill in the name field (regular input)
     const varNameInput = varRow.locator('input[type="text"]');
     await varNameInput.click();
     await varNameInput.fill('folderVar');
 
-    // Fill in the value field (CodeMirror editor)
-    const valueEditor = varRow.locator('.CodeMirror');
-    await valueEditor.click();
+    const folderVarValueEditor = varRow.locator('.CodeMirror');
+    await folderVarValueEditor.click();
     await page.keyboard.type('folderValue');
 
     // Verify draft indicator appears

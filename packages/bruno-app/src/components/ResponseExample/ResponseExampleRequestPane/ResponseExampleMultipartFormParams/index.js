@@ -8,6 +8,7 @@ import { updateResponseExampleMultipartFormParams } from 'providers/ReduxStore/s
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import MultiLineEditor from 'components/MultiLineEditor';
+import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor';
 import Table from 'components/Table-v2';
@@ -206,7 +207,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                     </td>
                     <td>
                       <div className="flex items-center justify-center pl-4">
-                        <MultiLineEditor
+                        <SingleLineEditor
                           onSave={() => {}}
                           theme={storedTheme}
                           placeholder="Auto"

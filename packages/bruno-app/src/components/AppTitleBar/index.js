@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconCheck, IconChevronDown, IconFolder, IconHome, IconLayoutColumns, IconLayoutRows, IconPin, IconPinned, IconPlus } from '@tabler/icons';
+import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus } from '@tabler/icons';
 import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -18,6 +18,7 @@ import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
 import { toTitleCase } from 'utils/common/index';
+import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 
 const AppTitleBar = () => {
   const dispatch = useDispatch();
@@ -94,8 +95,6 @@ const AppTitleBar = () => {
     dispatch(savePreferences(newPreferences));
   }, [dispatch, preferences]);
 
-  const orientation = preferences?.layout?.responsePaneOrientation || 'horizontal';
-
   const handleToggleSidebar = () => {
     dispatch(toggleSidebarCollapse());
   };
@@ -106,18 +105,6 @@ const AppTitleBar = () => {
     } else {
       dispatch(openConsole());
     }
-  };
-
-  const handleToggleVerticalLayout = () => {
-    const newOrientation = orientation === 'horizontal' ? 'vertical' : 'horizontal';
-    const updatedPreferences = {
-      ...preferences,
-      layout: {
-        ...preferences?.layout || {},
-        responsePaneOrientation: newOrientation
-      }
-    };
-    dispatch(savePreferences(updatedPreferences));
   };
 
   // Build workspace menu items
@@ -230,19 +217,7 @@ const AppTitleBar = () => {
             <IconBottombarToggle collapsed={!isConsoleOpen} size={16} strokeWidth={1.5} />
           </ActionIcon>
 
-          {/* Toggle vertical layout */}
-          <ActionIcon
-            onClick={handleToggleVerticalLayout}
-            label={orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout'}
-            size="lg"
-            data-testid="toggle-vertical-layout-button"
-          >
-            {orientation === 'horizontal' ? (
-              <IconLayoutColumns size={16} stroke={1.5} />
-            ) : (
-              <IconLayoutRows size={16} stroke={1.5} />
-            )}
-          </ActionIcon>
+          <ResponseLayoutToggle />
         </div>
       </div>
     </StyledWrapper>

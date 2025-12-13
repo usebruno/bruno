@@ -75,6 +75,10 @@ export const buildCommonLocators = (page: Page) => ({
     requestNameInput: () => page.getByPlaceholder('Request Name'),
     requestTestId: () => page.getByTestId('request-name')
   },
+  tags: {
+    input: () => page.getByTestId('tag-input').getByRole('textbox'),
+    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+  },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
     pane: () => page.locator('.response-pane'),
@@ -123,7 +127,7 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   }
 });
 
-export const getTableCell = (row, index) => row.locator('td').nth(index);
+export const getTableCell = (row, index) => row.locator('td').nth(index + 1);
 
 export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),

@@ -16,7 +16,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
 
     // Set the URL
     await page.locator('#request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
+    await page.locator('#request-url').locator('textarea').fill('https://echo.usebruno.com');
     await page.locator('#send-request').getByTitle('Save Request').click();
 
     await expect(page.locator('.item-name').filter({ hasText: /^Untitled/ })).toBeVisible();
@@ -73,7 +73,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
 
     // Set the URL
     await page.locator('#request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
+    await page.locator('#request-url').locator('textarea').fill('https://echo.usebruno.com');
     await page.locator('#send-request').getByTitle('Save Request').click();
 
     // check if untitled request is created and visible in sidebar
@@ -87,7 +87,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
 
     // Set the URL
     await page.locator('#request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
+    await page.locator('#request-url').locator('textarea').fill('https://echo.usebruno.com');
     await page.locator('#send-request').getByTitle('Save Request').click();
 
     // Go back to source collection to drag the request

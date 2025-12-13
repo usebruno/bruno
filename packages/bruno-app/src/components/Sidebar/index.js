@@ -1,20 +1,32 @@
-import SidebarHeader from './SidebarHeader';
-import Collections from './Collections';
+import { SidebarAccordionProvider } from './SidebarAccordionContext';
+import SidebarContent from './SidebarContent';
 import StyledWrapper from './StyledWrapper';
 
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
+import CollectionsSection from './Sections/CollectionsSection/index';
+import ApiSpecsSection from './Sections/ApiSpecsSection/index';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
+
+const SIDEBAR_SECTIONS = [
+  {
+    id: 'collections',
+    component: CollectionsSection
+  },
+  {
+    id: 'api-specs',
+    component: ApiSpecsSection
+  }
+];
 
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const lastWidthRef = useRef(leftSidebarWidth);
-  const [showSearch, setShowSearch] = useState(false);
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
@@ -77,26 +89,29 @@ const Sidebar = () => {
   }, [leftSidebarWidth]);
 
   return (
-    <StyledWrapper className="flex relative h-full">
-      <aside className="sidebar" style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}>
-        <div className="flex flex-row h-full w-full">
-          <div className="flex flex-col w-full" style={{ width: asideWidth }}>
-            <div className="flex flex-col flex-grow" style={{ minHeight: 0, overflow: 'hidden' }}>
-              <SidebarHeader
-                setShowSearch={setShowSearch}
-              />
-              <Collections showSearch={showSearch} />
+    <SidebarAccordionProvider defaultExpanded={['collections']}>
+      <StyledWrapper className="flex relative h-full">
+        <aside className="sidebar" style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}>
+          <div className="flex flex-row h-full w-full">
+            <div className="flex flex-col w-full" style={{ width: asideWidth }}>
+              <div className="flex flex-col flex-grow sidebar-sections-container" style={{ minHeight: 0, overflow: 'hidden' }}>
+                <div className="sidebar-sections flex flex-col flex-1">
+                  <SidebarContent
+                    sections={SIDEBAR_SECTIONS}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </aside>
+        </aside>
 
-      {!sidebarCollapsed && (
-        <div className="absolute sidebar-drag-handle h-full" onMouseDown={handleDragbarMouseDown}>
-          <div className="drag-request-border" />
-        </div>
-      )}
-    </StyledWrapper>
+        {!sidebarCollapsed && (
+          <div className="absolute sidebar-drag-handle h-full" onMouseDown={handleDragbarMouseDown}>
+            <div className="drag-request-border" />
+          </div>
+        )}
+      </StyledWrapper>
+    </SidebarAccordionProvider>
   );
 };
 

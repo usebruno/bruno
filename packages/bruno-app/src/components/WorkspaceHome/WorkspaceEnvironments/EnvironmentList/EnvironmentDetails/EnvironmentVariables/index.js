@@ -231,7 +231,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         <table>
           <thead>
             <tr>
-              <td className="text-center">Enabled</td>
+              <td className="text-center"></td>
               <td>Name</td>
               <td>Value</td>
               <td className="text-center">Secret</td>

@@ -169,19 +169,19 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         return [];
       }
 
-      const apiSpecs = workspaceConfig.apiSpecs || [];
+      const specs = workspaceConfig.specs || [];
 
-      const resolvedApiSpecs = apiSpecs.map((apiSpec) => {
-        if (apiSpec.path && !path.isAbsolute(apiSpec.path)) {
+      const resolvedSpecs = specs.map((spec) => {
+        if (spec.path && !path.isAbsolute(spec.path)) {
           return {
-            ...apiSpec,
-            path: path.join(workspacePath, apiSpec.path)
+            ...spec,
+            path: path.join(workspacePath, spec.path)
           };
         }
-        return apiSpec;
+        return spec;
       });
 
-      return resolvedApiSpecs;
+      return resolvedSpecs;
     } catch (error) {
       throw error;
     }

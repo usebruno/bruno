@@ -69,8 +69,6 @@ const Collections = ({ showSearch }) => {
               );
             })
           : null}
-        <div className="w-full my-2" style={{ height: 1 }}></div>
-        <ApiSpecs />
       </div>
     </StyledWrapper>
   );

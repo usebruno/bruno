@@ -177,7 +177,7 @@ const RequestTabs = () => {
                   </div>
                 </li>
               ) : null}
-              <div className="flex items-center short-tab">
+              <div className="flex items-center cursor-pointer short-tab">
 
                 {activeCollection && (
                   <CreateUntitledRequest

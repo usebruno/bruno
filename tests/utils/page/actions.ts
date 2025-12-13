@@ -145,7 +145,7 @@ const createUntitledRequest = async (
 
     // Wait for toast message to ensure request creation is complete
     // This helps prevent race conditions when creating multiple requests
-    await expect(page.getByText('New request created!')).toBeVisible({ timeout: 10000 }).catch(() => {
+    await expect(page.getByText('New request created!')).toBeVisible({ timeout: 2000 }).catch(() => {
       // Toast might have already disappeared, that's okay
     });
   });
@@ -680,7 +680,7 @@ const expectResponseContains = async (page: Page, texts: string[]) => {
 
 // Create a action to click a response action
 const clickResponseAction = async (page: Page, actionTestId: string) => {
-  const actionButton = await page.getByTestId(actionTestId);
+  const actionButton = await page.getByTestId(actionTestId).first();
   if (await actionButton.isVisible()) {
     await actionButton.click();
   } else {

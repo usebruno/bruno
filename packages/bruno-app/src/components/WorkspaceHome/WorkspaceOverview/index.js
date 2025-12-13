@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconFileImport } from '@tabler/icons';
 import { importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
@@ -12,24 +12,14 @@ import StyledWrapper from './StyledWrapper';
 
 const WorkspaceOverview = ({ workspace }) => {
   const dispatch = useDispatch();
-  const { collections } = useSelector((state) => state.collections);
+  const { globalEnvironments } = useSelector((state) => state.globalEnvironments);
 
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
 
   const workspaceCollectionsCount = workspace?.collections?.length || 0;
 
-  const workspaceEnvironmentsCount = useMemo(() => {
-    if (!workspace?.collections || !collections) return 0;
-    let count = 0;
-    workspace.collections.forEach((wc) => {
-      const loadedCollection = collections.find((c) => c.pathname === wc.path);
-      if (loadedCollection?.environments) {
-        count += loadedCollection.environments.length;
-      }
-    });
-    return count;
-  }, [workspace?.collections, collections]);
+  const workspaceEnvironmentsCount = globalEnvironments?.length || 0;
 
   const handleCreateCollection = async () => {
     if (!workspace?.pathname) {

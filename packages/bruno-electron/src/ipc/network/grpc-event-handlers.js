@@ -8,6 +8,7 @@ const { getCertsAndProxyConfig } = require('./cert-utils');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
 const prepareGrpcRequest = require('./prepare-grpc-request');
+const { configureRequest } = require('./prepare-grpc-request');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
@@ -52,6 +53,17 @@ const registerGrpcEventHandlers = (window) => {
         collectionPath: collection.pathname,
         globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
+
+      await configureRequest(
+        preparedRequest,
+        requestCopy,
+        collection,
+        preparedRequest.envVars,
+        runtimeVariables,
+        preparedRequest.processEnvVars,
+        preparedRequest.promptVariables,
+        certsAndProxyConfig
+      );
 
       // Extract certificate information from the config
       const { httpsAgentRequestFields } = certsAndProxyConfig;
@@ -189,6 +201,17 @@ const registerGrpcEventHandlers = (window) => {
         collectionPath: collection.pathname,
         globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
+
+      await configureRequest(
+        preparedRequest,
+        requestCopy,
+        collection,
+        preparedRequest.envVars,
+        runtimeVariables,
+        preparedRequest.processEnvVars,
+        preparedRequest.promptVariables,
+        certsAndProxyConfig
+      );
 
       // Extract certificate information from the config
       const { httpsAgentRequestFields } = certsAndProxyConfig;
