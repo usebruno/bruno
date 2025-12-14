@@ -7,6 +7,7 @@ import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
   collapseAllItemsInCollection,
+  expandAllItemsInCollection,
   deleteItemInCollection,
   deleteItemInCollectionByPathname,
   findCollectionByPathname,
@@ -148,6 +149,13 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collapseAllItemsInCollection(collection);
+      }
+    },
+    expandFullCollection: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        expandAllItemsInCollection(collection);
       }
     },
     updateCollectionMountStatus: (state, action) => {
@@ -3374,6 +3382,7 @@ export const {
   deleteFolderDraft,
   newEphemeralHttpRequest,
   collapseFullCollection,
+  expandFullCollection,
   toggleCollection,
   toggleCollectionItem,
   requestUrlChanged,
