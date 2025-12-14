@@ -10,11 +10,13 @@ import {
   IconSearch,
   IconSortAscendingLetters,
   IconSortDescendingLetters,
+  IconSquareMinus,
+  IconFoldDown,
   IconSquareX
 } from '@tabler/icons';
 
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
+import { sortCollections, collapseFullCollection, expandFullCollection } from 'providers/ReduxStore/slices/collections';
 import { importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 
 import MenuDropdown from 'ui/MenuDropdown';
@@ -176,6 +178,26 @@ const CollectionsSection = () => {
       label: 'Close all',
       onClick: () => {
         selectAllCollectionsToClose();
+      }
+    },
+    {
+      id: 'collapse-all',
+      leftSection: IconSquareMinus,
+      label: 'Collapse all',
+      onClick: () => {
+        collections.forEach((collection) => {
+          dispatch(collapseFullCollection({ collectionUid: collection.uid }));
+        });
+      }
+    },
+    {
+      id: 'expand-all',
+      leftSection: IconFoldDown,
+      label: 'Expand all',
+      onClick: () => {
+        collections.forEach((collection) => {
+          dispatch(expandFullCollection({ collectionUid: collection.uid }));
+        });
       }
     }
   ];
