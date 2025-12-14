@@ -60,7 +60,7 @@ test.describe('Draft values are used in requests', () => {
 
     // Create a request in the collection
     // Create a new request via collection menu
-    await folder.locator('.menu-icon').hover();
+    await folder.hover();
     await folder.locator('.menu-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
 

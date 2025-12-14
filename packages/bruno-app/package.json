@@ -44,9 +44,8 @@
     "i18next": "24.1.2",
     "idb": "^7.0.0",
     "immer": "^9.0.15",
-    "jsesc": "^3.0.2",
     "js-yaml": "^4.1.0",
-    "xml2js": "^0.6.2",
+    "jsesc": "^3.0.2",
     "jshint": "^2.13.6",
     "json5": "^2.2.3",
     "jsonc-parser": "^3.2.1",
@@ -56,6 +55,7 @@
     "lodash": "^4.17.21",
     "markdown-it": "^13.0.2",
     "markdown-it-replace-link": "^1.2.0",
+    "mime-types": "^3.0.2",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.47",
     "mousetrap": "^1.6.5",
@@ -89,6 +89,7 @@
     "system": "^2.0.1",
     "url": "^0.11.3",
     "xml-formatter": "^3.5.0",
+    "xml2js": "^0.6.2",
     "yup": "^0.32.11"
   },
   "devDependencies": {
