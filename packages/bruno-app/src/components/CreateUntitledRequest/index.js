@@ -1,26 +1,23 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode, IconPlus } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 
 const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated, placement = 'bottom' }) => {
   const dispatch = useDispatch();
   const collections = useSelector((state) => state.collections.collections);
   const collection = collections?.find((c) => c.uid === collectionUid);
-  const dropdownTippyRef = useRef();
-
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   if (!collection) {
     return null;
   }
 
-  const handleCreateHttpRequest = async () => {
-    dropdownTippyRef.current?.hide();
+  const handleCreateHttpRequest = useCallback(async () => {
     const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
 
@@ -40,10 +37,9 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
         onRequestCreated?.();
       })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  };
+  }, [dispatch, collection, itemUid, onRequestCreated]);
 
-  const handleCreateGraphQLRequest = async () => {
-    dropdownTippyRef.current?.hide();
+  const handleCreateGraphQLRequest = useCallback(async () => {
     const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
 
@@ -70,10 +66,9 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
         onRequestCreated?.();
       })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  };
+  }, [dispatch, collection, itemUid, onRequestCreated]);
 
-  const handleCreateWebSocketRequest = async () => {
-    dropdownTippyRef.current?.hide();
+  const handleCreateWebSocketRequest = useCallback(async () => {
     const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
 
@@ -92,10 +87,9 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
         onRequestCreated?.();
       })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  };
+  }, [dispatch, collection, itemUid, onRequestCreated]);
 
-  const handleCreateGrpcRequest = async () => {
-    dropdownTippyRef.current?.hide();
+  const handleCreateGrpcRequest = useCallback(async () => {
     const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
 
@@ -113,59 +107,45 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
         onRequestCreated?.();
       })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  };
+  }, [dispatch, collection, itemUid, onRequestCreated]);
+
+  const menuItems = useMemo(() => [
+    {
+      id: 'http',
+      label: 'HTTP',
+      leftSection: <IconApi size={16} strokeWidth={2} />,
+      onClick: handleCreateHttpRequest
+    },
+    {
+      id: 'graphql',
+      label: 'GraphQL',
+      leftSection: <IconBrandGraphql size={16} strokeWidth={2} />,
+      onClick: handleCreateGraphQLRequest
+    },
+    {
+      id: 'websocket',
+      label: 'WebSocket',
+      leftSection: <IconPlugConnected size={16} strokeWidth={2} />,
+      onClick: handleCreateWebSocketRequest
+    },
+    {
+      id: 'grpc',
+      label: 'gRPC',
+      leftSection: <IconCode size={16} strokeWidth={2} />,
+      onClick: handleCreateGrpcRequest
+    }
+  ], [handleCreateHttpRequest, handleCreateGraphQLRequest, handleCreateWebSocketRequest, handleCreateGrpcRequest]);
 
   return (
-    <Dropdown onCreate={onDropdownCreate} icon={<IconPlus size={16} strokeWidth={2} />} placement={placement}>
-      <div
-        className="dropdown-item"
-        onClick={(e) => {
-          dropdownTippyRef.current.hide();
-          handleCreateHttpRequest();
-        }}
-      >
-        <span className="dropdown-icon">
-          <IconApi size={16} strokeWidth={2} />
-        </span>
-        HTTP
-      </div>
-      <div
-        className="dropdown-item"
-        onClick={(e) => {
-          dropdownTippyRef.current.hide();
-          handleCreateGraphQLRequest();
-        }}
-      >
-        <span className="dropdown-icon">
-          <IconBrandGraphql size={16} strokeWidth={2} />
-        </span>
-        GraphQL
-      </div>
-      <div
-        className="dropdown-item"
-        onClick={(e) => {
-          dropdownTippyRef.current.hide();
-          handleCreateWebSocketRequest();
-        }}
-      >
-        <span className="dropdown-icon">
-          <IconPlugConnected size={16} strokeWidth={2} />
-        </span>
-        WebSocket
-      </div>
-      <div
-        className="dropdown-item"
-        onClick={(e) => {
-          dropdownTippyRef.current.hide();
-          handleCreateGrpcRequest();
-        }}
-      >
-        <span className="dropdown-icon">
-          <IconCode size={16} strokeWidth={2} />
-        </span>
-        gRPC
-      </div>
-    </Dropdown>
+    <MenuDropdown
+      items={menuItems}
+      placement={placement}
+      autoFocusFirstOption={true}
+    >
+      <ActionIcon size="sm">
+        <IconPlus size={16} strokeWidth={2} />
+      </ActionIcon>
+    </MenuDropdown>
   );
 };
 

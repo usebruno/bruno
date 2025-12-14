@@ -32,7 +32,7 @@ const ResponseClear = ({ collection, item, children }) => {
   };
 
   return (
-    <div role={!!children ? 'button' : undefined} tabIndex={0} onClick={clearResponse} title={!children ? 'Clear response' : null} onKeyDown={handleKeyDown} data-testid="response-clear-button">
+    <div role={!!children ? 'button' : undefined} tabIndex={0} onClick={clearResponse} title={!children ? 'Clear response' : null} onKeyDown={handleKeyDown} data-testid="response-clear-btn">
       {children ? children : (
         <StyledWrapper className="flex items-center">
           <button className="p-1">

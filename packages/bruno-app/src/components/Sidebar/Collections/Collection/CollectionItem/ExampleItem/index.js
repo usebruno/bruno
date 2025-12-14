@@ -167,7 +167,7 @@ const ExampleItem = ({ example, item, collection }) => {
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    menuDropdownRef.current?.open();
+    menuDropdownRef.current?.show();
   };
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {

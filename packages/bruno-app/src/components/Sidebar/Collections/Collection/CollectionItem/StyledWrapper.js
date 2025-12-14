@@ -26,6 +26,16 @@ const Wrapper = styled.div`
     user-select: none;
     position: relative;
 
+    .collection-item-menu-icon {
+      visibility: hidden;
+    }
+
+    &:hover {
+      .collection-item-menu-icon {
+        visibility: visible;
+      }
+    }
+
     /* Common styles for drop indicators */
     &::before,
     &::after {
@@ -50,7 +60,7 @@ const Wrapper = styled.div`
     /* Drop target styles */
     &.drop-target {
       background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
-      
+
       &::before,
       &::after {
         opacity: 0;

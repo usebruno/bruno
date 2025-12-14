@@ -18,6 +18,11 @@ const Wrapper = styled.div`
     .dropdown-item {
       padding: 0.25rem 0.6rem !important;
     }
+
+    // Style the "Add Custom" item label to look like a link
+    .dropdown-item[data-item-id="add-custom"] .dropdown-label {
+      color: ${(props) => props.theme.textLink};
+    }
   }
 
   input {
@@ -40,6 +45,9 @@ const Wrapper = styled.div`
     overflow: hidden;
     white-space: nowrap;
     display: inline-block;
+    text-align: center;
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 500;
   }
 
   .caret {

@@ -1,7 +1,7 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useMemo, forwardRef, useRef } from 'react';
 import styled from 'styled-components';
 import { IconDots, IconDownload, IconEraser, IconBookmark, IconCopy, IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import ResponseDownload from '../ResponseDownload';
 import ResponseBookmark from '../ResponseBookmark';
 import ResponseClear from '../ResponseClear';
@@ -39,84 +39,107 @@ MenuIcon.displayName = 'MenuIcon';
 
 const ResponsePaneActions = ({ item, collection, responseSize }) => {
   const { orientation } = useResponseLayoutToggle();
-  const dropdownTippyRef = useRef();
 
-  const onDropdownCreate = (ref) => {
-    dropdownTippyRef.current = ref;
-  };
-
-  const closeDropdown = () => {
-    if (dropdownTippyRef.current) {
-      dropdownTippyRef.current.hide();
-    }
-  };
+  // Refs to trigger actions on buttons
+  const bookmarkButtonRef = useRef(null);
+  const downloadButtonRef = useRef(null);
+  const clearButtonRef = useRef(null);
+  const copyButtonRef = useRef(null);
+  const layoutToggleButtonRef = useRef(null);
 
   if (item.type !== 'http-request') {
     return null;
   }
 
+  const menuItems = useMemo(() => {
+    const items = [];
+
+    // Response Copy
+    items.push({
+      id: 'copy-response',
+      label: 'Copy response',
+      leftSection: IconCopy,
+      onClick: () => {
+        // Trigger the ResponseCopy action via ref
+        copyButtonRef.current?.click();
+      }
+    });
+
+    // Response Save as Example
+    items.push({
+      id: 'save-response',
+      label: 'Save response',
+      leftSection: IconBookmark,
+      onClick: () => {
+        // Trigger the ResponseBookmark action via ref
+        bookmarkButtonRef.current?.click();
+      }
+    });
+
+    // Response Download
+    items.push({
+      id: 'download-response',
+      label: 'Download response',
+      leftSection: IconDownload,
+      onClick: () => {
+        // Trigger the ResponseDownload action via ref
+        downloadButtonRef.current?.click();
+      }
+    });
+
+    // Response Clear
+    items.push({
+      id: 'clear-response',
+      label: 'Clear response',
+      leftSection: IconEraser,
+      onClick: () => {
+        // Trigger the ResponseClear action via ref
+        clearButtonRef.current?.click();
+      }
+    });
+
+    // Response Layout Toggle
+    items.push({
+      id: 'change-layout',
+      label: 'Change layout',
+      leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
+      onClick: () => {
+        // Trigger the ResponseLayoutToggle action via ref
+        layoutToggleButtonRef.current?.click();
+      }
+    });
+
+    return items;
+  }, [orientation]);
+
   return (
     <StyledWrapper className="response-pane-actions-wrapper">
       <div className="actions-dropdown">
-        <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon data-testid="response-actions-menu" />} placement="bottom-end">
-
-          {/* Response Copy */}
-          <ResponseCopy item={item}>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                <IconCopy size={16} strokeWidth={1.5} />
-              </span>
-              <span>Copy response</span>
-            </div>
-          </ResponseCopy>
-
-          {/* Response Save as Example */}
-          <ResponseBookmark item={item} collection={collection} responseSize={responseSize}>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                <IconBookmark size={16} strokeWidth={1.5} />
-              </span>
-              <span>Save response</span>
-            </div>
-          </ResponseBookmark>
-
-          {/* Response Download */}
-          <ResponseDownload item={item}>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                <IconDownload size={16} strokeWidth={1.5} />
-              </span>
-              Download response
-            </div>
-          </ResponseDownload>
-
-          {/* Response Clear */}
-          <ResponseClear item={item} collection={collection}>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                <IconEraser size={16} strokeWidth={1.5} />
-              </span>
-              Clear response
-            </div>
-          </ResponseClear>
-
-          {/* Response Layout Toggle */}
-          <ResponseLayoutToggle>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                {orientation === 'vertical' ? <IconLayoutColumns size={16} strokeWidth={1.5} /> : <IconLayoutRows size={16} strokeWidth={1.5} />}
-              </span>
-              <span>Change layout</span>
-            </div>
-          </ResponseLayoutToggle>
-        </Dropdown>
+        <MenuDropdown
+          items={menuItems}
+          placement="bottom-end"
+          data-testid="response-actions-menu"
+        >
+          <MenuIcon />
+        </MenuDropdown>
       </div>
       <div className="actions-buttons flex items-center gap-[2px]">
-        <ResponseCopy item={item} />
-        <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
-        <ResponseDownload item={item} />
-        <ResponseClear item={item} collection={collection} />
-        <ResponseLayoutToggle />
+        <div ref={(el) => { copyButtonRef.current = el?.querySelector('[data-testid="response-copy-btn"]'); }}>
+          <ResponseCopy item={item} />
+        </div>
+
+        <div ref={(el) => { bookmarkButtonRef.current = el?.querySelector('[data-testid="response-bookmark-btn"]'); }}>
+          <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
+        </div>
+        <div ref={(el) => { downloadButtonRef.current = el?.querySelector('[data-testid="response-download-btn"]'); }}>
+          <ResponseDownload item={item} />
+        </div>
+        <div ref={(el) => { clearButtonRef.current = el?.querySelector('[data-testid="response-clear-btn"]'); }}>
+          <ResponseClear item={item} collection={collection} />
+        </div>
+        <div ref={(el) => { layoutToggleButtonRef.current = el?.querySelector('[data-testid="response-layout-toggle-btn"]'); }}>
+          <ResponseLayoutToggle />
+        </div>
       </div>
 
     </StyledWrapper>

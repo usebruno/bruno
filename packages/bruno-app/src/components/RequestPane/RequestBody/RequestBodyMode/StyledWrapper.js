@@ -8,15 +8,6 @@ const Wrapper = styled.div`
     background: transparent;
     border-radius: 3px;
 
-    .dropdown-item {
-      padding: 0.2rem 0.6rem !important;
-      padding-left: 1.5rem !important;
-    }
-
-    .label-item {
-      padding: 0.2rem 0.6rem !important;
-    }
-
     .selected-body-mode {
       color: ${(props) => props.theme.colors.text.yellow};
     }

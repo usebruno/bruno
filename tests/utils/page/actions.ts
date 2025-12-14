@@ -13,7 +13,8 @@ const closeAllCollections = async (page) => {
     const numberOfCollections = await page.locator('[data-testid="collections"] .collection-name').count();
 
     for (let i = 0; i < numberOfCollections; i++) {
-      await page.locator('[data-testid="collections"] .collection-name').first().locator('.collection-actions').click();
+      await page.locator('[data-testid="collections"] .collection-name').first().hover();
+      await page.locator('[data-testid="collections"] .collection-actions').click();
       await page.locator('.dropdown-item').getByText('Remove').click();
       // Wait for the remove collection modal to be visible
       await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'visible' });

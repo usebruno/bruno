@@ -76,7 +76,7 @@ const Wrapper = styled.div`
       }
 
       &:nth-last-child(1) {
-        margin-right: 10px;
+        margin-right: 4px;
       }
 
       &.has-overflow:not(:hover) .tab-name {

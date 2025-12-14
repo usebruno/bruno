@@ -49,6 +49,7 @@ const ResponseDownload = ({ item, children }) => {
       className={classnames({
         'opacity-50 cursor-not-allowed': isDisabled
       })}
+      data-testid="response-download-btn"
     >
       {children ? children : (
         <StyledWrapper className="flex items-center">

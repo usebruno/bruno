@@ -7,6 +7,7 @@ import { useDispatch } from 'react-redux';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
+import ActionIcon from 'ui/ActionIcon';
 
 const CollectionToolBar = ({ collection }) => {
   const dispatch = useDispatch();
@@ -43,33 +44,31 @@ const CollectionToolBar = ({ collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex items-center py-2 px-4">
-        <div className="flex flex-1 items-center cursor-pointer hover:underline" onClick={viewCollectionSettings}>
+      <div className="flex items-center justify-between gap-2 py-2 px-4">
+        <div className="flex items-center cursor-pointer hover:underline" onClick={viewCollectionSettings}>
           <IconBox size={18} strokeWidth={1.5} />
           <span className="ml-2 mr-4 font-medium">{collection?.name}</span>
         </div>
-        <div className="flex flex-3 items-center justify-end">
-          <span className="mr-3">
-            <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place="bottom">
-              <IconRun className="cursor-pointer" size={16} strokeWidth={1.5} onClick={handleRun} />
-            </ToolHint>
-          </span>
-          <span className="mr-3">
-            <ToolHint text="Variables" toolhintId="VariablesToolhintId">
-              <IconEye className="cursor-pointer" size={16} strokeWidth={1.5} onClick={viewVariables} />
-            </ToolHint>
-          </span>
-          <span className="mr-3">
-            <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
-              <IconSettings className="cursor-pointer" size={16} strokeWidth={1.5} onClick={viewCollectionSettings} />
-            </ToolHint>
-          </span>
-          <span className="mr-2">
-            <ToolHint text="Javascript Sandbox" toolhintId="JavascriptSandboxToolhintId" place="bottom">
-              <JsSandboxMode collection={collection} />
-            </ToolHint>
-          </span>
-          <span>
+        <div className="flex flex-3 gap-1 items-center justify-end">
+          <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place="bottom">
+            <ActionIcon onClick={handleRun} ariaLabel="Runner" size="sm">
+              <IconRun size={16} strokeWidth={1.5} />
+            </ActionIcon>
+          </ToolHint>
+          <ToolHint text="Variables" toolhintId="VariablesToolhintId">
+            <ActionIcon onClick={viewVariables} ariaLabel="Variables" size="sm">
+              <IconEye size={16} strokeWidth={1.5} />
+            </ActionIcon>
+          </ToolHint>
+          <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
+            <ActionIcon onClick={viewCollectionSettings} ariaLabel="Collection Settings" size="sm">
+              <IconSettings size={16} strokeWidth={1.5} />
+            </ActionIcon>
+          </ToolHint>
+          <ToolHint text="Javascript Sandbox" toolhintId="JavascriptSandboxToolhintId" place="bottom">
+            <JsSandboxMode collection={collection} />
+          </ToolHint>
+          <span className="ml-2">
             <EnvironmentSelector collection={collection} />
           </span>
         </div>
