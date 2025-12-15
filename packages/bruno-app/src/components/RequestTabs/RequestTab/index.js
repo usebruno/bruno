@@ -51,6 +51,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     }
   }, [item]);
 
+  const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
+
+  const isWS = item?.type === 'ws-request';
+
   useEffect(() => {
     if (!item || !tabNameRef.current || !setHasOverflow) return;
 
@@ -236,8 +240,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
-
   if (!item) {
     return (
       <StyledWrapper
@@ -255,35 +257,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       </StyledWrapper>
     );
   }
-
-  const isWS = item.type === 'ws-request';
-
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (tabNameRef.current && setHasOverflow) {
-        const hasOverflow = tabNameRef.current.scrollWidth > tabNameRef.current.clientWidth;
-        if (lastOverflowStateRef.current !== hasOverflow) {
-          lastOverflowStateRef.current = hasOverflow;
-          setHasOverflow(hasOverflow);
-        }
-      }
-    };
-
-    const timeoutId = setTimeout(checkOverflow, 0);
-
-    const resizeObserver = new ResizeObserver(() => {
-      checkOverflow();
-    });
-
-    if (tabNameRef.current) {
-      resizeObserver.observe(tabNameRef.current);
-    }
-
-    return () => {
-      clearTimeout(timeoutId);
-      resizeObserver.disconnect();
-    };
-  }, [item.name, method, setHasOverflow]);
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
