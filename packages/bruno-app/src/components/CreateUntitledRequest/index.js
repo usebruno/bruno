@@ -13,10 +13,6 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
   const collections = useSelector((state) => state.collections.collections);
   const collection = collections?.find((c) => c.uid === collectionUid);
 
-  if (!collection) {
-    return null;
-  }
-
   const handleCreateHttpRequest = useCallback(async () => {
     const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
@@ -135,6 +131,10 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
       onClick: handleCreateGrpcRequest
     }
   ], [handleCreateHttpRequest, handleCreateGraphQLRequest, handleCreateWebSocketRequest, handleCreateGrpcRequest]);
+
+  if (!collection) {
+    return null;
+  }
 
   return (
     <MenuDropdown

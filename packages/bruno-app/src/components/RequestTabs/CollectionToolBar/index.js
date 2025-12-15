@@ -51,17 +51,17 @@ const CollectionToolBar = ({ collection }) => {
         </div>
         <div className="flex flex-3 gap-1 items-center justify-end">
           <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place="bottom">
-            <ActionIcon onClick={handleRun} ariaLabel="Runner" size="sm">
+            <ActionIcon onClick={handleRun} aria-label="Runner" size="sm">
               <IconRun size={16} strokeWidth={1.5} />
             </ActionIcon>
           </ToolHint>
           <ToolHint text="Variables" toolhintId="VariablesToolhintId">
-            <ActionIcon onClick={viewVariables} ariaLabel="Variables" size="sm">
+            <ActionIcon onClick={viewVariables} aria-label="Variables" size="sm">
               <IconEye size={16} strokeWidth={1.5} />
             </ActionIcon>
           </ToolHint>
           <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
-            <ActionIcon onClick={viewCollectionSettings} ariaLabel="Collection Settings" size="sm">
+            <ActionIcon onClick={viewCollectionSettings} aria-label="Collection Settings" size="sm">
               <IconSettings size={16} strokeWidth={1.5} />
             </ActionIcon>
           </ToolHint>

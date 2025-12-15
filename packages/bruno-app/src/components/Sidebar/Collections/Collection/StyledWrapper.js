@@ -15,7 +15,9 @@ const Wrapper = styled.div`
       visibility: hidden;
     }
 
-    &:hover {
+    &:hover,
+    &:focus-within,
+    &.collection-keyboard-focused {
       .collection-actions {
         visibility: visible;
       }

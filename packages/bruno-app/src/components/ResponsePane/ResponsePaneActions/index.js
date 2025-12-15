@@ -47,10 +47,6 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
   const copyButtonRef = useRef(null);
   const layoutToggleButtonRef = useRef(null);
 
-  if (item.type !== 'http-request') {
-    return null;
-  }
-
   const menuItems = useMemo(() => {
     const items = [];
 
@@ -111,6 +107,10 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
 
     return items;
   }, [orientation]);
+
+  if (item.type !== 'http-request') {
+    return null;
+  }
 
   return (
     <StyledWrapper className="response-pane-actions-wrapper">

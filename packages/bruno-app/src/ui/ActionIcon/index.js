@@ -16,7 +16,7 @@ import StyledWrapper from './StyledWrapper';
  * @param {string} [props.ariaLabel] - Accessibility label (falls back to label or title)
  * @param {string} props.colorOnHover - Color to apply to icon on hover/focus (e.g., 'red', '#ef4444', 'var(--color-danger)')
  * @param {string} props.color - Color to override the default variant color (e.g., 'red', '#ef4444', 'var(--color-text)')
- * @param {string} props.style - Style to override the default variant style (e.g., 'width: 16px; min-width: 16px;')
+ * @param {Object} props.style - Style object to override the default variant style (e.g., 'width: 16px; min-width: 16px;')
  * @param {Object} props...rest - Other props passed to the underlying element
  */
 const ActionIcon = ({

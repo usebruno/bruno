@@ -39,7 +39,7 @@ const GrpcAuthMode = ({ item, collection }) => {
     },
     {
       id: 'oauth2',
-      label: 'OAuth2',
+      label: 'OAuth 2.0',
       onClick: () => onModeChange('oauth2')
     },
     {

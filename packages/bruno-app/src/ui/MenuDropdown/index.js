@@ -43,7 +43,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {function} props.onChange - Callback when dropdown state changes: (opened: boolean) => void
  * @param {ReactNode} props.header - Optional header content to render above menu items
  * @param {ReactNode} props.footer - Optional footer content to render below menu items
- * @param {boolean} props.showTickMark - Optional flag to show checkmark (✓) on selected items (default: false)
+ * @param {boolean} props.showTickMark - Optional flag to show checkmark (✓) on selected items (default: true)
  * @param {boolean} props.showGroupDividers - Optional flag to show dividers between groups in grouped format (default: true)
  * @param {string} props.groupStyle - Style for grouped items: 'action' (default, normal case) or 'select' (uppercase labels, indented items)
  * @param {boolean} props.autoFocusFirstOption - Optional flag to auto-focus first option when dropdown opens (default: false)
@@ -123,7 +123,8 @@ const MenuDropdown = forwardRef(({
     }
 
     // Check if it's a grouped format: [{options: [{value, label, ...}]}, ...]
-    const isGrouped = itemsToNormalize.length > 0 && 'options' in itemsToNormalize[0];
+    const firstItem = itemsToNormalize[0];
+    const isGrouped = firstItem != null && typeof firstItem === 'object' && 'options' in firstItem;
 
     if (isGrouped) {
       const result = [];
@@ -276,9 +277,9 @@ const MenuDropdown = forwardRef(({
       updateOpenState(false);
     },
     toggle: () => {
-      updateOpenState((prev) => !prev);
+      updateOpenState(!isOpen);
     }
-  }), [updateOpenState]);
+  }), [updateOpenState, isOpen]);
 
   // Setup Tippy instance
   const onDropdownCreate = useCallback((ref) => {
@@ -363,7 +364,7 @@ const MenuDropdown = forwardRef(({
         aria-disabled={item.disabled}
         aria-current={isActive ? 'true' : undefined}
         title={item.title}
-        data-testid={`${testId}-${item.id.toLowerCase()}`}
+        data-testid={`${testId}-${String(item.id).toLowerCase()}`}
       >
         {renderSection(item.leftSection)}
         <span className="dropdown-label">{item.label}</span>
