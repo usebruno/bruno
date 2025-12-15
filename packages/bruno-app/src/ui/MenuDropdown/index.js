@@ -211,7 +211,10 @@ const MenuDropdown = forwardRef(({
         item.classList.add('dropdown-item-focused');
       }
       item.focus();
-      item.scrollIntoView({ block: 'nearest' });
+      // scrollIntoView may not be available in test environments (jsdom)
+      if (typeof item.scrollIntoView === 'function') {
+        item.scrollIntoView({ block: 'nearest' });
+      }
     }
   };
 

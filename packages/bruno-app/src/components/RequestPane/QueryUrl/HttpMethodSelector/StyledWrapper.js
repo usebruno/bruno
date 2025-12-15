@@ -20,7 +20,7 @@ const Wrapper = styled.div`
     }
 
     // Style the "Add Custom" item label to look like a link
-    .dropdown-item[data-item-id="add-custom"] .dropdown-label {
+    .text-link {
       color: ${(props) => props.theme.textLink};
     }
   }

@@ -97,7 +97,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
       id: 'add-custom',
       label: '+ Add Custom',
       onClick: handleAddCustomMethod,
-      className: 'font-normal mt-1'
+      className: 'font-normal mt-1 text-link'
     });
 
     return items;
