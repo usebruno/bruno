@@ -11,13 +11,17 @@ import { toBrunoAssertions } from '../common/assertions';
 import { uuid } from '../../../utils';
 
 const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
+  const info = ocRequest.info;
+  const http = ocRequest.http;
+  const runtime = ocRequest.runtime;
+
   const brunoRequest: BrunoHttpRequest = {
-    url: ocRequest.url || '',
-    method: ocRequest.method || 'GET',
-    headers: toBrunoHttpHeaders(ocRequest.headers) || [],
-    params: toBrunoParams(ocRequest.params) || [],
-    auth: toBrunoAuth(ocRequest.auth),
-    body: toBrunoBody(ocRequest.body as HttpRequestBody) || {
+    url: http?.url || '',
+    method: http?.method || 'GET',
+    headers: toBrunoHttpHeaders(http?.headers) || [],
+    params: toBrunoParams(http?.params) || [],
+    auth: toBrunoAuth(runtime?.auth),
+    body: toBrunoBody(http?.body as HttpRequestBody) || {
       mode: 'none',
       json: null,
       text: null,
@@ -42,7 +46,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   };
 
   // scripts
-  const scripts = toBrunoScripts(ocRequest.scripts);
+  const scripts = toBrunoScripts(runtime?.scripts);
   if (scripts?.script && brunoRequest.script) {
     if (scripts.script.req) {
       brunoRequest.script.req = scripts.script.req;
@@ -56,11 +60,11 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   }
 
   // variables
-  const variables = toBrunoVariables(ocRequest.variables);
+  const variables = toBrunoVariables(runtime?.variables);
   brunoRequest.vars = variables;
 
   // assertions
-  const assertions = toBrunoAssertions(ocRequest.assertions);
+  const assertions = toBrunoAssertions(runtime?.assertions);
   if (assertions) {
     brunoRequest.assertions = assertions;
   }
@@ -74,9 +78,9 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'http-request',
-    seq: ocRequest.seq || 1,
-    name: ocRequest.name || 'Untitled Request',
-    tags: ocRequest.tags || [],
+    seq: info?.seq || 1,
+    name: info?.name || 'Untitled Request',
+    tags: info?.tags || [],
     request: brunoRequest,
     settings: null,
     fileContent: null,

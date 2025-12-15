@@ -84,7 +84,7 @@ const constructUrlFromParts = (url) => {
 
   const { protocol = 'http', host, path, port, query, hash } = url || {};
   const hostStr = Array.isArray(host) ? host.filter(Boolean).join('.') : host || '';
-  const pathStr = Array.isArray(path) ? path.filter(Boolean).join('/') : path || '';
+  const pathStr = Array.isArray(path) ? path.join('/') : path || '';
   const portStr = port ? `:${port}` : '';
   const queryStr
     = query && Array.isArray(query) && query.length > 0

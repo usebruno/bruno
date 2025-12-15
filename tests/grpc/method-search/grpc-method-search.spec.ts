@@ -15,7 +15,7 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
 
   test.afterEach(async ({ pageWithUserData: page }) => {
     await test.step('Close the gRPC sayHello tab without saving changes', async () => {
-      await page.getByRole('tab', { name: 'gRPC sayHello' }).getByRole('img').click();
+      await page.getByRole('tab', { name: 'gRPC sayHello' }).getByTestId('request-tab-close-icon').click();
       await page.getByRole('button', { name: 'Don\'t Save' }).click();
     });
   });

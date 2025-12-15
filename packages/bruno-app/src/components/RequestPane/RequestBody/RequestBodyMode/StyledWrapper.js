@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   font-size: ${(props) => props.theme.font.size.base};
+  white-space: nowrap;
 
   .body-mode-selector {
     background: transparent;

@@ -10,7 +10,7 @@ test('should persist request with newlines across app restarts', async ({ create
   const app1 = await launchElectronApp({ userDataPath });
   const page = await app1.firstWindow();
 
-  await page.locator('.plus-icon-button').click();
+  await page.getByTestId('collections-header-add-menu').click();
   await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
   await page.locator('.bruno-modal').getByLabel('Name').fill('newlines-persistence');
   await page.locator('.bruno-modal').getByLabel('Location').fill(collectionPath);
@@ -28,35 +28,25 @@ test('should persist request with newlines across app restarts', async ({ create
   await openCollectionAndAcceptSandbox(page, 'newlines-persistence', 'safe');
   await page.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
-  // Add query param
   await page.getByRole('tab', { name: 'Params' }).click();
-  await page.getByRole('button', { name: /Add.*Param/i }).click();
+  const paramRow = page.locator('table tbody tr').first();
+  await getTableCell(paramRow, 0).getByRole('textbox').fill('queryParamKey');
 
-  const paramRow = page.locator('table tbody tr').last();
-  await getTableCell(paramRow, 0).locator('input[type="text"]').fill('queryParamKey');
-
-  // Add header with newlines
   await page.getByRole('tab', { name: 'Headers' }).click();
-  await page.getByRole('button', { name: /Add.*Header/i }).click();
-
-  const headerRow = page.locator('table tbody tr').last();
+  const headerRow = page.locator('table tbody tr').first();
   await getTableCell(headerRow, 0).locator('.CodeMirror').click();
   await getTableCell(headerRow, 0).locator('textarea').fill('headerKey');
   await getTableCell(headerRow, 1).locator('.CodeMirror').click();
   await getTableCell(headerRow, 1).locator('textarea').fill('header\nValue');
 
-  // Add Pre Request var with newlines
   await page.getByRole('tab', { name: 'Vars' }).click();
-  await page.locator('.btn-add-var').first().click();
   const preReqRow = page.locator('table').first().locator('tbody tr').first();
-  await getTableCell(preReqRow, 0).locator('input[type="text"]').fill('preRequestVar');
+  await getTableCell(preReqRow, 0).getByRole('textbox').fill('preRequestVar');
   await getTableCell(preReqRow, 1).locator('.CodeMirror').click();
   await getTableCell(preReqRow, 1).locator('textarea').fill('pre\nRequest\nValue');
 
-  // Add Post Response var with newlines
-  await page.locator('.btn-add-var').last().click();
   const postResRow = page.locator('table').nth(1).locator('tbody tr').first();
-  await getTableCell(postResRow, 0).locator('input[type="text"]').fill('postResponseVar');
+  await getTableCell(postResRow, 0).getByRole('textbox').fill('postResponseVar');
   await getTableCell(postResRow, 1).locator('.CodeMirror').click();
   await getTableCell(postResRow, 1).locator('textarea').fill('post\nResponse\nValue');
 
@@ -72,16 +62,16 @@ test('should persist request with newlines across app restarts', async ({ create
 
   // Verify params persisted
   await page2.getByRole('tab', { name: 'Params' }).click();
-  await expect(page2.locator('table tbody tr')).toHaveCount(1);
+  await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify headers persisted
   await page2.getByRole('tab', { name: 'Headers' }).click();
-  await expect(page2.locator('table tbody tr')).toHaveCount(1);
+  await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify vars persisted
   await page2.getByRole('tab', { name: 'Vars' }).click();
-  await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(1);
-  await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(1);
+  await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(2);
+  await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(2);
 
   await app2.close();
 });

@@ -13,8 +13,10 @@ const {
   stringifyCollection,
   parseFolder,
   stringifyFolder,
-  stringifyEnvironment
+  stringifyEnvironment,
+  parseEnvironment
 } = require('@usebruno/filestore');
+const { dotenvToJson } = require('@usebruno/lang');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
@@ -41,7 +43,11 @@ const {
   copyPath,
   removePath,
   getPaths,
-  generateUniqueName
+  generateUniqueName,
+  isDotEnvFile,
+  isBrunoConfigFile,
+  isBruEnvironmentConfig,
+  isCollectionRootBruFile
 } = require('../utils/filesystem');
 const { openCollectionDialog, openCollectionsByPathname } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
@@ -185,11 +191,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       let brunoConfig;
 
       if (format === 'yml') {
-        const content = fs.readFileSync('opencollection.yml', 'utf8');
+        const configFilePath = path.join(previousPath, 'opencollection.yml');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         const {
           brunoConfig: parsedBrunoConfig,
           collectionRoot
-        } = parseCollection(content);
+        } = parseCollection(content, { format });
 
         brunoConfig = parsedBrunoConfig;
         brunoConfig.name = collectionName;
@@ -197,7 +204,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const newContent = stringifyCollection(collectionRoot, brunoConfig, { format });
         await writeFile(path.join(dirPath, 'opencollection.yml'), newContent);
       } else if (format === 'bru') {
-        const content = fs.readFileSync('bruno.json', 'utf8');
+        const configFilePath = path.join(previousPath, 'bruno.json');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         brunoConfig = JSON.parse(content);
         brunoConfig.name = collectionName;
         const newContent = await stringifyJson(brunoConfig);
@@ -213,8 +221,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const relativePath = path.relative(previousPath, sourceFilePath);
         const newFilePath = path.join(dirPath, relativePath);
 
-        // skip if the file is opencollection.yml at the root of the collection
-        if (path.basename(sourceFilePath) === 'opencollection.yml' && path.dirname(sourceFilePath) === previousPath) {
+        // skip if the file is opencollection.yml or bruno.json at the root of the collection
+        const isRootConfigFile = (path.basename(sourceFilePath) === 'opencollection.yml' || path.basename(sourceFilePath) === 'bruno.json')
+          && path.dirname(sourceFilePath) === previousPath;
+
+        if (isRootConfigFile) {
           continue;
         }
 
@@ -238,18 +249,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const format = getCollectionFormat(collectionPathname);
 
       if (format === 'yml') {
-        const content = fs.readFileSync('opencollection.yml', 'utf8');
+        const configFilePath = path.join(collectionPathname, 'opencollection.yml');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         const {
           brunoConfig,
           collectionRoot
-        } = parseCollection(content);
+        } = parseCollection(content, { format: 'yml' });
 
         brunoConfig.name = newName;
 
-        const newContent = stringifyCollection(collectionRoot, brunoConfig, { format });
+        const newContent = stringifyCollection(collectionRoot, brunoConfig, { format: 'yml' });
         await writeFile(path.join(collectionPathname, 'opencollection.yml'), newContent);
       } else if (format === 'bru') {
-        const content = fs.readFileSync('bruno.json', 'utf8');
+        const configFilePath = path.join(collectionPathname, 'bruno.json');
+        const content = fs.readFileSync(configFilePath, 'utf8');
         const brunoConfig = JSON.parse(content);
         brunoConfig.name = newName;
         const newContent = await stringifyJson(brunoConfig);
@@ -1532,6 +1545,116 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       console.error('Error converting Postman to Bruno:', error);
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('renderer:get-collection-json', async (event, collectionPath) => {
+    let variables = {};
+    let name = '';
+    const getBruFilesRecursively = async (dir) => {
+      const getFilesInOrder = async (dir) => {
+        let bruJsons = [];
+
+        const traverse = async (currentPath) => {
+          const filesInCurrentDir = fs.readdirSync(currentPath);
+
+          if (currentPath.includes('node_modules')) {
+            return;
+          }
+
+          for (const file of filesInCurrentDir) {
+            const filePath = path.join(currentPath, file);
+            const stats = fs.lstatSync(filePath);
+
+            if (stats.isDirectory() && !filePath.startsWith('.git') && !filePath.startsWith('node_modules')) {
+              await traverse(filePath);
+            }
+          }
+
+          const currentDirBruJsons = [];
+          for (const file of filesInCurrentDir) {
+            const filePath = path.join(currentPath, file);
+            const stats = fs.lstatSync(filePath);
+
+            if (isBrunoConfigFile(filePath, collectionPath)) {
+              try {
+                const content = fs.readFileSync(filePath, 'utf8');
+                const brunoConfig = JSON.parse(content);
+
+                name = brunoConfig?.name;
+              } catch (err) {
+                console.error(err);
+              }
+            }
+
+            if (isDotEnvFile(filePath, collectionPath)) {
+              try {
+                const content = fs.readFileSync(filePath, 'utf8');
+                const jsonData = dotenvToJson(content);
+                variables = {
+                  ...variables,
+                  processEnvVariables: {
+                    ...process.env,
+                    ...jsonData
+                  }
+                };
+                continue;
+              } catch (err) {
+                console.error(err);
+              }
+            }
+
+            if (isBruEnvironmentConfig(filePath, collectionPath)) {
+              try {
+                let bruContent = fs.readFileSync(filePath, 'utf8');
+                const environmentFilepathBasename = path.basename(filePath);
+                const environmentName = environmentFilepathBasename.substring(0, environmentFilepathBasename.length - 4);
+                let data = await parseEnvironment(bruContent);
+                variables = {
+                  ...variables,
+                  envVariables: {
+                    ...(variables?.envVariables || {}),
+                    [path.basename(filePath)]: data.variables
+                  }
+                };
+                continue;
+              } catch (err) {
+                console.error(err);
+              }
+            }
+
+            if (isCollectionRootBruFile(filePath, collectionPath)) {
+              try {
+                let bruContent = fs.readFileSync(filePath, 'utf8');
+                let data = await parseCollection(bruContent);
+                // TODO
+                continue;
+              } catch (err) {
+                console.error(err);
+              }
+            }
+            if (!stats.isDirectory() && path.extname(filePath) === '.bru' && file !== 'folder.bru') {
+              const bruContent = fs.readFileSync(filePath, 'utf8');
+              const bruJson = parseRequest(bruContent);
+
+              currentDirBruJsons.push({
+                ...bruJson
+              });
+            }
+          }
+
+          bruJsons = bruJsons.concat(currentDirBruJsons);
+        };
+
+        await traverse(dir);
+        return bruJsons;
+      };
+
+      const orderedFiles = await getFilesInOrder(dir);
+      return orderedFiles;
+    };
+
+    const files = await getBruFilesRecursively(collectionPath);
+    return { name, files, ...variables };
   });
 };
 

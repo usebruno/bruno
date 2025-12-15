@@ -6,7 +6,7 @@
 
 - Use 2 spaces for indentation. No tabs, just spaces – keeps everything neat and uniform.
 
-- Stick to single quotes for strings. Double quotes are cool elsewhere, but here we go single.
+- Stick to single quotes for strings. For JSX/TSX attributes, use double quotes (e.g., <svg xmlns="..." viewBox="...">) to follow React conventions.
 
 - Always add semicolons at the end of statements. It's like putting a period at the end of a sentence – clarity matters.
 

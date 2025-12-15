@@ -1,6 +1,7 @@
 import { test, expect } from '../../../playwright';
 import fs from 'fs';
 import path from 'path';
+import { sendRequest } from '../../utils/page';
 
 test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
   test('set env var with persist using script', async ({ pageWithUserData: page, restartApp }) => {
@@ -21,9 +22,7 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
     await expect(page.locator('.current-environment', { hasText: 'Stage' })).toBeVisible();
 
     // Send the request
-    await page.getByTestId('send-arrow-icon').click();
-    await page.getByTestId('response-status-code').getByText(/200/).waitFor({ state: 'visible' });
-    await page.waitForTimeout(100);
+    await sendRequest(page, 200);
 
     // confirm that the environment variable is set
     await page.getByTestId('environment-selector-trigger').click();

@@ -7,6 +7,7 @@ const { writeFile, createDirectory } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
+const { generateYamlContent } = require('../utils/workspace-config');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -162,11 +163,7 @@ class GlobalEnvironmentsManager {
 
       workspaceConfig.activeEnvironmentUid = environmentUid;
 
-      const yamlOutput = yaml.dump(workspaceConfig, {
-        indent: 2,
-        lineWidth: -1,
-        noRefs: true
-      });
+      const yamlOutput = generateYamlContent(workspaceConfig);
 
       await writeFile(workspaceFilePath, yamlOutput);
       return true;

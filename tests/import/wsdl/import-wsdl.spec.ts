@@ -13,7 +13,7 @@ test.describe('Import WSDL Collection', () => {
     const wsdlFile = path.join(testDataDir, 'wsdl.xml');
 
     await test.step('Open import collection modal', async () => {
-      await page.locator('.plus-icon-button').click();
+      await page.getByTestId('collections-header-add-menu').click();
       await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       // Wait for import collection modal to be ready
@@ -71,7 +71,7 @@ test.describe('Import WSDL Collection', () => {
     const wsdlFile = path.join(testDataDir, 'wsdl-bruno.json');
 
     await test.step('Open import collection modal', async () => {
-      await page.locator('.plus-icon-button').click();
+      await page.getByTestId('collections-header-add-menu').click();
       await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       // Wait for import collection modal to be ready

@@ -9,7 +9,7 @@ test.describe('Move tabs', () => {
 
   test('Verify tab move by drag and drop', async ({ page, createTmpDir }) => {
     // Create a collection
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('source-collection-drag-drop');
     const locationInput = page.locator('.bruno-modal').getByLabel('Location');
@@ -50,7 +50,7 @@ test.describe('Move tabs', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
+    await page.locator('#new-request-url textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created
@@ -100,7 +100,7 @@ test.describe('Move tabs', () => {
 
   test('Verify tab move by keyboard shortcut', async ({ page, createTmpDir }) => {
     // Create a collection
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('source-collection-keyboard-shortcut');
     const locationInput2 = page.locator('.bruno-modal').getByLabel('Location');
@@ -141,7 +141,7 @@ test.describe('Move tabs', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
+    await page.locator('#new-request-url textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created

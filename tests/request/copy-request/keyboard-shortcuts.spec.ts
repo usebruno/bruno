@@ -11,7 +11,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
     const collection = page.locator('.collection-name').filter({ hasText: 'keyboard-test' });
 
     // Create a request
-    await collection.locator('.collection-actions').hover();
+    await collection.hover();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
@@ -54,7 +54,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
     const collection = page.locator('.collection-name').filter({ hasText: 'keyboard-test' });
 
     // Create a folder
-    await collection.locator('.collection-actions').hover();
+    await collection.hover();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('test-folder');

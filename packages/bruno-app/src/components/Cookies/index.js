@@ -137,6 +137,7 @@ const CollectionProperties = ({ onClose }) => {
               value={searchText || ''}
               onChange={(e) => setSearchText(e.target.value)}
               className="block textbox non-passphrase-input ml-auto font-normal"
+              autoFocus
             />
             <button
               type="submit"

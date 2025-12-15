@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { closeAllCollections, createCollection } from '../utils/page/actions';
+import { closeAllCollections, createCollection, createUntitledRequest } from '../utils/page/actions';
 
 test.describe('Large Response Crash/High Memory Usage Prevention', () => {
   // Increase timeout to 1 minute for all tests in this describe block, default is 30 seconds.
@@ -17,14 +17,11 @@ test.describe('Large Response Crash/High Memory Usage Prevention', () => {
     // Create collection
     await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
 
-    // Create request
-    await page.locator('#create-new-tab').getByRole('img').click();
-
-    const createRequestModal = page.locator('.bruno-modal-card').filter({ hasText: 'New Request' });
-    await createRequestModal.getByPlaceholder('Request Name').fill('size-check');
-    await createRequestModal.locator('#new-request-url .CodeMirror').click();
-    await createRequestModal.locator('textarea').fill('https://samples.json-format.com/employees/json/employees_50MB.json');
-    await createRequestModal.getByRole('button', { name: 'Create' }).click();
+    // Create request using the new dropdown flow
+    await createUntitledRequest(page, {
+      requestType: 'HTTP',
+      url: 'https://samples.json-format.com/employees/json/employees_50MB.json'
+    });
 
     // Send request
     const sendButton = page.getByTestId('send-arrow-icon');
@@ -38,6 +35,6 @@ test.describe('Large Response Crash/High Memory Usage Prevention', () => {
     await expect(page.getByText('could degrade performance')).toBeVisible();
 
     // Verify action button
-    await expect(page.getByRole('button', { name: 'View' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'View', exact: true })).toBeVisible();
   });
 });

@@ -39,8 +39,10 @@ const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
 const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const registerWorkspaceIpc = require('./ipc/workspace');
+const registerApiSpecIpc = require('./ipc/apiSpec');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
+const ApiSpecWatcher = require('./app/apiSpecsWatcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
@@ -58,6 +60,7 @@ const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
 
 const workspaceWatcher = new WorkspaceWatcher();
+const apiSpecWatcher = new ApiSpecWatcher();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -78,6 +81,8 @@ const contentSecurityPolicy = [
 setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 
 const menu = Menu.buildFromTemplate(menuTemplate);
+const isMac = process.platform === 'darwin';
+const isWindows = process.platform === 'win32';
 
 let mainWindow;
 
@@ -118,7 +123,11 @@ app.on('ready', async () => {
       webviewTag: true
     },
     title: 'Bruno',
-    icon: path.join(__dirname, 'about/256x256.png')
+    icon: path.join(__dirname, 'about/256x256.png'),
+    // Custom title bar – ensure React titlebar occupies the window chrome on all OSes
+    titleBarStyle: isMac ? 'hiddenInset' : isWindows ? 'hidden' : 'default',
+    titleBarOverlay: isWindows ? { height: 36 } : undefined,
+    trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined
     // we will bring this back
     // see https://github.com/usebruno/bruno/issues/440
     // autoHideMenuBar: true
@@ -166,6 +175,15 @@ app.on('ready', async () => {
 
   mainWindow.on('maximize', () => saveMaximized(true));
   mainWindow.on('unmaximize', () => saveMaximized(false));
+
+  // Full screen events for title bar padding adjustment
+  mainWindow.on('enter-full-screen', () => {
+    mainWindow.webContents.send('main:enter-full-screen');
+  });
+  mainWindow.on('leave-full-screen', () => {
+    mainWindow.webContents.send('main:leave-full-screen');
+  });
+
   mainWindow.on('close', (e) => {
     e.preventDefault();
     terminalManager.cleanup(mainWindow.webContents);
@@ -223,6 +241,7 @@ app.on('ready', async () => {
   registerCollectionsIpc(mainWindow, collectionWatcher);
   registerPreferencesIpc(mainWindow, collectionWatcher);
   registerWorkspaceIpc(mainWindow, workspaceWatcher);
+  registerApiSpecIpc(mainWindow, apiSpecWatcher);
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);
   registerSystemMonitorIpc(mainWindow, systemMonitor);

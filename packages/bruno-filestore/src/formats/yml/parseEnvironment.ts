@@ -1,22 +1,36 @@
 import type { Environment as BrunoEnvironment, EnvironmentVariable as BrunoEnvironmentVariable } from '@usebruno/schema-types/collection/environment';
 import type { Environment } from '@opencollection/types/config/environments';
-import type { Variable } from '@opencollection/types/common/variables';
+import type { Variable, SecretVariable } from '@opencollection/types/common/variables';
 import { parseYml } from './utils';
 import { uuid } from '../../utils';
 
-const toBrunoEnvironmentVariables = (variables: Variable[] | null | undefined): BrunoEnvironmentVariable[] => {
+const isSecretVariable = (v: Variable | SecretVariable): v is SecretVariable => {
+  return 'secret' in v && v.secret === true;
+};
+
+const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | null | undefined): BrunoEnvironmentVariable[] => {
   if (!variables?.length) {
     return [];
   }
 
-  return variables.map((v: Variable): BrunoEnvironmentVariable => {
+  return variables.map((v): BrunoEnvironmentVariable => {
+    if (isSecretVariable(v)) {
+      return {
+        uid: uuid(),
+        name: v.name || '',
+        value: '',
+        type: 'text',
+        enabled: v.disabled !== true,
+        secret: true
+      };
+    }
     const variable: BrunoEnvironmentVariable = {
       uid: uuid(),
       name: v.name || '',
-      value: v.value as string || '',
+      value: (typeof v.value === 'string' ? v.value : '') || '',
       type: 'text',
       enabled: v.disabled !== true,
-      secret: v.transient === true
+      secret: false
     };
     return variable;
   });

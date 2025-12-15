@@ -4,42 +4,29 @@ import CreateEnvironment from './CreateEnvironment';
 import EnvironmentList from './EnvironmentList';
 import StyledWrapper from './StyledWrapper';
 import { IconFileAlert } from '@tabler/icons';
-import ImportEnvironment from './ImportEnvironment';
+import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
+import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
 
-export const SharedButton = ({ children, className, onClick }) => {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded bg-transparent px-2.5 py-2 w-fit text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
-        ${className}`}
-    >
-      {children}
-    </button>
-  );
-};
-
-const DefaultTab = ({ setTab }) => {
-  return (
-    <div className="empty-state">
-      <IconFileAlert size={48} strokeWidth={1.5} />
-      <div className="title">No Environments</div>
-      <div className="actions">
-        <button className="shared-button" onClick={() => setTab('create')}>
-          Create Environment
-        </button>
-        <button className="shared-button" onClick={() => setTab('import')}>
-          Import Environment
-        </button>
-      </div>
+const DefaultTab = ({ setTab }) => (
+  <div className="empty-state">
+    <IconFileAlert size={48} strokeWidth={1.5} />
+    <div className="title">No Environments</div>
+    <div className="actions">
+      <button className="shared-button" onClick={() => setTab('create')}>
+        Create Environment
+      </button>
+      <button className="shared-button" onClick={() => setTab('import')}>
+        Import Environment
+      </button>
     </div>
-  );
-};
+  </div>
+);
 
 const WorkspaceEnvironments = ({ workspace }) => {
   const [isModified, setIsModified] = useState(false);
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [tab, setTab] = useState('default');
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
@@ -50,7 +37,7 @@ const WorkspaceEnvironments = ({ workspace }) => {
         {tab === 'create' ? (
           <CreateEnvironment onClose={() => setTab('default')} />
         ) : tab === 'import' ? (
-          <ImportEnvironment onClose={() => setTab('default')} />
+          <ImportEnvironmentModal type="global" onClose={() => setTab('default')} />
         ) : (
           <DefaultTab setTab={setTab} />
         )}
@@ -68,7 +55,15 @@ const WorkspaceEnvironments = ({ workspace }) => {
         isModified={isModified}
         setIsModified={setIsModified}
         collection={null}
+        setShowExportModal={setShowExportModal}
       />
+      {showExportModal && (
+        <ExportEnvironmentModal
+          onClose={() => setShowExportModal(false)}
+          environments={globalEnvironments}
+          environmentType="global"
+        />
+      )}
     </StyledWrapper>
   );
 };

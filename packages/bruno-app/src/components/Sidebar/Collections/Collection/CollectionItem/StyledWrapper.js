@@ -4,13 +4,14 @@ const Wrapper = styled.div`
   position: relative;
   .menu-icon {
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+    visibility: hidden;
 
     .dropdown {
       div[aria-expanded='true'] {
         visibility: visible;
       }
       div[aria-expanded='false'] {
-        visibility: hidden;
+        visibility: visible;
       }
     }
   }
@@ -20,7 +21,7 @@ const Wrapper = styled.div`
   }
 
   .collection-item-name {
-    height: 1.75rem;
+    height: 1.6rem;
     cursor: pointer;
     user-select: none;
     position: relative;
@@ -97,11 +98,7 @@ const Wrapper = styled.div`
     &.item-hovered {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
+        visibility: visible;
       }
     }
 
@@ -132,12 +129,9 @@ const Wrapper = styled.div`
     }
 
     &.item-keyboard-focused {
-      background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg};
+      border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
       outline: none;
-
-      &:hover {
-        background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg} !important;
-      }
     }
 
     div.tippy-box {
