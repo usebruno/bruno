@@ -168,7 +168,7 @@ const ResponsiveTabs = ({
   const rightContentClassName = classnames('flex justify-end items-center', {
     expandable: rightSideExpandable
   });
-  
+
   // Convert overflow tabs to MenuDropdown items format
   const overflowMenuItems = useMemo(() => {
     return overflowTabs.map((tab) => ({
