@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconFileImport } from '@tabler/icons';
-import { importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
-import { openCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
+import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import CollectionsList from './CollectionsList';
 import WorkspaceDocs from '../WorkspaceDocs';
 import StyledWrapper from './StyledWrapper';
@@ -16,6 +16,8 @@ const WorkspaceOverview = ({ workspace }) => {
 
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
+  const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const [importData, setImportData] = useState(null);
 
   const workspaceCollectionsCount = workspace?.collections?.length || 0;
 
@@ -50,10 +52,21 @@ const WorkspaceOverview = ({ workspace }) => {
 
   const handleImportCollectionSubmit = ({ rawData, type }) => {
     setImportCollectionModalOpen(false);
-    dispatch(importCollectionInWorkspace(rawData, workspace.uid, undefined, type)).catch((err) => {
-      console.error(err);
-      toast.error('An error occurred while importing the collection');
-    });
+    setImportData({ rawData, type });
+    setImportCollectionLocationModalOpen(true);
+  };
+
+  const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
+    dispatch(importCollection(convertedCollection, collectionLocation))
+      .then(() => {
+        setImportCollectionLocationModalOpen(false);
+        setImportData(null);
+        toast.success('Collection imported successfully');
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error(err.message);
+      });
   };
 
   return (
@@ -66,6 +79,15 @@ const WorkspaceOverview = ({ workspace }) => {
         <ImportCollection
           onClose={() => setImportCollectionModalOpen(false)}
           handleSubmit={handleImportCollectionSubmit}
+        />
+      )}
+
+      {importCollectionLocationModalOpen && importData && (
+        <ImportCollectionLocation
+          rawData={importData.rawData}
+          format={importData.type}
+          onClose={() => setImportCollectionLocationModalOpen(false)}
+          handleSubmit={handleImportCollectionLocation}
         />
       )}
 
