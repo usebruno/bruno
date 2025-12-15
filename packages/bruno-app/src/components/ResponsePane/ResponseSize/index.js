@@ -8,12 +8,13 @@ const ResponseSize = ({ size }) => {
 
   let sizeToDisplay = '';
 
-  if (size >= 1024) {
-    // Show as KB with two decimals
-    const kb = size / 1024;
-    sizeToDisplay = kb.toFixed(2) + 'KB';
+  // If size is greater than 1024 bytes, format as KB
+  if (size > 1024) {
+    let kb = Math.floor(size / 1024);
+    let decimal = Math.round(((size % 1024) / 1024).toFixed(2) * 100);
+    sizeToDisplay = kb + '.' + decimal + 'KB';
   } else {
-    // Show as bytes
+    // If size is less than or equal to 1024 bytes, display as bytes (B)
     sizeToDisplay = size + 'B';
   }
 
