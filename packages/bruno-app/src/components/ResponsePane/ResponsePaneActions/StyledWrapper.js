@@ -15,7 +15,7 @@ const StyledWrapper = styled.div`
   }
 
   /* When right side is expandible, show buttons and hide dropdown */
-  [data-right-side-expandable="true"] & {
+  .expandable & {
     .actions-dropdown {
       display: none;
     }

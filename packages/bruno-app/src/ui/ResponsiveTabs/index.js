@@ -182,10 +182,9 @@ const ResponsiveTabs = ({
     );
   };
 
-  // Only add data attribute if rightContentExpandedWidth is provided
-  const rightContentProps = rightContentExpandedWidth
-    ? { 'data-right-side-expandable': rightSideExpandable }
-    : {};
+  const rightContentClassName = classnames('flex justify-end items-center', {
+    expandable: rightSideExpandable
+  });
 
   return (
     <StyledWrapper ref={tabsContainerRef} role="tablist" className="tabs flex items-center justify-between gap-6">
@@ -227,7 +226,7 @@ const ResponsiveTabs = ({
       </div>
 
       {rightContent && (
-        <div className="flex justify-end items-center" {...rightContentProps}>
+        <div className={rightContentClassName}>
           {rightContent}
         </div>
       )}
