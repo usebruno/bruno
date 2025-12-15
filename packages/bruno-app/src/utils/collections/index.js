@@ -43,6 +43,22 @@ export const collapseAllItemsInCollection = (collection) => {
   collapseItem(collection.items);
 };
 
+export const expandAllItemsInCollection = (collection) => {
+  collection.collapsed = false;
+
+  const expandItem = (items) => {
+    each(items, (i) => {
+      i.collapsed = false;
+
+      if (i.items && i.items.length) {
+        expandItem(i.items);
+      }
+    });
+  };
+
+  expandItem(collection.items);
+};
+
 export const sortItems = (collection) => {
   const sort = (obj) => {
     if (obj.items && obj.items.length) {
