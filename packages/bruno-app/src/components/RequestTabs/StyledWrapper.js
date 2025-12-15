@@ -38,7 +38,6 @@ const Wrapper = styled.div`
     display: flex;
     align-items: flex-end;
     position: relative;
-    z-index: 1;
 
     &::-webkit-scrollbar {
       display: none;
