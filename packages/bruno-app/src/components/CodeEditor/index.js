@@ -192,7 +192,6 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
-      editor.on('scroll', this.onScroll);
       editor.scrollTo(null, this.props.initialScroll);
       this.addOverlay();
 
@@ -275,12 +274,18 @@ export default class CodeEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      if (this.props.onScroll) {
+        this.props.onScroll(this.editor);
+      }
+
       this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
-      this.editor.off('scroll', this.onScroll);
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
+
+      const wrapper = this.editor.getWrapperElement();
+      wrapper?.parentNode?.removeChild(wrapper);
 
       this.editor = null;
     }
@@ -324,8 +329,6 @@ export default class CodeEditor extends React.Component {
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
-
-  onScroll = (event) => this.props.onScroll?.(event);
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
