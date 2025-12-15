@@ -15,7 +15,6 @@ import {
 
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -45,16 +44,8 @@ const CollectionsSection = () => {
 
   const handleImportCollection = ({ rawData, type }) => {
     setImportCollectionModalOpen(false);
-
-    if (activeWorkspace && activeWorkspace.type !== 'default') {
-      dispatch(importCollectionInWorkspace(rawData, activeWorkspace.uid, undefined, type))
-        .catch((err) => {
-          toast.error('An error occurred while importing the collection');
-        });
-    } else {
-      setImportData({ rawData, type });
-      setImportCollectionLocationModalOpen(true);
-    }
+    setImportData({ rawData, type });
+    setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
