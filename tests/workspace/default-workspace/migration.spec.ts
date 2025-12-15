@@ -158,6 +158,7 @@ test.describe('Default Workspace Migration', () => {
       expect(fs.existsSync(workspacePath)).toBe(true);
       const originalYmlContent = fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8');
 
+      await app1.context().close();
       await app1.close();
 
       // Second launch - should reuse existing workspace

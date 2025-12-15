@@ -15,6 +15,7 @@ test.describe('Default Workspace', () => {
       const workspaceName = page.locator('.workspace-name');
       await expect(workspaceName).toContainText('My Workspace');
 
+      await app.context().close();
       await app.close();
     });
   });
@@ -37,6 +38,7 @@ test.describe('Default Workspace', () => {
       await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       await expect(page2.locator('.workspace-name')).toContainText('My Workspace');
 
+      await app2.context().close();
       await app2.close();
     });
   });
@@ -77,6 +79,7 @@ test.describe('Default Workspace', () => {
       expect(fs.existsSync(newWorkspacePath)).toBe(true);
       expect(fs.existsSync(path.join(newWorkspacePath, 'workspace.yml'))).toBe(true);
 
+      await app.context().close();
       await app.close();
     });
 
@@ -113,6 +116,7 @@ test.describe('Default Workspace', () => {
       const newWorkspacePath = path.join(userDataPath, 'default-workspace-1');
       expect(fs.existsSync(newWorkspacePath)).toBe(true);
 
+      await app.context().close();
       await app.close();
     });
 
@@ -152,6 +156,7 @@ docs: ''
       const newWorkspacePath = path.join(userDataPath, 'default-workspace-1');
       expect(fs.existsSync(newWorkspacePath)).toBe(true);
 
+      await app.context().close();
       await app.close();
     });
 
@@ -181,6 +186,7 @@ docs: ''
       expect(fs.existsSync(newWorkspacePath)).toBe(true);
       expect(fs.existsSync(path.join(newWorkspacePath, 'workspace.yml'))).toBe(true);
 
+      await app.context().close();
       await app.close();
     });
   });
@@ -200,6 +206,7 @@ docs: ''
       const workspaceItem = page.locator('.workspace-item, .dropdown-item').filter({ hasText: 'My Workspace' });
       await expect(workspaceItem.first()).toBeVisible();
 
+      await app.context().close();
       await app.close();
     });
 
@@ -216,6 +223,7 @@ docs: ''
       // Default workspace should NOT have pin button
       await expect(workspaceItem.locator('.pin-btn')).not.toBeVisible();
 
+      await app.context().close();
       await app.close();
     });
   });
