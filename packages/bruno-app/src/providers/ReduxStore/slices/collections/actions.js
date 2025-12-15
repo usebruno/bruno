@@ -478,6 +478,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     prompts.push(...extractPromptVariables(headers));
     prompts.push(...extractPromptVariables(request.params));
     prompts.push(...extractPromptVariables(resolvedAuthRequest.auth));
+    prompts.push(...extractPromptVariables(request.url));
 
     // Remove duplicates
     const uniquePrompts = Array.from(new Set(prompts));
