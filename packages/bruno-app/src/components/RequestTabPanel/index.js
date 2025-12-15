@@ -34,6 +34,8 @@ import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceHome from 'components/WorkspaceHome';
+import EnvironmentSettingsTab from 'components/EnvironmentSettingsTab';
+import GlobalEnvironmentSettingsTab from 'components/GlobalEnvironmentSettingsTab';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 480;
@@ -198,6 +200,14 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'security-settings') {
     return <SecuritySettings collection={collection} />;
+  }
+
+  if (focusedTab.type === 'environment-settings') {
+    return <EnvironmentSettingsTab collection={collection} />;
+  }
+
+  if (focusedTab.type === 'global-environment-settings') {
+    return <GlobalEnvironmentSettingsTab collection={collection} />;
   }
 
   if (!item || !item.uid) {

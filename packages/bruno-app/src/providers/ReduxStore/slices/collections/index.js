@@ -694,6 +694,19 @@ export const collectionsSlice = createSlice({
         folder.draft = null;
       }
     },
+    setEnvironmentsDraft: (state, action) => {
+      const { collectionUid, environmentUid, variables } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.environmentsDraft = { environmentUid, variables };
+      }
+    },
+    clearEnvironmentsDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.environmentsDraft = null;
+      }
+    },
     newEphemeralHttpRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -3372,6 +3385,8 @@ export const {
   saveFolderDraft,
   deleteCollectionDraft,
   deleteFolderDraft,
+  setEnvironmentsDraft,
+  clearEnvironmentsDraft,
   newEphemeralHttpRequest,
   collapseFullCollection,
   toggleCollection,

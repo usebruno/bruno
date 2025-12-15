@@ -18,7 +18,7 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'utils/collections';
 import { sensitiveFields } from './constants';
 
-const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
+const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
@@ -146,7 +146,6 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       .then(() => {
         if (environment) {
           toast.success(`Environment changed to ${environment.name}`);
-          onClose();
         } else {
           toast.success(`No Environments are active now`);
         }

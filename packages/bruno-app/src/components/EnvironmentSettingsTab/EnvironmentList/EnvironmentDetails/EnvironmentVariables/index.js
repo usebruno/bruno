@@ -10,22 +10,18 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
-import {
-  saveGlobalEnvironment,
-  setGlobalEnvironmentsDraft,
-  clearGlobalEnvironmentsDraft
-} from 'providers/ReduxStore/slices/global-environments';
+import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { setEnvironmentsDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 
-const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const { globalEnvironments, activeGlobalEnvironmentUid, globalEnvironmentsDraft } = useSelector(
-    (state) => state.globalEnvironments
-  );
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
-  const hasDraftForThisEnv = globalEnvironmentsDraft?.environmentUid === environment.uid;
+  const environmentsDraft = collection?.environmentsDraft;
+  const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
 
   // Track environment changes for draft restoration
   const prevEnvUidRef = React.useRef(null);
@@ -58,23 +54,28 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: initialValues,
-    validationSchema: Yup.array().of(Yup.object({
-      enabled: Yup.boolean(),
-      name: Yup.string()
-        .when('$isLastRow', {
-          is: true,
-          then: (schema) => schema.optional(),
-          otherwise: (schema) => schema
-            .required('Name cannot be empty')
-            .matches(variableNameRegex,
-              'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.')
-            .trim()
-        }),
-      secret: Yup.boolean(),
-      type: Yup.string(),
-      uid: Yup.string(),
-      value: Yup.mixed().nullable()
-    })),
+    validationSchema: Yup.array().of(
+      Yup.object({
+        enabled: Yup.boolean(),
+        name: Yup.string()
+          .when('$isLastRow', {
+            is: true,
+            then: (schema) => schema.optional(),
+            otherwise: (schema) =>
+              schema
+                .required('Name cannot be empty')
+                .matches(
+                  variableNameRegex,
+                  'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
+                )
+                .trim()
+          }),
+        secret: Yup.boolean(),
+        type: Yup.string(),
+        uid: Yup.string(),
+        value: Yup.mixed().nullable()
+      })
+    ),
     validate: (values) => {
       const errors = {};
       values.forEach((variable, index) => {
@@ -90,7 +91,8 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
           errors[index].name = 'Name cannot be empty';
         } else if (!variableNameRegex.test(variable.name)) {
           if (!errors[index]) errors[index] = {};
-          errors[index].name = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+          errors[index].name
+            = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
@@ -106,9 +108,9 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     prevEnvUidRef.current = environment.uid;
     mountedRef.current = true;
 
-    if ((isMount || envChanged) && hasDraftForThisEnv && globalEnvironmentsDraft?.variables) {
+    if ((isMount || envChanged) && hasDraftForThisEnv && environmentsDraft?.variables) {
       formik.setValues([
-        ...globalEnvironmentsDraft.variables,
+        ...environmentsDraft.variables,
         {
           uid: uuid(),
           name: '',
@@ -119,7 +121,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         }
       ]);
     }
-  }, [environment.uid, hasDraftForThisEnv, globalEnvironmentsDraft?.variables]);
+  }, [environment.uid, hasDraftForThisEnv, environmentsDraft?.variables]);
 
   // Sync draft state to Redux
   React.useEffect(() => {
@@ -133,21 +135,22 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     setIsModified(hasActualChanges);
 
     // Get existing draft for comparison
-    const existingDraftVariables = hasDraftForThisEnv ? globalEnvironmentsDraft?.variables : null;
+    const existingDraftVariables = hasDraftForThisEnv ? environmentsDraft?.variables : null;
     const existingDraftJson = existingDraftVariables ? JSON.stringify(existingDraftVariables) : null;
 
     if (hasActualChanges) {
       // Only dispatch if draft values are actually different
       if (currentValuesJson !== existingDraftJson) {
-        dispatch(setGlobalEnvironmentsDraft({
+        dispatch(setEnvironmentsDraft({
+          collectionUid: collection.uid,
           environmentUid: environment.uid,
           variables: currentValues
         }));
       }
     } else if (hasDraftForThisEnv) {
-      dispatch(clearGlobalEnvironmentsDraft());
+      dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
     }
-  }, [formik.values, environment.variables, environment.uid, setIsModified, dispatch, hasDraftForThisEnv, globalEnvironmentsDraft?.variables]);
+  }, [formik.values, environment.variables, environment.uid, collection.uid, setIsModified, dispatch, hasDraftForThisEnv, environmentsDraft?.variables]);
 
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);
@@ -182,9 +185,10 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
       return;
     }
 
-    const hasEmptyLastRow = filteredValues.length > 0
-      && (!filteredValues[filteredValues.length - 1].name
-        || filteredValues[filteredValues.length - 1].name.trim() === '');
+    const hasEmptyLastRow
+      = filteredValues.length > 0
+        && (!filteredValues[filteredValues.length - 1].name
+          || filteredValues[filteredValues.length - 1].name.trim() === '');
 
     if (!hasEmptyLastRow) {
       filteredValues.push({
@@ -237,7 +241,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
       return;
     }
 
-    dispatch(saveGlobalEnvironment({ environmentUid: environment.uid, variables: cloneDeep(variablesToSave) }))
+    dispatch(saveEnvironment(cloneDeep(variablesToSave), environment.uid, collection.uid))
       .then(() => {
         toast.success('Changes saved successfully');
         const newValues = [
@@ -342,11 +346,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                     </div>
                     {typeof variable.value !== 'string' && (
                       <span className="ml-2 flex items-center">
-                        <IconInfoCircle
-                          id={`${variable.uid}-disabled-info-icon`}
-                          className="text-muted"
-                          size={16}
-                        />
+                        <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
                         <Tooltip
                           anchorId={`${variable.uid}-disabled-info-icon`}
                           content="Non-string values set via scripts are read-only and can only be updated through scripts."

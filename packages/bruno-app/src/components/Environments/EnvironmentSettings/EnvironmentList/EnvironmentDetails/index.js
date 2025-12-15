@@ -6,7 +6,7 @@ import RenameEnvironment from '../../RenameEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
 import ToolHint from 'components/ToolHint/index';
 
-const EnvironmentDetails = ({ environment, collection, setIsModified, onClose }) => {
+const EnvironmentDetails = ({ environment, collection, setIsModified }) => {
   const [openEditModal, setOpenEditModal] = useState(false);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [openCopyModal, setOpenCopyModal] = useState(false);
@@ -51,7 +51,7 @@ const EnvironmentDetails = ({ environment, collection, setIsModified, onClose })
       </div>
 
       <div>
-        <EnvironmentVariables environment={environment} collection={collection} setIsModified={setIsModified} onClose={onClose} />
+        <EnvironmentVariables environment={environment} collection={collection} setIsModified={setIsModified} />
       </div>
     </div>
   );

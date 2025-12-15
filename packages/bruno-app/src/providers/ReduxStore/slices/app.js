@@ -11,8 +11,6 @@ const initialState = {
   showHomePage: false,
   showPreferences: false,
   showApiSpecPage: false,
-  isEnvironmentSettingsModalOpen: false,
-  isGlobalEnvironmentSettingsModalOpen: false,
   preferences: {
     request: {
       sslVerification: true,
@@ -64,12 +62,6 @@ export const appSlice = createSlice({
     },
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
-    },
-    updateEnvironmentSettingsModalVisibility: (state, action) => {
-      state.isEnvironmentSettingsModalOpen = action.payload;
-    },
-    updateGlobalEnvironmentSettingsModalVisibility: (state, action) => {
-      state.isGlobalEnvironmentSettingsModalOpen = action.payload;
     },
     showHomePage: (state) => {
       state.showHomePage = true;
@@ -128,8 +120,6 @@ export const {
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
-  updateEnvironmentSettingsModalVisibility,
-  updateGlobalEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
   showApiSpecPage,
