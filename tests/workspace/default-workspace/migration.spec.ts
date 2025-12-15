@@ -44,12 +44,10 @@ test.describe('Default Workspace Migration', () => {
 
       // Verify workspace.yml exists and contains the migrated collection
       const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-      if (fs.existsSync(workspaceYmlPath)) {
-        const workspaceYml = fs.readFileSync(workspaceYmlPath, 'utf8');
-        expect(workspaceYml).toContain('collections:');
-        // Collection should be referenced
-        expect(workspaceYml).toContain('my-old-collection');
-      }
+      expect(fs.existsSync(workspaceYmlPath)).toBe(true);
+      const workspaceYml = fs.readFileSync(workspaceYmlPath, 'utf8');
+      expect(workspaceYml).toContain('collections:');
+      expect(workspaceYml).toContain('my-old-collection');
 
       await app.close();
     });
@@ -91,11 +89,10 @@ test.describe('Default Workspace Migration', () => {
       // Verify workspace.yml has both collections
       const workspacePath = path.join(userDataPath, 'default-workspace');
       const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-      if (fs.existsSync(workspaceYmlPath)) {
-        const workspaceYml = fs.readFileSync(workspaceYmlPath, 'utf8');
-        expect(workspaceYml).toContain('collection-1');
-        expect(workspaceYml).toContain('collection-2');
-      }
+      expect(fs.existsSync(workspaceYmlPath)).toBe(true);
+      const workspaceYml = fs.readFileSync(workspaceYmlPath, 'utf8');
+      expect(workspaceYml).toContain('collection-1');
+      expect(workspaceYml).toContain('collection-2');
 
       await app.close();
     });
@@ -192,11 +189,10 @@ test.describe('Default Workspace Migration', () => {
 
       // Verify workspace has empty collections section
       const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-      if (fs.existsSync(workspaceYmlPath)) {
-        const workspaceYml = fs.readFileSync(workspaceYmlPath, 'utf8');
-        // Collections should be empty (just the key)
-        expect(workspaceYml).toMatch(/collections:\s*\n/);
-      }
+      expect(fs.existsSync(workspaceYmlPath)).toBe(true);
+      const workspaceYml = fs.readFileSync(workspaceYmlPath, 'utf8');
+      // Collections should be empty (just the key)
+      expect(workspaceYml).toMatch(/collections:\s*\n/);
 
       await app.close();
     });
