@@ -3,13 +3,11 @@ const path = require('path');
 const fsExtra = require('fs-extra');
 const { ipcMain, dialog } = require('electron');
 const { createDirectory, sanitizeName } = require('../utils/filesystem');
-const { generateUidBasedOnHash } = require('../utils/common');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 
-// Workspace configuration module (includes path and validation utilities)
 const {
   createWorkspaceConfig,
   readWorkspaceConfig,
@@ -22,7 +20,8 @@ const {
   getWorkspaceCollections,
   normalizeCollectionEntry,
   validateWorkspacePath,
-  validateWorkspaceDirectory
+  validateWorkspaceDirectory,
+  getWorkspaceUid
 } = require('../utils/workspace-config');
 
 const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
@@ -49,21 +48,25 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
         await createDirectory(path.join(dirPath, 'collections'));
 
-        const workspaceUid = generateUidBasedOnHash(dirPath);
+        const workspaceUid = getWorkspaceUid(dirPath);
+        const isDefault = workspaceUid === 'default';
         const workspaceConfig = createWorkspaceConfig(workspaceName);
 
         await writeWorkspaceConfig(dirPath, workspaceConfig);
 
         lastOpenedWorkspaces.add(dirPath);
 
-        mainWindow.webContents.send('main:workspace-opened', dirPath, workspaceUid, workspaceConfig);
+        mainWindow.webContents.send('main:workspace-opened', dirPath, workspaceUid, {
+          ...workspaceConfig,
+          type: isDefault ? 'default' : workspaceConfig.type
+        });
 
         if (workspaceWatcher) {
           workspaceWatcher.addWatcher(mainWindow, dirPath);
         }
 
         return {
-          workspaceConfig,
+          workspaceConfig: { ...workspaceConfig, type: isDefault ? 'default' : workspaceConfig.type },
           workspaceUid,
           workspacePath: dirPath
         };
@@ -79,18 +82,20 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const workspaceConfig = readWorkspaceConfig(workspacePath);
       validateWorkspaceConfig(workspaceConfig);
 
-      const workspaceUid = generateUidBasedOnHash(workspacePath);
+      const workspaceUid = getWorkspaceUid(workspacePath);
+      const isDefault = workspaceUid === 'default';
+      const configWithType = { ...workspaceConfig, type: isDefault ? 'default' : workspaceConfig.type };
 
       lastOpenedWorkspaces.add(workspacePath);
 
-      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, workspaceConfig);
+      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configWithType);
 
       if (workspaceWatcher) {
         workspaceWatcher.addWatcher(mainWindow, workspacePath);
       }
 
       return {
-        workspaceConfig,
+        workspaceConfig: configWithType,
         workspaceUid,
         workspacePath
       };
@@ -117,18 +122,20 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const workspaceConfig = readWorkspaceConfig(workspacePath);
       validateWorkspaceConfig(workspaceConfig);
 
-      const workspaceUid = generateUidBasedOnHash(workspacePath);
+      const workspaceUid = getWorkspaceUid(workspacePath);
+      const isDefault = workspaceUid === 'default';
+      const configWithType = { ...workspaceConfig, type: isDefault ? 'default' : workspaceConfig.type };
 
       lastOpenedWorkspaces.add(workspacePath);
 
-      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, workspaceConfig);
+      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configWithType);
 
       if (workspaceWatcher) {
         workspaceWatcher.addWatcher(mainWindow, workspacePath);
       }
 
       return {
-        workspaceConfig,
+        workspaceConfig: configWithType,
         workspaceUid,
         workspacePath
       };
@@ -338,8 +345,12 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const updatedCollections = await addCollectionToWorkspace(workspacePath, normalizedCollection);
 
       const workspaceConfig = readWorkspaceConfig(workspacePath);
-      const workspaceUid = generateUidBasedOnHash(workspacePath);
-      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, workspaceConfig);
+      const workspaceUid = getWorkspaceUid(workspacePath);
+      const isDefault = workspaceUid === 'default';
+      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, {
+        ...workspaceConfig,
+        type: isDefault ? 'default' : workspaceConfig.type
+      });
 
       return updatedCollections;
     } catch (error) {
@@ -374,13 +385,16 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     try {
       const result = await removeCollectionFromWorkspace(workspacePath, collectionPath);
 
-      // Delete collection files if it's a workspace collection
       if (result.shouldDeleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {
         await fsExtra.remove(collectionPath);
       }
 
-      const correctWorkspaceUid = generateUidBasedOnHash(workspacePath);
-      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, correctWorkspaceUid, result.updatedConfig);
+      const correctWorkspaceUid = getWorkspaceUid(workspacePath);
+      const isDefault = correctWorkspaceUid === 'default';
+      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, correctWorkspaceUid, {
+        ...result.updatedConfig,
+        type: isDefault ? 'default' : result.updatedConfig.type
+      });
 
       return true;
     } catch (error) {
@@ -425,20 +439,12 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   ipcMain.handle('renderer:get-default-workspace', async (event) => {
     try {
       const result = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
-
       if (!result) {
         return null;
       }
 
       const { workspacePath, workspaceUid } = result;
-
-      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-      if (!fs.existsSync(workspaceFilePath)) {
-        return null;
-      }
-
-      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-      const workspaceConfig = yaml.load(yamlContent);
+      const workspaceConfig = readWorkspaceConfig(workspacePath);
 
       return {
         workspaceConfig: {
@@ -449,32 +455,30 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         workspacePath
       };
     } catch (error) {
+      console.error('Error getting default workspace:', error);
       return null;
     }
   });
 
   ipcMain.on('main:renderer-ready', async (win) => {
     try {
+      // Load default workspace
       const defaultResult = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
       if (defaultResult) {
         const { workspacePath, workspaceUid } = defaultResult;
-        const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+        const workspaceConfig = readWorkspaceConfig(workspacePath);
 
-        if (fs.existsSync(workspaceFilePath)) {
-          const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-          const workspaceConfig = yaml.load(yamlContent);
+        win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, {
+          ...workspaceConfig,
+          type: 'default'
+        });
 
-          win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, {
-            ...workspaceConfig,
-            type: 'default'
-          });
-
-          if (workspaceWatcher) {
-            workspaceWatcher.addWatcher(win, workspacePath);
-          }
+        if (workspaceWatcher) {
+          workspaceWatcher.addWatcher(win, workspacePath);
         }
       }
 
+      // Load other workspaces
       const workspacePaths = lastOpenedWorkspaces.getAll();
       const invalidPaths = [];
 
@@ -485,9 +489,13 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
           try {
             const workspaceConfig = readWorkspaceConfig(workspacePath);
             validateWorkspaceConfig(workspaceConfig);
-            const workspaceUid = generateUidBasedOnHash(workspacePath);
+            const workspaceUid = getWorkspaceUid(workspacePath);
+            const isDefault = workspaceUid === 'default';
 
-            win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, workspaceConfig);
+            win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, {
+              ...workspaceConfig,
+              type: isDefault ? 'default' : workspaceConfig.type
+            });
 
             if (workspaceWatcher) {
               workspaceWatcher.addWatcher(win, workspacePath);

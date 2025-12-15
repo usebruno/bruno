@@ -4,6 +4,7 @@ const path = require('path');
 const chokidar = require('chokidar');
 const yaml = require('js-yaml');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
+const { getWorkspaceUid } = require('../utils/workspace-config');
 const { parseEnvironment } = require('@usebruno/filestore');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
@@ -42,9 +43,13 @@ const handleWorkspaceFileChange = (win, workspacePath) => {
       return;
     }
 
-    const workspaceUid = generateUidBasedOnHash(workspacePath);
+    const workspaceUid = getWorkspaceUid(workspacePath);
+    const isDefault = workspaceUid === 'default';
 
-    win.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, workspaceConfig);
+    win.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, {
+      ...workspaceConfig,
+      type: isDefault ? 'default' : workspaceConfig.type
+    });
   } catch (error) {
     console.error('Error handling workspace file change:', error);
   }
@@ -123,7 +128,7 @@ class WorkspaceWatcher {
   addWatcher(win, workspacePath) {
     const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
     const environmentsDir = path.join(workspacePath, 'environments');
-    const workspaceUid = generateUidBasedOnHash(workspacePath);
+    const workspaceUid = getWorkspaceUid(workspacePath);
 
     if (this.watchers[workspacePath]) {
       this.watchers[workspacePath].close();
