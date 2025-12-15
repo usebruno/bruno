@@ -695,7 +695,7 @@ const registerNetworkIpc = (mainWindow) => {
         method: request.method,
         headers: headersSent,
         data: requestData,
-        dataBuffer: requestDataBuffer,
+        dataBuffer: requestDataBuffer ? requestDataBuffer.toString('base64') : null,
         timestamp: Date.now()
       };
 
@@ -1306,7 +1306,7 @@ const registerNetworkIpc = (mainWindow) => {
               method: request.method,
               headers: headersSent,
               data: requestData,
-              dataBuffer: requestDataBuffer,
+              dataBuffer: requestDataBuffer ? requestDataBuffer.toString('base64') : null,
               timestamp: Date.now()
             };
 
