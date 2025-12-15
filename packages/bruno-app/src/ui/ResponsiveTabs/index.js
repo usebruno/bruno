@@ -7,6 +7,7 @@ import StyledWrapper from './StyledWrapper';
 const DROPDOWN_WIDTH = 60;
 const CALCULATION_DELAY_DEFAULT = 20;
 const CALCULATION_DELAY_EXTENDED = 150;
+const GAP_BETWEEN_LEFT_AND_RIGHT_CONTENT = 80;
 
 // Compare two tab arrays by their keys
 const areTabArraysEqual = (a, b) => {
@@ -20,10 +21,12 @@ const ResponsiveTabs = ({
   onTabSelect,
   rightContent,
   rightContentRef,
-  delayedTabs = []
+  delayedTabs = [],
+  rightContentExpandedWidth // Optional: width of the right content when expanded(used when right content's elements are collapsible)
 }) => {
   const [visibleTabs, setVisibleTabs] = useState([]);
   const [overflowTabs, setOverflowTabs] = useState([]);
+  const [rightSideExpandable, setRightSideExpandable] = useState(false);
 
   const tabsContainerRef = useRef(null);
   const tabRefsMap = useRef({});
@@ -77,7 +80,14 @@ const ResponsiveTabs = ({
     // Only update state if arrays actually changed (prevents infinite loops)
     setVisibleTabs((prev) => (areTabArraysEqual(prev, visible) ? prev : visible));
     setOverflowTabs((prev) => (areTabArraysEqual(prev, overflow) ? prev : overflow));
-  }, [tabs, activeTab, rightContentRef]);
+
+    // Only calculate expandibility if rightContentExpandedWidth is provided
+    if (rightContentExpandedWidth) {
+      const leftContentWidth = currentWidth + (overflow.length ? DROPDOWN_WIDTH : 0);
+      const expandable = containerWidth - leftContentWidth - GAP_BETWEEN_LEFT_AND_RIGHT_CONTENT > rightContentExpandedWidth;
+      setRightSideExpandable((prev) => (prev === expandable ? prev : expandable));
+    }
+  }, [tabs, activeTab, rightContentRef, rightContentExpandedWidth]);
 
   // Recalculate on tab/activeTab changes
   useEffect(() => {
@@ -89,7 +99,7 @@ const ResponsiveTabs = ({
     return () => clearTimeout(timeoutId);
   }, [calculateTabVisibility, activeTab, delayedTabs]);
 
-  // Recalculate on container resize only (not rightContent to avoid feedback loops)
+  // Recalculate on container resize only
   useEffect(() => {
     let frameId = null;
 
@@ -172,6 +182,10 @@ const ResponsiveTabs = ({
     );
   };
 
+  const rightContentClassName = classnames('flex justify-end items-center', {
+    expandable: rightSideExpandable
+  });
+
   return (
     <StyledWrapper ref={tabsContainerRef} role="tablist" className="tabs flex items-center justify-between gap-6">
       <div className="flex items-center">
@@ -212,7 +226,7 @@ const ResponsiveTabs = ({
       </div>
 
       {rightContent && (
-        <div className="flex justify-end items-center">
+        <div className={rightContentClassName}>
           {rightContent}
         </div>
       )}
