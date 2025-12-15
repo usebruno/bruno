@@ -546,10 +546,6 @@ const runSingleRequest = async function (
         err.response.dataBuffer = dataBuffer;
         response = err.response;
 
-        if (!options.disableCookies) {
-          saveCookies(request.url, err.response.headers);
-        }
-
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
