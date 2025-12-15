@@ -142,7 +142,7 @@ jobs:
     - name: Run Playwright tests
       run: |
         xvfb-run npm run test:e2e
-    - uses: actions/upload-artifact@v5
+    - uses: actions/upload-artifact@v6
       if: ${{ !cancelled() }}
       with:
         name: playwright-report
