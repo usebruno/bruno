@@ -393,7 +393,7 @@ test.describe.serial('Collection Environment Export Tests', () => {
 
     await test.step('Open export modal and deselect all environments', async () => {
       // Click export button
-      await page.locator('.btn-import-environment').getByText('Export').click();
+      await page.getByRole('button', { name: 'Export Environment' }).click();
 
       // Deselect all environments
       await page.getByText('Deselect All').click();

@@ -53,7 +53,7 @@ test.describe('Multiline Variables - Write Test', () => {
     const variableRow = page.locator('tbody tr').filter({ has: page.locator('input[value="multiline_data_json"]') });
     const codeMirror = variableRow.locator('.CodeMirror');
     await codeMirror.click();
-    await page.keyboard.type(jsonValue);
+    await page.keyboard.insertText(jsonValue);
 
     await page.getByTestId('save-env').click();
 
