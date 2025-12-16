@@ -10,7 +10,6 @@ test.describe.serial('wss with custom ca cert', () => {
 
     // Define reusable locators
     const requestItem = page.getByTitle(BRU_REQ_NAME);
-    const responseMessage = locators.messages().nth(2).locator('.text-ellipsis');
 
     await test.step('Open collection', async () => {
       await openCollectionAndAcceptSandbox(page, 'wss-custom-ca-certs-test', 'safe');
@@ -24,6 +23,7 @@ test.describe.serial('wss with custom ca cert', () => {
 
     await test.step('Send message and verify response', async () => {
       await locators.runner().click();
+      const responseMessage = locators.messages().nth(2).locator('.text-ellipsis');
       await expect(responseMessage).toHaveText(/\"headers\"/);
     });
   });
