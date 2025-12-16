@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
 
@@ -54,6 +55,7 @@ const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
+const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/deeplink');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
@@ -85,6 +87,35 @@ const isMac = process.platform === 'darwin';
 const isWindows = process.platform === 'win32';
 
 let mainWindow;
+let appProtocolUrl;
+
+// Register custom protocol handler (must be called before app is ready)
+// In dev mode, we need to pass the Electron executable path and script path
+app.setAsDefaultProtocolClient('bruno');
+if (os.platform() === 'linux') {
+  try {
+    execSync('xdg-mime default bruno.desktop x-scheme-handler/bruno');
+  } catch (err) {}
+}
+
+appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
+
+// Handle protocol URLs (macOS)
+if (process.platform === 'darwin') {
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    appProtocolUrl = url || appProtocolUrl;
+    handleAppProtocolUrl(appProtocolUrl, mainWindow);
+  });
+}
+
+// Handle protocol URLs when app is already running (Windows/Linux)
+if (process.platform === 'win32' || process.platform === 'linux') {
+  app.on('second-instance', (event, argv) => {
+    appProtocolUrl = getAppProtocolUrlFromArgv(argv) || appProtocolUrl;
+    handleAppProtocolUrl(appProtocolUrl, mainWindow);
+  });
+}
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
@@ -194,6 +225,12 @@ app.on('ready', async () => {
     event.preventDefault();
     if (/^(http:\/\/|https:\/\/)/.test(url)) {
       require('electron').shell.openExternal(url);
+    }
+  });
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (appProtocolUrl) {
+      handleAppProtocolUrl(appProtocolUrl, mainWindow);
     }
   });
 
