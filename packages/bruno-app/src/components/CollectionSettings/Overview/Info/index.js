@@ -46,6 +46,8 @@ const Info = ({ collection }) => {
                   onClick={handleOpenInFolder}
                   className="flex-shrink-0 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
                   title="Open in File Explorer"
+                  aria-label="Open in File Explorer"
+                  type="button"
                 >
                   <IconExternalLink size={14} stroke={1.5} />
                 </button>
