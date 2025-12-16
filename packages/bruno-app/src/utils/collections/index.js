@@ -1630,6 +1630,10 @@ export const isVariableSecret = (scopeInfo) => {
   return false;
 };
 
+export const getOtherCollections = (collections, selectedCollections) => {
+  return collections.filter((c) => !selectedCollections.includes(c.uid));
+};
+
 /**
  * Generate a unique request name by checking existing filenames in the collection and filesystem
  * @param {Object} collection - The collection object

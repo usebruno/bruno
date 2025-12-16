@@ -103,6 +103,12 @@ const Wrapper = styled.div`
         background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg} !important;
       }
     }
+
+    &.collection-selected {
+      background: ${(props) => props.theme.sidebar.collection.item.bg};
+      border-left: 3px solid ${(props) => props.theme.sidebar.collection.item.selectedBorder};
+      padding-left: 2px;
+    }
   }
 
   #sidebar-collection-name {

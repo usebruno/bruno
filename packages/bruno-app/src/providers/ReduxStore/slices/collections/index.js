@@ -69,7 +69,9 @@ const wsStatusCodes = {
 const initialState = {
   collections: [],
   collectionSortOrder: 'default',
-  activeConnections: []
+  activeConnections: [],
+  selectedCollections: [], // Array of selected collection UIDs for multi-selection
+  lastClickedCollectionIndex: null // Index of last clicked collection for shift-select
 };
 
 const initiatedGrpcResponse = {
@@ -3308,6 +3310,26 @@ export const collectionsSlice = createSlice({
       }
     },
 
+    setSelectedCollections: (state, action) => {
+      state.selectedCollections = action.payload;
+    },
+    toggleCollectionSelection: (state, action) => {
+      const { collectionUid } = action.payload;
+      const index = state.selectedCollections.indexOf(collectionUid);
+      if (index > -1) {
+        state.selectedCollections.splice(index, 1);
+      } else {
+        state.selectedCollections.push(collectionUid);
+      }
+    },
+    clearCollectionSelection: (state) => {
+      state.selectedCollections = [];
+      state.lastClickedCollectionIndex = null;
+    },
+    setLastClickedCollectionIndex: (state, action) => {
+      state.lastClickedCollectionIndex = action.payload;
+    },
+
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
     cloneResponseExample: exampleReducers.cloneResponseExample,
@@ -3498,6 +3520,10 @@ export const {
   runWsRequestEvent,
   wsResponseReceived,
   wsUpdateResponseSortOrder,
+  setSelectedCollections,
+  toggleCollectionSelection,
+  clearCollectionSelection,
+  setLastClickedCollectionIndex,
 
   /* Response Example Actions - Start */
   addResponseExample,
