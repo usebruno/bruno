@@ -15,7 +15,7 @@ const Wrapper = styled.div`
 
   .caret {
     color: rgb(140, 140, 140);
-    fill: rgb(140 140 140);
+    fill: rgb(140, 140, 140);
   }
 `;
 
