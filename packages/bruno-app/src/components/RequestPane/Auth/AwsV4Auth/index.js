@@ -18,7 +18,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
   };

@@ -62,11 +62,11 @@ describe('prepare-request: prepareRequest', () => {
     describe('API Key Authentication', () => {
       it('If collection auth is apikey in header', async () => {
         collection.root.request.auth = {
-          mode: "apikey",
+          mode: 'apikey',
           apikey: {
-            key: "x-api-key",
-            value: "{{apiKey}}",
-            placement: "header"
+            key: 'x-api-key',
+            value: '{{apiKey}}',
+            placement: 'header'
           }
         };
 
@@ -76,11 +76,11 @@ describe('prepare-request: prepareRequest', () => {
 
       it('If collection auth is apikey in header and request has existing headers', async () => {
         collection.root.request.auth = {
-          mode: "apikey",
+          mode: 'apikey',
           apikey: {
-            key: "x-api-key",
-            value: "{{apiKey}}",
-            placement: "header"
+            key: 'x-api-key',
+            value: '{{apiKey}}',
+            placement: 'header'
           }
         };
 
@@ -92,11 +92,11 @@ describe('prepare-request: prepareRequest', () => {
 
       it('If collection auth is apikey in query parameters', async () => {
         collection.root.request.auth = {
-          mode: "apikey",
+          mode: 'apikey',
           apikey: {
-            key: "x-api-key",
-            value: "{{apiKey}}",
-            placement: "queryparams"
+            key: 'x-api-key',
+            value: '{{apiKey}}',
+            placement: 'queryparams'
           }
         };
 
@@ -172,7 +172,7 @@ describe('prepare-request: prepareRequest', () => {
         };
 
         const result = await prepareRequest(item, collection);
-        
+
         expect(result.oauth2).toBeDefined();
         expect(result.oauth2.grantType).toBe('client_credentials');
         expect(result.oauth2.accessTokenUrl).toBe('https://auth.example.com/token');
@@ -204,7 +204,7 @@ describe('prepare-request: prepareRequest', () => {
         };
 
         const result = await prepareRequest(item, collection);
-        
+
         expect(result.oauth2).toBeDefined();
         expect(result.oauth2.grantType).toBe('password');
         expect(result.oauth2.accessTokenUrl).toBe('https://auth.example.com/token');
@@ -298,7 +298,7 @@ describe('prepare-request: prepareRequest', () => {
         };
 
         const result = await prepareRequest(item, collection);
-        
+
         const expected = {
           username: 'testUser',
           password: 'testPass123'
@@ -345,11 +345,11 @@ describe('prepare-request: prepareRequest', () => {
     describe('API Key Authentication', () => {
       it('If request auth is apikey in header', async () => {
         item.request.auth = {
-          mode: "apikey",
+          mode: 'apikey',
           apikey: {
-            key: "x-api-key",
-            value: "{{apiKey}}",
-            placement: "header"
+            key: 'x-api-key',
+            value: '{{apiKey}}',
+            placement: 'header'
           }
         };
 
@@ -359,11 +359,11 @@ describe('prepare-request: prepareRequest', () => {
 
       it('If request auth is apikey in header and request has existing headers', async () => {
         item.request.auth = {
-          mode: "apikey",
+          mode: 'apikey',
           apikey: {
-            key: "x-api-key",
-            value: "{{apiKey}}",
-            placement: "header"
+            key: 'x-api-key',
+            value: '{{apiKey}}',
+            placement: 'header'
           }
         };
 
@@ -375,11 +375,11 @@ describe('prepare-request: prepareRequest', () => {
 
       it('If request auth is apikey in query parameters', async () => {
         item.request.auth = {
-          mode: "apikey",
+          mode: 'apikey',
           apikey: {
-            key: "x-api-key",
-            value: "{{apiKey}}",
-            placement: "queryparams"
+            key: 'x-api-key',
+            value: '{{apiKey}}',
+            placement: 'queryparams'
           }
         };
 

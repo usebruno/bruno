@@ -7,7 +7,7 @@ const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
-const { isRequestTagsIncluded } = require("@usebruno/common")
+const { isRequestTagsIncluded } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
@@ -98,7 +98,7 @@ const printRunSummary = (results) => {
     totalPostResponseTests,
     passedPostResponseTests,
     failedPostResponseTests
-  }
+  };
 };
 
 const getJsSandboxRuntime = (sandbox) => {
@@ -199,8 +199,8 @@ const builder = async (yargs) => {
       default: false
     })
     .option('delay', {
-      type:"number",
-      description: "Delay between each requests (in miliseconds)"
+      type: 'number',
+      description: 'Delay between each requests (in miliseconds)'
     })
     .option('tags', {
       type: 'string',
@@ -393,8 +393,8 @@ const handler = async function (argv) {
           const match = value.match(/^([^=]+)=(.*)$/);
           if (!match) {
             console.error(
-              chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
-              chalk.dim(`${value}`)
+              chalk.red(`Overridable environment variable not correct: use name=value - presented: `)
+              + chalk.dim(`${value}`)
             );
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
@@ -483,7 +483,7 @@ const handler = async function (argv) {
       recursive = true;
     }
 
-    const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
+    const resolvedPaths = paths.map((p) => path.resolve(process.cwd(), p));
 
     for (const resolvedPath of resolvedPaths) {
       const pathExists = await exists(resolvedPath);
@@ -499,13 +499,13 @@ const handler = async function (argv) {
       requestItems = requestItems.filter((item) => {
         const requestHasTests = hasExecutableTestInScript(item.request?.tests);
         const requestHasActiveAsserts = item.request?.assertions.some((x) => x.enabled) || false;
-        
+
         const preRequestScript = item.request?.script?.req;
         const requestHasPreRequestTests = hasExecutableTestInScript(preRequestScript);
-        
+
         const postResponseScript = item.request?.script?.res;
         const requestHasPostResponseTests = hasExecutableTestInScript(postResponseScript);
-        
+
         return requestHasTests || requestHasActiveAsserts || requestHasPreRequestTests || requestHasPostResponseTests;
       });
     }
@@ -540,7 +540,7 @@ const handler = async function (argv) {
         }
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
       });
-    }
+    };
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
@@ -564,18 +564,18 @@ const handler = async function (argv) {
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;
       const isValidDelay = !Number.isNaN(delay) && delay > 0;
-      if(isValidDelay && !isLastRun){
-        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay/1000).toFixed(3)}s before next request.`));
+      if (isValidDelay && !isLastRun) {
+        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
-      if(Number.isNaN(delay) && !isLastRun){
+      if (Number.isNaN(delay) && !isLastRun) {
         console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
       }
 
       results.push({
         ...result,
-        runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
+        runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: pathname.replace('.bru', ''),
         name
       });
@@ -610,7 +610,6 @@ const handler = async function (argv) {
         });
       }
 
-
       // bail if option is set and there is a failure
       if (bail) {
         const requestFailure = result?.error && !result?.skipped;
@@ -643,7 +642,7 @@ const handler = async function (argv) {
         if (nextRequestIdx >= 0) {
           currentRequestIndex = nextRequestIdx;
         } else {
-          console.error("Could not find request with name '" + nextRequestName + "'");
+          console.error('Could not find request with name \'' + nextRequestName + '\'');
           currentRequestIndex++;
         }
       } else {
@@ -667,13 +666,12 @@ const handler = async function (argv) {
       };
 
       const reporters = {
-        'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
-        'junit': (path) => makeJUnitOutput(results, path),
+        json: (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+        junit: (path) => makeJUnitOutput(results, path),
         html: (path) => makeHtmlOutput(outputJson, path, runCompletionTime, environmentName)
-      }
+      };
 
-      for (const formatter of Object.keys(formats))
-      {
+      for (const formatter of Object.keys(formats)) {
         const reportPath = formats[formatter];
         const reporter = reporters[formatter];
 

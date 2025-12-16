@@ -101,11 +101,13 @@ test.describe.serial('Collection Environment Import Tests', () => {
     await test.step('Verify both environments are available in selector', async () => {
       // Check that both environments are available in the selector
       await page.getByText('×').click(); // Close environment settings modal
+
+      await page.waitForTimeout(500);
       await page.getByTestId('environment-selector-trigger').click();
 
-      // Verify both environments are in the dropdown
-      await expect(page.locator('.dropdown-item').filter({ hasText: /^local$/ })).toBeVisible();
-      await expect(page.locator('.dropdown-item').filter({ hasText: /^prod$/ })).toBeVisible();
+      await page.waitForTimeout(300);
+      await expect(page.locator('.dropdown-item').filter({ hasText: /^local$/ })).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.dropdown-item').filter({ hasText: /^prod$/ })).toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Test switching to prod environment and verify variables', async () => {

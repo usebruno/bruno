@@ -1,4 +1,4 @@
-import { T_RunnerRequestExecutionResult, T_RunSummary } from "./types";
+import { T_RunnerRequestExecutionResult, T_RunSummary } from './types';
 
 // todo: this is generic, not specific to html, can be moved out of the report/html sub-package
 export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_RunSummary => {
@@ -35,7 +35,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
 
     let anyFailed = false;
     for (const testResult of testResults || []) {
-      if (testResult.status === "pass") {
+      if (testResult.status === 'pass') {
         passedTests += 1;
       } else {
         anyFailed = true;
@@ -43,7 +43,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
     for (const assertionResult of assertionResults || []) {
-      if (assertionResult.status === "pass") {
+      if (assertionResult.status === 'pass') {
         passedAssertions += 1;
       } else {
         anyFailed = true;
@@ -51,7 +51,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
     for (const preRequestTestResult of preRequestTestResults || []) {
-      if (preRequestTestResult.status === "pass") {
+      if (preRequestTestResult.status === 'pass') {
         passedPreRequestTests += 1;
       } else {
         anyFailed = true;
@@ -59,7 +59,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
     for (const postResponseTestResult of postResponseTestResults || []) {
-      if (postResponseTestResult.status === "pass") {
+      if (postResponseTestResult.status === 'pass') {
         passedPostResponseTests += 1;
       } else {
         anyFailed = true;
@@ -67,7 +67,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
 
-    if (!anyFailed && status !== "error") {
+    if (!anyFailed && status !== 'error') {
       passedRequests += 1;
     } else if (anyFailed) {
       failedRequests += 1;
@@ -93,6 +93,6 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
     failedPreRequestTests,
     totalPostResponseTests,
     passedPostResponseTests,
-    failedPostResponseTests,
+    failedPostResponseTests
   };
 };

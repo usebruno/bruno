@@ -34,7 +34,7 @@ const replacements = {
   'pm\\.environment\\.name': 'bru.getEnvName()',
   'pm\\.response\\.status': 'res.statusText',
   'pm\\.response\\.headers': 'res.getHeaders()',
-  "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
+  'tests\\[\'([^\']+)\'\\]\\s*=\\s*([^;]+);': 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
 
   // Supported Postman request translations:
   // - pm.request.url / request.url     -> req.getUrl()
@@ -66,7 +66,7 @@ const replacements = {
   'pm\\.cookies\\.jar\\(\\)\\.set\\(': 'bru.cookies.jar().setCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.unset\\(': 'bru.cookies.jar().deleteCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.clear\\(': 'bru.cookies.jar().deleteCookies(',
-  'pm\\.cookies\\.jar\\(\\)\\.getAll\\(': 'bru.cookies.jar().getCookies(',
+  'pm\\.cookies\\.jar\\(\\)\\.getAll\\(': 'bru.cookies.jar().getCookies('
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
@@ -85,15 +85,13 @@ const processRegexReplacement = (code) => {
   for (const { regex, replacement } of compiledReplacements) {
     if (regex.test(code)) {
       code = code.replace(regex, replacement);
-
     }
   }
   if ((code.includes('pm.') || code.includes('postman.'))) {
     code = code.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
   }
   return code;
-}
-
+};
 
 const postmanTranslation = (script, options = {}) => {
   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;

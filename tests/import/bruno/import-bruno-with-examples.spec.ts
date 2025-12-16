@@ -11,7 +11,8 @@ test.describe('Import Bruno Collection with Examples', () => {
     const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-with-examples.json');
 
     await test.step('Open import collection modal', async () => {
-      await page.getByRole('button', { name: 'Import Collection' }).click();
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
     });
 
     await test.step('Wait for import modal and verify title', async () => {
@@ -20,28 +21,29 @@ test.describe('Import Bruno Collection with Examples', () => {
       await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     });
 
-    await test.step('Upload collection file', async () => {
+    await test.step('Upload collection file and verify location modal appears', async () => {
       await page.setInputFiles('input[type="file"]', brunoFile);
-    });
 
-    await test.step('Wait for file processing to complete', async () => {
-      await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-    });
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      const errorMessage = page.getByText('Failed to parse the file');
 
-    await test.step('Verify no parsing errors occurred', async () => {
-      const hasError = await page.getByText('Failed to parse the file').isVisible().catch(() => false);
-      if (hasError) {
+      const result = await Promise.race([
+        locationModal.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'success'),
+        errorMessage.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'error')
+      ]).catch(() => 'timeout');
+
+      if (result === 'error') {
         throw new Error('Collection import failed with parsing error');
       }
-    });
+      if (result === 'timeout') {
+        throw new Error('Import timed out - neither success nor error state was reached');
+      }
 
-    await test.step('Verify location selection modal appears', async () => {
-      const locationModal = page.getByRole('dialog');
       await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     });
 
     await test.step('Verify collection name appears in location modal', async () => {
-      const locationModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await expect(locationModal.getByText('bruno-with-examples')).toBeVisible();
       await page.getByTestId('modal-close-button').click();
     });

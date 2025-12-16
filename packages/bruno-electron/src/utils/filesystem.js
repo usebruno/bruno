@@ -40,11 +40,10 @@ const isDirectory = (dirPath) => {
 
 const hasSubDirectories = (dir) => {
   const files = fs.readdirSync(dir);
-  return files.some(file => fs.statSync(path.join(dir, file)).isDirectory());
+  return files.some((file) => fs.statSync(path.join(dir, file)).isDirectory());
 };
 
 const normalizeAndResolvePath = (pathname) => {
-
   if (isWSLPath(pathname)) {
     return normalizeWSLPath(pathname);
   }
@@ -64,8 +63,7 @@ const normalizeAndResolvePath = (pathname) => {
 function isWSLPath(pathname) {
   // Check if the path starts with the WSL prefix
   // eg. "\\wsl.localhost\Ubuntu\home\user\bruno\collection\scripting\api\req\getHeaders.bru"
-    return pathname.startsWith('\\\\') || pathname.startsWith('//') || pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost');
-
+  return pathname.startsWith('\\\\') || pathname.startsWith('//') || pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost');
 }
 
 function normalizeWSLPath(pathname) {
@@ -74,11 +72,10 @@ function normalizeWSLPath(pathname) {
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
 }
 
-
 const writeFile = async (pathname, content, isBinary = false) => {
   try {
     await safeWriteFile(pathname, content, {
-      encoding: !isBinary ? "utf-8" : null
+      encoding: !isBinary ? 'utf-8' : null
     });
   } catch (err) {
     console.error(`Error writing file at ${pathname}:`, err);
@@ -230,22 +227,21 @@ const getCollectionFormat = (collectionPath) => {
 };
 
 const validateName = (name) => {
-    const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // keeping this for informational purpose
-    const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-    const firstCharacter = /^[^\s\-<>:"/\\|?*\x00-\x1F]/; // no space, hyphen and `invalidCharacters`
-    const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no `invalidCharacters`
-    const lastCharacter = /[^.\s<>:"/\\|?*\x00-\x1F]$/; // no dot, space and `invalidCharacters`
-    if (name.length > 255) return false;          // max name length
+  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // keeping this for informational purpose
+  const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
+  const firstCharacter = /^[^\s\-<>:"/\\|?*\x00-\x1F]/; // no space, hyphen and `invalidCharacters`
+  const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/; // no `invalidCharacters`
+  const lastCharacter = /[^.\s<>:"/\\|?*\x00-\x1F]$/; // no dot, space and `invalidCharacters`
+  if (name.length > 255) return false; // max name length
 
-    if (reservedDeviceNames.test(name)) return false; // windows reserved names
+  if (reservedDeviceNames.test(name)) return false; // windows reserved names
 
-    return (
-        firstCharacter.test(name) &&
-        middleCharacters.test(name) &&
-        lastCharacter.test(name)
-    );
+  return (
+    firstCharacter.test(name)
+    && middleCharacters.test(name)
+    && lastCharacter.test(name)
+  );
 };
-
 
 const safeToRename = (oldPath, newPath) => {
   try {
@@ -309,11 +305,11 @@ const getCollectionStats = async (directoryPath) => {
   maxFileSize = sizeInMB(maxFileSize);
 
   return { size, filesCount, maxFileSize };
-}
+};
 
 const sizeInMB = (size) => {
   return size / (1024 * 1024);
-}
+};
 
 const getSafePathToWrite = (filePath) => {
   const MAX_FILENAME_LENGTH = 255; // Common limit on most filesystems
@@ -321,12 +317,12 @@ const getSafePathToWrite = (filePath) => {
   let ext = path.extname(filePath);
   let base = path.basename(filePath, ext);
   if (base.length + ext.length > MAX_FILENAME_LENGTH) {
-      base = sanitizeName(base);
-      base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
+    base = sanitizeName(base);
+    base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
   }
   let safePath = path.join(dir, base + ext);
   return safePath;
-}
+};
 
 async function safeWriteFile(filePath, data, options) {
   const safePath = getSafePathToWrite(filePath);
@@ -353,7 +349,7 @@ const copyPath = async (source, destination) => {
   if (targetPathExists) {
     throw new Error(`Cannot copy, ${path.basename(source)} already exists in ${path.basename(destination)}`);
   }
-  
+
   const copy = async (source, destination) => {
     const stat = await fsPromises.lstat(source);
     if (stat.isDirectory()) {
@@ -367,10 +363,10 @@ const copyPath = async (source, destination) => {
     } else {
       await fsPromises.copyFile(source, destination);
     }
-  }
+  };
 
   await copy(source, targetPath);
-}
+};
 
 // Recursively removes a source <file/directory>.
 const removePath = async (source) => {
@@ -385,7 +381,7 @@ const removePath = async (source) => {
   } else {
     await fsPromises.unlink(source);
   }
-}
+};
 
 // Recursively gets paths.
 const getPaths = async (source) => {
@@ -400,10 +396,10 @@ const getPaths = async (source) => {
         await _getPaths(entryPath);
       }
     }
-  }
+  };
   await _getPaths(source);
   return paths;
-}
+};
 
 /**
  * Checks if a file is larger than a given threshold.
@@ -419,6 +415,35 @@ const isLargeFile = (filePath, threshold = 10 * 1024 * 1024) => {
   const size = fs.statSync(filePath).size;
 
   return size > threshold;
+};
+
+const isDotEnvFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === '.env';
+};
+
+const isBrunoConfigFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'bruno.json';
+};
+
+const isBruEnvironmentConfig = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const envDirectory = path.join(collectionPath, 'environments');
+  const basename = path.basename(pathname);
+
+  return dirname === envDirectory && hasBruExtension(basename);
+};
+
+const isCollectionRootBruFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'collection.bru';
 };
 
 module.exports = {
@@ -454,5 +479,9 @@ module.exports = {
   getPaths,
   isLargeFile,
   generateUniqueName,
-  getCollectionFormat
+  getCollectionFormat,
+  isDotEnvFile,
+  isBrunoConfigFile,
+  isBruEnvironmentConfig,
+  isCollectionRootBruFile
 };

@@ -1,24 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
 import InfoTip from 'components/InfoTip';
-import { IconTrash } from '@tabler/icons';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
-  addQueryParam,
-  updateQueryParam,
-  deleteQueryParam,
   moveQueryParam,
   updatePathParam,
   setQueryParams
 } from 'providers/ReduxStore/slices/collections';
 import MultiLineEditor from 'components/MultiLineEditor';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
-
+import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import Table from 'components/Table/index';
-import ReorderTable from 'components/ReorderTable';
 import BulkEditor from '../../BulkEditor';
 
 const QueryParams = ({ item, collection }) => {
@@ -27,103 +20,103 @@ const QueryParams = ({ item, collection }) => {
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
-  
-  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
-  const handleAddQueryParam = () => {
-    dispatch(
-      addQueryParam({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
-  };
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
-  const handleQueryParamChange = (e, data, key) => {
-    let value;
+  const handleQueryParamsChange = useCallback((updatedParams) => {
+    const paramsWithType = updatedParams.map((p) => ({ ...p, type: 'query' }));
+    dispatch(setQueryParams({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      params: paramsWithType
+    }));
+  }, [dispatch, collection.uid, item.uid]);
 
-    switch (key) {
-      case 'name': {
-        value = e.target.value;
-        break;
-      }
-      case 'value': {
-        value = e.target.value;
-        break;
-      }
-      case 'enabled': {
-        value = e.target.checked;
-        break;
-      }
-    }
-
-    let queryParam = cloneDeep(data);
-
-    if (queryParam[key] === value) {
-      return;
-    }
-
-    queryParam[key] = value;
-
-    dispatch(
-      updateQueryParam({
-        queryParam,
+  const handlePathParamChange = useCallback((rowUid, key, value) => {
+    const pathParam = pathParams.find((p) => p.uid === rowUid);
+    if (pathParam) {
+      dispatch(updatePathParam({
+        pathParam: { ...pathParam, [key]: value },
         itemUid: item.uid,
         collectionUid: collection.uid
-      })
-    );
-  };
-
-  const handlePathParamChange = (e, data) => {
-    let value = e.target.value;
-
-    let pathParam = cloneDeep(data);
-
-    if (pathParam['value'] === value) {
-      return;
+      }));
     }
+  }, [dispatch, pathParams, item.uid, collection.uid]);
 
-    pathParam['value'] = value;
-
-    dispatch(
-      updatePathParam({
-        pathParam,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
-  };
-
-  const handleRemoveQueryParam = (param) => {
-    dispatch(
-      deleteQueryParam({
-        paramUid: param.uid,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
-  };
-
-  const handleQueryParamDrag = ({ updateReorderedItem }) => {
-    dispatch(
-      moveQueryParam({
-        collectionUid: collection.uid,
-        itemUid: item.uid,
-        updateReorderedItem
-      })
-    );
-  };
+  const handleQueryParamDrag = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveQueryParam({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      updateReorderedItem
+    }));
+  }, [dispatch, collection.uid, item.uid]);
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
   };
 
-  const handleBulkParamsChange = (newParams) => {
-    const paramsWithType = newParams.map((item) => ({ ...item, type: 'query' }));
-    dispatch(setQueryParams({ collectionUid: collection.uid, itemUid: item.uid, params: paramsWithType }));
+  const queryColumns = [
+    {
+      key: 'name',
+      name: 'Name',
+      isKeyField: true,
+      placeholder: 'Name',
+      width: '30%'
+    },
+    {
+      key: 'value',
+      name: 'Value',
+      placeholder: 'Value',
+      render: ({ row, value, onChange, isLastEmptyRow }) => (
+        <MultiLineEditor
+          value={value || ''}
+          theme={storedTheme}
+          onSave={onSave}
+          onChange={onChange}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          variablesAutocomplete={true}
+          placeholder={isLastEmptyRow ? 'Value' : ''}
+        />
+      )
+    }
+  ];
+
+  const pathColumns = [
+    {
+      key: 'name',
+      name: 'Name',
+      isKeyField: true,
+      width: '30%',
+      readOnly: true
+    },
+    {
+      key: 'value',
+      name: 'Value',
+      placeholder: 'Value',
+      render: ({ row, value, onChange }) => (
+        <MultiLineEditor
+          value={value || ''}
+          theme={storedTheme}
+          onSave={onSave}
+          onChange={(newValue) => handlePathParamChange(row.uid, 'value', newValue)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+        />
+      )
+    }
+  ];
+
+  const defaultQueryRow = {
+    name: '',
+    value: '',
+    description: '',
+    type: 'query'
   };
 
   if (isBulkEditMode) {
@@ -131,7 +124,7 @@ const QueryParams = ({ item, collection }) => {
       <StyledWrapper className="w-full mt-3">
         <BulkEditor
           params={queryParams}
-          onChange={handleBulkParamsChange}
+          onChange={handleQueryParamsChange}
           onToggle={toggleBulkEditMode}
           onSave={onSave}
           onRun={handleRun}
@@ -144,135 +137,49 @@ const QueryParams = ({ item, collection }) => {
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Query</div>
-        <Table
-          headers={[
-            { name: 'Name', accessor: 'name', width: '31%' },
-            { name: 'Value', accessor: 'path', width: '56%' },
-            { name: '', accessor: '', width: '13%' }
-          ]}
-        >
-          <ReorderTable updateReorderedItem={handleQueryParamDrag}>
-            {queryParams && queryParams.length
-              ? queryParams.map((param, index) => (
-                  <tr key={param.uid} data-uid={param.uid}>
-                    <td className="flex relative">
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={param.name}
-                        className="mousetrap"
-                        onChange={(e) => handleQueryParamChange(e, param, 'name')}
-                      />
-                    </td>
-                    <td>
-                      <MultiLineEditor
-                        value={param.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) => handleQueryParamChange({ target: { value: newValue } }, param, 'value')}
-                        onRun={handleRun}
-                        collection={collection}
-                        item={item}
-                        variablesAutocomplete={true}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={param.enabled}
-                          tabIndex="-1"
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
-                        />
-                        <button tabIndex="-1" onClick={() => handleRemoveQueryParam(param)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              : null}
-          </ReorderTable>
-        </Table>
-
-        <div className="flex justify-between mt-2">
-          <button className="btn-action text-link pr-2 py-3 select-none" onClick={handleAddQueryParam}>
-            +&nbsp;<span>Add Param</span>
-          </button>
+        <EditableTable
+          columns={queryColumns}
+          rows={queryParams || []}
+          onChange={handleQueryParamsChange}
+          defaultRow={defaultQueryRow}
+          reorderable={true}
+          onReorder={handleQueryParamDrag}
+        />
+        <div className="flex justify-end mt-2">
           <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
             Bulk Edit
           </button>
         </div>
+
         <div className="mb-2 title text-xs flex items-stretch">
           <span>Path</span>
           <InfoTip infotipId="path-param-InfoTip">
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
-              template is used in the URL. <br/> For example:
+              template is used in the URL. <br /> For example:
               <code className="font-mono mx-2">
                 https://example.com/v1/users/<span>:id</span>
               </code>
             </div>
           </InfoTip>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <td>Name</td>
-              <td>Value</td>
-            </tr>
-          </thead>
-          <tbody>
-            {pathParams && pathParams.length
-              ? pathParams.map((path, index) => {
-                  return (
-                    <tr key={path.uid}>
-                      <td>
-                        <input
-                          type="text"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          value={path.name}
-                          className="mousetrap"
-                          readOnly={true}
-                        />
-                      </td>
-                      <td>
-                        <MultiLineEditor
-                          value={path.value}
-                          theme={storedTheme}
-                          onSave={onSave}
-                          onChange={(newValue) =>
-                            handlePathParamChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              path
-                            )
-                          }
-                          onRun={handleRun}
-                          collection={collection}
-                          item={item}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })
-              : null}
-          </tbody>
-        </table>
-        {!(pathParams && pathParams.length) ? <div className="title pr-2 py-3 mt-2 text-xs"></div> : null}
+        {pathParams && pathParams.length > 0 ? (
+          <EditableTable
+            columns={pathColumns}
+            rows={pathParams}
+            onChange={() => {}}
+            defaultRow={{}}
+            showCheckbox={false}
+            showDelete={false}
+            showAddRow={false}
+          />
+        ) : (
+          <div className="title pr-2 py-3 mt-2 text-xs"></div>
+        )}
       </div>
     </StyledWrapper>
   );
 };
+
 export default QueryParams;

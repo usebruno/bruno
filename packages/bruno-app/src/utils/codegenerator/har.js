@@ -107,13 +107,13 @@ const createPostData = (body) => {
         text: filePath,
         params: filePath
           ? [
-            {
-              name: selectedFile?.name || 'file',
-              value: filePath,
-              fileName: filePath,
-              contentType: selectedFile?.contentType || 'application/octet-stream'
-            }
-          ]
+              {
+                name: selectedFile?.name || 'file',
+                value: filePath,
+                fileName: filePath,
+                contentType: selectedFile?.contentType || 'application/octet-stream'
+              }
+            ]
           : []
       };
     }
@@ -130,7 +130,7 @@ const createPostData = (body) => {
   }
 };
 
-export const buildHarRequest = ({ request, headers }) => { 
+export const buildHarRequest = ({ request, headers }) => {
   // NOTE:
   // This is just a safety check.
   // The interpolateUrlPathParams method validates the url, but it does not throw

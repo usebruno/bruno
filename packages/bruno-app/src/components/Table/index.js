@@ -95,7 +95,8 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
                   <div
                     className="resizer absolute cursor-col-resize w-[4px] right-[-2px] top-0 z-10 opacity-50 hover:bg-blue-500 active:bg-blue-500"
                     onMouseDown={handleMouseDown(i)}
-                  ></div>
+                  >
+                  </div>
                 </th>
               ))}
             </tr>

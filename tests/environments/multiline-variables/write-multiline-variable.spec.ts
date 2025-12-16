@@ -5,8 +5,9 @@ test.describe('Multiline Variables - Write Test', () => {
     test.setTimeout(60 * 1000);
 
     // open the collection
-    await expect(page.getByTitle('multiline-variables')).toBeVisible();
-    await page.getByTitle('multiline-variables').click();
+    const collection = page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'multiline-variables' });
+    await expect(collection).toBeVisible();
+    await collection.click();
 
     // open request
     await expect(page.getByTitle('multiline-test', { exact: true })).toBeVisible();
@@ -70,8 +71,8 @@ test.describe('Multiline Variables - Write Test', () => {
     await expect(page.locator('.response-status-code')).toContainText('200');
 
     // verify multiline JSON variable resolution in response
-    const expectedBody =
-      '{\n  "user": {\n    "name": "John Doe",\n    "email": "john@example.com",\n    "preferences": {\n      "theme": "dark",\n      "notifications": true\n    }\n  },\n  "metadata": {\n    "created": "2025-09-03",\n    "version": "1.0"\n  }\n}';
+    const expectedBody
+      = '{\n  "user": {\n    "name": "John Doe",\n    "email": "john@example.com",\n    "preferences": {\n      "theme": "dark",\n      "notifications": true\n    }\n  },\n  "metadata": {\n    "created": "2025-09-03",\n    "version": "1.0"\n  }\n}';
     await expect(page.locator('.response-pane')).toContainText(`"body": ${JSON.stringify(expectedBody)}`);
   });
 
@@ -87,9 +88,5 @@ test.describe('Multiline Variables - Write Test', () => {
     content = content.replace(/\s*multiline_data_json:\s*'''\s*[\s\S]*?\s*'''/g, '');
 
     fs.writeFileSync(testBruPath, content);
-  });
-
-  test.afterAll(async ({ page }) => {
-    await page.locator('.bruno-logo').click();
   });
 });

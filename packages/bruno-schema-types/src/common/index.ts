@@ -20,4 +20,3 @@ export type {
   OAuthAdditionalParameter,
   OAuthAdditionalParameters
 } from './auth';
-

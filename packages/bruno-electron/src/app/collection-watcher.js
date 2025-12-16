@@ -347,7 +347,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
-        
       } catch (error) {
         console.error(error);
       } finally {
@@ -390,7 +389,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
-    } catch(error) {
+    } catch (error) {
       file.data = {
         name: path.basename(pathname),
         type: 'http-request'
@@ -656,10 +655,10 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
   // Mark discovery as complete
   watcher.completeCollectionDiscovery(win, collectionUid);
-  
+
   const UiStateSnapshotStore = new UiStateSnapshot();
   const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
-  const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == watchPath);
+  const collectionSnapshotState = collectionsSnapshotState?.find((c) => c?.pathname == watchPath);
   win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
 };
 
@@ -674,8 +673,8 @@ class CollectionWatcher {
     if (!this.loadingStates[collectionUid]) {
       this.loadingStates[collectionUid] = {
         isDiscovering: false, // Initial discovery phase
-        isProcessing: false,  // Processing discovered files
-        pendingFiles: new Set(), // Files that need processing
+        isProcessing: false, // Processing discovered files
+        pendingFiles: new Set() // Files that need processing
       };
     }
   }
@@ -683,10 +682,10 @@ class CollectionWatcher {
   startCollectionDiscovery(win, collectionUid) {
     this.initializeLoadingState(collectionUid);
     const state = this.loadingStates[collectionUid];
-    
+
     state.isDiscovering = true;
     state.pendingFiles.clear();
-    
+
     win.webContents.send('main:collection-loading-state-updated', {
       collectionUid,
       isLoading: true
@@ -701,10 +700,10 @@ class CollectionWatcher {
 
   markFileAsProcessed(win, collectionUid, filepath) {
     if (!this.loadingStates[collectionUid]) return;
-    
+
     const state = this.loadingStates[collectionUid];
     state.pendingFiles.delete(filepath);
-    
+
     // If discovery is complete and no pending files, mark as not loading
     if (!state.isDiscovering && state.pendingFiles.size === 0 && state.isProcessing) {
       state.isProcessing = false;
@@ -717,10 +716,10 @@ class CollectionWatcher {
 
   completeCollectionDiscovery(win, collectionUid) {
     if (!this.loadingStates[collectionUid]) return;
-    
+
     const state = this.loadingStates[collectionUid];
     state.isDiscovering = false;
-    
+
     // If there are pending files, start processing phase
     if (state.pendingFiles.size > 0) {
       state.isProcessing = true;
@@ -743,10 +742,15 @@ class CollectionWatcher {
     }
 
     this.initializeLoadingState(collectionUid);
-    
+
     this.startCollectionDiscovery(win, collectionUid);
 
-    const ignores = brunoConfig?.ignore || [];
+    // Always ignore node_modules and .git, regardless of user config
+    // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
+    const defaultIgnores = ['node_modules', '.git'];
+    const userIgnores = brunoConfig?.ignore || [];
+    const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
+
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
@@ -754,6 +758,12 @@ class CollectionWatcher {
         ignored: (filepath) => {
           const normalizedPath = normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
+
+          // Check if any path segment matches a default ignore pattern (handles symlinks)
+          const pathSegments = relativePath.split(path.sep);
+          if (pathSegments.some((segment) => defaultIgnores.includes(segment))) {
+            return true;
+          }
 
           return ignores.some((ignorePattern) => {
             return relativePath === ignorePattern || relativePath.startsWith(ignorePattern);
@@ -812,7 +822,7 @@ class CollectionWatcher {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
     }
-    
+
     if (collectionUid) {
       this.cleanupLoadingState(collectionUid);
     }
@@ -821,7 +831,7 @@ class CollectionWatcher {
   getWatcherByItemPath(itemPath) {
     const paths = Object.keys(this.watchers);
 
-    const watcherPath = paths?.find(collectionPath => {
+    const watcherPath = paths?.find((collectionPath) => {
       const absCollectionPath = path.resolve(collectionPath);
       const absItemPath = path.resolve(itemPath);
 
@@ -837,7 +847,7 @@ class CollectionWatcher {
       watcher.unwatch(itemPath);
     }
   }
-  
+
   addItemPathInWatcher(itemPath) {
     const watcher = this.getWatcherByItemPath(itemPath);
     if (watcher && !watcher?.has?.(itemPath)) {

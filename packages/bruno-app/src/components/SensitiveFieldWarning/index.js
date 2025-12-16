@@ -13,13 +13,13 @@ const SensitiveFieldWarning = ({ fieldName, warningMessage }) => {
         <Tooltip
           anchorId={tooltipId}
           className="tooltip-mod max-w-lg"
-          content={
+          content={(
             <div>
               <p>
                 <span>{warningMessage}</span>
               </p>
             </div>
-          }
+          )}
         />
       </span>
     </StyledWrapper>

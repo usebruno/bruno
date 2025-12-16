@@ -11,6 +11,7 @@ const Wrapper = styled.div`
     td {
       border: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder};
       padding: 4px 10px;
+      vertical-align: middle;
 
       &:nth-child(1),
       &:nth-child(4) {
@@ -58,8 +59,8 @@ const Wrapper = styled.div`
 
   input[type='checkbox'] {
     cursor: pointer;
-    position: relative;
-    top: 1px;
+    vertical-align: middle;
+    margin: 0;
   }
 `;
 

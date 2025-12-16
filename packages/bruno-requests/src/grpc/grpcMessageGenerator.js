@@ -8,12 +8,12 @@ import { faker } from '@faker-js/faker';
  */
 const generateSampleMessageFromFields = (fields, options = {}) => {
   const result = {};
-  
+
   if (!fields || !Array.isArray(fields)) {
     return {};
   }
-  
-  fields.forEach(field => {
+
+  fields.forEach((field) => {
     // Generate a value based on field name and type
     if (field.type === 'TYPE_MESSAGE') {
       // Handle nested message
@@ -21,7 +21,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
         if (field.label === 'LABEL_REPEATED') {
           // Generate array of nested messages
           const count = options.arraySize || faker.number.int({ min: 1, max: 3 });
-          result[field.name] = Array.from({ length: count }, () => 
+          result[field.name] = Array.from({ length: count }, () =>
             generateSampleMessageFromFields(field.messageType.field, options)
           );
         } else {
@@ -37,7 +37,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
     } else {
       // Generate value based on primitive type and name
       let value;
-      
+
       switch (field.type) {
         case 'TYPE_DOUBLE':
         case 'TYPE_FLOAT':
@@ -57,7 +57,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
           value = faker.datatype.boolean();
           break;
         case 'TYPE_STRING':
-          value = faker.lorem.word()
+          value = faker.lorem.word();
           break;
         case 'TYPE_BYTES':
           value = Buffer.from(faker.string.alpha({ length: { min: 5, max: 10 } })).toString('base64');
@@ -75,7 +75,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
       }
     }
   });
-  
+
   return result;
 };
 
@@ -90,15 +90,14 @@ const getMethodRequestFields = (method) => {
     if (method.requestType?.type?.field) {
       return method.requestType.type.field;
     }
-    
+
     if (method.requestType?.field) {
       return method.requestType.field;
     }
-    
+
     if (method.requestType?.type) {
       return method.requestType.type;
     }
-   
   } catch (error) {
     console.error('Error extracting method request fields:', error);
     return null;
@@ -116,13 +115,13 @@ export const generateGrpcSampleMessage = (method, options = {}) => {
     if (!method) {
       return {};
     }
-    
+
     const fields = getMethodRequestFields(method);
-    
+
     if (fields) {
       return generateSampleMessageFromFields(fields, options);
     }
-    
+
     // If method exists but no field information could be extracted,
     // generate a generic message that matches common patterns
     return {};

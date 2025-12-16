@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, selectRequestPaneTab } from '../../utils/page';
 
 test.describe('Timeout Settings Tests', () => {
   test('should configure and test timeout settings', async ({
@@ -13,7 +13,7 @@ test.describe('Timeout Settings Tests', () => {
     await page.getByRole('complementary').getByText('timeout-test').click();
 
     // Go to Settings tab
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    await selectRequestPaneTab(page, 'Settings');
 
     // Test Timeout Settings with custom value
     const timeoutInput = page.locator('input[id="timeout"]');

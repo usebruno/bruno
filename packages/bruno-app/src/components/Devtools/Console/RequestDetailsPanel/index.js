@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { 
+import {
   IconX,
   IconFileText,
   IconArrowRight,
   IconNetwork
 } from '@tabler/icons';
 import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
-import QueryResult from 'components/ResponsePane/QueryResult';
+import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common/index';
@@ -116,8 +116,8 @@ const ResponseTab = ({ response, request, collection }) => {
         <h4>Response Body</h4>
         <div className="response-body-container">
           {response?.data || response?.dataBuffer ? (
-            <QueryResult
-              item={{ uid:  uuid()}}
+            <QueryResponse
+              item={{ uid: uuid() }}
               collection={collection}
               data={response.data}
               dataBuffer={response.dataBuffer}
@@ -155,8 +155,8 @@ const NetworkTab = ({ response }) => {
 
 const RequestDetailsPanel = () => {
   const dispatch = useDispatch();
-  const { selectedRequest } = useSelector(state => state.logs);
-  const collections = useSelector(state => state.collections.collections);
+  const { selectedRequest } = useSelector((state) => state.logs);
+  const collections = useSelector((state) => state.collections.collections);
   const [activeTab, setActiveTab] = useState('request');
 
   if (!selectedRequest) return null;
@@ -164,7 +164,7 @@ const RequestDetailsPanel = () => {
   const { data } = selectedRequest;
   const { request, response } = data;
 
-  const collection = collections.find(c => c.uid === selectedRequest.collectionUid);
+  const collection = collections.find((c) => c.uid === selectedRequest.collectionUid);
 
   const handleClose = () => {
     dispatch(clearSelectedRequest());
@@ -196,8 +196,8 @@ const RequestDetailsPanel = () => {
           <span>Request Details</span>
           <span className="request-time">({formatTime(selectedRequest.timestamp)})</span>
         </div>
-        
-        <button 
+
+        <button
           className="close-button"
           onClick={handleClose}
           title="Close details panel"
@@ -207,23 +207,23 @@ const RequestDetailsPanel = () => {
       </div>
 
       <div className="panel-tabs">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'request' ? 'active' : ''}`}
           onClick={() => setActiveTab('request')}
         >
           <IconArrowRight size={14} strokeWidth={1.5} />
           Request
         </button>
-        
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'response' ? 'active' : ''}`}
           onClick={() => setActiveTab('response')}
         >
           <IconFileText size={14} strokeWidth={1.5} />
           Response
         </button>
-        
-        <button 
+
+        <button
           className={`tab-button ${activeTab === 'network' ? 'active' : ''}`}
           onClick={() => setActiveTab('network')}
         >
@@ -239,4 +239,4 @@ const RequestDetailsPanel = () => {
   );
 };
 
-export default RequestDetailsPanel; 
+export default RequestDetailsPanel;

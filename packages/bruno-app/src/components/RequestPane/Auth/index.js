@@ -31,9 +31,9 @@ const Auth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-  
+
   // Create a request object to pass to the auth components
-  const request = item.draft 
+  const request = item.draft
     ? get(item, 'draft.request', {})
     : get(item, 'request', {});
 
@@ -87,7 +87,7 @@ const Auth = ({ item, collection }) => {
       }
       case 'ntlm': {
         return <NTLMAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
-      }      
+      }
       case 'oauth2': {
         return <OAuth2 collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }

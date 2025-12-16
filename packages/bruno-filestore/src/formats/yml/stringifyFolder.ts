@@ -1,8 +1,9 @@
 import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
-import type { Folder } from '@opencollection/types/collection/item';
+import type { Folder, FolderInfo } from '@opencollection/types/collection/item';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Scripts } from '@opencollection/types/common/scripts';
-import type { Auth, HttpHeader } from '@opencollection/types/requests/http';
+import type { Auth } from '@opencollection/types/common/auth';
+import type { HttpRequestHeader } from '@opencollection/types/requests/http';
 import type { RequestDefaults } from '@opencollection/types/common/request-defaults';
 import { toOpenCollectionAuth } from './common/auth';
 import { toOpenCollectionHttpHeaders } from './common/headers';
@@ -31,12 +32,15 @@ const hasRequestScripts = (folderRoot: FolderRoot): boolean => {
 
 const stringifyFolder = (folderRoot: FolderRoot): string => {
   try {
-    const ocFolder: Folder = {
-      type: 'folder'
-    };
+    const ocFolder: Folder = {};
 
-    ocFolder.name = folderRoot.meta?.name || 'Untitled Folder';
-    ocFolder.seq = folderRoot.meta?.seq || 1;
+    // info block
+    const info: FolderInfo = {
+      name: folderRoot.meta?.name || 'Untitled Folder',
+      type: 'folder',
+      seq: folderRoot.meta?.seq || 1
+    };
+    ocFolder.info = info;
 
     // request defaults
     if (hasRequestDefaults(folderRoot)) {
@@ -44,7 +48,7 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
 
       // headers
       if (folderRoot.request?.headers?.length) {
-        const ocHeaders: HttpHeader[] | undefined = toOpenCollectionHttpHeaders(folderRoot.request?.headers);
+        const ocHeaders: HttpRequestHeader[] | undefined = toOpenCollectionHttpHeaders(folderRoot.request?.headers);
         if (ocHeaders) {
           ocFolder.request.headers = ocHeaders;
         }

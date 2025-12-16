@@ -18,7 +18,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
   const apikeyAuth = get(request, 'auth.apikey', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
   };
@@ -47,17 +47,17 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   useEffect(() => {
-    !apikeyAuth?.placement &&
-      dispatch(
-        updateAuth({
-          mode: 'apikey',
-          collectionUid: collection.uid,
-          itemUid: item.uid,
-          content: {
-            placement: 'header'
-          }
-        })
-      );
+    !apikeyAuth?.placement
+    && dispatch(
+      updateAuth({
+        mode: 'apikey',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          placement: 'header'
+        }
+      })
+    );
   }, [apikeyAuth]);
 
   return (

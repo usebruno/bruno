@@ -1,7 +1,6 @@
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from './common';
 
-
 export const processBrunoCollection = async (jsonData) => {
   try {
     let collection = hydrateSeqInCollection(jsonData);

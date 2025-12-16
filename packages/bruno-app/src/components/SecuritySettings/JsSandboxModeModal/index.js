@@ -30,7 +30,7 @@ const JsSandboxModeModal = ({ collection }) => {
     <Portal>
       <Modal
         size="sm"
-        title={'JavaScript Sandbox'}
+        title="JavaScript Sandbox"
         confirmText="Save"
         handleConfirm={handleSave}
         hideCancel={true}
@@ -43,7 +43,7 @@ const JsSandboxModeModal = ({ collection }) => {
             The collection might include JavaScript code in Variables, Scripts, Tests, and Assertions.
           </div>
 
-          <div className='text-muted mt-6'>
+          <div className="text-muted mt-6">
             Please choose the security level for the JavaScript code execution.
           </div>
 
@@ -78,7 +78,7 @@ const JsSandboxModeModal = ({ collection }) => {
               />
               <span className={jsSandboxMode === 'developer' ? 'font-medium' : 'font-normal'}>
                 Developer Mode
-                <span className='ml-1 developer-mode-warning'>(use only if you trust the authors of the collection)</span>
+                <span className="ml-1 developer-mode-warning">(use only if you trust the authors of the collection)</span>
               </span>
             </label>
             <p className="text-muted mt-1">

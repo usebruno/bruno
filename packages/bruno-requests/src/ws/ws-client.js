@@ -366,6 +366,19 @@ class WsClient {
       });
     }
   }
+
+  /**
+   * Get the connection status of a connection
+   * @param {string} requestId - The request ID to get the connection status of
+   * @returns {string} - The connection status
+   */
+  // Returns "disconnected", "connecting", "connected"
+  connectionStatus(requestId) {
+    const connectionMeta = this.activeConnections.get(requestId);
+    if (connectionMeta?.connection?.readyState === ws.WebSocket.CONNECTING) return 'connecting';
+    if (connectionMeta?.connection?.readyState === ws.WebSocket.OPEN) return 'connected';
+    return 'disconnected';
+  }
 }
 
 export { WsClient };

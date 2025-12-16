@@ -1,5 +1,6 @@
 import { test, expect } from '../../playwright';
-import { openCollectionAndAcceptSandbox, closeAllCollections } from '../utils/page';
+import { openCollectionAndAcceptSandbox, closeAllCollections, sendRequest } from '../utils/page';
+import { buildCommonLocators } from '../utils/page/locators';
 
 test.describe('Global Environment Variables - Non-string Values', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {
@@ -40,12 +41,9 @@ test.describe('Global Environment Variables - Non-string Values', () => {
 
     // Request contains a script that sets the non-string global variables.
     await test.step('Run the request to seed non-string global variables via post-script', async () => {
-      await page.getByText('set-global-nonstring').click();
-      await page.getByTestId('send-arrow-icon').click();
-
-      // wait for the response to arrive
-      await page.getByTestId('response-status-code').waitFor({ state: 'visible' });
-      await expect(page.getByTestId('response-status-code')).toHaveText(/200/);
+      const locators = buildCommonLocators(page);
+      await locators.sidebar.request('set-global-nonstring').click();
+      await sendRequest(page, 200);
     });
 
     await test.step('Re-open Global Environments to see the seeded variables', async () => {

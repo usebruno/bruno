@@ -12,7 +12,7 @@
  */
 
 import { mockDataFunctions } from '../utils/faker-functions';
-import { get } from "lodash-es";
+import { get } from 'lodash-es';
 
 const interpolate = (
   str: string,

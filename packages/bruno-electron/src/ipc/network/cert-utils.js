@@ -30,8 +30,8 @@ const getCertsAndProxyConfig = async ({
 
   let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
   let caCertificatesData = getCACertificates({
-    caCertFilePath, 
-    shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates() 
+    caCertFilePath,
+    shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates()
   });
 
   let caCertificates = caCertificatesData.caCertificates;
@@ -42,10 +42,17 @@ const getCertsAndProxyConfig = async ({
   httpsAgentRequestFields['ca'] = caCertificates || [];
 
   const { promptVariables } = collection;
+  const collectionVariables = request.collectionVariables || {};
+  const folderVariables = request.folderVariables || {};
+  const requestVariables = request.requestVariables || {};
+
   const brunoConfig = getBrunoConfig(collectionUid, collection);
   const interpolationOptions = {
     globalEnvironmentVariables,
+    collectionVariables,
     envVars,
+    folderVariables,
+    requestVariables,
     runtimeVariables,
     promptVariables,
     processEnvVars
@@ -61,7 +68,7 @@ const getCertsAndProxyConfig = async ({
       const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/|ws:\\/\\/|wss:\\/\\/)?'
         + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
       const requestUrl = interpolateString(request.url, interpolationOptions);
-      if (requestUrl.match(hostRegex)) {
+      if (requestUrl && requestUrl.match(hostRegex)) {
         if (type === 'cert') {
           try {
             let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
@@ -93,14 +100,14 @@ const getCertsAndProxyConfig = async ({
 
   /**
    * Proxy configuration
-   * 
+   *
    * Preferences proxyMode has three possible values: on, off, system
    * Collection proxyMode has three possible values: true, false, global
-   * 
+   *
    * When collection proxyMode is true, it overrides the app-level proxy settings
    * When collection proxyMode is false, it ignores the app-level proxy settings
    * When collection proxyMode is global, it uses the app-level proxy settings
-   * 
+   *
    * Below logic calculates the proxyMode and proxyConfig to be used for the request
    */
   let proxyMode = 'off';
@@ -115,6 +122,7 @@ const getCertsAndProxyConfig = async ({
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyMode = get(proxyConfig, 'mode', 'off');
   }
+
   return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
 };
 

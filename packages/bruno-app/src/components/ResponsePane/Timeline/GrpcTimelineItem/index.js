@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { RelativeTime } from "../TimelineItem/Common/Time/index";
-import Status from "../TimelineItem/Common/Status/index";
-import { 
-  IconChevronDown, 
-  IconChevronRight, 
-  IconServer, 
-  IconDatabase, 
-  IconAlertCircle, 
-  IconCircleCheck, 
+import { useState } from 'react';
+import { RelativeTime } from '../TimelineItem/Common/Time/index';
+import Status from '../TimelineItem/Common/Status/index';
+import {
+  IconChevronDown,
+  IconChevronRight,
+  IconServer,
+  IconDatabase,
+  IconAlertCircle,
+  IconCircleCheck,
   IconCircleX,
   IconX,
   IconSend
@@ -27,55 +27,53 @@ const EventTypeIcons = {
 
 // Event type display names
 const EventTypeNames = {
-  metadata: "Metadata",
-  response: "Response Message",
-  request: "Request",
-  message: "Message",
-  status: "Status",
-  error: "Error",
-  end: "Stream Ended",
-  cancel: "Cancelled"
+  metadata: 'Metadata',
+  response: 'Response Message',
+  request: 'Request',
+  message: 'Message',
+  status: 'Status',
+  error: 'Error',
+  end: 'Stream Ended',
+  cancel: 'Cancelled'
 };
 
 // Colors for different event types
 const EventTypeColors = {
-  metadata: "border-blue-500/20",
-  response: "border-green-500/20",
-  request: "border-orange-500/20",
-  message: "border-orange-500/20",
-  status: "border-purple-500/20", 
-  error: "border-red-500/20",
-  end: "border-gray-500/20",
-  cancel: "border-amber-500/20"
+  metadata: 'border-blue-500/20',
+  response: 'border-green-500/20',
+  request: 'border-orange-500/20',
+  message: 'border-orange-500/20',
+  status: 'border-purple-500/20',
+  error: 'border-red-500/20',
+  end: 'border-gray-500/20',
+  cancel: 'border-amber-500/20'
 };
 
 const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, item }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const toggleCollapse = () => setIsCollapsed(prev => !prev);
-  
+  const toggleCollapse = () => setIsCollapsed((prev) => !prev);
+
   // Use requestSent if available, otherwise fall back to request
   const effectiveRequest = item.requestSent || request || item.request || {};
-  
+
   // Extract relevant data from request and response
   const { method, url = '' } = effectiveRequest;
   const { statusCode, statusText, duration } = response || {};
-  
+
   // Get event-specific icon and color
   const eventIcon = EventTypeIcons[eventType] || <IconDatabase size={16} strokeWidth={1.5} />;
-  const eventColor = EventTypeColors[eventType] || "border-gray-500/50";
-  const eventName = EventTypeNames[eventType] || "Event";
+  const eventColor = EventTypeColors[eventType] || 'border-gray-500/50';
+  const eventName = EventTypeNames[eventType] || 'Event';
 
-  
   // Render appropriate content based on event type
   const renderEventContent = () => {
-  
     const isClientStreaming = effectiveRequest.methodType === 'client-streaming' || effectiveRequest.methodType === 'bidi-streaming';
 
-    switch(eventType) {
+    switch (eventType) {
       case 'request':
         return (
           <div className="mt-2 bg-orange-50 dark:bg-orange-900/10 rounded p-2">
-                        
+
             {effectiveRequest.headers && Object.keys(effectiveRequest.headers).length > 0 && (
               <div className="mb-3">
                 <div className="text-xs font-medium mb-1 text-orange-700 dark:text-orange-400">Metadata</div>
@@ -89,7 +87,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                 </div>
               </div>
             )}
-            
+
             {/* gRPC Messages section */}
             {!isClientStreaming && effectiveRequest.body?.mode === 'grpc' && effectiveRequest.body?.grpc?.length > 0 && (
               <div>
@@ -100,8 +98,8 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                   {effectiveRequest.body.grpc.filter((_, index) => index === 0).map((message, idx) => (
                     <div key={idx} className="bg-white dark:bg-gray-800 p-2 rounded">
                       <pre className="text-xs overflow-auto max-h-[150px]">
-                        {typeof message.content === 'string' 
-                          ? message.content 
+                        {typeof message.content === 'string'
+                          ? message.content
                           : JSON.stringify(message.content, null, 2)}
                       </pre>
                     </div>
@@ -117,10 +115,10 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
           <div className="mt-2 bg-orange-50 dark:bg-orange-900/10 rounded p-2">
             <div className="font-medium mb-1 text-orange-700 dark:text-orange-400">Message</div>
             <pre className="text-xs bg-white dark:bg-gray-800 p-2 rounded overflow-auto max-h-[200px]">
-                {typeof eventData === 'string' 
-                  ? eventData 
-                  : JSON.stringify(eventData, null, 2)}
-              </pre> 
+              {typeof eventData === 'string'
+                ? eventData
+                : JSON.stringify(eventData, null, 2)}
+            </pre>
           </div>
         );
 
@@ -142,7 +140,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             )}
           </div>
         );
-        
+
       case 'response':
         // For message responses, show the response data
         return (
@@ -159,7 +157,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             )}
           </div>
         );
-        
+
       case 'status':
         // For status events, show status and trailers
         return (
@@ -167,11 +165,11 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             <div className="flex items-center gap-2 mb-1">
               <Status statusCode={statusCode} statusText={statusText} />
             </div>
-            
+
             {response.statusDescription && (
               <div className="mb-2">{response.statusDescription}</div>
             )}
-            
+
             {response.trailers && response.trailers.length > 0 && (
               <>
                 <div className="font-medium mt-2 mb-1 text-purple-700 dark:text-purple-400">Trailers</div>
@@ -187,18 +185,18 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             )}
           </div>
         );
-        
+
       case 'error':
         // For error events, show error details
         return (
           <div className="mt-2 bg-red-50 dark:bg-red-900/10 rounded p-2">
             <div className="font-medium mb-1 text-red-700 dark:text-red-400">Error</div>
             <div className="mb-2">{response.error || 'Unknown error'}</div>
-            
+
             <div className="flex items-center gap-2">
               <Status statusCode={statusCode} statusText={statusText} />
             </div>
-            
+
             {response.trailers && response.trailers.length > 0 && (
               <>
                 <div className="font-medium mt-2 mb-1 text-red-700 dark:text-red-400">Error Metadata</div>
@@ -214,7 +212,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             )}
           </div>
         );
-        
+
       case 'end':
         // For end events, show summary
         return (
@@ -225,7 +223,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             </div>
           </div>
         );
-        
+
       case 'cancel':
         // For cancel events, show cancellation info
         return (
@@ -234,7 +232,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             <div>{response.statusDescription || 'The gRPC stream was cancelled'}</div>
           </div>
         );
-        
+
       default:
         return null;
     }
@@ -242,7 +240,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
 
   return (
     <div className={`border-l-4 ${eventColor} pl-3 py-2 mb-3`}>
-      <div className={`flex items-center gap-2 cursor-pointer`} onClick={toggleCollapse}>
+      <div className="flex items-center gap-2 cursor-pointer" onClick={toggleCollapse}>
         {isCollapsed ? <IconChevronRight size={16} strokeWidth={1.5} /> : <IconChevronDown size={16} strokeWidth={1.5} />}
         {eventIcon}
         <span className="font-medium">{eventName}</span>
@@ -261,14 +259,14 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
           <RelativeTime timestamp={timestamp} />
         </span>
       </div>
-      
+
       {/* Always show the URL */}
       <div className="text-xs text-gray-500 mt-1 ml-6">{url}</div>
-      
+
       {/* Expanded content - only show for non-status items */}
       {!isCollapsed && renderEventContent()}
     </div>
   );
 };
 
-export default GrpcTimelineItem; 
+export default GrpcTimelineItem;

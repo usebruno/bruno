@@ -17,13 +17,14 @@ import {
   IconShare,
   IconFoldDown,
   IconX,
-  IconSettings
+  IconSettings,
+  IconTerminal2
 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
-import { hideHomePage } from 'providers/ReduxStore/slices/app';
+import { hideApiSpecPage, hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -42,6 +43,7 @@ import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -55,7 +57,7 @@ const Collection = ({ collection, searchText }) => {
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
-  
+
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const menuDropdownTippyRef = useRef();
@@ -79,7 +81,7 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const ensureCollectionIsMounted = () => {
-    if(collection.mountStatus === 'mounted'){
+    if (collection.mountStatus === 'mounted') {
       return;
     }
     dispatch(mountCollection({
@@ -87,7 +89,7 @@ const Collection = ({ collection, searchText }) => {
       collectionPathname: collection.pathname,
       brunoConfig: collection.brunoConfig
     }));
-  }
+  };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
   const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
@@ -101,27 +103,28 @@ const Collection = ({ collection, searchText }) => {
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
-    
+
     ensureCollectionIsMounted();
 
-    if(collection.collapsed) {
+    if (collection.collapsed) {
       dispatch(toggleCollection(collection.uid));
     }
-  
-    if(!isChevronClick) {
+
+    if (!isChevronClick) {
       dispatch(hideHomePage()); // @TODO Playwright tests are often stuck on home page, rather than collection settings tab. Revisit for a proper fix.
+      dispatch(hideApiSpecPage());
       dispatch(
         addTab({
           uid: collection.uid,
           collectionUid: collection.uid,
-          type: 'collection-settings',
+          type: 'collection-settings'
         })
       );
     }
   };
 
   const handleDoubleClick = (_event) => {
-    dispatch(makeTabPermanent({ uid: collection.uid }))
+    dispatch(makeTabPermanent({ uid: collection.uid }));
   };
 
   const handleCollectionCollapse = (e) => {
@@ -129,7 +132,7 @@ const Collection = ({ collection, searchText }) => {
     e.preventDefault();
     ensureCollectionIsMounted();
     dispatch(toggleCollection(collection.uid));
-  }
+  };
 
   // prevent the parent's double-click handler from firing
   const handleCollectionDoubleClick = (e) => {
@@ -199,18 +202,18 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    type: "collection",
+    type: 'collection',
     item: collection,
     collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
+      isDragging: monitor.isDragging()
     }),
     options: {
-      dropEffect: "move"
+      dropEffect: 'move'
     }
   });
-  
+
   const [{ isOver }, drop] = useDrop({
-    accept: ["collection", "collection-item"],
+    accept: ['collection', 'collection-item'],
     hover: (_draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
@@ -224,9 +227,9 @@ const Collection = ({ collection, searchText }) => {
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }))
+        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
       } else {
-        dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
+        dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));
       }
       setDropType(null);
     },
@@ -234,13 +237,23 @@ const Collection = ({ collection, searchText }) => {
       return draggedItem.uid !== collection.uid;
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
+      isOver: monitor.isOver()
+    })
   });
 
   useEffect(() => {
     dragPreview(getEmptyImage(), { captureDraggingState: true });
   }, []);
+
+  useEffect(() => {
+    if (isCollectionFocused && collectionRef.current) {
+      try {
+        collectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        // ignore scroll errors
+      }
+    }
+  }, [isCollectionFocused]);
 
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
@@ -253,7 +266,7 @@ const Collection = ({ collection, searchText }) => {
     'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
     'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
     'collection-keyboard-focused': isKeyboardFocused
-    });
+  });
 
   // we need to sort request items by seq property
   const sortItemsBySequence = (items = []) => {
@@ -280,7 +293,8 @@ const Collection = ({ collection, searchText }) => {
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
       <CollectionItemDragPreview />
-      <div className={collectionRowClassName}
+      <div
+        className={collectionRowClassName}
         ref={(node) => {
           collectionRef.current = node;
           drag(drop(node));
@@ -289,6 +303,7 @@ const Collection = ({ collection, searchText }) => {
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        data-testid="sidebar-collection-row"
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
@@ -315,6 +330,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowNewRequestModal(true);
               }}
             >
@@ -327,6 +343,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowNewFolderModal(true);
               }}
             >
@@ -424,6 +441,19 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
+              onClick={async (_e) => {
+                menuDropdownTippyRef.current.hide();
+                const collectionCwd = collection.pathname;
+                await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
+              }}
+            >
+              <span className="dropdown-icon">
+                <IconTerminal2 size={16} strokeWidth={2} />
+              </span>
+              Open in Terminal
+            </div>
+            <div
+              className="dropdown-item"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowRemoveCollectionModal(true);
@@ -432,7 +462,7 @@ const Collection = ({ collection, searchText }) => {
               <span className="dropdown-icon">
                 <IconX size={16} strokeWidth={2} />
               </span>
-              Close
+              Remove
             </div>
           </Dropdown>
         </div>

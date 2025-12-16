@@ -89,7 +89,7 @@ const evaluateJsTemplateLiteral = (templateLiteral, context) => {
     return templateLiteral.slice(1, -1);
   }
 
-  if (templateLiteral.startsWith("'") && templateLiteral.endsWith("'")) {
+  if (templateLiteral.startsWith('\'') && templateLiteral.endsWith('\'')) {
     return templateLiteral.slice(1, -1);
   }
 
@@ -197,18 +197,18 @@ const cleanCircularJson = (data) => {
   try {
     // Handle circular references by keeping track of seen objects
     const seen = new WeakSet();
-    
+
     const replacer = (key, value) => {
       // Skip non-objects and null
       if (typeof value !== 'object' || value === null) {
         return value;
       }
-      
+
       // Detect circular reference
       if (seen.has(value)) {
         return '[Circular Reference]';
       }
-      
+
       seen.add(value);
       return value;
     };
