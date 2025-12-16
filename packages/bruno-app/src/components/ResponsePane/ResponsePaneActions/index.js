@@ -52,35 +52,45 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
       id: 'copy-response',
       label: 'Copy response',
       leftSection: IconCopy,
-      disabled: copyButtonRef.current?.isDisabled ?? false,
+      get disabled() {
+        return copyButtonRef.current?.isDisabled ?? false;
+      },
       onClick: () => copyButtonRef.current?.click()
     },
     {
       id: 'save-response',
       label: 'Save response',
       leftSection: IconBookmark,
-      disabled: bookmarkButtonRef.current?.isDisabled ?? false,
+      get disabled() {
+        return bookmarkButtonRef.current?.isDisabled ?? false;
+      },
       onClick: () => bookmarkButtonRef.current?.click()
     },
     {
       id: 'download-response',
       label: 'Download response',
       leftSection: IconDownload,
-      disabled: downloadButtonRef.current?.isDisabled ?? false,
+      get disabled() {
+        return downloadButtonRef.current?.isDisabled ?? false;
+      },
       onClick: () => downloadButtonRef.current?.click()
     },
     {
       id: 'clear-response',
       label: 'Clear response',
       leftSection: IconEraser,
-      disabled: clearButtonRef.current?.isDisabled ?? false,
+      get disabled() {
+        return clearButtonRef.current?.isDisabled ?? false;
+      },
       onClick: () => clearButtonRef.current?.click()
     },
     {
       id: 'change-layout',
       label: 'Change layout',
       leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
-      disabled: layoutToggleButtonRef.current?.isDisabled ?? false,
+      get disabled() {
+        return layoutToggleButtonRef.current?.isDisabled ?? false;
+      },
       onClick: () => layoutToggleButtonRef.current?.click()
     }
   ];

@@ -93,7 +93,6 @@ const ResponseLayoutToggle = forwardRef(({ children }, ref) => {
     <div
       ref={elementRef}
       role={children ? 'button' : undefined}
-      tabIndex={!!children ? 0 : -1}
       onClick={toggleOrientation}
       title={title}
       onKeyDown={handleKeyDown}

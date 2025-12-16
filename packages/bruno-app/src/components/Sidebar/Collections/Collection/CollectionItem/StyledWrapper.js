@@ -26,16 +26,9 @@ const Wrapper = styled.div`
     user-select: none;
     position: relative;
 
+    /* Default: menu icon hidden, shown on hover/focus states (see consolidated rule below) */
     .collection-item-menu-icon {
       visibility: hidden;
-    }
-
-    &:hover,
-    &.item-hovered,
-    &.item-keyboard-focused {
-      .collection-item-menu-icon {
-        visibility: visible;
-      }
     }
 
     /* Common styles for drop indicators */
@@ -106,13 +99,12 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
+    /* Single source of truth for hover/focus states: background and menu icon visibility */
     &:hover,
     &.item-hovered,
     &.item-keyboard-focused {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .menu-icon {
-        visibility: visible;
-      }
+      .menu-icon,
       .collection-item-menu-icon {
         visibility: visible;
       }
@@ -148,9 +140,6 @@ const Wrapper = styled.div`
       border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
       border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
       outline: none;
-      .collection-item-menu-icon {
-        visibility: visible;
-      }
     }
 
     div.tippy-box {

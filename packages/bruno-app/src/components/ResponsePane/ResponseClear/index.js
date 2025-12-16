@@ -39,7 +39,7 @@ const ResponseClear = forwardRef(({ collection, item, children }, ref) => {
   };
 
   return (
-    <div ref={elementRef} role={!!children ? 'button' : undefined} tabIndex={!!children ? 0 : -1} onClick={clearResponse} title={!children ? 'Clear response' : null} onKeyDown={handleKeyDown} data-testid="response-clear-btn">
+    <div ref={elementRef} role={!!children ? 'button' : undefined} onClick={clearResponse} title={!children ? 'Clear response' : null} onKeyDown={handleKeyDown} data-testid="response-clear-btn">
       {children ? children : (
         <StyledWrapper className="flex items-center">
           <ActionIcon className="p-1">

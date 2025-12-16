@@ -45,10 +45,10 @@ const CollectionToolBar = ({ collection }) => {
   return (
     <StyledWrapper>
       <div className="flex items-center justify-between gap-2 py-2 px-4">
-        <div className="flex items-center cursor-pointer hover:underline" onClick={viewCollectionSettings}>
+        <button className="flex items-center cursor-pointer hover:underline bg-transparent border-none p-0 text-inherit" onClick={viewCollectionSettings}>
           <IconBox size={18} strokeWidth={1.5} />
           <span className="ml-2 mr-4 font-medium">{collection?.name}</span>
-        </div>
+        </button>
         <div className="flex flex-grow gap-1 items-center justify-end">
           <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
             <ActionIcon onClick={handleRun} aria-label="Runner" size="sm">

@@ -64,7 +64,6 @@ const ResponseCopy = forwardRef(({ item, children }, ref) => {
     <div
       ref={elementRef}
       role={!!children ? 'button' : undefined}
-      tabIndex={!!children || !isDisabled ? 0 : -1}
       onClick={handleClick}
       title={!children ? 'Copy response to clipboard' : null}
       onKeyDown={handleKeyDown}
