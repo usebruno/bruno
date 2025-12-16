@@ -40,7 +40,7 @@ class WsClient {
    */
   async startConnection({ request, collection, options = {} }) {
     const { url, headers } = request;
-    const { timeout = 30000, keepAlive = false, keepAliveInterval = 10_000 } = options;
+    const { timeout = 30000, keepAlive = false, keepAliveInterval = 10_000, sslOptions = {} } = options;
 
     const parsedUrl = getParsedWsUrlObject(url);
     const timeoutAsNumber = Number(timeout);
@@ -63,7 +63,13 @@ class WsClient {
       const wsOptions = {
         headers,
         handshakeTimeout: validTimeout,
-        followRedirects: true
+        followRedirects: true,
+        rejectUnauthorized: sslOptions.rejectUnauthorized,
+        ca: sslOptions.ca,
+        cert: sslOptions.cert,
+        key: sslOptions.key,
+        pfx: sslOptions.pfx,
+        passphrase: sslOptions.passphrase
       };
 
       if (protocolVersion) {

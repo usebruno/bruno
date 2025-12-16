@@ -65,6 +65,7 @@ const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
 const { transformBrunoConfigBeforeSave } = require('../utils/transfomBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
+const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -1372,6 +1373,52 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
+    try {
+      if (request.oauth2) {
+        let requestCopy = _.cloneDeep(request);
+        const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+        const envVars = getEnvVars(environment);
+        const processEnvVars = getProcessEnvVars(collectionUid);
+        const partialItem = { uid: itemUid };
+        const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+        mergeVars(collection, requestCopy, requestTreePath);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
+
+        const certsAndProxyConfig = await getCertsAndProxyConfig({
+          collectionUid,
+          collection,
+          request: requestCopy,
+          envVars,
+          runtimeVariables,
+          processEnvVars,
+          collectionPath,
+          globalEnvironmentVariables
+        });
+
+        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+        return { credentials, url, collectionUid, credentialsId, debugInfo };
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:cancel-oauth2-authorization-request', async () => {
+    try {
+      const cancelled = cancelOAuth2AuthorizationRequest();
+      return { success: true, cancelled };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:is-oauth2-authorization-request-in-progress', () => {
+    return isOauth2AuthorizationRequestInProgress();
+  });
+
   // todo: could be removed
   ipcMain.handle('renderer:load-request-via-worker', async (event, { collectionUid, pathname }) => {
     let fileStats;
@@ -1418,54 +1465,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
-      return Promise.reject(error);
-    }
-  });
-
-  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
-    try {
-      if (request.oauth2) {
-        let requestCopy = _.cloneDeep(request);
-        const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
-        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
-        const envVars = getEnvVars(environment);
-        const processEnvVars = getProcessEnvVars(collectionUid);
-        const partialItem = { uid: itemUid };
-        const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
-        mergeVars(collection, requestCopy, requestTreePath);
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
-
-        // For refresh token requests, use refreshTokenUrl if available, otherwise accessTokenUrl
-        const { oauth2: { refreshTokenUrl, accessTokenUrl } } = requestCopy || {};
-        const tokenUrl = refreshTokenUrl || accessTokenUrl;
-
-        let certsAndProxyConfigForRefreshUrl = null;
-        if (tokenUrl) {
-          const interpolatedRefreshUrl = interpolateString(tokenUrl, {
-            globalEnvironmentVariables,
-            envVars,
-            runtimeVariables,
-            processEnvVars,
-            promptVariables: collection.promptVariables
-          });
-          let refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
-          certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
-            collectionUid,
-            collection,
-            request: refreshRequestForConfig,
-            envVars,
-            runtimeVariables,
-            processEnvVars,
-            collectionPath,
-            globalEnvironmentVariables
-          });
-        }
-
-        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig: certsAndProxyConfigForRefreshUrl });
-        return { credentials, url, collectionUid, credentialsId, debugInfo };
-      }
-    } catch (error) {
       return Promise.reject(error);
     }
   });

@@ -41,6 +41,7 @@ const actionsToIntercept = [
   'collections/moveVar',
   'collections/updateRequestDocs',
   'collections/runRequestEvent',
+  'collections/updateCollectionPresets',
 
   // Folder-level actions
   'collections/addFolderHeader',
