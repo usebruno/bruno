@@ -21,7 +21,7 @@ const DefaultTab = ({ setTab }) => (
   </div>
 );
 
-const EnvironmentSettingsTab = ({ collection }) => {
+const EnvironmentSettings = ({ collection }) => {
   const [isModified, setIsModified] = useState(false);
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [tab, setTab] = useState('default');
@@ -66,4 +66,4 @@ const EnvironmentSettingsTab = ({ collection }) => {
   );
 };
 
-export default EnvironmentSettingsTab;
+export default EnvironmentSettings;

@@ -1,8 +1,8 @@
 import React from 'react';
 import WorkspaceEnvironments from 'components/WorkspaceHome/WorkspaceEnvironments';
 
-const GlobalEnvironmentSettingsTab = () => {
+const GlobalEnvironmentSettings = () => {
   return <WorkspaceEnvironments />;
 };
 
-export default GlobalEnvironmentSettingsTab;
+export default GlobalEnvironmentSettings;
