@@ -1,11 +1,12 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconBox, IconFolder, IconWorld, IconApi, IconShare } from '@tabler/icons';
+import { IconBox, IconFolder, IconWorld, IconApi, IconShare, IconExternalLink } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
 import { updateEnvironmentSettingsModalVisibility, updateGlobalEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
+import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
@@ -24,6 +25,10 @@ const Info = ({ collection }) => {
     toggleShowShareCollectionModal(value);
   };
 
+  const handleOpenInFolder = () => {
+    dispatch(showInFolder(collection.pathname));
+  };
+
   return (
     <div className="w-full flex flex-col h-fit">
       <div className="rounded-lg py-6">
@@ -33,10 +38,17 @@ const Info = ({ collection }) => {
             <div className="flex-shrink-0 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <IconFolder className="w-5 h-5 text-blue-500" stroke={1.5} />
             </div>
-            <div className="ml-4">
+            <div className="ml-4 flex-1">
               <div className="font-medium">Location</div>
-              <div className="mt-1 text-muted break-all text-xs">
-                {collection.pathname}
+              <div className="mt-1 text-muted break-all text-xs flex items-center gap-2">
+                <span>{collection.pathname}</span>
+                <button
+                  onClick={handleOpenInFolder}
+                  className="flex-shrink-0 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
+                  title="Open in File Explorer"
+                >
+                  <IconExternalLink size={14} stroke={1.5} />
+                </button>
               </div>
             </div>
           </div>
