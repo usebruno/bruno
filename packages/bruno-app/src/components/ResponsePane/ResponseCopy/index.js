@@ -40,7 +40,7 @@ const ResponseCopy = forwardRef(({ item, children }, ref) => {
   const { copyResponse, copied, hasData } = useResponseCopy(item);
   const elementRef = useRef(null);
 
-  const isDisabled = !hasData;
+  const isDisabled = !hasData ? true : false;
 
   useImperativeHandle(ref, () => ({
     click: () => elementRef.current?.click(),

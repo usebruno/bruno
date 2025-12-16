@@ -33,7 +33,7 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
 
   const isResponseTooLarge = responseSize >= 5 * 1024 * 1024; // 5 MB
   const isStreamingResponse = response.stream;
-  const isDisabled = isResponseTooLarge || isStreamingResponse;
+  const isDisabled = isResponseTooLarge || isStreamingResponse ? true : false;
 
   useImperativeHandle(ref, () => ({
     click: () => elementRef.current?.click(),
