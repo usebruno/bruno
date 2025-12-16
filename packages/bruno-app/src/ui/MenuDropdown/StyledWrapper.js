@@ -1,40 +1,8 @@
 import styled from 'styled-components';
 
-const Wrapper = styled.div`
-  .dropdown-toggle {
-    &:hover {
-      color: black;
-    }
-  }
-
+const StyledWrapper = styled.div`
   .tippy-box {
-    min-width: 160px;
-    font-size: ${(props) => props.theme.font.size.base};
-    color: ${(props) => props.theme.dropdown.color};
-    background-color: ${(props) => props.theme.dropdown.bg};
-    box-shadow: ${(props) => props.theme.shadow.sm};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    max-height: 90vh;
-    overflow-y: auto;
-    max-width: unset !important;
-    padding: 0.25rem;
-
     .tippy-content {
-      padding-left: 0;
-      padding-right: 0;
-      padding-top: 0;
-      padding-bottom: 0;
-
-      [role="menu"] {
-        outline: none;
-        &:focus {
-          outline: none;
-        }
-        &:focus-visible {
-          outline: none;
-        }
-      }
-
       .label-item {
         display: flex;
         align-items: center;
@@ -45,7 +13,7 @@ const Wrapper = styled.div`
         color: ${(props) => props.theme.dropdown.color};
         opacity: 0.6;
         margin-top: 0.25rem;
-        
+
         &:first-child {
           margin-top: 0;
         }
@@ -91,15 +59,15 @@ const Wrapper = styled.div`
           justify-content: center;
         }
 
-        &:hover:not(:disabled) {
+        &:hover:not(:disabled):not(.disabled) {
           background-color: ${(props) => props.theme.dropdown.hoverBg};
         }
 
-        &.selected-focused:not(:disabled) {
+        &.selected-focused:not(:disabled):not(.disabled) {
           background-color: ${(props) => props.theme.dropdown.hoverBg};
         }
 
-        &:focus-visible:not(:disabled) {
+        &:focus-visible:not(:disabled):not(.disabled) {
           outline: none;
           background-color: ${(props) => props.theme.dropdown.hoverBg};
         }
@@ -108,7 +76,8 @@ const Wrapper = styled.div`
           outline: none;
         }
 
-        &:disabled {
+        &:disabled,
+        &.disabled {
           cursor: not-allowed;
           opacity: 0.5;
         }
@@ -140,6 +109,33 @@ const Wrapper = styled.div`
         &.dropdown-item-select {
           padding-left: 1.5rem;
         }
+
+        /* Focused state - applied during keyboard navigation */
+        &.dropdown-item-focused {
+          background-color: ${({ theme }) => theme.dropdown.hoverBg};
+          outline: none;
+        }
+
+        /* Active/selected state - applied to the currently selected item */
+        &.dropdown-item-active {
+          color: ${({ theme }) => theme.colors.text.yellow};
+          background-color: ${({ theme }) => theme.dropdown.activeBg};
+          font-weight: 500;
+          .dropdown-icon {
+            color: ${({ theme }) => theme.colors.text.yellow};
+          }
+        }
+
+        /* Combined state - when active item is also focused */
+        &.dropdown-item-active.dropdown-item-focused {
+          background-color: ${({ theme }) => theme.dropdown.activeHoverBg};
+        }
+
+        /* Focus visible for accessibility */
+        &:focus-visible {
+          outline: 2px solid ${({ theme }) => theme.dropdown.focusRing};
+          outline-offset: -2px;
+        }
       }
 
       .dropdown-separator {
@@ -151,4 +147,4 @@ const Wrapper = styled.div`
   }
 `;
 
-export default Wrapper;
+export default StyledWrapper;

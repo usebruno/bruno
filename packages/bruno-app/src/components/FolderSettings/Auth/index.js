@@ -206,7 +206,7 @@ const Auth = ({ collection, folder }) => {
         Configures authentication for the entire folder. This applies to all requests using the{' '}
         <span className="font-medium">Inherit</span> option in the <span className="font-medium">Auth</span> tab.
       </div>
-      <div className="flex flex-grow justify-start items-center mb-4">
+      <div className="flex flex-grow justify-start items-center">
         <AuthMode collection={collection} folder={folder} />
       </div>
       {getAuthView()}

@@ -4,7 +4,7 @@ import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder } from '
 import { renameWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
-import CloseWorkspace from 'components/Sidebar/SidebarHeader/CloseWorkspace';
+import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceEnvironments from './WorkspaceEnvironments';
 import StyledWrapper from './StyledWrapper';
