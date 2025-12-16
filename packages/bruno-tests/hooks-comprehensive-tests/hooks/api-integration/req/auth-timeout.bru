@@ -37,6 +37,8 @@ tests {
   });
   
   test("req.getTimeout/setTimeout - manages timeout", function() {
+    const before = bru.getVar('timeout-before');
+    expect(before).to.not.equal(10000);
     expect(bru.getVar('timeout-after')).to.equal(10000);
   });
   
