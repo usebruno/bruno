@@ -52,21 +52,21 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
       id: 'copy-response',
       label: 'Copy response',
       leftSection: IconCopy,
-      disabled: copyButtonRef.current?.isDisabled ?? true,
+      disabled: copyButtonRef.current?.isDisabled ?? false,
       onClick: () => copyButtonRef.current?.click()
     },
     {
       id: 'save-response',
       label: 'Save response',
       leftSection: IconBookmark,
-      disabled: bookmarkButtonRef.current?.isDisabled ?? true,
+      disabled: bookmarkButtonRef.current?.isDisabled ?? false,
       onClick: () => bookmarkButtonRef.current?.click()
     },
     {
       id: 'download-response',
       label: 'Download response',
       leftSection: IconDownload,
-      disabled: downloadButtonRef.current?.isDisabled ?? true,
+      disabled: downloadButtonRef.current?.isDisabled ?? false,
       onClick: () => downloadButtonRef.current?.click()
     },
     {
