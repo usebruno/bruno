@@ -18,6 +18,7 @@ const makeJUnitOutput = async (results, outputPath) => {
 
     const suite = {
       '@name': result.name,
+      '@file': result.test.filename,
       '@errors': 0,
       '@failures': 0,
       '@skipped': 0,
