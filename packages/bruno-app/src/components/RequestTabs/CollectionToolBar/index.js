@@ -49,8 +49,8 @@ const CollectionToolBar = ({ collection }) => {
           <IconBox size={18} strokeWidth={1.5} />
           <span className="ml-2 mr-4 font-medium">{collection?.name}</span>
         </div>
-        <div className="flex flex-3 gap-1 items-center justify-end">
-          <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place="bottom">
+        <div className="flex flex-grow gap-1 items-center justify-end">
+          <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
             <ActionIcon onClick={handleRun} aria-label="Runner" size="sm">
               <IconRun size={16} strokeWidth={1.5} />
             </ActionIcon>

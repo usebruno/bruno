@@ -30,7 +30,6 @@ const TriggerButton = ({ method, ...props }) => {
 
 const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
   const [isCustomMode, setIsCustomMode] = useState(false);
-  const menuDropdownRef = useRef();
   const inputRef = useRef();
 
   const blurInput = () => inputRef.current?.blur();
@@ -65,22 +64,22 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
 
   const handleKeyDown = (e) => {
     switch (e.key) {
-      case KEY.ESCAPE:
-        // Keep the current value when escaping
-        const currentValue = e.target.value ? e.target.value.toUpperCase() : method;
-        onMethodSelect(currentValue);
+      case KEY.ESCAPE: {
         setIsCustomMode(false);
         blurInput();
         e.preventDefault();
         e.stopPropagation();
         return;
-      case KEY.ENTER:
+      }
+      case KEY.ENTER: {
         onMethodSelect(e.target.value ? e.target.value.toUpperCase() : DEFAULT_METHOD);
         setIsCustomMode(false);
         blurInput();
         return;
-      default:
+      }
+      default: {
         return;
+      }
     }
   };
 
@@ -138,7 +137,6 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
     <StyledWrapper>
       <div className="flex method-selector">
         <MenuDropdown
-          ref={menuDropdownRef}
           items={menuItems}
           placement="bottom-start"
           selectedItemId={selectedItemId}

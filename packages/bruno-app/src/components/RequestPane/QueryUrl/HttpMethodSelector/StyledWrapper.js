@@ -19,7 +19,6 @@ const Wrapper = styled.div`
       padding: 0.25rem 0.6rem !important;
     }
 
-    // Style the "Add Custom" item label to look like a link
     .text-link {
       color: ${(props) => props.theme.textLink};
     }

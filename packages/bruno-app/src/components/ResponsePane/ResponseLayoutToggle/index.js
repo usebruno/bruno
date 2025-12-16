@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import { IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon/index';
 
 export const IconDockToBottom = () => {
   return (
@@ -70,8 +71,14 @@ export const useResponseLayoutToggle = () => {
   return { orientation, toggleOrientation };
 };
 
-const ResponseLayoutToggle = ({ children }) => {
+const ResponseLayoutToggle = forwardRef(({ children }, ref) => {
   const { orientation, toggleOrientation } = useResponseLayoutToggle();
+  const elementRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    click: () => elementRef.current?.click(),
+    isDisabled: false
+  }), []);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -84,8 +91,9 @@ const ResponseLayoutToggle = ({ children }) => {
 
   return (
     <div
+      ref={elementRef}
       role={children ? 'button' : undefined}
-      tabIndex={0}
+      tabIndex={!!children ? 0 : -1}
       onClick={toggleOrientation}
       title={title}
       onKeyDown={handleKeyDown}
@@ -93,17 +101,19 @@ const ResponseLayoutToggle = ({ children }) => {
     >
       {children ? children : (
         <StyledWrapper className="flex items-center w-full">
-          <button className="p-1">
+          <ActionIcon className="p-1">
             {orientation === 'vertical' ? (
               <IconLayoutColumns size={16} strokeWidth={1.5} />
             ) : (
               <IconLayoutRows size={16} strokeWidth={1.5} />
             )}
-          </button>
+          </ActionIcon>
         </StyledWrapper>
       )}
     </div>
   );
-};
+});
+
+ResponseLayoutToggle.displayName = 'ResponseLayoutToggle';
 
 export default ResponseLayoutToggle;

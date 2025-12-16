@@ -30,7 +30,9 @@ const Wrapper = styled.div`
       visibility: hidden;
     }
 
-    &:hover {
+    &:hover,
+    &.item-hovered,
+    &.item-keyboard-focused {
       .collection-item-menu-icon {
         visibility: visible;
       }
@@ -105,9 +107,13 @@ const Wrapper = styled.div`
     }
 
     &:hover,
-    &.item-hovered {
+    &.item-hovered,
+    &.item-keyboard-focused {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
+        visibility: visible;
+      }
+      .collection-item-menu-icon {
         visibility: visible;
       }
     }
@@ -142,6 +148,9 @@ const Wrapper = styled.div`
       border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
       border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
       outline: none;
+      .collection-item-menu-icon {
+        visibility: visible;
+      }
     }
 
     div.tippy-box {

@@ -59,15 +59,15 @@ const StyledWrapper = styled.div`
           justify-content: center;
         }
 
-        &:hover:not(:disabled) {
+        &:hover:not(:disabled):not(.disabled) {
           background-color: ${(props) => props.theme.dropdown.hoverBg};
         }
 
-        &.selected-focused:not(:disabled) {
+        &.selected-focused:not(:disabled):not(.disabled) {
           background-color: ${(props) => props.theme.dropdown.hoverBg};
         }
 
-        &:focus-visible:not(:disabled) {
+        &:focus-visible:not(:disabled):not(.disabled) {
           outline: none;
           background-color: ${(props) => props.theme.dropdown.hoverBg};
         }
@@ -76,7 +76,8 @@ const StyledWrapper = styled.div`
           outline: none;
         }
 
-        &:disabled {
+        &:disabled,
+        &.disabled {
           cursor: not-allowed;
           opacity: 0.5;
         }

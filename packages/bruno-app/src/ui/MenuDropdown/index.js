@@ -136,7 +136,8 @@ const MenuDropdown = forwardRef(({
 
         // Add group name as label
         if (group.name) {
-          result.push({ type: 'label', id: `label-${groupIndex}`, label: group.name, groupStyle });
+          const normalizeGroupNameForId = (group.name || '').toLowerCase().replace(/ /g, '-');
+          result.push({ type: 'label', id: `label-${normalizeGroupNameForId}-${groupIndex}`, label: group.name, groupStyle });
         }
 
         // Convert group options to menu items
@@ -389,9 +390,9 @@ const MenuDropdown = forwardRef(({
       key={item.id || `label-${item.label}`}
       className={`label-item ${item.groupStyle === 'select' ? 'label-select' : ''}`}
       role="presentation"
-      data-testid={`${testId}-label-${item.label.toLowerCase().replace(/ /g, '-')}`}
+      data-testid={`${testId}-label-${(item.label || '').toLowerCase().replace(/ /g, '-')}`}
     >
-      {item.groupStyle === 'select' ? item.label.toUpperCase() : item.label}
+      {item.groupStyle === 'select' ? (item.label || '').toUpperCase() : item.label || ''}
     </div>
   );
 
