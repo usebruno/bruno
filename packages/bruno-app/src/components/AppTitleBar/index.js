@@ -1,10 +1,10 @@
 import React from 'react';
-import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus } from '@tabler/icons';
+import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus, IconSettings } from '@tabler/icons';
 import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { savePreferences, showHomePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { savePreferences, showHomePage, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
 import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
@@ -88,6 +88,10 @@ const AppTitleBar = () => {
     setCreateWorkspaceModalOpen(true);
   };
 
+  const handleManageWorkspaces = () => {
+    dispatch(showManageWorkspacePage());
+  };
+
   const handlePinWorkspace = useCallback((workspaceUid, e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -154,6 +158,12 @@ const AppTitleBar = () => {
         leftSection: IconFolder,
         label: 'Open workspace',
         onClick: handleOpenWorkspace
+      },
+      {
+        id: 'manage-workspaces',
+        leftSection: IconSettings,
+        label: 'Manage workspaces',
+        onClick: handleManageWorkspaces
       }
     );
 

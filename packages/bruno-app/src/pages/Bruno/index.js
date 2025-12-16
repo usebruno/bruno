@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import WorkspaceHome from 'components/WorkspaceHome';
+import ManageWorkspace from 'components/ManageWorkspace';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
@@ -58,6 +59,7 @@ export default function Main() {
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
+  const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
@@ -119,6 +121,8 @@ export default function Main() {
           <section className="flex flex-grow flex-col overflow-hidden">
             {showApiSpecPage && activeApiSpecUid ? (
               <ApiSpecPanel key={activeApiSpecUid} />
+            ) : showManageWorkspacePage ? (
+              <ManageWorkspace />
             ) : showHomePage ? (
               <WorkspaceHome />
             ) : (
