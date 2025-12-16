@@ -150,7 +150,7 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
       <div
         ref={elementRef}
         role={!!children ? 'button' : undefined}
-        tabIndex={isDisabled || !!children ? 0 : -1}
+        tabIndex={!!children || !isDisabled ? 0 : -1}
         aria-disabled={isDisabled}
         disabled={isDisabled}
         onKeyDown={handleKeyDown}
