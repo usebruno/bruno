@@ -1471,57 +1471,6 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
-      // Create a map to store HookManagers for this collection/folder run
-      // Key format: 'collection:<collectionUid>', 'folder:<folderUid>', 'request:<requestUid>'
-      const hookManagersMap = new Map();
-
-      // Register collection-level hooks immediately
-      const collectionHookManagerOptions = {
-        request: {}, // Placeholder request for hook registration
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname,
-        collectionName: collection?.name,
-        onConsoleLog: (type, args) => {
-          console[type](...args);
-          mainWindow.webContents.send('main:console-log', {
-            type,
-            args
-          });
-        }
-      };
-
-      const collectionRoot = collection?.draft?.root || collection?.root || {};
-      const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
-      const collectionHookManagerKey = `collection:${collectionPath}`;
-      await getOrCreateHookManager(hookManagersMap, collectionHookManagerKey, collectionHooks, collectionHookManagerOptions);
-      const isCollectionRun = folder?.uid === collection?.uid;
-
-      // If a folder is being run (not the collection itself), register folder hooks along the folder path tree
-      if (folder && !isCollectionRun) {
-        const folderTreePath = getTreePathFromCollectionToItem(collection, folder);
-
-        // Extract folder hooks from the folder tree path
-        for (const pathItem of folderTreePath) {
-          if (pathItem.type === 'folder') {
-            const folderRoot = pathItem?.draft || pathItem?.root;
-            const folderHooks = get(folderRoot, 'request.script.hooks', '');
-            if (folderHooks && folderHooks.trim() !== '') {
-              const folderHookManagerKey = `folder:${pathItem.pathname}`;
-              await getOrCreateHookManager(hookManagersMap, folderHookManagerKey, folderHooks, collectionHookManagerOptions);
-            }
-          }
-        }
-      }
-
-      if (isCollectionRun) {
-        const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
-        await collectionHookManager.call(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection, collectionUid });
-      }
-
       try {
         let folderRequests = [];
 
