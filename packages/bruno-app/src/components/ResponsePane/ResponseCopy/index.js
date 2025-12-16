@@ -63,7 +63,6 @@ const ResponseCopy = forwardRef(({ item, children }, ref) => {
   return (
     <div
       ref={elementRef}
-      role={!!children ? 'button' : undefined}
       onClick={handleClick}
       title={!children ? 'Copy response to clipboard' : null}
       onKeyDown={handleKeyDown}

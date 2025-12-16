@@ -31,15 +31,8 @@ const ResponseClear = forwardRef(({ collection, item, children }, ref) => {
     isDisabled: false
   }), []);
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      clearResponse();
-    }
-  };
-
   return (
-    <div ref={elementRef} role={!!children ? 'button' : undefined} onClick={clearResponse} title={!children ? 'Clear response' : null} onKeyDown={handleKeyDown} data-testid="response-clear-btn">
+    <div ref={elementRef} onClick={clearResponse} title={!children ? 'Clear response' : null} data-testid="response-clear-btn">
       {children ? children : (
         <StyledWrapper className="flex items-center">
           <ActionIcon className="p-1">

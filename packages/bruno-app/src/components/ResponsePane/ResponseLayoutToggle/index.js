@@ -80,31 +80,22 @@ const ResponseLayoutToggle = forwardRef(({ children }, ref) => {
     isDisabled: false
   }), []);
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggleOrientation();
-    }
-  };
-
   const title = !children ? (orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout') : null;
 
   return (
     <div
       ref={elementRef}
-      role={children ? 'button' : undefined}
       onClick={toggleOrientation}
       title={title}
-      onKeyDown={handleKeyDown}
       data-testid="response-layout-toggle-btn"
     >
       {children ? children : (
         <StyledWrapper className="flex items-center w-full">
           <ActionIcon className="p-1">
             {orientation === 'vertical' ? (
-              <IconLayoutColumns size={16} strokeWidth={1.5} />
+              <IconLayoutColumns size={16} strokeWidth={2} />
             ) : (
-              <IconLayoutRows size={16} strokeWidth={1.5} />
+              <IconLayoutRows size={16} strokeWidth={2} />
             )}
           </ActionIcon>
         </StyledWrapper>

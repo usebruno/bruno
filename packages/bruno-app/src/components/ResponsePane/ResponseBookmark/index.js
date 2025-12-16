@@ -45,19 +45,6 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     return null;
   }
 
-  const handleKeyDown = (e) => {
-    if (isDisabled) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleSaveClick(e);
-    }
-  };
-
   const handleSaveClick = (e) => {
     if (!response || response.error) {
       toast.error('No valid response to save as example');
@@ -149,9 +136,6 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     <>
       <div
         ref={elementRef}
-        role={!!children ? 'button' : undefined}
-        aria-disabled={isDisabled}
-        onKeyDown={handleKeyDown}
         onClick={handleSaveClick}
         title={
           !children ? disabledMessage : (isDisabled ? disabledMessage : null)

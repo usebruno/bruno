@@ -32,26 +32,11 @@ const ResponseDownload = forwardRef(({ item, children }, ref) => {
     });
   };
 
-  const handleKeyDown = (e) => {
-    if (isDisabled) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      saveResponseToFile();
-    }
-  };
-
   return (
     <div
       ref={elementRef}
-      role={!!children ? 'button' : undefined}
       aria-disabled={isDisabled}
       onClick={saveResponseToFile}
-      onKeyDown={handleKeyDown}
       title={!children ? 'Save response to file' : null}
       className={classnames({
         'opacity-50 cursor-not-allowed': isDisabled && !children
