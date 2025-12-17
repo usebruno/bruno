@@ -21,9 +21,7 @@ test.describe('Variable Tooltip', () => {
     const collectionName = 'tooltip-test';
 
     await test.step('Create collection and add environment variables', async () => {
-      await createCollection(page, collectionName, await createTmpDir('tooltip-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('tooltip-collection'));
 
       await createEnvironment(page, 'Test Env', 'collection');
 
@@ -111,9 +109,7 @@ test.describe('Variable Tooltip', () => {
     const collectionName = 'tooltip-reference-test';
 
     await test.step('Create collection with interdependent variables', async () => {
-      await createCollection(page, collectionName, await createTmpDir('tooltip-ref-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('tooltip-ref-collection'));
 
       await createEnvironment(page, 'Ref Test Env', 'collection');
 
@@ -231,9 +227,7 @@ test.describe('Variable Tooltip', () => {
     const collectionName = 'tooltip-readonly-test';
 
     await test.step('Create collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('tooltip-readonly-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('tooltip-readonly-collection'));
 
       await createEnvironment(page, 'Readonly Env', 'collection');
       await saveEnvironment(page);
@@ -284,9 +278,7 @@ test.describe('Variable Tooltip', () => {
     const collectionName = 'draft-autosave-test';
 
     await test.step('Setup collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('draft-autosave'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('draft-autosave'));
 
       // Create request using utility method
       await createRequest(page, 'Autosave Test', collectionName);
@@ -394,9 +386,7 @@ test.describe('Variable Tooltip', () => {
     const collectionName = 'invalid-var-test';
 
     await test.step('Setup collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('invalid-var-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('invalid-var-collection'));
 
       // Create request using utility method
       await createRequest(page, 'Invalid Var Test', collectionName);

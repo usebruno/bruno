@@ -20,8 +20,6 @@ test.describe('Tag persistence', () => {
     }
     await locators.modal.button('Create').click();
     await locators.sidebar.collection('test-collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
     await page.waitForTimeout(1000);
     // Create three requests, each with URL and tag (auto-saved after each is completely created)
     // The createUntitledRequest function now waits for each request to be fully created
@@ -82,8 +80,6 @@ test.describe('Tag persistence', () => {
     }
     await locators.modal.button('Create').click();
     await locators.sidebar.collection('test-collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a new folder
     await locators.sidebar.collectionRow('test-collection').hover();

@@ -7,7 +7,7 @@ test.describe('Copy and Paste Folders', () => {
   });
 
   test('should copy and paste a folder within the same collection', async ({ page, createTmpDir }) => {
-    await createCollection(page, 'test-collection', await createTmpDir('test-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'test-collection', await createTmpDir('test-collection'));
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection' });
 
     // Create a new folder with a request inside
@@ -48,7 +48,7 @@ test.describe('Copy and Paste Folders', () => {
 
   test('should copy and paste a folder into a different collection', async ({ page, createTmpDir }) => {
     // Create second collection
-    await createCollection(page, 'test-collection-2', await createTmpDir('test-collection-2'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'test-collection-2', await createTmpDir('test-collection-2'));
     const collection2 = page.locator('.collection-name').filter({ hasText: 'test-collection-2' });
 
     // Paste the folder from clipboard into the new collection

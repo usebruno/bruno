@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
+import { closeAllCollections, openCollection } from '../../utils/page';
 
 test.describe('Import Postman Collection with Examples', () => {
   let originalShowOpenDialog;
@@ -82,7 +82,7 @@ test.describe('Import Postman Collection with Examples', () => {
     });
 
     await test.step('Handle sandboox modal', async () => {
-      await openCollectionAndAcceptSandbox(page, 'collection with examples', 'safe');
+      await openCollection(page, 'collection with examples');
     });
 
     await test.step('Verify collection name appears in sidebar', async () => {

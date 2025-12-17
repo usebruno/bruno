@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { openCollectionAndAcceptSandbox } from '../../utils/page/actions';
+import { openCollection } from '../../utils/page/actions';
 import { getTableCell } from '../../utils/page/locators';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
@@ -25,7 +25,7 @@ test('should persist request with newlines across app restarts', async ({ create
   await page.locator('#new-request-url').locator('textarea').fill('https://httpbin.org/get');
   await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
-  await openCollectionAndAcceptSandbox(page, 'newlines-persistence', 'safe');
+  await openCollection(page, 'newlines-persistence');
   await page.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
   await page.getByRole('tab', { name: 'Params' }).click();

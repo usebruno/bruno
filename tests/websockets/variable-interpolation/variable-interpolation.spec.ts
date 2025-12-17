@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import { buildWebsocketCommonLocators } from '../../utils/page/locators';
-import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
+import { closeAllCollections, openCollection } from '../../utils/page';
 
 const BRU_REQ_NAME = /^ws-interpolation-test$/;
 const MAX_CONNECTION_TIME = 10000; // Increased timeout for external server
@@ -14,7 +14,7 @@ test.describe.serial('WebSocket Variable Interpolation', () => {
     const locators = buildWebsocketCommonLocators(page);
 
     // Open the collection and accept sandbox modal if it appears
-    await openCollectionAndAcceptSandbox(page, 'variable-interpolation', 'safe');
+    await openCollection(page, 'variable-interpolation');
 
     // Open the request
     await expect(page.getByTitle(BRU_REQ_NAME)).toBeVisible();

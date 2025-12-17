@@ -9,7 +9,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
 
   test('Verify cross-collection folder drag and drop', async ({ page, createTmpDir }) => {
     // Create first collection - open with sandbox mode
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
     // Create a folder in the first collection
     // Look for the collection menu button for the source collection specifically
@@ -45,7 +45,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })).toBeVisible();
 
     // Create second collection - open with sandbox mode
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Wait for both collections to be visible in sidebar
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
@@ -106,7 +106,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     createTmpDir
   }) => {
     // Create first collection (source) - use unique names for this test
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
     // Create a folder in the first collection
     await page
@@ -141,7 +141,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await expect(page.locator('.collection-item-name').filter({ hasText: 'http-request' })).toBeVisible();
 
     // Create second collection (target)
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Create a folder with the same name in the target collection
     await page

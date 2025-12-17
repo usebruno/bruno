@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openCollectionAndAcceptSandbox, closeAllCollections } from '../../utils/page/actions';
+import { openCollection, closeAllCollections } from '../../utils/page/actions';
 
 test.describe('Import Insomnia v5 Collection - Environment Import', () => {
   test.afterEach(async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await page.locator('#collection-location').fill(await createTmpDir('insomnia-v5-env-test'));
       await locationModal.getByRole('button', { name: 'Import' }).click();
 
-      await openCollectionAndAcceptSandbox(page, 'Test API Collection v5 with Environments', 'safe');
+      await openCollection(page, 'Test API Collection v5 with Environments');
     });
 
     await test.step('Open collection environments panel', async () => {

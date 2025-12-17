@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { createCollection, openCollectionAndAcceptSandbox, closeAllCollections } from '../../utils/page';
+import { createCollection, openCollection, closeAllCollections } from '../../utils/page';
 
 test.describe('Draft values are used in requests', () => {
   test.afterEach(async ({ page }) => {
@@ -12,7 +12,7 @@ test.describe('Draft values are used in requests', () => {
 
     // Create a new collection
     await createCollection(page, collectionName, await createTmpDir());
-    await openCollectionAndAcceptSandbox(page, collectionName);
+    await openCollection(page, collectionName);
 
     // Verify the collection settings tab is open
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Collection' })).toBeVisible();
@@ -119,7 +119,7 @@ test.describe('Draft values are used in requests', () => {
 
     // Create a new collection
     await createCollection(page, collectionName, await createTmpDir());
-    await openCollectionAndAcceptSandbox(page, collectionName);
+    await openCollection(page, collectionName);
 
     // Create a new request from collection menu
     const collection = page.locator('.collection-name').filter({ hasText: collectionName });
