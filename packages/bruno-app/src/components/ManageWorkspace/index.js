@@ -8,11 +8,11 @@ import { switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions'
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { sortWorkspaces } from 'utils/workspaces';
 
-import Dropdown from 'components/Dropdown';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import RenameWorkspace from './RenameWorkspace';
 import DeleteWorkspace from './DeleteWorkspace';
 import StyledWrapper from './StyledWrapper';
+import MenuDropdown from 'ui/MenuDropdown/index';
 
 const ManageWorkspace = () => {
   const dispatch = useDispatch();
@@ -145,27 +145,17 @@ const ManageWorkspace = () => {
                     </button>
                   )}
                   {!isDefault && (
-                    <Dropdown
-                      style="new"
+                    <MenuDropdown
                       placement="bottom-end"
-                      onCreate={onDropdownCreate(workspace.uid)}
-                      icon={(
-                        <button className="more-actions-btn">
-                          <IconDots size={14} strokeWidth={1.5} />
-                        </button>
-                      )}
+                      items={[
+                        { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
+                        { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
+                      ]}
                     >
-                      <div className="dropdown-menu">
-                        <div className="dropdown-item" onClick={() => handleRenameClick(workspace)}>
-                          <IconEdit size={14} strokeWidth={1.5} />
-                          <span>Rename</span>
-                        </div>
-                        <div className="dropdown-item danger" onClick={() => handleCloseClick(workspace)}>
-                          <IconTrash size={14} strokeWidth={1.5} />
-                          <span>Remove</span>
-                        </div>
-                      </div>
-                    </Dropdown>
+                      <button className="more-actions-btn">
+                        <IconDots size={14} strokeWidth={1.5} />
+                      </button>
+                    </MenuDropdown>
                   )}
                 </div>
               </div>
