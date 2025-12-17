@@ -169,10 +169,12 @@ app.on('ready', async () => {
 
   // Window control IPC handlers (Windows custom titlebar)
   ipcMain.on('renderer:window-minimize', () => {
+    if (!isWindows) return;
     mainWindow.minimize();
   });
 
   ipcMain.on('renderer:window-maximize', () => {
+    if (!isWindows) return;
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
     } else {
@@ -181,10 +183,12 @@ app.on('ready', async () => {
   });
 
   ipcMain.on('renderer:window-close', () => {
+    if (!isWindows) return;
     mainWindow.close();
   });
 
   ipcMain.handle('renderer:window-is-maximized', () => {
+    if (!isWindows) return false;
     return mainWindow.isMaximized();
   });
 

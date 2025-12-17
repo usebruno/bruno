@@ -20,13 +20,12 @@ import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
 import { toTitleCase } from 'utils/common/index';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
+import { isMacOS, isWindowsOS } from 'utils/common/platform';
 
 const getOsClass = () => {
-  const platform = navigator.platform?.toLowerCase() || '';
-  if (platform.includes('mac')) return 'os-mac';
-  if (platform.includes('win')) return 'os-windows';
-  if (platform.includes('linux')) return 'os-linux';
-  return '';
+  if (isMacOS()) return 'os-mac';
+  if (isWindowsOS()) return 'os-windows';
+  return 'os-other';
 };
 
 const AppTitleBar = () => {
@@ -62,7 +61,13 @@ const AppTitleBar = () => {
     if (!ipcRenderer) return;
 
     // Get initial state
-    ipcRenderer.invoke('renderer:window-is-maximized').then(setIsMaximized);
+    ipcRenderer.invoke('renderer:window-is-maximized')
+      .then((isMaximized) => {
+        setIsMaximized(isMaximized);
+      })
+      .catch((error) => {
+        console.error('Error getting initial maximized state:', error);
+      });
 
     // Note: We update isMaximized on each click since Electron doesn't have a maximize change event exposed easily
   }, [isWindows]);
@@ -74,8 +79,8 @@ const AppTitleBar = () => {
 
   const handleMaximize = useCallback(() => {
     window.ipcRenderer?.send('renderer:window-maximize');
-    setIsMaximized(!isMaximized);
-  }, [isMaximized]);
+    setIsMaximized((prev) => !prev);
+  }, []);
 
   const handleClose = useCallback(() => {
     window.ipcRenderer?.send('renderer:window-close');
