@@ -50,21 +50,8 @@ test.describe.serial('WebSocket Variable Interpolation', () => {
     // Wait for collection to be visible (it should auto-load from preferences)
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'variable-interpolation' })).toBeVisible({ timeout: 5000 });
 
-    // Check if sandbox modal is present and handle it
-    const sandboxModal = page.locator('.bruno-modal-card').filter({ has: page.locator('.bruno-modal-header-title', { hasText: 'JavaScript Sandbox' }) });
-    const isModalVisible = await sandboxModal.isVisible().catch(() => false);
-
-    if (isModalVisible) {
-      // Accept sandbox modal
-      await sandboxModal.getByLabel('Safe Mode').check();
-      await sandboxModal.locator('.bruno-modal-footer .submit').click();
-      await sandboxModal.waitFor({ state: 'detached' });
-    } else {
-      // Collection might already be open, just ensure it's clicked
-      await page.locator('#sidebar-collection-name').filter({ hasText: 'variable-interpolation' }).click();
-    }
-
-    // Wait a bit for any modals to fully close
+    // Click to expand the collection
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'variable-interpolation' }).click();
     await page.waitForTimeout(300);
 
     // Open the request
