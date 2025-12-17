@@ -11,6 +11,7 @@ const initialState = {
   showHomePage: false,
   showPreferences: false,
   showApiSpecPage: false,
+  showManageWorkspacePage: false,
   isEnvironmentSettingsModalOpen: false,
   isGlobalEnvironmentSettingsModalOpen: false,
   preferences: {
@@ -77,9 +78,18 @@ export const appSlice = createSlice({
     showHomePage: (state) => {
       state.showHomePage = true;
       state.showApiSpecPage = false;
+      state.showManageWorkspacePage = false;
     },
     hideHomePage: (state) => {
       state.showHomePage = false;
+    },
+    showManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = true;
+      state.showHomePage = false;
+      state.showApiSpecPage = false;
+    },
+    hideManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = false;
     },
     showApiSpecPage: (state) => {
       state.showHomePage = false;
@@ -135,6 +145,8 @@ export const {
   updateGlobalEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
+  showManageWorkspacePage,
+  hideManageWorkspacePage,
   showApiSpecPage,
   hideApiSpecPage,
   showPreferences,
