@@ -846,16 +846,6 @@ const saveRequest = async (page: Page) => {
   });
 };
 
-/**
- * Wait for toast message to disappear
- * @param page - The page object
- * @param timeout - Timeout in milliseconds (default: 1000)
- * @returns void
- */
-const waitForToastToDisappear = async (page: Page, timeout: number = 1000) => {
-  await page.waitForTimeout(timeout);
-};
-
 export {
   closeAllCollections,
   openCollection,
@@ -887,8 +877,7 @@ export {
   addAssertion,
   editAssertion,
   deleteAssertion,
-  saveRequest,
-  waitForToastToDisappear
+  saveRequest
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, AssertionInput };

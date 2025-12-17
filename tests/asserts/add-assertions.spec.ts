@@ -9,8 +9,7 @@ import {
   addAssertion,
   editAssertion,
   deleteAssertion,
-  saveRequest,
-  waitForToastToDisappear
+  saveRequest
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -95,9 +94,6 @@ test.describe('Assertions - BRU Collection', () => {
 
       // Delete the assertion at row 0 (first data row)
       await deleteAssertion(page, 0);
-
-      // Wait for the previous toast to disappear
-      await waitForToastToDisappear(page, 1000);
 
       // Save the request
       await saveRequest(page);
