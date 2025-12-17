@@ -16,6 +16,8 @@ test('should persist request with newlines across app restarts', async ({ create
   await page.locator('.bruno-modal').getByLabel('Location').fill(collectionPath);
   await page.locator('.bruno-modal').getByRole('button', { name: 'Create' }).click();
 
+  await openCollectionAndAcceptSandbox(page, 'newlines-persistence', 'safe');
+
   const collection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' });
   await collection.locator('.collection-actions').hover();
   await collection.locator('.collection-actions .icon').click();
@@ -25,7 +27,6 @@ test('should persist request with newlines across app restarts', async ({ create
   await page.locator('#new-request-url').locator('textarea').fill('https://httpbin.org/get');
   await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
-  await openCollectionAndAcceptSandbox(page, 'newlines-persistence', 'safe');
   await page.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
   await page.getByRole('tab', { name: 'Params' }).click();
