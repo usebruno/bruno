@@ -228,8 +228,14 @@ app.on('ready', async () => {
   mainWindow.on('resize', handleBoundsChange);
   mainWindow.on('move', handleBoundsChange);
 
-  mainWindow.on('maximize', () => saveMaximized(true));
-  mainWindow.on('unmaximize', () => saveMaximized(false));
+  mainWindow.on('maximize', () => {
+    saveMaximized(true);
+    mainWindow.webContents.send('main:window-maximized');
+  });
+  mainWindow.on('unmaximize', () => {
+    saveMaximized(false);
+    mainWindow.webContents.send('main:window-unmaximized');
+  });
 
   // Full screen events for title bar padding adjustment
   mainWindow.on('enter-full-screen', () => {

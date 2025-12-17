@@ -62,14 +62,26 @@ const AppTitleBar = () => {
 
     // Get initial state
     ipcRenderer.invoke('renderer:window-is-maximized')
-      .then((isMaximized) => {
-        setIsMaximized(isMaximized);
+      .then((maximized) => {
+        setIsMaximized(maximized);
       })
       .catch((error) => {
         console.error('Error getting initial maximized state:', error);
       });
 
-    // Note: We update isMaximized on each click since Electron doesn't have a maximize change event exposed easily
+    // Listen for maximize/unmaximize events from main process
+    const removeMaximizedListener = ipcRenderer.on('main:window-maximized', () => {
+      setIsMaximized(true);
+    });
+
+    const removeUnmaximizedListener = ipcRenderer.on('main:window-unmaximized', () => {
+      setIsMaximized(false);
+    });
+
+    return () => {
+      removeMaximizedListener();
+      removeUnmaximizedListener();
+    };
   }, [isWindows]);
 
   // Window control handlers (Windows only) - these always work, even with modals open
@@ -79,7 +91,7 @@ const AppTitleBar = () => {
 
   const handleMaximize = useCallback(() => {
     window.ipcRenderer?.send('renderer:window-maximize');
-    setIsMaximized((prev) => !prev);
+    // State will be updated via IPC events from main process (main:window-maximized/main:window-unmaximized)
   }, []);
 
   const handleClose = useCallback(() => {
