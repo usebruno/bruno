@@ -22,7 +22,7 @@ const Wrapper = styled.div`
 
   /* When in full screen, no traffic lights so reduce padding */
   &.fullscreen .titlebar-content {
-    padding-left: 4px;
+    padding-left: 6px;
   }
 
   /* Remove drag region from interactive elements */
@@ -190,7 +190,11 @@ const Wrapper = styled.div`
   /* Leave room for Windows caption buttons when the overlay is enabled */
   body.os-windows & {
     .titlebar-content {
-      padding-right: 120px;
+      padding-right: 150px;
+      padding-left: 0px;
+    }
+    .titlebar-left {
+      margin-left: 6px;
     }
   }
 `;

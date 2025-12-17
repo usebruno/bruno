@@ -13,7 +13,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -117,6 +117,17 @@ if (process.platform === 'win32' || process.platform === 'linux') {
   });
 }
 
+const defaultTitleBarColors = {
+  light: {
+    bg: '#f8f8f8',
+    color: '#343434'
+  },
+  dark: {
+    bg: '#252526',
+    color: '#cccccc'
+  }
+};
+
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
   if (isDev) {
@@ -157,7 +168,11 @@ app.on('ready', async () => {
     icon: path.join(__dirname, 'about/256x256.png'),
     // Custom title bar – ensure React titlebar occupies the window chrome on all OSes
     titleBarStyle: isMac ? 'hiddenInset' : isWindows ? 'hidden' : 'default',
-    titleBarOverlay: isWindows ? { height: 36 } : undefined,
+    titleBarOverlay: isWindows ? {
+      height: 36,
+      color: defaultTitleBarColors[nativeTheme.shouldUseDarkColors ? 'dark' : 'light'].bg,
+      symbolColor: defaultTitleBarColors[nativeTheme.shouldUseDarkColors ? 'dark' : 'light'].color
+    } : undefined,
     trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined
     // we will bring this back
     // see https://github.com/usebruno/bruno/issues/440
