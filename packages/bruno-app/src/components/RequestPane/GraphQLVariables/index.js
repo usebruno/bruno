@@ -52,7 +52,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
       <button
         className="btn-add-param text-link px-4 py-4 select-none absolute top-0 right-0 z-10"
         onClick={onPrettify}
-        title={'Prettify'}
+        title="Prettify"
       >
         <IconWand size={20} strokeWidth={1.5} />
       </button>

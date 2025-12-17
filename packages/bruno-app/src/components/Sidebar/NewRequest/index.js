@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, forwardRef, useState } from 'react';
+import get from 'lodash/get';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -29,10 +30,11 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const storedTheme = useTheme();
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
-  const {
-    brunoConfig: { presets: collectionPresets = {} }
-  } = collection;
-
+  const collectionPresets = get(
+    collection,
+    collection?.draft?.brunoConfig ? 'draft.brunoConfig.presets' : 'brunoConfig.presets',
+    {}
+  );
   const [curlRequestTypeDetected, setCurlRequestTypeDetected] = useState(null);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
@@ -469,7 +471,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       type="text"
                       name="filename"
                       placeholder="File Name"
-                      className={`!pr-10 block textbox mt-2 w-full`}
+                      className="!pr-10 block textbox mt-2 w-full"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -569,7 +571,8 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   value={formik.values.curlCommand}
                   onChange={handleCurlCommandChange}
                   data-testid="curl-command"
-                ></textarea>
+                >
+                </textarea>
                 {formik.touched.curlCommand && formik.errors.curlCommand ? (
                   <div className="text-red-500">{formik.errors.curlCommand}</div>
                 ) : null}

@@ -18,12 +18,12 @@ const Help = ({ children, width = 200 }) => {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        <HelpIcon size={14}/>
+        <HelpIcon size={14} />
       </span>
       {showTooltip && (
         <StyledWrapper
           className="absolute z-50 rounded-md p-3"
-          style={{ 
+          style={{
             top: '50%',
             left: 'calc(100% + 8px)',
             transform: 'translateY(-50%)',
@@ -37,4 +37,4 @@ const Help = ({ children, width = 200 }) => {
   );
 };
 
-export default Help; 
+export default Help;

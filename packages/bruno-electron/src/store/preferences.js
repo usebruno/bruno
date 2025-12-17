@@ -20,7 +20,10 @@ const defaultPreferences = {
     },
     storeCookies: true,
     sendCookies: true,
-    timeout: 0
+    timeout: 0,
+    oauth2: {
+      useSystemBrowser: false
+    }
   },
   font: {
     codeFont: 'default',
@@ -41,14 +44,16 @@ const defaultPreferences = {
   layout: {
     responsePaneOrientation: 'horizontal'
   },
-  beta: {
-    nodevm: false
-  },
+  beta: {},
   onboarding: {
     hasLaunchedBefore: false
   },
   general: {
     defaultCollectionLocation: ''
+  },
+  autoSave: {
+    enabled: false,
+    interval: 1000
   }
 };
 
@@ -64,7 +69,10 @@ const preferencesSchema = Yup.object().shape({
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
-    timeout: Yup.number()
+    timeout: Yup.number(),
+    oauth2: Yup.object({
+      useSystemBrowser: Yup.boolean()
+    })
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable(),
@@ -86,13 +94,16 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   beta: Yup.object({
-    nodevm: Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean()
   }),
   general: Yup.object({
     defaultCollectionLocation: Yup.string().max(1024).nullable()
+  }),
+  autoSave: Yup.object({
+    enabled: Yup.boolean(),
+    interval: Yup.number().min(100)
   })
 });
 
@@ -194,6 +205,9 @@ const preferencesUtil = {
   },
   shouldSendCookies: () => {
     return get(getPreferences(), 'request.sendCookies', true);
+  },
+  shouldUseSystemBrowser: () => {
+    return get(getPreferences(), 'request.oauth2.useSystemBrowser', false);
   },
   getResponsePaneOrientation: () => {
     return get(getPreferences(), 'layout.responsePaneOrientation', 'horizontal');

@@ -9,17 +9,20 @@ const isRequestSaved = async (saveButton: Locator) => {
 };
 
 const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Promise<string>) => {
-  await page.locator('.dropdown-icon').click();
-  await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
+  await page.getByTestId('collections-header-add-menu').click();
+  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
   await page.getByLabel('Name').fill('source-collection');
-  await page.getByLabel('Location').fill(await createTmpDir('source-collection'));
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  const locationInput = page.getByLabel('Location');
+  if (await locationInput.isVisible()) {
+    await locationInput.fill(await createTmpDir('source-collection'));
+  }
+  await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
   await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
   await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
   await page.getByLabel('Safe Mode').check();
   await page.getByRole('button', { name: 'Save' }).click();
   const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection' });
-  await sourceCollection.locator('.collection-actions').hover();
+  await sourceCollection.hover();
   await sourceCollection.locator('.collection-actions .icon').click();
   await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
   await page.getByPlaceholder('Request Name').fill('test-request');

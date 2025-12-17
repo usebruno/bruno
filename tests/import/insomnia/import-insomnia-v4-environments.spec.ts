@@ -23,7 +23,8 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v4-with-envs.json');
 
     await test.step('Import Insomnia v4 collection with environments', async () => {
-      await page.getByRole('button', { name: 'Import Collection' }).click();
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       const importModal = page.getByTestId('import-collection-modal');
       await importModal.waitFor({ state: 'visible' });
@@ -31,13 +32,13 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
 
       await page.setInputFiles('input[type="file"]', insomniaFile);
 
-      await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
 
-      const locationModal = page.getByTestId('import-collection-location-modal');
       await expect(locationModal.getByText('Test API Collection v4 with Environments')).toBeVisible();
 
       await page.locator('#collection-location').fill(await createTmpDir('insomnia-v4-env-test'));
-      await page.getByRole('button', { name: 'Import', exact: true }).click();
+      await locationModal.getByRole('button', { name: 'Import' }).click();
 
       await expect(page.locator('#sidebar-collection-name').getByText('Test API Collection v4 with Environments')).toBeVisible();
 

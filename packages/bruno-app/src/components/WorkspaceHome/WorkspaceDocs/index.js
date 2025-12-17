@@ -1,0 +1,126 @@
+import 'github-markdown-css/github-markdown.css';
+import get from 'lodash/get';
+import { useTheme } from 'providers/Theme';
+import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { saveWorkspaceDocs } from 'providers/ReduxStore/slices/workspaces/actions';
+import Markdown from 'components/MarkDown';
+import CodeEditor from 'components/CodeEditor';
+import StyledWrapper from './StyledWrapper';
+import { IconFileText, IconEdit, IconX } from '@tabler/icons';
+import toast from 'react-hot-toast';
+
+const WorkspaceDocs = ({ workspace }) => {
+  const dispatch = useDispatch();
+  const { displayedTheme } = useTheme();
+  const [isEditing, setIsEditing] = useState(false);
+  const [localDocs, setLocalDocs] = useState(workspace?.docs || '');
+  const preferences = useSelector((state) => state.app.preferences);
+
+  useEffect(() => {
+    setLocalDocs(workspace?.docs || '');
+    setIsEditing(false);
+  }, [workspace?.uid, workspace?.docs]);
+
+  const toggleViewMode = () => {
+    setIsEditing((prev) => !prev);
+  };
+
+  const onEdit = (value) => {
+    setLocalDocs(value);
+  };
+
+  const handleDiscardChanges = () => {
+    setLocalDocs(workspace?.docs || '');
+    toggleViewMode();
+  };
+
+  const onSave = async () => {
+    if (!workspace) {
+      toast.error('Workspace not found');
+      return;
+    }
+
+    try {
+      await dispatch(saveWorkspaceDocs(workspace.uid, localDocs));
+      toast.success('Documentation saved successfully');
+      toggleViewMode();
+    } catch (error) {
+      console.error('Error saving workspace docs:', error);
+      toast.error('Failed to save documentation');
+    }
+  };
+
+  const handleAddDocumentation = () => {
+    setIsEditing(true);
+  };
+
+  const hasDocs = localDocs && localDocs.trim().length > 0;
+
+  return (
+    <StyledWrapper className="h-full w-full flex flex-col">
+      <div className="docs-header">
+        <div className="docs-title">
+          <IconFileText size={16} strokeWidth={1.5} />
+          <span>Documentation</span>
+        </div>
+        {hasDocs && !isEditing && (
+          <button className="edit-btn" onClick={toggleViewMode}>
+            <IconEdit size={14} strokeWidth={1.5} />
+          </button>
+        )}
+        {isEditing && (
+          <button className="edit-btn" onClick={handleDiscardChanges}>
+            <IconX size={14} strokeWidth={1.5} />
+          </button>
+        )}
+      </div>
+
+      <div className="docs-content">
+        {isEditing ? (
+          <div className="editor-container">
+            <CodeEditor
+              theme={displayedTheme}
+              value={localDocs}
+              onEdit={onEdit}
+              onSave={onSave}
+              mode="markdown"
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+            />
+            <div className="editor-actions">
+              <button className="save-btn" onClick={onSave}>
+                Save
+              </button>
+            </div>
+          </div>
+        ) : hasDocs ? (
+          <div className="docs-markdown">
+            <Markdown collectionPath={workspace?.pathname || ''} onDoubleClick={toggleViewMode} content={localDocs} />
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-icon-wrapper">
+              <IconFileText size={28} strokeWidth={1} />
+            </div>
+            <p className="empty-text">
+              Add documentation to help your team work smoothly.
+            </p>
+            <p className="empty-subtext">You can include:</p>
+            <ul className="suggestions-list">
+              <li>Project overview</li>
+              <li>Setup instructions</li>
+              <li>Key workflows</li>
+              <li>Resources & FAQs</li>
+            </ul>
+            <button className="add-docs-btn" onClick={handleAddDocumentation}>
+              Add Documentation
+            </button>
+          </div>
+        )}
+      </div>
+    </StyledWrapper>
+  );
+};
+
+export default WorkspaceDocs;

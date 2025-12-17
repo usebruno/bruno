@@ -13,4 +13,3 @@ export interface Variable {
 }
 
 export type Variables = Variable[] | null;
-

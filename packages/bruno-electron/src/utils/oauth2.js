@@ -1,10 +1,14 @@
 const { get, cloneDeep, filter } = require('lodash');
 const crypto = require('crypto');
 const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-window');
+const { authorizeUserInSystemBrowser } = require('../ipc/network/authorize-user-in-system-browser');
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
 const { safeParseJSON, safeStringifyJSON } = require('./common');
+const { preferencesUtil } = require('../store/preferences');
 const qs = require('qs');
+
+const BRUNO_OAUTH2_CALLBACK_URL = 'https://oauth2.usebruno.com/callback';
 
 const oauth2Store = new Oauth2Store();
 
@@ -12,7 +16,7 @@ const persistOauth2Credentials = ({ collectionUid, url, credentials, credentials
   if (credentials?.error || !credentials?.access_token) return;
   const enhancedCredentials = {
     ...credentials,
-    created_at: Date.now(),
+    created_at: Date.now()
   };
   oauth2Store.updateCredentialsForCollection({ collectionUid, url, credentials: enhancedCredentials, credentialsId });
 };
@@ -25,8 +29,7 @@ const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
   try {
     const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
     return credentials;
-  }
-  catch (error) {
+  } catch (error) {
     return null;
   }
 };
@@ -44,7 +47,7 @@ const isTokenExpired = (credentials) => {
 
 const safeParseJSONBuffer = (data) => {
   return safeParseJSON(Buffer.isBuffer(data) ? data.toString() : data);
-}
+};
 
 const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }) => {
   const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
@@ -70,14 +73,13 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
         statusText: responseStatusText,
         timeline
       }
-    }
-  }
-  catch (error) {
+    };
+  } catch (error) {
     if (error.response) {
       const { response, config } = error;
       const { url: responseUrl, headers: responseHeaders, status: responseStatus, statusText: responseStatusText, data: responseData, timeline } = response || {};
       const { url: requestUrl, headers: requestHeaders, data: requestData } = config || {};
-      const errorResponseData = safeStringifyJSON(safeParseJSONBuffer(responseData))
+      const errorResponseData = safeStringifyJSON(safeParseJSONBuffer(responseData));
       requestDetails = {
         request: {
           url: requestUrl,
@@ -96,8 +98,7 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
           timestamp: Date.now()
         }
       };
-    }
-    else if (error?.code) {
+    } else if (error?.code) {
       // error.config is not available here
       const { url: requestUrl, headers: requestHeaders, data: requestData } = requestConfig;
       requestDetails = {
@@ -123,11 +124,11 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
     requestId: Date.now().toString(),
     fromCache: false,
     completed: true,
-    requests: [], // No sub-requests in this context
+    requests: [] // No sub-requests in this context
   };
 
   return { credentials: parsedResponseData, requestDetails };
-}
+};
 
 // AUTHORIZATION CODE
 
@@ -148,10 +149,11 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
-    additionalParameters,
+    additionalParameters
   } = oAuth;
+  const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
   const url = requestCopy?.oauth2?.accessTokenUrl;
-  
+
   // Validate required fields
   if (!authorizationUrl) {
     return {
@@ -171,7 +173,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     };
   }
 
-  if (!callbackUrl) {
+  if (!effectiveCallbackUrl) {
     return {
       error: 'Callback URL is required for OAuth2 authorization code flow',
       credentials: null,
@@ -249,20 +251,21 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   axiosRequestConfig.method = 'POST';
   axiosRequestConfig.headers = {
     'content-type': 'application/x-www-form-urlencoded',
-    'Accept': 'application/json',
+    'Accept': 'application/json'
   };
-  if (credentialsPlacement === "basic_auth_header") {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+  if (credentialsPlacement === 'basic_auth_header') {
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
+
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
-    redirect_uri: callbackUrl,
+    redirect_uri: effectiveCallbackUrl
   };
-  if (credentialsPlacement !== "basic_auth_header") {
+  if (credentialsPlacement !== 'basic_auth_header') {
     data.client_id = clientId;
   }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
     data.client_secret = clientSecret;
   }
   if (pkce) {
@@ -298,13 +301,17 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
     const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl, additionalParameters } = oauth2;
+    const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
+    const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
     authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
-    if (callbackUrl) {
-      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+
+    if (effectiveCallbackUrl) {
+      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', effectiveCallbackUrl);
     }
+
     if (scope) {
       authorizationUrlWithQueryParams.searchParams.append('scope', scope);
     }
@@ -316,7 +323,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
       authorizationUrlWithQueryParams.searchParams.append('state', state);
     }
     if (additionalParameters?.authorization?.length) {
-      additionalParameters.authorization.forEach(param => {
+      additionalParameters.authorization.forEach((param) => {
         if (param.enabled && param.name) {
           if (param.sendIn === 'queryparams') {
             authorizationUrlWithQueryParams.searchParams.append(param.name, param.value || '');
@@ -324,12 +331,13 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
         }
       });
     }
-    
+
     try {
       const authorizeUrl = authorizationUrlWithQueryParams.toString();
-      const { authorizationCode, debugInfo } = await authorizeUserInWindow({
+      const authorizeFunction = useSystemBrowser ? authorizeUserInSystemBrowser : authorizeUserInWindow;
+      const { authorizationCode, debugInfo } = await authorizeFunction({
         authorizeUrl,
-        callbackUrl,
+        callbackUrl: effectiveCallbackUrl,
         session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl }),
         additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
       });
@@ -344,14 +352,14 @@ const getAdditionalHeaders = (params) => {
   if (!params || !params.length) {
     return {};
   }
-  
+
   const headers = {};
-  params.forEach(param => {
+  params.forEach((param) => {
     if (param.enabled && param.name && param.sendIn === 'headers') {
       headers[param.name] = param.value || '';
     }
   });
-  
+
   return headers;
 };
 
@@ -368,7 +376,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
-    additionalParameters,
+    additionalParameters
   } = oAuth;
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
@@ -448,18 +456,18 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   axiosRequestConfig.method = 'POST';
   axiosRequestConfig.headers = {
     'content-type': 'application/x-www-form-urlencoded',
-    'Accept': 'application/json',
+    'Accept': 'application/json'
   };
-  if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+  if (credentialsPlacement === 'basic_auth_header' && clientSecret && clientSecret.trim() !== '') {
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
   const data = {
-    grant_type: 'client_credentials',
+    grant_type: 'client_credentials'
   };
-  if (credentialsPlacement !== "basic_auth_header") {
+  if (credentialsPlacement !== 'basic_auth_header') {
     data.client_id = clientId;
   }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
     data.client_secret = clientSecret;
   }
   if (scope && scope.trim() !== '') {
@@ -497,7 +505,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
-    additionalParameters,
+    additionalParameters
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
@@ -595,20 +603,20 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   axiosRequestConfig.method = 'POST';
   axiosRequestConfig.headers = {
     'content-type': 'application/x-www-form-urlencoded',
-    'Accept': 'application/json',
+    'Accept': 'application/json'
   };
-  if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+  if (credentialsPlacement === 'basic_auth_header' && clientSecret && clientSecret.trim() !== '') {
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'password',
     username,
-    password,
+    password
   };
-  if (credentialsPlacement !== "basic_auth_header") {
+  if (credentialsPlacement !== 'basic_auth_header') {
     data.client_id = clientId;
   }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
     data.client_secret = clientSecret;
   }
   if (scope && scope.trim() !== '') {
@@ -644,12 +652,12 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
   } else {
     const data = {
       grant_type: 'refresh_token',
-      refresh_token: credentials.refresh_token,
+      refresh_token: credentials.refresh_token
     };
-    if (credentialsPlacement !== "basic_auth_header") {
+    if (credentialsPlacement !== 'basic_auth_header') {
       data.client_id = clientId;
     }
-    if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
+    if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
       data.client_secret = clientSecret;
     }
     let axiosRequestConfig = {};
@@ -658,8 +666,8 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       'content-type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json'
     };
-    if (credentialsPlacement === "basic_auth_header") {
-      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+    if (credentialsPlacement === 'basic_auth_header') {
+      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret || ''}`).toString('base64')}`;
     }
     axiosRequestConfig.url = url;
     axiosRequestConfig.responseType = 'arraybuffer';
@@ -703,7 +711,7 @@ const generateCodeChallenge = (codeVerifier) => {
 
 // Apply additional parameters to a request
 const applyAdditionalParameters = (requestCopy, data, params = []) => {
-  params.forEach(param => {
+  params.forEach((param) => {
     if (!param.enabled || !param.name) {
       return;
     }
@@ -718,8 +726,7 @@ const applyAdditionalParameters = (requestCopy, data, params = []) => {
           let url = new URL(requestCopy.url);
           url.searchParams.append(param.name, param.value || '');
           requestCopy.url = url.href;
-        }
-        catch (error) {
+        } catch (error) {
           console.error('invalid token/refresh url', requestCopy.url);
         }
         break;
@@ -729,7 +736,7 @@ const applyAdditionalParameters = (requestCopy, data, params = []) => {
         break;
     }
   });
-}
+};
 
 const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceFetch = false }) => {
   const { oauth2 = {} } = request;
@@ -743,6 +750,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
     autoFetchToken = true,
     additionalParameters
   } = oauth2;
+  const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
+  const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
 
   // Validate required fields
   if (!authorizationUrl) {
@@ -754,7 +763,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
     };
   }
 
-  if (!callbackUrl) {
+  if (!effectiveCallbackUrl) {
     return {
       error: 'Callback URL is required for OAuth2 implicit flow',
       credentials: null,
@@ -766,21 +775,21 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   // Check if we already have valid credentials
   if (!forceFetch) {
     try {
-      const storedCredentials = getStoredOauth2Credentials({ 
-        collectionUid, 
-        url: authorizationUrl, 
-        credentialsId 
+      const storedCredentials = getStoredOauth2Credentials({
+        collectionUid,
+        url: authorizationUrl,
+        credentialsId
       });
-      
+
       if (storedCredentials) {
         // Token exists
         if (!isTokenExpired(storedCredentials)) {
           // Token is valid, use it
-          return { 
+          return {
             collectionUid,
-            credentials: storedCredentials, 
-            url: authorizationUrl, 
-            credentialsId 
+            credentials: storedCredentials,
+            url: authorizationUrl,
+            credentialsId
           };
         } else {
           // Token is expired - unlike other grant types, implicit flow doesn't support refresh tokens
@@ -789,11 +798,11 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
             clearOauth2Credentials({ collectionUid, url: authorizationUrl, credentialsId });
           } else {
             // Proceed with expired token
-            return { 
+            return {
               collectionUid,
-              credentials: storedCredentials, 
-              url: authorizationUrl, 
-              credentialsId 
+              credentials: storedCredentials,
+              url: authorizationUrl,
+              credentialsId
             };
           }
         }
@@ -801,11 +810,11 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
         // No stored credentials
         if (!autoFetchToken) {
           // Don't fetch token if autoFetchToken is disabled
-          return { 
+          return {
             collectionUid,
-            credentials: null, 
-            url: authorizationUrl, 
-            credentialsId 
+            credentials: null,
+            url: authorizationUrl,
+            credentialsId
           };
         }
         // Otherwise proceed to fetch new token
@@ -819,7 +828,11 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   const authorizationUrlWithQueryParams = new URL(authorizationUrl);
   authorizationUrlWithQueryParams.searchParams.append('response_type', 'token');
   authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
-  authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+
+  if (effectiveCallbackUrl) {
+    authorizationUrlWithQueryParams.searchParams.append('redirect_uri', effectiveCallbackUrl);
+  }
+
   if (scope) {
     authorizationUrlWithQueryParams.searchParams.append('scope', scope);
   }
@@ -827,7 +840,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
     authorizationUrlWithQueryParams.searchParams.append('state', state);
   }
   if (additionalParameters?.authorization?.length) {
-    additionalParameters.authorization.forEach(param => {
+    additionalParameters.authorization.forEach((param) => {
       if (param.enabled && param.name) {
         if (param.sendIn === 'queryparams') {
           authorizationUrlWithQueryParams.searchParams.append(param.name, param.value || '');
@@ -837,15 +850,18 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   }
 
   const authorizeUrl = authorizationUrlWithQueryParams.toString();
-  
+
   try {
-    const { implicitTokens, debugInfo } = await authorizeUserInWindow({
+    const authorizeFunction = useSystemBrowser ? authorizeUserInSystemBrowser : authorizeUserInWindow;
+    const result = await authorizeFunction({
       authorizeUrl,
-      callbackUrl,
+      callbackUrl: effectiveCallbackUrl,
       session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: authorizationUrl }),
       grantType: 'implicit',
       additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
     });
+
+    const { implicitTokens, debugInfo } = result;
 
     if (!implicitTokens || !implicitTokens.access_token) {
       return {
@@ -856,7 +872,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
         debugInfo
       };
     }
-    
+
     const credentials = {
       access_token: implicitTokens.access_token,
       token_type: implicitTokens.token_type || 'Bearer',
@@ -876,7 +892,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       credentials,
       credentialsId
     });
-    
+
     return {
       collectionUid,
       credentials,

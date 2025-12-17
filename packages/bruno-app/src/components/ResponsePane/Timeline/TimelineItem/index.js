@@ -1,21 +1,21 @@
-import { useState } from "react";
-import Network from "./Network/index";
-import Request from "./Request/index";
-import Response from "./Response/index";
-import Method from "./Common/Method/index";
-import Status from "./Common/Status/index";
-import { RelativeTime } from "./Common/Time/index";
+import { useState } from 'react';
+import Network from './Network/index';
+import Request from './Request/index';
+import Response from './Response/index';
+import Method from './Common/Method/index';
+import Status from './Common/Status/index';
+import { RelativeTime } from './Common/Time/index';
 
 const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
   const [isCollapsed, _toggleCollapse] = useState(false);
   const [activeTab, setActiveTab] = useState('request');
-  const toggleCollapse = () => _toggleCollapse(prev => !prev);
+  const toggleCollapse = () => _toggleCollapse((prev) => !prev);
   const { method, status, statusCode, statusText, url = '' } = request || {};
   const { status: responseStatus, statusCode: responseStatusCode, statusText: responseStatusText } = response || {};
   const showNetworkLogs = response.timeline && response.timeline.length > 0;
 
   return (
-    <div className={`border-b-2 ${isOauth2 ? 'border-indigo-700/50' : 'border-amber-700/50' } py-2`}>
+    <div className={`border-b-2 ${isOauth2 ? 'border-indigo-700/50' : 'border-amber-700/50'} py-2`}>
       <div className="oauth-request-item-header relative cursor-pointer" onClick={toggleCollapse}>
         <div className="flex justify-between items-center min-w-0">
           <div className="flex items-center space-x-2 min-w-0">

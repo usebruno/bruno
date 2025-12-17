@@ -9,14 +9,17 @@ export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] 
   const reqVars = hasReqRes ? variables.req : variables as BrunoVariables;
   const resVars = hasReqRes && 'res' in variables ? variables.res : [];
 
-  const allVars = [...(reqVars || []), ...(resVars || [])];
+  const reqVarsArray = Array.isArray(reqVars) ? reqVars : [];
+  const resVarsArray = Array.isArray(resVars) ? resVars : [];
+
+  const allVars = [...reqVarsArray, ...resVarsArray];
 
   if (!allVars.length) {
     return undefined;
   }
 
   const ocVariables: Variable[] = allVars.map((v: BrunoVariable, index: number): Variable => {
-    const isResVar = reqVars && index >= (reqVars?.length || 0);
+    const isResVar = index >= reqVarsArray.length;
     const variable: Variable = {
       name: v.name || '',
       value: v.value || ''

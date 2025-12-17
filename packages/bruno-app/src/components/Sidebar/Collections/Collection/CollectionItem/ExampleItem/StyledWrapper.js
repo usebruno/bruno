@@ -5,13 +5,14 @@ const StyledWrapper = styled.div`
   
   .menu-icon {
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+    visibility: hidden;
 
     .dropdown {
       div[aria-expanded='true'] {
         visibility: visible;
       }
       div[aria-expanded='false'] {
-        visibility: hidden;
+        visibility: visible;
       }
     }
   }
@@ -21,7 +22,7 @@ const StyledWrapper = styled.div`
   }
 
   .collection-item-name {
-    height: 1.75rem;
+    height: 1.6rem;
     cursor: pointer;
     user-select: none;
     position: relative;
@@ -36,11 +37,7 @@ const StyledWrapper = styled.div`
     &.item-hovered {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
+        visibility: visible;
       }
     }
 

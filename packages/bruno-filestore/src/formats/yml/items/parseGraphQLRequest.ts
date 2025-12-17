@@ -10,12 +10,16 @@ import { toBrunoAssertions } from '../common/assertions';
 import { uuid } from '../../../utils';
 
 const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
+  const info = ocRequest.info;
+  const graphql = ocRequest.graphql;
+  const runtime = ocRequest.runtime;
+
   const brunoRequest: BrunoHttpRequest = {
-    url: ocRequest.url || '',
-    method: ocRequest.method || 'POST',
-    headers: toBrunoHttpHeaders(ocRequest.headers) || [],
-    params: toBrunoParams(ocRequest.params) || [],
-    auth: toBrunoAuth(ocRequest.auth),
+    url: graphql?.url || '',
+    method: graphql?.method || 'POST',
+    headers: toBrunoHttpHeaders(graphql?.headers) || [],
+    params: toBrunoParams(graphql?.params) || [],
+    auth: toBrunoAuth(runtime?.auth),
     body: {
       mode: 'graphql',
       json: null,
@@ -25,8 +29,8 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
       formUrlEncoded: [],
       multipartForm: [],
       graphql: {
-        query: (ocRequest.body as GraphQLBody)?.query || null,
-        variables: (ocRequest.body as GraphQLBody)?.variables || null
+        query: (graphql?.body as GraphQLBody)?.query || null,
+        variables: (graphql?.body as GraphQLBody)?.variables || null
       },
       file: []
     },
@@ -44,7 +48,7 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   };
 
   // scripts
-  const scripts = toBrunoScripts(ocRequest.scripts);
+  const scripts = toBrunoScripts(runtime?.scripts);
   if (scripts?.script && brunoRequest.script) {
     if (scripts.script.req) {
       brunoRequest.script.req = scripts.script.req;
@@ -58,11 +62,11 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   }
 
   // variables
-  const variables = toBrunoVariables(ocRequest.variables);
+  const variables = toBrunoVariables(runtime?.variables);
   brunoRequest.vars = variables;
 
   // assertions
-  const assertions = toBrunoAssertions(ocRequest.assertions);
+  const assertions = toBrunoAssertions(runtime?.assertions);
   if (assertions) {
     brunoRequest.assertions = assertions;
   }
@@ -76,9 +80,9 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'graphql-request',
-    seq: ocRequest.seq || 1,
-    name: ocRequest.name || 'Untitled Request',
-    tags: ocRequest.tags || [],
+    seq: info?.seq || 1,
+    name: info?.name || 'Untitled Request',
+    tags: info?.tags || [],
     request: brunoRequest,
     settings: null,
     fileContent: null,

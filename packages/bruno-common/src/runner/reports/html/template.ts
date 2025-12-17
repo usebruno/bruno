@@ -1,4 +1,4 @@
-export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
+export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />

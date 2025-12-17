@@ -63,7 +63,7 @@ const Auth = ({ collection, folder }) => {
 
     // Get path from collection to current folder
     const folderTreePath = getTreePathFromCollectionToItem(collection, folder);
-    
+
     // Check parent folders to find closest auth configuration
     // Skip the last item which is the current folder
     for (let i = 0; i < folderTreePath.length - 1; i++) {
@@ -172,8 +172,8 @@ const Auth = ({ collection, folder }) => {
         return (
           <>
             <GrantTypeSelector
-              request={request} 
-              updateAuth={updateFolderAuth} 
+              request={request}
+              updateAuth={updateFolderAuth}
               collection={collection}
               item={folder}
             />
@@ -200,14 +200,13 @@ const Auth = ({ collection, folder }) => {
     }
   };
 
-
   return (
     <StyledWrapper className="w-full">
       <div className="text-xs mb-4 text-muted">
         Configures authentication for the entire folder. This applies to all requests using the{' '}
         <span className="font-medium">Inherit</span> option in the <span className="font-medium">Auth</span> tab.
       </div>
-      <div className="flex flex-grow justify-start items-center mb-4">
+      <div className="flex flex-grow justify-start items-center">
         <AuthMode collection={collection} folder={folder} />
       </div>
       {getAuthView()}
@@ -220,4 +219,4 @@ const Auth = ({ collection, folder }) => {
   );
 };
 
-export default Auth; 
+export default Auth;

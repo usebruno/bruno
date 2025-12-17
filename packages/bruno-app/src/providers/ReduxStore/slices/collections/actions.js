@@ -1,12 +1,13 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
+import { REQUEST_TYPES } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
@@ -58,6 +59,7 @@ import {
 
 import { each } from 'lodash';
 import { closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
@@ -81,6 +83,42 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
+// generate a unique names
+const generateUniqueName = (originalName, existingItems, isFolder) => {
+  // Extract base name by removing any existing " (number)" suffix
+  const baseName = originalName.replace(/\s*\(\d+\)$/, '');
+  const baseFilename = sanitizeName(baseName);
+
+  // Get normalized filenames for items of the same type
+  const existingFilenames = existingItems
+    .filter((item) => isFolder ? item.type === 'folder' : item.type !== 'folder')
+    .map((item) => {
+      let filename = trim(item.filename);
+      // For requests, remove file extension (.bru, .yml, .yaml)
+      return isFolder ? filename : filename.replace(/\.(bru|yml|yaml)$/, '');
+    });
+
+  // Check if base name conflicts with existing items
+  if (!existingFilenames.includes(baseFilename)) {
+    return { newName: baseName, newFilename: baseFilename };
+  }
+
+  // Find highest counter among conflicting names
+  const counters = existingFilenames
+    .filter((filename) => filename === baseFilename || filename.startsWith(`${baseFilename} (`))
+    .map((filename) => {
+      if (filename === baseFilename) return 0;
+      const match = filename.match(/\((\d+)\)$/);
+      return match ? parseInt(match[1], 10) : 0;
+    });
+
+  const nextCounter = Math.max(0, ...counters) + 1;
+  return {
+    newName: `${baseName} (${nextCounter})`,
+    newFilename: `${baseFilename} (${nextCounter})`
+  };
+};
+
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -94,7 +132,7 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   });
 };
 
-export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, getState) => {
+export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -116,7 +154,7 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave, collection.format))
       .then(() => {
-        if (!saveSilently) {
+        if (!silent) {
           toast.success('Request saved successfully');
         }
         dispatch(
@@ -196,7 +234,7 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState) => {
+export const saveFolderRoot = (collectionUid, folderUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const folder = findItemInCollection(collection, folderUid);
@@ -225,7 +263,9 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)
       .then(() => {
-        toast.success('Folder Settings saved successfully');
+        if (!silent) {
+          toast.success('Folder Settings saved successfully');
+        }
         // If there was a draft, save it to root and clear the draft
         if (folder.draft) {
           dispatch(saveFolderDraft({ collectionUid, folderUid }));
@@ -438,6 +478,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     prompts.push(...extractPromptVariables(headers));
     prompts.push(...extractPromptVariables(request.params));
     prompts.push(...extractPromptVariables(resolvedAuthRequest.auth));
+    prompts.push(...extractPromptVariables(request.url));
 
     // Remove duplicates
     const uniquePrompts = Array.from(new Set(prompts));
@@ -550,7 +591,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         })
         .then(resolve)
         .catch((err) => {
-          if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
+          if (err && err.message === 'Error invoking remote method \'send-http-request\': Error: Request cancelled') {
             dispatch(
               responseReceived({
                 itemUid,
@@ -598,8 +639,8 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
   cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
 };
 
-export const runCollectionFolder =
-  (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => (dispatch, getState) => {
+export const runCollectionFolder
+  = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => (dispatch, getState) => {
     const state = getState();
     const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -632,26 +673,6 @@ export const runCollectionFolder =
         })
       );
 
-      // to only include those requests in the specified order while preserving folder data
-      if (selectedRequestUids && selectedRequestUids.length > 0) {
-        const newItems = [];
-
-        selectedRequestUids.forEach((uid, index) => {
-          const requestItem = findItemInCollection(collectionCopy, uid);
-          if (requestItem) {
-            const clonedRequest = cloneDeep(requestItem);
-            clonedRequest.seq = index + 1;
-            newItems.push(clonedRequest);
-          }
-        });
-
-        if (folder) {
-          folder.items = newItems;
-        } else {
-          collectionCopy.items = newItems;
-        }
-      }
-
       const { ipcRenderer } = window;
       ipcRenderer
         .invoke(
@@ -662,7 +683,8 @@ export const runCollectionFolder =
           collectionCopy.runtimeVariables,
           recursive,
           delay,
-          tags
+          tags,
+          selectedRequestUids
         )
         .then(resolve)
         .catch((err) => {
@@ -754,68 +776,68 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
   });
 };
 
-export const renameItem =
-  ({ newName, newFilename, itemUid, collectionUid }) =>
-  (dispatch, getState) => {
-    const state = getState();
-    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+export const renameItem
+  = ({ newName, newFilename, itemUid, collectionUid }) =>
+    (dispatch, getState) => {
+      const state = getState();
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-    return new Promise((resolve, reject) => {
-      if (!collection) {
-        return reject(new Error('Collection not found'));
-      }
-
-      const collectionCopy = cloneDeep(collection);
-      const item = findItemInCollection(collectionCopy, itemUid);
-      if (!item) {
-        return reject(new Error('Unable to locate item'));
-      }
-
-      const { ipcRenderer } = window;
-
-      const renameName = async () => {
-          return ipcRenderer.invoke('renderer:rename-item-name', { itemPath: item.pathname, newName, collectionPathname: collection.pathname }).catch((err) => {
-          toast.error('Failed to rename the item name');
-          console.error(err);
-          throw new Error('Failed to rename the item name');
-        });
-      };
-
-      const renameFile = async () => {
-        const dirname = path.dirname(item.pathname);
-        let newPath = '';
-        if (item.type === 'folder') {
-          newPath = path.join(dirname, trim(newFilename));
-        } else {
-            const filename = resolveRequestFilename(newFilename, collection.format);
-          newPath = path.join(dirname, filename);
+      return new Promise((resolve, reject) => {
+        if (!collection) {
+          return reject(new Error('Collection not found'));
         }
 
-        return ipcRenderer
-            .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename, collectionPathname: collection.pathname })
-          .catch((err) => {
-            toast.error('Failed to rename the file');
+        const collectionCopy = cloneDeep(collection);
+        const item = findItemInCollection(collectionCopy, itemUid);
+        if (!item) {
+          return reject(new Error('Unable to locate item'));
+        }
+
+        const { ipcRenderer } = window;
+
+        const renameName = async () => {
+          return ipcRenderer.invoke('renderer:rename-item-name', { itemPath: item.pathname, newName, collectionPathname: collection.pathname }).catch((err) => {
+            toast.error('Failed to rename the item name');
             console.error(err);
-            throw new Error('Failed to rename the file');
+            throw new Error('Failed to rename the item name');
           });
-      };
+        };
 
-      let renameOperation = null;
-      if (newName) renameOperation = renameName;
-      if (newFilename) renameOperation = renameFile;
+        const renameFile = async () => {
+          const dirname = path.dirname(item.pathname);
+          let newPath = '';
+          if (item.type === 'folder') {
+            newPath = path.join(dirname, trim(newFilename));
+          } else {
+            const filename = resolveRequestFilename(newFilename, collection.format);
+            newPath = path.join(dirname, filename);
+          }
 
-      if (!renameOperation) {
-        resolve();
-      }
+          return ipcRenderer
+            .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename, collectionPathname: collection.pathname })
+            .catch((err) => {
+              toast.error('Failed to rename the file');
+              console.error(err);
+              throw new Error('Failed to rename the file');
+            });
+        };
 
-      renameOperation()
-        .then(() => {
-          toast.success('Item renamed successfully');
+        let renameOperation = null;
+        if (newName) renameOperation = renameName;
+        if (newFilename) renameOperation = renameFile;
+
+        if (!renameOperation) {
           resolve();
-        })
-        .catch((err) => reject(err));
-    });
-  };
+        }
+
+        renameOperation()
+          .then(() => {
+            toast.success('Item renamed successfully');
+            resolve();
+          })
+          .catch((err) => reject(err));
+      });
+    };
 
 export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -851,7 +873,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
       const collectionPath = path.join(parentFolder.pathname, newFilename);
 
       const { ipcRenderer } = window;
-      ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
+      ipcRenderer.invoke('renderer:clone-folder', item, collectionPath, collection.pathname).then(resolve).catch(reject);
       return;
     }
 
@@ -941,11 +963,6 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
       for (const clipboardItem of clipboardResult.items) {
         const copiedItem = cloneDeep(clipboardItem);
 
-        // Only allow pasting requests (not folders)
-        if (isItemAFolder(copiedItem)) {
-          return reject(new Error('Pasting folders is not supported'));
-        }
-
         const targetCollectionCopy = cloneDeep(targetCollection);
         let targetItem = null;
         let targetParentPathname = targetCollection.pathname;
@@ -962,39 +979,47 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
           targetParentPathname = targetItem.pathname;
         }
 
-        // Generate a unique filename for the pasted item
-        let newName = copiedItem.name;
-        let newFilename = sanitizeName(copiedItem.name);
-        let counter = 1;
-
         const existingItems = targetItem ? targetItem.items : targetCollection.items;
 
-        // Check for duplicate names and append counter if needed
-        while (find(existingItems, (i) => i.type !== 'folder' && trim(i.filename) === trim(resolveRequestFilename(newFilename, targetCollection.format)))) {
-          newName = `${copiedItem.name} (${counter})`;
-          newFilename = `${sanitizeName(copiedItem.name)} (${counter})`;
-          counter++;
+        // Handle folder pasting
+        if (isItemAFolder(copiedItem)) {
+          // Generate unique name for folder
+          const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, true);
+
+          set(copiedItem, 'name', newName);
+          set(copiedItem, 'filename', newFilename);
+          set(copiedItem, 'root.meta.name', newName);
+          set(copiedItem, 'root.meta.seq', (existingItems?.length ?? 0) + 1);
+
+          const fullPathname = path.join(targetParentPathname, newFilename);
+          const { ipcRenderer } = window;
+
+          await ipcRenderer.invoke('renderer:clone-folder', copiedItem, fullPathname, targetCollection.pathname);
+        } else {
+          // Handle request pasting
+          // Generate unique name for request
+          const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, false);
+
+          const filename = resolveRequestFilename(newFilename, targetCollection.format);
+          const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+          set(itemToSave, 'name', trim(newName));
+          set(itemToSave, 'filename', trim(filename));
+
+          const fullPathname = path.join(targetParentPathname, filename);
+          const { ipcRenderer } = window;
+          const requestItems = filter(existingItems, (i) => i.type !== 'folder');
+          itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
+
+          await itemSchema.validate(itemToSave);
+          await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
+
+          dispatch(insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid: targetCollectionUid,
+            itemPathname: fullPathname
+          }));
         }
-
-        const filename = resolveRequestFilename(newFilename, targetCollection.format);
-        const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
-        set(itemToSave, 'name', trim(newName));
-        set(itemToSave, 'filename', trim(filename));
-
-        const fullPathname = path.join(targetParentPathname, filename);
-        const { ipcRenderer } = window;
-        const requestItems = filter(existingItems, (i) => i.type !== 'folder');
-        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
-
-        await itemSchema.validate(itemToSave);
-        await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
-
-        dispatch(insertTaskIntoQueue({
-          uid: uuid(),
-          type: 'OPEN_REQUEST',
-          collectionUid: targetCollectionUid,
-          itemPathname: fullPathname
-        }));
       }
 
       resolve();
@@ -1019,11 +1044,13 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
       const { ipcRenderer } = window;
 
       ipcRenderer
-        .invoke('renderer:delete-item', item.pathname, item.type)
+        .invoke('renderer:delete-item', item.pathname, item.type, collection.pathname)
         .then(async () => {
           // Reorder items in parent directory after deletion
           if (parentDirectoryItem.items) {
-            const directoryItemsWithoutDeletedItem = parentDirectoryItem.items.filter((i) => i.uid !== itemUid);
+            const requestAndFolderTypes = [...REQUEST_TYPES, 'folder'];
+            const directoryItemsWithOnlyRequestAndFolders = parentDirectoryItem.items.filter((i) => requestAndFolderTypes.includes(i.type));
+            const directoryItemsWithoutDeletedItem = directoryItemsWithOnlyRequestAndFolders.filter((i) => i.uid !== itemUid);
             const reorderedSourceItems = getReorderedItemsInSourceDirectory({
               items: directoryItemsWithoutDeletedItem
             });
@@ -1044,140 +1071,136 @@ export const sortCollections = (payload) => (dispatch) => {
   dispatch(_sortCollections(payload));
 };
 
-export const moveItem =
-  ({ targetDirname, sourcePathname }) =>
-  (dispatch, getState) => {
-    return new Promise((resolve, reject) => {
-      const { ipcRenderer } = window;
+export const moveItem
+  = ({ targetDirname, sourcePathname }) =>
+    (dispatch, getState) => {
+      return new Promise((resolve, reject) => {
+        const { ipcRenderer } = window;
 
-      ipcRenderer.invoke('renderer:move-item', { targetDirname, sourcePathname }).then(resolve).catch(reject);
-    });
-  };
+        ipcRenderer.invoke('renderer:move-item', { targetDirname, sourcePathname }).then(resolve).catch(reject);
+      });
+    };
 
-export const handleCollectionItemDrop =
-  ({ targetItem, draggedItem, dropType, collectionUid }) =>
-  (dispatch, getState) => {
-    const state = getState();
-    const collection = findCollectionByUid(state.collections.collections, collectionUid);
-    // if its withincollection set the source to current collection,
-    // if its cross collection set the source to the source collection
-    const sourceCollectionUid = draggedItem.sourceCollectionUid
-    const isCrossCollectionMove = sourceCollectionUid && collectionUid !== sourceCollectionUid;
-    const sourceCollection = isCrossCollectionMove ? findCollectionByUid(state.collections.collections, sourceCollectionUid) : collection;
-    const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
-    const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
-    const targetItemDirectory = findParentItemInCollection(collection, targetItemUid) || collection;
-    const targetItemDirectoryItems = cloneDeep(targetItemDirectory.items);
-    const draggedItemDirectory = findParentItemInCollection(sourceCollection, draggedItemUid) || sourceCollection;
-    const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
+export const handleCollectionItemDrop
+  = ({ targetItem, draggedItem, dropType, collectionUid }) =>
+    (dispatch, getState) => {
+      const state = getState();
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      // if its withincollection set the source to current collection,
+      // if its cross collection set the source to the source collection
+      const sourceCollectionUid = draggedItem.sourceCollectionUid;
+      const isCrossCollectionMove = sourceCollectionUid && collectionUid !== sourceCollectionUid;
+      const sourceCollection = isCrossCollectionMove ? findCollectionByUid(state.collections.collections, sourceCollectionUid) : collection;
+      const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+      const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
+      const targetItemDirectory = findParentItemInCollection(collection, targetItemUid) || collection;
+      const targetItemDirectoryItems = cloneDeep(targetItemDirectory.items);
+      const draggedItemDirectory = findParentItemInCollection(sourceCollection, draggedItemUid) || sourceCollection;
+      const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
 
-    const handleMoveToNewLocation = async ({
-      draggedItem,
-      draggedItemDirectoryItems,
-      targetItem,
-      targetItemDirectoryItems,
-      newPathname,
-      dropType
-    }) => {
-      const { uid: targetItemUid } = targetItem;
-      const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
+      const handleMoveToNewLocation = async ({
+        draggedItem,
+        draggedItemDirectoryItems,
+        targetItem,
+        targetItemDirectoryItems,
+        newPathname,
+        dropType
+      }) => {
+        const { uid: targetItemUid } = targetItem;
+        const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
 
-      const newDirname = path.dirname(newPathname);
-      await dispatch(
-        moveItem({
+        const newDirname = path.dirname(newPathname);
+        await dispatch(moveItem({
           targetDirname: newDirname,
           sourcePathname: draggedItemPathname
-        })
-      );
+        }));
 
-      // Update sequences in the source directory
-      if (draggedItemDirectoryItems?.length) {
-        // reorder items in the source directory
-        const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter(
-          (i) => i.uid !== draggedItemUid
-        );
-        const reorderedSourceItems = getReorderedItemsInSourceDirectory({
-          items: draggedItemDirectoryItemsWithoutDraggedItem
-        });
-        if (reorderedSourceItems?.length) {
+        // Update sequences in the source directory
+        if (draggedItemDirectoryItems?.length) {
+          // reorder items in the source directory
+          const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter((i) => i.uid !== draggedItemUid);
+          const reorderedSourceItems = getReorderedItemsInSourceDirectory({
+            items: draggedItemDirectoryItemsWithoutDraggedItem
+          });
+          if (reorderedSourceItems?.length) {
             await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems, collectionUid: sourceCollectionUid || collectionUid }));
+          }
         }
-      }
 
-      // Update sequences in the target directory (if dropping adjacent)
-      if (dropType === 'adjacent') {
-        const targetItemSequence = targetItemDirectoryItems.findIndex((i) => i.uid === targetItemUid)?.seq;
+        // Update sequences in the target directory (if dropping adjacent)
+        if (dropType === 'adjacent') {
+          const targetItemSequence = targetItemDirectoryItems.findIndex((i) => i.uid === targetItemUid)?.seq;
 
-        const draggedItemWithNewPathAndSequence = {
-          ...draggedItem,
-          pathname: newPathname,
-          seq: targetItemSequence
-        };
+          const draggedItemWithNewPathAndSequence = {
+            ...draggedItem,
+            pathname: newPathname,
+            seq: targetItemSequence
+          };
 
-        // draggedItem is added to the targetItem's directory
-        const reorderedTargetItems = getReorderedItemsInTargetDirectory({
-          items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
+          // draggedItem is added to the targetItem's directory
+          const reorderedTargetItems = getReorderedItemsInTargetDirectory({
+            items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
+            targetItemUid,
+            draggedItemUid
+          });
+
+          if (reorderedTargetItems?.length) {
+            await dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems, collectionUid }));
+          }
+        }
+      };
+
+      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems }) => {
+        const { uid: targetItemUid } = targetItem;
+        const { uid: draggedItemUid } = draggedItem;
+
+        // reorder items in the targetItem's directory
+        const reorderedItems = getReorderedItemsInTargetDirectory({
+          items: targetItemDirectoryItems,
           targetItemUid,
           draggedItemUid
         });
 
-        if (reorderedTargetItems?.length) {
-            await dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems, collectionUid }));
-        }
-      }
-    };
-
-    const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems }) => {
-      const { uid: targetItemUid } = targetItem;
-      const { uid: draggedItemUid } = draggedItem;
-
-      // reorder items in the targetItem's directory
-      const reorderedItems = getReorderedItemsInTargetDirectory({
-        items: targetItemDirectoryItems,
-        targetItemUid,
-        draggedItemUid
-      });
-
-      if (reorderedItems?.length) {
+        if (reorderedItems?.length) {
           await dispatch(updateItemsSequences({ itemsToResequence: reorderedItems, collectionUid }));
-      }
+        }
+      };
+
+      return new Promise(async (resolve, reject) => {
+        try {
+          const newPathname = calculateDraggedItemNewPathname({
+            draggedItem,
+            targetItem,
+            dropType,
+            collectionPathname: collection.pathname
+          });
+          if (!newPathname) return;
+          if (targetItemPathname?.startsWith(draggedItemPathname)) return;
+          if (newPathname !== draggedItemPathname) {
+            await handleMoveToNewLocation({
+              targetItem,
+              targetItemDirectoryItems,
+              draggedItem,
+              draggedItemDirectoryItems,
+              newPathname,
+              dropType
+            });
+          } else {
+            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+          }
+          resolve();
+        } catch (error) {
+          console.error(error);
+          toast.error(error?.message);
+          reject(error);
+        }
+      });
     };
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        const newPathname = calculateDraggedItemNewPathname({
-          draggedItem,
-          targetItem,
-          dropType,
-          collectionPathname: collection.pathname
-        });
-        if (!newPathname) return;
-        if (targetItemPathname?.startsWith(draggedItemPathname)) return;
-        if (newPathname !== draggedItemPathname) {
-          await handleMoveToNewLocation({
-            targetItem,
-            targetItemDirectoryItems,
-            draggedItem,
-            draggedItemDirectoryItems,
-            newPathname,
-            dropType
-          });
-        } else {
-          await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
-        }
-        resolve();
-      } catch (error) {
-        console.error(error);
-        toast.error(error?.message);
-        reject(error);
-      }
-    });
-  };
-
-export const updateItemsSequences =
-  ({ itemsToResequence, collectionUid }) =>
-  (dispatch, getState) => {
-    return new Promise((resolve, reject) => {
+export const updateItemsSequences
+  = ({ itemsToResequence, collectionUid }) =>
+    (dispatch, getState) => {
+      return new Promise((resolve, reject) => {
         const state = getState();
         const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -1185,11 +1208,11 @@ export const updateItemsSequences =
           return reject(new Error('Collection not found'));
         }
 
-      const { ipcRenderer } = window;
+        const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:resequence-items', itemsToResequence, collection.pathname).then(resolve).catch(reject);
-    });
-  };
+      });
+    };
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
   const {
@@ -1428,6 +1451,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
       request: {
         url: requestUrl,
         method: requestMethod,
+        params: [],
         body: body ?? {
           mode: 'ws',
           ws: [
@@ -1993,52 +2017,52 @@ export const mergeAndPersistEnvironment
         const state = getState();
         const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-      if (!collection) {
-        return reject(new Error('Collection not found'));
-      }
-
-      const environmentUid = collection.activeEnvironmentUid;
-      if (!environmentUid) {
-        return reject(new Error('No active environment found'));
-      }
-
-      const collectionCopy = cloneDeep(collection);
-      const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
-      if (!environment) {
-        return reject(new Error('Environment not found'));
-      }
-
-      // Only proceed if there are persistent variables to save
-      if (!persistentEnvVariables || Object.keys(persistentEnvVariables).length === 0) {
-        return resolve();
-      }
-
-      let existingVars = environment.variables || [];
-
-      let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
-        uid: uuid(),
-        name,
-        value,
-        type: 'text',
-        enabled: true,
-        secret: false
-      }));
-
-      const merged = existingVars.map((v) => {
-        const found = normalizedNewVars.find((nv) => nv.name === v.name);
-        if (found) {
-          return { ...v, value: found.value };
+        if (!collection) {
+          return reject(new Error('Collection not found'));
         }
-        return v;
-      });
-      normalizedNewVars.forEach((nv) => {
-        if (!merged.some((v) => v.name === nv.name)) {
-          merged.push(nv);
+
+        const environmentUid = collection.activeEnvironmentUid;
+        if (!environmentUid) {
+          return reject(new Error('No active environment found'));
         }
-      });
+
+        const collectionCopy = cloneDeep(collection);
+        const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
+        if (!environment) {
+          return reject(new Error('Environment not found'));
+        }
+
+        // Only proceed if there are persistent variables to save
+        if (!persistentEnvVariables || Object.keys(persistentEnvVariables).length === 0) {
+          return resolve();
+        }
+
+        let existingVars = environment.variables || [];
+
+        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
+          uid: uuid(),
+          name,
+          value,
+          type: 'text',
+          enabled: true,
+          secret: false
+        }));
+
+        const merged = existingVars.map((v) => {
+          const found = normalizedNewVars.find((nv) => nv.name === v.name);
+          if (found) {
+            return { ...v, value: found.value };
+          }
+          return v;
+        });
+        normalizedNewVars.forEach((nv) => {
+          if (!merged.some((v) => v.name === nv.name)) {
+            merged.push(nv);
+          }
+        });
 
         // Save all non-ephemeral vars and all variables that were previously persisted
-      const persistedNames = new Set(Object.keys(persistentEnvVariables));
+        const persistedNames = new Set(Object.keys(persistentEnvVariables));
 
         // Add all existing non-ephemeral variables to persistedNames so they are preserved
         existingVars.forEach((v) => {
@@ -2047,17 +2071,17 @@ export const mergeAndPersistEnvironment
           }
         });
 
-      const environmentToSave = cloneDeep(environment);
-      environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
+        const environmentToSave = cloneDeep(environment);
+        environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
 
-      const { ipcRenderer } = window;
-      environmentSchema
-        .validate(environmentToSave)
-        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environmentToSave))
-        .then(resolve)
-        .catch(reject);
-    });
-  };
+        const { ipcRenderer } = window;
+        environmentSchema
+          .validate(environmentToSave)
+          .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environmentToSave))
+          .then(resolve)
+          .catch(reject);
+      });
+    };
 
 export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
@@ -2094,18 +2118,48 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
     const { ipcRenderer } = window;
+
+    // Get active workspace to determine which workspace we're removing from
+    const { workspaces } = state;
+    const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+
+    let workspaceId = 'default';
+    if (activeWorkspace) {
+      if (activeWorkspace.pathname) {
+        workspaceId = activeWorkspace.pathname;
+      } else {
+        workspaceId = activeWorkspace.uid;
+      }
+    }
+
     ipcRenderer
-      .invoke('renderer:remove-collection', collection.pathname, collectionUid)
+      .invoke('renderer:remove-collection', collection.pathname, collectionUid, workspaceId)
       .then(() => {
-        dispatch(closeAllCollectionTabs({ collectionUid }));
+        // Check if the collection still exists in other workspaces
+        return ipcRenderer.invoke('renderer:get-collection-workspaces', collection.pathname);
       })
-      .then(waitForNextTick)
-      .then(() => {
-        dispatch(
-          _removeCollection({
-            collectionUid: collectionUid
-          })
-        );
+      .then((remainingWorkspaces) => {
+        // Close tabs for this collection
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+
+        // Remove collection from workspace in Redux state
+        if (activeWorkspace) {
+          dispatch(removeCollectionFromWorkspace({
+            workspaceUid: activeWorkspace.uid,
+            collectionLocation: collection.pathname
+          }));
+        }
+
+        // Only remove from Redux if no workspaces remain
+        if (!remainingWorkspaces || remainingWorkspaces.length === 0) {
+          return waitForNextTick().then(() => {
+            dispatch(_removeCollection({
+              collectionUid: collectionUid
+            }));
+          });
+        } else {
+          // Collection still exists in other workspaces
+        }
       })
       .then(resolve)
       .catch(reject);
@@ -2128,7 +2182,7 @@ export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   });
 };
 
-export const saveCollectionSettings = (collectionUid, brunoConfig = null) => (dispatch, getState) => {
+export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -2156,7 +2210,9 @@ export const saveCollectionSettings = (collectionUid, brunoConfig = null) => (di
 
     Promise.all(savePromises)
       .then(() => {
-        toast.success('Collection Settings saved successfully');
+        if (!silent) {
+          toast.success('Collection Settings saved successfully');
+        }
         dispatch(saveCollectionDraft({ collectionUid }));
       })
       .then(resolve)
@@ -2204,11 +2260,32 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .validate(collection)
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
-          // Expand sidebar if it's collapsed after collection is successfully opened
           const state = getState();
           if (state.app.sidebarCollapsed) {
             dispatch(toggleSidebarCollapse());
           }
+
+          const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+          if (activeWorkspace) {
+            const isAlreadyInWorkspace = activeWorkspace.collections?.some(
+              (c) => normalizePath(c.path) === normalizePath(pathname)
+            );
+
+            if (!isAlreadyInWorkspace) {
+              const workspaceCollection = {
+                name: brunoConfig.name,
+                path: pathname
+              };
+
+              ipcRenderer
+                .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
+                .catch((err) => {
+                  console.error('Failed to add collection to workspace', err);
+                  toast.error('Failed to add collection to workspace');
+                });
+            }
+          }
+
           resolve();
         })
         .catch(reject);
@@ -2216,12 +2293,23 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
   });
 };
 
-export const createCollection = (collectionName, collectionFolderName, collectionLocation, format = 'bru') => () => {
+export const createCollection = (collectionName, collectionFolderName, collectionLocation, options = {}) => (dispatch, getState) => {
   const { ipcRenderer } = window;
+
+  if (!options.workspaceId) {
+    const { workspaces } = getState();
+    const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+
+    if (activeWorkspace && activeWorkspace.pathname) {
+      options.workspaceId = activeWorkspace.pathname;
+    } else {
+      options.workspaceId = 'default';
+    }
+  }
 
   return new Promise((resolve, reject) => {
     ipcRenderer
-      .invoke('renderer:create-collection', collectionName, collectionFolderName, collectionLocation, format)
+      .invoke('renderer:create-collection', collectionName, collectionFolderName, collectionLocation, options)
       .then(resolve)
       .catch(reject);
   });
@@ -2237,11 +2325,34 @@ export const cloneCollection = (collectionName, collectionFolderName, collection
     previousPath
   );
 };
-export const openCollection = () => () => {
+export const openCollection = (options = {}) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:open-collection').then(resolve).catch(reject);
+    const state = getState();
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+
+    if (!options.workspaceId) {
+      options.workspaceId = activeWorkspace?.pathname || 'default';
+    }
+
+    ipcRenderer.invoke('renderer:open-collection', options)
+      .then((result) => {
+        resolve(result);
+      })
+      .catch(reject);
+  });
+};
+
+export const openMultipleCollections = (collectionPaths, options = {}) => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:open-multiple-collections', collectionPaths, options)
+      .then(resolve)
+      .catch((err) => {
+        reject();
+      });
   });
 };
 
@@ -2270,28 +2381,38 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
   });
 };
 
-export const importCollection = (collection, collectionLocation) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
+export const importCollection = (collection, collectionLocation, options = {}) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+    try {
+      const state = getState();
+      const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+
+      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation);
+
+      if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
+        const workspaceCollection = {
+          name: collection.name,
+          path: collectionPath
+        };
+
+        await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection);
+      }
+
+      resolve(collectionPath);
+    } catch (error) {
+      reject(error);
+    }
   });
 };
 
-export const moveCollectionAndPersist =
-  ({ draggedItem, targetItem }) =>
-  (dispatch, getState) => {
-    dispatch(moveCollection({ draggedItem, targetItem }));
-
-    return new Promise((resolve, reject) => {
-      const { ipcRenderer } = window;
-      const state = getState();
-
-      const collectionPaths = state.collections.collections.map((collection) => collection.pathname);
-
-      ipcRenderer.invoke('renderer:update-collection-paths', collectionPaths).then(resolve).catch(reject);
-    });
-  };
+export const moveCollectionAndPersist
+  = ({ draggedItem, targetItem }) =>
+    (dispatch, getState) => {
+      dispatch(moveCollection({ draggedItem, targetItem }));
+      return Promise.resolve();
+    };
 
 export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
@@ -2409,49 +2530,67 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
   });
 };
 
-// todo: could be removed
-export const loadRequestViaWorker =
-  ({ collectionUid, pathname }) =>
-  (dispatch, getState) => {
-    return new Promise(async (resolve, reject) => {
-      const { ipcRenderer } = window;
-      ipcRenderer.invoke('renderer:load-request-via-worker', { collectionUid, pathname }).then(resolve).catch(reject);
-    });
-  };
+export const isOauth2AuthorizationRequestInProgress = () => async () => {
+  return new Promise((resolve, reject) => {
+    window.ipcRenderer
+      .invoke('renderer:is-oauth2-authorization-request-in-progress')
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const cancelOauth2AuthorizationRequest = () => async () => {
+  return new Promise((resolve, reject) => {
+    window.ipcRenderer
+      .invoke('renderer:cancel-oauth2-authorization-request')
+      .then(resolve)
+      .catch(reject);
+  });
+};
 
 // todo: could be removed
-export const loadRequest =
-  ({ collectionUid, pathname }) =>
-  (dispatch, getState) => {
-    return new Promise(async (resolve, reject) => {
-      const { ipcRenderer } = window;
-      ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
-    });
-  };
+export const loadRequestViaWorker
+  = ({ collectionUid, pathname }) =>
+    (dispatch, getState) => {
+      return new Promise(async (resolve, reject) => {
+        const { ipcRenderer } = window;
+        ipcRenderer.invoke('renderer:load-request-via-worker', { collectionUid, pathname }).then(resolve).catch(reject);
+      });
+    };
 
-export const loadLargeRequest =
-  ({ collectionUid, pathname }) =>
-  (dispatch, getState) => {
-    return new Promise(async (resolve, reject) => {
-      const { ipcRenderer } = window;
-      ipcRenderer.invoke('renderer:load-large-request', { collectionUid, pathname }).then(resolve).catch(reject);
-    });
-  };
+// todo: could be removed
+export const loadRequest
+  = ({ collectionUid, pathname }) =>
+    (dispatch, getState) => {
+      return new Promise(async (resolve, reject) => {
+        const { ipcRenderer } = window;
+        ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
+      });
+    };
 
-export const mountCollection =
-  ({ collectionUid, collectionPathname, brunoConfig }) =>
-  (dispatch, getState) => {
-    dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
-    return new Promise(async (resolve, reject) => {
-      callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
-        .then(() => dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' })))
-        .then(resolve)
-        .catch(() => {
-          dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
-          reject();
-        });
-    });
-  };
+export const loadLargeRequest
+  = ({ collectionUid, pathname }) =>
+    (dispatch, getState) => {
+      return new Promise(async (resolve, reject) => {
+        const { ipcRenderer } = window;
+        ipcRenderer.invoke('renderer:load-large-request', { collectionUid, pathname }).then(resolve).catch(reject);
+      });
+    };
+
+export const mountCollection
+  = ({ collectionUid, collectionPathname, brunoConfig }) =>
+    (dispatch, getState) => {
+      dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
+      return new Promise(async (resolve, reject) => {
+        callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
+          .then(() => dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' })))
+          .then(resolve)
+          .catch(() => {
+            dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
+            reject();
+          });
+      });
+    };
 
 export const showInFolder = (collectionPath) => () => {
   return new Promise((resolve, reject) => {
@@ -2460,8 +2599,8 @@ export const showInFolder = (collectionPath) => () => {
   });
 };
 
-export const updateRunnerConfiguration =
-  (collectionUid, selectedRequestItems, requestItemsOrder, delay) => (dispatch) => {
+export const updateRunnerConfiguration
+  = (collectionUid, selectedRequestItems, requestItemsOrder, delay) => (dispatch) => {
     dispatch(
       _updateRunnerConfiguration({
         collectionUid,
@@ -2476,32 +2615,28 @@ export const updateActiveConnectionsInStore = (activeConnectionIds) => (dispatch
   dispatch(updateActiveConnections(activeConnectionIds));
 };
 
-export const openCollectionSettings =
-  (collectionUid, tabName = 'overview') =>
-  (dispatch, getState) => {
-    const state = getState();
-    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+export const openCollectionSettings
+  = (collectionUid, tabName = 'overview') =>
+    (dispatch, getState) => {
+      const state = getState();
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-    return new Promise((resolve, reject) => {
-      if (!collection) {
-        return reject(new Error('Collection not found'));
-      }
+      return new Promise((resolve, reject) => {
+        if (!collection) {
+          return reject(new Error('Collection not found'));
+        }
 
-      dispatch(
-        updateSettingsSelectedTab({
+        dispatch(updateSettingsSelectedTab({
           collectionUid: collection.uid,
           tab: tabName
-        })
-      );
+        }));
 
-      dispatch(
-        addTab({
+        dispatch(addTab({
           uid: collection.uid,
           collectionUid: collection.uid,
           type: 'collection-settings'
-        })
-      );
+        }));
 
-      resolve();
-    });
-  };
+        resolve();
+      });
+    };

@@ -47,28 +47,28 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   useEffect(() => {
     // initialize redux state with a default oauth2 grant type
     // authorization_code - default option
-    !oAuth?.grantType &&
-      dispatch(
-        updateAuth({
-          mode: 'oauth2',
-          collectionUid: collection.uid,
-          itemUid: item.uid,
-          content: {
-            grantType: 'authorization_code',
-            accessTokenUrl: '',
-            username: '',
-            password: '',
-            clientId: '',
-            clientSecret: '',
-            scope: '',
-            credentialsPlacement: 'body',
-            credentialsId: 'credentials',
-            tokenPlacement: 'header',
-            tokenHeaderPrefix: 'Bearer',
-            tokenQueryKey: 'access_token',
-          }
-        })
-      );
+    !oAuth?.grantType
+    && dispatch(
+      updateAuth({
+        mode: 'oauth2',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          grantType: 'authorization_code',
+          accessTokenUrl: '',
+          username: '',
+          password: '',
+          clientId: '',
+          clientSecret: '',
+          scope: '',
+          credentialsPlacement: 'body',
+          credentialsId: 'credentials',
+          tokenPlacement: 'header',
+          tokenHeaderPrefix: 'Bearer',
+          tokenQueryKey: 'access_token'
+        }
+      })
+    );
   }, [oAuth]);
 
   return (

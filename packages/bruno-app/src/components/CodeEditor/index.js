@@ -105,7 +105,7 @@ export default class CodeEditor extends React.Component {
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
-        Tab: function (cm) {
+        'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
             : cm.replaceSelection('  ', 'end');
@@ -151,7 +151,7 @@ export default class CodeEditor extends React.Component {
           } else if (this.props.mode == 'application/xml') {
             var doc = new DOMParser();
             try {
-              //add header element and remove prefix namespaces for DOMParser
+              // add header element and remove prefix namespaces for DOMParser
               var dcm = doc.parseFromString(
                 '<a> ' + internal.replace(/(?<=\<|<\/)\w+:/g, '') + '</a>',
                 'application/xml'
@@ -188,16 +188,15 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
-    
+
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
-      editor.on('scroll', this.onScroll);
       editor.scrollTo(null, this.props.initialScroll);
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
-      
+
       // Setup AutoComplete Helper for all modes
       const autoCompleteOptions = {
         showHintsFor: this.props.showHintsFor,
@@ -275,12 +274,18 @@ export default class CodeEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      if (this.props.onScroll) {
+        this.props.onScroll(this.editor);
+      }
+
       this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
-      this.editor.off('scroll', this.onScroll);
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
+
+      const wrapper = this.editor.getWrapperElement();
+      wrapper?.parentNode?.removeChild(wrapper);
 
       this.editor = null;
     }
@@ -324,8 +329,6 @@ export default class CodeEditor extends React.Component {
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
-
-  onScroll = (event) => this.props.onScroll?.(event);
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {

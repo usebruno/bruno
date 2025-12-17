@@ -17,23 +17,15 @@ test.describe('Draft values are used in requests', () => {
     // Verify the collection settings tab is open
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Collection' })).toBeVisible();
 
-    // Add collection header in draft (unsaved)
-    // Click on Headers tab
     await page.locator('.tab.headers').click();
 
-    // Add a new header
-    await page.getByRole('button', { name: 'Add Header' }).click();
-
-    // Fill in header name and value
     const headerTable = page.locator('table').first();
     const headerRow = headerTable.locator('tbody tr').first();
 
-    // Fill in the name field
     const nameEditor = headerRow.locator('.CodeMirror').first();
     await nameEditor.click();
     await page.keyboard.type('X-Draft-Header');
 
-    // Fill in the value field
     const valueEditor = headerRow.locator('.CodeMirror').nth(1);
     await valueEditor.click();
     await page.keyboard.type('draft-value-123');
@@ -45,29 +37,30 @@ test.describe('Draft values are used in requests', () => {
     // Create a folder in the collection
     const collection = page.locator('.collection-name').filter({ hasText: collectionName });
 
-    await collection.locator('.collection-actions').hover();
+    await collection.hover();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('Test Folder');
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await page.locator('.collection-item-name').filter({ hasText: 'Test Folder' }).click();
 
-    // Wait for the folder to be created
     await expect(page.locator('.collection-item-name').filter({ hasText: 'Test Folder' })).toBeVisible();
     const folder = page.locator('.collection-item-name').filter({ hasText: 'Test Folder' });
 
-    // Add a header to the folder
-    await page.getByRole('button', { name: 'Add Header' }).click();
+    const folderHeaderTable = page.locator('table').first();
+    const folderHeaderRow = folderHeaderTable.locator('tbody tr').first();
 
-    await nameEditor.click();
+    const folderNameEditor = folderHeaderRow.locator('.CodeMirror').first();
+    await folderNameEditor.click();
     await page.keyboard.type('X-Folder-Draft-Header');
 
-    await valueEditor.click();
+    const folderValueEditor = folderHeaderRow.locator('.CodeMirror').nth(1);
+    await folderValueEditor.click();
     await page.keyboard.type('folder-draft-value-123');
 
     // Create a request in the collection
     // Create a new request via collection menu
-    await folder.locator('.menu-icon').hover();
+    await folder.hover();
     await folder.locator('.menu-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
 
@@ -130,8 +123,8 @@ test.describe('Draft values are used in requests', () => {
 
     // Create a new request from collection menu
     const collection = page.locator('.collection-name').filter({ hasText: collectionName });
-    await collection.locator('.collection-actions').hover();
-    await collection.locator('.collection-actions').click();
+    await collection.hover();
+    await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByTestId('request-name').fill('Test Request');
     await page.getByTestId('new-request-url').locator('.CodeMirror').click();

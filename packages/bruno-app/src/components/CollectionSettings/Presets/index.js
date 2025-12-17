@@ -4,7 +4,6 @@ import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
-import DeprecationWarning from 'components/DeprecationWarning';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -36,13 +35,12 @@ const PresetsSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <DeprecationWarning featureName="Presets" learnMoreUrl="https://github.com/usebruno/bruno/discussions/6234" />
       <div className="text-xs mb-4 mt-4 text-muted">
         These presets will be used as the default values for new requests in this collection.
       </div>
       <div className="bruno-form">
         <div className="mb-3 flex items-center">
-          <label className="settings-label flex  items-center" htmlFor="enabled">
+          <label className="settings-label flex items-center" htmlFor="http">
             Request Type
           </label>
           <div className="flex items-center">
@@ -84,10 +82,23 @@ const PresetsSettings = ({ collection }) => {
             <label htmlFor="grpc" className="ml-1 cursor-pointer select-none">
               gRPC
             </label>
+
+            <input
+              id="ws"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={handleRequestTypeChange}
+              value="ws"
+              checked={(currentPresets.requestType || 'http') === 'ws'}
+            />
+            <label htmlFor="ws" className="ml-1 cursor-pointer select-none">
+              WebSocket
+            </label>
           </div>
         </div>
         <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="requestUrl">
+          <label className="settings-label" htmlFor="request-url">
             Base URL
           </label>
           <div className="flex items-center w-full">
@@ -111,7 +122,7 @@ const PresetsSettings = ({ collection }) => {
         </div>
 
         <div className="mt-6">
-          <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
             Save
           </button>
         </div>

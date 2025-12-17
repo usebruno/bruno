@@ -58,7 +58,7 @@ class SingleLineEditor extends Component {
       tabindex: 0,
       readOnly: this.props.readOnly,
       extraKeys: {
-        Enter: runHandler,
+        'Enter': runHandler,
         'Ctrl-Enter': runHandler,
         'Cmd-Enter': runHandler,
         'Alt-Enter': () => {
@@ -75,7 +75,7 @@ class SingleLineEditor extends Component {
         'Cmd-F': noopHandler,
         'Ctrl-F': noopHandler,
         // Tabbing disabled to make tabindex work
-        Tab: false,
+        'Tab': false,
         'Shift-Tab': false
       }
     });
@@ -185,6 +185,9 @@ class SingleLineEditor extends Component {
     }
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly);
+    }
+    if (this.props.placeholder !== prevProps.placeholder && this.editor) {
+      this.editor.setOption('placeholder', this.props.placeholder);
     }
     this.ignoreChangeEvent = false;
   }

@@ -1,4 +1,4 @@
-import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
+import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
@@ -146,7 +146,7 @@ export const areItemsLoading = (folder) => {
   if (!folder || folder.isLoading) {
     return true;
   }
-  
+
   let flattenedItems = flattenItems(folder.items);
   return flattenedItems?.reduce((isLoading, i) => {
     if (i?.loading) {
@@ -154,13 +154,13 @@ export const areItemsLoading = (folder) => {
     }
     return isLoading;
   }, false);
-}
+};
 
 export const getItemsLoadStats = (folder) => {
   let loadingCount = 0;
   let flattenedItems = flattenItems(folder.items);
-  flattenedItems?.forEach(i => {
-    if(i?.loading) {
+  flattenedItems?.forEach((i) => {
+    if (i?.loading) {
       loadingCount += 1;
     }
   });
@@ -168,7 +168,7 @@ export const getItemsLoadStats = (folder) => {
     loading: loadingCount,
     total: flattenedItems?.length
   };
-}
+};
 
 export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
   const copyHeaders = (headers) => {
@@ -228,9 +228,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         filePath: param.filePath,
         contentType: param.contentType,
         selected: param.selected
-      }
+      };
     });
-  }
+  };
 
   const copyExamples = (examples = []) => {
     return map(examples, (example) => {
@@ -286,7 +286,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         return;
       }
 
-      const isGrpcRequest = si.type === 'grpc-request'
+      const isGrpcRequest = si.type === 'grpc-request';
 
       const di = {
         uid: si.uid,
@@ -330,7 +330,6 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           di.request.protoPath = si.request.protoPath;
           delete di.request.params;
         }
-        
 
         // Handle auth object dynamically
         di.request.auth = {
@@ -371,7 +370,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.ntlm.password', ''),
               domain: get(si.request, 'auth.ntlm.domain', '')
             };
-            break;            
+            break;
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -392,7 +391,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'authorization_code':
@@ -413,7 +412,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'implicit':
@@ -429,7 +428,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'client_credentials':
@@ -447,7 +446,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
             }
@@ -474,10 +473,10 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
 
         if (di.request.body.mode === 'grpc') {
-          di.request.body.grpc = di.request.body.grpc.map(({name, content}, index) => ({
+          di.request.body.grpc = di.request.body.grpc.map(({ name, content }, index) => ({
             name: name ? name : `message ${index + 1}`,
             content: replaceTabsWithSpaces(content)
-          }))
+          }));
         }
 
         if (di.request.body.mode === 'ws') {
@@ -684,7 +683,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (_item.type === 'grpc-request') {
     itemToSave.request.methodType = _item.request.methodType;
     itemToSave.request.protoPath = _item.request.protoPath;
-    delete itemToSave.request.params
+    delete itemToSave.request.params;
   }
 
   if (_item.type === 'ws-request') {
@@ -727,7 +726,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'grpc') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+      grpc: itemToSave.request.body.grpc.map(({ name, content }, index) => ({
         name: name ? name : `message ${index + 1}`,
         content: replaceTabsWithSpaces(content)
       }))
@@ -895,7 +894,7 @@ export const humanizeRequestAuthMode = (mode) => {
     case 'ntlm': {
       label = 'NTLM';
       break;
-    }     
+    }
     case 'oauth2': {
       label = 'OAuth 2.0';
       break;
@@ -1070,7 +1069,7 @@ export const getDefaultRequestPaneTab = (item) => {
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
   let variables = {};
-  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
   if (environment) {
     each(environment.variables, (variable) => {
       if (variable.name && variable.enabled) {
@@ -1082,7 +1081,7 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
 };
 
 export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
-  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
 
   if (environment && Array.isArray(environment.variables)) {
     return environment.variables
@@ -1092,7 +1091,6 @@ export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, active
 
   return [];
 };
-
 
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
@@ -1154,7 +1152,7 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
-  if(!collection) return {};
+  if (!collection) return {};
   const envVariables = getEnvironmentVariables(collection);
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
@@ -1176,7 +1174,7 @@ export const getAllVariables = (collection, item) => {
     ...requestVariables,
     ...runtimeVariables,
     ...promptVariables
-  }
+  };
 
   const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
   const maskedGlobalEnvVariables = collection?.globalEnvSecrets || [];
@@ -1186,7 +1184,7 @@ export const getAllVariables = (collection, item) => {
 
   const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
-  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials })
+  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
 
   return {
     ...globalEnvironmentVariables,
@@ -1342,7 +1340,6 @@ export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = []
   return credentialsVariables;
 };
 
-
 // item sequence utils - START
 
 export const resetSequencesInFolder = (folderItems) => {
@@ -1374,7 +1371,7 @@ export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, dragg
   const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
   const targetSequence = targetItem?.seq;
   const draggedSequence = draggedItem?.seq;
-  itemsWithFixedSequences?.forEach(item => {
+  itemsWithFixedSequences?.forEach((item) => {
     const isDraggedItem = item?.uid === draggedItemUid;
     const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
     if (isBetween) {
@@ -1386,15 +1383,15 @@ export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, dragg
     }
   });
   // only return items that have been reordered
-  return itemsWithFixedSequences.filter(item => 
-    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  return itemsWithFixedSequences.filter((item) =>
+    items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
 };
 
 export const getReorderedItemsInSourceDirectory = ({ items }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
-  return itemsWithFixedSequences.filter(item => 
-    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  return itemsWithFixedSequences.filter((item) =>
+    items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
 };
 
@@ -1406,9 +1403,9 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
   const isTargetItemAFolder = isItemAFolder(targetItem);
 
   if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
-    return path.join(targetItemPathname, draggedItemFilename)
+    return path.join(targetItemPathname, draggedItemFilename);
   } else if (dropType === 'adjacent') {
-    return path.join(targetItemDirname, draggedItemFilename)
+    return path.join(targetItemDirname, draggedItemFilename);
   }
   return null;
 };
@@ -1418,10 +1415,10 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 export const getUniqueTagsFromItems = (items = []) => {
   const allTags = new Set();
   const getTags = (items) => {
-    items.forEach(item => {
+    items.forEach((item) => {
       if (isItemARequest(item)) {
         const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
-        tags.forEach(tag => allTags.add(tag));
+        tags.forEach((tag) => allTags.add(tag));
       }
       if (item.items) {
         getTags(item.items);
@@ -1432,10 +1429,9 @@ export const getUniqueTagsFromItems = (items = []) => {
   return Array.from(allTags).sort();
 };
 
-
 export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
   let requestItems = [];
-  
+
   if (recursive) {
     requestItems = flattenItems(items);
   } else {
@@ -1447,7 +1443,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   }
 
   const requestTypes = ['http-request', 'graphql-request'];
-  requestItems = requestItems.filter(request => requestTypes.includes(request.type));
+  requestItems = requestItems.filter((request) => requestTypes.includes(request.type));
 
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
@@ -1632,4 +1628,54 @@ export const isVariableSecret = (scopeInfo) => {
   }
 
   return false;
+};
+
+/**
+ * Generate a unique request name by checking existing filenames in the collection and filesystem
+ * @param {Object} collection - The collection object
+ * @param {string} baseName - The base name (default: 'Untitled')
+ * @param {string} itemUid - The parent item UID (null for root level, folder UID for folder level)
+ * @returns {Promise<string>} - A unique request name (Untitled, Untitled1, Untitled2, etc.)
+ */
+export const generateUniqueRequestName = async (collection, baseName = 'Untitled', itemUid = null) => {
+  if (!collection) {
+    return baseName;
+  }
+
+  const trim = require('lodash/trim');
+  const parentItem = itemUid ? findItemInCollection(collection, itemUid) : null;
+  const parentItems = parentItem ? (parentItem.items || []) : (collection.items || []);
+  const baseNamePattern = new RegExp(`^${baseName}(\\d+)?$`);
+  // Support .bru, .yml, and .yaml file extensions
+  const requestExtensions = /\.(bru|yml|yaml)$/i;
+  const matchingItems = parentItems
+    .filter((item) => {
+      if (item.type === 'folder') return false;
+
+      const filename = trim(item.filename);
+      if (!requestExtensions.test(filename)) return false;
+
+      const filenameWithoutExt = filename.replace(requestExtensions, '');
+      return baseNamePattern.test(filenameWithoutExt);
+    })
+    .map((item) => {
+      const filenameWithoutExt = trim(item.filename).replace(requestExtensions, '');
+      const match = filenameWithoutExt.match(baseNamePattern);
+
+      if (!match) return null;
+
+      const number = match[1] ? parseInt(match[1], 10) : 0;
+      return { name: filenameWithoutExt, number: isNaN(number) ? null : number };
+    })
+    .filter((item) => item !== null && item.number !== null);
+
+  if (matchingItems.length === 0) {
+    return baseName;
+  }
+
+  const sortedMatches = matchingItems.sort((a, b) => a.number - b.number);
+  const lastElement = sortedMatches[sortedMatches.length - 1];
+  const nextNumber = lastElement.number + 1;
+
+  return `${baseName}${nextNumber}`;
 };

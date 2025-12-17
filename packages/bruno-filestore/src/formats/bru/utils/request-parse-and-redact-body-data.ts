@@ -7,11 +7,11 @@ export const bruRequestParseAndRedactBodyData = (bruFileContent: string) => {
   try {
     // Define the patterns that indicate the start of different body types
     const bodyTypePatterns = [
-      "body:json {",
-      "body:text {",
-      "body:xml {",
-      "body:sparql {",
-      "body:graphql {"
+      'body:json {',
+      'body:text {',
+      'body:xml {',
+      'body:sparql {',
+      'body:graphql {'
     ];
 
     // Normalize line endings to LF
@@ -37,30 +37,30 @@ export const bruRequestParseAndRedactBodyData = (bruFileContent: string) => {
 
     // Split the file content into blocks
     let fileContentBlocks = bruFileContent.split(`${EOL}}${EOL}`);
-    fileContentBlocks = fileContentBlocks.filter(Boolean).map(_ => _.trim());
+    fileContentBlocks = fileContentBlocks.filter(Boolean).map((_) => _.trim());
 
     // Extract body blocks and their content
     const extractedBodyBlocks = fileContentBlocks
-      .filter(block => bodyTypePatterns.some(pattern => block.startsWith(pattern)))
+      .filter((block) => bodyTypePatterns.some((pattern) => block.startsWith(pattern)))
       .reduce((bodyContentMap: Record<string, string>, bodyBlock) => {
         // Extract the body type (json, text, xml, etc.) from the first line
         const firstLine = bodyBlock.split(EOL)[0];
         const bodyType = firstLine.split(`body:`)[1].split(/\s/)[0];
-        
+
         // Extract the body content (everything between the opening and closing braces)
         const bodyContentLines = bodyBlock.split(EOL).slice(1);
         const rawBodyContent = bodyContentLines.join(EOL);
-        
+
         // Remove indentation from the body content
         const cleanBodyContent = removeLeadingIndentation(rawBodyContent);
-        
+
         bodyContentMap[bodyType] = cleanBodyContent;
         return bodyContentMap;
       }, {});
 
     // Filter out body blocks to get the remaining file content
-    const fileContentWithoutBodyBlocks = fileContentBlocks.filter(block => 
-      !bodyTypePatterns.some(pattern => block.startsWith(pattern))
+    const fileContentWithoutBodyBlocks = fileContentBlocks.filter((block) =>
+      !bodyTypePatterns.some((pattern) => block.startsWith(pattern))
     );
 
     return {

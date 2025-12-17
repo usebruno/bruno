@@ -30,7 +30,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'body': {
-        return <GrpcBody item={item} collection={collection} hideModeSelector={true} hidePrettifyButton={true} handleRun={handleRun}/>;
+        return <GrpcBody item={item} collection={collection} hideModeSelector={true} hidePrettifyButton={true} handleRun={handleRun} />;
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} addHeaderText="Add Metadata" />;

@@ -32,7 +32,7 @@ test.describe('Prompt Variables Interpolation', () => {
     await test.step('Verify duplicate prompt variables are not allowed', async () => {
       // Enter the prompt variables
       promptInputs = promptVariablesModal.getByTestId('prompt-variable-input-container');
-      await expect(promptInputs).toHaveCount(11);
+      await expect(promptInputs).toHaveCount(12);
     });
 
     await test.step('Verify disabled / non selected modes prompt variables are not prompted', async () => {
@@ -46,6 +46,7 @@ test.describe('Prompt Variables Interpolation', () => {
     });
 
     await test.step('Fill the prompt variables and send the request', async () => {
+      await promptInputs.filter({ hasText: 'Enter Port Variable' }).locator('input').fill('8081');
       await promptInputs.filter({ hasText: 'Enter Query Variable' }).locator('input').fill('queryPromptValue');
       await promptInputs.filter({ hasText: 'Enter Body Variable' }).locator('input').fill('bodyPromptValue');
       await promptInputs.filter({ hasText: 'Enter Number Variable' }).locator('input').fill('123');

@@ -517,4 +517,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

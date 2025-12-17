@@ -2,9 +2,9 @@ import platform from 'platform';
 import path from 'path';
 
 const isWindowsOS = () => {
-    const os = platform.os;
-    const osFamily = os.family.toLowerCase();
-    return osFamily.includes('windows');
+  const os = platform.os;
+  const osFamily = os.family.toLowerCase();
+  return osFamily.includes('windows');
 };
 
 /**
@@ -163,5 +163,10 @@ const getAbsoluteFilePath = (basePath, relativePath, shouldPosixify = false) => 
   return shouldPosixify ? posixify(result) : result;
 };
 
+const normalizePath = (p) => {
+  if (!p) return '';
+  return p.replace(/\\/g, '/').replace(/\/+$/, '');
+};
+
 export default brunoPath;
-export { getRelativePath, getBasename, getAbsoluteFilePath };
+export { getRelativePath, getBasename, getAbsoluteFilePath, normalizePath };

@@ -10,7 +10,6 @@ import GrpcStatusCode from './GrpcStatusCode';
 import ResponseTime from '../ResponseTime/index';
 import Timeline from '../Timeline';
 import ClearTimeline from '../ClearTimeline';
-import ResponseSave from '../ResponseSave';
 import ResponseClear from '../ResponseClear';
 import StyledWrapper from './StyledWrapper';
 import ResponseTrailers from './ResponseTrailers';

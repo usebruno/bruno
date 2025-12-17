@@ -1,0 +1,19 @@
+meta {
+  name: ws-ssl-request
+  type: ws
+  seq: 1
+}
+
+ws {
+  url: wss://localhost:8090/ws
+  auth: inherit
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {
+      "func":"headers"
+    }
+  '''
+}

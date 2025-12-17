@@ -90,7 +90,7 @@ describe('Multiline Syntax Handling', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("content-type".toLowerCase())');
   });
-  
+
   it('should handle response properties with multiline syntax', () => {
     const code = `
     const responseBody = pm
@@ -189,7 +189,7 @@ describe('Multiline Syntax Handling', () => {
     expect(translatedCode).toContain('.property(\'success\')');
     expect(translatedCode).toContain('.equal(true)');
   });
-  
+
   it('should handle a comprehensive script with various multiline formats', () => {
     const code = `
     // This comprehensive script tests different multiline styles and whitespace variations
@@ -253,31 +253,31 @@ describe('Multiline Syntax Handling', () => {
       }
     }
     `;
-    
+
     const translatedCode = translateCode(code);
-    
+
     expect(translatedCode).toContain('const baseUrl = bru.getEnvVar("baseUrl")');
     expect(translatedCode).toContain('const apiKey = bru.getEnvVar("apiKey")');
     expect(translatedCode).toContain('const userId = bru.getEnvVar("userId")');
-    
+
     // Check variables translations
     expect(translatedCode).toContain('bru.setVar("testId", "test-" + Date.now())');
     expect(translatedCode).toContain('bru.setVar("timestamp", new Date().toISOString())');
-    
+
     // Check collection variables
     expect(translatedCode).toContain('bru.setVar("lastRun", new Date())');
-    
+
     // Check complex conditionals
     expect(translatedCode).toContain('if (bru.getEnvVar("apiKey") !== undefined && bru.getEnvVar("apiKey") !== null &&');
     expect(translatedCode).toContain('bru.hasVar("testId"))');
-    
+
     // Check response testing
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200)');
     expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("content-type".toLowerCase())');
-    
+
     // Check flow control
     expect(translatedCode).toContain('if (res.getStatus() === 401)');
     expect(translatedCode).toContain('bru.runner.stopExecution()');
     expect(translatedCode).toContain('bru.runner.setNextRequest("Next API Call")');
   });
-}); 
+});

@@ -14,7 +14,7 @@ const StyledWrapper = styled.div`
   div.method-selector-container,
   div.input-container {
     background-color: ${(props) => props.theme.modal.input.bg};
-    height: 2.3rem;
+    height: 2.1rem;
   }
   div.input-container {
     border: solid 1px ${(props) => props.theme.modal.input.border};

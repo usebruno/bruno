@@ -1,10 +1,10 @@
 module.exports = {
   rootDir: '.',
   transform: {
-    '^.+\\.[jt]sx?$': 'babel-jest',
+    '^.+\\.[jt]sx?$': 'babel-jest'
   },
   transformIgnorePatterns: [
-    "/node_modules/(?!strip-json-comments|nanoid|xml-formatter)/",
+    '/node_modules/(?!strip-json-comments|nanoid|xml-formatter)/'
   ],
   moduleNameMapper: {
     '^assets/(.*)$': '<rootDir>/src/assets/$1',
@@ -22,7 +22,7 @@ module.exports = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['@testing-library/jest-dom'],
   setupFiles: [
-    '<rootDir>/jest.setup.js',
+    '<rootDir>/jest.setup.js'
   ],
   testMatch: [
     '<rootDir>/src/**/*.spec.[jt]s?(x)'

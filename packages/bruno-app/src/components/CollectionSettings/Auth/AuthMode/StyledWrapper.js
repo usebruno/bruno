@@ -8,20 +8,12 @@ const Wrapper = styled.div`
 
     .auth-mode-label {
       color: ${(props) => props.theme.colors.text.yellow};
-    }
 
-    .dropdown-item {
-      padding: 0.2rem 0.6rem !important;
+      .caret {
+        color: rgb(140, 140, 140);
+        fill: rgb(140, 140, 140);
+      }
     }
-
-    .label-item {
-      padding: 0.2rem 0.6rem !important;
-    }
-  }
-
-  .caret {
-    color: rgb(140, 140, 140);
-    fill: rgb(140 140 140);
   }
 `;
 

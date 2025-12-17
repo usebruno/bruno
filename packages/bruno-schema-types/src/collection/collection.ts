@@ -20,4 +20,3 @@ export interface Collection {
   brunoConfig?: Record<string, unknown> | null;
   root?: FolderRoot | null;
 }
-

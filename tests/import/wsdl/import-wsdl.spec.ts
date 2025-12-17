@@ -13,7 +13,8 @@ test.describe('Import WSDL Collection', () => {
     const wsdlFile = path.join(testDataDir, 'wsdl.xml');
 
     await test.step('Open import collection modal', async () => {
-      await page.getByRole('button', { name: 'Import Collection' }).click();
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       // Wait for import collection modal to be ready
       const importModal = page.getByRole('dialog');
@@ -23,18 +24,19 @@ test.describe('Import WSDL Collection', () => {
     await test.step('Choose WSDL XML file', async () => {
       await page.setInputFiles('input[type="file"]', wsdlFile);
 
-      // Wait for the loader to disappear
-      await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      // Wait for location modal to appear after file processing
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     });
 
     await test.step('Select the location for the collection and submit to import', async () => {
       // Verify that the location selection modal is displayed to import the collection
-      const locationModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
       // select a location
       await page.locator('#collection-location').fill(await createTmpDir('wsdl-xml-test'));
-      await page.getByRole('button', { name: 'Import', exact: true }).click();
+      await locationModal.getByRole('button', { name: 'Import' }).click();
       await expect(page.locator('#sidebar-collection-name').getByText('TestWSDLServiceXML')).toBeVisible();
     });
 
@@ -69,7 +71,8 @@ test.describe('Import WSDL Collection', () => {
     const wsdlFile = path.join(testDataDir, 'wsdl-bruno.json');
 
     await test.step('Open import collection modal', async () => {
-      await page.getByRole('button', { name: 'Import Collection' }).click();
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       // Wait for import collection modal to be ready
       const importModal = page.getByRole('dialog');
@@ -79,13 +82,14 @@ test.describe('Import WSDL Collection', () => {
     await test.step('Choose WSDL JSON file', async () => {
       await page.setInputFiles('input[type="file"]', wsdlFile);
 
-      // Wait for the loader to disappear
-      await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      // Wait for location modal to appear after file processing
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     });
 
     await test.step('Select the location for the collection and submit to import', async () => {
       // Verify that the location selection modal is displayed to import the collection
-      const locationModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
       // Wait for collection to appear in the location modal
@@ -93,7 +97,7 @@ test.describe('Import WSDL Collection', () => {
 
       // select a location
       await page.locator('#collection-location').fill(await createTmpDir('wsdl-json-test'));
-      await page.getByRole('button', { name: 'Import', exact: true }).click();
+      await locationModal.getByRole('button', { name: 'Import' }).click();
     });
 
     await test.step('Verify that the collection was imported successfully', async () => {
