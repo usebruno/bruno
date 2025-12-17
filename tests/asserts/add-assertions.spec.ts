@@ -32,9 +32,8 @@ test.describe('Assertions - BRU Collection', () => {
     // Ensure we're on the Assertions tab
     await selectRequestPaneTab(page, 'Assert');
 
-    // Wait for table to be visible and stable
+    // Wait for table to be visible
     await expect(table.container()).toBeVisible();
-    await page.waitForTimeout(200);
 
     // Get all rows and delete assertions (skip the empty row at the end)
     let rowCount = await table.allRows().count();
@@ -43,21 +42,17 @@ test.describe('Assertions - BRU Collection', () => {
     // We delete from the end to avoid index shifting issues
     while (rowCount > 1) {
       const deleteButton = table.rowDeleteButton(rowCount - 2); // Second to last (skip empty row)
-      const isVisible = await deleteButton.isVisible().catch(() => false);
 
-      if (isVisible) {
-        await deleteButton.click();
-        await page.waitForTimeout(200); // Wait for deletion to complete
-        rowCount = await table.allRows().count(); // Re-count rows
-      } else {
-        // No more assertions to delete
-        break;
-      }
+      await expect(deleteButton).toBeVisible({ timeout: 1000 });
+      await deleteButton.click();
+      // Wait for row count to decrease after deletion
+      await expect(table.allRows()).toHaveCount(rowCount - 1);
+      rowCount = await table.allRows().count(); // Re-count rows
     }
 
     // Save the request to persist the clean state
+    // saveRequest already waits for the "Request saved successfully" toast internally
     await saveRequest(page);
-    await page.waitForTimeout(200); // Wait for save to complete
   });
 
   test.afterAll(async ({ pageWithUserData: page }) => {
@@ -126,9 +121,6 @@ test.describe('Assertions - BRU Collection', () => {
     });
 
     await test.step('Verify all assertions are present', async () => {
-      // Wait a bit for all assertions to be fully processed
-      await page.waitForTimeout(500);
-
       // Check input values instead of cell text content
       await expect(table.rowExprInput(0)).toHaveValue('res.status');
       await expect(table.rowExprInput(1)).toHaveValue('res.body');
@@ -189,7 +181,6 @@ test.describe('Assertions - BRU Collection', () => {
     await test.step('Uncheck the assertion', async () => {
       const checkbox = table.rowCheckbox(0);
       await checkbox.uncheck();
-      await page.waitForTimeout(200);
     });
 
     await test.step('Verify checkbox is unchecked', async () => {
@@ -200,7 +191,6 @@ test.describe('Assertions - BRU Collection', () => {
     await test.step('Re-check the assertion', async () => {
       const checkbox = table.rowCheckbox(0);
       await checkbox.check();
-      await page.waitForTimeout(200);
     });
 
     await test.step('Verify checkbox is checked again', async () => {
@@ -230,12 +220,10 @@ test.describe('Assertions - BRU Collection', () => {
 
     await test.step('Delete first assertion', async () => {
       await deleteAssertion(page, 0);
-      await page.waitForTimeout(200);
     });
 
     await test.step('Delete second assertion (now at index 0 after first deletion)', async () => {
       await deleteAssertion(page, 0);
-      await page.waitForTimeout(200);
     });
 
     await test.step('Verify only one assertion remains', async () => {

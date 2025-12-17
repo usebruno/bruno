@@ -830,7 +830,6 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
     // Find and click the delete button for the assertion
     const deleteButton = table.rowDeleteButton(rowIndex);
     await deleteButton.click();
-    await page.waitForTimeout(200);
   });
 };
 
@@ -843,6 +842,7 @@ const saveRequest = async (page: Page) => {
   await test.step('Save request', async () => {
     await page.keyboard.press('Meta+s');
     await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
+    await page.waitForTimeout(200);
   });
 };
 
