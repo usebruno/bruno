@@ -38,17 +38,17 @@ const CollectionsSection = () => {
   const { collectionSortOrder } = useSelector((state) => state.collections);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
+  const [importData, setImportData] = useState(null);
+  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
+  const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
     return collections.filter((c) =>
       activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
     );
   }, [activeWorkspace, collections]);
-
-  const [importData, setImportData] = useState(null);
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
-  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
-  const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
 
   const handleImportCollection = ({ rawData, type }) => {
     setImportCollectionModalOpen(false);
