@@ -13,7 +13,7 @@ test.describe.serial('URL Interpolation', () => {
     await locators.sidebar.request('echo-request-url').click();
     await sendRequest(page, 200);
 
-    const texts = await page.locator('div:nth-child(2) > .CodeMirror-scroll').allInnerTexts();
+    const texts = await page.getByTestId('response-preview-container').locator('.CodeMirror-scroll').allInnerTexts();
     await expect(texts.some((d) => d.includes(`"url": "/path/some-data"`))).toBe(true);
   });
 
@@ -22,7 +22,7 @@ test.describe.serial('URL Interpolation', () => {
     await locators.sidebar.request('echo-request-odata').click();
     await sendRequest(page, 200);
 
-    const texts = await page.locator('div:nth-child(2) > .CodeMirror-scroll').allInnerTexts();
+    const texts = await page.getByTestId('response-preview-container').locator('.CodeMirror-scroll').allInnerTexts();
     await expect(texts.some((d) => d.includes(`"url": "/path/Category('category123')/Item(item456)/foobar/Tags(%22tag%20test%22)"`))).toBe(true);
   });
 });
