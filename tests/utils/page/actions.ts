@@ -828,6 +828,7 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
     // Find and click the delete button for the assertion
     const deleteButton = table.rowDeleteButton(rowIndex);
     await deleteButton.click();
+    await expect(table.row(rowIndex)).not.toBeVisible();
   });
 };
 
