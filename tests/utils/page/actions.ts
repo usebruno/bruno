@@ -740,9 +740,8 @@ const addAssertion = async (page: Page, assertion: AssertionInput): Promise<numb
     await exprInput.click();
     await page.keyboard.type(assertion.expr);
 
-    // Wait for the expression to be saved and a new empty row to be created
     // The component creates a new empty row when the key field is filled
-    await page.waitForTimeout(500);
+    await expect(table.allRows()).toHaveCount(rowCount + 1);
 
     // Fill in the value first (defaults to 'eq value')
     const valueInput = table.rowValueInput(targetRowIndex);
@@ -755,7 +754,6 @@ const addAssertion = async (page: Page, assertion: AssertionInput): Promise<numb
     if (assertion.operator && assertion.operator !== 'eq') {
       const operatorSelect = table.rowOperatorSelect(targetRowIndex);
       await operatorSelect.selectOption(assertion.operator);
-      await page.waitForTimeout(300);
     }
 
     // Wait for the assertion to be fully processed
