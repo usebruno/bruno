@@ -50,13 +50,14 @@ test.describe('Global Environment Import Tests', () => {
     const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
     await expect(envTab).toBeVisible();
 
-    await expect(page.locator('input[name="0.name"]')).toHaveValue('host');
-    await expect(page.locator('input[name="1.name"]')).toHaveValue('userId');
-    await expect(page.locator('input[name="2.name"]')).toHaveValue('apiKey');
-    await expect(page.locator('input[name="3.name"]')).toHaveValue('postTitle');
-    await expect(page.locator('input[name="4.name"]')).toHaveValue('postBody');
-    await expect(page.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
-    await expect(page.locator('input[name="5.secret"]')).toBeChecked();
+    const variablesTable = page.locator('.table-container');
+    await expect(variablesTable.locator('input[name="0.name"]')).toHaveValue('host');
+    await expect(variablesTable.locator('input[name="1.name"]')).toHaveValue('userId');
+    await expect(variablesTable.locator('input[name="2.name"]')).toHaveValue('apiKey');
+    await expect(variablesTable.locator('input[name="3.name"]')).toHaveValue('postTitle');
+    await expect(variablesTable.locator('input[name="4.name"]')).toHaveValue('postBody');
+    await expect(variablesTable.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
+    await expect(variablesTable.locator('input[name="5.secret"]')).toBeChecked();
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click();
 

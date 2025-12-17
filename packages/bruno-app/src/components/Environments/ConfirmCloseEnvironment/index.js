@@ -2,7 +2,7 @@ import React from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 
-const ConfirmEnvironmentClose = ({ onCancel, onCloseWithoutSave, onSaveAndClose, isGlobal }) => {
+const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose, isGlobal }) => {
   return (
     <Modal
       size="md"
@@ -40,4 +40,4 @@ const ConfirmEnvironmentClose = ({ onCancel, onCloseWithoutSave, onSaveAndClose,
   );
 };
 
-export default ConfirmEnvironmentClose;
+export default ConfirmCloseEnvironment;

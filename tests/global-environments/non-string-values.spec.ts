@@ -72,7 +72,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       await page.keyboard.type('999');
       await expect(numericRow.locator('.CodeMirror-line').first()).toContainText(/170001/);
 
-      const infoIcon = page.locator('[id$="-disabled-info-icon"]').nth(0);
+      const infoIcon = numericRow.locator('[id$="-disabled-info-icon"]').nth(0);
       await infoIcon.hover();
 
       // The tooltip explains why the field is locked.
@@ -99,7 +99,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       await page.keyboard.type('false');
       await expect(booleanRow.locator('.CodeMirror-line').first()).toContainText(/true/);
 
-      const infoIcon = page.locator('[id$="-disabled-info-icon"]').nth(1);
+      const infoIcon = booleanRow.locator('[id$="-disabled-info-icon"]').nth(0);
       await infoIcon.hover();
 
       // The tooltip explains why the field is locked.

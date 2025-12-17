@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
-import { clearGlobalEnvironmentsDraft } from 'providers/ReduxStore/slices/global-environments';
+import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,7 +13,7 @@ import { findItemInCollection, hasRequestChanges } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
-import ConfirmEnvironmentClose from './ConfirmEnvironmentClose';
+import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnvironment';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
@@ -155,8 +155,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;
   const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
   const hasEnvironmentDraft = tab.type === 'environment-settings' && collection?.environmentsDraft;
-  const globalEnvironmentsDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentsDraft);
-  const hasGlobalEnvironmentDraft = tab.type === 'global-environment-settings' && globalEnvironmentsDraft;
+  const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
+  const hasGlobalEnvironmentDraft = tab.type === 'global-environment-settings' && globalEnvironmentDraft;
 
   const handleCloseEnvironmentSettings = (event) => {
     if (!collection?.environmentsDraft) {
@@ -169,7 +169,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const handleCloseGlobalEnvironmentSettings = (event) => {
-    if (!globalEnvironmentsDraft) {
+    if (!globalEnvironmentDraft) {
       return handleCloseClick(event);
     }
 
@@ -240,7 +240,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           />
         )}
         {showConfirmEnvironmentClose && tab.type === 'environment-settings' && (
-          <ConfirmEnvironmentClose
+          <ConfirmCloseEnvironment
             isGlobal={false}
             onCancel={() => setShowConfirmEnvironmentClose(false)}
             onCloseWithoutSave={() => {
@@ -267,20 +267,20 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           />
         )}
         {showConfirmGlobalEnvironmentClose && tab.type === 'global-environment-settings' && (
-          <ConfirmEnvironmentClose
+          <ConfirmCloseEnvironment
             isGlobal={true}
             onCancel={() => setShowConfirmGlobalEnvironmentClose(false)}
             onCloseWithoutSave={() => {
-              dispatch(clearGlobalEnvironmentsDraft());
+              dispatch(clearGlobalEnvironmentDraft());
               dispatch(closeTabs({ tabUids: [tab.uid] }));
               setShowConfirmGlobalEnvironmentClose(false);
             }}
             onSaveAndClose={() => {
-              const draft = globalEnvironmentsDraft;
+              const draft = globalEnvironmentDraft;
               if (draft?.environmentUid && draft?.variables) {
                 dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
                   .then(() => {
-                    dispatch(clearGlobalEnvironmentsDraft());
+                    dispatch(clearGlobalEnvironmentDraft());
                     dispatch(closeTabs({ tabUids: [tab.uid] }));
                     setShowConfirmGlobalEnvironmentClose(false);
                     toast.success('Global environment saved');

@@ -1,5 +1,6 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
+import { get } from 'lodash';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,7 +14,9 @@ import toast from 'react-hot-toast';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { setEnvironmentsDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { Tooltip } from 'react-tooltip';
-import { getGlobalEnvironmentVariables } from 'utils/collections';
+import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'utils/collections';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { sensitiveFields } from './constants';
 
 const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   const dispatch = useDispatch();
@@ -33,6 +36,53 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   if (_collection) {
     _collection.globalEnvironmentVariables = globalEnvironmentVariables;
   }
+
+  // Check for non-secret variables used in sensitive fields
+  const nonSecretSensitiveVarUsageMap = useMemo(() => {
+    const result = {};
+    if (!collection || !environment?.variables) {
+      return result;
+    }
+    const nonSecretVars = environment.variables.filter((v) => v.enabled && !v.secret && v.name);
+    if (!nonSecretVars.length) {
+      return result;
+    }
+    const varNames = new Set(nonSecretVars.map((v) => v.name));
+
+    const checkSensitiveField = (obj, fieldPath) => {
+      const value = get(obj, fieldPath);
+      if (typeof value === 'string') {
+        varNames.forEach((varName) => {
+          if (new RegExp(`\\{\\{\\s*${varName}\\s*\\}\\}`).test(value)) {
+            result[varName] = true;
+          }
+        });
+      }
+    };
+
+    const getObjectToProcess = (item) => {
+      if (isItemARequest(item)) {
+        return item.draft || item;
+      }
+      return item.root;
+    };
+
+    const collectionObj = getObjectToProcess(collection);
+    sensitiveFields.forEach((fieldPath) => {
+      checkSensitiveField(collectionObj, fieldPath);
+    });
+
+    const items = flattenItems(collection.items || []);
+    items.forEach((item) => {
+      const objToProcess = getObjectToProcess(item);
+      sensitiveFields.forEach((fieldPath) => {
+        checkSensitiveField(objToProcess, fieldPath);
+      });
+    });
+    return result;
+  }, [collection, environment]);
+
+  const hasSensitiveUsage = (name) => !!nonSecretSensitiveVarUsageMap[name];
 
   // Initial values based only on saved environment variables (not draft)
   // Draft restoration happens in a separate effect to avoid infinite loops
@@ -397,6 +447,12 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                           place="top"
                         />
                       </span>
+                    )}
+                    {!variable.secret && hasSensitiveUsage(variable.name) && (
+                      <SensitiveFieldWarning
+                        fieldName={variable.name}
+                        warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
+                      />
                     )}
                   </td>
                   <td className="text-center">

@@ -12,8 +12,8 @@ import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import {
   saveGlobalEnvironment,
-  setGlobalEnvironmentsDraft,
-  clearGlobalEnvironmentsDraft
+  setGlobalEnvironmentDraft,
+  clearGlobalEnvironmentDraft
 } from 'providers/ReduxStore/slices/global-environments';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
@@ -21,11 +21,11 @@ import { getGlobalEnvironmentVariables } from 'utils/collections';
 const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const { globalEnvironments, activeGlobalEnvironmentUid, globalEnvironmentsDraft } = useSelector(
+  const { globalEnvironments, activeGlobalEnvironmentUid, globalEnvironmentDraft } = useSelector(
     (state) => state.globalEnvironments
   );
 
-  const hasDraftForThisEnv = globalEnvironmentsDraft?.environmentUid === environment.uid;
+  const hasDraftForThisEnv = globalEnvironmentDraft?.environmentUid === environment.uid;
 
   // Track environment changes for draft restoration
   const prevEnvUidRef = React.useRef(null);
@@ -106,9 +106,9 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     prevEnvUidRef.current = environment.uid;
     mountedRef.current = true;
 
-    if ((isMount || envChanged) && hasDraftForThisEnv && globalEnvironmentsDraft?.variables) {
+    if ((isMount || envChanged) && hasDraftForThisEnv && globalEnvironmentDraft?.variables) {
       formik.setValues([
-        ...globalEnvironmentsDraft.variables,
+        ...globalEnvironmentDraft.variables,
         {
           uid: uuid(),
           name: '',
@@ -119,7 +119,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         }
       ]);
     }
-  }, [environment.uid, hasDraftForThisEnv, globalEnvironmentsDraft?.variables]);
+  }, [environment.uid, hasDraftForThisEnv, globalEnvironmentDraft?.variables]);
 
   // Sync draft state to Redux
   React.useEffect(() => {
@@ -133,21 +133,21 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     setIsModified(hasActualChanges);
 
     // Get existing draft for comparison
-    const existingDraftVariables = hasDraftForThisEnv ? globalEnvironmentsDraft?.variables : null;
+    const existingDraftVariables = hasDraftForThisEnv ? globalEnvironmentDraft?.variables : null;
     const existingDraftJson = existingDraftVariables ? JSON.stringify(existingDraftVariables) : null;
 
     if (hasActualChanges) {
       // Only dispatch if draft values are actually different
       if (currentValuesJson !== existingDraftJson) {
-        dispatch(setGlobalEnvironmentsDraft({
+        dispatch(setGlobalEnvironmentDraft({
           environmentUid: environment.uid,
           variables: currentValues
         }));
       }
     } else if (hasDraftForThisEnv) {
-      dispatch(clearGlobalEnvironmentsDraft());
+      dispatch(clearGlobalEnvironmentDraft());
     }
-  }, [formik.values, environment.variables, environment.uid, setIsModified, dispatch, hasDraftForThisEnv, globalEnvironmentsDraft?.variables]);
+  }, [formik.values, environment.variables, environment.uid, setIsModified, dispatch, hasDraftForThisEnv, globalEnvironmentDraft?.variables]);
 
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);

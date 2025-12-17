@@ -147,11 +147,15 @@ const RequestTabPanel = () => {
     };
   }, [handleMouseUp, handleMouseMove]);
 
-  if (!activeTabUid) {
+  if (!activeTabUid || !focusedTab) {
     return <WorkspaceHome />;
   }
 
-  if (!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
+  if (focusedTab.type === 'global-environment-settings') {
+    return <GlobalEnvironmentSettings />;
+  }
+
+  if (!focusedTab.uid || !focusedTab.collectionUid) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
@@ -204,10 +208,6 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'environment-settings') {
     return <EnvironmentSettings collection={collection} />;
-  }
-
-  if (focusedTab.type === 'global-environment-settings') {
-    return <GlobalEnvironmentSettings collection={collection} />;
   }
 
   if (!item || !item.uid) {
