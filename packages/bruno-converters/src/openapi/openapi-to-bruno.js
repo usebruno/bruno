@@ -929,7 +929,8 @@ const getSecurity = (apiSpec) => {
   let securitySchemes = get(apiSpec, 'components.securitySchemes', {});
   if (Object.keys(securitySchemes).length === 0) {
     return {
-      supported: []
+      supported: [],
+      getScheme: () => null
     };
   }
 
@@ -940,7 +941,7 @@ const getSecurity = (apiSpec) => {
     }),
     schemes: securitySchemes,
     getScheme: (schemeName) => {
-      return securitySchemes[schemeName];
+      return securitySchemes[schemeName] || null;
     }
   };
 };
