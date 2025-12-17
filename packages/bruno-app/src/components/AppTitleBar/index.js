@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus, IconUpload, IconSettings } from '@tabler/icons';
+import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus, IconUpload, IconSettings, IconMinus, IconSquare, IconX, IconCopy } from '@tabler/icons';
 import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -21,9 +21,20 @@ import StyledWrapper from './StyledWrapper';
 import { toTitleCase } from 'utils/common/index';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 
+const getOsClass = () => {
+  const platform = navigator.platform?.toLowerCase() || '';
+  if (platform.includes('mac')) return 'os-mac';
+  if (platform.includes('win')) return 'os-windows';
+  if (platform.includes('linux')) return 'os-linux';
+  return '';
+};
+
 const AppTitleBar = () => {
   const dispatch = useDispatch();
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const osClass = getOsClass();
+  const isWindows = osClass === 'os-windows';
 
   // Listen for fullscreen changes
   useEffect(() => {
@@ -42,6 +53,32 @@ const AppTitleBar = () => {
       removeEnterFullScreenListener();
       removeLeaveFullScreenListener();
     };
+  }, []);
+
+  // Check initial maximized state and listen for changes (Windows only)
+  useEffect(() => {
+    if (!isWindows) return;
+    const { ipcRenderer } = window;
+    if (!ipcRenderer) return;
+
+    // Get initial state
+    ipcRenderer.invoke('renderer:window-is-maximized').then(setIsMaximized);
+
+    // Note: We update isMaximized on each click since Electron doesn't have a maximize change event exposed easily
+  }, [isWindows]);
+
+  // Window control handlers (Windows only) - these always work, even with modals open
+  const handleMinimize = useCallback(() => {
+    window.ipcRenderer?.send('renderer:window-minimize');
+  }, []);
+
+  const handleMaximize = useCallback(() => {
+    window.ipcRenderer?.send('renderer:window-maximize');
+    setIsMaximized(!isMaximized);
+  }, [isMaximized]);
+
+  const handleClose = useCallback(() => {
+    window.ipcRenderer?.send('renderer:window-close');
   }, []);
 
   // Get workspace info
@@ -183,7 +220,7 @@ const AppTitleBar = () => {
   }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace]);
 
   return (
-    <StyledWrapper className={`app-titlebar ${isFullScreen ? 'fullscreen' : ''}`}>
+    <StyledWrapper className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>
       {createWorkspaceModalOpen && (
         <CreateWorkspace onClose={() => setCreateWorkspaceModalOpen(false)} />
       )}
@@ -222,27 +259,55 @@ const AppTitleBar = () => {
 
         {/* Right section: Action buttons */}
         <div className="titlebar-right">
-          {/* Toggle sidebar */}
-          <ActionIcon
-            onClick={handleToggleSidebar}
-            label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            size="lg"
-            data-testid="toggle-sidebar-button"
-          >
-            <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} />
-          </ActionIcon>
+          <div className="titlebar-actions">
+            {/* Toggle sidebar */}
+            <ActionIcon
+              onClick={handleToggleSidebar}
+              label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+              size="lg"
+              data-testid="toggle-sidebar-button"
+            >
+              <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} />
+            </ActionIcon>
 
-          {/* Toggle devtools */}
-          <ActionIcon
-            onClick={handleToggleDevtools}
-            label={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
-            size="lg"
-            data-testid="toggle-devtools-button"
-          >
-            <IconBottombarToggle collapsed={!isConsoleOpen} size={16} strokeWidth={1.5} />
-          </ActionIcon>
+            {/* Toggle devtools */}
+            <ActionIcon
+              onClick={handleToggleDevtools}
+              label={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
+              size="lg"
+              data-testid="toggle-devtools-button"
+            >
+              <IconBottombarToggle collapsed={!isConsoleOpen} size={16} strokeWidth={1.5} />
+            </ActionIcon>
 
-          <ResponseLayoutToggle />
+            <ResponseLayoutToggle />
+          </div>
+
+          {isWindows && (
+            <div className="window-controls">
+              <button
+                className="window-control-btn minimize"
+                onClick={handleMinimize}
+                aria-label="Minimize"
+              >
+                <IconMinus size={16} stroke={1} />
+              </button>
+              <button
+                className="window-control-btn maximize"
+                onClick={handleMaximize}
+                aria-label={isMaximized ? 'Restore' : 'Maximize'}
+              >
+                {isMaximized ? <IconCopy size={14} stroke={1} /> : <IconSquare size={14} stroke={1} />}
+              </button>
+              <button
+                className="window-control-btn close"
+                onClick={handleClose}
+                aria-label="Close"
+              >
+                <IconX size={16} stroke={1} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </StyledWrapper>
