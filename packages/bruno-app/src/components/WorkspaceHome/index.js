@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder } from '@tabler/icons';
-import { renameWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder, IconDownload } from '@tabler/icons';
+import { renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
@@ -72,6 +72,19 @@ const WorkspaceHome = () => {
         toast.error('Error opening the folder');
       });
     }
+  };
+
+  const handleExportWorkspace = () => {
+    dropdownTippyRef.current?.hide();
+    dispatch(exportWorkspaceAction(activeWorkspace.uid))
+      .then((result) => {
+        if (!result.canceled) {
+          toast.success('Workspace exported successfully');
+        }
+      })
+      .catch((error) => {
+        toast.error(error?.message || 'Error exporting workspace');
+      });
   };
 
   const validateWorkspaceName = (name) => {
@@ -213,6 +226,10 @@ const WorkspaceHome = () => {
                   <div className="dropdown-item" onClick={handleShowInFolder}>
                     <IconFolder size={16} strokeWidth={1.5} />
                     <span>Show in Folder</span>
+                  </div>
+                  <div className="dropdown-item" onClick={handleExportWorkspace}>
+                    <IconDownload size={16} strokeWidth={1.5} />
+                    <span>Export</span>
                   </div>
                   <div className="dropdown-item" onClick={handleCloseWorkspaceClick}>
                     <IconX size={16} strokeWidth={1.5} />
