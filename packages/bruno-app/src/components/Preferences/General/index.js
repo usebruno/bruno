@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import get from 'lodash/get';
+import debounce from 'lodash/debounce';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -95,7 +96,7 @@ const General = ({ close }) => {
     }
   });
 
-  const handleSave = (newPreferences) => {
+  const handleSave = useCallback((newPreferences) => {
     dispatch(
       savePreferences({
         ...preferences,
@@ -123,12 +124,32 @@ const General = ({ close }) => {
           defaultCollectionLocation: newPreferences.defaultCollectionLocation
         }
       }))
-      .then(() => {
-        toast.success('Preferences saved successfully');
-        close();
-      })
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
-  };
+  }, [dispatch, preferences]);
+
+  // Debounced auto-save function
+  const debouncedSave = useCallback(
+    debounce((values) => {
+      preferencesSchema.validate(values, { abortEarly: true })
+        .then((validatedValues) => {
+          handleSave(validatedValues);
+        })
+        .catch((error) => {
+          // Validation errors are shown inline, no need to log
+        });
+    }, 500),
+    [handleSave]
+  );
+
+  // Auto-save when form values change
+  useEffect(() => {
+    if (formik.dirty && formik.isValid) {
+      debouncedSave(formik.values);
+    }
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   const addCaCertificate = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
@@ -366,11 +387,6 @@ const General = ({ close }) => {
         {formik.touched.defaultCollectionLocation && formik.errors.defaultCollectionLocation ? (
           <div className="text-red-500">{formik.errors.defaultCollectionLocation}</div>
         ) : null}
-        <div className="mt-10">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
-            Save
-          </button>
-        </div>
       </form>
     </StyledWrapper>
   );

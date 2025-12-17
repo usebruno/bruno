@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, forwardRef } from 'react';
+import React, { useRef, useEffect, forwardRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -8,13 +8,10 @@ import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
-import PathDisplay from 'components/PathDisplay/index';
-import { useState } from 'react';
-import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
+import { IconCaretDown } from '@tabler/icons';
 import Help from 'components/Help';
 import { multiLineMsg } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
-import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
@@ -24,7 +21,6 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   const dispatch = useDispatch();
   const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
   const workspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
-  const [isEditing, toggleEditing] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const [showExternalLocation, setShowExternalLocation] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(true);
@@ -149,7 +145,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                 className="block textbox mt-2 w-full"
                 onChange={(e) => {
                   formik.handleChange(e);
-                  !isEditing && formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
+                  formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
                 }}
                 autoComplete="off"
                 autoCorrect="off"
@@ -202,88 +198,59 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                   </div>
                 </>
               )}
-              {formik.values.collectionName?.trim()?.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="filename" className="flex items-center font-medium">
-                      Folder Name
-                      <Help width="300">
-                        <p>
-                          The name of the folder used to store the collection.
-                        </p>
-                        <p className="mt-2">
-                          You can choose a folder name different from your collection's name or one compatible with filesystem rules.
-                        </p>
-                      </Help>
-                    </label>
-                    {isEditing ? (
-                      <IconArrowBackUp
-                        className="cursor-pointer opacity-50 hover:opacity-80"
-                        size={16}
-                        strokeWidth={1.5}
-                        onClick={() => toggleEditing(false)}
-                      />
-                    ) : (
-                      <IconEdit
-                        className="cursor-pointer opacity-50 hover:opacity-80"
-                        size={16}
-                        strokeWidth={1.5}
-                        onClick={() => toggleEditing(true)}
-                      />
-                    )}
-                  </div>
-                  {isEditing ? (
-                    <input
-                      id="collection-folder-name"
-                      type="text"
-                      name="collectionFolderName"
-                      className="block textbox mt-2 w-full"
-                      onChange={formik.handleChange}
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={formik.values.collectionFolderName || ''}
-                    />
-                  ) : (
-                    <div className="relative flex flex-row gap-1 items-center justify-between">
-                      <PathDisplay
-                        baseName={formik.values.collectionFolderName}
-                      />
-                    </div>
-                  )}
-                  {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
-                    <div className="text-red-500">{formik.errors.collectionFolderName}</div>
-                  ) : null}
+              <div className="mt-4">
+                <label htmlFor="filename" className="flex items-center font-medium">
+                  Folder Name
+                  <Help width="300">
+                    <p>
+                      The name of the folder used to store the collection.
+                    </p>
+                    <p className="mt-2">
+                      You can choose a folder name different from your collection's name or one compatible with filesystem rules.
+                    </p>
+                  </Help>
+                </label>
+                <div className="folder-name-input-container mt-2">
+                  <input
+                    id="collection-folder-name"
+                    type="text"
+                    name="collectionFolderName"
+                    className="folder-name-input"
+                    onChange={formik.handleChange}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    value={formik.values.collectionFolderName || ''}
+                  />
+                  <span className="folder-extension">.{formik.values.format}</span>
                 </div>
-              )}
+                {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
+                  <div className="text-red-500">{formik.errors.collectionFolderName}</div>
+                ) : null}
+              </div>
 
               {showAdvanced && (
                 <div className="mt-4">
                   <label htmlFor="format" className="flex items-center font-medium">
                     File Format
-                    <Help width="300">
-                      <p>
-                        Choose the file format for storing requests in this collection.
-                      </p>
-                      <p className="mt-2">
-                        <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
-                      </p>
-                      <p className="mt-1">
-                        <strong>BRU:</strong> Bruno's native file format (.bru files)
-                      </p>
-                    </Help>
                   </label>
-                  <select
-                    id="format"
-                    name="format"
-                    className="block textbox mt-2 w-full"
-                    value={formik.values.format}
-                    onChange={formik.handleChange}
-                  >
-                    <option value="yml">OpenCollection (YAML)</option>
-                    <option value="bru">BRU Format (.bru)</option>
-                  </select>
+                  <div className="format-toggle-group mt-2">
+                    <button
+                      type="button"
+                      className={`format-toggle-btn ${formik.values.format === 'bru' ? 'active' : ''}`}
+                      onClick={() => formik.setFieldValue('format', 'bru')}
+                    >
+                      BRU Format (.bru)
+                    </button>
+                    <button
+                      type="button"
+                      className={`format-toggle-btn ${formik.values.format === 'yml' ? 'active' : ''}`}
+                      onClick={() => formik.setFieldValue('format', 'yml')}
+                    >
+                      OpenCollection (.yml)
+                    </button>
+                  </div>
                   {formik.touched.format && formik.errors.format ? (
                     <div className="text-red-500">{formik.errors.format}</div>
                   ) : null}

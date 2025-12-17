@@ -288,9 +288,12 @@ const darkTheme = {
 
   modal: {
     title: {
-      color: '#ccc',
+      color: 'rgb(156, 163, 175)',
       bg: 'rgb(38, 38, 39)',
-      iconColor: '#ccc'
+      iconColor: 'rgb(156, 163, 175)'
+    },
+    header: {
+      borderBottom: 'rgb(60, 60, 61)'
     },
     body: {
       color: '#ccc',
@@ -298,26 +301,32 @@ const darkTheme = {
     },
     input: {
       bg: 'rgb(65, 65, 65)',
-      border: 'rgb(65, 65, 65)',
-      focusBorder: 'rgb(65, 65, 65)'
+      border: 'rgb(60, 60, 61)',
+      focusBorder: 'rgb(80, 80, 81)'
     },
     backdrop: {
       opacity: 0.2
+    },
+    closeButton: {
+      hoverBg: 'rgba(255, 255, 255, 0.1)'
     }
   },
 
   button: {
     secondary: {
-      color: 'rgb(204, 204, 204)',
-      bg: '#185387',
-      border: '#185387',
-      hoverBorder: '#696969'
+      color: '#ffffff',
+      bg: '#D97706',
+      border: '#D97706',
+      hoverBg: '#B45309',
+      hoverBorder: '#B45309'
     },
     close: {
-      color: '#ccc',
+      color: 'rgb(156, 163, 175)',
       bg: 'transparent',
-      border: 'transparent',
-      hoverBorder: ''
+      border: 'rgb(75, 85, 99)',
+      borderColor: 'rgb(75, 85, 99)',
+      hoverBg: 'rgba(255, 255, 255, 0.08)',
+      hoverBorder: 'rgb(107, 114, 128)'
     },
     disabled: {
       color: '#a5a5a5',
@@ -327,7 +336,8 @@ const darkTheme = {
     danger: {
       color: '#fff',
       bg: '#dc3545',
-      border: '#dc3545'
+      border: '#dc3545',
+      hoverBg: '#c82333'
     }
   },
 

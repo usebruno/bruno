@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 
@@ -74,7 +75,7 @@ const ProxySettings = ({ close }) => {
     }
   });
 
-  const onUpdate = (values) => {
+  const onUpdate = useCallback((values) => {
     proxySchema
       .validate(values, { abortEarly: true })
       .then((validatedProxy) => {
@@ -83,18 +84,22 @@ const ProxySettings = ({ close }) => {
             ...preferences,
             proxy: validatedProxy
           })
-        ).then(() => {
-          toast.success('Preferences saved successfully');
-          close();
-        }).catch(() => {
+        ).catch(() => {
           toast.error('Failed to save preferences');
         });
       })
       .catch((error) => {
-        let errMsg = error.message || 'Preferences validation error';
-        toast.error(errMsg);
+        // Validation errors are shown inline
       });
-  };
+  }, [dispatch, preferences, proxySchema]);
+
+  // Debounced auto-save function
+  const debouncedSave = useCallback(
+    debounce((values) => {
+      onUpdate(values);
+    }, 500),
+    [onUpdate]
+  );
 
   const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -112,6 +117,16 @@ const ProxySettings = ({ close }) => {
       bypassProxy: preferences.proxy.bypassProxy || ''
     });
   }, [preferences]);
+
+  // Auto-save when form values change
+  useEffect(() => {
+    if (formik.dirty) {
+      debouncedSave(formik.values);
+    }
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [formik.values, formik.dirty, debouncedSave]);
 
   return (
     <StyledWrapper>
@@ -365,11 +380,6 @@ const ProxySettings = ({ close }) => {
             </div>
           </>
         ) : null}
-        <div className="mt-6">
-          <button type="submit" className="submit btn btn-md btn-secondary">
-            Save
-          </button>
-        </div>
       </form>
     </StyledWrapper>
   );

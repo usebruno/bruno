@@ -1,6 +1,19 @@
 import Modal from 'components/Modal/index';
 import classnames from 'classnames';
 import React, { useState } from 'react';
+import {
+  IconSearch,
+  IconSettings,
+  IconDeviceDesktop,
+  IconWorld,
+  IconKey,
+  IconStar,
+  IconShield,
+  IconKeyboard,
+  IconHelp,
+  IconFlask,
+  IconInfoCircle
+} from '@tabler/icons';
 
 import Support from './Support';
 import General from './General';
@@ -13,6 +26,7 @@ import StyledWrapper from './StyledWrapper';
 
 const Preferences = ({ onClose }) => {
   const [tab, setTab] = useState('general');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
@@ -51,28 +65,60 @@ const Preferences = ({ onClose }) => {
   return (
     <StyledWrapper>
       <Modal size="lg" title="Preferences" handleCancel={onClose} hideFooter={true}>
-        <div className="flex flex-row gap-2 mx-[-1rem] !my-[-1.5rem] py-2">
-          <div className="flex flex-col items-center tabs" role="tablist">
+        <div className="flex flex-row gap-4 mx-[-1rem] !my-[-1.5rem] py-2">
+          <div className="flex flex-col tabs" role="tablist">
+            <div className="search-container">
+              <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search"
+                className="search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
             <div className={getTabClassname('general')} role="tab" onClick={() => setTab('general')}>
-              General
+              <IconSettings size={16} strokeWidth={1.5} />
+              <span>General</span>
             </div>
             <div className={getTabClassname('display')} role="tab" onClick={() => setTab('display')}>
-              Display
+              <IconDeviceDesktop size={16} strokeWidth={1.5} />
+              <span>Display</span>
             </div>
             <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
-              Proxy
+              <IconWorld size={16} strokeWidth={1.5} />
+              <span>Proxy</span>
+            </div>
+            <div className={getTabClassname('license')} role="tab" onClick={() => setTab('license')}>
+              <IconKey size={16} strokeWidth={1.5} />
+              <span>License</span>
+            </div>
+            <div className={getTabClassname('features')} role="tab" onClick={() => setTab('features')}>
+              <IconStar size={16} strokeWidth={1.5} />
+              <span>Features</span>
+            </div>
+            <div className={getTabClassname('secret-manager')} role="tab" onClick={() => setTab('secret-manager')}>
+              <IconShield size={16} strokeWidth={1.5} />
+              <span>Secret Manager</span>
             </div>
             <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
-              Keybindings
+              <IconKeyboard size={16} strokeWidth={1.5} />
+              <span>Keybindings</span>
             </div>
             <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
-              Support
+              <IconHelp size={16} strokeWidth={1.5} />
+              <span>Support</span>
             </div>
             <div className={getTabClassname('beta')} role="tab" onClick={() => setTab('beta')}>
-              Beta
+              <IconFlask size={16} strokeWidth={1.5} />
+              <span>Beta</span>
+            </div>
+            <div className={getTabClassname('about')} role="tab" onClick={() => setTab('about')}>
+              <IconInfoCircle size={16} strokeWidth={1.5} />
+              <span>About</span>
             </div>
           </div>
-          <section className="flex flex-grow px-2 pt-2 pb-6 tab-panel">{getTabPanel(tab)}</section>
+          <section className="flex flex-grow px-4 pt-2 pb-4 tab-panel">{getTabPanel(tab)}</section>
         </div>
       </Modal>
     </StyledWrapper>

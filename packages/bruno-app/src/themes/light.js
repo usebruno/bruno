@@ -295,9 +295,12 @@ const lightTheme = {
 
   modal: {
     title: {
-      color: 'rgb(86 86 86)',
-      bg: '#f1f1f1',
-      iconColor: 'black'
+      color: 'rgb(107, 114, 128)',
+      bg: '#f9f9f9',
+      iconColor: 'rgb(107, 114, 128)'
+    },
+    header: {
+      borderBottom: '#e5e5e5'
     },
     body: {
       color: 'rgb(52, 52, 52)',
@@ -305,26 +308,32 @@ const lightTheme = {
     },
     input: {
       bg: 'white',
-      border: '#ccc',
+      border: '#e5e5e5',
       focusBorder: '#8b8b8b'
     },
     backdrop: {
       opacity: 0.4
+    },
+    closeButton: {
+      hoverBg: 'rgba(0, 0, 0, 0.08)'
     }
   },
 
   button: {
     secondary: {
-      color: '#212529',
-      bg: '#e2e6ea',
-      border: '#dae0e5',
-      hoverBorder: '#696969'
+      color: '#ffffff',
+      bg: '#D97706',
+      border: '#D97706',
+      hoverBg: '#B45309',
+      hoverBorder: '#B45309'
     },
     close: {
-      color: '212529',
+      color: 'rgb(75, 85, 99)',
       bg: 'white',
-      border: 'white',
-      hoverBorder: ''
+      border: '#d1d5db',
+      borderColor: '#d1d5db',
+      hoverBg: '#f9fafb',
+      hoverBorder: '#9ca3af'
     },
     disabled: {
       color: '#9f9f9f',
@@ -334,7 +343,8 @@ const lightTheme = {
     danger: {
       color: '#fff',
       bg: '#dc3545',
-      border: '#dc3545'
+      border: '#dc3545',
+      hoverBg: '#c82333'
     }
   },
 

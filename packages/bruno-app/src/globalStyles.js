@@ -23,7 +23,9 @@ const GlobalStyle = createGlobalStyle`
     white-space: nowrap;
     outline: none;
     box-shadow: none;
-    border-radius: 3px;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
   .btn-sm {
@@ -54,14 +56,15 @@ const GlobalStyle = createGlobalStyle`
     border: solid 1px ${(props) => props.theme.button.close.border};
 
     &.btn-border {
-      border: solid 1px #696969;
+      border: solid 1px ${(props) => props.theme.button.close.borderColor};
     }
 
     &:hover,
     &:focus {
       outline: none;
       box-shadow: none;
-      border: solid 1px #696969;
+      background: ${(props) => props.theme.button.close.hoverBg};
+      border: solid 1px ${(props) => props.theme.button.close.hoverBorder};
     }
   }
 
@@ -74,6 +77,7 @@ const GlobalStyle = createGlobalStyle`
     &:focus {
       outline: none;
       box-shadow: none;
+      background: ${(props) => props.theme.button.danger.hoverBg};
     }
   }
 
@@ -83,11 +87,12 @@ const GlobalStyle = createGlobalStyle`
     border: solid 1px ${(props) => props.theme.button.secondary.border};
 
     .btn-icon {
-      color: #3f3f3f;
+      color: #ffffff;
     }
 
     &:hover,
     &:focus {
+      background: ${(props) => props.theme.button.secondary.hoverBg};
       border-color: ${(props) => props.theme.button.secondary.hoverBorder};
       outline: none;
       box-shadow: none;

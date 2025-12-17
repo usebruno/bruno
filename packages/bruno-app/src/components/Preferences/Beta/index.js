@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
+import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
 import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
@@ -56,19 +57,39 @@ const Beta = ({ close }) => {
     }
   });
 
-  const handleSave = (newBetaPreferences) => {
+  const handleSave = useCallback((newBetaPreferences) => {
     dispatch(
       savePreferences({
         ...preferences,
         beta: newBetaPreferences
       })
     )
-      .then(() => {
-        toast.success('Beta preferences saved successfully');
-        close();
-      })
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
-  };
+  }, [dispatch, preferences]);
+
+  // Debounced auto-save function
+  const debouncedSave = useCallback(
+    debounce((values) => {
+      betaSchema.validate(values, { abortEarly: true })
+        .then((validatedValues) => {
+          handleSave(validatedValues);
+        })
+        .catch((error) => {
+          // Validation errors are shown inline
+        });
+    }, 500),
+    [handleSave, betaSchema]
+  );
+
+  // Auto-save when form values change
+  useEffect(() => {
+    if (formik.dirty && formik.isValid) {
+      debouncedSave(formik.values);
+    }
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
 
@@ -113,12 +134,6 @@ const Beta = ({ close }) => {
             <p>No beta features are currently available</p>
           </div>
         )}
-
-        <div className="mt-10">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
-            Save
-          </button>
-        </div>
       </form>
     </StyledWrapper>
   );
