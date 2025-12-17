@@ -198,7 +198,7 @@ const ImportWorkspace = ({ onClose }) => {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="workspaceLocation" className="font-semibold mb-2 flex items-center">
+          <label htmlFor="workspace-location" className="font-semibold mb-2 flex items-center">
             Extract Location
             <Help>
               <p>
