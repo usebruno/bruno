@@ -36,7 +36,7 @@ const closeAllCollections = async (page) => {
  * @returns void
  */
 const openCollection = async (page, collectionName: string) => {
-  await test.step(`Open collection "${collectionName}" and accept sandbox modal`, async () => {
+  await test.step(`Open collection "${collectionName}"`, async () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
   });
 };
@@ -66,6 +66,7 @@ const createCollection = async (page, collectionName: string, collectionLocation
 
     await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
     await page.waitForTimeout(200);
+    await openCollection(page, collectionName);
   });
 };
 

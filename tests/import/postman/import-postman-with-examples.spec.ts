@@ -81,7 +81,7 @@ test.describe('Import Postman Collection with Examples', () => {
       await locationModal.getByRole('button', { name: 'Import' }).click();
     });
 
-    await test.step('Handle sandboox modal', async () => {
+    await test.step('Open collection', async () => {
       await openCollection(page, 'collection with examples');
     });
 

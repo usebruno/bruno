@@ -6,8 +6,7 @@ import {
   createEnvironment,
   addEnvironmentVariables,
   saveEnvironment,
-  closeEnvironmentPanel,
-  openCollection
+  closeEnvironmentPanel
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -23,7 +22,6 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Create collection and add environment variables', async () => {
       await createCollection(page, collectionName, await createTmpDir('tooltip-collection'));
-      await openCollection(page, collectionName);
 
       await createEnvironment(page, 'Test Env', 'collection');
 
@@ -112,7 +110,6 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Create collection with interdependent variables', async () => {
       await createCollection(page, collectionName, await createTmpDir('tooltip-ref-collection'));
-      await openCollection(page, collectionName);
 
       await createEnvironment(page, 'Ref Test Env', 'collection');
 
@@ -231,7 +228,6 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Create collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir('tooltip-readonly-collection'));
-      await openCollection(page, collectionName);
 
       await createEnvironment(page, 'Readonly Env', 'collection');
       await saveEnvironment(page);
@@ -283,7 +279,6 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Setup collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir('draft-autosave'));
-      await openCollection(page, collectionName);
 
       // Create request using utility method
       await createRequest(page, 'Autosave Test', collectionName);
@@ -392,7 +387,6 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Setup collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir('invalid-var-collection'));
-      await openCollection(page, collectionName);
 
       // Create request using utility method
       await createRequest(page, 'Invalid Var Test', collectionName);

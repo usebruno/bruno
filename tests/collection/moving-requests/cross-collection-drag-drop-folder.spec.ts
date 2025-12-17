@@ -66,10 +66,6 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await page.waitForTimeout(200);
 
     // Verify the folder has been moved to the target collection
-    // Click on target collection to expand it if needed
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await page.waitForTimeout(200);
-
     // Check that the folder now appears under target collection
     const targetCollectionContainer = page
       .locator('.collection-name')
@@ -160,9 +156,6 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await expect(page.locator('#folder-name')).toBeVisible();
     await page.locator('#folder-name').fill('folder-1');
     await page.getByRole('button', { name: 'Create' }).click();
-
-    // Go back to source collection to drag the folder
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
 
     // Verify we have the folder to drag in the source collection
     const sourceFolder = page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).first();

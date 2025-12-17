@@ -39,9 +39,6 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await sourceRequest.dragTo(targetCollection);
 
     // Verify the request has been moved to the target collection
-    // Click on target collection to expand it if needed
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-
     // Check that the request now appears under target collection
     const targetCollectionContainer = page
       .locator('.collection-name')
@@ -91,7 +88,6 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await page.locator('#send-request').getByTitle('Save Request').click();
 
     // Go back to source collection to drag the request
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
     const sourceRequest = page.locator('.item-name').filter({ hasText: /^Untitled/ }).first();
     await expect(sourceRequest).toBeVisible();
 
