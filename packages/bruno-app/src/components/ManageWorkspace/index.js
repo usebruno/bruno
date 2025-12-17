@@ -1,10 +1,10 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconArrowLeft, IconPlus, IconFolder, IconLock, IconDots, IconEdit, IconCopy, IconX, IconCategory, IconTrash, IconLogin } from '@tabler/icons';
+import { IconArrowLeft, IconPlus, IconFolder, IconLock, IconDots, IconEdit, IconCategory, IconTrash, IconLogin } from '@tabler/icons';
 import toast from 'react-hot-toast';
 
 import { showHomePage } from 'providers/ReduxStore/slices/app';
-import { switchWorkspace, openWorkspaceDialog } from 'providers/ReduxStore/slices/workspaces/actions';
+import { switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { sortWorkspaces } from 'utils/workspaces';
 
@@ -59,14 +59,6 @@ const ManageWorkspace = () => {
       return;
     }
     setDeleteWorkspaceModal({ open: true, workspace });
-  };
-
-  const handleOpenWorkspaceDialog = async () => {
-    try {
-      await dispatch(openWorkspaceDialog());
-    } catch (error) {
-      toast.error(error.message || 'Failed to open workspace');
-    }
   };
 
   const onDropdownCreate = (workspaceUid) => (ref) => {
@@ -167,10 +159,6 @@ const ManageWorkspace = () => {
                         <div className="dropdown-item" onClick={() => handleRenameClick(workspace)}>
                           <IconEdit size={14} strokeWidth={1.5} />
                           <span>Rename</span>
-                        </div>
-                        <div className="dropdown-item" onClick={() => handleCloseClick(workspace)}>
-                          <IconX size={14} strokeWidth={1.5} />
-                          <span>Close</span>
                         </div>
                         <div className="dropdown-item danger" onClick={() => handleCloseClick(workspace)}>
                           <IconTrash size={14} strokeWidth={1.5} />
