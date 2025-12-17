@@ -33,8 +33,6 @@ test.describe('Collection Environment Import Tests', () => {
 
     // Configure collection
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Import collection environment
     await page.locator('[data-testid="environment-selector-trigger"]').click();

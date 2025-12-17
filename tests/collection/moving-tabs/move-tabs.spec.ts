@@ -21,8 +21,6 @@ test.describe('Move tabs', () => {
     // Wait for collection to appear and click on it
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-drag-drop' })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-drag-drop' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a folder in the collection
     const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-drag-drop' });
