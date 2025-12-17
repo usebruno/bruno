@@ -42,6 +42,11 @@ export const HotkeysProvider = (props) => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('save')], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
+        if (activeTab.type === 'environment-settings' || activeTab.type === 'global-environment-settings') {
+          window.dispatchEvent(new CustomEvent('environment-save'));
+          return false;
+        }
+
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
         if (collection) {
           const item = findItemInCollection(collection, activeTab.uid);

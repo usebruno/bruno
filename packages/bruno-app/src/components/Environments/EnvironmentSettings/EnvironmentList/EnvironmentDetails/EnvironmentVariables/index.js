@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
@@ -175,34 +175,43 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     );
   };
 
-  const handleRemoveVar = (id) => {
-    const filteredValues = formik.values.filter((variable) => variable.uid !== id);
+  const handleRemoveVar = useCallback((id) => {
+    const currentValues = formik.values;
 
-    const lastRow = formik.values[formik.values.length - 1];
-    const isLastEmptyRow = lastRow.uid === id && (!lastRow.name || lastRow.name.trim() === '');
+    if (!currentValues || currentValues.length === 0) {
+      return;
+    }
+
+    const lastRow = currentValues[currentValues.length - 1];
+    const isLastEmptyRow = lastRow?.uid === id && (!lastRow.name || lastRow.name.trim() === '');
 
     if (isLastEmptyRow) {
       return;
     }
+
+    const filteredValues = currentValues.filter((variable) => variable.uid !== id);
 
     const hasEmptyLastRow
       = filteredValues.length > 0
         && (!filteredValues[filteredValues.length - 1].name
           || filteredValues[filteredValues.length - 1].name.trim() === '');
 
-    if (!hasEmptyLastRow) {
-      filteredValues.push({
-        uid: uuid(),
-        name: '',
-        value: '',
-        type: 'text',
-        secret: false,
-        enabled: true
-      });
-    }
+    const newValues = hasEmptyLastRow
+      ? filteredValues
+      : [
+          ...filteredValues,
+          {
+            uid: uuid(),
+            name: '',
+            value: '',
+            type: 'text',
+            secret: false,
+            enabled: true
+          }
+        ];
 
-    formik.setValues(filteredValues);
-  };
+    formik.setValues(newValues);
+  }, [formik.values]);
 
   const handleNameChange = (index, e) => {
     formik.handleChange(e);
@@ -223,8 +232,26 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     }
   };
 
+  const handleNameBlur = (index) => {
+    formik.setFieldTouched(`${index}.name`, true, true);
+  };
+
+  const handleNameKeyDown = (index, e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      formik.setFieldTouched(`${index}.name`, true, true);
+    }
+  };
+
   const handleSave = () => {
     const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+    const savedValues = environment.variables || [];
+
+    const hasChanges = JSON.stringify(variablesToSave) !== JSON.stringify(savedValues);
+    if (!hasChanges) {
+      toast.error('No changes to save');
+      return;
+    }
 
     const hasValidationErrors = variablesToSave.some((variable) => {
       if (!variable.name || variable.name.trim() === '') {
@@ -281,6 +308,21 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     setIsModified(false);
   };
 
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  React.useEffect(() => {
+    const handleSaveEvent = () => {
+      handleSaveRef.current();
+    };
+
+    window.addEventListener('environment-save', handleSaveEvent);
+
+    return () => {
+      window.removeEventListener('environment-save', handleSaveEvent);
+    };
+  }, []);
+
   return (
     <StyledWrapper>
       <div className="table-container">
@@ -327,6 +369,8 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                         value={variable.name}
                         placeholder={isLastEmptyRow ? 'Name' : ''}
                         onChange={(e) => handleNameChange(index, e)}
+                        onBlur={() => handleNameBlur(index)}
+                        onKeyDown={(e) => handleNameKeyDown(index, e)}
                       />
                       <ErrorMessage name={`${index}.name`} index={index} />
                     </div>
