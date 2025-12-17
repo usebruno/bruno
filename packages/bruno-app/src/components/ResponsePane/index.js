@@ -232,8 +232,16 @@ const ResponsePane = ({ item, collection }) => {
       <div className="flex items-center response-pane-actions">
         {focusedTab?.responsePaneTab === 'timeline' ? (
           <ClearTimeline item={item} collection={collection} />
-        ) : (item?.response && !item?.response?.error) ? (
-          <ResponsePaneActions item={item} collection={collection} responseSize={responseSize} />
+        ) : item?.response && !item?.response?.error ? (
+          <ResponsePaneActions
+            item={item}
+            collection={collection}
+            responseSize={responseSize}
+            selectedFormat={selectedFormat}
+            selectedTab={selectedTab}
+            data={response.data}
+            dataBuffer={response.dataBuffer}
+          />
         ) : null}
       </div>
     </div>
