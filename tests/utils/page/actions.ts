@@ -788,8 +788,8 @@ const editAssertion = async (page: Page, rowIndex: number, assertion: AssertionI
     const exprInput = table.rowExprInput(rowIndex);
     await expect(exprInput).toBeVisible({ timeout: 2000 });
     await exprInput.click();
-    // Clear the input and type new value
-    await page.keyboard.press('Meta+a'); // Select all
+    // Clear the input and type new value - use triple-click to select all (works cross-platform)
+    await exprInput.click({ clickCount: 3 });
     await page.keyboard.press('Backspace'); // Clear selection
     await page.keyboard.type(assertion.expr);
 
@@ -802,9 +802,7 @@ const editAssertion = async (page: Page, rowIndex: number, assertion: AssertionI
     // Update the value (just the value, operator is already selected)
     // The value cell contains a SingleLineEditor, so we need to click and type
     const valueInput = table.rowValueInput(rowIndex);
-    await valueInput.click();
-    // Clear and type new value - SingleLineEditor might need special handling
-    await page.keyboard.press('Meta+a'); // Select all
+    await valueInput.click({ clickCount: 3 });
     await page.keyboard.press('Backspace'); // Clear selection
     await page.keyboard.type(assertion.value);
   });
