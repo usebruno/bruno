@@ -263,6 +263,8 @@ const importCollection = async (
         page.locator('#sidebar-collection-name').filter({ hasText: options.expectedCollectionName })
       ).toBeVisible();
     }
+
+    await openCollection(page, options.expectedCollectionName || '');
   });
 };
 
