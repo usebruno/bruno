@@ -694,3 +694,52 @@ export const copyWorkspaceEnvironment = (workspaceUid, environmentUid, newName) 
     }
   };
 };
+
+export const exportWorkspaceAction = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    try {
+      const { workspaces } = getState().workspaces;
+      const workspace = workspaces.find((w) => w.uid === workspaceUid);
+
+      if (!workspace) {
+        throw new Error('Workspace not found');
+      }
+
+      if (!workspace.pathname) {
+        throw new Error('Workspace path not found');
+      }
+
+      const result = await ipcRenderer.invoke('renderer:export-workspace', workspace.pathname, workspace.name);
+
+      if (result.canceled) {
+        return { canceled: true };
+      }
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
+};
+
+export const importWorkspaceAction = (zipFilePath, extractLocation) => {
+  return async (dispatch) => {
+    try {
+      const result = await ipcRenderer.invoke('renderer:import-workspace', zipFilePath, extractLocation);
+
+      if (result.success) {
+        dispatch(createWorkspace({
+          uid: result.workspaceUid,
+          pathname: result.workspacePath,
+          ...result.workspaceConfig
+        }));
+
+        await dispatch(switchWorkspace(result.workspaceUid));
+      }
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
+};

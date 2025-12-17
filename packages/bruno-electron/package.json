@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.750.0",
+    "archiver": "^7.0.1",
     "@grpc/grpc-js": "^1.13.2",
     "@grpc/proto-loader": "^0.7.13",
     "@lydell/node-pty": "^1.1.0",
@@ -53,6 +54,7 @@
     "electron-is-dev": "^2.0.0",
     "electron-notarize": "^1.2.2",
     "electron-store": "^8.1.0",
+    "extract-zip": "^2.0.1",
     "electron-util": "^0.17.2",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
