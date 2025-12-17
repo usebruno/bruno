@@ -91,7 +91,7 @@ const ResponseLayoutToggle = forwardRef(({ children }, ref) => {
     >
       {children ? children : (
         <StyledWrapper className="flex items-center w-full">
-          <ActionIcon className="p-1">
+          <ActionIcon size="lg" className="p-1">
             {orientation === 'vertical' ? (
               <IconLayoutColumns size={16} strokeWidth={2} />
             ) : (
