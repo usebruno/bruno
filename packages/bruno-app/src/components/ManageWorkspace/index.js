@@ -1,6 +1,6 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconArrowLeft, IconPlus, IconFolder, IconLock, IconDots, IconEdit, IconCategory, IconTrash, IconLogin } from '@tabler/icons';
+import { IconArrowLeft, IconPlus, IconFolder, IconLock, IconDots, IconCategory, IconLogin } from '@tabler/icons';
 import toast from 'react-hot-toast';
 
 import { showHomePage } from 'providers/ReduxStore/slices/app';
@@ -22,8 +22,6 @@ const ManageWorkspace = () => {
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
   const [renameWorkspaceModal, setRenameWorkspaceModal] = useState({ open: false, workspace: null });
   const [deleteWorkspaceModal, setDeleteWorkspaceModal] = useState({ open: false, workspace: null });
-
-  const dropdownRefs = useRef({});
 
   const sortedWorkspaces = useMemo(() => {
     return sortWorkspaces(workspaces, preferences);
@@ -48,21 +46,15 @@ const ManageWorkspace = () => {
   };
 
   const handleRenameClick = (workspace) => {
-    dropdownRefs.current[workspace.uid]?.hide();
     setRenameWorkspaceModal({ open: true, workspace });
   };
 
   const handleCloseClick = (workspace) => {
-    dropdownRefs.current[workspace.uid]?.hide();
     if (workspace.type === 'default') {
       toast.error('Cannot remove the default workspace');
       return;
     }
     setDeleteWorkspaceModal({ open: true, workspace });
-  };
-
-  const onDropdownCreate = (workspaceUid) => (ref) => {
-    dropdownRefs.current[workspaceUid] = ref;
   };
 
   return (

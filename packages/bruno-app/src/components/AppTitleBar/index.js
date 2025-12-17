@@ -166,16 +166,16 @@ const AppTitleBar = () => {
         onClick: handleOpenWorkspace
       },
       {
-        id: 'manage-workspaces',
-        leftSection: IconSettings,
-        label: 'Manage workspaces',
-        onClick: handleManageWorkspaces
-      },
-      {
         id: 'import-workspace',
         leftSection: IconUpload,
         label: 'Import workspace',
         onClick: handleImportWorkspace
+      },
+      {
+        id: 'manage-workspaces',
+        leftSection: IconSettings,
+        label: 'Manage workspaces',
+        onClick: handleManageWorkspaces
       }
     );
 
