@@ -313,6 +313,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     name: operationName,
     type: 'http-request',
     request: {
+      docs: _operationObject.description,
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
@@ -925,18 +926,23 @@ const getDefaultUrl = (serverObject) => {
 
 const getSecurity = (apiSpec) => {
   let defaultSchemes = apiSpec.security || [];
-  let securitySchemes = get(apiSpec, 'components.securitySchemes', {});
 
-  const hasSchemes = Object.keys(securitySchemes).length > 0;
+  let securitySchemes = get(apiSpec, 'components.securitySchemes', {});
+  if (Object.keys(securitySchemes).length === 0) {
+    return {
+      supported: []
+    };
+  }
 
   return {
-    supported: hasSchemes
-      ? defaultSchemes
-          .map((scheme) => securitySchemes[Object.keys(scheme)[0]])
-          .filter(Boolean)
-      : [],
+    supported: defaultSchemes.map((scheme) => {
+      var schemeName = Object.keys(scheme)[0];
+      return securitySchemes[schemeName];
+    }),
     schemes: securitySchemes,
-    getScheme: (schemeName) => securitySchemes[schemeName]
+    getScheme: (schemeName) => {
+      return securitySchemes[schemeName];
+    }
   };
 };
 
