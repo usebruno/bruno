@@ -282,5 +282,9 @@ test.describe('Assertions - BRU Collection', () => {
       await expect(table.rowExprInput(1)).toHaveValue('res.status');
       await expect(table.rowExprInput(2)).toHaveValue('res.body');
     });
+
+    await test.step('Save request', async () => {
+      await saveRequest(page);
+    });
   });
 });
