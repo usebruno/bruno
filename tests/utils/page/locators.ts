@@ -102,6 +102,43 @@ export const buildCommonLocators = (page: Page) => ({
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
+  },
+  /**
+   * Build generic table locators for any table with a testId
+   * @param testId - The testId of the table
+   * @returns Table locators object
+   */
+  table: (testId: string) => ({
+    container: () => page.getByTestId(testId),
+    header: (columnKey: string) => page.getByTestId(`${testId}-header-${columnKey}`),
+    headerCheckbox: () => page.getByTestId(`${testId}-header-checkbox`),
+    headerDelete: () => page.getByTestId(`${testId}-header-delete`),
+    row: (index: number) => page.getByTestId(`${testId}-row-${index}`),
+    rowCell: (rowIndex: number, columnKey: string) => page.getByTestId(`${testId}-row-${rowIndex}-${columnKey}`),
+    rowCheckbox: (rowIndex: number) => page.getByTestId(`${testId}-row-${rowIndex}-checkbox-input`),
+    rowDeleteButton: (rowIndex: number) => page.getByTestId(`${testId}-row-${rowIndex}-delete-button`),
+    allRows: () => page.getByTestId(testId).locator('tbody tr')
+  }),
+  /**
+   * Assertions table locators (extends generic table with assertion-specific helpers)
+   * @returns Assertions table locators object
+   */
+  assertionsTable: () => {
+    const baseTable = buildCommonLocators(page).table('assertions-table');
+    return {
+      ...baseTable,
+      // Assertion-specific helpers
+      rowExprInput: (rowIndex: number) => {
+        const cell = baseTable.rowCell(rowIndex, 'name');
+        // Wait for the cell to be visible, then find the textbox
+        return cell.getByRole('textbox').or(cell.locator('input[type="text"]'));
+      },
+      rowOperatorSelect: (rowIndex: number) => {
+        const cell = baseTable.rowCell(rowIndex, 'operator');
+        return cell.getByTestId('assertion-operator-select').or(cell.locator('select'));
+      },
+      rowValueInput: (rowIndex: number) => baseTable.rowCell(rowIndex, 'value')
+    };
   }
 });
 

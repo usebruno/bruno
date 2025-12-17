@@ -16,7 +16,8 @@ const EditableTable = ({
   checkboxKey = 'enabled',
   reorderable = false,
   onReorder,
-  showAddRow = true
+  showAddRow = true,
+  testId = 'editable-table'
 }) => {
   const tableRef = useRef(null);
   const emptyRowUidRef = useRef(null);
@@ -224,23 +225,24 @@ const EditableTable = ({
 
   return (
     <StyledWrapper className={showCheckbox ? 'has-checkbox' : 'no-checkbox'}>
-      <div className="table-container" ref={tableRef}>
+      <div className="table-container" ref={tableRef} data-testid={testId}>
         <table>
           <thead>
             <tr>
               {showCheckbox && (
-                <td className="text-center">{checkboxLabel}</td>
+                <td className="text-center" data-testid={`${testId}-header-checkbox`}>{checkboxLabel}</td>
               )}
               {columns.map((column) => (
                 <td
                   key={column.key}
                   style={{ width: getColumnWidth(column) }}
+                  data-testid={`${testId}-header-${column.key}`}
                 >
                   {column.name}
                 </td>
               ))}
               {showDelete && (
-                <td style={{ width: '60px' }}></td>
+                <td style={{ width: '60px' }} data-testid={`${testId}-header-delete`}></td>
               )}
             </tr>
           </thead>
@@ -252,6 +254,7 @@ const EditableTable = ({
               return (
                 <tr
                   key={row.uid}
+                  data-testid={`${testId}-row-${rowIndex}`}
                   draggable={canDrag}
                   onDragStart={canDrag ? (e) => handleDragStart(e, rowIndex) : undefined}
                   onDragOver={canDrag ? (e) => handleDragOver(e, rowIndex) : undefined}
@@ -261,7 +264,7 @@ const EditableTable = ({
                   onMouseLeave={() => setHoveredRow(null)}
                 >
                   {showCheckbox && (
-                    <td className="text-center relative">
+                    <td className="text-center relative" data-testid={`${testId}-row-${rowIndex}-checkbox`}>
                       {reorderable && canDrag && (
                         <div
                           draggable
@@ -285,6 +288,7 @@ const EditableTable = ({
                         <input
                           type="checkbox"
                           className="mousetrap"
+                          data-testid={`${testId}-row-${rowIndex}-checkbox-input`}
                           checked={row[checkboxKey] ?? true}
                           onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
                         />
@@ -292,14 +296,17 @@ const EditableTable = ({
                     </td>
                   )}
                   {columns.map((column) => (
-                    <td key={column.key}>
+                    <td key={column.key} data-testid={`${testId}-row-${rowIndex}-${column.key}`}>
                       {renderCell(column, row, rowIndex)}
                     </td>
                   ))}
                   {showDelete && (
-                    <td>
+                    <td data-testid={`${testId}-row-${rowIndex}-delete`}>
                       {!isEmpty && (
-                        <button onClick={() => handleRemoveRow(row.uid)}>
+                        <button
+                          data-testid={`${testId}-row-${rowIndex}-delete-button`}
+                          onClick={() => handleRemoveRow(row.uid)}
+                        >
                           <IconTrash strokeWidth={1.5} size={18} />
                         </button>
                       )}
