@@ -747,7 +747,6 @@ const addAssertion = async (page: Page, assertion: AssertionInput): Promise<numb
     const valueInput = table.rowValueInput(targetRowIndex);
     await valueInput.click();
     await page.keyboard.type(assertion.value);
-    await page.waitForTimeout(300);
 
     // Select the operator from dropdown (if provided and not default 'eq')
     // This will update the value field to combine operator + value
@@ -822,13 +821,13 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
     const locators = buildCommonLocators(page);
     const table = locators.assertionsTable();
 
-    // Ensure assertions table is visible
     await expect(table.container()).toBeVisible();
 
-    // Find and click the delete button for the assertion
+    const initialRowCount = await table.allRows().count();
     const deleteButton = table.rowDeleteButton(rowIndex);
+
     await deleteButton.click();
-    await expect(table.row(rowIndex)).not.toBeVisible();
+    await expect(table.allRows()).toHaveCount(initialRowCount - 1);
   });
 };
 
