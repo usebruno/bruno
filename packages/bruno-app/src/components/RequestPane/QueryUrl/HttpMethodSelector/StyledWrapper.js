@@ -18,6 +18,10 @@ const Wrapper = styled.div`
     .dropdown-item {
       padding: 0.25rem 0.6rem !important;
     }
+
+    .text-link {
+      color: ${(props) => props.theme.textLink};
+    }
   }
 
   input {
@@ -40,6 +44,9 @@ const Wrapper = styled.div`
     overflow: hidden;
     white-space: nowrap;
     display: inline-block;
+    text-align: center;
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 500;
   }
 
   .caret {

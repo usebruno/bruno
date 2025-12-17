@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -15,6 +15,7 @@ import {
 
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
+import { normalizePath } from 'utils/common/path';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -41,6 +42,13 @@ const CollectionsSection = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+
+  const workspaceCollections = useMemo(() => {
+    if (!activeWorkspace) return [];
+    return collections.filter((c) =>
+      activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
+    );
+  }, [activeWorkspace, collections]);
 
   const handleImportCollection = ({ rawData, type }) => {
     setImportCollectionModalOpen(false);
@@ -107,7 +115,7 @@ const CollectionsSection = () => {
   };
 
   const selectAllCollectionsToClose = () => {
-    setCollectionsToClose(collections.map((c) => c.uid));
+    setCollectionsToClose(workspaceCollections.map((c) => c.uid));
   };
 
   const clearCollectionsToClose = () => {

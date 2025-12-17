@@ -14,7 +14,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     // Create a folder in the first collection
     // Look for the collection menu button for the source collection specifically
     const sourceCollectionContainer1 = page.locator('.collection-name').filter({ hasText: 'source-collection' });
-    await sourceCollectionContainer1.locator('.collection-actions').hover();
+    await sourceCollectionContainer1.hover();
     await sourceCollectionContainer1.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus, IconSettings } from '@tabler/icons';
+import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus, IconUpload, IconSettings } from '@tabler/icons';
 import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,6 +14,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
+import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
@@ -56,6 +57,7 @@ const AppTitleBar = () => {
   }, [workspaces, preferences]);
 
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+  const [importWorkspaceModalOpen, setImportWorkspaceModalOpen] = useState(false);
 
   const WorkspaceName = forwardRef((props, ref) => {
     return (
@@ -90,6 +92,10 @@ const AppTitleBar = () => {
 
   const handleManageWorkspaces = () => {
     dispatch(showManageWorkspacePage());
+  };
+
+  const handleImportWorkspace = () => {
+    setImportWorkspaceModalOpen(true);
   };
 
   const handlePinWorkspace = useCallback((workspaceUid, e) => {
@@ -164,6 +170,12 @@ const AppTitleBar = () => {
         leftSection: IconSettings,
         label: 'Manage workspaces',
         onClick: handleManageWorkspaces
+      },
+      {
+        id: 'import-workspace',
+        leftSection: IconUpload,
+        label: 'Import workspace',
+        onClick: handleImportWorkspace
       }
     );
 
@@ -174,6 +186,9 @@ const AppTitleBar = () => {
     <StyledWrapper className={`app-titlebar ${isFullScreen ? 'fullscreen' : ''}`}>
       {createWorkspaceModalOpen && (
         <CreateWorkspace onClose={() => setCreateWorkspaceModalOpen(false)} />
+      )}
+      {importWorkspaceModalOpen && (
+        <ImportWorkspace onClose={() => setImportWorkspaceModalOpen(false)} />
       )}
 
       <div className="titlebar-content">

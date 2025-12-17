@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const fsExtra = require('fs-extra');
+const archiver = require('archiver');
+const extractZip = require('extract-zip');
 const { ipcMain, dialog } = require('electron');
 const { createDirectory, sanitizeName } = require('../utils/filesystem');
 const yaml = require('js-yaml');
@@ -238,6 +240,147 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       }
 
       return { success: true };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:export-workspace', async (event, workspacePath, workspaceName) => {
+    try {
+      if (!workspacePath || !fs.existsSync(workspacePath)) {
+        throw new Error('Workspace path does not exist');
+      }
+
+      const defaultFileName = `${sanitizeName(workspaceName)}.zip`;
+      const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+        title: 'Export Workspace',
+        defaultPath: defaultFileName,
+        filters: [{ name: 'Zip Files', extensions: ['zip'] }]
+      });
+
+      if (canceled || !filePath) {
+        return { success: false, canceled: true };
+      }
+
+      const ignoredDirectories = ['node_modules', '.git'];
+
+      await new Promise((resolve, reject) => {
+        const output = fs.createWriteStream(filePath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        output.on('close', () => {
+          resolve();
+        });
+
+        archive.on('error', (err) => {
+          reject(err);
+        });
+
+        archive.pipe(output);
+
+        const addDirectoryToArchive = (dirPath, archivePath) => {
+          const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+          for (const entry of entries) {
+            const fullPath = path.join(dirPath, entry.name);
+            const entryArchivePath = archivePath ? path.join(archivePath, entry.name) : entry.name;
+
+            if (entry.isDirectory()) {
+              if (!ignoredDirectories.includes(entry.name)) {
+                addDirectoryToArchive(fullPath, entryArchivePath);
+              }
+            } else {
+              archive.file(fullPath, { name: entryArchivePath });
+            }
+          }
+        };
+
+        addDirectoryToArchive(workspacePath, '');
+        archive.finalize();
+      });
+
+      return { success: true, filePath };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:import-workspace', async (event, zipFilePath, extractLocation) => {
+    try {
+      if (!zipFilePath || !fs.existsSync(zipFilePath)) {
+        throw new Error('Zip file does not exist');
+      }
+
+      if (!extractLocation || !fs.existsSync(extractLocation)) {
+        throw new Error('Extract location does not exist');
+      }
+
+      const tempDir = path.join(extractLocation, `_bruno_temp_${Date.now()}`);
+      await fsExtra.ensureDir(tempDir);
+
+      try {
+        await extractZip(zipFilePath, { dir: tempDir });
+
+        const extractedItems = fs.readdirSync(tempDir);
+        let workspaceDir = tempDir;
+
+        if (extractedItems.length === 1) {
+          const singleItem = path.join(tempDir, extractedItems[0]);
+          if (fs.statSync(singleItem).isDirectory()) {
+            workspaceDir = singleItem;
+          }
+        }
+
+        const workspaceYmlPath = path.join(workspaceDir, 'workspace.yml');
+        if (!fs.existsSync(workspaceYmlPath)) {
+          throw new Error('Invalid workspace: workspace.yml not found in the zip file');
+        }
+
+        const workspaceConfig = yaml.load(fs.readFileSync(workspaceYmlPath, 'utf8'));
+        const workspaceName = workspaceConfig.info.name || 'Imported Workspace';
+        const sanitizedName = sanitizeName(workspaceName);
+
+        let finalWorkspacePath = path.join(extractLocation, sanitizedName);
+        let counter = 1;
+        while (fs.existsSync(finalWorkspacePath)) {
+          finalWorkspacePath = path.join(extractLocation, `${sanitizedName} (${counter})`);
+          counter++;
+        }
+
+        if (workspaceDir !== tempDir) {
+          await fsExtra.move(workspaceDir, finalWorkspacePath);
+          await fsExtra.remove(tempDir);
+        } else {
+          await fsExtra.move(tempDir, finalWorkspacePath);
+        }
+
+        validateWorkspacePath(finalWorkspacePath);
+
+        const finalConfig = readWorkspaceConfig(finalWorkspacePath);
+        validateWorkspaceConfig(finalConfig);
+
+        const workspaceUid = getWorkspaceUid(finalWorkspacePath);
+        const isDefault = workspaceUid === 'default';
+        const configWithType = { ...finalConfig, type: isDefault ? 'default' : finalConfig.type };
+
+        lastOpenedWorkspaces.add(finalWorkspacePath);
+
+        mainWindow.webContents.send('main:workspace-opened', finalWorkspacePath, workspaceUid, configWithType);
+
+        if (workspaceWatcher) {
+          workspaceWatcher.addWatcher(mainWindow, finalWorkspacePath);
+        }
+
+        return {
+          success: true,
+          workspaceConfig: configWithType,
+          workspaceUid,
+          workspacePath: finalWorkspacePath
+        };
+      } catch (error) {
+        await fsExtra.remove(tempDir).catch(() => {});
+        throw error;
+      }
     } catch (error) {
       throw error;
     }

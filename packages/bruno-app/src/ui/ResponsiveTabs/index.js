@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import { IconChevronDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
@@ -30,12 +30,12 @@ const ResponsiveTabs = ({
 
   const tabsContainerRef = useRef(null);
   const tabRefsMap = useRef({});
-  const dropdownTippyRef = useRef(null);
+  const menuDropdownRef = useRef(null);
 
   const handleTabSelect = useCallback(
     (tabKey) => {
       onTabSelect(tabKey);
-      dropdownTippyRef.current?.hide();
+      menuDropdownRef.current?.hide();
     },
     [onTabSelect]
   );
@@ -148,25 +148,8 @@ const ResponsiveTabs = ({
     }
   }, []);
 
-  const renderTab = (tab, isInDropdown = false) => {
+  const renderTab = (tab) => {
     const isActive = tab.key === activeTab;
-
-    if (isInDropdown) {
-      return (
-        <div
-          key={tab.key}
-          role="tab"
-          aria-selected={isActive}
-          className={classnames('dropdown-item', { active: isActive })}
-          onClick={() => handleTabSelect(tab.key)}
-        >
-          <span className="flex items-center gap-1">
-            {tab.label}
-            {tab.indicator}
-          </span>
-        </div>
-      );
-    }
 
     return (
       <div
@@ -185,6 +168,22 @@ const ResponsiveTabs = ({
   const rightContentClassName = classnames('flex justify-end items-center', {
     expandable: rightSideExpandable
   });
+
+  // Convert overflow tabs to MenuDropdown items format
+  const overflowMenuItems = useMemo(() => {
+    return overflowTabs.map((tab) => ({
+      id: tab.key,
+      label: (
+        <span className="flex items-center gap-1">
+          {tab.label}
+          {tab.indicator}
+        </span>
+      ),
+      ariaLabel: typeof tab.label === 'string' ? tab.label : tab.key,
+      onClick: () => handleTabSelect(tab.key),
+      className: classnames({ active: tab.key === activeTab })
+    }));
+  }, [overflowTabs, activeTab, handleTabSelect]);
 
   return (
     <StyledWrapper ref={tabsContainerRef} role="tablist" className="tabs flex items-center justify-between gap-6">
@@ -208,20 +207,17 @@ const ResponsiveTabs = ({
 
         {/* Overflow dropdown */}
         {overflowTabs.length > 0 && (
-          <Dropdown
+          <MenuDropdown
+            ref={menuDropdownRef}
+            items={overflowMenuItems}
             placement="bottom-start"
-            onCreate={(instance) => (dropdownTippyRef.current = instance)}
-            icon={(
-              <div className="more-tabs select-none flex items-center cursor-pointer gap-1">
-                <span>More</span>
-                <IconChevronDown size={14} strokeWidth={2} />
-              </div>
-            )}
+            selectedItemId={activeTab}
           >
-            <div style={{ minWidth: '150px' }}>
-              {overflowTabs.map((tab) => renderTab(tab, true))}
+            <div className="more-tabs select-none flex items-center cursor-pointer gap-1">
+              <span>More</span>
+              <IconChevronDown size={14} strokeWidth={2} />
             </div>
-          </Dropdown>
+          </MenuDropdown>
         )}
       </div>
 

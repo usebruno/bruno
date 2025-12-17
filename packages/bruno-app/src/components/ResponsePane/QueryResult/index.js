@@ -8,24 +8,24 @@ import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
 
+// Raw format options (for byte format types)
+const RAW_FORMAT_OPTIONS = [
+  { id: 'raw', label: 'Raw', type: 'item', codeMirrorMode: 'text/plain' },
+  { id: 'hex', label: 'Hex', type: 'item', codeMirrorMode: 'text/plain' },
+  { id: 'base64', label: 'Base64', type: 'item', codeMirrorMode: 'text/plain' }
+];
+
+// Preview format options
 const PREVIEW_FORMAT_OPTIONS = [
-  {
-    // name: 'Structured',
-    options: [
-      { label: 'JSON', value: 'json', codeMirrorMode: 'application/ld+json' },
-      { label: 'HTML', value: 'html', codeMirrorMode: 'xml' },
-      { label: 'XML', value: 'xml', codeMirrorMode: 'xml' },
-      { label: 'JavaScript', value: 'javascript', codeMirrorMode: 'javascript' }
-    ]
-  },
-  {
-    // name: 'Raw',
-    options: [
-      { label: 'Raw', value: 'raw', codeMirrorMode: 'text/plain' },
-      { label: 'Hex', value: 'hex', codeMirrorMode: 'text/plain' },
-      { label: 'Base64', value: 'base64', codeMirrorMode: 'text/plain' }
-    ]
-  }
+  // Structured formats
+  { id: 'json', label: 'JSON', type: 'item', codeMirrorMode: 'application/ld+json' },
+  { id: 'html', label: 'HTML', type: 'item', codeMirrorMode: 'xml' },
+  { id: 'xml', label: 'XML', type: 'item', codeMirrorMode: 'xml' },
+  { id: 'javascript', label: 'JavaScript', type: 'item', codeMirrorMode: 'javascript' },
+  // Divider
+  { type: 'divider', id: 'divider-structured-raw' },
+  // Raw formats
+  ...RAW_FORMAT_OPTIONS
 ];
 
 const formatErrorMessage = (error) => {
@@ -79,9 +79,11 @@ export const useResponsePreviewFormatOptions = (dataBuffer, headers) => {
     const contentTypeToCheck = getContentTypeToCheck();
 
     if (contentTypeToCheck && isByteFormatType(contentTypeToCheck)) {
-      return PREVIEW_FORMAT_OPTIONS.slice(1, 2); // Remove structured format options
+      // Return only raw format options (no structured formats)
+      return RAW_FORMAT_OPTIONS;
     }
 
+    // Return all format options
     return PREVIEW_FORMAT_OPTIONS;
   }, [dataBuffer, headers]);
 };
@@ -158,9 +160,10 @@ const QueryResult = ({
   }, [selectedFormat, detectedContentType]);
 
   const codeMirrorMode = useMemo(() => {
+    // Find the codeMirrorMode from PREVIEW_FORMAT_OPTIONS (contains all format options)
     return PREVIEW_FORMAT_OPTIONS
-      .flatMap((option) => option.options)
-      .find((option) => option.value === selectedFormat)?.codeMirrorMode || 'text/plain';
+      .filter((option) => option.type === 'item' || !option.type)
+      .find((option) => option.id === selectedFormat)?.codeMirrorMode || 'text/plain';
   }, [selectedFormat]);
 
   const queryFilterEnabled = useMemo(() => codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor', [codeMirrorMode, selectedFormat, selectedTab]);

@@ -17,6 +17,7 @@ import Documentation from 'components/Documentation/index';
 import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import AuthMode from '../Auth/AuthMode/index';
 
 const MULTIPLE_CONTENT_TABS = new Set(['params', 'script', 'vars', 'auth', 'docs']);
 
@@ -51,7 +52,7 @@ const HttpRequestPane = ({ item, collection }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
-  const bodyModeRef = useRef(null);
+  const rightContentRef = useRef(null);
   const initialAutoSelectDone = useRef(false);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -130,8 +131,12 @@ const HttpRequestPane = ({ item, collection }) => {
   const isMultipleContentTab = MULTIPLE_CONTENT_TABS.has(requestPaneTab);
 
   const rightContent = requestPaneTab === 'body' ? (
-    <div ref={bodyModeRef}>
+    <div ref={rightContentRef}>
       <RequestBodyMode item={item} collection={collection} />
+    </div>
+  ) : requestPaneTab === 'auth' ? (
+    <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+      <AuthMode item={item} collection={collection} />
     </div>
   ) : null;
 
@@ -142,7 +147,7 @@ const HttpRequestPane = ({ item, collection }) => {
         activeTab={requestPaneTab}
         onTabSelect={selectTab}
         rightContent={rightContent}
-        rightContentRef={bodyModeRef}
+        rightContentRef={rightContent ? rightContentRef : null}
         delayedTabs={['body']}
       />
 

@@ -22,7 +22,7 @@ const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Pro
   await page.getByLabel('Safe Mode').check();
   await page.getByRole('button', { name: 'Save' }).click();
   const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection' });
-  await sourceCollection.locator('.collection-actions').hover();
+  await sourceCollection.hover();
   await sourceCollection.locator('.collection-actions .icon').click();
   await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
   await page.getByPlaceholder('Request Name').fill('test-request');

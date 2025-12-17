@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import { IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon/index';
 
 export const IconDockToBottom = () => {
   return (
@@ -70,40 +71,39 @@ export const useResponseLayoutToggle = () => {
   return { orientation, toggleOrientation };
 };
 
-const ResponseLayoutToggle = ({ children }) => {
+const ResponseLayoutToggle = forwardRef(({ children }, ref) => {
   const { orientation, toggleOrientation } = useResponseLayoutToggle();
+  const elementRef = useRef(null);
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggleOrientation();
-    }
-  };
+  useImperativeHandle(ref, () => ({
+    click: () => elementRef.current?.click(),
+    isDisabled: false
+  }), []);
 
   const title = !children ? (orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout') : null;
 
   return (
     <div
-      role={children ? 'button' : undefined}
-      tabIndex={0}
+      ref={elementRef}
       onClick={toggleOrientation}
       title={title}
-      onKeyDown={handleKeyDown}
-      data-testid="response-layout-toggle-button"
+      data-testid="response-layout-toggle-btn"
     >
       {children ? children : (
         <StyledWrapper className="flex items-center w-full">
-          <button className="p-1">
+          <ActionIcon className="p-1">
             {orientation === 'vertical' ? (
-              <IconLayoutColumns size={16} strokeWidth={1.5} />
+              <IconLayoutColumns size={16} strokeWidth={2} />
             ) : (
-              <IconLayoutRows size={16} strokeWidth={1.5} />
+              <IconLayoutRows size={16} strokeWidth={2} />
             )}
-          </button>
+          </ActionIcon>
         </StyledWrapper>
       )}
     </div>
   );
-};
+});
+
+ResponseLayoutToggle.displayName = 'ResponseLayoutToggle';
 
 export default ResponseLayoutToggle;

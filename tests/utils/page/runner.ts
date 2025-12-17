@@ -44,10 +44,10 @@ export const runCollection = async (page: Page, collectionName: string) => {
     const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
     await collectionContainer.waitFor({ state: 'visible' });
 
-    // Open collection actions menu - wait for the actions container to be actionable
+    // Open collection actions menu - hover first to reveal the hidden actions button
     const actionsContainer = collectionContainer.locator('.collection-actions');
+    await collectionContainer.hover();
     await actionsContainer.waitFor({ state: 'visible' });
-    await actionsContainer.hover();
 
     const icon = actionsContainer.locator('.icon');
     await icon.waitFor({ state: 'visible', timeout: 5000 });
