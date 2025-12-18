@@ -2,7 +2,6 @@ import { useDispatch } from 'react-redux';
 import { IconShieldCheck, IconCode } from '@tabler/icons';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common/index';
-import JsSandboxModeModal from '../JsSandboxModeModal';
 import StyledWrapper from './StyledWrapper';
 
 const JsSandboxMode = ({ collection }) => {

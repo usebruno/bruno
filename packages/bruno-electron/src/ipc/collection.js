@@ -160,10 +160,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           throw new Error(`Invalid format: ${format}`);
         }
 
-        collectionSecurityStore.setSecurityConfigForCollection(dirPath, {
-          jsSandboxMode: 'safe'
-        });
-
         const { size, filesCount } = await getCollectionStats(dirPath);
         brunoConfig.size = size;
         brunoConfig.filesCount = filesCount;
@@ -221,10 +217,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       // Now copy all the files matching the collection's filetype along with the dir
       const files = searchForRequestFiles(previousPath);
-
-      collectionSecurityStore.setSecurityConfigForCollection(dirPath, {
-        jsSandboxMode: 'safe'
-      });
 
       for (const sourceFilePath of files) {
         const relativePath = path.relative(previousPath, sourceFilePath);
@@ -939,10 +931,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       } else {
         throw new Error(`Invalid format: ${format}`);
       }
-
-      collectionSecurityStore.setSecurityConfigForCollection(collectionPath, {
-        jsSandboxMode: 'safe'
-      });
 
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
