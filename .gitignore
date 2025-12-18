@@ -53,6 +53,7 @@ bruno.iml
 /blob-report/
 
 # Development plan files
+CLAUDE.md
 *.plan.md
 
 # packages dist
