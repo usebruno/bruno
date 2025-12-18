@@ -396,16 +396,15 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
+        <RequestTabMenu
+          menuDropdownRef={menuDropdownRef}
+          tabLabelRef={tabLabelRef}
+          tabIndex={tabIndex}
+          collectionRequestTabs={collectionRequestTabs}
+          collection={collection}
+          dispatch={dispatch}
+        />
       </div>
-      <RequestTabMenu
-        menuDropdownRef={menuDropdownRef}
-        tabLabelRef={tabLabelRef}
-        tabIndex={tabIndex}
-        collectionRequestTabs={collectionRequestTabs}
-        tabItem={item}
-        collection={collection}
-        dispatch={dispatch}
-      />
       <GradientCloseButton
         hasChanges={hasChanges}
         onClick={(e) => {
@@ -426,6 +425,15 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, collection, dispatch }) {
   const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
   const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
+
+  // Returns the tab-label's position for dropdown positioning.
+  // Returns zero-sized rect if element isn't mounted yet (prevents Tippy errors).
+  const getTabLabelRect = () => {
+    if (!tabLabelRef.current) {
+      return { width: 0, height: 0, top: 0, bottom: 0, left: 0, right: 0 };
+    }
+    return tabLabelRef.current.getBoundingClientRect();
+  };
 
   const totalTabs = collectionRequestTabs.length || 0;
   const currentTabUid = collectionRequestTabs[tabIndex]?.uid;
@@ -468,19 +476,19 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     } catch (err) { }
   }
 
-  function handleCloseOtherTabs() {
+  async function handleCloseOtherTabs() {
     const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
-    otherTabs.forEach((tab) => handleCloseTab(tab.uid));
+    await Promise.all(otherTabs.map((tab) => handleCloseTab(tab.uid)));
   }
 
-  function handleCloseTabsToTheLeft() {
+  async function handleCloseTabsToTheLeft() {
     const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
-    leftTabs.forEach((tab) => handleCloseTab(tab.uid));
+    await Promise.all(leftTabs.map((tab) => handleCloseTab(tab.uid)));
   }
 
-  function handleCloseTabsToTheRight() {
+  async function handleCloseTabsToTheRight() {
     const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
-    rightTabs.forEach((tab) => handleCloseTab(tab.uid));
+    await Promise.all(rightTabs.map((tab) => handleCloseTab(tab.uid)));
   }
 
   function handleCloseSavedTabs() {
@@ -490,8 +498,8 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     dispatch(closeTabs({ tabUids: savedTabIds }));
   }
 
-  function handleCloseAllTabs() {
-    collectionRequestTabs.forEach((tab) => handleCloseTab(tab.uid));
+  async function handleCloseAllTabs() {
+    await Promise.all(collectionRequestTabs.map((tab) => handleCloseTab(tab.uid)));
   }
 
   const menuItems = useMemo(() => [
@@ -552,12 +560,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       items={menuItems}
       placement="bottom-start"
       appendTo={document.body}
-      getReferenceClientRect={() => {
-        if (!tabLabelRef.current) {
-          return { width: 0, height: 0, top: 0, bottom: 0, left: 0, right: 0 };
-        }
-        return tabLabelRef.current.getBoundingClientRect();
-      }}
+      getReferenceClientRect={getTabLabelRect}
     >
       <span></span>
     </MenuDropdown>

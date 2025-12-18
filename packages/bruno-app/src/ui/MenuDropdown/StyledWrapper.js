@@ -135,6 +135,7 @@ const MenuDropdownGlobalStyle = createGlobalStyle`
           padding-left: 1.5rem;
         }
 
+        /* Focused state - applied during keyboard navigation */
         &.dropdown-item-focused {
           background-color: ${({ theme }) => theme.dropdown.hoverBg};
           outline: none;
