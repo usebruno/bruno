@@ -142,10 +142,16 @@ export const workspaceTabsSlice = createSlice({
             permanent: true
           });
         });
+      }
 
-        // Set first permanent tab as active if no active tab
-        if (!state.activeTabUid && state.tabs.length > 0) {
-          state.activeTabUid = state.tabs[0].uid;
+      const workspaceActiveTab = state.tabs.find(
+        (t) => t.uid === state.activeTabUid && t.workspaceUid === workspaceUid
+      );
+
+      if (!workspaceActiveTab) {
+        const workspaceTabs = state.tabs.filter((t) => t.workspaceUid === workspaceUid);
+        if (workspaceTabs.length > 0) {
+          state.activeTabUid = workspaceTabs[0].uid;
         }
       }
     },

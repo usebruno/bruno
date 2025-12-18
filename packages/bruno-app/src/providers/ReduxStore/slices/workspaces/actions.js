@@ -12,6 +12,7 @@ import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
 import { removeCollection } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
+import { setActiveWorkspaceTab } from '../workspaceTabs';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
@@ -253,6 +254,8 @@ export const switchWorkspace = (workspaceUid) => {
 
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
     dispatch(showHomePage());
+
+    dispatch(setActiveWorkspaceTab({ workspaceUid, type: 'overview' }));
   };
 };
 
