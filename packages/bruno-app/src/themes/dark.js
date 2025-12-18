@@ -160,7 +160,7 @@ const darkTheme = {
   },
 
   workspace: {
-    accent: '#F59E0B',
+    accent: '#D9A342',
     border: '#444',
     borderMuted: '#585858',
     card: {
