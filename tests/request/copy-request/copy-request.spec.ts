@@ -72,10 +72,12 @@ test.describe('Copy and Paste Requests', () => {
     await createCollection(page, 'test-collection-3', await createTmpDir('test-collection-3'), { openWithSandboxMode: 'safe' });
     await createRequest(page, 'request-to-copy', 'test-collection-3');
 
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+
     // Copy the request
     await page.locator('.collection-item-name').filter({ hasText: 'request-to-copy' }).click();
-    await page.keyboard.press('Meta+C');
-    await page.keyboard.press('Meta+V');
+    await page.keyboard.press(`${modifier}+KeyC`);
+    await page.keyboard.press(`${modifier}+KeyV`);
 
     // Verify the pasted request appears with the same name
     await expect(page.locator('.collection-item-name').filter({ hasText: 'request-to-copy' })).toHaveCount(2);
