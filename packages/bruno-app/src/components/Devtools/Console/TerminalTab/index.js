@@ -457,6 +457,7 @@ const TerminalTab = () => {
               fit();
               const ro = new ResizeObserver(() => fit());
               ro.observe(node.parentNode);
+              return () => ro.disconnect();
             }}
             className="terminal-container"
             style={{
