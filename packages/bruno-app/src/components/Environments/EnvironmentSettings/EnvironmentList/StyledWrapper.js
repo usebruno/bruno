@@ -41,8 +41,8 @@ const StyledWrapper = styled.div`
     padding: 16px 16px 12px 16px;
     
     .title {
-      font-size: 13px;
-      font-weight: 600;
+      font-size: ${(props) => props.theme.font.size.base};
+      font-weight: 500;
       color: ${(props) => props.theme.text};
       margin: 0;
     }

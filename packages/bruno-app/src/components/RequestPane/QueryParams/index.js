@@ -136,7 +136,7 @@ const QueryParams = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Query</div>
+        <div className="mb-3 title text-xs">Query</div>
         <EditableTable
           columns={queryColumns}
           rows={queryParams || []}
@@ -151,7 +151,7 @@ const QueryParams = ({ item, collection }) => {
           </button>
         </div>
 
-        <div className="mb-2 title text-xs flex items-stretch">
+        <div className="mb-3 title text-xs flex items-stretch">
           <span>Path</span>
           <InfoTip infotipId="path-param-InfoTip">
             <div>

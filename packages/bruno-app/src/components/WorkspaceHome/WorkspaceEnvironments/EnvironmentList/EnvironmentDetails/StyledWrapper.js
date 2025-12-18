@@ -16,8 +16,8 @@ const StyledWrapper = styled.div`
     flex-shrink: 0;
     
     .title {
-      font-size: 13px;
-      font-weight: 600;
+      font-size: ${(props) => props.theme.font.size.base};
+      font-weight: 500;
       color: ${(props) => props.theme.text};
       margin: 0;
     }
