@@ -493,7 +493,7 @@ const lightTheme = {
     optionHoverBg: '#f8f9fa',
     optionLabelColor: '#212529',
     optionCountColor: '#6c757d',
-    checkboxColor: '#0d6efd',
+    checkboxColor: colors.BRAND,
     scrollbarTrack: '#f8f9fa',
     scrollbarThumb: '#ced4da',
     scrollbarThumbHover: '#adb5bd'

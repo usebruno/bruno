@@ -488,7 +488,7 @@ const darkTheme = {
     optionHoverBg: 'rgba(255, 255, 255, 0.05)',
     optionLabelColor: '#cccccc',
     optionCountColor: '#858585',
-    checkboxColor: '#0078d4',
+    checkboxColor: colors.BRAND,
     scrollbarTrack: '#2d2d30',
     scrollbarThumb: '#5a5a5a',
     scrollbarThumbHover: '#6a6a6a'
