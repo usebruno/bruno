@@ -8,10 +8,16 @@ const colors = {
   GREEN: '#4ec9b0',
   YELLOW: '#d9a342',
 
-  GRAY_1: '#666666',
-  GRAY_2: '#444444',
-  GRAY_3: '#3D3D3D',
-  GRAY_4: '#252526',
+  GRAY_1: '#252526',
+  GRAY_2: '#3D3D3D',
+  GRAY_3: '#444444',
+  GRAY_4: '#666666',
+  GRAY_5: '#b0b0b0',
+  GRAY_6: '#cbcbcb',
+  GRAY_7: '#e5e5e5',
+  GRAY_8: '#eaeaea',
+  GRAY_9: '#f3f3f3',
+  GRAY_10: '#f8f8f8',
 
   CODEMIRROR_TOKENS: {
     DEFINITION: '#9ccc9c', // Softer, brighter sage — better contrast
@@ -101,19 +107,19 @@ const darkTheme = {
   sidebar: {
     color: '#ccc',
     muted: '#9d9d9d',
-    bg: colors.GRAY_4,
+    bg: colors.GRAY_1,
     dragbar: {
       border: 'transparent',
-      activeBorder: colors.GRAY_1
+      activeBorder: colors.GRAY_4
     },
 
     badge: {
-      bg: colors.GRAY_3
+      bg: colors.GRAY_2
     },
 
     search: {
       border: '1px solid transparent',
-      bg: colors.GRAY_3
+      bg: colors.GRAY_2
     },
 
     collection: {
@@ -124,6 +130,9 @@ const darkTheme = {
         indentBorder: 'solid 1px #585858',
         active: {
           indentBorder: 'solid 1px #4c4c4c'
+        },
+        example: {
+          iconColor: colors.GRAY_5
         }
       }
     },
@@ -182,7 +191,7 @@ const darkTheme = {
       indentBorder: 'solid 1px #313131',
       activeBg: '#37373c',
       search: {
-        bg: colors.GRAY_3
+        bg: colors.GRAY_2
       }
     }
   },
@@ -209,7 +218,7 @@ const darkTheme = {
       icon: 'rgb(204, 204, 204)',
       iconDanger: '#fa5343',
       errorHoverBg: '#4a2a2a',
-      border: `solid 1px ${colors.GRAY_2}`
+      border: `solid 1px ${colors.GRAY_3}`
     },
     dragbar: {
       border: '#444',
@@ -237,7 +246,7 @@ const darkTheme = {
       bg: '#252526',
       table: {
         thead: {
-          bg: colors.GRAY_3,
+          bg: colors.GRAY_2,
           color: '#ccc'
         }
       }
@@ -250,12 +259,12 @@ const darkTheme = {
 
   collection: {
     environment: {
-      bg: colors.GRAY_3,
+      bg: colors.GRAY_2,
 
       settings: {
-        bg: colors.GRAY_3,
+        bg: colors.GRAY_2,
         sidebar: {
-          bg: colors.GRAY_3,
+          bg: colors.GRAY_2,
           borderRight: '#4f4f4f'
         },
         item: {
@@ -359,8 +368,11 @@ const darkTheme = {
       hoverColor: 'rgb(204, 204, 204)',
       hoverBg: '#1e1e1e'
     },
+    example: {
+      iconColor: colors.GRAY_5
+    },
     active: {
-      bg: colors.GRAY_3
+      bg: colors.GRAY_2
     },
     shortTab: {
       color: '#ccc',
@@ -617,20 +629,20 @@ const darkTheme = {
       toolbar: {
         environmentSelector: {
           bg: colors.BG,
-          border: colors.GRAY_2,
+          border: colors.GRAY_3,
           icon: colors.BRAND,
           text: colors.TEXT,
           caret: colors.TEXT_MUTED,
-          separator: colors.GRAY_2,
+          separator: colors.GRAY_3,
           hoverBg: colors.BG,
-          hoverBorder: colors.GRAY_1,
+          hoverBorder: colors.GRAY_4,
 
           noEnvironment: {
             text: colors.TEXT_MUTED,
             bg: colors.BG,
-            border: colors.GRAY_2,
+            border: colors.GRAY_3,
             hoverBg: colors.BG,
-            hoverBorder: colors.GRAY_1
+            hoverBorder: colors.GRAY_4
           }
         },
         sandboxMode: {
