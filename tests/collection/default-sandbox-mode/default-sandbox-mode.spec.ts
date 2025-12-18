@@ -27,7 +27,8 @@ test.describe('Default JavaScript Sandbox Mode', () => {
     await expect(sandboxModeSelector).toHaveAttribute('title', 'Developer Mode');
 
     // Close all tabs
-    await page.keyboard.press('Meta+Shift+W');
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.press(`${modifier}+Shift+W`);
 
     // Reopen the collection
     await openCollection(page, collectionName);
