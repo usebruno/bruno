@@ -14,20 +14,20 @@ const StyledWrapper = styled.div`
     justify-content: space-between;
     padding: 16px 20px 8px 20px;
     flex-shrink: 0;
-    
+
     .title {
       font-size: 13px;
       font-weight: 600;
       color: ${(props) => props.theme.text};
       margin: 0;
     }
-    
+
     .title-container {
       display: flex;
       align-items: center;
       gap: 8px;
       flex: 1;
-      
+
       &.renaming {
         .title-input {
           flex: 1;
@@ -39,12 +39,12 @@ const StyledWrapper = styled.div`
           padding: 4px 8px;
           border-radius: 5px;
         }
-        
+
         .inline-actions {
           display: flex;
           gap: 2px;
         }
-        
+
         .inline-action-btn {
           display: flex;
           align-items: center;
@@ -57,18 +57,18 @@ const StyledWrapper = styled.div`
           border-radius: 4px;
           cursor: pointer;
           transition: all 0.15s ease;
-          
+
           &.save {
             color: ${(props) => props.theme.textLink};
-            
+
             &:hover {
               background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
             }
           }
-          
+
           &.cancel {
             color: ${(props) => props.theme.colors.text.muted};
-            
+
             &:hover {
               background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
               color: ${(props) => props.theme.text};
@@ -77,7 +77,7 @@ const StyledWrapper = styled.div`
         }
       }
     }
-    
+
     .title-error {
       position: absolute;
       top: 100%;
@@ -86,15 +86,16 @@ const StyledWrapper = styled.div`
       padding: 4px 8px;
       font-size: 11px;
       color: ${(props) => props.theme.colors.text.danger};
-      background: ${(props) => `${props.theme.colors.text.danger}15`};
+      background: ${(props) => props.theme.bg};
+      border: 1px solid ${(props) => props.theme.colors.text.danger};
       border-radius: 4px;
       white-space: nowrap;
     }
-    
+
     .actions {
       display: flex;
       gap: 2px;
-      
+
       button {
         display: inline-flex;
         align-items: center;
@@ -108,19 +109,19 @@ const StyledWrapper = styled.div`
         border-radius: 5px;
         cursor: pointer;
         transition: all 0.15s ease;
-        
+
         &:hover {
           background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
           color: ${(props) => props.theme.text};
         }
-        
+
         &:last-child:hover {
           color: ${(props) => props.theme.colors.text.danger};
         }
       }
     }
   }
-  
+
   .content {
     flex: 1;
     overflow: hidden;

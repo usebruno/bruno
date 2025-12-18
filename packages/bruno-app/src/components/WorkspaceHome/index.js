@@ -145,7 +145,7 @@ const WorkspaceHome = () => {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
-    { id: 'environments', label: 'Environments' }
+    { id: 'environments', label: 'Global Environments' }
   ];
 
   const renderTabContent = () => {

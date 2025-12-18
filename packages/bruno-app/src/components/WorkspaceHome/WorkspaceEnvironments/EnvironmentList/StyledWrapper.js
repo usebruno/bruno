@@ -3,6 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   display: flex;
   height: 100%;
+  overflow: hidden;
   background-color: ${(props) => props.theme.bg};
   position: relative;
 
@@ -10,6 +11,7 @@ const StyledWrapper = styled.div`
     display: flex;
     height: 100%;
     width: 100%;
+    overflow: hidden;
   }
 
   .confirm-switch-overlay {

@@ -390,10 +390,23 @@ const createEnvironment = async (
 
     await page.locator('button[id="create-env"]').click();
 
-    const nameInput = page.locator('input[name="name"]');
+    const nameInput = type === 'collection'
+      ? page.locator('input[name="name"]')
+      : page.locator('#environment-name');
     await expect(nameInput).toBeVisible();
     await nameInput.fill(environmentName);
     await page.getByRole('button', { name: 'Create' }).click();
+
+    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
+    await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
+
+    const locators = buildCommonLocators(page);
+    await locators.environment.selector().click();
+    if (type === 'global') {
+      await locators.environment.globalTab().click();
+    }
+    await locators.environment.envOption(environmentName).click();
+    await expect(page.locator('.current-environment')).toContainText(environmentName);
   });
 };
 
@@ -416,11 +429,6 @@ const addEnvironmentVariable = async (
   index: number
 ) => {
   await test.step(`Add environment variable "${variable.name}"`, async () => {
-    const addButton = page.locator('button[data-testid="add-variable"]');
-    await addButton.waitFor({ state: 'visible' });
-    await addButton.click();
-
-    // Wait for the new row to be added and the name input to be visible
     const nameInput = page.locator(`input[name="${index}.name"]`);
     await nameInput.waitFor({ state: 'visible' });
     await nameInput.fill(variable.name);
@@ -466,13 +474,17 @@ const saveEnvironment = async (page: Page) => {
 };
 
 /**
- * Close the environment modal/panel
+ * Close the environment tab
  * @param page - The page object
+ * @param type - The type of environment tab to close
  * @returns void
  */
-const closeEnvironmentPanel = async (page: Page) => {
-  await test.step('Close environment panel', async () => {
-    await page.getByText('×').click();
+const closeEnvironmentPanel = async (page: Page, type: EnvironmentType = 'collection') => {
+  await test.step('Close environment tab', async () => {
+    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
+    const envTab = page.locator('.request-tab').filter({ hasText: tabLabel });
+    await envTab.hover();
+    await envTab.getByTestId('request-tab-close-icon').click();
   });
 };
 
