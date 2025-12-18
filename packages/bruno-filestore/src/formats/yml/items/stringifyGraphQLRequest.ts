@@ -5,6 +5,7 @@ import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Assertion } from '@opencollection/types/common/assertions';
+import type { Action } from '@opencollection/types/common/actions';
 import type { HttpRequestParam, HttpRequestHeader } from '@opencollection/types/requests/http';
 import { stringifyYml } from '../utils';
 import { isNonEmptyString, isNumber } from '../../../utils';
@@ -12,6 +13,7 @@ import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionHttpHeaders } from '../common/headers';
 import { toOpenCollectionParams } from '../common/params';
 import { toOpenCollectionVariables } from '../common/variables';
+import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 
@@ -95,6 +97,14 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     const assertions: Assertion[] | undefined = toOpenCollectionAssertions(brunoRequest.assertions);
     if (assertions) {
       runtime.assertions = assertions;
+      hasRuntime = true;
+    }
+
+    // actions (from post-response variables)
+    const resVars = brunoRequest.vars?.res;
+    const actions: Action[] | undefined = toOpenCollectionActions(resVars);
+    if (actions) {
+      runtime.actions = actions;
       hasRuntime = true;
     }
 

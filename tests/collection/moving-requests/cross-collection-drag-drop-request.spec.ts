@@ -11,13 +11,13 @@ test.describe('Cross-Collection Drag and Drop', () => {
     const requestName = 'drag-drop-request';
 
     // Create first collection - open with sandbox mode
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
     // Create a request in the first collection using the dialog/modal flow
     await createRequest(page, requestName, 'source-collection', { url: 'https://echo.usebruno.com' });
 
     // Create second collection - open with sandbox mode
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
@@ -38,9 +38,6 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await sourceRequest.dragTo(targetCollection);
 
     // Verify the request has been moved to the target collection
-    // Click on target collection to expand it if needed
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-
     // Check that the request now appears under target collection
     const targetCollectionContainer = page
       .locator('.collection-name')
@@ -60,13 +57,13 @@ test.describe('Cross-Collection Drag and Drop', () => {
     const requestName = 'duplicate-request';
 
     // Create first collection (source-collection)
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
     // Create a request in the first collection using the dialog/modal flow
     await createRequest(page, requestName, 'source-collection', { url: 'https://echo.usebruno.com' });
 
     // Create second collection (target-collection)
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Create a request with the same name in the target collection using the dialog/modal flow
     await createRequest(page, requestName, 'target-collection', { url: 'https://echo.usebruno.com' });

@@ -69,12 +69,6 @@ export const appSlice = createSlice({
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
-    updateEnvironmentSettingsModalVisibility: (state, action) => {
-      state.isEnvironmentSettingsModalOpen = action.payload;
-    },
-    updateGlobalEnvironmentSettingsModalVisibility: (state, action) => {
-      state.isGlobalEnvironmentSettingsModalOpen = action.payload;
-    },
     showHomePage: (state) => {
       state.showHomePage = true;
       state.showApiSpecPage = false;
@@ -141,8 +135,6 @@ export const {
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
-  updateEnvironmentSettingsModalVisibility,
-  updateGlobalEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
   showManageWorkspacePage,

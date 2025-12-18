@@ -120,7 +120,7 @@ const StyledWrapper = styled.div`
 
       &::before {
         content: '\\2022';
-        color: ${(props) => props.theme.workspace.accent};
+        color: ${(props) => props.theme.brand};
         margin-right: 6px;
       }
     }
@@ -129,8 +129,8 @@ const StyledWrapper = styled.div`
   .add-docs-btn {
     padding: 8px 16px;
     background: transparent;
-    color: ${(props) => props.theme.workspace.accent};
-    border: 1px solid ${(props) => props.theme.workspace.accent};
+    color: ${(props) => props.theme.brand};
+    border: 1px solid ${(props) => props.theme.brand};
     border-radius: ${(props) => props.theme.border.radius.base};
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
@@ -138,7 +138,7 @@ const StyledWrapper = styled.div`
     transition: all 0.15s ease;
 
     &:hover {
-      background: ${(props) => props.theme.workspace.accent}14;
+      background: ${(props) => props.theme.brand}10;
     }
   }
 `;

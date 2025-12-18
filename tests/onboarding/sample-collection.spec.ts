@@ -18,9 +18,6 @@ test.describe('Onboarding', () => {
 
     // Click on the sample collection to open it
     await sampleCollection.click();
-    const modeSaveButton = page.getByRole('button', { name: 'Save' });
-    await expect(modeSaveButton).toBeVisible();
-    await modeSaveButton.click();
 
     // Verify the sample request is visible and clickable
     const request = page.locator('.collection-item-name').getByText('Get Users');
@@ -44,9 +41,6 @@ test.describe('Onboarding', () => {
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollection).toBeVisible();
     await sampleCollection.click();
-    const modeSaveButton = page.getByRole('button', { name: 'Save' });
-    await expect(modeSaveButton).toBeVisible();
-    await modeSaveButton.click();
 
     // Verify the sample request
     const request = page.locator('.collection-item-name').getByText('Get Users');

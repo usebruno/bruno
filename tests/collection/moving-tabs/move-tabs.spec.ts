@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, openCollection } from '../../utils/page';
 
 test.describe('Move tabs', () => {
   test.afterEach(async ({ page }) => {
@@ -21,8 +21,7 @@ test.describe('Move tabs', () => {
     // Wait for collection to appear and click on it
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-drag-drop' })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-drag-drop' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await openCollection(page, 'source-collection-drag-drop');
 
     // Create a folder in the collection
     const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-drag-drop' });
@@ -112,8 +111,6 @@ test.describe('Move tabs', () => {
     // Wait for collection to appear and click on it
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a folder in the collection
     const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' });

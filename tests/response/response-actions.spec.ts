@@ -18,7 +18,7 @@ test.describe('Response Pane Actions', () => {
     const locators = buildCommonLocators(page);
 
     await test.step('Create collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
       await createRequest(page, 'copy-test', collectionName, { url: 'https://testbench-sanity.usebruno.com/ping' });
     });
 

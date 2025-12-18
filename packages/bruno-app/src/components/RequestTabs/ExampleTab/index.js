@@ -115,8 +115,8 @@ const ExampleTab = ({ tab, collection }) => {
           }
         }}
       >
-        <ExampleIcon size={14} color="currentColor" className="mr-1.5 text-gray-500 flex-shrink-0" />
-        <span className="tab-name" title={example.name}>
+        <ExampleIcon size={14} color="currentColor" className="example-icon flex-shrink-0" />
+        <span className="tab-name ml-1" title={example.name}>
           {example.name}
         </span>
       </div>

@@ -16,7 +16,8 @@ const EditableTable = ({
   checkboxKey = 'enabled',
   reorderable = false,
   onReorder,
-  showAddRow = true
+  showAddRow = true,
+  testId = 'editable-table'
 }) => {
   const tableRef = useRef(null);
   const emptyRowUidRef = useRef(null);
@@ -224,7 +225,7 @@ const EditableTable = ({
 
   return (
     <StyledWrapper className={showCheckbox ? 'has-checkbox' : 'no-checkbox'}>
-      <div className="table-container" ref={tableRef}>
+      <div className="table-container" ref={tableRef} data-testid={testId}>
         <table>
           <thead>
             <tr>
@@ -285,6 +286,7 @@ const EditableTable = ({
                         <input
                           type="checkbox"
                           className="mousetrap"
+                          data-testid="column-checkbox"
                           checked={row[checkboxKey] ?? true}
                           onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
                         />
@@ -292,14 +294,17 @@ const EditableTable = ({
                     </td>
                   )}
                   {columns.map((column) => (
-                    <td key={column.key}>
+                    <td key={column.key} data-testid={`column-${column.key}`}>
                       {renderCell(column, row, rowIndex)}
                     </td>
                   ))}
                   {showDelete && (
                     <td>
                       {!isEmpty && (
-                        <button onClick={() => handleRemoveRow(row.uid)}>
+                        <button
+                          data-testid="column-delete"
+                          onClick={() => handleRemoveRow(row.uid)}
+                        >
                           <IconTrash strokeWidth={1.5} size={18} />
                         </button>
                       )}

@@ -15,8 +15,8 @@ test.describe('Large Response Crash/High Memory Usage Prevention', () => {
     const collectionName = 'size-warning-test';
     const requestName = 'large-response';
 
-    // Create collection
-    await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
+    // Create collection (auto-opens the collection)
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
 
     // Create request using the dialog/modal flow
     await createRequest(page, requestName, collectionName, {

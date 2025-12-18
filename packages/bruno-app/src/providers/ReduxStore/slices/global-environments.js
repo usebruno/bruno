@@ -5,7 +5,8 @@ import { cloneDeep, has } from 'lodash';
 
 const initialState = {
   globalEnvironments: [],
-  activeGlobalEnvironmentUid: null
+  activeGlobalEnvironmentUid: null,
+  globalEnvironmentDraft: null
 };
 
 export const globalEnvironmentsSlice = createSlice({
@@ -73,6 +74,13 @@ export const globalEnvironmentsSlice = createSlice({
           state.activeGlobalEnvironmentUid = null;
         }
       }
+    },
+    setGlobalEnvironmentDraft: (state, action) => {
+      const { environmentUid, variables } = action.payload;
+      state.globalEnvironmentDraft = { environmentUid, variables };
+    },
+    clearGlobalEnvironmentDraft: (state) => {
+      state.globalEnvironmentDraft = null;
     }
   }
 });
@@ -84,7 +92,9 @@ export const {
   _renameGlobalEnvironment,
   _copyGlobalEnvironment,
   _selectGlobalEnvironment,
-  _deleteGlobalEnvironment
+  _deleteGlobalEnvironment,
+  setGlobalEnvironmentDraft,
+  clearGlobalEnvironmentDraft
 } = globalEnvironmentsSlice.actions;
 
 const getWorkspaceContext = (state) => {

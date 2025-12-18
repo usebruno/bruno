@@ -81,8 +81,6 @@ test.describe('Tag persistence', () => {
     }
     await locators.modal.button('Create').click();
     await locators.sidebar.collection('test-collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a new folder
     await locators.sidebar.collectionRow('test-collection').hover();

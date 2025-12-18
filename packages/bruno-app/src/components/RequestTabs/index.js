@@ -84,10 +84,6 @@ const RequestTabs = () => {
     return null;
   }
 
-  if (!activeTab) {
-    return <StyledWrapper>Something went wrong!</StyledWrapper>;
-  }
-
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
   const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
 
