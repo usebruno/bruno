@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { openCollectionAndAcceptSandbox, closeAllCollections, sendRequest, addEnvironmentVariables } from '../utils/page';
+import { openCollection, closeAllCollections, sendRequest, addEnvironmentVariables } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
 test.describe('Global Environment Variables - Non-string Values', () => {
