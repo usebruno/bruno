@@ -69,7 +69,7 @@ test.describe('Copy and Paste Requests', () => {
 
   test('should paste request into parent folder even if request is selected', async ({ page, createTmpDir }) => {
     // Create a collection and a request
-    await createCollection(page, 'test-collection-3', await createTmpDir('test-collection-3'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'test-collection-3', await createTmpDir('test-collection-3'));
     await createRequest(page, 'request-to-copy', 'test-collection-3');
 
     const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
