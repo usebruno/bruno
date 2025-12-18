@@ -17,6 +17,10 @@ const colors = {
   GRAY_4: '#e5e5e5',
   GRAY_5: '#cbcbcb',
   GRAY_6: '#b0b0b0',
+  GRAY_7: '#666666',
+  GRAY_8: '#444444',
+  GRAY_9: '#3D3D3D',
+  GRAY_10: '#252526',
 
   CODEMIRROR_TOKENS: {
     DEFINITION: '#566f4e', // Deep moss
@@ -132,7 +136,7 @@ const lightTheme = {
           indentBorder: `solid 1px ${colors.GRAY_4}`
         },
         example: {
-          iconColor: '#6b7280' // gray-500
+          iconColor: colors.GRAY_7
         }
       }
     },
@@ -370,7 +374,7 @@ const lightTheme = {
       hoverBg: 'rgb(234, 234, 234)'
     },
     example: {
-      iconColor: '#6b7280' // gray-500
+      iconColor: colors.GRAY_7
     },
     active: {
       bg: '#e7e7e7'
