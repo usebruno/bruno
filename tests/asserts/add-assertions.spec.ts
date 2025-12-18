@@ -1,7 +1,7 @@
 import { test, expect } from '../../playwright';
 import {
   closeAllCollections,
-  openCollectionAndAcceptSandbox,
+  openCollection,
   openRequest,
   selectRequestPaneTab,
   sendRequest,
@@ -18,10 +18,11 @@ test.describe('Assertions - BRU Collection', () => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
     await test.step('Navigate to assertions tab', async () => {
-      await openCollectionAndAcceptSandbox(page, 'test-assertions-bru', 'safe');
+      await openCollection(page, 'test-assertions-bru');
       await selectEnvironment(page, 'Local', 'collection');
       await openRequest(page, 'test-assertions-bru', 'ping');
       await selectRequestPaneTab(page, 'Assert');
+      await page.waitForTimeout(1000);
     });
   });
 
