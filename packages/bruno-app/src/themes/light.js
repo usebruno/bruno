@@ -130,6 +130,9 @@ const lightTheme = {
         indentBorder: `solid 1px ${colors.GRAY_4}`,
         active: {
           indentBorder: `solid 1px ${colors.GRAY_4}`
+        },
+        example: {
+          iconColor: '#6b7280' // gray-500
         }
       }
     },
@@ -365,6 +368,9 @@ const lightTheme = {
       color: '#9f9f9f',
       hoverColor: 'rgb(76 76 76)',
       hoverBg: 'rgb(234, 234, 234)'
+    },
+    example: {
+      iconColor: '#6b7280' // gray-500
     },
     active: {
       bg: '#e7e7e7'

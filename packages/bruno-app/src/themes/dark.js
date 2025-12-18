@@ -124,6 +124,9 @@ const darkTheme = {
         indentBorder: 'solid 1px #585858',
         active: {
           indentBorder: 'solid 1px #4c4c4c'
+        },
+        example: {
+          iconColor: '#9ca3af' // gray-400
         }
       }
     },
@@ -358,6 +361,9 @@ const darkTheme = {
       color: '#9f9f9f',
       hoverColor: 'rgb(204, 204, 204)',
       hoverBg: '#1e1e1e'
+    },
+    example: {
+      iconColor: '#9ca3af' // gray-400
     },
     active: {
       bg: colors.GRAY_3
