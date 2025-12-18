@@ -139,7 +139,7 @@ const Wrapper = styled.div`
   }
 
   .button-container {
-    padding: 12px 0;
+    padding: 12px 2px;
     background: ${(props) => props.theme.bg};
     flex-shrink: 0;
     display: flex;
