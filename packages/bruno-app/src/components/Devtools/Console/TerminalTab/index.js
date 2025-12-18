@@ -185,9 +185,68 @@ const openTerminalIntoContainer = async (container, sessionId) => {
 
 const TerminalTab = () => {
   const terminalRef = useRef(null);
+  const fitRafRef = useRef(null);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const fit = useCallback(() => {
+    if (!activeSessionId) return;
+
+    const container = terminalRef.current;
+    if (!container) return;
+
+    const instance = terminalInstances.get(activeSessionId);
+    if (!instance?.fitAddon) return;
+
+    if (fitRafRef.current) {
+      cancelAnimationFrame(fitRafRef.current);
+    }
+
+    fitRafRef.current = requestAnimationFrame(() => {
+      fitRafRef.current = null;
+
+      // Avoid fitting when hidden/0-sized (common during tab switches/layout transitions)
+      if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
+
+      try {
+        instance.fitAddon.fit();
+      } catch (e) {}
+    });
+  }, [activeSessionId]);
+
+  // Fit on window resize
+  useEffect(() => {
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [fit]);
+
+  // Fit on parent div resize (split panes, sidebar collapse, tab layout changes, etc.)
+  useEffect(() => {
+    const container = terminalRef.current;
+    const parent = container?.parentElement;
+    const observedEl = parent || container;
+
+    if (!observedEl || typeof ResizeObserver === 'undefined') return;
+
+    const ro = new ResizeObserver(() => fit());
+    ro.observe(observedEl);
+
+    // Run once after attaching observer
+    fit();
+
+    return () => ro.disconnect();
+  }, [fit]);
+
+  // Cleanup any pending RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (fitRafRef.current) {
+        cancelAnimationFrame(fitRafRef.current);
+        fitRafRef.current = null;
+      }
+    };
+  }, []);
 
   // Load sessions list
   const loadSessions = useCallback(async (currentActiveSessionId = null) => {
@@ -339,19 +398,12 @@ const TerminalTab = () => {
 
       if (mounted) {
         const instance = terminalInstances.get(activeSessionId);
-        if (instance && instance.fitAddon) {
-          const onResize = () => {
+        if (instance) {
+          // Initial fit (openTerminalIntoContainer already does a fit + IPC resize, but layout can still settle after)
+          fit();
+          const timeoutId = setTimeout(() => {
+            fit();
             try {
-              instance.fitAddon.fit();
-            } catch (e) {}
-          };
-
-          window.addEventListener('resize', onResize);
-
-          // Initial resize
-          setTimeout(() => {
-            try {
-              instance.fitAddon.fit();
               const { cols, rows } = instance.terminal;
               if (cols && rows && window.ipcRenderer) {
                 window.ipcRenderer.send('terminal:resize', activeSessionId, { cols, rows });
@@ -362,7 +414,7 @@ const TerminalTab = () => {
           }, 100);
 
           return () => {
-            window.removeEventListener('resize', onResize);
+            clearTimeout(timeoutId);
 
             // Park terminal element when switching sessions
             if (instance.terminal && instance.terminal.element) {
