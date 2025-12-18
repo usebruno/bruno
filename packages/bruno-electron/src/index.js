@@ -13,7 +13,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -157,7 +157,6 @@ app.on('ready', async () => {
     icon: path.join(__dirname, 'about/256x256.png'),
     // Custom title bar – ensure React titlebar occupies the window chrome on all OSes
     titleBarStyle: isMac ? 'hiddenInset' : isWindows ? 'hidden' : 'default',
-    titleBarOverlay: isWindows ? { height: 36 } : undefined,
     trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined
     // we will bring this back
     // see https://github.com/usebruno/bruno/issues/440
@@ -167,6 +166,31 @@ app.on('ready', async () => {
   if (maximized) {
     mainWindow.maximize();
   }
+
+  // Window control IPC handlers (Windows custom titlebar)
+  ipcMain.on('renderer:window-minimize', () => {
+    if (!isWindows) return;
+    mainWindow.minimize();
+  });
+
+  ipcMain.on('renderer:window-maximize', () => {
+    if (!isWindows) return;
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
+
+  ipcMain.on('renderer:window-close', () => {
+    if (!isWindows) return;
+    mainWindow.close();
+  });
+
+  ipcMain.handle('renderer:window-is-maximized', () => {
+    if (!isWindows) return false;
+    return mainWindow.isMaximized();
+  });
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
@@ -204,8 +228,14 @@ app.on('ready', async () => {
   mainWindow.on('resize', handleBoundsChange);
   mainWindow.on('move', handleBoundsChange);
 
-  mainWindow.on('maximize', () => saveMaximized(true));
-  mainWindow.on('unmaximize', () => saveMaximized(false));
+  mainWindow.on('maximize', () => {
+    saveMaximized(true);
+    mainWindow.webContents.send('main:window-maximized');
+  });
+  mainWindow.on('unmaximize', () => {
+    saveMaximized(false);
+    mainWindow.webContents.send('main:window-unmaximized');
+  });
 
   // Full screen events for title bar padding adjustment
   mainWindow.on('enter-full-screen', () => {

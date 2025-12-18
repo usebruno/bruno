@@ -4,40 +4,42 @@ import Modal from 'components/Modal/index';
 import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { useDispatch } from 'react-redux';
-import { renameGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
-import { validateName, validateNameError } from 'utils/common/regex';
+import { useDispatch, useSelector } from 'react-redux';
+import { renameWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 
-const RenameEnvironment = ({ onClose, environment }) => {
+const RenameWorkspace = ({ onClose, workspace }) => {
   const dispatch = useDispatch();
+  const { workspaces } = useSelector((state) => state.workspaces);
   const inputRef = useRef();
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      name: environment.name
+      name: workspace.name
     },
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(255, 'Must be 255 characters or less')
-        .test('is-valid-filename', function (value) {
-          const isValid = validateName(value);
-          return isValid ? true : this.createError({ message: validateNameError(value) });
-        })
+        .max(255, 'must be 255 characters or less')
         .required('name is required')
+        .test('unique-name', 'A workspace with this name already exists', function (value) {
+          if (!value) return true;
+          return !workspaces.some((w) =>
+            w.uid !== workspace.uid && w.name.toLowerCase() === value.toLowerCase()
+          );
+        })
     }),
     onSubmit: (values) => {
-      if (values.name === environment.name) {
+      if (values.name === workspace.name) {
+        onClose();
         return;
       }
-      dispatch(renameGlobalEnvironment({ name: values.name, environmentUid: environment.uid }))
+      dispatch(renameWorkspaceAction(workspace.uid, values.name))
         .then(() => {
-          toast.success('Environment renamed successfully');
           onClose();
         })
         .catch((error) => {
-          toast.error('An error occurred while renaming the environment');
-          console.error(error);
+          toast.error(error?.message || 'An error occurred while renaming the workspace');
         });
     }
   });
@@ -45,6 +47,7 @@ const RenameEnvironment = ({ onClose, environment }) => {
   useEffect(() => {
     if (inputRef && inputRef.current) {
       inputRef.current.focus();
+      inputRef.current.select();
     }
   }, [inputRef]);
 
@@ -56,18 +59,18 @@ const RenameEnvironment = ({ onClose, environment }) => {
     <Portal>
       <Modal
         size="sm"
-        title="Rename Environment"
+        title="Rename Workspace"
         confirmText="Rename"
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
         <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label htmlFor="name" className="block font-medium">
-              Environment Name
+            <label htmlFor="workspace-name" className="block font-semibold">
+              Workspace Name
             </label>
             <input
-              id="environment-name"
+              id="workspace-name"
               type="text"
               name="name"
               ref={inputRef}
@@ -89,4 +92,4 @@ const RenameEnvironment = ({ onClose, environment }) => {
   );
 };
 
-export default RenameEnvironment;
+export default RenameWorkspace;

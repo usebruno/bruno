@@ -5,7 +5,6 @@ const Wrapper = styled.div`
   display: flex;
   align-items: center;
   background: ${(props) => props.theme.sidebar.bg};
-  border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
   -webkit-app-region: drag;
   user-select: none;
 
@@ -22,7 +21,7 @@ const Wrapper = styled.div`
 
   /* When in full screen, no traffic lights so reduce padding */
   &.fullscreen .titlebar-content {
-    padding-left: 4px;
+    padding-left: 6px;
   }
 
   /* Remove drag region from interactive elements */
@@ -103,6 +102,13 @@ const Wrapper = styled.div`
     align-items: center;
     justify-content: flex-end;
     flex-shrink: 0;
+    -webkit-app-region: no-drag;
+  }
+
+  /* App action buttons container */
+  .titlebar-actions {
+    display: flex;
+    align-items: center;
   }
 
   /* Workspace Dropdown Styles */
@@ -181,16 +187,54 @@ const Wrapper = styled.div`
   }
 
   /* Adjust for non-macOS platforms */
-  body:not(.os-mac) & {
-    .titlebar-content {
-      padding-left: 12px;
-    }
+  &:not(.os-mac) .titlebar-content {
+    padding-left: 12px;
   }
 
-  /* Leave room for Windows caption buttons when the overlay is enabled */
-  body.os-windows & {
-    .titlebar-content {
-      padding-right: 120px;
+  /* Windows-specific styles */
+  &.os-windows .titlebar-content {
+    padding-right: 0px;
+    padding-left: 0px;
+  }
+
+  &.os-windows .titlebar-left {
+    margin-left: 6px;
+  }
+
+  /* Custom window control buttons for Windows - always interactive, above modal overlay */
+  .window-controls {
+    display: flex;
+    align-items: stretch;
+    height: 36px;
+    margin-left: 8px;
+    position: relative;
+    z-index: 1000;
+  }
+
+  .window-control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: ${(props) => props.theme.text};
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+    -webkit-app-region: no-drag;
+
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
+    &:active {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
+    &.close:hover {
+      background: #e81123;
+      color: white;
     }
   }
 `;

@@ -2,7 +2,26 @@ import LinkifyIt from 'linkify-it';
 import { isMacOS } from 'utils/common/platform';
 import { debounce } from 'lodash';
 /**
+ * Gets the visible line range using scroll info and lineAtHeight
+ * @param {Object} editor - The CodeMirror editor instance
+ * @param {number} padding - Number of lines to add above and below viewport
+ * @returns {Object} Object with from and to line numbers
+ */
+function getVisibleLineRange(editor, padding = 3) {
+  const doc = editor.getDoc();
+  const scroll = editor.getScrollInfo();
+  const topLine = editor.lineAtHeight(scroll.top, 'local');
+  const bottomLine = editor.lineAtHeight(scroll.top + scroll.clientHeight, 'local');
+
+  return {
+    from: Math.max(0, topLine - padding),
+    to: Math.min(doc.lineCount(), bottomLine + padding + 1) // +1 because to is exclusive
+  };
+}
+
+/**
  * Marks URLs in the CodeMirror editor with clickable link styling
+ * Only processes links in the visible viewport for performance
  * @param {Object} editor - The CodeMirror editor instance
  * @param {Object} linkify - The LinkifyIt instance for URL detection
  * @param {string} linkClass - CSS class name for links
@@ -10,25 +29,55 @@ import { debounce } from 'lodash';
  */
 function markUrls(editor, linkify, linkClass, linkHint) {
   const doc = editor.getDoc();
-  const text = doc.getValue();
+  const { from: fromLine, to: toLine } = getVisibleLineRange(editor, 3);
 
-  // Clear existing link marks
-  editor.getAllMarks().forEach((mark) => {
-    if (mark.className === linkClass) mark.clear();
-  });
+  // Use editor.operation() to batch all mark operations for better performance
+  editor.operation(() => {
+    // Clear only link marks that overlap the visible range
+    editor.getAllMarks().forEach((mark) => {
+      if (mark.className !== linkClass) return;
 
-  // Find and mark new URLs
-  const matches = linkify.match(text);
-  matches?.forEach(({ index, lastIndex, url }) => {
-    const from = editor.posFromIndex(index);
-    const to = editor.posFromIndex(lastIndex);
-    editor.markText(from, to, {
-      className: linkClass,
-      attributes: {
-        'data-url': url,
-        'title': linkHint
+      // Check if mark overlaps visible range
+      const pos = mark.find?.();
+      if (!pos) {
+        // If we can't find position, clear it to be safe
+        mark.clear();
+        return;
+      }
+
+      // Clear marks that overlap the visible range
+      if (pos.to.line >= fromLine && pos.from.line < toLine) {
+        mark.clear();
       }
     });
+
+    // Find and mark URLs in visible lines only
+    for (let lineNum = fromLine; lineNum < toLine; lineNum++) {
+      const lineContent = doc.getLine(lineNum);
+      if (!lineContent) continue;
+
+      const matches = linkify.match(lineContent);
+      if (!matches) continue;
+
+      matches.forEach(({ index, lastIndex, url }) => {
+        try {
+          editor.markText(
+            { line: lineNum, ch: index },
+            { line: lineNum, ch: lastIndex },
+            {
+              className: linkClass,
+              attributes: {
+                'data-url': url,
+                'title': linkHint
+              }
+            }
+          );
+        } catch (e) {
+          // Silently ignore marking errors (e.g., if positions are invalid)
+          // This can happen if the line content changed between getting it and marking
+        }
+      });
+    }
   });
 }
 
@@ -153,16 +202,24 @@ function setupLinkAware(editor, options = {}) {
   const boundHandleMouseEnter = (event) => handleMouseEnter(event, linkClass, linkHoverClass, boundUpdateCmdCtrlClass);
   const boundHandleMouseLeave = (event) => handleMouseLeave(event, linkClass, linkHoverClass);
 
-  // Create debounced version of markUrls
+  // Create debounced version of markUrls that runs after rendering
   const debouncedMarkUrls = debounce(() => {
-    requestAnimationFrame(boundMarkUrls);
+    requestAnimationFrame(() => {
+      // Skip if the editor is hidden (e.g., tab not visible)
+      if (!editorWrapper.offsetParent) return;
+      boundMarkUrls();
+    });
   }, 150);
 
-  // Initial URL marking
-  boundMarkUrls();
+  // Run after the first render/refresh
+  editor.on('refresh', debouncedMarkUrls);
 
   // Set up event listeners
   editor.on('changes', debouncedMarkUrls);
+
+  // Listen for scroll events to update marks when viewport changes
+  editor.on('scroll', debouncedMarkUrls);
+
   window.addEventListener('keydown', boundUpdateCmdCtrlClass);
   window.addEventListener('keyup', boundUpdateCmdCtrlClass);
   editorWrapper.addEventListener('click', boundHandleClick);
@@ -171,7 +228,9 @@ function setupLinkAware(editor, options = {}) {
 
   // Cleanup function to remove all event listeners
   editor._destroyLinkAware = () => {
+    editor.off('refresh', debouncedMarkUrls);
     editor.off('changes', debouncedMarkUrls);
+    editor.off('scroll', debouncedMarkUrls);
     window.removeEventListener('keydown', boundUpdateCmdCtrlClass);
     window.removeEventListener('keyup', boundUpdateCmdCtrlClass);
     editorWrapper.removeEventListener('click', boundHandleClick);

@@ -202,9 +202,10 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(page.getByTestId('env-var-row-user.roles[0]').locator('.CodeMirror-line').first()).toHaveText('admin');
     });
 
-    await test.step('Close environment modal', async () => {
-      // Close the environment configuration modal to ensure clean state
-      await page.getByText('×').click();
+    await test.step('Close environment tab', async () => {
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click();
     });
   });
 });

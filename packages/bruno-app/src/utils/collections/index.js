@@ -280,6 +280,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const normalizeFilenameToBru = (filename) => {
+    if (!filename) return filename;
+    return filename.replace(/\.(yml|yaml)$/i, '.bru');
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
@@ -292,7 +297,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: si.uid,
         type: si.type,
         name: si.name,
-        filename: si.filename,
+        filename: isItemARequest(si) ? normalizeFilenameToBru(si.filename) : si.filename,
         seq: si.seq,
         settings: si.settings,
         tags: si.tags,

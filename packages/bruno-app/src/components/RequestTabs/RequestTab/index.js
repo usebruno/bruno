@@ -1,16 +1,19 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
+import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
+import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
 import { findItemInCollection, hasRequestChanges } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
+import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnvironment';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
@@ -21,6 +24,7 @@ import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
+import toast from 'react-hot-toast';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow }) => {
   const dispatch = useDispatch();
@@ -31,6 +35,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
   const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
+  const [showConfirmEnvironmentClose, setShowConfirmEnvironmentClose] = useState(false);
+  const [showConfirmGlobalEnvironmentClose, setShowConfirmGlobalEnvironmentClose] = useState(false);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -152,8 +158,31 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;
   const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
+  const hasEnvironmentDraft = tab.type === 'environment-settings' && collection?.environmentsDraft;
+  const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
+  const hasGlobalEnvironmentDraft = tab.type === 'global-environment-settings' && globalEnvironmentDraft;
 
-  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
+  const handleCloseEnvironmentSettings = (event) => {
+    if (!collection?.environmentsDraft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmEnvironmentClose(true);
+  };
+
+  const handleCloseGlobalEnvironmentSettings = (event) => {
+    if (!globalEnvironmentDraft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmGlobalEnvironmentClose(true);
+  };
+
+  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings', 'environment-settings', 'global-environment-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
@@ -214,12 +243,70 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
           />
         )}
+        {showConfirmEnvironmentClose && tab.type === 'environment-settings' && (
+          <ConfirmCloseEnvironment
+            isGlobal={false}
+            onCancel={() => setShowConfirmEnvironmentClose(false)}
+            onCloseWithoutSave={() => {
+              dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
+              dispatch(closeTabs({ tabUids: [tab.uid] }));
+              setShowConfirmEnvironmentClose(false);
+            }}
+            onSaveAndClose={() => {
+              const draft = collection.environmentsDraft;
+              if (draft?.environmentUid && draft?.variables) {
+                dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
+                  .then(() => {
+                    dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
+                    dispatch(closeTabs({ tabUids: [tab.uid] }));
+                    setShowConfirmEnvironmentClose(false);
+                    toast.success('Environment saved');
+                  })
+                  .catch((err) => {
+                    console.log('err', err);
+                    toast.error('Failed to save environment');
+                  });
+              }
+            }}
+          />
+        )}
+        {showConfirmGlobalEnvironmentClose && tab.type === 'global-environment-settings' && (
+          <ConfirmCloseEnvironment
+            isGlobal={true}
+            onCancel={() => setShowConfirmGlobalEnvironmentClose(false)}
+            onCloseWithoutSave={() => {
+              dispatch(clearGlobalEnvironmentDraft());
+              dispatch(closeTabs({ tabUids: [tab.uid] }));
+              setShowConfirmGlobalEnvironmentClose(false);
+            }}
+            onSaveAndClose={() => {
+              const draft = globalEnvironmentDraft;
+              if (draft?.environmentUid && draft?.variables) {
+                dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
+                  .then(() => {
+                    dispatch(clearGlobalEnvironmentDraft());
+                    dispatch(closeTabs({ tabUids: [tab.uid] }));
+                    setShowConfirmGlobalEnvironmentClose(false);
+                    toast.success('Global environment saved');
+                  })
+                  .catch((err) => {
+                    console.log('err', err);
+                    toast.error('Failed to save global environment');
+                  });
+              }
+            }}
+          />
+        )}
         {tab.type === 'folder-settings' && !folder ? (
           <RequestTabNotFound handleCloseClick={handleCloseClick} />
         ) : tab.type === 'folder-settings' ? (
           <SpecialTab handleCloseClick={handleCloseFolderSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} hasDraft={hasFolderDraft} />
         ) : tab.type === 'collection-settings' ? (
           <SpecialTab handleCloseClick={handleCloseCollectionSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={collection?.name} hasDraft={hasDraft} />
+        ) : tab.type === 'environment-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasEnvironmentDraft} />
+        ) : tab.type === 'global-environment-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseGlobalEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}

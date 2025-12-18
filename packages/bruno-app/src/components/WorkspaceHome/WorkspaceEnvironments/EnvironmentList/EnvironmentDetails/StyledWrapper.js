@@ -81,7 +81,7 @@ const StyledWrapper = styled.div`
     .title-error {
       position: absolute;
       top: 100%;
-      left: 0;
+      left: 20px;
       margin-top: 4px;
       padding: 4px 8px;
       font-size: 11px;

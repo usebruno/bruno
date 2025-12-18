@@ -34,6 +34,8 @@ import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceHome from 'components/WorkspaceHome';
+import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
+import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 480;
@@ -147,8 +149,6 @@ const RequestTabPanel = () => {
     };
   }, [handleMouseUp, handleMouseMove]);
 
-  // When devtools opens in vertical layout, reduce request pane height to ensure response pane is visible
-  // When devtools closes, restore the previous height
   useEffect(() => {
     if (!isVerticalLayout) return;
 
@@ -171,11 +171,15 @@ const RequestTabPanel = () => {
     }
   }, [isConsoleOpen, isVerticalLayout]);
 
-  if (!activeTabUid) {
+  if (!activeTabUid || !focusedTab) {
     return <WorkspaceHome />;
   }
 
-  if (!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
+  if (focusedTab.type === 'global-environment-settings') {
+    return <GlobalEnvironmentSettings />;
+  }
+
+  if (!focusedTab.uid || !focusedTab.collectionUid) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
@@ -224,6 +228,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'security-settings') {
     return <SecuritySettings collection={collection} />;
+  }
+
+  if (focusedTab.type === 'environment-settings') {
+    return <EnvironmentSettings collection={collection} />;
   }
 
   if (!item || !item.uid) {

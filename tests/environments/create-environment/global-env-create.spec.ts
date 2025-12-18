@@ -5,7 +5,6 @@ import {
   createEnvironment,
   addEnvironmentVariables,
   saveEnvironment,
-  closeEnvironmentPanel,
   sendRequest,
   expectResponseContains,
   closeAllCollections
@@ -40,7 +39,6 @@ test.describe('Global Environment Create Tests', () => {
       ]);
 
       await saveEnvironment(page);
-      await closeEnvironmentPanel(page);
       await expect(locators.environment.currentEnvironment()).toContainText('Test Global Environment');
     });
 

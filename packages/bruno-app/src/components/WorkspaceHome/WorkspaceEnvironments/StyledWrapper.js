@@ -4,6 +4,7 @@ const StyledWrapper = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background-color: ${(props) => props.theme.bg};
   
   .empty-state {

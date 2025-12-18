@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
@@ -10,14 +10,26 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import {
+  saveGlobalEnvironment,
+  setGlobalEnvironmentDraft,
+  clearGlobalEnvironmentDraft
+} from 'providers/ReduxStore/slices/global-environments';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 
 const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const { globalEnvironments, activeGlobalEnvironmentUid, globalEnvironmentDraft } = useSelector(
+    (state) => state.globalEnvironments
+  );
+
+  const hasDraftForThisEnv = globalEnvironmentDraft?.environmentUid === environment.uid;
+
+  // Track environment changes for draft restoration
+  const prevEnvUidRef = React.useRef(null);
+  const mountedRef = React.useRef(false);
 
   let _collection = collection ? cloneDeep(collection) : {};
 
@@ -26,6 +38,8 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     _collection.globalEnvironmentVariables = globalEnvironmentVariables;
   }
 
+  // Initial values based only on saved environment variables (not draft)
+  // Draft restoration happens in a separate effect to avoid infinite loops
   const initialValues = React.useMemo(() => {
     const vars = environment.variables || [];
     return [
@@ -67,12 +81,10 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         const isLastRow = index === values.length - 1;
         const isEmptyRow = !variable.name || variable.name.trim() === '';
 
-        // Skip validation for the last empty row
         if (isLastRow && isEmptyRow) {
           return;
         }
 
-        // Validate name for non-empty rows
         if (!variable.name || variable.name.trim() === '') {
           if (!errors[index]) errors[index] = {};
           errors[index].name = 'Name cannot be empty';
@@ -86,20 +98,61 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     onSubmit: () => {}
   });
 
+  // Restore draft values on mount or environment switch
+  React.useEffect(() => {
+    const isMount = !mountedRef.current;
+    const envChanged = prevEnvUidRef.current !== null && prevEnvUidRef.current !== environment.uid;
+
+    prevEnvUidRef.current = environment.uid;
+    mountedRef.current = true;
+
+    if ((isMount || envChanged) && hasDraftForThisEnv && globalEnvironmentDraft?.variables) {
+      formik.setValues([
+        ...globalEnvironmentDraft.variables,
+        {
+          uid: uuid(),
+          name: '',
+          value: '',
+          type: 'text',
+          secret: false,
+          enabled: true
+        }
+      ]);
+    }
+  }, [environment.uid, hasDraftForThisEnv, globalEnvironmentDraft?.variables]);
+
+  // Sync draft state to Redux
   React.useEffect(() => {
     const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
     const savedValues = environment.variables || [];
 
-    const hasActualChanges = JSON.stringify(currentValues) !== JSON.stringify(savedValues);
+    const currentValuesJson = JSON.stringify(currentValues);
+    const savedValuesJson = JSON.stringify(savedValues);
+    const hasActualChanges = currentValuesJson !== savedValuesJson;
 
     setIsModified(hasActualChanges);
-  }, [formik.values, environment.variables, setIsModified]);
+
+    // Get existing draft for comparison
+    const existingDraftVariables = hasDraftForThisEnv ? globalEnvironmentDraft?.variables : null;
+    const existingDraftJson = existingDraftVariables ? JSON.stringify(existingDraftVariables) : null;
+
+    if (hasActualChanges) {
+      // Only dispatch if draft values are actually different
+      if (currentValuesJson !== existingDraftJson) {
+        dispatch(setGlobalEnvironmentDraft({
+          environmentUid: environment.uid,
+          variables: currentValues
+        }));
+      }
+    } else if (hasDraftForThisEnv) {
+      dispatch(clearGlobalEnvironmentDraft());
+    }
+  }, [formik.values, environment.variables, environment.uid, setIsModified, dispatch, hasDraftForThisEnv, globalEnvironmentDraft?.variables]);
 
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);
     const id = `error-${name}-${index}`;
 
-    // Don't show error for the last empty row
     const isLastRow = index === formik.values.length - 1;
     const variable = formik.values[index];
     const isEmptyRow = !variable?.name || variable.name.trim() === '';
@@ -119,39 +172,47 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     );
   };
 
-  const handleRemoveVar = (id) => {
-    const filteredValues = formik.values.filter((variable) => variable.uid !== id);
+  const handleRemoveVar = useCallback((id) => {
+    const currentValues = formik.values;
 
-    const lastRow = formik.values[formik.values.length - 1];
-    const isLastEmptyRow = lastRow.uid === id && (!lastRow.name || lastRow.name.trim() === '');
+    if (!currentValues || currentValues.length === 0) {
+      return;
+    }
+
+    const lastRow = currentValues[currentValues.length - 1];
+    const isLastEmptyRow = lastRow?.uid === id && (!lastRow.name || lastRow.name.trim() === '');
 
     if (isLastEmptyRow) {
       return;
     }
 
+    const filteredValues = currentValues.filter((variable) => variable.uid !== id);
+
     const hasEmptyLastRow = filteredValues.length > 0
       && (!filteredValues[filteredValues.length - 1].name
         || filteredValues[filteredValues.length - 1].name.trim() === '');
 
-    if (!hasEmptyLastRow) {
-      filteredValues.push({
-        uid: uuid(),
-        name: '',
-        value: '',
-        type: 'text',
-        secret: false,
-        enabled: true
-      });
-    }
+    const newValues = hasEmptyLastRow
+      ? filteredValues
+      : [
+          ...filteredValues,
+          {
+            uid: uuid(),
+            name: '',
+            value: '',
+            type: 'text',
+            secret: false,
+            enabled: true
+          }
+        ];
 
-    formik.setValues(filteredValues);
-  };
+    formik.setValues(newValues);
+  }, [formik.values]);
 
   const handleNameChange = (index, e) => {
     formik.handleChange(e);
     const isLastRow = index === formik.values.length - 1;
 
-    // If typing in the last row, add a new empty row
     if (isLastRow) {
       const newVariable = {
         uid: uuid(),
@@ -161,15 +222,32 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         secret: false,
         enabled: true
       };
-      // Use setTimeout to ensure the change is processed first
       setTimeout(() => {
         formik.setFieldValue(formik.values.length, newVariable, false);
       }, 0);
     }
   };
 
+  const handleNameBlur = (index) => {
+    formik.setFieldTouched(`${index}.name`, true, true);
+  };
+
+  const handleNameKeyDown = (index, e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      formik.setFieldTouched(`${index}.name`, true, true);
+    }
+  };
+
   const handleSave = () => {
     const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+    const savedValues = environment.variables || [];
+
+    const hasChanges = JSON.stringify(variablesToSave) !== JSON.stringify(savedValues);
+    if (!hasChanges) {
+      toast.error('No changes to save');
+      return;
+    }
 
     const hasValidationErrors = variablesToSave.some((variable) => {
       if (!variable.name || variable.name.trim() === '') {
@@ -223,7 +301,23 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
       }
     ];
     formik.resetForm({ values: resetValues });
+    setIsModified(false);
   };
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  React.useEffect(() => {
+    const handleSaveEvent = () => {
+      handleSaveRef.current();
+    };
+
+    window.addEventListener('environment-save', handleSaveEvent);
+
+    return () => {
+      window.removeEventListener('environment-save', handleSaveEvent);
+    };
+  }, []);
 
   return (
     <StyledWrapper>
@@ -271,6 +365,8 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                         value={variable.name}
                         placeholder={isLastEmptyRow ? 'Name' : ''}
                         onChange={(e) => handleNameChange(index, e)}
+                        onBlur={() => handleNameBlur(index)}
+                        onKeyDown={(e) => handleNameKeyDown(index, e)}
                       />
                       <ErrorMessage name={`${index}.name`} index={index} />
                     </div>
@@ -286,6 +382,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                         isSecret={variable.secret}
                         readOnly={typeof variable.value !== 'string'}
                         onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                        onSave={handleSave}
                       />
                     </div>
                     {typeof variable.value !== 'string' && (
@@ -341,4 +438,5 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     </StyledWrapper>
   );
 };
+
 export default EnvironmentVariables;
