@@ -157,13 +157,25 @@ export const workspaceTabsSlice = createSlice({
     },
     setActiveWorkspaceTab: (state, action) => {
       const { workspaceUid, type } = action.payload;
-      const tab = find(
+      let tab = find(
         state.tabs,
         (t) => t.workspaceUid === workspaceUid && t.type === type
       );
-      if (tab) {
-        state.activeTabUid = tab.uid;
+
+      if (!tab) {
+        const newTabUid = `${workspaceUid}-${type}`;
+        const newTab = {
+          uid: newTabUid,
+          workspaceUid,
+          type,
+          label: type === 'overview' ? 'Overview' : type,
+          permanent: false
+        };
+        state.tabs.push(newTab);
+        tab = newTab;
       }
+
+      state.activeTabUid = tab.uid;
     }
   }
 });
