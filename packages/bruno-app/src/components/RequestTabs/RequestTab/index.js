@@ -1,5 +1,4 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
-import Portal from 'components/Portal';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -552,14 +551,12 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       ref={menuDropdownRef}
       items={menuItems}
       placement="bottom-start"
-      dropdownProps={{
-        appendTo: document.body,
-        getReferenceClientRect: () => {
-          if (!tabLabelRef.current) {
-            return { width: 0, height: 0, top: 0, bottom: 0, left: 0, right: 0 };
-          }
-          return tabLabelRef.current.getBoundingClientRect();
+      appendTo={document.body}
+      getReferenceClientRect={() => {
+        if (!tabLabelRef.current) {
+          return { width: 0, height: 0, top: 0, bottom: 0, left: 0, right: 0 };
         }
+        return tabLabelRef.current.getBoundingClientRect();
       }}
     >
       <span></span>
@@ -580,7 +577,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
         />
       )}
 
-      <Portal>{menuDropdown}</Portal>
+      {menuDropdown}
     </Fragment>
   );
 }
