@@ -16,7 +16,6 @@ const Wrapper = styled.div`
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    font-size: 12px;
 
     td {
       vertical-align: middle;
@@ -39,13 +38,13 @@ const Wrapper = styled.div`
     }
 
     thead {
-      color: ${(props) => props.theme.colors.text};
+      color: ${(props) => props.theme.table.thead.color} !important;
       background: ${(props) => props.theme.sidebar.bg};
       font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
       
       td {
-        padding: 8px 10px;
+        padding: 5px 10px !important;
         border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
         border-right: ${(props) => props.theme.workspace.environments.indentBorder};
         
@@ -107,7 +106,6 @@ const Wrapper = styled.div`
     background-color: transparent;
     color: ${(props) => props.theme.text};
     padding: 0;
-    font-size: 12px;
     border-radius: 4px;
     transition: all 0.15s ease;
 
@@ -120,7 +118,7 @@ const Wrapper = styled.div`
     cursor: pointer;
     width: 14px;
     height: 14px;
-    accent-color: ${(props) => props.theme.workspace.accent};
+    accent-color: ${(props) => props.theme.colors.accent};
     vertical-align: middle;
     margin: 0;
   }
@@ -147,12 +145,11 @@ const Wrapper = styled.div`
   }
   
   .submit {
-    padding: 7px 16px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
     border: none;
-    background: ${(props) => props.theme.workspace.accent};
+    background: ${(props) => props.theme.brand};
     color: ${(props) => props.theme.bg};
     cursor: pointer;
     transition: opacity 0.15s ease;
@@ -165,18 +162,16 @@ const Wrapper = styled.div`
   .reset {
     background: transparent;
     padding: 6px 16px;
-    border: 1px solid ${(props) => props.theme.workspace.accent};
-    color: ${(props) => props.theme.workspace.accent};
+    color: ${(props) => props.theme.brand};
     &:hover {
       opacity: 0.9;
     }
   }
   
   .discard {
-    padding: 7px 16px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
     background: transparent;
     color: ${(props) => props.theme.text};
     border: ${(props) => props.theme.sidebar.collection.item.indentBorder};

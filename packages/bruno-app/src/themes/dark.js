@@ -75,7 +75,8 @@ const darkTheme = {
     },
     bg: {
       danger: '#d03544'
-    }
+    },
+    accent: colors.BRAND
   },
 
   input: {
@@ -198,18 +199,18 @@ const darkTheme = {
 
   request: {
     methods: {
-      get: '#8cd656',
-      post: '#cd56d6',
-      put: '#d69956',
-      delete: '#f06f57',
-      // customize these colors if needed
-      patch: '#d69956',
-      options: '#d69956',
-      head: '#d69956'
+      get: '#5fbf7a', // Fresh jade — readable, calm success tone
+      post: '#b58adf', // Soft amethyst — cool, composed accent
+      put: '#d7a35a', // Warm amber-bronze — bridges BRAND + STRING
+      delete: '#e06c75', // VSCode red — destructive but readable
+      patch: '#d7a35a', // Same as PUT
+      options: '#c8b072', // Muted olive-gold — neutral method
+      head: '#9da5b4' // Cool gray-blue — subtle, low priority
     },
-    grpc: '#6366f1',
-    ws: '#d9a342',
-    gql: '#e535ab'
+
+    grpc: '#5fb3c4', // Steel cyan — technical, protocol-heavy, calm
+    ws: '#d9a342', // Brand gold — perfect as-is
+    gql: '#c96ab1' // Softened GraphQL pink — less neon, still iconic
   },
 
   requestTabPanel: {

@@ -10,11 +10,11 @@ const Vars = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
+        <div className="mb-3 title text-xs">Pre Request</div>
         <VarsTable item={item} collection={collection} vars={requestVars} varType="request" />
       </div>
       <div>
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
+        <div className="mt-3 mb-3 title text-xs">Post Response</div>
         <VarsTable item={item} collection={collection} vars={responseVars} varType="response" />
       </div>
     </StyledWrapper>
