@@ -29,8 +29,8 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
       formUrlEncoded: [],
       multipartForm: [],
       graphql: {
-        query: (graphql?.body as GraphQLBody)?.query || null,
-        variables: (graphql?.body as GraphQLBody)?.variables || null
+        query: (graphql?.body as GraphQLBody)?.query || '',
+        variables: (graphql?.body as GraphQLBody)?.variables || ''
       },
       file: []
     },

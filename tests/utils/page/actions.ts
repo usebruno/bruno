@@ -382,6 +382,7 @@ const createEnvironment = async (
     await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
 
     const locators = buildCommonLocators(page);
+    await page.waitForTimeout(200); // @TODO replace with dynamic waiting logic
     await locators.environment.selector().click();
     if (type === 'global') {
       await locators.environment.globalTab().click();
