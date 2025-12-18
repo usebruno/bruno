@@ -3,7 +3,7 @@ import Documentation from 'components/Documentation/index';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
 import { find } from 'lodash';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTab, selectTabsForLocation, selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
@@ -13,15 +13,18 @@ import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
 import WSSettingsPane from '../WSSettingsPane/index';
 
+const LOCATION = 'request-pane';
+
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
+  const activeTabUid = useSelector(selectActiveTabIdForLocation(LOCATION));
 
   const selectTab = (tab) => {
     dispatch(updateRequestPaneTab({
       uid: item.uid,
-      requestPaneTab: tab
+      requestPaneTab: tab,
+      location: LOCATION
     }));
   };
 
@@ -61,17 +64,17 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   }
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  if (!focusedTab || !focusedTab.uid || !focusedTab.requestPaneTab) {
+  if (!focusedTab || !focusedTab.uid || !focusedTab.properties?.requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
-      active: tabName === focusedTab.requestPaneTab
+      active: tabName === focusedTab.properties.requestPaneTab
     });
   };
 
-  const isMultipleContentTab = ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab);
+  const isMultipleContentTab = ['script', 'vars', 'auth', 'docs'].includes(focusedTab.properties.requestPaneTab);
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
@@ -79,7 +82,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
 
   useEffect(() => {
-    if (!focusedTab?.requestPaneTab) {
+    if (!focusedTab?.properties?.requestPaneTab) {
       selectTab('body');
     }
   }, []);
@@ -111,7 +114,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
           'mt-2': !isMultipleContentTab
         })}
       >
-        <HeightBoundContainer>{getTabPanel(focusedTab.requestPaneTab)}</HeightBoundContainer>
+        <HeightBoundContainer>{getTabPanel(focusedTab.properties.requestPaneTab)}</HeightBoundContainer>
       </section>
     </StyledWrapper>
   );

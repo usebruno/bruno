@@ -5,7 +5,7 @@ import CodeEditor from 'components/CodeEditor';
 import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from 'ui/Tabs';
 import StyledWrapper from './StyledWrapper';
 
 const Script = ({ collection }) => {

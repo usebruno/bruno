@@ -9,7 +9,7 @@ import {
   IconBook
 } from '@tabler/icons';
 import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, focusTab, selectTabsForLocation } from 'providers/ReduxStore/slices/tabs';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
@@ -17,6 +17,8 @@ import { getDefaultRequestPaneTab } from 'utils/collections';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
 import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
 import StyledWrapper from './StyledWrapper';
+
+const LOCATION = 'request-pane';
 
 const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
@@ -28,7 +30,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
 
   const collections = useSelector((state) => state.collections.collections);
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
 
   const createCollectionResults = () => {
     const collectionResults = collections.map((collection) => ({
@@ -251,26 +253,30 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       const existingTab = tabs.find((tab) => tab.uid === result.item.uid);
 
       if (existingTab) {
-        dispatch(focusTab({ uid: result.item.uid }));
+        dispatch(focusTab({ uid: result.item.uid, location: LOCATION }));
       } else {
         dispatch(addTab({
           uid: result.item.uid,
           collectionUid: result.collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(result.item),
-          type: 'request'
+          type: 'request',
+          location: LOCATION
         }));
       }
     } else if (result.type === SEARCH_TYPES.FOLDER) {
       dispatch(addTab({
         uid: result.item.uid,
         collectionUid: result.collectionUid,
-        type: 'folder-settings'
+        type: 'folder-settings',
+        folderUid: result.item.uid,
+        location: LOCATION
       }));
     } else if (result.type === SEARCH_TYPES.COLLECTION) {
       dispatch(addTab({
         uid: result.item.uid,
         collectionUid: result.collectionUid,
-        type: 'collection-settings'
+        type: 'collection-settings',
+        location: LOCATION
       }));
     }
 

@@ -28,7 +28,8 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
       addTab({
         uid: uuid(),
         collectionUid: collection.uid,
-        type: 'collection-runner'
+        type: 'collection-runner',
+        location: 'request-pane'
       })
     );
     if (!isCollectionRunInProgress) {
@@ -43,7 +44,8 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
       addTab({
         uid: uuid(),
         collectionUid: collection.uid,
-        type: 'collection-runner'
+        type: 'collection-runner',
+        location: 'request-pane'
       })
     );
     onClose();

@@ -201,7 +201,8 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
               addTab({
                 uid: uid,
                 collectionUid: collectionUid,
-                requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType })
+                requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType }),
+                location: 'request-pane'
               })
             );
             onClose();

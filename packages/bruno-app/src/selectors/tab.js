@@ -1,9 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { selectTabsForLocation, selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
+
+const LOCATION = 'request-pane';
 
 export const isTabForItemActive = ({ itemUid }) => createSelector([
-  (state) => state.tabs?.activeTabUid
+  selectActiveTabIdForLocation(LOCATION)
 ], (activeTabUid) => activeTabUid === itemUid);
 
 export const isTabForItemPresent = ({ itemUid }) => createSelector([
-  (state) => state.tabs.tabs
+  selectTabsForLocation(LOCATION)
 ], (tabs) => tabs.some((tab) => tab.uid === itemUid));

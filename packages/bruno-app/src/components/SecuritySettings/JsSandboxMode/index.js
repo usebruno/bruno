@@ -14,7 +14,8 @@ const JsSandboxMode = ({ collection }) => {
       addTab({
         uid: uuid(),
         collectionUid: collection.uid,
-        type: 'security-settings'
+        type: 'security-settings',
+        location: 'request-pane'
       })
     );
   };

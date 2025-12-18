@@ -15,17 +15,19 @@ import {
   saveCollectionSettings
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { closeTabs, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, reorderTabs, switchTab, selectTabsForLocation, selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
 import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
 
+const LOCATION = 'request-pane';
+
 export const HotkeysProvider = (props) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
   const collections = useSelector((state) => state.collections.collections);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabIdForLocation(LOCATION));
   const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
   const isGlobalEnvironmentSettingsModalOpen = useSelector((state) => state.app.isGlobalEnvironmentSettingsModalOpen);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
@@ -170,7 +172,8 @@ export const HotkeysProvider = (props) => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('closeTab')], (e) => {
       dispatch(
         closeTabs({
-          tabUids: [activeTabUid]
+          tabUids: [activeTabUid],
+          location: LOCATION
         })
       );
 
@@ -187,7 +190,8 @@ export const HotkeysProvider = (props) => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('switchToPreviousTab')], (e) => {
       dispatch(
         switchTab({
-          direction: 'pageup'
+          direction: 'pageup',
+          location: LOCATION
         })
       );
 
@@ -204,7 +208,8 @@ export const HotkeysProvider = (props) => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('switchToNextTab')], (e) => {
       dispatch(
         switchTab({
-          direction: 'pagedown'
+          direction: 'pagedown',
+          location: LOCATION
         })
       );
 
@@ -227,7 +232,8 @@ export const HotkeysProvider = (props) => {
           const tabUids = tabs.filter((tab) => tab.collectionUid === collection.uid).map((tab) => tab.uid);
           dispatch(
             closeTabs({
-              tabUids: tabUids
+              tabUids: tabUids,
+              location: LOCATION
             })
           );
         }
@@ -256,7 +262,7 @@ export const HotkeysProvider = (props) => {
   // Move tab left
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('moveTabLeft')], (e) => {
-      dispatch(reorderTabs({ direction: -1 }));
+      dispatch(reorderTabs({ direction: -1, location: LOCATION }));
       return false; // this stops the event bubbling
     });
 
@@ -268,7 +274,7 @@ export const HotkeysProvider = (props) => {
   // Move tab right
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('moveTabRight')], (e) => {
-      dispatch(reorderTabs({ direction: 1 }));
+      dispatch(reorderTabs({ direction: 1, location: LOCATION }));
       return false; // this stops the event bubbling
     });
 

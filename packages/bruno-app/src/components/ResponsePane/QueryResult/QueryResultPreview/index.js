@@ -3,7 +3,7 @@ import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneScrollPosition, selectTabsForLocation, selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { Document, Page } from 'react-pdf';
 import 'pdfjs-dist/build/pdf.worker';
@@ -16,6 +16,8 @@ import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
 import JsonPreview from './JsonPreview';
+
+const LOCATION = 'request-pane';
 
 const QueryResultPreview = ({
   selectedTab,
@@ -31,8 +33,8 @@ const QueryResultPreview = ({
   displayedTheme
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
+  const activeTabUid = useSelector(selectActiveTabIdForLocation(LOCATION));
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
 
   const dispatch = useDispatch();
@@ -56,7 +58,8 @@ const QueryResultPreview = ({
     dispatch(
       updateResponsePaneScrollPosition({
         uid: focusedTab.uid,
-        scrollY: event.doc.scrollTop
+        scrollY: event.doc.scrollTop,
+        location: LOCATION
       })
     );
   };
@@ -73,7 +76,7 @@ const QueryResultPreview = ({
         onScroll={onScroll}
         value={formattedData}
         mode={codeMirrorMode}
-        initialScroll={focusedTab.responsePaneScrollPosition || 0}
+        initialScroll={focusedTab?.properties?.responsePaneScrollPosition || 0}
         readOnly
       />
     );

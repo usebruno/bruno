@@ -3,7 +3,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTab, selectTabsForLocation, selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
 import QueryEditor from 'components/RequestPane/QueryEditor';
 import Auth from 'components/RequestPane/Auth';
 import GraphQLVariables from 'components/RequestPane/GraphQLVariables';
@@ -22,6 +22,7 @@ import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 
 const MULTIPLE_CONTENT_TABS = new Set(['script', 'vars', 'auth', 'docs']);
+const LOCATION = 'request-pane';
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -38,8 +39,8 @@ const TAB_CONFIG = [
 
 const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
+  const activeTabUid = useSelector(selectActiveTabIdForLocation(LOCATION));
   const preferences = useSelector((state) => state.app.preferences);
 
   const query = item.draft
@@ -54,7 +55,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   const schemaActionsRef = useRef(null);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const requestPaneTab = focusedTab?.requestPaneTab;
+  const requestPaneTab = focusedTab?.properties?.requestPaneTab;
 
   useEffect(() => {
     onSchemaLoad(schema);
@@ -85,7 +86,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
 
   const selectTab = useCallback(
     (tabKey) => {
-      dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: tabKey }));
+      dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: tabKey, location: LOCATION }));
     },
     [dispatch, item.uid]
   );

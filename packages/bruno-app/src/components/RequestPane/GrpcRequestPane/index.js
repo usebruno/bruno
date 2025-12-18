@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTab, selectTabsForLocation, selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import GrpcBody from 'components/RequestPane/GrpcBody';
 import GrpcAuth from './GrpcAuth/index';
@@ -13,16 +13,19 @@ import Documentation from 'components/Documentation/index';
 import { useEffect } from 'react';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 
+const LOCATION = 'request-pane';
+
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
+  const activeTabUid = useSelector(selectActiveTabIdForLocation(LOCATION));
 
   const selectTab = (tab) => {
     dispatch(
       updateRequestPaneTab({
         uid: item.uid,
-        requestPaneTab: tab
+        requestPaneTab: tab,
+        location: LOCATION
       })
     );
   };
@@ -52,17 +55,17 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   }
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  if (!focusedTab || !focusedTab.uid || !focusedTab.requestPaneTab) {
+  if (!focusedTab || !focusedTab.uid || !focusedTab.properties?.requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
-      active: tabName === focusedTab.requestPaneTab
+      active: tabName === focusedTab.properties.requestPaneTab
     });
   };
 
-  const isMultipleContentTab = ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab);
+  const isMultipleContentTab = ['script', 'vars', 'auth', 'docs'].includes(focusedTab.properties.requestPaneTab);
   const body = getPropertyFromDraftOrRequest(item, 'request.body');
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
@@ -77,7 +80,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
 
   useEffect(() => {
     // Only set the tab to 'body' if no tab is currently set
-    if (!focusedTab?.requestPaneTab) {
+    if (!focusedTab?.properties?.requestPaneTab) {
       selectTab('body');
     }
   }, []);
@@ -114,7 +117,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         })}
       >
         <HeightBoundContainer>
-          {getTabPanel(focusedTab.requestPaneTab)}
+          {getTabPanel(focusedTab.properties.requestPaneTab)}
         </HeightBoundContainer>
       </section>
     </StyledWrapper>

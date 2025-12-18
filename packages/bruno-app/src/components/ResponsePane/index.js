@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneTab, selectTabsForLocation, selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -28,11 +28,12 @@ import ResponsiveTabs from 'ui/ResponsiveTabs';
 
 // Width threshold for expanded right-side action buttons
 const RIGHT_CONTENT_EXPANDED_WIDTH = 375;
+const LOCATION = 'request-pane';
 
 const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
+  const activeTabUid = useSelector(selectActiveTabIdForLocation(LOCATION));
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('raw');
@@ -66,7 +67,8 @@ const ResponsePane = ({ item, collection }) => {
     dispatch(
       updateResponsePaneTab({
         uid: item.uid,
-        responsePaneTab: tab
+        responsePaneTab: tab,
+        location: LOCATION
       })
     );
   };
@@ -194,7 +196,7 @@ const ResponsePane = ({ item, collection }) => {
   }
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  if (!focusedTab || !focusedTab.uid || !focusedTab.responsePaneTab) {
+  if (!focusedTab || !focusedTab.uid || !focusedTab.properties?.responsePaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
@@ -206,7 +208,7 @@ const ResponsePane = ({ item, collection }) => {
           onClick={() => setShowScriptErrorCard(true)}
         />
       )}
-      {focusedTab?.responsePaneTab === 'response' ? (
+      {focusedTab?.properties?.responsePaneTab === 'response' ? (
         <>
           <QueryResultTypeSelector
             formatOptions={previewFormatOptions}
@@ -230,7 +232,7 @@ const ResponsePane = ({ item, collection }) => {
       </div>
 
       <div className="flex items-center response-pane-actions">
-        {focusedTab?.responsePaneTab === 'timeline' ? (
+        {focusedTab?.properties?.responsePaneTab === 'timeline' ? (
           <ClearTimeline item={item} collection={collection} />
         ) : (item?.response && !item?.response?.error) ? (
           <ResponsePaneActions item={item} collection={collection} responseSize={responseSize} />
@@ -244,7 +246,7 @@ const ResponsePane = ({ item, collection }) => {
       <div className="px-4">
         <ResponsiveTabs
           tabs={allTabs}
-          activeTab={focusedTab.responsePaneTab}
+          activeTab={focusedTab.properties.responsePaneTab}
           onTabSelect={selectTab}
           rightContent={rightContent}
           rightContentRef={rightContentRef}
@@ -267,14 +269,14 @@ const ResponsePane = ({ item, collection }) => {
         )}
         <div className="flex-1 overflow-y-auto">
           {!item?.response ? (
-            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
+            focusedTab?.properties?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline
                 collection={collection}
                 item={item}
               />
             ) : null
           ) : (
-            <>{getTabPanel(focusedTab.responsePaneTab)}</>
+            <>{getTabPanel(focusedTab.properties.responsePaneTab)}</>
           )}
         </div>
       </section>

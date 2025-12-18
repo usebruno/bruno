@@ -34,7 +34,8 @@ taskMiddleware.startListening({
               addTab({
                 uid: item.uid,
                 collectionUid: collection.uid,
-                requestPaneTab: getDefaultRequestPaneTab(item)
+                requestPaneTab: getDefaultRequestPaneTab(item),
+                location: 'request-pane'
               })
             );
             listenerApi.dispatch(hideHomePage());
@@ -78,7 +79,8 @@ taskMiddleware.startListening({
                 exampleUid: example.uid,
                 collectionUid: collection.uid,
                 type: 'response-example',
-                itemUid: item.uid
+                itemUid: item.uid,
+                location: 'request-pane'
               }));
               listenerApi.dispatch(hideHomePage());
             }

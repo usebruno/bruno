@@ -69,7 +69,8 @@ const Collection = ({ collection, searchText }) => {
       addTab({
         uid: uuid(),
         collectionUid: collection.uid,
-        type: 'collection-runner'
+        type: 'collection-runner',
+        location: 'request-pane'
       })
     );
   };
@@ -111,14 +112,15 @@ const Collection = ({ collection, searchText }) => {
         addTab({
           uid: collection.uid,
           collectionUid: collection.uid,
-          type: 'collection-settings'
+          type: 'collection-settings',
+          location: 'request-pane'
         })
       );
     }
   };
 
   const handleDoubleClick = (_event) => {
-    dispatch(makeTabPermanent({ uid: collection.uid }));
+    dispatch(makeTabPermanent({ uid: collection.uid, location: 'request-pane' }));
   };
 
   const handleCollectionCollapse = (e) => {
@@ -148,7 +150,8 @@ const Collection = ({ collection, searchText }) => {
       addTab({
         uid: collection.uid,
         collectionUid: collection.uid,
-        type: 'collection-settings'
+        type: 'collection-settings',
+        location: 'request-pane'
       })
     );
   };

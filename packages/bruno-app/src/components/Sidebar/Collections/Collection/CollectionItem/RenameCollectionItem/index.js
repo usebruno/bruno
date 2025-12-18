@@ -71,7 +71,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
         }
         await dispatch(renameItem(renameConfig));
         if (isFolder) {
-          dispatch(closeTabs({ tabUids: [item.uid] }));
+          dispatch(closeTabs({ tabUids: [item.uid], location: 'request-pane' }));
         }
         onClose();
       } catch (error) {

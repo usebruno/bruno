@@ -5,12 +5,14 @@ import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
 import { isItemARequest, itemIsOpenedInTabs } from 'utils/tabs/index';
 import { getDefaultRequestPaneTab } from 'utils/collections/index';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, focusTab, selectTabsForLocation } from 'providers/ReduxStore/slices/tabs';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
+
+const LOCATION = 'request-pane';
 
 const RequestsNotLoaded = ({ collection }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
   const flattenedItems = flattenItems(collection.items);
   const itemsFailedLoading = flattenedItems?.filter((item) => item?.partial && !item?.loading);
 
@@ -25,7 +27,8 @@ const RequestsNotLoaded = ({ collection }) => {
       if (itemIsOpenedInTabs(item, tabs)) {
         dispatch(
           focusTab({
-            uid: item.uid
+            uid: item.uid,
+            location: LOCATION
           })
         );
         return;
@@ -34,7 +37,8 @@ const RequestsNotLoaded = ({ collection }) => {
         addTab({
           uid: item.uid,
           collectionUid: collection.uid,
-          requestPaneTab: getDefaultRequestPaneTab(item)
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          location: LOCATION
         })
       );
       return;

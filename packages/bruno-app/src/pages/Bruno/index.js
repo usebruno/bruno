@@ -10,6 +10,7 @@ import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
 // import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
+import { selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
 import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
@@ -54,7 +55,7 @@ require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
 
 export default function Main() {
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabIdForLocation('request-pane'));
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);

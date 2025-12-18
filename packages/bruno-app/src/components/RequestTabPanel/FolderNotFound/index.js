@@ -9,7 +9,8 @@ const FolderNotFound = ({ folderUid }) => {
   const closeTab = useCallback(() => {
     dispatch(
       closeTabs({
-        tabUids: [folderUid]
+        tabUids: [folderUid],
+        location: 'request-pane'
       })
     );
   }, [dispatch, folderUid]);

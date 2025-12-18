@@ -41,12 +41,13 @@ const ExampleItem = ({ example, item, collection }) => {
       exampleUid: example.uid,
       collectionUid: collection.uid,
       type: 'response-example',
-      itemUid: item.uid
+      itemUid: item.uid,
+      location: 'request-pane'
     }));
   };
 
   const handleDoubleClick = () => {
-    dispatch(makeTabPermanent({ uid: example.uid }));
+    dispatch(makeTabPermanent({ uid: example.uid, location: 'request-pane' }));
   };
 
   const handleRename = () => {

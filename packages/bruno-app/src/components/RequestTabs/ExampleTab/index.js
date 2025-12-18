@@ -26,7 +26,8 @@ const ExampleTab = ({ tab, collection }) => {
     event.stopPropagation();
     event.preventDefault();
     dispatch(closeTabs({
-      tabUids: [tab.uid]
+      tabUids: [tab.uid],
+      location: 'request-pane'
     }));
   };
 
@@ -50,7 +51,8 @@ const ExampleTab = ({ tab, collection }) => {
 
       // Close the tab
       dispatch(closeTabs({
-        tabUids: [tab.uid]
+        tabUids: [tab.uid],
+        location: 'request-pane'
       }));
     }
   };
@@ -64,7 +66,7 @@ const ExampleTab = ({ tab, collection }) => {
             e.preventDefault();
             e.stopPropagation();
 
-            dispatch(closeTabs({ tabUids: [tab.uid] }));
+            dispatch(closeTabs({ tabUids: [tab.uid], location: 'request-pane' }));
           }
         }}
       >
@@ -86,7 +88,8 @@ const ExampleTab = ({ tab, collection }) => {
               collectionUid: collection.uid
             }));
             dispatch(closeTabs({
-              tabUids: [tab.uid]
+              tabUids: [tab.uid],
+              location: 'request-pane'
             }));
             setShowConfirmClose(false);
           }}
@@ -95,7 +98,8 @@ const ExampleTab = ({ tab, collection }) => {
             // The changes are saved automatically when the request is saved
             dispatch(saveRequest(item.uid, collection.uid));
             dispatch(closeTabs({
-              tabUids: [tab.uid]
+              tabUids: [tab.uid],
+              location: 'request-pane'
             }));
             setShowConfirmClose(false);
           }}
@@ -104,7 +108,7 @@ const ExampleTab = ({ tab, collection }) => {
       <div
         className={`flex items-center tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
-        onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
+        onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid, location: 'request-pane' }))}
         onMouseUp={(e) => {
           if (!hasChanges) return handleMouseUp(e);
 

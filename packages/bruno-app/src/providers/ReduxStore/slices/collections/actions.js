@@ -541,7 +541,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     await dispatch(
       updateResponsePaneScrollPosition({
-        uid: state.tabs.activeTabUid,
+        uid: state.tabs.activeTabId?.['request-pane'],
+        location: 'request-pane',
         scrollY: 0
       })
     );
@@ -2140,7 +2141,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
       })
       .then((remainingWorkspaces) => {
         // Close tabs for this collection
-        dispatch(closeAllCollectionTabs({ collectionUid }));
+        dispatch(closeAllCollectionTabs({ collectionUid, location: 'request-pane' }));
 
         // Remove collection from workspace in Redux state
         if (activeWorkspace) {
@@ -2634,7 +2635,8 @@ export const openCollectionSettings
         dispatch(addTab({
           uid: collection.uid,
           collectionUid: collection.uid,
-          type: 'collection-settings'
+          type: 'collection-settings',
+          location: 'request-pane'
         }));
 
         resolve();

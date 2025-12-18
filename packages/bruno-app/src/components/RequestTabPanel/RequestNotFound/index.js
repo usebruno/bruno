@@ -9,7 +9,8 @@ const RequestNotFound = ({ itemUid }) => {
   const closeTab = () => {
     dispatch(
       closeTabs({
-        tabUids: [itemUid]
+        tabUids: [itemUid],
+        location: 'request-pane'
       })
     );
   };

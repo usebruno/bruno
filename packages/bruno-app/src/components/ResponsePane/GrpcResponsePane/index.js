@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneTab, selectTabsForLocation, selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
 import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
 import GrpcResponseHeaders from './GrpcResponseHeaders';
@@ -17,10 +17,12 @@ import GrpcQueryResult from './GrpcQueryResult';
 import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import Tab from 'components/Tab';
 
+const LOCATION = 'request-pane';
+
 const GrpcResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
+  const activeTabUid = useSelector(selectActiveTabIdForLocation(LOCATION));
   const isLoading = ['queued', 'sending'].includes(item.requestState);
 
   const requestTimeline = [...(collection?.timeline || [])].filter((obj) => {
@@ -31,7 +33,8 @@ const GrpcResponsePane = ({ item, collection }) => {
     dispatch(
       updateResponsePaneTab({
         uid: item.uid,
-        responsePaneTab: tab
+        responsePaneTab: tab,
+        location: LOCATION
       })
     );
   };
@@ -79,7 +82,7 @@ const GrpcResponsePane = ({ item, collection }) => {
   }
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  if (!focusedTab || !focusedTab.uid || !focusedTab.responsePaneTab) {
+  if (!focusedTab || !focusedTab.uid || !focusedTab.properties?.responsePaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
@@ -113,14 +116,14 @@ const GrpcResponsePane = ({ item, collection }) => {
             key={tab.name}
             name={tab.name}
             label={tab.label}
-            isActive={focusedTab.responsePaneTab === tab.name}
+            isActive={focusedTab.properties.responsePaneTab === tab.name}
             onClick={selectTab}
             count={tab.count}
           />
         ))}
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
-            {focusedTab?.responsePaneTab === 'timeline' ? (
+            {focusedTab?.properties?.responsePaneTab === 'timeline' ? (
               <>
                 <ResponseLayoutToggle />
                 <ClearTimeline item={item} collection={collection} />
@@ -141,15 +144,15 @@ const GrpcResponsePane = ({ item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col flex-grow pl-3 pr-4 h-0 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className={`flex flex-col flex-grow pl-3 pr-4 h-0 ${focusedTab.properties.responsePaneTab === 'response' ? '' : 'mt-4'}`}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {!item?.response ? (
-          focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
+          focusedTab?.properties?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
             <Timeline collection={collection} item={item} />
           ) : null
         ) : (
-          <>{getTabPanel(focusedTab.responsePaneTab)}</>
+          <>{getTabPanel(focusedTab.properties.responsePaneTab)}</>
         )}
       </section>
     </StyledWrapper>

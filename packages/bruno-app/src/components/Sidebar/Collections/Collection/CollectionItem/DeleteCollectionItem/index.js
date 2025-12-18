@@ -20,13 +20,15 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
 
         dispatch(
           closeTabs({
-            tabUids: tabUids
+            tabUids: tabUids,
+            location: 'request-pane'
           })
         );
       } else {
         dispatch(
           closeTabs({
-            tabUids: [item.uid]
+            tabUids: [item.uid],
+            location: 'request-pane'
           })
         );
       }

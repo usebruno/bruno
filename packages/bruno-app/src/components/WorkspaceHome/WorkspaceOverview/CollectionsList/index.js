@@ -123,7 +123,8 @@ const CollectionsList = ({ workspace }) => {
       addTab({
         uid: collection.uid,
         collectionUid: collection.uid,
-        type: 'collection-settings'
+        type: 'collection-settings',
+        location: 'request-pane'
       })
     );
   };

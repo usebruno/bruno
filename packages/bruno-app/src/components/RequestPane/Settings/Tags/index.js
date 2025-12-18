@@ -27,7 +27,7 @@ const Tags = ({ item, collection }) => {
           collectionUid: collection.uid
         })
       );
-      dispatch(makeTabPermanent({ uid: item.uid }));
+      dispatch(makeTabPermanent({ uid: item.uid, location: 'request-pane' }));
     }
   }, [dispatch, tags, item.uid, collection.uid]);
 

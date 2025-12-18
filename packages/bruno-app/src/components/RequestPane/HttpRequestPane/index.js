@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { find, get } from 'lodash';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTab, selectTabsForLocation, selectActiveTabIdForLocation } from 'providers/ReduxStore/slices/tabs';
 import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
@@ -20,6 +20,7 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
 
 const MULTIPLE_CONTENT_TABS = new Set(['params', 'script', 'vars', 'auth', 'docs']);
+const LOCATION = 'request-pane';
 
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
@@ -49,14 +50,14 @@ const TAB_PANELS = {
 
 const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
+  const activeTabUid = useSelector(selectActiveTabIdForLocation(LOCATION));
 
   const rightContentRef = useRef(null);
   const initialAutoSelectDone = useRef(false);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const requestPaneTab = focusedTab?.requestPaneTab;
+  const requestPaneTab = focusedTab?.properties?.requestPaneTab;
 
   const getProperty = useCallback(
     (key) => (item.draft ? get(item, `draft.${key}`, []) : get(item, key, [])),
@@ -84,7 +85,7 @@ const HttpRequestPane = ({ item, collection }) => {
 
   const selectTab = useCallback(
     (tabKey) => {
-      dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: tabKey }));
+      dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: tabKey, location: LOCATION }));
     },
     [dispatch, item.uid]
   );

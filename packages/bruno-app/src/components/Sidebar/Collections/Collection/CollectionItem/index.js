@@ -219,7 +219,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
-            uid: item.uid
+            uid: item.uid,
+            location: 'request-pane'
           })
         );
         return;
@@ -229,7 +230,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           uid: item.uid,
           collectionUid: collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(item),
-          type: 'request'
+          type: 'request',
+          location: 'request-pane'
         })
       );
     } else {
@@ -239,7 +241,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          type: 'folder-settings'
+          type: 'folder-settings',
+          folderUid: item.uid,
+          location: 'request-pane'
         })
       );
       if (item.collapsed) {
@@ -442,7 +446,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   }
 
   const handleDoubleClick = (event) => {
-    dispatch(makeTabPermanent({ uid: item.uid }));
+    dispatch(makeTabPermanent({ uid: item.uid, location: 'request-pane' }));
   };
 
   // Sort items by their "seq" property.
@@ -518,14 +522,16 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const viewFolderSettings = () => {
     if (isItemAFolder(item)) {
       if (isTabForItemPresent) {
-        dispatch(focusTab({ uid: item.uid }));
+        dispatch(focusTab({ uid: item.uid, location: 'request-pane' }));
         return;
       }
       dispatch(
         addTab({
           uid: item.uid,
           collectionUid,
-          type: 'folder-settings'
+          type: 'folder-settings',
+          folderUid: item.uid,
+          location: 'request-pane'
         })
       );
     }

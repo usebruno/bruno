@@ -17,7 +17,8 @@ const CollectionToolBar = ({ collection }) => {
       addTab({
         uid: uuid(),
         collectionUid: collection.uid,
-        type: 'collection-runner'
+        type: 'collection-runner',
+        location: 'request-pane'
       })
     );
   };
@@ -27,7 +28,8 @@ const CollectionToolBar = ({ collection }) => {
       addTab({
         uid: uuid(),
         collectionUid: collection.uid,
-        type: 'variables'
+        type: 'variables',
+        location: 'request-pane'
       })
     );
   };
@@ -37,7 +39,8 @@ const CollectionToolBar = ({ collection }) => {
       addTab({
         uid: collection.uid,
         collectionUid: collection.uid,
-        type: 'collection-settings'
+        type: 'collection-settings',
+        location: 'request-pane'
       })
     );
   };

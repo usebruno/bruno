@@ -10,11 +10,14 @@ import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders } from 'providers/ReduxStore/slices/collections/actions';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
+import { selectTabsForLocation } from 'providers/ReduxStore/slices/tabs';
+
+const LOCATION = 'request-pane';
 
 const SaveRequestsModal = ({ onClose }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const collections = useSelector((state) => state.collections.collections);
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const tabs = useSelector(selectTabsForLocation(LOCATION));
   const dispatch = useDispatch();
 
   const allDrafts = useMemo(() => {

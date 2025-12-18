@@ -5,7 +5,7 @@ import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from 'ui/Tabs';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
