@@ -4,9 +4,10 @@ import StyledWrapper from './StyledWrapper';
 
 const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, ...props }) => {
   // When in controlled mode (visible prop is provided), don't use trigger prop
+  const appendTo = props.appendTo || 'parent';
   const tippyProps = visible !== undefined
-    ? { ...props, visible, interactive: true, appendTo: 'parent' }
-    : { ...props, trigger: 'click', interactive: true, appendTo: 'parent' };
+    ? { ...props, visible, interactive: true, appendTo }
+    : { ...props, trigger: 'click', interactive: true, appendTo };
 
   return (
     <StyledWrapper className="dropdown" transparent={transparent}>

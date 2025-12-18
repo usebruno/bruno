@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
+import Portal from 'components/Portal';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -17,7 +18,7 @@ import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnviron
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
 import GradientCloseButton from './GradientCloseButton';
@@ -31,6 +32,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const { storedTheme } = useTheme();
   const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
   const tabNameRef = useRef(null);
+  const tabLabelRef = useRef(null);
   const lastOverflowStateRef = useRef(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
@@ -38,8 +40,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const [showConfirmEnvironmentClose, setShowConfirmEnvironmentClose] = useState(false);
   const [showConfirmGlobalEnvironmentClose, setShowConfirmGlobalEnvironmentClose] = useState(false);
 
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const menuDropdownRef = useRef();
 
   const item = findItemInCollection(collection, tab.uid);
 
@@ -99,17 +100,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   };
 
-  const handleRightClick = (_event) => {
-    const menuDropdown = dropdownTippyRef.current;
-    if (!menuDropdown) {
-      return;
-    }
-
-    if (menuDropdown.state.isShown) {
-      menuDropdown.hide();
-    } else {
-      menuDropdown.show();
-    }
+  const handleRightClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    menuDropdownRef.current?.show();
   };
 
   const handleMouseUp = (e) => {
@@ -383,6 +377,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
+        ref={tabLabelRef}
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
@@ -402,16 +397,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
-        <RequestTabMenu
-          onDropdownCreate={onDropdownCreate}
-          tabIndex={tabIndex}
-          collectionRequestTabs={collectionRequestTabs}
-          tabItem={item}
-          collection={collection}
-          dropdownTippyRef={dropdownTippyRef}
-          dispatch={dispatch}
-        />
       </div>
+      <RequestTabMenu
+        menuDropdownRef={menuDropdownRef}
+        tabLabelRef={tabLabelRef}
+        tabIndex={tabIndex}
+        collectionRequestTabs={collectionRequestTabs}
+        tabItem={item}
+        collection={collection}
+        dispatch={dispatch}
+      />
       <GradientCloseButton
         hasChanges={hasChanges}
         onClick={(e) => {
@@ -429,7 +424,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   );
 };
 
-function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, collection, dropdownTippyRef, dispatch }) {
+function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, collection, dispatch }) {
   const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
   const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
 
@@ -442,10 +437,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   const hasRightTabs = totalTabs > tabIndex + 1;
   const hasOtherTabs = totalTabs > 1;
 
-  async function handleCloseTab(event, tabUid) {
-    event.stopPropagation();
-    dropdownTippyRef.current.hide();
-
+  async function handleCloseTab(tabUid) {
     if (!tabUid) {
       return;
     }
@@ -461,10 +453,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
     } catch (err) { }
   }
 
-  function handleRevertChanges(event) {
-    event.stopPropagation();
-    dropdownTippyRef.current.hide();
-
+  function handleRevertChanges() {
     if (!currentTabUid) {
       return;
     }
@@ -480,39 +469,102 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
     } catch (err) { }
   }
 
-  function handleCloseOtherTabs(event) {
-    dropdownTippyRef.current.hide();
-
+  function handleCloseOtherTabs() {
     const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
-    otherTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+    otherTabs.forEach((tab) => handleCloseTab(tab.uid));
   }
 
-  function handleCloseTabsToTheLeft(event) {
-    dropdownTippyRef.current.hide();
-
+  function handleCloseTabsToTheLeft() {
     const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
-    leftTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+    leftTabs.forEach((tab) => handleCloseTab(tab.uid));
   }
 
-  function handleCloseTabsToTheRight(event) {
-    dropdownTippyRef.current.hide();
-
+  function handleCloseTabsToTheRight() {
     const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
-    rightTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+    rightTabs.forEach((tab) => handleCloseTab(tab.uid));
   }
 
-  function handleCloseSavedTabs(event) {
-    event.stopPropagation();
-
+  function handleCloseSavedTabs() {
     const items = flattenItems(collection?.items);
     const savedTabs = items?.filter?.((item) => !hasRequestChanges(item));
     const savedTabIds = savedTabs?.map((item) => item.uid) || [];
     dispatch(closeTabs({ tabUids: savedTabIds }));
   }
 
-  function handleCloseAllTabs(event) {
-    collectionRequestTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+  function handleCloseAllTabs() {
+    collectionRequestTabs.forEach((tab) => handleCloseTab(tab.uid));
   }
+
+  const menuItems = useMemo(() => [
+    {
+      id: 'new-request',
+      label: 'New Request',
+      onClick: () => setShowAddNewRequestModal(true)
+    },
+    {
+      id: 'clone-request',
+      label: 'Clone Request',
+      onClick: () => setShowCloneRequestModal(true)
+    },
+    {
+      id: 'revert-changes',
+      label: 'Revert Changes',
+      onClick: handleRevertChanges,
+      disabled: !currentTabItem?.draft
+    },
+    {
+      id: 'close',
+      label: 'Close',
+      onClick: () => handleCloseTab(currentTabUid)
+    },
+    {
+      id: 'close-others',
+      label: 'Close Others',
+      onClick: handleCloseOtherTabs,
+      disabled: !hasOtherTabs
+    },
+    {
+      id: 'close-left',
+      label: 'Close to the Left',
+      onClick: handleCloseTabsToTheLeft,
+      disabled: !hasLeftTabs
+    },
+    {
+      id: 'close-right',
+      label: 'Close to the Right',
+      onClick: handleCloseTabsToTheRight,
+      disabled: !hasRightTabs
+    },
+    {
+      id: 'close-saved',
+      label: 'Close Saved',
+      onClick: handleCloseSavedTabs
+    },
+    {
+      id: 'close-all',
+      label: 'Close All',
+      onClick: handleCloseAllTabs
+    }
+  ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
+
+  const menuDropdown = (
+    <MenuDropdown
+      ref={menuDropdownRef}
+      items={menuItems}
+      placement="bottom-start"
+      dropdownProps={{
+        appendTo: document.body,
+        getReferenceClientRect: () => {
+          if (!tabLabelRef.current) {
+            return { width: 0, height: 0, top: 0, bottom: 0, left: 0, right: 0 };
+          }
+          return tabLabelRef.current.getBoundingClientRect();
+        }
+      }}
+    >
+      <span></span>
+    </MenuDropdown>
+  );
 
   return (
     <Fragment>
@@ -528,51 +580,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
         />
       )}
 
-      <Dropdown onCreate={onDropdownCreate} icon={<span></span>} placement="bottom-start">
-        <button
-          className="dropdown-item w-full"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            setShowAddNewRequestModal(true);
-          }}
-        >
-          New Request
-        </button>
-        <button
-          className="dropdown-item w-full"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            setShowCloneRequestModal(true);
-          }}
-        >
-          Clone Request
-        </button>
-        <button
-          className="dropdown-item w-full"
-          onClick={handleRevertChanges}
-          disabled={!currentTabItem?.draft}
-        >
-          Revert Changes
-        </button>
-        <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
-          Close
-        </button>
-        <button disabled={!hasOtherTabs} className="dropdown-item w-full" onClick={handleCloseOtherTabs}>
-          Close Others
-        </button>
-        <button disabled={!hasLeftTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheLeft}>
-          Close to the Left
-        </button>
-        <button disabled={!hasRightTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheRight}>
-          Close to the Right
-        </button>
-        <button className="dropdown-item w-full" onClick={handleCloseSavedTabs}>
-          Close Saved
-        </button>
-        <button className="dropdown-item w-full" onClick={handleCloseAllTabs}>
-          Close All
-        </button>
-      </Dropdown>
+      <Portal>{menuDropdown}</Portal>
     </Fragment>
   );
 }

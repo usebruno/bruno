@@ -1,6 +1,6 @@
-import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo } from 'react';
+import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo, Fragment } from 'react';
 import Dropdown from 'components/Dropdown';
-import StyledWrapper from './StyledWrapper';
+import { MenuDropdownGlobalStyle } from './StyledWrapper';
 
 // Constants
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
@@ -432,7 +432,8 @@ const MenuDropdown = forwardRef(({
     : <div onClick={handleTriggerClick} data-testid={testId}>{children}</div>;
 
   return (
-    <StyledWrapper>
+    <Fragment>
+      <MenuDropdownGlobalStyle />
       <Dropdown
         onCreate={onDropdownCreate}
         icon={triggerElement}
@@ -462,7 +463,7 @@ const MenuDropdown = forwardRef(({
           )}
         </div>
       </Dropdown>
-    </StyledWrapper>
+    </Fragment>
   );
 });
 
