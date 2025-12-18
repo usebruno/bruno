@@ -148,7 +148,7 @@ const RequestTabPanel = () => {
       document.removeEventListener('mousemove', handleMouseMove);
     };
   }, [handleMouseUp, handleMouseMove]);
-  
+
   useEffect(() => {
     if (!isVerticalLayout) return;
 
