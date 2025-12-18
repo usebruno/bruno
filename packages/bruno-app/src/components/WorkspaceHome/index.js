@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder, IconDownload } from '@tabler/icons';
+import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder, IconUpload } from '@tabler/icons';
 import { renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
@@ -228,7 +228,7 @@ const WorkspaceHome = () => {
                     <span>Show in Folder</span>
                   </div>
                   <div className="dropdown-item" onClick={handleExportWorkspace}>
-                    <IconDownload size={16} strokeWidth={1.5} />
+                    <IconUpload size={16} strokeWidth={1.5} />
                     <span>Export</span>
                   </div>
                   <div className="dropdown-item" onClick={handleCloseWorkspaceClick}>

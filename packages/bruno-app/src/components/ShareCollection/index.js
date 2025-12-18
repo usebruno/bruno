@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import Modal from 'components/Modal';
-import { IconDownload, IconLoader2, IconAlertTriangle } from '@tabler/icons';
+import { IconUpload, IconLoader2, IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import Bruno from 'components/Bruno';
 import exportBrunoCollection from 'utils/collections/export';
@@ -100,7 +100,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
                 {isCollectionLoading ? (
                   <IconLoader2 size={28} className="animate-spin" />
                 ) : (
-                  <IconDownload size={28} strokeWidth={1} className="" />
+                  <IconUpload size={28} strokeWidth={1} className="" />
                 )}
               </div>
               <div className="flex-1">
