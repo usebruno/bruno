@@ -33,8 +33,6 @@ test.describe('Code Generation URL Encoding', () => {
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a new request using the dialog/modal flow
     await createRequest(page, requestName, collectionName, { url: 'http://base.source?name=John Doe' });
@@ -78,8 +76,6 @@ test.describe('Code Generation URL Encoding', () => {
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a new request using the dialog/modal flow
     await createRequest(page, requestName, collectionName, { url: 'http://base.source?name=John%20Doe' });

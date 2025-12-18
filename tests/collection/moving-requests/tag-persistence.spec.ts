@@ -24,8 +24,6 @@ test.describe('Tag persistence', () => {
     }
     await locators.modal.button('Create').click();
     await locators.sidebar.collection(collectionName).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
     await page.waitForTimeout(1000);
     // Create three requests via the dialog/modal flow, then add a tag to each
     const requestNames = ['request-1', 'request-2', 'request-3'];
