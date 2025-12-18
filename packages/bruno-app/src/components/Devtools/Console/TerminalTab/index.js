@@ -215,39 +215,6 @@ const TerminalTab = () => {
     });
   }, [activeSessionId]);
 
-  // Fit on window resize
-  useEffect(() => {
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
-  }, [fit]);
-
-  // Fit on parent div resize (split panes, sidebar collapse, tab layout changes, etc.)
-  useEffect(() => {
-    const container = terminalRef.current;
-    const parent = container?.parentElement;
-    const observedEl = parent || container;
-
-    if (!observedEl || typeof ResizeObserver === 'undefined') return;
-
-    const ro = new ResizeObserver(() => fit());
-    ro.observe(observedEl);
-
-    // Run once after attaching observer
-    fit();
-
-    return () => ro.disconnect();
-  }, [fit]);
-
-  // Cleanup any pending RAF on unmount
-  useEffect(() => {
-    return () => {
-      if (fitRafRef.current) {
-        cancelAnimationFrame(fitRafRef.current);
-        fitRafRef.current = null;
-      }
-    };
-  }, []);
-
   // Load sessions list
   const loadSessions = useCallback(async (currentActiveSessionId = null) => {
     if (!window.ipcRenderer) return [];
@@ -484,7 +451,13 @@ const TerminalTab = () => {
             </div>
           )}
           <div
-            ref={terminalRef}
+            ref={(node) => {
+              if (!node) return;
+              terminalRef.current = node;
+              fit();
+              const ro = new ResizeObserver(() => fit());
+              ro.observe(node.parentNode);
+            }}
             className="terminal-container"
             style={{
               height: '100%',
