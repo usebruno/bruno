@@ -76,8 +76,8 @@ test.describe('Copy and Paste Requests', () => {
 
     // Copy the request
     await page.locator('.collection-item-name').filter({ hasText: 'request-to-copy' }).click();
-    await page.keyboard.press(`${modifier}+KeyC`);
-    await page.keyboard.press(`${modifier}+KeyV`);
+    await page.keyboard.press(`${modifier}+C`);
+    await page.keyboard.press(`${modifier}+V`);
 
     // Verify the pasted request appears with the same name
     await expect(page.locator('.collection-item-name').filter({ hasText: 'request-to-copy' })).toHaveCount(2);
