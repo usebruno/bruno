@@ -12,6 +12,7 @@ import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
 import { removeCollection } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
+import { initializeWorkspaceTabs, setActiveWorkspaceTab } from '../workspaceTabs';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
@@ -253,6 +254,13 @@ export const switchWorkspace = (workspaceUid) => {
 
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
     dispatch(showHomePage());
+
+    const permanentTabs = [
+      { type: 'overview', label: 'Overview' },
+      { type: 'environments', label: 'Global Environments' }
+    ];
+    dispatch(initializeWorkspaceTabs({ workspaceUid, permanentTabs }));
+    dispatch(setActiveWorkspaceTab({ workspaceUid, type: 'overview' }));
   };
 };
 

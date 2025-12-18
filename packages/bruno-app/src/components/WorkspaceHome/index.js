@@ -7,13 +7,16 @@ import toast from 'react-hot-toast';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceEnvironments from './WorkspaceEnvironments';
+import WorkspaceTabs from 'components/WorkspaceTabs';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 
 const WorkspaceHome = () => {
   const dispatch = useDispatch();
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const [activeTab, setActiveTab] = useState('overview');
+  const workspaceTabs = useSelector((state) => state.workspaceTabs);
+  const activeTabUid = workspaceTabs.activeTabUid;
+  const activeTab = workspaceTabs.tabs.find((t) => t.uid === activeTabUid);
 
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
   const [workspaceNameInput, setWorkspaceNameInput] = useState('');
@@ -143,13 +146,10 @@ const WorkspaceHome = () => {
     }
   };
 
-  const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'environments', label: 'Global Environments' }
-  ];
-
   const renderTabContent = () => {
-    switch (activeTab) {
+    if (!activeTab) return null;
+
+    switch (activeTab.type) {
       case 'overview':
         return <WorkspaceOverview workspace={activeWorkspace} />;
       case 'environments':
@@ -244,17 +244,7 @@ const WorkspaceHome = () => {
             )}
           </div>
 
-          <div className="tabs-container">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                className={`tab-item ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <WorkspaceTabs workspaceUid={activeWorkspace.uid} />
 
           <div className="tab-content">{renderTabContent()}</div>
         </div>
