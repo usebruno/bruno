@@ -153,7 +153,7 @@ test.describe('Assertions - BRU Collection', () => {
     await test.step('Verify assertion was updated', async () => {
       await expect(table.rowExprInput(0)).toHaveValue('res.status');
       // The value cell might contain the operator, so we check it contains our value
-      const valueCell = table.rowCell(0, 'value');
+      const valueCell = table.rowCell('value', 0);
       await expect(valueCell).toContainText('200');
     });
 

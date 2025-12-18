@@ -230,19 +230,18 @@ const EditableTable = ({
           <thead>
             <tr>
               {showCheckbox && (
-                <td className="text-center" data-testid={`${testId}-header-checkbox`}>{checkboxLabel}</td>
+                <td className="text-center">{checkboxLabel}</td>
               )}
               {columns.map((column) => (
                 <td
                   key={column.key}
                   style={{ width: getColumnWidth(column) }}
-                  data-testid={`${testId}-header-${column.key}`}
                 >
                   {column.name}
                 </td>
               ))}
               {showDelete && (
-                <td style={{ width: '60px' }} data-testid={`${testId}-header-delete`}></td>
+                <td style={{ width: '60px' }}></td>
               )}
             </tr>
           </thead>
@@ -254,7 +253,6 @@ const EditableTable = ({
               return (
                 <tr
                   key={row.uid}
-                  data-testid={`${testId}-row-${rowIndex}`}
                   draggable={canDrag}
                   onDragStart={canDrag ? (e) => handleDragStart(e, rowIndex) : undefined}
                   onDragOver={canDrag ? (e) => handleDragOver(e, rowIndex) : undefined}
@@ -264,7 +262,7 @@ const EditableTable = ({
                   onMouseLeave={() => setHoveredRow(null)}
                 >
                   {showCheckbox && (
-                    <td className="text-center relative" data-testid={`${testId}-row-${rowIndex}-checkbox`}>
+                    <td className="text-center relative">
                       {reorderable && canDrag && (
                         <div
                           draggable
@@ -288,7 +286,7 @@ const EditableTable = ({
                         <input
                           type="checkbox"
                           className="mousetrap"
-                          data-testid={`${testId}-row-${rowIndex}-checkbox-input`}
+                          data-testid="column-checkbox"
                           checked={row[checkboxKey] ?? true}
                           onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
                         />
@@ -296,15 +294,15 @@ const EditableTable = ({
                     </td>
                   )}
                   {columns.map((column) => (
-                    <td key={column.key} data-testid={`${testId}-row-${rowIndex}-${column.key}`}>
+                    <td key={column.key} data-testid={`column-${column.key}`}>
                       {renderCell(column, row, rowIndex)}
                     </td>
                   ))}
                   {showDelete && (
-                    <td data-testid={`${testId}-row-${rowIndex}-delete`}>
+                    <td>
                       {!isEmpty && (
                         <button
-                          data-testid={`${testId}-row-${rowIndex}-delete-button`}
+                          data-testid="column-delete"
                           onClick={() => handleRemoveRow(row.uid)}
                         >
                           <IconTrash strokeWidth={1.5} size={18} />

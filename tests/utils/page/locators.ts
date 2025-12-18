@@ -108,17 +108,25 @@ export const buildCommonLocators = (page: Page) => ({
    * @param testId - The testId of the table
    * @returns Table locators object
    */
-  table: (testId: string) => ({
-    container: () => page.getByTestId(testId),
-    header: (columnKey: string) => page.getByTestId(`${testId}-header-${columnKey}`),
-    headerCheckbox: () => page.getByTestId(`${testId}-header-checkbox`),
-    headerDelete: () => page.getByTestId(`${testId}-header-delete`),
-    row: (index: number) => page.getByTestId(`${testId}-row-${index}`),
-    rowCell: (rowIndex: number, columnKey: string) => page.getByTestId(`${testId}-row-${rowIndex}-${columnKey}`),
-    rowCheckbox: (rowIndex: number) => page.getByTestId(`${testId}-row-${rowIndex}-checkbox-input`),
-    rowDeleteButton: (rowIndex: number) => page.getByTestId(`${testId}-row-${rowIndex}-delete-button`),
-    allRows: () => page.getByTestId(testId).locator('tbody tr')
-  }),
+  table: (testId: string) => {
+    const container = () => page.getByTestId(testId);
+    const getBodyRow = (index?: number) => {
+      const locator = container().locator('tbody tr');
+      return index !== undefined ? locator.nth(index) : locator;
+    };
+
+    return {
+      container,
+      row: (index?: number) => getBodyRow(index),
+      rowCell: (columnKey: string, rowIndex?: number) => {
+        const row = getBodyRow(rowIndex);
+        return row.getByTestId(`column-${columnKey}`);
+      },
+      rowCheckbox: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-checkbox'),
+      rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
+      allRows: () => container().locator('tbody tr')
+    };
+  },
   /**
    * Assertions table locators (extends generic table with assertion-specific helpers)
    * @returns Assertions table locators object
@@ -129,15 +137,15 @@ export const buildCommonLocators = (page: Page) => ({
       ...baseTable,
       // Assertion-specific helpers
       rowExprInput: (rowIndex: number) => {
-        const cell = baseTable.rowCell(rowIndex, 'name');
+        const cell = baseTable.rowCell('name', rowIndex);
         // Wait for the cell to be visible, then find the textbox
         return cell.getByRole('textbox').or(cell.locator('input[type="text"]'));
       },
       rowOperatorSelect: (rowIndex: number) => {
-        const cell = baseTable.rowCell(rowIndex, 'operator');
+        const cell = baseTable.rowCell('operator', rowIndex);
         return cell.getByTestId('assertion-operator-select').or(cell.locator('select'));
       },
-      rowValueInput: (rowIndex: number) => baseTable.rowCell(rowIndex, 'value')
+      rowValueInput: (rowIndex: number) => baseTable.rowCell('value', rowIndex)
     };
   }
 });
