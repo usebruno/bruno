@@ -20,10 +20,6 @@ test.describe('Create collection', () => {
     await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'test-collection' }).click();
 
-    // Select safe mode
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
-
     // Create a new request using the new dropdown flow
     await createUntitledRequest(page, { requestType: 'HTTP' });
 

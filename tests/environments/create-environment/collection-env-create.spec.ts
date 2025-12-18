@@ -21,8 +21,7 @@ test.describe('Collection Environment Create Tests', () => {
 
     await test.step('Import collection', async () => {
       await importCollection(page, collectionFile, await createTmpDir('env-test'), {
-        expectedCollectionName: 'test_collection',
-        openWithSandboxMode: 'safe'
+        expectedCollectionName: 'test_collection'
       });
     });
 

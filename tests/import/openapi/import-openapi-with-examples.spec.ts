@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
+import { closeAllCollections, openCollection } from '../../utils/page';
 
 test.describe('Import OpenAPI Collection with Examples', () => {
   let originalShowOpenDialog;
@@ -78,7 +78,7 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     });
 
     await test.step('Handle sandbox modal', async () => {
-      await openCollectionAndAcceptSandbox(page, 'API with Examples', 'safe');
+      await openCollection(page, 'API with Examples');
     });
 
     await test.step('Verify collection name appears in sidebar', async () => {
@@ -206,7 +206,7 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     });
 
     await test.step('Handle sandbox modal', async () => {
-      await openCollectionAndAcceptSandbox(page, 'API with Examples', 'safe');
+      await openCollection(page, 'API with Examples');
     });
 
     await test.step('Verify collection name appears in sidebar', async () => {

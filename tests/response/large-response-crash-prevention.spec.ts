@@ -14,8 +14,8 @@ test.describe('Large Response Crash/High Memory Usage Prevention', () => {
   test('Show appropriate warning for responses over 10MB', async ({ page, createTmpDir }) => {
     const collectionName = 'size-warning-test';
 
-    // Create collection
-    await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
+    // Create collection (auto-opens the collection)
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
 
     // Create request using the new dropdown flow
     await createUntitledRequest(page, {

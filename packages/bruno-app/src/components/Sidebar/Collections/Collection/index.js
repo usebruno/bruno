@@ -22,7 +22,7 @@ import {
   IconFolder
 } from '@tabler/icons';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { hideApiSpecPage, hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -102,6 +102,12 @@ const Collection = ({ collection, searchText }) => {
 
     if (collection.collapsed) {
       dispatch(toggleCollection(collection.uid));
+      // Set default jsSandboxMode to 'safe' if not present and save to disk
+      if (!collection.securityConfig?.jsSandboxMode) {
+        dispatch(saveCollectionSecurityConfig(collection.uid, {
+          jsSandboxMode: 'safe'
+        }));
+      }
     }
 
     if (!isChevronClick) {

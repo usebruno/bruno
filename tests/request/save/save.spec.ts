@@ -19,8 +19,6 @@ const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Pro
   await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
   await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
   await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
-  await page.getByLabel('Safe Mode').check();
-  await page.getByRole('button', { name: 'Save' }).click();
   const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection' });
   await sourceCollection.hover();
   await sourceCollection.locator('.collection-actions .icon').click();

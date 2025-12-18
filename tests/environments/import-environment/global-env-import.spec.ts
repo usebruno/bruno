@@ -28,8 +28,6 @@ test.describe('Global Environment Import Tests', () => {
 
     // Configure collection
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Import global environment
     await page.getByTestId('environment-selector-trigger').click();

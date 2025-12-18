@@ -30,8 +30,6 @@ test.describe('Code Generation URL Encoding', () => {
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'unencoded-test-collection' })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'unencoded-test-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a new request using the new dropdown flow
     await createUntitledRequest(page, {
@@ -75,8 +73,6 @@ test.describe('Code Generation URL Encoding', () => {
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'encoded-test-collection' })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'encoded-test-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a new request using the new dropdown flow
     await createUntitledRequest(page, {

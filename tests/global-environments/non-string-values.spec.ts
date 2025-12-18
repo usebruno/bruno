@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { openCollectionAndAcceptSandbox, closeAllCollections, sendRequest, addEnvironmentVariables } from '../utils/page';
+import { openCollection, closeAllCollections, sendRequest, addEnvironmentVariables } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
 test.describe('Global Environment Variables - Non-string Values', () => {
@@ -11,7 +11,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
   test('should seed non-string globals via request and verify read-only + tooltip', async ({
     pageWithUserData: page
   }) => {
-    await openCollectionAndAcceptSandbox(page, 'global-env-non-string', 'safe');
+    await openCollection(page, 'global-env-non-string');
 
     await test.step('Create a new global environment with a string variable', async () => {
       await page.getByTestId('environment-selector-trigger').click();

@@ -40,8 +40,6 @@ test.describe('OpenAPI Path-Based Grouping', () => {
 
     // Configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Path Grouping Test API').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Verify path-based folder structure was created
     // Should have 'users' and 'products' folders

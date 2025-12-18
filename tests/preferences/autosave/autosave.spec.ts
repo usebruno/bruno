@@ -15,9 +15,7 @@ test.describe('Autosave', () => {
     const collectionName = 'autosave-test';
 
     await test.step('Create collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('autosave-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('autosave-collection'));
       await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
 
       await createRequest(page, 'Test Request', collectionName);
@@ -127,9 +125,7 @@ test.describe('Autosave', () => {
     const collectionName = 'autosave-existing-drafts-test';
 
     await test.step('Create collection and request with initial URL', async () => {
-      await createCollection(page, collectionName, await createTmpDir('autosave-existing-drafts-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('autosave-existing-drafts-collection'));
       await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
 
       await createRequest(page, 'Draft Request', collectionName);

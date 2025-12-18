@@ -9,7 +9,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
 
   test('Verify request drag and drop', async ({ page, createTmpDir }) => {
     // Create first collection - open with sandbox mode
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
     // Create a request in the first collection using the new dropdown flow
     await createUntitledRequest(page, { requestType: 'HTTP' });
@@ -22,7 +22,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(page.locator('.item-name').filter({ hasText: /^Untitled/ })).toBeVisible();
 
     // Create second collection - open with sandbox mode
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
@@ -39,9 +39,6 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await sourceRequest.dragTo(targetCollection);
 
     // Verify the request has been moved to the target collection
-    // Click on target collection to expand it if needed
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-
     // Check that the request now appears under target collection
     const targetCollectionContainer = page
       .locator('.collection-name')
@@ -66,7 +63,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     createTmpDir
   }) => {
     // Create first collection (source-collection)
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
     // Create a request in the first collection using the new dropdown flow
     await createUntitledRequest(page, { requestType: 'HTTP' });
@@ -80,7 +77,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(page.locator('.item-name').filter({ hasText: /^Untitled/ })).toBeVisible();
 
     // Create second collection (target-collection)
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Create a request in the target collection using the new dropdown flow
     await createUntitledRequest(page, { requestType: 'HTTP' });
@@ -91,7 +88,6 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await page.locator('#send-request').getByTitle('Save Request').click();
 
     // Go back to source collection to drag the request
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
     const sourceRequest = page.locator('.item-name').filter({ hasText: /^Untitled/ }).first();
     await expect(sourceRequest).toBeVisible();
 

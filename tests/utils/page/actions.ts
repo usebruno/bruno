@@ -33,26 +33,12 @@ const closeAllCollections = async (page) => {
  * Open a collection from the sidebar and accept the JavaScript Sandbox modal
  * @param page - The page object
  * @param collectionName - The name of the collection to open
- * @param sandboxMode - The mode to accept the sandbox modal
  * @returns void
  */
-const openCollectionAndAcceptSandbox = async (page, collectionName: string, sandboxMode: 'safe' | 'developer' = 'safe') => {
-  await test.step(`Open collection "${collectionName}" and accept sandbox "${sandboxMode}" mode`, async () => {
+const openCollection = async (page, collectionName: string) => {
+  await test.step(`Open collection "${collectionName}"`, async () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
-
-    const sandboxModal = page
-      .locator('.bruno-modal-card')
-      .filter({ has: page.locator('.bruno-modal-header-title', { hasText: 'JavaScript Sandbox' }) });
-
-    const modeLabel = sandboxMode === 'safe' ? 'Safe Mode' : 'Developer Mode';
-    await sandboxModal.getByLabel(modeLabel).check();
-    await sandboxModal.locator('.bruno-modal-footer .submit').click();
-    await sandboxModal.waitFor({ state: 'detached' });
   });
-};
-
-type CreateCollectionOptions = {
-  openWithSandboxMode?: 'safe' | 'developer';
 };
 
 /**
@@ -64,7 +50,7 @@ type CreateCollectionOptions = {
  *
  * @returns void
  */
-const createCollection = async (page, collectionName: string, collectionLocation: string, options: CreateCollectionOptions = {}) => {
+const createCollection = async (page, collectionName: string, collectionLocation: string) => {
   await test.step(`Create collection "${collectionName}"`, async () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
@@ -80,10 +66,7 @@ const createCollection = async (page, collectionName: string, collectionLocation
 
     await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
     await page.waitForTimeout(200);
-
-    if (options.openWithSandboxMode != undefined) {
-      await openCollectionAndAcceptSandbox(page, collectionName, options.openWithSandboxMode);
-    }
+    await openCollection(page, collectionName);
   });
 };
 
@@ -238,7 +221,6 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
  */
 type ImportCollectionOptions = {
   expectedCollectionName?: string;
-  openWithSandboxMode?: SandboxMode;
 };
 
 const importCollection = async (
@@ -280,11 +262,10 @@ const importCollection = async (
       await expect(
         page.locator('#sidebar-collection-name').filter({ hasText: options.expectedCollectionName })
       ).toBeVisible();
+    }
 
-      // Configure sandbox mode if requested
-      if (options.openWithSandboxMode) {
-        await openCollectionAndAcceptSandbox(page, options.expectedCollectionName, options.openWithSandboxMode);
-      }
+    if (options.expectedCollectionName) {
+      await openCollection(page, options.expectedCollectionName);
     }
   });
 };
@@ -725,7 +706,7 @@ const clickResponseAction = async (page: Page, actionTestId: string) => {
 
 export {
   closeAllCollections,
-  openCollectionAndAcceptSandbox,
+  openCollection,
   createCollection,
   createRequest,
   createUntitledRequest,
@@ -753,4 +734,4 @@ export {
   clickResponseAction
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions };
