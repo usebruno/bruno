@@ -36,7 +36,7 @@ test.describe('Response Pane Actions', () => {
     const collectionName = 'response-copy-base64-test';
 
     await test.step('Create collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
       await createRequest(page, 'base64-copy-test', collectionName, {
         url: 'https://testbench-sanity.usebruno.com/ping'
       });
