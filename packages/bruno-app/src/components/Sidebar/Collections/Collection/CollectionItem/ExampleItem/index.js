@@ -198,7 +198,7 @@ const ExampleItem = ({ example, item, collection }) => {
         style={{ paddingLeft: 8 }}
       >
         <div style={{ width: 16, minWidth: 16 }}></div>
-        <ExampleIcon size={16} color="currentColor" className="example-icon mr-2 flex-shrink-0" />
+        <ExampleIcon size={16} color="currentColor" className="example-icon mr-1 flex-shrink-0" />
         <span className="item-name truncate">{example.name}</span>
       </div>
       <div className="menu-icon pr-2">
