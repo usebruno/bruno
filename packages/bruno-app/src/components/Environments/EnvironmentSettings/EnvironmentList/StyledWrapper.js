@@ -85,7 +85,7 @@ const StyledWrapper = styled.div`
       padding: 6px 8px 6px 28px;
       font-size: 12px;
       background: transparent;
-      border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
+      border: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
       border-radius: 5px;
       color: ${(props) => props.theme.text};
       transition: all 0.15s ease;
@@ -188,33 +188,6 @@ const StyledWrapper = styled.div`
       }
     }
 
-    .rename-container {
-      display: flex;
-      align-items: center;
-      flex: 1;
-
-      .environment-name-input {
-        flex: 1;
-        background: transparent;
-        border: none;
-        outline: none;
-        color: ${(props) => props.theme.text};
-        font-size: 13px;
-        padding: 2px 4px;
-
-        &::placeholder {
-          color: ${(props) => props.theme.colors.text.muted};
-        }
-      }
-
-      .inline-actions {
-        display: flex;
-        gap: 2px;
-        margin-left: 4px;
-      }
-    }
-
-    &.creating {
       .environment-name-input {
         flex: 1;
         background: transparent;
@@ -265,6 +238,11 @@ const StyledWrapper = styled.div`
           }
         }
       }
+
+    .rename-container {
+      display: flex;
+      align-items: center;
+      flex: 1;
     }
   }
 

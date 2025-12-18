@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useMemo } from 'react';
+import React, { useCallback, useRef, useMemo, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { get } from 'lodash';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
@@ -151,7 +151,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   });
 
   // Restore draft values on mount or environment switch
-  React.useEffect(() => {
+  useEffect(() => {
     const isMount = !mountedRef.current;
     const envChanged = prevEnvUidRef.current !== null && prevEnvUidRef.current !== environment.uid;
 
@@ -173,34 +173,43 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     }
   }, [environment.uid, hasDraftForThisEnv, environmentsDraft?.variables]);
 
-  // Sync draft state to Redux
-  React.useEffect(() => {
+  const savedValuesJson = useMemo(() => {
+    return JSON.stringify(environment.variables || []);
+  }, [environment.variables]);
+
+  useEffect(() => {
     const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
-    const savedValues = environment.variables || [];
-
     const currentValuesJson = JSON.stringify(currentValues);
-    const savedValuesJson = JSON.stringify(savedValues);
     const hasActualChanges = currentValuesJson !== savedValuesJson;
-
     setIsModified(hasActualChanges);
+  }, [formik.values, savedValuesJson, setIsModified]);
 
-    // Get existing draft for comparison
-    const existingDraftVariables = hasDraftForThisEnv ? environmentsDraft?.variables : null;
-    const existingDraftJson = existingDraftVariables ? JSON.stringify(existingDraftVariables) : null;
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+      const currentValuesJson = JSON.stringify(currentValues);
+      const hasActualChanges = currentValuesJson !== savedValuesJson;
 
-    if (hasActualChanges) {
-      // Only dispatch if draft values are actually different
-      if (currentValuesJson !== existingDraftJson) {
-        dispatch(setEnvironmentsDraft({
-          collectionUid: collection.uid,
-          environmentUid: environment.uid,
-          variables: currentValues
-        }));
+      // Get existing draft for comparison
+      const existingDraftVariables = hasDraftForThisEnv ? environmentsDraft?.variables : null;
+      const existingDraftJson = existingDraftVariables ? JSON.stringify(existingDraftVariables) : null;
+
+      if (hasActualChanges) {
+        // Only dispatch if draft values are actually different
+        if (currentValuesJson !== existingDraftJson) {
+          dispatch(setEnvironmentsDraft({
+            collectionUid: collection.uid,
+            environmentUid: environment.uid,
+            variables: currentValues
+          }));
+        }
+      } else if (hasDraftForThisEnv) {
+        dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
       }
-    } else if (hasDraftForThisEnv) {
-      dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
-    }
-  }, [formik.values, environment.variables, environment.uid, collection.uid, setIsModified, dispatch, hasDraftForThisEnv, environmentsDraft?.variables]);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [formik.values, savedValuesJson, environment.uid, collection.uid, dispatch, hasDraftForThisEnv, environmentsDraft?.variables]);
 
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);
@@ -361,7 +370,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleSaveEvent = () => {
       handleSaveRef.current();
     };
