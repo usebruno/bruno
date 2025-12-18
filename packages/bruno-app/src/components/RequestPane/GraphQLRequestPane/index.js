@@ -46,8 +46,8 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     ? get(item, 'draft.request.body.graphql.query', '')
     : get(item, 'request.body.graphql.query', '');
   const variables = item.draft
-    ? get(item, 'draft.request.body.graphql.variables')
-    : get(item, 'request.body.graphql.variables');
+    ? get(item, 'draft.request.body.graphql.variables', '')
+    : get(item, 'request.body.graphql.variables', '');
 
   const { displayedTheme } = useTheme();
   const [schema, setSchema] = useState(null);

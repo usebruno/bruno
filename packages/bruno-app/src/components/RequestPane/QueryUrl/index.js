@@ -144,11 +144,13 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             collectionUid: collection.uid,
             query: request.body.graphql.query
           }));
-          let variables = request.body.graphql.variables;
-          try {
-            variables = JSON.parse(variables);
-          } catch (error) {
-            // Keep variables as-is if JSON parsing fails
+          let variables = request.body.graphql.variables || '';
+          if (variables) {
+            try {
+              variables = JSON.parse(variables);
+            } catch (error) {
+              // Keep variables as-is if JSON parsing fails
+            }
           }
           dispatch(updateRequestGraphqlVariables({
             itemUid: item.uid,
@@ -271,7 +273,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               })
             );
           }
-          if (request.body.graphql.variables) {
+          if (request.body.graphql.variables && request.body.graphql.variables.trim()) {
             dispatch(
               updateRequestGraphqlVariables({
                 itemUid: item.uid,
