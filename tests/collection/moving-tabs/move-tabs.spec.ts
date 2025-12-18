@@ -26,7 +26,7 @@ test.describe('Move tabs', () => {
 
     // Create a folder in the collection
     const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-drag-drop' });
-    await sourceCollection.locator('.collection-actions').hover();
+    await sourceCollection.hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
@@ -45,7 +45,7 @@ test.describe('Move tabs', () => {
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-folder' })).toBeVisible();
 
     // Add a request to the collection
-    await sourceCollection.locator('.collection-actions').hover();
+    await sourceCollection.hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
@@ -117,7 +117,7 @@ test.describe('Move tabs', () => {
 
     // Create a folder in the collection
     const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' });
-    await sourceCollection.locator('.collection-actions').hover();
+    await sourceCollection.hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
@@ -136,7 +136,7 @@ test.describe('Move tabs', () => {
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-folder' })).toBeVisible();
 
     // Add a request to the collection
-    await sourceCollection.locator('.collection-actions').hover();
+    await sourceCollection.hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');

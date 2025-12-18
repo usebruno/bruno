@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -15,7 +15,7 @@ import {
 
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { normalizePath } from 'utils/common/path';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -43,18 +43,17 @@ const CollectionsSection = () => {
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
 
+  const workspaceCollections = useMemo(() => {
+    if (!activeWorkspace) return [];
+    return collections.filter((c) =>
+      activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
+    );
+  }, [activeWorkspace, collections]);
+
   const handleImportCollection = ({ rawData, type }) => {
     setImportCollectionModalOpen(false);
-
-    if (activeWorkspace && activeWorkspace.type !== 'default') {
-      dispatch(importCollectionInWorkspace(rawData, activeWorkspace.uid, undefined, type))
-        .catch((err) => {
-          toast.error('An error occurred while importing the collection');
-        });
-    } else {
-      setImportData({ rawData, type });
-      setImportCollectionLocationModalOpen(true);
-    }
+    setImportData({ rawData, type });
+    setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
@@ -116,7 +115,7 @@ const CollectionsSection = () => {
   };
 
   const selectAllCollectionsToClose = () => {
-    setCollectionsToClose(collections.map((c) => c.uid));
+    setCollectionsToClose(workspaceCollections.map((c) => c.uid));
   };
 
   const clearCollectionsToClose = () => {

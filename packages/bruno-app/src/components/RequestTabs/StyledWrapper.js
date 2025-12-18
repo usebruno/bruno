@@ -38,7 +38,6 @@ const Wrapper = styled.div`
     display: flex;
     align-items: flex-end;
     position: relative;
-    z-index: 1;
 
     &::-webkit-scrollbar {
       display: none;
@@ -77,7 +76,7 @@ const Wrapper = styled.div`
       }
 
       &:nth-last-child(1) {
-        margin-right: 10px;
+        margin-right: 4px;
       }
 
       &.has-overflow:not(:hover) .tab-name {

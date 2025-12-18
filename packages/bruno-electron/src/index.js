@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
 
@@ -12,7 +13,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -54,6 +55,7 @@ const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
+const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/deeplink');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
@@ -85,6 +87,35 @@ const isMac = process.platform === 'darwin';
 const isWindows = process.platform === 'win32';
 
 let mainWindow;
+let appProtocolUrl;
+
+// Register custom protocol handler (must be called before app is ready)
+// In dev mode, we need to pass the Electron executable path and script path
+app.setAsDefaultProtocolClient('bruno');
+if (os.platform() === 'linux') {
+  try {
+    execSync('xdg-mime default bruno.desktop x-scheme-handler/bruno');
+  } catch (err) {}
+}
+
+appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
+
+// Handle protocol URLs (macOS)
+if (process.platform === 'darwin') {
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    appProtocolUrl = url || appProtocolUrl;
+    handleAppProtocolUrl(appProtocolUrl, mainWindow);
+  });
+}
+
+// Handle protocol URLs when app is already running (Windows/Linux)
+if (process.platform === 'win32' || process.platform === 'linux') {
+  app.on('second-instance', (event, argv) => {
+    appProtocolUrl = getAppProtocolUrlFromArgv(argv) || appProtocolUrl;
+    handleAppProtocolUrl(appProtocolUrl, mainWindow);
+  });
+}
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
@@ -126,7 +157,6 @@ app.on('ready', async () => {
     icon: path.join(__dirname, 'about/256x256.png'),
     // Custom title bar – ensure React titlebar occupies the window chrome on all OSes
     titleBarStyle: isMac ? 'hiddenInset' : isWindows ? 'hidden' : 'default',
-    titleBarOverlay: isWindows ? { height: 36 } : undefined,
     trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined
     // we will bring this back
     // see https://github.com/usebruno/bruno/issues/440
@@ -136,6 +166,31 @@ app.on('ready', async () => {
   if (maximized) {
     mainWindow.maximize();
   }
+
+  // Window control IPC handlers (Windows custom titlebar)
+  ipcMain.on('renderer:window-minimize', () => {
+    if (!isWindows) return;
+    mainWindow.minimize();
+  });
+
+  ipcMain.on('renderer:window-maximize', () => {
+    if (!isWindows) return;
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
+
+  ipcMain.on('renderer:window-close', () => {
+    if (!isWindows) return;
+    mainWindow.close();
+  });
+
+  ipcMain.handle('renderer:window-is-maximized', () => {
+    if (!isWindows) return false;
+    return mainWindow.isMaximized();
+  });
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
@@ -173,8 +228,14 @@ app.on('ready', async () => {
   mainWindow.on('resize', handleBoundsChange);
   mainWindow.on('move', handleBoundsChange);
 
-  mainWindow.on('maximize', () => saveMaximized(true));
-  mainWindow.on('unmaximize', () => saveMaximized(false));
+  mainWindow.on('maximize', () => {
+    saveMaximized(true);
+    mainWindow.webContents.send('main:window-maximized');
+  });
+  mainWindow.on('unmaximize', () => {
+    saveMaximized(false);
+    mainWindow.webContents.send('main:window-unmaximized');
+  });
 
   // Full screen events for title bar padding adjustment
   mainWindow.on('enter-full-screen', () => {
@@ -194,6 +255,12 @@ app.on('ready', async () => {
     event.preventDefault();
     if (/^(http:\/\/|https:\/\/)/.test(url)) {
       require('electron').shell.openExternal(url);
+    }
+  });
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (appProtocolUrl) {
+      handleAppProtocolUrl(appProtocolUrl, mainWindow);
     }
   });
 

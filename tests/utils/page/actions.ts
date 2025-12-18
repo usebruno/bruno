@@ -13,7 +13,9 @@ const closeAllCollections = async (page) => {
     const numberOfCollections = await page.locator('[data-testid="collections"] .collection-name').count();
 
     for (let i = 0; i < numberOfCollections; i++) {
-      await page.locator('[data-testid="collections"] .collection-name').first().locator('.collection-actions').click();
+      const firstCollection = page.locator('[data-testid="collections"] .collection-name').first();
+      await firstCollection.hover();
+      await firstCollection.locator('.collection-actions .icon').click();
       await page.locator('.dropdown-item').getByText('Remove').click();
       // Wait for the remove collection modal to be visible
       await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
@@ -665,10 +667,10 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
     if (await overflowButton.isVisible()) {
       await overflowButton.click();
 
-      // Wait for dropdown to appear and click the tab
-      const dropdownTab = page.locator('.tippy-content').getByRole('tab', { name: tabName });
-      await expect(dropdownTab).toBeVisible();
-      await dropdownTab.click();
+      // Wait for dropdown to appear and click the menu item (overflow tabs are rendered as menuitems)
+      const dropdownItem = page.locator('.tippy-content').getByRole('menuitem', { name: tabName });
+      await expect(dropdownItem).toBeVisible();
+      await dropdownItem.click();
       return;
     }
 
@@ -692,15 +694,32 @@ const expectResponseContains = async (page: Page, texts: string[]) => {
   });
 };
 
-// Create a action to click a response action
+// Map button testIds to menu item IDs
+const buttonToMenuItemMap: Record<string, string> = {
+  'response-copy-btn': 'copy-response',
+  'response-bookmark-btn': 'save-response',
+  'response-download-btn': 'download-response',
+  'response-clear-btn': 'clear-response',
+  'response-layout-toggle-btn': 'change-layout'
+};
+
+// Click a response action - handles both visible buttons and menu items
 const clickResponseAction = async (page: Page, actionTestId: string) => {
-  const actionButton = await page.getByTestId(actionTestId).first();
+  const actionButton = page.getByTestId(actionTestId).first();
   if (await actionButton.isVisible()) {
     await actionButton.click();
   } else {
-    const menu = await page.getByTestId('response-actions-menu');
+    // Open the menu dropdown
+    const menu = page.getByTestId('response-actions-menu');
     await menu.click();
-    await actionButton.click();
+
+    // Click the corresponding menu item
+    const menuItemId = buttonToMenuItemMap[actionTestId];
+    if (menuItemId) {
+      await page.locator(`[role="menuitem"][data-item-id="${menuItemId}"]`).click();
+    } else {
+      throw new Error(`Unknown action testId: ${actionTestId}. Add mapping to buttonToMenuItemMap.`);
+    }
   }
 };
 

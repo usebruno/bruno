@@ -15,7 +15,6 @@ const StyledWrapper = styled.div.attrs((props) => ({
   right: 0;
   top: 0;
   padding-right: 4px;
-  z-index: 3;
   
   background-image: linear-gradient(
     90deg,

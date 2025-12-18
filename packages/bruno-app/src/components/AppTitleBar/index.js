@@ -1,10 +1,10 @@
 import React from 'react';
-import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus } from '@tabler/icons';
+import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus, IconUpload, IconSettings, IconMinus, IconSquare, IconX, IconCopy } from '@tabler/icons';
 import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { savePreferences, showHomePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { savePreferences, showHomePage, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
 import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
@@ -14,15 +14,26 @@ import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
+import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
 import { toTitleCase } from 'utils/common/index';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
+import { isMacOS, isWindowsOS } from 'utils/common/platform';
+
+const getOsClass = () => {
+  if (isMacOS()) return 'os-mac';
+  if (isWindowsOS()) return 'os-windows';
+  return 'os-other';
+};
 
 const AppTitleBar = () => {
   const dispatch = useDispatch();
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const osClass = getOsClass();
+  const isWindows = osClass === 'os-windows';
 
   // Listen for fullscreen changes
   useEffect(() => {
@@ -43,6 +54,50 @@ const AppTitleBar = () => {
     };
   }, []);
 
+  // Check initial maximized state and listen for changes (Windows only)
+  useEffect(() => {
+    if (!isWindows) return;
+    const { ipcRenderer } = window;
+    if (!ipcRenderer) return;
+
+    // Get initial state
+    ipcRenderer.invoke('renderer:window-is-maximized')
+      .then((maximized) => {
+        setIsMaximized(maximized);
+      })
+      .catch((error) => {
+        console.error('Error getting initial maximized state:', error);
+      });
+
+    // Listen for maximize/unmaximize events from main process
+    const removeMaximizedListener = ipcRenderer.on('main:window-maximized', () => {
+      setIsMaximized(true);
+    });
+
+    const removeUnmaximizedListener = ipcRenderer.on('main:window-unmaximized', () => {
+      setIsMaximized(false);
+    });
+
+    return () => {
+      removeMaximizedListener();
+      removeUnmaximizedListener();
+    };
+  }, [isWindows]);
+
+  // Window control handlers (Windows only) - these always work, even with modals open
+  const handleMinimize = useCallback(() => {
+    window.ipcRenderer?.send('renderer:window-minimize');
+  }, []);
+
+  const handleMaximize = useCallback(() => {
+    window.ipcRenderer?.send('renderer:window-maximize');
+    // State will be updated via IPC events from main process (main:window-maximized/main:window-unmaximized)
+  }, []);
+
+  const handleClose = useCallback(() => {
+    window.ipcRenderer?.send('renderer:window-close');
+  }, []);
+
   // Get workspace info
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
@@ -56,6 +111,7 @@ const AppTitleBar = () => {
   }, [workspaces, preferences]);
 
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+  const [importWorkspaceModalOpen, setImportWorkspaceModalOpen] = useState(false);
 
   const WorkspaceName = forwardRef((props, ref) => {
     return (
@@ -86,6 +142,14 @@ const AppTitleBar = () => {
 
   const handleCreateWorkspace = () => {
     setCreateWorkspaceModalOpen(true);
+  };
+
+  const handleManageWorkspaces = () => {
+    dispatch(showManageWorkspacePage());
+  };
+
+  const handleImportWorkspace = () => {
+    setImportWorkspaceModalOpen(true);
   };
 
   const handlePinWorkspace = useCallback((workspaceUid, e) => {
@@ -154,6 +218,18 @@ const AppTitleBar = () => {
         leftSection: IconFolder,
         label: 'Open workspace',
         onClick: handleOpenWorkspace
+      },
+      {
+        id: 'import-workspace',
+        leftSection: IconUpload,
+        label: 'Import workspace',
+        onClick: handleImportWorkspace
+      },
+      {
+        id: 'manage-workspaces',
+        leftSection: IconSettings,
+        label: 'Manage workspaces',
+        onClick: handleManageWorkspaces
       }
     );
 
@@ -161,9 +237,12 @@ const AppTitleBar = () => {
   }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace]);
 
   return (
-    <StyledWrapper className={`app-titlebar ${isFullScreen ? 'fullscreen' : ''}`}>
+    <StyledWrapper className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>
       {createWorkspaceModalOpen && (
         <CreateWorkspace onClose={() => setCreateWorkspaceModalOpen(false)} />
+      )}
+      {importWorkspaceModalOpen && (
+        <ImportWorkspace onClose={() => setImportWorkspaceModalOpen(false)} />
       )}
 
       <div className="titlebar-content">
@@ -197,27 +276,55 @@ const AppTitleBar = () => {
 
         {/* Right section: Action buttons */}
         <div className="titlebar-right">
-          {/* Toggle sidebar */}
-          <ActionIcon
-            onClick={handleToggleSidebar}
-            label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            size="lg"
-            data-testid="toggle-sidebar-button"
-          >
-            <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} />
-          </ActionIcon>
+          <div className="titlebar-actions">
+            {/* Toggle sidebar */}
+            <ActionIcon
+              onClick={handleToggleSidebar}
+              label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+              size="lg"
+              data-testid="toggle-sidebar-button"
+            >
+              <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} />
+            </ActionIcon>
 
-          {/* Toggle devtools */}
-          <ActionIcon
-            onClick={handleToggleDevtools}
-            label={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
-            size="lg"
-            data-testid="toggle-devtools-button"
-          >
-            <IconBottombarToggle collapsed={!isConsoleOpen} size={16} strokeWidth={1.5} />
-          </ActionIcon>
+            {/* Toggle devtools */}
+            <ActionIcon
+              onClick={handleToggleDevtools}
+              label={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
+              size="lg"
+              data-testid="toggle-devtools-button"
+            >
+              <IconBottombarToggle collapsed={!isConsoleOpen} size={16} strokeWidth={1.5} />
+            </ActionIcon>
 
-          <ResponseLayoutToggle />
+            <ResponseLayoutToggle />
+          </div>
+
+          {isWindows && (
+            <div className="window-controls">
+              <button
+                className="window-control-btn minimize"
+                onClick={handleMinimize}
+                aria-label="Minimize"
+              >
+                <IconMinus size={16} stroke={1} />
+              </button>
+              <button
+                className="window-control-btn maximize"
+                onClick={handleMaximize}
+                aria-label={isMaximized ? 'Restore' : 'Maximize'}
+              >
+                {isMaximized ? <IconCopy size={14} stroke={1} /> : <IconSquare size={14} stroke={1} />}
+              </button>
+              <button
+                className="window-control-btn close"
+                onClick={handleClose}
+                aria-label="Close"
+              >
+                <IconX size={16} stroke={1} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </StyledWrapper>

@@ -218,7 +218,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
 
     // Create a folder in the collection
     const collection = page.locator('.collection-name').filter({ hasText: collectionName });
-    await collection.locator('.collection-actions').hover();
+    await collection.hover(); // Hover on collection to reveal action buttons
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 

@@ -41,7 +41,6 @@ const Wrapper = styled.div`
         padding: 0.375rem 0.625rem 0.25rem 0.625rem;
         font-size: 0.6875rem;
         font-weight: 600;
-        text-transform: uppercase;
         letter-spacing: 0.025em;
         color: ${(props) => props.theme.dropdown.color};
         opacity: 0.6;
@@ -136,6 +135,10 @@ const Wrapper = styled.div`
           border-top: solid 1px ${(props) => props.theme.dropdown.separator};
           margin-top: 0.25rem;
           padding-top: 0.375rem;
+        }
+
+        &.dropdown-item-select {
+          padding-left: 1.5rem;
         }
       }
 

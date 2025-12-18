@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { IconCopy, IconCheck } from '@tabler/icons';
+import classnames from 'classnames';
+import ActionIcon from 'ui/ActionIcon/index';
 
 // Hook to get copy response function
 export const useResponseCopy = (item) => {
@@ -34,8 +36,16 @@ export const useResponseCopy = (item) => {
   return { copyResponse, copied, hasData: !!response.data };
 };
 
-const ResponseCopy = ({ item, children }) => {
+const ResponseCopy = forwardRef(({ item, children }, ref) => {
   const { copyResponse, copied, hasData } = useResponseCopy(item);
+  const elementRef = useRef(null);
+
+  const isDisabled = !hasData ? true : false;
+
+  useImperativeHandle(ref, () => ({
+    click: () => elementRef.current?.click(),
+    isDisabled
+  }), [isDisabled]);
 
   const handleKeyDown = (e) => {
     if ((e.key === 'Enter' || e.key === ' ') && hasData) {
@@ -51,20 +61,32 @@ const ResponseCopy = ({ item, children }) => {
   };
 
   return (
-    <div role={!!children ? 'button' : undefined} tabIndex={0} onClick={handleClick} title={!children ? 'Copy response to clipboard' : null} onKeyDown={handleKeyDown} data-testid="response-copy-btn">
+    <div
+      ref={elementRef}
+      onClick={handleClick}
+      title={!children ? 'Copy response to clipboard' : null}
+      onKeyDown={handleKeyDown}
+      aria-disabled={isDisabled}
+      className={classnames({
+        'opacity-50 cursor-not-allowed': isDisabled && !children
+      })}
+      data-testid="response-copy-btn"
+    >
       {children ? children : (
         <StyledWrapper className="flex items-center">
-          <button className="p-1" disabled={!hasData}>
+          <ActionIcon className="p-1" disabled={isDisabled}>
             {copied ? (
               <IconCheck size={16} strokeWidth={2} />
             ) : (
               <IconCopy size={16} strokeWidth={2} />
             )}
-          </button>
+          </ActionIcon>
         </StyledWrapper>
       )}
     </div>
   );
-};
+});
+
+ResponseCopy.displayName = 'ResponseCopy';
 
 export default ResponseCopy;

@@ -230,6 +230,29 @@ const registerWsEventHandlers = (window) => {
           }
         }
 
+        // Get certificates and proxy configuration
+        const certsAndProxyConfig = await getCertsAndProxyConfig({
+          collectionUid: collection.uid,
+          collection,
+          request: requestCopy.request,
+          envVars: preparedRequest.envVars,
+          runtimeVariables,
+          processEnvVars: preparedRequest.processEnvVars,
+          collectionPath: collection.pathname,
+          globalEnvironmentVariables: collection.globalEnvironmentVariables
+        });
+
+        const { httpsAgentRequestFields } = certsAndProxyConfig;
+
+        const sslOptions = {
+          rejectUnauthorized: preferencesUtil.shouldVerifyTls(),
+          ca: httpsAgentRequestFields.ca,
+          cert: httpsAgentRequestFields.cert,
+          key: httpsAgentRequestFields.key,
+          pfx: httpsAgentRequestFields.pfx,
+          passphrase: httpsAgentRequestFields.passphrase
+        };
+
         // Start WebSocket connection
         await wsClient.startConnection({
           request: preparedRequest,
@@ -237,7 +260,8 @@ const registerWsEventHandlers = (window) => {
           options: {
             timeout: settings.timeout,
             keepAlive: settings.keepAliveInterval > 0 ? true : false,
-            keepAliveInterval: settings.keepAliveInterval
+            keepAliveInterval: settings.keepAliveInterval,
+            sslOptions
           }
         });
 

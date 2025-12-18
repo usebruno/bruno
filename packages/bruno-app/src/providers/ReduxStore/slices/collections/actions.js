@@ -478,6 +478,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     prompts.push(...extractPromptVariables(headers));
     prompts.push(...extractPromptVariables(request.params));
     prompts.push(...extractPromptVariables(resolvedAuthRequest.auth));
+    prompts.push(...extractPromptVariables(request.url));
 
     // Remove duplicates
     const uniquePrompts = Array.from(new Set(prompts));
@@ -2525,6 +2526,24 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
         );
         resolve();
       })
+      .catch(reject);
+  });
+};
+
+export const isOauth2AuthorizationRequestInProgress = () => async () => {
+  return new Promise((resolve, reject) => {
+    window.ipcRenderer
+      .invoke('renderer:is-oauth2-authorization-request-in-progress')
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const cancelOauth2AuthorizationRequest = () => async () => {
+  return new Promise((resolve, reject) => {
+    window.ipcRenderer
+      .invoke('renderer:cancel-oauth2-authorization-request')
+      .then(resolve)
       .catch(reject);
   });
 };
