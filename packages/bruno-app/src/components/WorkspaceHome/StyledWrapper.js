@@ -108,33 +108,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .tabs-container {
-    display: flex;
-    gap: 16px;
-    padding: 0 16px;
-    border-bottom: 1px solid ${(props) => props.theme.workspace.border};
-  }
-
-  .tab-item {
-    padding: 8px 0;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.muted};
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.15s;
-
-    &:hover {
-      color: ${(props) => props.theme.text};
-    }
-
-    &.active {
-      color: ${(props) => props.theme.text};
-      border-bottom-color: ${(props) => props.theme.workspace.accent};
-    }
-  }
-
   .tab-content {
     flex: 1;
     overflow: hidden;
