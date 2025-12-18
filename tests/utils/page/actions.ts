@@ -264,7 +264,9 @@ const importCollection = async (
       ).toBeVisible();
     }
 
-    await openCollection(page, options.expectedCollectionName || '');
+    if (options.expectedCollectionName) {
+      await openCollection(page, options.expectedCollectionName);
+    }
   });
 };
 
