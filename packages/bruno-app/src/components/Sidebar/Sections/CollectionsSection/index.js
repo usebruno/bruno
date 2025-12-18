@@ -143,19 +143,19 @@ const CollectionsSection = () => {
       }
     },
     {
-      id: 'import',
-      leftSection: IconDownload,
-      label: 'Import collection',
-      onClick: () => {
-        setImportCollectionModalOpen(true);
-      }
-    },
-    {
       id: 'open',
       leftSection: IconFolder,
       label: 'Open collection',
       onClick: () => {
         handleOpenCollection();
+      }
+    },
+    {
+      id: 'import',
+      leftSection: IconDownload,
+      label: 'Import collection',
+      onClick: () => {
+        setImportCollectionModalOpen(true);
       }
     }
   ];

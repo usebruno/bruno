@@ -237,6 +237,12 @@ const Wrapper = styled.div`
       color: white;
     }
   }
+
+  .dropdown-item-active {
+    font-weight: 400 !important;
+    background-color: ${(props) => props.theme.dropdown.selectedBg} !important;
+    color: ${(props) => props.theme.dropdown.selectedColor} !important;
+  }
 `;
 
 export default Wrapper;
