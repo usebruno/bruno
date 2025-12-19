@@ -616,6 +616,8 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
 };
 
 const mergeAuth = (collection, request, requestTreePath) => {
+  console.log("[INFO] mergeAuth electron utils collection")
+
   // Start with collection level auth (always consider collection auth as base)
   const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
@@ -623,14 +625,17 @@ const mergeAuth = (collection, request, requestTreePath) => {
   let lastFolderWithAuth = null;
 
   // Traverse through the path to find the closest auth configuration
-  for (let i of requestTreePath) {
+  // TODO(LBD): traversing in reverse, using an algorithm similar to 'getEffectiveAuthSource' used in the frontend ?
+  for (let i of [...requestTreePath].reverse()) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');
       // Only consider folders that have a valid auth mode
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+      // TODO(LBD): mode === 'none' should cause the search to stop (no auth)
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         lastFolderWithAuth = i;
+        break;
       }
     }
   }

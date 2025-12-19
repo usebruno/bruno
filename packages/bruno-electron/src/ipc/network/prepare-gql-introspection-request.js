@@ -23,6 +23,7 @@ const prepareGqlIntrospectionRequest = (endpoint, resolvedVars, request, collect
     data: JSON.stringify(queryParams)
   };
 
+  // TODO(LBD): is there an equivalent to 'mergeAuth' which is or should be called before 'setAuthHeaders' ?
   return setAuthHeaders(axiosRequest, request, collectionRoot);
 };
 
