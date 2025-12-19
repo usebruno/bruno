@@ -9,154 +9,151 @@ const { isLargeFile } = require('../../utils/filesystem');
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
-  // TODO(LBD): is it necessary to check 'collectionAuth' ?
-  //  (auth should already have been computed on the request via 'mergeAuth')
+  const collectionAuth = get(collectionRoot, 'request.auth');
+  if (collectionAuth && request.auth.mode === 'inherit') {
+    switch (collectionAuth.mode) {
+      case 'awsv4':
+        axiosRequest.awsv4config = {
+          accessKeyId: get(collectionAuth, 'awsv4.accessKeyId'),
+          secretAccessKey: get(collectionAuth, 'awsv4.secretAccessKey'),
+          sessionToken: get(collectionAuth, 'awsv4.sessionToken'),
+          service: get(collectionAuth, 'awsv4.service'),
+          region: get(collectionAuth, 'awsv4.region'),
+          profileName: get(collectionAuth, 'awsv4.profileName')
+        };
+        break;
+      case 'basic':
+        axiosRequest.basicAuth = {
+          username: get(collectionAuth, 'basic.username'),
+          password: get(collectionAuth, 'basic.password')
+        };
+        break;
+      case 'bearer':
+        axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
+        break;
+      case 'digest':
+        axiosRequest.digestConfig = {
+          username: get(collectionAuth, 'digest.username'),
+          password: get(collectionAuth, 'digest.password')
+        };
+        break;
+      case 'ntlm':
+        axiosRequest.ntlmConfig = {
+          username: get(collectionAuth, 'ntlm.username'),
+          password: get(collectionAuth, 'ntlm.password'),
+          domain: get(collectionAuth, 'ntlm.domain')
+        };
+        break;
+      case 'wsse':
+        const username = get(collectionAuth, 'wsse.username', '');
+        const password = get(collectionAuth, 'wsse.password', '');
 
-  // const collectionAuth = get(collectionRoot, 'request.auth');
-  // if (collectionAuth && request.auth.mode === 'inherit') {
-  //   switch (collectionAuth.mode) {
-  //     case 'awsv4':
-  //       axiosRequest.awsv4config = {
-  //         accessKeyId: get(collectionAuth, 'awsv4.accessKeyId'),
-  //         secretAccessKey: get(collectionAuth, 'awsv4.secretAccessKey'),
-  //         sessionToken: get(collectionAuth, 'awsv4.sessionToken'),
-  //         service: get(collectionAuth, 'awsv4.service'),
-  //         region: get(collectionAuth, 'awsv4.region'),
-  //         profileName: get(collectionAuth, 'awsv4.profileName')
-  //       };
-  //       break;
-  //     case 'basic':
-  //       axiosRequest.basicAuth = {
-  //         username: get(collectionAuth, 'basic.username'),
-  //         password: get(collectionAuth, 'basic.password')
-  //       };
-  //       break;
-  //     case 'bearer':
-  //       axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
-  //       break;
-  //     case 'digest':
-  //       axiosRequest.digestConfig = {
-  //         username: get(collectionAuth, 'digest.username'),
-  //         password: get(collectionAuth, 'digest.password')
-  //       };
-  //       break;
-  //     case 'ntlm':
-  //       axiosRequest.ntlmConfig = {
-  //         username: get(collectionAuth, 'ntlm.username'),
-  //         password: get(collectionAuth, 'ntlm.password'),
-  //         domain: get(collectionAuth, 'ntlm.domain')
-  //       };
-  //       break;
-  //     case 'wsse':
-  //       const username = get(collectionAuth, 'wsse.username', '');
-  //       const password = get(collectionAuth, 'wsse.password', '');
+        const ts = new Date().toISOString();
+        const nonce = crypto.randomBytes(16).toString('hex');
 
-  //       const ts = new Date().toISOString();
-  //       const nonce = crypto.randomBytes(16).toString('hex');
+        // Create the password digest using SHA-1 as required for WSSE
+        const hash = crypto.createHash('sha1');
+        hash.update(nonce + ts + password);
+        const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
 
-  //       // Create the password digest using SHA-1 as required for WSSE
-  //       const hash = crypto.createHash('sha1');
-  //       hash.update(nonce + ts + password);
-  //       const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
-
-  //       // Construct the WSSE header
-  //       axiosRequest.headers[
-  //         'X-WSSE'
-  //       ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
-  //       break;
-  //     case 'apikey':
-  //       const apiKeyAuth = get(collectionAuth, 'apikey');
-  //       if (apiKeyAuth.key.length === 0) break;
-  //       if (apiKeyAuth.placement === 'header') {
-  //         axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
-  //       } else if (apiKeyAuth.placement === 'queryparams') {
-  //         // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
-  //         axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
-  //       }
-  //       break;
-  //     case 'oauth2':
-  //       const grantType = get(collectionAuth, 'oauth2.grantType');
-  //       switch (grantType) {
-  //         case 'password':
-  //           axiosRequest.oauth2 = {
-  //             grantType: grantType,
-  //             accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-  //             refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
-  //             username: get(collectionAuth, 'oauth2.username'),
-  //             password: get(collectionAuth, 'oauth2.password'),
-  //             clientId: get(collectionAuth, 'oauth2.clientId'),
-  //             clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-  //             scope: get(collectionAuth, 'oauth2.scope'),
-  //             credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
-  //             credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
-  //             tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-  //             tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-  //             tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-  //             autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
-  //             autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
-  //             additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
-  //           };
-  //           break;
-  //         case 'authorization_code':
-  //           axiosRequest.oauth2 = {
-  //             grantType: grantType,
-  //             callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
-  //             authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
-  //             accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-  //             refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
-  //             clientId: get(collectionAuth, 'oauth2.clientId'),
-  //             clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-  //             scope: get(collectionAuth, 'oauth2.scope'),
-  //             state: get(collectionAuth, 'oauth2.state'),
-  //             pkce: get(collectionAuth, 'oauth2.pkce'),
-  //             credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
-  //             credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
-  //             tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-  //             tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-  //             tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-  //             autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
-  //             autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
-  //             additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
-  //           };
-  //           break;
-  //         case 'implicit':
-  //           axiosRequest.oauth2 = {
-  //             grantType: grantType,
-  //             callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
-  //             authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
-  //             clientId: get(collectionAuth, 'oauth2.clientId'),
-  //             scope: get(collectionAuth, 'oauth2.scope'),
-  //             state: get(collectionAuth, 'oauth2.state'),
-  //             credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
-  //             tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-  //             tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-  //             tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-  //             autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
-  //             additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
-  //           };
-  //           break;
-  //         case 'client_credentials':
-  //           axiosRequest.oauth2 = {
-  //             grantType: grantType,
-  //             accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-  //             refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
-  //             clientId: get(collectionAuth, 'oauth2.clientId'),
-  //             clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-  //             scope: get(collectionAuth, 'oauth2.scope'),
-  //             credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
-  //             credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
-  //             tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-  //             tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-  //             tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-  //             autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
-  //             autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
-  //             additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
-  //           };
-  //           break;
-  //       }
-  //       break;
-  //   }
-  // }
+        // Construct the WSSE header
+        axiosRequest.headers[
+          'X-WSSE'
+        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+        break;
+      case 'apikey':
+        const apiKeyAuth = get(collectionAuth, 'apikey');
+        if (apiKeyAuth.key.length === 0) break;
+        if (apiKeyAuth.placement === 'header') {
+          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        } else if (apiKeyAuth.placement === 'queryparams') {
+          // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
+          axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
+        }
+        break;
+      case 'oauth2':
+        const grantType = get(collectionAuth, 'oauth2.grantType');
+        switch (grantType) {
+          case 'password':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              username: get(collectionAuth, 'oauth2.username'),
+              password: get(collectionAuth, 'oauth2.password'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+            };
+            break;
+          case 'authorization_code':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
+              authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
+              accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              state: get(collectionAuth, 'oauth2.state'),
+              pkce: get(collectionAuth, 'oauth2.pkce'),
+              credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+            };
+            break;
+          case 'implicit':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
+              authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              state: get(collectionAuth, 'oauth2.state'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+            };
+            break;
+          case 'client_credentials':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+            };
+            break;
+        }
+        break;
+    }
+  }
 
   if (request.auth) {
     switch (request.auth.mode) {
