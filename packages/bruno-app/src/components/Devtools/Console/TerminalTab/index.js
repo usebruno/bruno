@@ -398,6 +398,18 @@ const TerminalTab = () => {
     };
   }, [activeSessionId]);
 
+  const onSessionMount = useCallback(
+    (node) => {
+      if (!node) return;
+      terminalRef.current = node;
+      fitTerminal(activeSessionId, node);
+      const ro = new ResizeObserver(() => fitTerminal(activeSessionId, node));
+      ro.observe(node.parentNode);
+      return () => ro.disconnect();
+    },
+    [activeSessionId]
+  );
+
   return (
     <StyledWrapper>
       <div className="terminal-content">
@@ -440,14 +452,7 @@ const TerminalTab = () => {
             </div>
           )}
           <div
-            ref={(node) => {
-              if (!node) return;
-              terminalRef.current = node;
-              fitTerminal(activeSessionId, node);
-              const ro = new ResizeObserver(() => fitTerminal(activeSessionId, node));
-              ro.observe(node.parentNode);
-              return () => ro.disconnect();
-            }}
+            ref={onSessionMount}
             className="terminal-container"
             style={{
               height: '100%',
