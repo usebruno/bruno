@@ -25,7 +25,8 @@ import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollect
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
-import { IconBox } from '@tabler/icons';
+import { IconBox, IconTerminal2 } from '@tabler/icons';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionsSection = () => {
   const [showSearch, setShowSearch] = useState(false);
@@ -175,6 +176,14 @@ const CollectionsSection = () => {
       label: 'Close all',
       onClick: () => {
         selectAllCollectionsToClose();
+      }
+    },
+    {
+      id: 'open-in-terminal',
+      leftSection: IconTerminal2,
+      label: 'Open in Terminal',
+      onClick: () => {
+        openDevtoolsAndSwitchToTerminal(dispatch, activeWorkspace?.pathname);
       }
     }
   ];
