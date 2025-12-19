@@ -11,7 +11,7 @@ import {
   IconSortAscendingLetters,
   IconSortDescendingLetters,
   IconSquareX,
-  IconBox, 
+  IconBox,
   IconTerminal2
 } from '@tabler/icons';
 

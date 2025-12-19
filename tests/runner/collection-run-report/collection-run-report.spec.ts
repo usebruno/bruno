@@ -12,6 +12,8 @@ function normalizeJunitReport(xmlContent: string): string {
     // Replace execution times with fixed value
     .replace(/time="[^"]*"/g, 'time="0.100"')
     // Replace file paths with normalized path
+    .replace(/file="[^"]*\/[^"]*"/g, 'file="/mock/path/to/file.bru"')
+    // Replace test paths with normalized path
     .replace(/classname="[^"]*\/[^"]*"/g, 'classname="/test/path/collection"');
 }
 
