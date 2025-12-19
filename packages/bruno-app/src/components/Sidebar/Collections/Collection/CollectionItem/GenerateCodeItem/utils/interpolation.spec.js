@@ -1,48 +1,66 @@
-import { interpolateHeaders, interpolateBody } from './interpolation';
+import { interpolateObject } from './interpolation';
 
 describe('interpolation utils', () => {
-  describe('interpolateHeaders', () => {
-    it('should interpolate variables in header name and value while preserving other props', () => {
-      const headers = [
-        { uid: '1', name: 'X-{{var}}', value: 'value-{{var}}', enabled: true }
-      ];
-      const variables = { var: 'test' };
-
-      const result = interpolateHeaders(headers, variables);
-      expect(result).toEqual([
-        {
-          uid: '1',
-          name: 'X-test',
-          value: 'value-test',
-          enabled: true
+  describe('interpolateObject', () => {
+    it('should interpolate variables across all data types and nesting levels', () => {
+      const complexRequest = {
+        url: 'https://{{host}}/api',
+        method: 'POST',
+        headers: [
+          { name: 'X-{{headerName}}', value: '{{headerValue}}', enabled: true }
+        ],
+        auth: {
+          basic: {
+            username: '{{user}}',
+            password: 'pass-{{passVar}}'
+          }
+        },
+        body: {
+          mode: 'json',
+          json: '{"id": "{{id}}"}'
+        },
+        metadata: {
+          tags: ['tag-{{id}}', 'stable'],
+          rating: 100,
+          isActive: true,
+          isNull: null
         }
-      ]);
-    });
-  });
-
-  describe('interpolateBody', () => {
-    it('should interpolate JSON body strings and keep formatting', () => {
-      const body = {
-        mode: 'json',
-        json: '{"name": "{{username}}"}'
       };
-      const variables = { username: 'bruno' };
 
-      const result = interpolateBody(body, variables);
-      expect(result.json).toBe('{\n  "name": "bruno"\n}');
-    });
-
-    it('should interpolate text body', () => {
-      const body = {
-        mode: 'text',
-        text: 'Hello {{name}}'
+      const variables = {
+        host: 'api.example.com',
+        headerName: 'App-ID',
+        headerValue: 'val-123',
+        user: 'admin',
+        passVar: 'secure',
+        id: '99'
       };
-      const result = interpolateBody(body, { name: 'World' });
-      expect(result.text).toBe('Hello World');
-    });
 
-    it('should return null when body is null', () => {
-      expect(interpolateBody(null, { a: 1 })).toBeNull();
+      const result = interpolateObject(complexRequest, variables);
+
+      expect(result).toEqual({
+        url: 'https://api.example.com/api',
+        method: 'POST',
+        headers: [
+          { name: 'X-App-ID', value: 'val-123', enabled: true }
+        ],
+        auth: {
+          basic: {
+            username: 'admin',
+            password: 'pass-secure'
+          }
+        },
+        body: {
+          mode: 'json',
+          json: '{"id": "99"}'
+        },
+        metadata: {
+          tags: ['tag-99', 'stable'],
+          rating: 100,
+          isActive: true,
+          isNull: null
+        }
+      });
     });
   });
 });

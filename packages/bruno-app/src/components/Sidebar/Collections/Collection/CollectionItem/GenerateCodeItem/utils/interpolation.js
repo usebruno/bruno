@@ -2,9 +2,11 @@ import { interpolate } from '@usebruno/common';
 import { isPlainObject, mapValues } from 'lodash-es';
 
 /**
- * Deeply traverses an object and interpolates any strings it finds.
+ * Traverses an object and interpolates any strings it finds.
  */
 export const interpolateObject = (obj, variables) => {
+  if (!obj) return obj;
+
   if (typeof obj === 'string') {
     return interpolate(obj, variables);
   }
