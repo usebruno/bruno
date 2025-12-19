@@ -926,23 +926,18 @@ const getDefaultUrl = (serverObject) => {
 
 const getSecurity = (apiSpec) => {
   let defaultSchemes = apiSpec.security || [];
-
   let securitySchemes = get(apiSpec, 'components.securitySchemes', {});
-  if (Object.keys(securitySchemes).length === 0) {
-    return {
-      supported: []
-    };
-  }
+
+  const hasSchemes = Object.keys(securitySchemes).length > 0;
 
   return {
-    supported: defaultSchemes.map((scheme) => {
-      var schemeName = Object.keys(scheme)[0];
-      return securitySchemes[schemeName];
-    }),
+    supported: hasSchemes
+      ? defaultSchemes
+          .map((scheme) => securitySchemes[Object.keys(scheme)[0]])
+          .filter(Boolean)
+      : [],
     schemes: securitySchemes,
-    getScheme: (schemeName) => {
-      return securitySchemes[schemeName];
-    }
+    getScheme: (schemeName) => securitySchemes[schemeName]
   };
 };
 
