@@ -208,7 +208,6 @@ const fitTerminal = (activeSessionId, container) => {
 
 const TerminalTab = () => {
   const terminalRef = useRef(null);
-  const fitRafRef = useRef(null);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
