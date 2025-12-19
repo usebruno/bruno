@@ -10,7 +10,9 @@ import {
   IconSearch,
   IconSortAscendingLetters,
   IconSortDescendingLetters,
-  IconSquareX
+  IconSquareX,
+  IconBox, 
+  IconTerminal2
 } from '@tabler/icons';
 
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
@@ -25,7 +27,6 @@ import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollect
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
-import { IconBox, IconTerminal2 } from '@tabler/icons';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionsSection = () => {
