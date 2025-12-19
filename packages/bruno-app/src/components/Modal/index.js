@@ -84,7 +84,7 @@ const Modal = ({
     const { keyCode, shiftKey, ctrlKey, altKey, metaKey } = event;
 
     // Only handle events from elements inside this modal
-    if ((!modalRef.current || !modalRef.current.contains(event.target)) && keyCode !== ESC_KEY_CODE) {
+    if (keyCode !== ESC_KEY_CODE && (!modalRef.current || !modalRef.current.contains(event.target))) {
       return;
     }
 
