@@ -1,8 +1,8 @@
 import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections';
+import { interpolateObject } from './interpolation';
 import { get } from 'lodash';
-import interpolateVars from 'bruno/src/ipc/network/interpolate-vars';
 
 const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
   try {
@@ -12,12 +12,13 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     const variables = getAllVariables(collection, item);
 
     let request = item.request;
+
     // Get the request tree path and merge headers
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     let headers = mergeHeaders(collection, request, requestTreePath);
 
     if (shouldInterpolate) {
-      request = interpolateVars(request, variables);
+      request = interpolateObject(request, variables);
     }
 
     // Add auth headers if needed
@@ -35,9 +36,8 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     // Generate snippet using HTTPSnippet
     const snippet = new HTTPSnippet(harRequest);
-    const result = snippet.convert(language.target, language.client);
 
-    return result;
+    return snippet.convert(language.target, language.client);
   } catch (error) {
     console.error('Error generating code snippet:', error);
     return 'Error generating code snippet';
