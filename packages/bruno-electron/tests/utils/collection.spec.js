@@ -1,4 +1,4 @@
-const { parseBruFileMeta } = require('../../src/utils/collection');
+const { parseBruFileMeta, mergeAuth } = require('../../src/utils/collection');
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {
@@ -285,4 +285,80 @@ describe('parseBruFileMeta', () => {
       }
     });
   });
+});
+
+describe('mergeAuth', () => {
+  const basicAuth = () => ({
+    mode: 'basic',
+    basic: { username: 'USER', password: 'PASS' }
+  });
+
+  const testCases = [
+    {
+      description: 'inherits collection auth',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: { mode: 'inherit' },
+      requestAuth: { mode: 'inherit' },
+      expectedRequestAuth: basicAuth()
+    },
+    {
+      description: 'no auth directly on request',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: { mode: 'inherit' },
+      requestAuth: { mode: 'none' },
+      expectedRequestAuth: { mode: 'none' }
+    },
+    {
+      description: 'inherits no auth from subfolder',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: { mode: 'none' },
+      requestAuth: { mode: 'inherit' },
+      expectedRequestAuth: { mode: 'none' }
+    },
+    {
+      description: 'inherits no auth from root folder',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'none' },
+      subfolderAuth: { mode: 'inherit' },
+      requestAuth: { mode: 'inherit' },
+      expectedRequestAuth: { mode: 'none' }
+    }
+  ];
+
+  it.each(testCases)(
+    'auth inheritance through folders : $description',
+    ({ collectionAuth, rootFolderAuth, subfolderAuth, requestAuth, expectedRequestAuth }) => {
+      const httpRequest = {
+        uid: 'request-one',
+        type: 'http-request',
+        request: { auth: requestAuth }
+      };
+      const subfolder = {
+        uid: 'subfolder',
+        type: 'folder',
+        root: { request: { auth: subfolderAuth } },
+        items: [httpRequest]
+      };
+      const rootFolder = {
+        uid: 'root-folder',
+        type: 'folder',
+        root: { request: { auth: rootFolderAuth } },
+        items: [subfolder]
+      };
+      const collection = {
+        uid: 'my-collection',
+        items: [rootFolder],
+        root: { request: { auth: collectionAuth } }
+      };
+      const request = httpRequest.request;
+      const requestTreePath = [rootFolder, subfolder, httpRequest];
+
+      mergeAuth(collection, request, requestTreePath);
+
+      expect(request.auth).toEqual(expectedRequestAuth);
+    }
+  );
 });
