@@ -56,6 +56,18 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.primary};
     user-select: none;
   }
+
+  .oauth2-badge {
+    background-color: ${(props) => props.theme.oauth2.badge.bg};
+  }
+
+  .oauth2-icon {
+    color: ${(props) => props.theme.oauth2.icon};
+  }
+
+  .oauth2-label {
+    color: ${(props) => props.theme.oauth2.label};
+  }
 `;
 
 export default Wrapper;

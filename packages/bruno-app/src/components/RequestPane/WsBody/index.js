@@ -55,14 +55,14 @@ const WSBody = ({ item, collection, handleRun }) => {
     return (
       <StyledWrapper isVerticalLayout={isVerticalLayout}>
         <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-zinc-500 dark:text-zinc-400 mb-4">No WebSocket messages available</p>
+          <p className="ws-empty-message mb-4">No WebSocket messages available</p>
           <ToolHint text="Add the first message to your WebSocket request" toolhintId="add-first-msg">
             <button
               onClick={addNewMessage}
-              className="flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+              className="ws-add-button flex items-center justify-center gap-2 py-2 px-4 rounded-md border transition-colors"
             >
-              <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add First Message</span>
+              <IconPlus size={16} strokeWidth={1.5} className="ws-add-icon" />
+              <span className="ws-add-icon font-medium">Add First Message</span>
             </button>
           </ToolHint>
         </div>
@@ -101,10 +101,10 @@ const WSBody = ({ item, collection, handleRun }) => {
           <ToolHint text="Add a new WebSocket message to the request" toolhintId="add-msg-fixed">
             <button
               onClick={addNewMessage}
-              className="add-message-btn flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors shadow-md"
+              className="ws-add-button add-message-btn flex items-center justify-center gap-2 py-2 px-4 rounded-md border transition-colors shadow-md"
             >
-              <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add Message</span>
+              <IconPlus size={16} strokeWidth={1.5} className="ws-add-icon" />
+              <span className="ws-add-icon font-medium">Add Message</span>
             </button>
           </ToolHint>
         </div>

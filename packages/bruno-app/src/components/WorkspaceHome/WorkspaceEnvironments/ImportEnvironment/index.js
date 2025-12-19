@@ -7,6 +7,7 @@ import importPostmanEnvironment from 'utils/importers/postman-environment';
 import { toastError } from 'utils/common/error';
 import { IconDatabaseImport } from '@tabler/icons';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import StyledWrapper from './StyledWrapper';
 
 const ImportEnvironment = ({ onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
@@ -39,19 +40,21 @@ const ImportEnvironment = ({ onClose, onEnvironmentCreated }) => {
   };
 
   return (
-    <Portal>
-      <Modal size="sm" title="Import Environment" hideFooter={true} handleConfirm={onClose} handleCancel={onClose} dataTestId="import-environment-modal">
-        <button
-          type="button"
-          onClick={handleImportPostmanEnvironment}
-          className="flex justify-center flex-col items-center w-full dark:bg-zinc-700 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-400 p-12 text-center hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
-          data-testid="import-postman-environment"
-        >
-          <IconDatabaseImport size={64} />
-          <span className="mt-2 block text-sm font-semibold">Import your Postman environments</span>
-        </button>
-      </Modal>
-    </Portal>
+    <StyledWrapper>
+      <Portal>
+        <Modal size="sm" title="Import Environment" hideFooter={true} handleConfirm={onClose} handleCancel={onClose} dataTestId="import-environment-modal">
+          <button
+            type="button"
+            onClick={handleImportPostmanEnvironment}
+            className="import-button flex justify-center flex-col items-center w-full rounded-lg border-2 border-dashed p-12 text-center focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+            data-testid="import-postman-environment"
+          >
+            <IconDatabaseImport size={64} />
+            <span className="mt-2 block text-sm font-semibold">Import your Postman environments</span>
+          </button>
+        </Modal>
+      </Portal>
+    </StyledWrapper>
   );
 };
 

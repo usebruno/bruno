@@ -8,6 +8,7 @@ import InheritableSettingsInput from 'components/InheritableSettingsInput';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
+import StyledWrapper from './StyledWrapper';
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -96,63 +97,65 @@ const Settings = ({ item, collection }) => {
   }, [onSave, onRun]);
 
   return (
-    <div className="h-full w-full">
-      <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
-      <div className="bruno-form">
-        <div className="mb-6">
-          <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1 mb-4">
-            <IconTag size={16} />
-            Tags
-          </h3>
-          <Tags item={item} collection={collection} />
-        </div>
-
-        <div className="flex flex-col gap-4">
-
-          <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={encodeUrl}
-              onChange={onToggleUrlEncoding}
-              label="URL Encoding"
-              description="Automatically encode query parameters in the URL"
-              size="medium"
-            />
+    <StyledWrapper>
+      <div className="h-full w-full">
+        <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
+        <div className="bruno-form">
+          <div className="mb-6">
+            <h3 className="settings-heading text-xs font-medium flex items-center gap-1 mb-4">
+              <IconTag size={16} />
+              Tags
+            </h3>
+            <Tags item={item} collection={collection} />
           </div>
 
           <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={followRedirects}
-              onChange={onToggleFollowRedirects}
-              label="Automatically Follow Redirects"
-              description="Follow HTTP redirects automatically"
-              size="medium"
-              data-testid="follow-redirects-toggle"
+
+            <div className="flex flex-col gap-4">
+              <ToggleSelector
+                checked={encodeUrl}
+                onChange={onToggleUrlEncoding}
+                label="URL Encoding"
+                description="Automatically encode query parameters in the URL"
+                size="medium"
+              />
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <ToggleSelector
+                checked={followRedirects}
+                onChange={onToggleFollowRedirects}
+                label="Automatically Follow Redirects"
+                description="Follow HTTP redirects automatically"
+                size="medium"
+                data-testid="follow-redirects-toggle"
+              />
+            </div>
+
+            <SettingsInput
+              id="maxRedirects"
+              label="Max Redirects"
+              value={maxRedirects}
+              onChange={onMaxRedirectsChange}
+              description="Set a limit for the number of redirects to follow"
+              onKeyDown={handleKeyDown}
+            />
+
+            <InheritableSettingsInput
+              id="timeout"
+              label="Timeout (ms)"
+              value={timeout}
+              description="Set maximum time to wait before aborting the request"
+              onKeyDown={handleKeyDown}
+              isInherited={isTimeoutInherited}
+              onDropdownSelect={handleTimeoutDropdownSelect}
+              onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
+              onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
             />
           </div>
-
-          <SettingsInput
-            id="maxRedirects"
-            label="Max Redirects"
-            value={maxRedirects}
-            onChange={onMaxRedirectsChange}
-            description="Set a limit for the number of redirects to follow"
-            onKeyDown={handleKeyDown}
-          />
-
-          <InheritableSettingsInput
-            id="timeout"
-            label="Timeout (ms)"
-            value={timeout}
-            description="Set maximum time to wait before aborting the request"
-            onKeyDown={handleKeyDown}
-            isInherited={isTimeoutInherited}
-            onDropdownSelect={handleTimeoutDropdownSelect}
-            onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
-            onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
-          />
         </div>
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 

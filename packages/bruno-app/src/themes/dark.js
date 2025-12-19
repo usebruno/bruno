@@ -658,6 +658,391 @@ const darkTheme = {
         }
       }
     }
+  },
+
+  shareCollection: {
+    exportOption: {
+      border: colors.GRAY_4,
+      hoverBg: 'rgba(180, 180, 180, 0.1)'
+    },
+    warning: {
+      bg: 'rgba(217, 163, 66, 0.2)',
+      text: '#fbbf24',
+      border: 'rgba(217, 163, 66, 0.2)'
+    }
+  },
+
+  collectionSettings: {
+    infoIcon: {
+      blue: {
+        bg: 'rgba(59, 130, 246, 0.2)'
+      },
+      green: {
+        bg: 'rgba(34, 197, 94, 0.2)'
+      },
+      purple: {
+        bg: 'rgba(168, 85, 247, 0.2)'
+      },
+      indigo: {
+        bg: 'rgba(99, 102, 241, 0.2)'
+      }
+    }
+  },
+
+  queryResultPreview: {
+    noPreview: {
+      heading: colors.TEXT,
+      text: colors.TEXT_MUTED
+    }
+  },
+
+  runnerResults: {
+    filterButton: {
+      active: {
+        text: '#CCCCCC',
+        border: '#F59E0B'
+      },
+      inactive: {
+        text: 'rgba(204, 204, 204, 0.5)'
+      }
+    },
+    filterBadge: {
+      bg: '#242424',
+      border: 'rgba(146, 146, 146, 0.2)',
+      text: 'inherit'
+    },
+    sectionBorder: colors.GRAY_4,
+    filterContainer: {
+      border: 'rgba(146, 146, 146, 0.2)'
+    },
+    filterLabel: {
+      bg: '#2B2D2F',
+      text: colors.TEXT_MUTED
+    },
+    actionButton: {
+      border: colors.GRAY_3,
+      text: '#989898'
+    },
+    iconButton: {
+      hoverBg: colors.GRAY_2
+    },
+    emptyState: {
+      text: colors.TEXT_MUTED,
+      description: colors.TEXT_MUTED
+    }
+  },
+
+  scriptError: {
+    separator: colors.GRAY_4
+  },
+
+  settingsInput: {
+    label: '#f3f4f6',
+    description: colors.TEXT_MUTED
+  },
+
+  timelineItem: {
+    body: {
+      headerText: 'rgba(99, 102, 241, 0.8)'
+    }
+  },
+
+  collectionsList: {
+    modal: {
+      text: colors.TEXT,
+      description: colors.TEXT_MUTED
+    }
+  },
+
+  inheritableSettingsInput: {
+    resetButton: {
+      color: colors.TEXT_MUTED,
+      hoverColor: colors.TEXT
+    }
+  },
+
+  importModal: {
+    heading: '#f3f4f6',
+    dragZone: {
+      border: colors.GRAY_4,
+      activeBorder: '#60a5fa',
+      activeBg: 'rgba(59, 130, 246, 0.2)'
+    },
+    icon: colors.TEXT_MUTED,
+    text: colors.TEXT,
+    description: colors.TEXT_MUTED,
+    selectedFile: {
+      border: colors.GRAY_4,
+      bg: colors.GRAY_2,
+      text: colors.TEXT
+    }
+  },
+
+  fullscreenLoader: {
+    backdrop: 'rgba(24, 24, 27, 0.8)',
+    card: {
+      bg: '#27272a',
+      heading: '#fafafa',
+      text: '#a1a1aa'
+    }
+  },
+
+  oauth2: {
+    badge: {
+      bg: 'rgba(99, 102, 241, 0.1)'
+    },
+    icon: '#818cf8',
+    label: colors.TEXT
+  },
+
+  importCollectionLocation: {
+    groupingLabel: '#f3f4f6',
+    groupingDescription: colors.TEXT_MUTED
+  },
+
+  requestNotLoaded: {
+    warning: {
+      bg: 'rgba(217, 163, 66, 0.2)'
+    }
+  },
+
+  importEnvironment: {
+    button: {
+      bg: '#3f3f46',
+      border: '#71717a',
+      hoverBorder: '#a1a1aa'
+    }
+  },
+
+  beta: {
+    description: colors.TEXT_MUTED,
+    featureDescription: colors.TEXT_MUTED
+  },
+
+  requestPaneSettings: {
+    heading: '#f3f4f6'
+  },
+
+  wsMessagesList: {
+    chevron: '#d4d4d8'
+  },
+
+  grpcQueryResult: {
+    emptyMessage: colors.TEXT_MUTED
+  },
+
+  grpcTabNavigation: {
+    border: colors.GRAY_4
+  },
+
+  exportEnvironmentModal: {
+    border: colors.GRAY_4
+  },
+
+  toggleSelector: {
+    label: '#f3f4f6',
+    description: colors.TEXT_MUTED,
+    switch: {
+      checked: '#3b82f6',
+      unchecked: colors.GRAY_4
+    }
+  },
+
+  importEnvironmentModal: {
+    zone: {
+      bg: '#3f3f46',
+      border: '#71717a',
+      hoverBorder: '#a1a1aa',
+      dragOverBorder: '#f59e0b',
+      dragOverBg: 'rgba(245, 158, 11, 0.2)'
+    }
+  },
+
+  cookies: {
+    count: colors.TEXT,
+    addButton: {
+      color: '#ffffff',
+      hoverColor: colors.TEXT
+    },
+    deleteButton: {
+      color: '#ffffff',
+      hoverColor: '#ef4444'
+    },
+    editButton: {
+      color: '#ffffff',
+      hoverColor: colors.TEXT
+    },
+    table: {
+      headerBorder: colors.GRAY_4,
+      headerText: colors.TEXT,
+      rowBorder: colors.GRAY_4
+    }
+  },
+
+  grpcProtoFileDropdown: {
+    text: colors.TEXT,
+    border: colors.GRAY_4,
+    description: colors.TEXT_MUTED
+  },
+
+  grpcMethodDropdown: {
+    text: colors.TEXT,
+    serviceHeader: {
+      bg: colors.GRAY_2,
+      text: colors.TEXT
+    },
+    methodName: colors.TEXT,
+    selectedBg: 'rgba(234, 179, 8, 0.2)',
+    hoverBg: 'rgba(255, 255, 255, 0.05)'
+  },
+
+  wsBody: {
+    emptyMessage: '#a1a1aa',
+    addButton: {
+      border: '#3f3f46',
+      bg: '#3f3f46',
+      hoverBg: '#52525b',
+      text: colors.TEXT,
+      icon: colors.TEXT
+    }
+  },
+
+  wsSingleMessage: {
+    container: {
+      border: '#3f3f46'
+    },
+    header: {
+      bg: '#3f3f46'
+    },
+    icon: colors.TEXT,
+    actionButton: {
+      hoverBg: '#52525b'
+    }
+  },
+
+  oauth2TokenViewer: {
+    section: {
+      border: colors.GRAY_4
+    },
+    header: {
+      bg: colors.GRAY_2,
+      hoverBg: '#3a3a3a'
+    },
+    copyButton: {
+      bg: 'rgba(99, 102, 241, 0.2)',
+      hoverBg: 'rgba(99, 102, 241, 0.3)'
+    },
+    content: {
+      bg: colors.GRAY_2
+    },
+    label: colors.TEXT_MUTED,
+    value: colors.TEXT,
+    expiry: {
+      expiring: {
+        bg: 'rgba(220, 38, 38, 0.3)',
+        text: '#f87171'
+      },
+      normal: {
+        bg: 'rgba(37, 99, 235, 0.3)',
+        text: '#60a5fa'
+      }
+    },
+    error: {
+      text: '#f87171'
+    },
+    infoContainer: {
+      border: colors.GRAY_4
+    },
+    infoSection: {
+      bg: colors.GRAY_2
+    },
+    empty: colors.TEXT_MUTED
+  },
+
+  grpcBody: {
+    emptyMessage: '#a1a1aa',
+    addButton: {
+      border: '#3f3f46',
+      bg: '#3f3f46',
+      hoverBg: '#52525b',
+      text: colors.TEXT,
+      icon: colors.TEXT
+    },
+    messageContainer: {
+      border: '#3f3f46'
+    },
+    messageHeader: {
+      bg: '#3f3f46'
+    },
+    icon: colors.TEXT,
+    actionButton: {
+      hoverBg: '#52525b'
+    }
+  },
+
+  grpcTimelineItem: {
+    request: {
+      bg: 'rgba(251, 146, 60, 0.1)',
+      label: '#fb923c',
+      content: colors.GRAY_2
+    },
+    message: {
+      bg: 'rgba(251, 146, 60, 0.1)',
+      label: '#fb923c',
+      content: colors.GRAY_2
+    },
+    metadata: {
+      bg: 'rgba(59, 130, 246, 0.1)',
+      label: '#60a5fa'
+    },
+    response: {
+      bg: 'rgba(34, 197, 94, 0.1)',
+      label: '#4ade80',
+      content: colors.GRAY_2
+    },
+    status: {
+      bg: 'rgba(168, 85, 247, 0.1)',
+      label: '#a78bfa'
+    },
+    error: {
+      bg: 'rgba(220, 38, 38, 0.1)',
+      label: '#f87171'
+    },
+    end: {
+      bg: 'rgba(107, 114, 128, 0.3)'
+    },
+    cancel: {
+      bg: 'rgba(245, 158, 11, 0.1)',
+      label: '#fbbf24'
+    },
+    methodBadge: {
+      bg: 'rgba(251, 146, 60, 0.3)',
+      text: '#fb923c'
+    }
+  },
+
+  protobuf: {
+    errorMessage: '#f87171',
+    table: {
+      headerText: colors.TEXT,
+      border: colors.GRAY_4
+    },
+    emptyMessage: colors.TEXT_MUTED,
+    fileIcon: colors.TEXT_MUTED,
+    fileName: colors.TEXT,
+    filePath: colors.TEXT_MUTED,
+    invalidIcon: '#f87171',
+    replaceButton: {
+      color: '#f87171',
+      hoverColor: '#fca5a5'
+    },
+    removeButton: {
+      color: colors.TEXT_MUTED,
+      hoverColor: colors.TEXT
+    },
+    checkbox: {
+      border: colors.GRAY_4
+    }
   }
 };
 

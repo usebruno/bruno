@@ -150,33 +150,33 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
   const getContainerHeight = (canClientSendMultipleMessages && body.grpc.length > 1) ? `${isCollapsed ? '' : 'h-80'}` : 'h-full';
 
   return (
-    <div className={`flex flex-col mb-3 border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden ${getContainerHeight} relative`}>
+    <div className={`grpc-message-container flex flex-col mb-3 border rounded-md overflow-hidden ${getContainerHeight} relative`}>
       <div
-        className="grpc-message-header flex items-center justify-between px-3 py-2 bg-neutral-100 dark:bg-neutral-700 cursor-pointer"
+        className="grpc-message-header flex items-center justify-between px-3 py-2 cursor-pointer"
         onClick={onToggleCollapse}
       >
         <div className="flex items-center gap-2">
           {isCollapsed
-            ? <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-            : <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />}
+            ? <IconChevronDown size={16} strokeWidth={1.5} className="grpc-chevron-icon" />
+            : <IconChevronUp size={16} strokeWidth={1.5} className="grpc-chevron-icon" />}
           <span className="font-medium">{`Message ${canClientStream ? index + 1 : ''}`}</span>
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <ToolHint text="Format JSON with proper indentation and spacing" toolhintId={`prettify-msg-${index}`}>
             <button
               onClick={onPrettify}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+              className="grpc-action-button p-1 rounded transition-colors"
             >
-              <IconWand size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+              <IconWand size={16} strokeWidth={1.5} className="grpc-action-icon" />
             </button>
           </ToolHint>
 
           <ToolHint text="Generate a new sample message based on schema" toolhintId={`regenerate-msg-${index}`}>
             <button
               onClick={onRegenerateMessage}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+              className="grpc-action-button p-1 rounded transition-colors"
             >
-              <IconRefresh size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+              <IconRefresh size={16} strokeWidth={1.5} className="grpc-action-icon" />
             </button>
           </ToolHint>
 
@@ -185,13 +185,13 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
               <button
                 onClick={onSend}
                 disabled={!isConnectionActive}
-                className={`p-1 rounded ${isConnectionActive ? 'hover:bg-zinc-200 dark:hover:bg-zinc-600' : 'opacity-50 cursor-not-allowed'} transition-colors`}
+                className={`grpc-action-button p-1 rounded ${isConnectionActive ? '' : 'opacity-50 cursor-not-allowed'} transition-colors`}
                 data-testid={`grpc-send-message-${index}`}
               >
                 <IconSend
                   size={16}
                   strokeWidth={1.5}
-                  className={`${isConnectionActive ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 dark:text-zinc-500'}`}
+                  className={`grpc-action-icon ${isConnectionActive ? '' : 'opacity-50'}`}
                 />
               </button>
             </ToolHint>
@@ -201,9 +201,9 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
             <ToolHint text="Delete this message" toolhintId={`delete-msg-${index}`}>
               <button
                 onClick={onDeleteMessage}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+                className="grpc-action-button p-1 rounded transition-colors"
               >
-                <IconTrash size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                <IconTrash size={16} strokeWidth={1.5} className="grpc-action-icon" />
               </button>
             </ToolHint>
           )}
@@ -211,7 +211,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
       </div>
 
       {!isCollapsed && (
-        <div className={`flex ${body.grpc.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'h-80'} relative`}>
+        <div className={`flex flex-1 w-full ${body.grpc.length === 1 || !canClientSendMultipleMessages ? 'min-h-0' : 'h-80'} relative`}>
           <CodeEditor
             collection={collection}
             theme={displayedTheme}
@@ -280,14 +280,14 @@ const GrpcBody = ({ item, collection, handleRun }) => {
     return (
       <StyledWrapper isVerticalLayout={isVerticalLayout}>
         <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-zinc-500 dark:text-zinc-400 mb-4">No gRPC messages available</p>
+          <p className="grpc-empty-message mb-4">No gRPC messages available</p>
           <ToolHint text="Add the first message to your gRPC request" toolhintId="add-first-msg">
             <button
               onClick={addNewMessage}
-              className="flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+              className="grpc-add-button flex items-center justify-center gap-2 py-2 px-4 rounded-md border transition-colors"
             >
-              <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add First Message</span>
+              <IconPlus size={16} strokeWidth={1.5} className="grpc-add-icon" />
+              <span className="grpc-add-icon font-medium">Add First Message</span>
             </button>
           </ToolHint>
         </div>
@@ -326,11 +326,11 @@ const GrpcBody = ({ item, collection, handleRun }) => {
           <ToolHint text="Add a new gRPC message to the request" toolhintId="add-msg-fixed">
             <button
               onClick={addNewMessage}
-              className="add-message-btn flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors shadow-md"
+              className="grpc-add-button add-message-btn flex items-center justify-center gap-2 py-2 px-4 rounded-md border transition-colors shadow-md"
               data-testid="grpc-add-message-button"
             >
-              <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add Message</span>
+              <IconPlus size={16} strokeWidth={1.5} className="grpc-add-icon" />
+              <span className="grpc-add-icon font-medium">Add Message</span>
             </button>
           </ToolHint>
         </div>

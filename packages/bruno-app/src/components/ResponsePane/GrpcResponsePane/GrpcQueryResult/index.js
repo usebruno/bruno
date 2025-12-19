@@ -55,7 +55,7 @@ const GrpcQueryResult = ({ item, collection }) => {
   if (!hasResponses && !hasError) {
     return (
       <StyledWrapper className="w-full h-full relative flex flex-col">
-        <div className="text-gray-500 dark:text-gray-400 p-4">No messages received</div>
+        <div className="empty-message p-4">No messages received</div>
       </StyledWrapper>
     );
   }
@@ -115,7 +115,7 @@ const GrpcQueryResult = ({ item, collection }) => {
         </div>
       )}
       {hasError && !hasResponses && !showErrorMessage && (
-        <div className="text-gray-500 dark:text-gray-400 p-4">
+        <div className="empty-message p-4">
           No messages received. A server error occurred but has been dismissed.
         </div>
       )}

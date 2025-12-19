@@ -116,6 +116,14 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.danger};
     }
   }
+
+  .modal-text {
+    color: ${(props) => props.theme.collectionsList.modal.text};
+  }
+
+  .modal-description {
+    color: ${(props) => props.theme.collectionsList.modal.description};
+  }
 `;
 
 export default StyledWrapper;

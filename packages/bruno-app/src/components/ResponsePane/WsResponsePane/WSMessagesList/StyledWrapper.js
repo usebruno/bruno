@@ -39,6 +39,10 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .chevron-icon {
+    color: ${(props) => props.theme.wsMessagesList.chevron};
+  }
+
 `;
 
 export default StyledWrapper;

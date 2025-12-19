@@ -16,6 +16,7 @@ import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
 import JsonPreview from './JsonPreview';
+import StyledWrapper from './StyledWrapper';
 
 const QueryResultPreview = ({
   selectedTab,
@@ -120,14 +121,16 @@ const QueryResultPreview = ({
 
     default:
       return (
-        <div className="p-4 flex flex-col items-center justify-center h-full text-center">
-          <div className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
-            No Preview Available
+        <StyledWrapper>
+          <div className="p-4 flex flex-col items-center justify-center h-full text-center">
+            <div className="no-preview-heading text-lg font-semibold mb-2">
+              No Preview Available
+            </div>
+            <div className="no-preview-text text-sm">
+              Sorry, no preview is available for this content type.
+            </div>
           </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Sorry, no preview is available for this content type.
-          </div>
-        </div>
+        </StyledWrapper>
       );
   }
 };

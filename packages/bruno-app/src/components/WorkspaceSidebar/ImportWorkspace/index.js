@@ -10,6 +10,7 @@ import { importWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/ac
 import { formatIpcError } from 'utils/common/error';
 import { multiLineMsg } from 'utils/common/index';
 import Help from 'components/Help';
+import StyledWrapper from './StyledWrapper';
 
 const ImportWorkspace = ({ onClose }) => {
   const dispatch = useDispatch();
@@ -131,109 +132,108 @@ const ImportWorkspace = ({ onClose }) => {
   const canSubmit = selectedFile && formik.values.workspaceLocation && !isSubmitting;
 
   return (
-    <Modal
-      size="md"
-      title="Import Workspace"
-      confirmText={isSubmitting ? 'Importing...' : 'Import'}
-      handleConfirm={formik.handleSubmit}
-      handleCancel={onClose}
-      confirmDisabled={!canSubmit}
-    >
-      <div className="flex flex-col">
-        <div className="mb-4">
-          <h3 className="font-semibold mb-2">Workspace File</h3>
-          {selectedFile ? (
-            <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <div className="flex items-center gap-2">
-                <IconFileZip size={20} className="text-gray-500" />
-                <span className="text-gray-700 dark:text-gray-300">{selectedFile.name}</span>
+    <StyledWrapper>
+      <Modal
+        size="md"
+        title="Import Workspace"
+        confirmText={isSubmitting ? 'Importing...' : 'Import'}
+        handleConfirm={formik.handleSubmit}
+        handleCancel={onClose}
+        confirmDisabled={!canSubmit}
+      >
+        <div className="flex flex-col">
+          <div className="mb-4">
+            <h3 className="font-semibold mb-2">Workspace File</h3>
+            {selectedFile ? (
+              <div className="selected-file-container flex items-center justify-between p-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <IconFileZip size={20} className="text-gray-500" />
+                  <span className="selected-file-name">{selectedFile.name}</span>
+                </div>
+                <button
+                  type="button"
+                  className="text-gray-500 hover:text-red-500 text-sm"
+                  onClick={handleClearFile}
+                >
+                  Remove
+                </button>
               </div>
-              <button
-                type="button"
-                className="text-gray-500 hover:text-red-500 text-sm"
-                onClick={handleClearFile}
+            ) : (
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                className={`drag-drop-zone border-2 border-dashed rounded-lg p-6 ${dragActive ? 'active' : ''}`}
               >
-                Remove
+                <div className="flex flex-col items-center justify-center">
+                  <IconFileZip
+                    size={28}
+                    className="import-icon mb-3"
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileInputChange}
+                    accept=".zip,application/zip,application/x-zip-compressed"
+                  />
+                  <p className="import-text mb-2">
+                    Drop workspace zip file here or{' '}
+                    <button
+                      type="button"
+                      className="text-blue-500 underline cursor-pointer"
+                      onClick={handleBrowseFiles}
+                    >
+                      choose a file
+                    </button>
+                  </p>
+                  <p className="import-description text-xs">
+                    Supports exported Bruno workspace zip files
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="workspace-location" className="font-semibold mb-2 flex items-center">
+              Extract Location
+              <Help>
+                <p>
+                  Choose the location where you want to extract this workspace.
+                </p>
+                <p className="mt-2">
+                  The workspace folder will be created at this location.
+                </p>
+              </Help>
+            </label>
+            <div className="flex gap-2 mt-2">
+              <input
+                id="workspace-location"
+                type="text"
+                name="workspaceLocation"
+                ref={locationInputRef}
+                readOnly={true}
+                className="block textbox flex-1 bg-gray-50 cursor-pointer"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.workspaceLocation || ''}
+                onClick={browse}
+              />
+              <button type="button" className="btn btn-sm btn-secondary" onClick={browse}>
+                Browse
               </button>
             </div>
-          ) : (
-            <div
-              onDragEnter={handleDrag}
-              onDragOver={handleDrag}
-              onDragLeave={handleDrag}
-              onDrop={handleDrop}
-              className={`
-                border-2 border-dashed rounded-lg p-6 transition-colors duration-200
-                ${dragActive ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'}
-              `}
-            >
-              <div className="flex flex-col items-center justify-center">
-                <IconFileZip
-                  size={28}
-                  className="text-gray-400 dark:text-gray-500 mb-3"
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileInputChange}
-                  accept=".zip,application/zip,application/x-zip-compressed"
-                />
-                <p className="text-gray-600 dark:text-gray-300 mb-2">
-                  Drop workspace zip file here or{' '}
-                  <button
-                    type="button"
-                    className="text-blue-500 underline cursor-pointer"
-                    onClick={handleBrowseFiles}
-                  >
-                    choose a file
-                  </button>
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Supports exported Bruno workspace zip files
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mb-4">
-          <label htmlFor="workspace-location" className="font-semibold mb-2 flex items-center">
-            Extract Location
-            <Help>
-              <p>
-                Choose the location where you want to extract this workspace.
-              </p>
-              <p className="mt-2">
-                The workspace folder will be created at this location.
-              </p>
-            </Help>
-          </label>
-          <div className="flex gap-2 mt-2">
-            <input
-              id="workspace-location"
-              type="text"
-              name="workspaceLocation"
-              ref={locationInputRef}
-              readOnly={true}
-              className="block textbox flex-1 bg-gray-50 cursor-pointer"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={formik.values.workspaceLocation || ''}
-              onClick={browse}
-            />
-            <button type="button" className="btn btn-sm btn-secondary" onClick={browse}>
-              Browse
-            </button>
+            {formik.touched.workspaceLocation && formik.errors.workspaceLocation ? (
+              <div className="text-red-500 text-sm mt-1">{formik.errors.workspaceLocation}</div>
+            ) : null}
           </div>
-          {formik.touched.workspaceLocation && formik.errors.workspaceLocation ? (
-            <div className="text-red-500 text-sm mt-1">{formik.errors.workspaceLocation}</div>
-          ) : null}
         </div>
-      </div>
-    </Modal>
+      </Modal>
+    </StyledWrapper>
   );
 };
 

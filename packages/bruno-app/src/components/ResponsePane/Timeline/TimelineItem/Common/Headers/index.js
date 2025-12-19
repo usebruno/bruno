@@ -1,25 +1,28 @@
 import { useState } from 'react';
+import StyledWrapper from './StyledWrapper';
 
 const HeadersBlock = ({ headers, type }) => {
   const [areHeadersCollapsed, toggleHeaders] = useState(true);
 
   return (
-    <div className="collapsible-section mt-2">
-      <div className="section-header" onClick={() => toggleHeaders(!areHeadersCollapsed)}>
-        <pre className="flex flex-row items-center text-indigo-500/80 dark:text-indigo-500/80">
-          <div className="opacity-70">{areHeadersCollapsed ? '▼' : '▶'}</div> Headers
-          {headers && Object.keys(headers).length > 0
-            && <div className="ml-1">({Object.keys(headers).length})</div>}
-        </pre>
-      </div>
-      {areHeadersCollapsed && (
-        <div className="mt-1">
-          {headers && Object.keys(headers).length > 0
-            ? <Headers headers={headers} type={type} />
-            : <div className="text-gray-500">No Headers found</div>}
+    <StyledWrapper>
+      <div className="collapsible-section mt-2">
+        <div className="section-header" onClick={() => toggleHeaders(!areHeadersCollapsed)}>
+          <pre className="headers-header-text flex flex-row items-center">
+            <div className="opacity-70">{areHeadersCollapsed ? '▼' : '▶'}</div> Headers
+            {headers && Object.keys(headers).length > 0
+              && <div className="ml-1">({Object.keys(headers).length})</div>}
+          </pre>
         </div>
-      )}
-    </div>
+        {areHeadersCollapsed && (
+          <div className="mt-1">
+            {headers && Object.keys(headers).length > 0
+              ? <Headers headers={headers} type={type} />
+              : <div className="text-gray-500">No Headers found</div>}
+          </div>
+        )}
+      </div>
+    </StyledWrapper>
   );
 };
 

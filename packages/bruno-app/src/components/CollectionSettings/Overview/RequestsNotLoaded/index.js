@@ -43,7 +43,7 @@ const RequestsNotLoaded = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full card my-2">
-      <div className="flex items-center gap-2 px-3 py-2 title bg-yellow-50 dark:bg-yellow-900/20">
+      <div className="warning-banner flex items-center gap-2 px-3 py-2 title">
         <IconAlertTriangle size={16} className="text-yellow-500" />
         <span className="font-medium">Following requests were not loaded</span>
       </div>

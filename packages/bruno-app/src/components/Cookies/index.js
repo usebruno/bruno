@@ -188,14 +188,14 @@ const CollectionProperties = ({ onClose }) => {
                     <Accordion.Header index={i} className="flex items-center">
                       <div className="flex items-center">
                         <span>{domainWithCookies.domain}</span>
-                        <span className="ml-2 text-xs dark:text-gray-300 text-gray-500">
+                        <span className="cookie-count ml-2 text-xs">
                           ({domainWithCookies.cookies.length}{' '}
                           {domainWithCookies.cookies.length === 1 ? 'cookie' : 'cookies'})
                         </span>
                         <div className="ml-auto flex items-center gap-2">
                           <button
                             type="submit"
-                            className="flex items-center gap-1 text-gray-500 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
+                            className="cookie-add-button flex items-center gap-1"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleAddCookie(domainWithCookies.domain);
@@ -208,7 +208,7 @@ const CollectionProperties = ({ onClose }) => {
                               e.stopPropagation();
                               handleClearDomainCookies(domainWithCookies.domain);
                             }}
-                            className="text-gray-950 dark:text-white dark:hover:hover:text-red-600 hover:text-red-600  mr-2"
+                            className="cookie-delete-button hover:text-red-600 mr-2"
                           >
                             <IconTrash strokeWidth={1.5} size={16} />
                           </button>
@@ -219,7 +219,7 @@ const CollectionProperties = ({ onClose }) => {
                       <div className="flex items-center justify-between">
                         <table className="w-full">
                           <thead>
-                            <tr className="text-left border-b border-gray-200 dark:border-neutral-600 text-gray-700 dark:text-gray-300">
+                            <tr className="cookie-table-header text-left border-b">
                               <th className="py-2 px-4 font-medium w-32">Name</th>
                               <th className="py-2 px-4 font-medium w-52">Value</th>
                               <th className="py-2 px-4 font-medium">Path</th>
@@ -231,7 +231,7 @@ const CollectionProperties = ({ onClose }) => {
                           </thead>
                           <tbody>
                             {domainWithCookies.cookies.map((cookie) => (
-                              <tr key={cookie.key} className="border-b border-gray-200 dark:border-neutral-600 last:border-none">
+                              <tr key={cookie.key} className="cookie-table-row border-b last:border-none">
                                 <td className="py-2 px-4 truncate">
                                   <span id={`cookie-key-${cookie.key}`}>{cookie.key}</span>
                                   <Tooltip
@@ -272,8 +272,7 @@ const CollectionProperties = ({ onClose }) => {
                                         e.stopPropagation();
                                         handleEditCookie(domainWithCookies.domain, cookie);
                                       }}
-                                      className="text-gray-700  hover:text-gray-950
-                                    dark:text-white dark:hover:text-gray-300"
+                                      className="cookie-edit-button"
                                     >
                                       <IconEdit strokeWidth={1.5} size={16} />
                                     </button>
@@ -282,7 +281,7 @@ const CollectionProperties = ({ onClose }) => {
                                         e.stopPropagation();
                                         handleDeleteCookie(domainWithCookies.domain, cookie.path, cookie.key);
                                       }}
-                                      className="text-gray-950 dark:text-white dark:hover:hover:text-red-600  hover:text-red-600"
+                                      className="cookie-delete-button hover:text-red-600"
                                     >
                                       <IconTrash strokeWidth={1.5} size={16} />
                                     </button>

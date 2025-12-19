@@ -130,7 +130,7 @@ const ProtobufSettings = ({ collection }) => {
 
         <div>
           {protoFiles.some((file) => !file.exists) && (
-            <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-testid="protobuf-invalid-files-message">
+            <div className="protobuf-error-message text-xs mb-2 flex items-center p-2 rounded" data-testid="protobuf-invalid-files-message">
               <IconAlertCircle size={14} className="mr-1" />
               Some proto files cannot be found. Use the replace option to update their locations.
             </div>
@@ -139,13 +139,13 @@ const ProtobufSettings = ({ collection }) => {
           <table className="w-full border-collapse" data-testid="protobuf-proto-files-table">
             <thead>
               <tr>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th className="protobuf-table-header text-left text-xs font-medium uppercase tracking-wider border px-3 py-2">
                   File
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th className="protobuf-table-header text-left text-xs font-medium uppercase tracking-wider border px-3 py-2">
                   Path
                 </th>
-                <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th className="protobuf-table-header text-right text-xs font-medium uppercase tracking-wider border px-3 py-2">
                   Actions
                 </th>
               </tr>
@@ -153,10 +153,10 @@ const ProtobufSettings = ({ collection }) => {
             <tbody>
               {protoFiles.length === 0 ? (
                 <tr>
-                  <td colSpan="3" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
+                  <td colSpan="3" className="protobuf-table-cell border px-3 py-8 text-center">
                     <div className="flex flex-col items-center">
                       <IconFile size={24} className="text-gray-400 mb-2" />
-                      <span className="text-gray-500 dark:text-gray-400">No proto files added</span>
+                      <span className="protobuf-empty-message">No proto files added</span>
                     </div>
                   </td>
                 </tr>
@@ -166,27 +166,27 @@ const ProtobufSettings = ({ collection }) => {
 
                   return (
                     <tr key={index}>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      <td className="protobuf-table-cell border px-3 py-2">
                         <div className="flex items-center">
-                          <IconFile size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
-                          <span className="font-medium text-gray-900 dark:text-gray-100" data-testid="protobuf-proto-file-name">
+                          <IconFile size={16} className="protobuf-file-icon mr-2" />
+                          <span className="protobuf-file-name font-medium" data-testid="protobuf-proto-file-name">
                             {getBasename(collection.pathname, file.path)}
                           </span>
-                          {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
+                          {!isValid && <IconAlertCircle size={12} className="protobuf-invalid-icon ml-2" />}
                         </div>
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                      <td className="protobuf-table-cell border px-3 py-2">
+                        <div className="protobuf-file-path text-xs font-mono">
                           {file.path}
                         </div>
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
+                      <td className="protobuf-table-cell border px-3 py-2 text-right">
                         <div className="flex items-center justify-end space-x-1">
                           {!isValid && (
                             <button
                               type="button"
                               onClick={() => handleReplaceProtoFile(index)}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
+                              className="protobuf-replace-button p-1 rounded"
                               title="Replace file"
                             >
                               <IconFileImport size={14} />
@@ -195,7 +195,7 @@ const ProtobufSettings = ({ collection }) => {
                           <button
                             type="button"
                             onClick={() => handleRemoveProtoFile(index)}
-                            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
+                            className="protobuf-remove-button p-1 rounded"
                             title="Remove file"
                             data-testid="protobuf-remove-file-button"
                           >
@@ -237,7 +237,7 @@ const ProtobufSettings = ({ collection }) => {
 
         <div>
           {importPaths.some((path) => !path.exists) && (
-            <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-testid="protobuf-invalid-import-paths-message">
+            <div className="protobuf-error-message text-xs mb-2 flex items-center p-2 rounded" data-testid="protobuf-invalid-import-paths-message">
               <IconAlertCircle size={14} className="mr-1" />
               Some import paths cannot be found at their specified locations.
             </div>
@@ -246,15 +246,15 @@ const ProtobufSettings = ({ collection }) => {
           <table className="w-full border-collapse" data-testid="protobuf-import-paths-table">
             <thead>
               <tr>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th className="protobuf-table-header text-left text-xs font-medium uppercase tracking-wider border px-3 py-2">
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th className="protobuf-table-header text-left text-xs font-medium uppercase tracking-wider border px-3 py-2">
                   Directory
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th className="protobuf-table-header text-left text-xs font-medium uppercase tracking-wider border px-3 py-2">
                   Path
                 </th>
-                <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th className="protobuf-table-header text-right text-xs font-medium uppercase tracking-wider border px-3 py-2">
                   Actions
                 </th>
               </tr>
@@ -262,10 +262,10 @@ const ProtobufSettings = ({ collection }) => {
             <tbody>
               {importPaths.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
+                  <td colSpan="4" className="protobuf-table-cell border px-3 py-8 text-center">
                     <div className="flex flex-col items-center">
                       <IconFolder size={24} className="text-gray-400 mb-2" />
-                      <span className="text-gray-500 dark:text-gray-400">No import paths added</span>
+                      <span className="protobuf-empty-message">No import paths added</span>
                     </div>
                   </td>
                 </tr>
@@ -275,37 +275,37 @@ const ProtobufSettings = ({ collection }) => {
 
                   return (
                     <tr key={index}>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      <td className="protobuf-table-cell border px-3 py-2">
                         <input
                           type="checkbox"
                           checked={importPath.enabled}
                           onChange={() => handleToggleImportPath(index)}
-                          className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 dark:border-gray-600 rounded"
+                          className="protobuf-checkbox h-4 w-4 text-gray-600 focus:ring-gray-500 rounded"
                           title={importPath.enabled ? 'Disable this import path' : 'Enable this import path'}
                           data-testid="protobuf-import-path-checkbox"
                         />
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      <td className="protobuf-table-cell border px-3 py-2">
                         <div className="flex items-center">
-                          <IconFolder size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                          <IconFolder size={16} className="protobuf-file-icon mr-2" />
+                          <span className="protobuf-file-name font-medium">
                             {getBasename(collection.pathname, importPath.path)}
                           </span>
-                          {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
+                          {!isValid && <IconAlertCircle size={12} className="protobuf-invalid-icon ml-2" />}
                         </div>
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                      <td className="protobuf-table-cell border px-3 py-2">
+                        <div className="protobuf-file-path text-xs font-mono">
                           {importPath.path}
                         </div>
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
+                      <td className="protobuf-table-cell border px-3 py-2 text-right">
                         <div className="flex items-center justify-end space-x-1">
                           {!isValid && (
                             <button
                               type="button"
                               onClick={() => handleReplaceImportPath(index)}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
+                              className="protobuf-replace-button p-1 rounded"
                               title="Replace directory"
                             >
                               <IconFileImport size={14} />
@@ -314,7 +314,7 @@ const ProtobufSettings = ({ collection }) => {
                           <button
                             type="button"
                             onClick={() => handleRemoveImportPath(index)}
-                            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
+                            className="protobuf-remove-button p-1 rounded"
                             title="Remove import path"
                             data-testid="protobuf-remove-import-path-button"
                           >

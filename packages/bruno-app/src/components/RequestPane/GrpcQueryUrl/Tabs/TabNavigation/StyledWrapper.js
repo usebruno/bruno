@@ -18,6 +18,10 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.grpc.tabNav.button.active.color};
   }
 }
+
+.tab-navigation-border {
+  border-color: ${(props) => props.theme.grpcTabNavigation.border};
+}
 `;
 
 export default Wrapper;

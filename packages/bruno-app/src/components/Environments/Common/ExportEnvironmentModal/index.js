@@ -241,7 +241,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
             </div>
 
             {/* Export Actions */}
-            <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="export-modal-border flex justify-end gap-2 mt-4 pt-3 border-t">
               <button
                 type="button"
                 className="btn btn-sm btn-cancel mt-2 flex items-center"

@@ -49,6 +49,14 @@ const Wrapper = styled.div`
   label {
     font-size: ${(props) => props.theme.font.size.base};
   }
+
+  .oauth2-badge {
+    background-color: ${(props) => props.theme.oauth2.badge.bg};
+  }
+
+  .oauth2-icon {
+    color: ${(props) => props.theme.oauth2.icon};
+  }
 `;
 
 export default Wrapper;

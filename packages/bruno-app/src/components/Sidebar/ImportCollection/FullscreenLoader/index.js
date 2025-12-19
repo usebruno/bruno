@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { IconLoader2 } from '@tabler/icons';
+import StyledWrapper from './StyledWrapper';
 
 // Messages to cycle through while loading
 const loadingMessages = [
@@ -28,15 +29,17 @@ const FullscreenLoader = ({ isLoading }) => {
   }, [isLoading]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm transition-all duration-300">
-      <div className="flex flex-col items-center p-8 rounded-lg bg-white dark:bg-zinc-800 shadow-lg max-w-md text-center">
-        <IconLoader2 className="animate-spin h-12 w-12 mb-4" strokeWidth={1.5} />
-        <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50 mb-2">{loadingMessage}</h3>
-        <p className="text-zinc-500 dark:text-zinc-400">
-          This may take a moment depending on the collection size
-        </p>
+    <StyledWrapper>
+      <div className="loader-backdrop fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm transition-all duration-300">
+        <div className="loader-card flex flex-col items-center p-8 rounded-lg shadow-lg max-w-md text-center">
+          <IconLoader2 className="animate-spin h-12 w-12 mb-4" strokeWidth={1.5} />
+          <h3 className="loader-heading text-lg font-medium mb-2">{loadingMessage}</h3>
+          <p className="loader-text">
+            This may take a moment depending on the collection size
+          </p>
+        </div>
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 

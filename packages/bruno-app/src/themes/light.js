@@ -669,6 +669,391 @@ const lightTheme = {
         }
       }
     }
+  },
+
+  shareCollection: {
+    exportOption: {
+      border: '#e5e7eb',
+      hoverBg: '#f3f4f6'
+    },
+    warning: {
+      bg: '#fef3c7',
+      text: '#92400e',
+      border: '#fde68a'
+    }
+  },
+
+  collectionSettings: {
+    infoIcon: {
+      blue: {
+        bg: '#dbeafe'
+      },
+      green: {
+        bg: '#d1fae5'
+      },
+      purple: {
+        bg: '#e9d5ff'
+      },
+      indigo: {
+        bg: '#e0e7ff'
+      }
+    }
+  },
+
+  queryResultPreview: {
+    noPreview: {
+      heading: '#374151',
+      text: '#6b7280'
+    }
+  },
+
+  runnerResults: {
+    filterButton: {
+      active: {
+        text: '#343434',
+        border: '#F59E0B'
+      },
+      inactive: {
+        text: '#989898'
+      }
+    },
+    filterBadge: {
+      bg: '#F7F7F7',
+      border: '#EFEFEF',
+      text: '#989898'
+    },
+    sectionBorder: '#e5e7eb',
+    filterContainer: {
+      border: '#EFEFEF'
+    },
+    filterLabel: {
+      bg: '#F3F3F3',
+      text: '#4b5563'
+    },
+    actionButton: {
+      border: '#989898',
+      text: '#989898'
+    },
+    iconButton: {
+      hoverBg: '#f3f4f6'
+    },
+    emptyState: {
+      text: '#9ca3af',
+      description: '#4b5563'
+    }
+  },
+
+  scriptError: {
+    separator: '#d1d5db'
+  },
+
+  settingsInput: {
+    label: '#111827',
+    description: '#374151'
+  },
+
+  timelineItem: {
+    body: {
+      headerText: 'rgba(99, 102, 241, 0.8)'
+    }
+  },
+
+  collectionsList: {
+    modal: {
+      text: '#4b5563',
+      description: '#6b7280'
+    }
+  },
+
+  inheritableSettingsInput: {
+    resetButton: {
+      color: '#9ca3af',
+      hoverColor: '#4b5563'
+    }
+  },
+
+  importModal: {
+    heading: '#111827',
+    dragZone: {
+      border: '#e5e7eb',
+      activeBorder: '#3b82f6',
+      activeBg: '#dbeafe'
+    },
+    icon: '#9ca3af',
+    text: '#4b5563',
+    description: '#6b7280',
+    selectedFile: {
+      border: '#e5e7eb',
+      bg: '#f9fafb',
+      text: '#374151'
+    }
+  },
+
+  fullscreenLoader: {
+    backdrop: 'rgba(255, 255, 255, 0.8)',
+    card: {
+      bg: '#ffffff',
+      heading: '#18181b',
+      text: '#71717a'
+    }
+  },
+
+  oauth2: {
+    badge: {
+      bg: 'rgba(99, 102, 241, 0.5)'
+    },
+    icon: '#6366f1',
+    label: '#1f2937'
+  },
+
+  importCollectionLocation: {
+    groupingLabel: '#111827',
+    groupingDescription: '#6b7280'
+  },
+
+  requestNotLoaded: {
+    warning: {
+      bg: '#fef3c7'
+    }
+  },
+
+  importEnvironment: {
+    button: {
+      bg: '#ffffff',
+      border: '#d4d4d8',
+      hoverBorder: '#a1a1aa'
+    }
+  },
+
+  beta: {
+    description: '#6b7280',
+    featureDescription: '#6b7280'
+  },
+
+  requestPaneSettings: {
+    heading: '#111827'
+  },
+
+  wsMessagesList: {
+    chevron: '#3f3f46'
+  },
+
+  grpcQueryResult: {
+    emptyMessage: '#6b7280'
+  },
+
+  grpcTabNavigation: {
+    border: '#e5e7eb'
+  },
+
+  exportEnvironmentModal: {
+    border: '#e5e7eb'
+  },
+
+  toggleSelector: {
+    label: '#111827',
+    description: '#374151',
+    switch: {
+      checked: '#2563eb',
+      unchecked: '#e5e7eb'
+    }
+  },
+
+  importEnvironmentModal: {
+    zone: {
+      bg: '#ffffff',
+      border: '#d4d4d8',
+      hoverBorder: '#a1a1aa',
+      dragOverBorder: '#f59e0b',
+      dragOverBg: '#fef3c7'
+    }
+  },
+
+  cookies: {
+    count: '#6b7280',
+    addButton: {
+      color: '#6b7280',
+      hoverColor: '#111827'
+    },
+    deleteButton: {
+      color: '#111827',
+      hoverColor: '#dc2626'
+    },
+    editButton: {
+      color: '#374151',
+      hoverColor: '#111827'
+    },
+    table: {
+      headerBorder: '#e5e7eb',
+      headerText: '#374151',
+      rowBorder: '#e5e7eb'
+    }
+  },
+
+  grpcProtoFileDropdown: {
+    text: '#374151',
+    border: '#e5e7eb',
+    description: '#6b7280'
+  },
+
+  grpcMethodDropdown: {
+    text: '#374151',
+    serviceHeader: {
+      bg: '#f5f5f5',
+      text: '#111827'
+    },
+    methodName: '#111827',
+    selectedBg: 'rgba(234, 179, 8, 0.2)',
+    hoverBg: 'rgba(0, 0, 0, 0.05)'
+  },
+
+  wsBody: {
+    emptyMessage: '#71717a',
+    addButton: {
+      border: '#e5e7eb',
+      bg: '#f5f5f5',
+      hoverBg: '#e5e7eb',
+      text: '#374151',
+      icon: '#374151'
+    }
+  },
+
+  wsSingleMessage: {
+    container: {
+      border: '#e5e7eb'
+    },
+    header: {
+      bg: '#f5f5f5'
+    },
+    icon: '#374151',
+    actionButton: {
+      hoverBg: '#e4e4e7'
+    }
+  },
+
+  oauth2TokenViewer: {
+    section: {
+      border: '#e5e7eb'
+    },
+    header: {
+      bg: '#f9fafb',
+      hoverBg: '#f3f4f6'
+    },
+    copyButton: {
+      bg: '#e0e7ff',
+      hoverBg: '#c7d2fe'
+    },
+    content: {
+      bg: '#f9fafb'
+    },
+    label: '#6b7280',
+    value: '#4b5563',
+    expiry: {
+      expiring: {
+        bg: '#fef2f2',
+        text: '#dc2626'
+      },
+      normal: {
+        bg: '#eff6ff',
+        text: '#2563eb'
+      }
+    },
+    error: {
+      text: '#dc2626'
+    },
+    infoContainer: {
+      border: '#e5e7eb'
+    },
+    infoSection: {
+      bg: '#f9fafb'
+    },
+    empty: '#6b7280'
+  },
+
+  grpcBody: {
+    emptyMessage: '#71717a',
+    addButton: {
+      border: '#e5e7eb',
+      bg: '#f5f5f5',
+      hoverBg: '#e5e7eb',
+      text: '#374151',
+      icon: '#374151'
+    },
+    messageContainer: {
+      border: '#e5e7eb'
+    },
+    messageHeader: {
+      bg: '#f5f5f5'
+    },
+    icon: '#374151',
+    actionButton: {
+      hoverBg: '#e4e4e7'
+    }
+  },
+
+  grpcTimelineItem: {
+    request: {
+      bg: '#fff7ed',
+      label: '#c2410c',
+      content: '#ffffff'
+    },
+    message: {
+      bg: '#fff7ed',
+      label: '#c2410c',
+      content: '#ffffff'
+    },
+    metadata: {
+      bg: '#eff6ff',
+      label: '#1d4ed8'
+    },
+    response: {
+      bg: '#f0fdf4',
+      label: '#16a34a',
+      content: '#ffffff'
+    },
+    status: {
+      bg: '#faf5ff',
+      label: '#9333ea'
+    },
+    error: {
+      bg: '#fef2f2',
+      label: '#dc2626'
+    },
+    end: {
+      bg: '#f9fafb'
+    },
+    cancel: {
+      bg: '#fffbeb',
+      label: '#d97706'
+    },
+    methodBadge: {
+      bg: '#fed7aa',
+      text: '#c2410c'
+    }
+  },
+
+  protobuf: {
+    errorMessage: '#dc2626',
+    table: {
+      headerText: '#6b7280',
+      border: '#e5e7eb'
+    },
+    emptyMessage: '#6b7280',
+    fileIcon: '#6b7280',
+    fileName: '#111827',
+    filePath: '#4b5563',
+    invalidIcon: '#dc2626',
+    replaceButton: {
+      color: '#dc2626',
+      hoverColor: '#991b1b'
+    },
+    removeButton: {
+      color: '#4b5563',
+      hoverColor: '#111827'
+    },
+    checkbox: {
+      border: '#d1d5db'
+    }
   }
 };
 

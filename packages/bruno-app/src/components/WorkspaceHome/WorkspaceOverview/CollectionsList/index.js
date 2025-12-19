@@ -200,11 +200,11 @@ const CollectionsList = ({ workspace }) => {
         cancelText="Cancel"
         style="new"
       >
-        <p className="text-gray-600 dark:text-gray-300">
+        <p className="modal-text">
           Are you sure you want to {isDelete ? 'delete' : 'remove'}{' '}
           <strong>"{collectionToRemove.name}"</strong>?
         </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+        <p className="modal-description text-sm mt-3">
           {isDelete
             ? 'This will permanently delete the collection files from the workspace collections folder.'
             : 'This will remove the collection from the workspace. The collection files will not be deleted.'}

@@ -92,6 +92,10 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
     background-color: var(--color-panel-background);
   }
+
+  .empty-message {
+    color: ${(props) => props.theme.grpcQueryResult.emptyMessage};
+  }
 `;
 
 export default StyledWrapper;

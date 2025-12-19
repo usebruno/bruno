@@ -48,6 +48,55 @@ const Wrapper = styled.div`
     border-top-left-radius: 0;
     border-top-right-radius: 0;
   }
+
+  .ws-empty-message {
+    color: ${(props) => props.theme.wsBody.emptyMessage};
+  }
+
+  .ws-add-button {
+    border: 1px solid ${(props) => props.theme.wsBody.addButton.border};
+    background-color: ${(props) => props.theme.wsBody.addButton.bg};
+    color: ${(props) => props.theme.wsBody.addButton.text};
+
+    &:hover {
+      background-color: ${(props) => props.theme.wsBody.addButton.hoverBg};
+    }
+  }
+
+  .ws-add-icon {
+    color: ${(props) => props.theme.wsBody.addButton.icon};
+  }
+
+  .ws-message-container {
+    border: 1px solid ${(props) => props.theme.wsSingleMessage.container.border};
+    
+    &.h-full {
+      height: 100%;
+      min-height: 0;
+    }
+    
+    &.h-80 {
+      height: 20rem;
+    }
+  }
+
+  .ws-message-header {
+    background-color: ${(props) => props.theme.wsSingleMessage.header.bg};
+  }
+
+  .ws-chevron-icon {
+    color: ${(props) => props.theme.wsSingleMessage.icon};
+  }
+
+  .ws-action-button {
+    &:hover {
+      background-color: ${(props) => props.theme.wsSingleMessage.actionButton.hoverBg};
+    }
+  }
+
+  .ws-action-icon {
+    color: ${(props) => props.theme.wsSingleMessage.icon};
+  }
 `;
 
 export default Wrapper;

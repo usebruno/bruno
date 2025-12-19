@@ -19,6 +19,10 @@ const StyledWrapper = styled.div`
       flex: 1;
     }
   }
+
+  .export-modal-border {
+    border-color: ${(props) => props.theme.exportEnvironmentModal.border};
+  }
 `;
 
 export default StyledWrapper;
