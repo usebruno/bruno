@@ -2,29 +2,29 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .method-dropdown-text {
-    color: ${(props) => props.theme.grpcMethodDropdown.text};
+    color: ${(props) => props.theme.grpc.methodDropdown.text};
   }
 
   .service-header {
-    background-color: ${(props) => props.theme.grpcMethodDropdown.serviceHeader.bg};
-    color: ${(props) => props.theme.grpcMethodDropdown.serviceHeader.text};
+    background-color: ${(props) => props.theme.grpc.methodDropdown.serviceHeader.bg};
+    color: ${(props) => props.theme.grpc.methodDropdown.serviceHeader.text};
   }
 
   .method-name {
-    color: ${(props) => props.theme.grpcMethodDropdown.methodName};
+    color: ${(props) => props.theme.grpc.methodDropdown.methodName};
   }
 
   .method-item {
     &.selected {
-      background-color: ${(props) => props.theme.grpcMethodDropdown.selectedBg};
+      background-color: ${(props) => props.theme.grpc.methodDropdown.selectedBg};
     }
 
     &:hover:not(.selected) {
-      background-color: ${(props) => props.theme.grpcMethodDropdown.hoverBg};
+      background-color: ${(props) => props.theme.grpc.methodDropdown.hoverBg};
     }
 
     &.focused {
-      background-color: ${(props) => props.theme.grpcMethodDropdown.hoverBg};
+      background-color: ${(props) => props.theme.grpc.methodDropdown.hoverBg};
     }
   }
 `;

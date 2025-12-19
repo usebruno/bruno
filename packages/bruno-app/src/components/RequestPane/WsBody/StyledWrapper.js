@@ -50,25 +50,25 @@ const Wrapper = styled.div`
   }
 
   .ws-empty-message {
-    color: ${(props) => props.theme.wsBody.emptyMessage};
+    color: ${(props) => props.theme.ws.body.emptyMessage};
   }
 
   .ws-add-button {
-    border: 1px solid ${(props) => props.theme.wsBody.addButton.border};
-    background-color: ${(props) => props.theme.wsBody.addButton.bg};
-    color: ${(props) => props.theme.wsBody.addButton.text};
+    border: 1px solid ${(props) => props.theme.ws.body.addButton.border};
+    background-color: ${(props) => props.theme.ws.body.addButton.bg};
+    color: ${(props) => props.theme.ws.body.addButton.text};
 
     &:hover {
-      background-color: ${(props) => props.theme.wsBody.addButton.hoverBg};
+      background-color: ${(props) => props.theme.ws.body.addButton.hoverBg};
     }
   }
 
   .ws-add-icon {
-    color: ${(props) => props.theme.wsBody.addButton.icon};
+    color: ${(props) => props.theme.ws.body.addButton.icon};
   }
 
   .ws-message-container {
-    border: 1px solid ${(props) => props.theme.wsSingleMessage.container.border};
+    border: 1px solid ${(props) => props.theme.ws.singleMessage.container.border};
     
     &.h-full {
       height: 100%;
@@ -81,21 +81,21 @@ const Wrapper = styled.div`
   }
 
   .ws-message-header {
-    background-color: ${(props) => props.theme.wsSingleMessage.header.bg};
+    background-color: ${(props) => props.theme.ws.singleMessage.header.bg};
   }
 
   .ws-chevron-icon {
-    color: ${(props) => props.theme.wsSingleMessage.icon};
+    color: ${(props) => props.theme.ws.singleMessage.icon};
   }
 
   .ws-action-button {
     &:hover {
-      background-color: ${(props) => props.theme.wsSingleMessage.actionButton.hoverBg};
+      background-color: ${(props) => props.theme.ws.singleMessage.actionButton.hoverBg};
     }
   }
 
   .ws-action-icon {
-    color: ${(props) => props.theme.wsSingleMessage.icon};
+    color: ${(props) => props.theme.ws.singleMessage.icon};
   }
 `;
 

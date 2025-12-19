@@ -94,7 +94,7 @@ const StyledWrapper = styled.div`
   }
 
   .empty-message {
-    color: ${(props) => props.theme.grpcQueryResult.emptyMessage};
+    color: ${(props) => props.theme.grpc.queryResult.emptyMessage};
   }
 `;
 

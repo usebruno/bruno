@@ -20,7 +20,7 @@ const Wrapper = styled.div`
 }
 
 .tab-navigation-border {
-  border-color: ${(props) => props.theme.grpcTabNavigation.border};
+  border-color: ${(props) => props.theme.grpc.tabNavigation.border};
 }
 `;
 

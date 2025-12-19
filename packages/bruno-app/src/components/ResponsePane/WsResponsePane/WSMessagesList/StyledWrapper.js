@@ -40,7 +40,7 @@ const StyledWrapper = styled.div`
   }
 
   .chevron-icon {
-    color: ${(props) => props.theme.wsMessagesList.chevron};
+    color: ${(props) => props.theme.ws.messagesList.chevron};
   }
 
 `;

@@ -2,80 +2,80 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .grpc-event-request {
-    background-color: ${(props) => props.theme.grpcTimelineItem.request.bg};
+    background-color: ${(props) => props.theme.grpc.timelineItem.request.bg};
   }
 
   .grpc-event-request-label {
-    color: ${(props) => props.theme.grpcTimelineItem.request.label};
+    color: ${(props) => props.theme.grpc.timelineItem.request.label};
   }
 
   .grpc-event-request-content {
-    background-color: ${(props) => props.theme.grpcTimelineItem.request.content};
+    background-color: ${(props) => props.theme.grpc.timelineItem.request.content};
   }
 
   .grpc-event-message {
-    background-color: ${(props) => props.theme.grpcTimelineItem.message.bg};
+    background-color: ${(props) => props.theme.grpc.timelineItem.message.bg};
   }
 
   .grpc-event-message-label {
-    color: ${(props) => props.theme.grpcTimelineItem.message.label};
+    color: ${(props) => props.theme.grpc.timelineItem.message.label};
   }
 
   .grpc-event-message-content {
-    background-color: ${(props) => props.theme.grpcTimelineItem.message.content};
+    background-color: ${(props) => props.theme.grpc.timelineItem.message.content};
   }
 
   .grpc-event-metadata {
-    background-color: ${(props) => props.theme.grpcTimelineItem.metadata.bg};
+    background-color: ${(props) => props.theme.grpc.timelineItem.metadata.bg};
   }
 
   .grpc-event-metadata-label {
-    color: ${(props) => props.theme.grpcTimelineItem.metadata.label};
+    color: ${(props) => props.theme.grpc.timelineItem.metadata.label};
   }
 
   .grpc-event-response {
-    background-color: ${(props) => props.theme.grpcTimelineItem.response.bg};
+    background-color: ${(props) => props.theme.grpc.timelineItem.response.bg};
   }
 
   .grpc-event-response-label {
-    color: ${(props) => props.theme.grpcTimelineItem.response.label};
+    color: ${(props) => props.theme.grpc.timelineItem.response.label};
   }
 
   .grpc-event-response-content {
-    background-color: ${(props) => props.theme.grpcTimelineItem.response.content};
+    background-color: ${(props) => props.theme.grpc.timelineItem.response.content};
   }
 
   .grpc-event-status {
-    background-color: ${(props) => props.theme.grpcTimelineItem.status.bg};
+    background-color: ${(props) => props.theme.grpc.timelineItem.status.bg};
   }
 
   .grpc-event-status-label {
-    color: ${(props) => props.theme.grpcTimelineItem.status.label};
+    color: ${(props) => props.theme.grpc.timelineItem.status.label};
   }
 
   .grpc-event-error {
-    background-color: ${(props) => props.theme.grpcTimelineItem.error.bg};
+    background-color: ${(props) => props.theme.grpc.timelineItem.error.bg};
   }
 
   .grpc-event-error-label {
-    color: ${(props) => props.theme.grpcTimelineItem.error.label};
+    color: ${(props) => props.theme.grpc.timelineItem.error.label};
   }
 
   .grpc-event-end {
-    background-color: ${(props) => props.theme.grpcTimelineItem.end.bg};
+    background-color: ${(props) => props.theme.grpc.timelineItem.end.bg};
   }
 
   .grpc-event-cancel {
-    background-color: ${(props) => props.theme.grpcTimelineItem.cancel.bg};
+    background-color: ${(props) => props.theme.grpc.timelineItem.cancel.bg};
   }
 
   .grpc-event-cancel-label {
-    color: ${(props) => props.theme.grpcTimelineItem.cancel.label};
+    color: ${(props) => props.theme.grpc.timelineItem.cancel.label};
   }
 
   .grpc-method-badge {
-    background-color: ${(props) => props.theme.grpcTimelineItem.methodBadge.bg};
-    color: ${(props) => props.theme.grpcTimelineItem.methodBadge.text};
+    background-color: ${(props) => props.theme.grpc.timelineItem.methodBadge.bg};
+    color: ${(props) => props.theme.grpc.timelineItem.methodBadge.text};
   }
 `;
 

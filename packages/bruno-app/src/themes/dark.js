@@ -589,8 +589,118 @@ const darkTheme = {
         border: '#185387',
         hoverBorder: '#696969'
       }
+    },
+    protoFileDropdown: {
+      text: colors.TEXT,
+      border: colors.GRAY_4,
+      description: colors.TEXT_MUTED
+    },
+    methodDropdown: {
+      text: colors.TEXT,
+      serviceHeader: {
+        bg: colors.GRAY_2,
+        text: colors.TEXT
+      },
+      methodName: colors.TEXT,
+      selectedBg: 'rgba(234, 179, 8, 0.2)',
+      hoverBg: 'rgba(255, 255, 255, 0.05)'
+    },
+    body: {
+      emptyMessage: '#a1a1aa',
+      addButton: {
+        border: '#3f3f46',
+        bg: '#3f3f46',
+        hoverBg: '#52525b',
+        text: colors.TEXT,
+        icon: colors.TEXT
+      },
+      messageContainer: {
+        border: '#3f3f46'
+      },
+      messageHeader: {
+        bg: '#3f3f46'
+      },
+      icon: colors.TEXT,
+      actionButton: {
+        hoverBg: '#52525b'
+      }
+    },
+    timelineItem: {
+      request: {
+        bg: 'rgba(251, 146, 60, 0.1)',
+        label: '#fb923c',
+        content: colors.GRAY_2
+      },
+      message: {
+        bg: 'rgba(251, 146, 60, 0.1)',
+        label: '#fb923c',
+        content: colors.GRAY_2
+      },
+      metadata: {
+        bg: 'rgba(59, 130, 246, 0.1)',
+        label: '#60a5fa'
+      },
+      response: {
+        bg: 'rgba(34, 197, 94, 0.1)',
+        label: '#4ade80',
+        content: colors.GRAY_2
+      },
+      status: {
+        bg: 'rgba(168, 85, 247, 0.1)',
+        label: '#a78bfa'
+      },
+      error: {
+        bg: 'rgba(220, 38, 38, 0.1)',
+        label: '#f87171'
+      },
+      end: {
+        bg: 'rgba(107, 114, 128, 0.3)'
+      },
+      cancel: {
+        bg: 'rgba(245, 158, 11, 0.1)',
+        label: '#fbbf24'
+      },
+      methodBadge: {
+        bg: 'rgba(251, 146, 60, 0.3)',
+        text: '#fb923c'
+      }
+    },
+    queryResult: {
+      emptyMessage: colors.TEXT_MUTED
+    },
+    tabNavigation: {
+      border: colors.GRAY_4
     }
   },
+
+  ws: {
+    body: {
+      emptyMessage: '#a1a1aa',
+      addButton: {
+        border: '#3f3f46',
+        bg: '#3f3f46',
+        hoverBg: '#52525b',
+        text: colors.TEXT,
+        icon: colors.TEXT
+      }
+    },
+    singleMessage: {
+      container: {
+        border: '#3f3f46'
+      },
+      header: {
+        bg: '#3f3f46'
+      },
+      icon: colors.TEXT,
+      actionButton: {
+        hoverBg: '#52525b'
+      }
+    },
+    messagesList: {
+      chevron: '#d4d4d8'
+    }
+  },
+
   deprecationWarning: {
     bg: 'rgba(250, 83, 67, 0.1)',
     border: 'rgba(250, 83, 67, 0.1)',
@@ -823,18 +933,6 @@ const darkTheme = {
     heading: '#f3f4f6'
   },
 
-  wsMessagesList: {
-    chevron: '#d4d4d8'
-  },
-
-  grpcQueryResult: {
-    emptyMessage: colors.TEXT_MUTED
-  },
-
-  grpcTabNavigation: {
-    border: colors.GRAY_4
-  },
-
   exportEnvironmentModal: {
     border: colors.GRAY_4
   },
@@ -879,47 +977,6 @@ const darkTheme = {
     }
   },
 
-  grpcProtoFileDropdown: {
-    text: colors.TEXT,
-    border: colors.GRAY_4,
-    description: colors.TEXT_MUTED
-  },
-
-  grpcMethodDropdown: {
-    text: colors.TEXT,
-    serviceHeader: {
-      bg: colors.GRAY_2,
-      text: colors.TEXT
-    },
-    methodName: colors.TEXT,
-    selectedBg: 'rgba(234, 179, 8, 0.2)',
-    hoverBg: 'rgba(255, 255, 255, 0.05)'
-  },
-
-  wsBody: {
-    emptyMessage: '#a1a1aa',
-    addButton: {
-      border: '#3f3f46',
-      bg: '#3f3f46',
-      hoverBg: '#52525b',
-      text: colors.TEXT,
-      icon: colors.TEXT
-    }
-  },
-
-  wsSingleMessage: {
-    container: {
-      border: '#3f3f46'
-    },
-    header: {
-      bg: '#3f3f46'
-    },
-    icon: colors.TEXT,
-    actionButton: {
-      hoverBg: '#52525b'
-    }
-  },
-
   oauth2TokenViewer: {
     section: {
       border: colors.GRAY_4
@@ -957,68 +1014,6 @@ const darkTheme = {
       bg: colors.GRAY_2
     },
     empty: colors.TEXT_MUTED
-  },
-
-  grpcBody: {
-    emptyMessage: '#a1a1aa',
-    addButton: {
-      border: '#3f3f46',
-      bg: '#3f3f46',
-      hoverBg: '#52525b',
-      text: colors.TEXT,
-      icon: colors.TEXT
-    },
-    messageContainer: {
-      border: '#3f3f46'
-    },
-    messageHeader: {
-      bg: '#3f3f46'
-    },
-    icon: colors.TEXT,
-    actionButton: {
-      hoverBg: '#52525b'
-    }
-  },
-
-  grpcTimelineItem: {
-    request: {
-      bg: 'rgba(251, 146, 60, 0.1)',
-      label: '#fb923c',
-      content: colors.GRAY_2
-    },
-    message: {
-      bg: 'rgba(251, 146, 60, 0.1)',
-      label: '#fb923c',
-      content: colors.GRAY_2
-    },
-    metadata: {
-      bg: 'rgba(59, 130, 246, 0.1)',
-      label: '#60a5fa'
-    },
-    response: {
-      bg: 'rgba(34, 197, 94, 0.1)',
-      label: '#4ade80',
-      content: colors.GRAY_2
-    },
-    status: {
-      bg: 'rgba(168, 85, 247, 0.1)',
-      label: '#a78bfa'
-    },
-    error: {
-      bg: 'rgba(220, 38, 38, 0.1)',
-      label: '#f87171'
-    },
-    end: {
-      bg: 'rgba(107, 114, 128, 0.3)'
-    },
-    cancel: {
-      bg: 'rgba(245, 158, 11, 0.1)',
-      label: '#fbbf24'
-    },
-    methodBadge: {
-      bg: 'rgba(251, 146, 60, 0.3)',
-      text: '#fb923c'
-    }
   },
 
   protobuf: {

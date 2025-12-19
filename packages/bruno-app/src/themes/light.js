@@ -600,8 +600,118 @@ const lightTheme = {
         border: '#dae0e5',
         hoverBorder: '#696969'
       }
+    },
+    protoFileDropdown: {
+      text: '#374151',
+      border: '#e5e7eb',
+      description: '#6b7280'
+    },
+    methodDropdown: {
+      text: '#374151',
+      serviceHeader: {
+        bg: '#f5f5f5',
+        text: '#111827'
+      },
+      methodName: '#111827',
+      selectedBg: 'rgba(234, 179, 8, 0.2)',
+      hoverBg: 'rgba(0, 0, 0, 0.05)'
+    },
+    body: {
+      emptyMessage: '#71717a',
+      addButton: {
+        border: '#e5e7eb',
+        bg: '#f5f5f5',
+        hoverBg: '#e5e7eb',
+        text: '#374151',
+        icon: '#374151'
+      },
+      messageContainer: {
+        border: '#e5e7eb'
+      },
+      messageHeader: {
+        bg: '#f5f5f5'
+      },
+      icon: '#374151',
+      actionButton: {
+        hoverBg: '#e4e4e7'
+      }
+    },
+    timelineItem: {
+      request: {
+        bg: '#fff7ed',
+        label: '#c2410c',
+        content: '#ffffff'
+      },
+      message: {
+        bg: '#fff7ed',
+        label: '#c2410c',
+        content: '#ffffff'
+      },
+      metadata: {
+        bg: '#eff6ff',
+        label: '#1d4ed8'
+      },
+      response: {
+        bg: '#f0fdf4',
+        label: '#16a34a',
+        content: '#ffffff'
+      },
+      status: {
+        bg: '#faf5ff',
+        label: '#9333ea'
+      },
+      error: {
+        bg: '#fef2f2',
+        label: '#dc2626'
+      },
+      end: {
+        bg: '#f9fafb'
+      },
+      cancel: {
+        bg: '#fffbeb',
+        label: '#d97706'
+      },
+      methodBadge: {
+        bg: '#fed7aa',
+        text: '#c2410c'
+      }
+    },
+    queryResult: {
+      emptyMessage: '#6b7280'
+    },
+    tabNavigation: {
+      border: '#e5e7eb'
     }
   },
+
+  ws: {
+    body: {
+      emptyMessage: '#71717a',
+      addButton: {
+        border: '#e5e7eb',
+        bg: '#f5f5f5',
+        hoverBg: '#e5e7eb',
+        text: '#374151',
+        icon: '#374151'
+      }
+    },
+    singleMessage: {
+      container: {
+        border: '#e5e7eb'
+      },
+      header: {
+        bg: '#f5f5f5'
+      },
+      icon: '#374151',
+      actionButton: {
+        hoverBg: '#e4e4e7'
+      }
+    },
+    messagesList: {
+      chevron: '#3f3f46'
+    }
+  },
+
   deprecationWarning: {
     bg: 'rgba(217, 31, 17, 0.1)',
     border: 'rgba(217, 31, 17, 0.1)',
@@ -834,18 +944,6 @@ const lightTheme = {
     heading: '#111827'
   },
 
-  wsMessagesList: {
-    chevron: '#3f3f46'
-  },
-
-  grpcQueryResult: {
-    emptyMessage: '#6b7280'
-  },
-
-  grpcTabNavigation: {
-    border: '#e5e7eb'
-  },
-
   exportEnvironmentModal: {
     border: '#e5e7eb'
   },
@@ -890,47 +988,6 @@ const lightTheme = {
     }
   },
 
-  grpcProtoFileDropdown: {
-    text: '#374151',
-    border: '#e5e7eb',
-    description: '#6b7280'
-  },
-
-  grpcMethodDropdown: {
-    text: '#374151',
-    serviceHeader: {
-      bg: '#f5f5f5',
-      text: '#111827'
-    },
-    methodName: '#111827',
-    selectedBg: 'rgba(234, 179, 8, 0.2)',
-    hoverBg: 'rgba(0, 0, 0, 0.05)'
-  },
-
-  wsBody: {
-    emptyMessage: '#71717a',
-    addButton: {
-      border: '#e5e7eb',
-      bg: '#f5f5f5',
-      hoverBg: '#e5e7eb',
-      text: '#374151',
-      icon: '#374151'
-    }
-  },
-
-  wsSingleMessage: {
-    container: {
-      border: '#e5e7eb'
-    },
-    header: {
-      bg: '#f5f5f5'
-    },
-    icon: '#374151',
-    actionButton: {
-      hoverBg: '#e4e4e7'
-    }
-  },
-
   oauth2TokenViewer: {
     section: {
       border: '#e5e7eb'
@@ -968,68 +1025,6 @@ const lightTheme = {
       bg: '#f9fafb'
     },
     empty: '#6b7280'
-  },
-
-  grpcBody: {
-    emptyMessage: '#71717a',
-    addButton: {
-      border: '#e5e7eb',
-      bg: '#f5f5f5',
-      hoverBg: '#e5e7eb',
-      text: '#374151',
-      icon: '#374151'
-    },
-    messageContainer: {
-      border: '#e5e7eb'
-    },
-    messageHeader: {
-      bg: '#f5f5f5'
-    },
-    icon: '#374151',
-    actionButton: {
-      hoverBg: '#e4e4e7'
-    }
-  },
-
-  grpcTimelineItem: {
-    request: {
-      bg: '#fff7ed',
-      label: '#c2410c',
-      content: '#ffffff'
-    },
-    message: {
-      bg: '#fff7ed',
-      label: '#c2410c',
-      content: '#ffffff'
-    },
-    metadata: {
-      bg: '#eff6ff',
-      label: '#1d4ed8'
-    },
-    response: {
-      bg: '#f0fdf4',
-      label: '#16a34a',
-      content: '#ffffff'
-    },
-    status: {
-      bg: '#faf5ff',
-      label: '#9333ea'
-    },
-    error: {
-      bg: '#fef2f2',
-      label: '#dc2626'
-    },
-    end: {
-      bg: '#f9fafb'
-    },
-    cancel: {
-      bg: '#fffbeb',
-      label: '#d97706'
-    },
-    methodBadge: {
-      bg: '#fed7aa',
-      text: '#c2410c'
-    }
   },
 
   protobuf: {

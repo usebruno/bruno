@@ -56,25 +56,25 @@ const Wrapper = styled.div`
   }
 
   .grpc-empty-message {
-    color: ${(props) => props.theme.grpcBody.emptyMessage};
+    color: ${(props) => props.theme.grpc.body.emptyMessage};
   }
 
   .grpc-add-button {
-    border: 1px solid ${(props) => props.theme.grpcBody.addButton.border};
-    background-color: ${(props) => props.theme.grpcBody.addButton.bg};
-    color: ${(props) => props.theme.grpcBody.addButton.text};
+    border: 1px solid ${(props) => props.theme.grpc.body.addButton.border};
+    background-color: ${(props) => props.theme.grpc.body.addButton.bg};
+    color: ${(props) => props.theme.grpc.body.addButton.text};
 
     &:hover {
-      background-color: ${(props) => props.theme.grpcBody.addButton.hoverBg};
+      background-color: ${(props) => props.theme.grpc.body.addButton.hoverBg};
     }
   }
 
   .grpc-add-icon {
-    color: ${(props) => props.theme.grpcBody.addButton.icon};
+    color: ${(props) => props.theme.grpc.body.addButton.icon};
   }
 
   .grpc-message-container {
-    border: 1px solid ${(props) => props.theme.grpcBody.messageContainer.border};
+    border: 1px solid ${(props) => props.theme.grpc.body.messageContainer.border};
     
     &.h-full {
       height: 100%;
@@ -87,21 +87,21 @@ const Wrapper = styled.div`
   }
 
   .grpc-message-header {
-    background-color: ${(props) => props.theme.grpcBody.messageHeader.bg};
+    background-color: ${(props) => props.theme.grpc.body.messageHeader.bg};
   }
 
   .grpc-chevron-icon {
-    color: ${(props) => props.theme.grpcBody.icon};
+    color: ${(props) => props.theme.grpc.body.icon};
   }
 
   .grpc-action-button {
     &:hover {
-      background-color: ${(props) => props.theme.grpcBody.actionButton.hoverBg};
+      background-color: ${(props) => props.theme.grpc.body.actionButton.hoverBg};
     }
   }
 
   .grpc-action-icon {
-    color: ${(props) => props.theme.grpcBody.icon};
+    color: ${(props) => props.theme.grpc.body.icon};
   }
 `;
 
