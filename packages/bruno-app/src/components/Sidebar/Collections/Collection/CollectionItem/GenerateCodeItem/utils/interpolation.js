@@ -8,7 +8,7 @@ export const interpolateObject = (obj, variables) => {
   const seen = new WeakSet();
 
   const walk = (value) => {
-    if (!value) return value;
+    if (value == null) return value;
 
     if (typeof value === 'string') {
       return interpolate(value, variables);
