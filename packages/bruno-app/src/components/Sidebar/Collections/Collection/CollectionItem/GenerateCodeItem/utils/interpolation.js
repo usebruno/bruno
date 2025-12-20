@@ -5,19 +5,34 @@ import { isPlainObject, mapValues } from 'lodash-es';
  * Traverses an object and interpolates any strings it finds.
  */
 export const interpolateObject = (obj, variables) => {
-  if (!obj) return obj;
+  const seen = new WeakSet();
 
-  if (typeof obj === 'string') {
-    return interpolate(obj, variables);
-  }
+  const walk = (value) => {
+    if (!value) return value;
 
-  if (Array.isArray(obj)) {
-    return obj.map((item) => interpolateObject(item, variables));
-  }
+    if (typeof value === 'string') {
+      return interpolate(value, variables);
+    }
 
-  if (isPlainObject(obj)) {
-    return mapValues(obj, (value) => interpolateObject(value, variables));
-  }
+    if (typeof value === 'object') {
+      if (seen.has(value)) {
+        throw new Error(
+          'Circular reference detected during interpolation.'
+        );
+      }
+      seen.add(value);
+    }
 
-  return obj;
+    if (Array.isArray(value)) {
+      return value.map(walk);
+    }
+
+    if (isPlainObject(value)) {
+      return mapValues(value, walk);
+    }
+
+    return value;
+  };
+
+  return walk(obj);
 };

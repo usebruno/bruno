@@ -6,9 +6,7 @@ describe('interpolation utils', () => {
       const complexRequest = {
         url: 'https://{{host}}/api',
         method: 'POST',
-        headers: [
-          { name: 'X-{{headerName}}', value: '{{headerValue}}', enabled: true }
-        ],
+        headers: [{ name: 'X-{{headerName}}', value: '{{headerValue}}', enabled: true }],
         auth: {
           basic: {
             username: '{{user}}',
@@ -41,9 +39,7 @@ describe('interpolation utils', () => {
       expect(result).toEqual({
         url: 'https://api.example.com/api',
         method: 'POST',
-        headers: [
-          { name: 'X-App-ID', value: 'val-123', enabled: true }
-        ],
+        headers: [{ name: 'X-App-ID', value: 'val-123', enabled: true }],
         auth: {
           basic: {
             username: 'admin',
@@ -61,6 +57,15 @@ describe('interpolation utils', () => {
           isNull: null
         }
       });
+    });
+
+    it('should interpolate variables across all data types and nesting levels', () => {
+      const variables = { x: 'ok' };
+
+      const obj = { value: '{{x}}' };
+      obj.self = obj;
+
+      interpolateObject(obj, variables);
     });
   });
 });
