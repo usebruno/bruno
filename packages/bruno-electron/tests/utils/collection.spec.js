@@ -303,7 +303,7 @@ describe('mergeAuth', () => {
 
   it.each([
     {
-      description: 'no auth inerited from collection',
+      description: 'no auth inherited from collection',
       collectionAuth: { mode: 'none' },
       rootFolderAuth: { mode: 'inherit' },
       subfolderAuth: { mode: 'inherit' },
