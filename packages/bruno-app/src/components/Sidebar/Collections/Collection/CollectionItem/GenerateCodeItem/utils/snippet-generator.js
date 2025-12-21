@@ -13,13 +13,13 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     let request = item.request;
 
-    // Get the request tree path and merge headers
-    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-    let headers = mergeHeaders(collection, request, requestTreePath);
-
     if (shouldInterpolate) {
       request = interpolateObject(request, variables);
     }
+
+    // Get the request tree path and merge headers
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+    let headers = mergeHeaders(collection, request, requestTreePath);
 
     // Add auth headers if needed
     if (request.auth && request.auth.mode !== 'none') {
