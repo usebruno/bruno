@@ -1,3 +1,5 @@
+import { getAuthHeaders } from 'utils/codegenerator/auth';
+
 jest.mock('httpsnippet', () => {
   return {
     HTTPSnippet: jest.fn().mockImplementation((harRequest) => ({
@@ -56,7 +58,9 @@ jest.mock('utils/collections/index', () => {
       ...collection?.processEnvVariables,
       baseUrl: 'https://api.example.com',
       apiKey: 'secret-key-123',
-      userId: '12345'
+      userId: '12345',
+      user: 'admin',
+      pass: 'secret123'
     })),
     getTreePathFromCollectionToItem: jest.fn(() => [])
   };
@@ -146,11 +150,8 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: true
     });
 
-    const expectedBody = `{
-  "message": "Hello World",
-  "count": 42
-}`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    const expectedBody = `{"message": "Hello World", "count": 42}`;
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle GET requests', () => {
@@ -203,11 +204,8 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     // Body should have interpolated variables with proper formatting
-    const expectedBody = `{
-  "message": "Hello World",
-  "count": 42
-}`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    const expectedBody = `{"message": "Hello World", "count": 42}`;
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle complex nested JSON body', () => {
@@ -269,7 +267,7 @@ describe('Snippet Generator - Simple Tests', () => {
       }
     }, null, 2);
 
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
   });
 
   it('should handle errors gracefully', () => {
@@ -369,13 +367,9 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: true
     });
 
-    const expectedInterpolatedBody = `{
-  "name": "John Smith",
-  "email": "john@test.com",
-  "age": 30
-}`;
+    const expectedInterpolatedBody = `{"name": "John Smith", "email": "john@test.com", "age": 30}`;
 
-    expect(result).toBe(`curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.test.com/users -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
   });
 
   it('should NOT interpolate when shouldInterpolate is false', () => {
@@ -424,7 +418,61 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
-    expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
+    expect(result).toBe(
+      'curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\''
+    );
+  });
+
+  it('should interpolate basic auth credentials correctly', () => {
+    const item = {
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com',
+        auth: {
+          mode: 'basic',
+          basic: {
+            username: '{{user}}',
+            password: '{{pass}}'
+          }
+        }
+      }
+    };
+
+    const collection = {
+      root: {
+        request: {
+          vars: {
+            req: [
+              { name: 'user', value: 'admin', enabled: true },
+              { name: 'pass', value: 'secret123', enabled: true }
+            ]
+          }
+        }
+      }
+    };
+
+    const { HTTPSnippet: mockedHTTPSnippet } = require('httpsnippet');
+    const { getAuthHeaders: actualGetAuthHeaders } = jest.requireActual('utils/codegenerator/auth');
+    getAuthHeaders.mockImplementation(actualGetAuthHeaders);
+
+    const language = { target: 'shell', client: 'curl' };
+
+    generateSnippet({
+      language,
+      item,
+      collection,
+      shouldInterpolate: true
+    });
+
+    const harRequest = mockedHTTPSnippet.mock.calls[0][0];
+
+    // "admin:secret123" encoded is "YWRtaW46c2VjcmV0MTIz"
+    expect(harRequest.headers).toContainEqual(
+      expect.objectContaining({
+        name: 'Authorization',
+        value: 'Basic YWRtaW46c2VjcmV0MTIz'
+      })
+    );
   });
 });
 
