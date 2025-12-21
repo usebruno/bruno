@@ -12,6 +12,7 @@ import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
 import { removeCollection } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
+import { initializeWorkspaceTabs, setActiveWorkspaceTab } from '../workspaceTabs';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
@@ -253,6 +254,13 @@ export const switchWorkspace = (workspaceUid) => {
 
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
     dispatch(showHomePage());
+
+    const permanentTabs = [
+      { type: 'overview', label: 'Overview' },
+      { type: 'environments', label: 'Global Environments' }
+    ];
+    dispatch(initializeWorkspaceTabs({ workspaceUid, permanentTabs }));
+    dispatch(setActiveWorkspaceTab({ workspaceUid, type: 'overview' }));
   };
 };
 
@@ -485,8 +493,6 @@ export const renameWorkspaceAction = (workspaceUid, newName) => {
         uid: workspaceUid,
         name: newName
       }));
-
-      toast.success('Workspace renamed successfully');
     } catch (error) {
       throw error;
     }
@@ -505,8 +511,6 @@ export const closeWorkspaceAction = (workspaceUid) => {
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
       dispatch(removeWorkspace(workspaceUid));
-
-      toast.success('Workspace closed successfully');
     } catch (error) {
       toast.error(error.message || 'Failed to close workspace');
       throw error;

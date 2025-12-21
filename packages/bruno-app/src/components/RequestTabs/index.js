@@ -11,6 +11,7 @@ import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateUntitledRequest from 'components/CreateUntitledRequest';
+import { IconPlus } from '@tabler/icons';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -81,10 +82,6 @@ const RequestTabs = () => {
 
   if (!activeTabUid) {
     return null;
-  }
-
-  if (!activeTab) {
-    return <StyledWrapper>Something went wrong!</StyledWrapper>;
   }
 
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
@@ -178,14 +175,15 @@ const RequestTabs = () => {
                 </li>
               ) : null}
               <div className="flex items-center cursor-pointer short-tab">
-
-                {activeCollection && (
-                  <CreateUntitledRequest
-                    collectionUid={activeCollection.uid}
-                    itemUid={null}
-                    placement="bottom-start"
-                  />
-                )}
+                {
+                  activeCollection && (
+                    <IconPlus
+                      size={18}
+                      strokeWidth={1.5}
+                      onClick={() => setNewRequestModalOpen(true)}
+                    />
+                  )
+                }
               </div>
               {/* Moved to post mvp */}
               {/* <li className="select-none new-tab choose-request">

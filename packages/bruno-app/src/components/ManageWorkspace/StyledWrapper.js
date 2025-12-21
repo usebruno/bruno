@@ -40,7 +40,7 @@ const StyledWrapper = styled.div`
     gap: 6px;
     padding: 6px 12px;
     border-radius: ${(props) => props.theme.border.radius.base};
-    background: ${(props) => props.theme.workspace.accent};
+    background: ${(props) => props.theme.brand};
     color: white;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
@@ -87,7 +87,7 @@ const StyledWrapper = styled.div`
     }
 
     &.regular {
-      color: ${(props) => props.theme.workspace.accent};
+      color: ${(props) => props.theme.brand};
     }
   }
 

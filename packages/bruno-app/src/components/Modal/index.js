@@ -82,6 +82,12 @@ const Modal = ({
 
   const handleKeydown = (event) => {
     const { keyCode, shiftKey, ctrlKey, altKey, metaKey } = event;
+
+    // Only handle events from elements inside this modal
+    if (keyCode !== ESC_KEY_CODE && (!modalRef.current || !modalRef.current.contains(event.target))) {
+      return;
+    }
+
     switch (keyCode) {
       case ESC_KEY_CODE: {
         if (disableEscapeKey) return;

@@ -12,7 +12,8 @@ const QueryResponse = ({
   dataBuffer,
   disableRunEventListener,
   headers,
-  error
+  error,
+  hideResultTypeSelector
 }) => {
   const { initialFormat, initialTab } = useInitialResponseFormat(dataBuffer, headers);
   const previewFormatOptions = useResponsePreviewFormatOptions(dataBuffer, headers);
@@ -27,20 +28,23 @@ const QueryResponse = ({
   }, [initialFormat, initialTab]);
   return (
     <StyledWrapper>
-      <div className="flex items-center justify-end p-2">
-        <QueryResultTypeSelector
-          formatOptions={previewFormatOptions}
-          formatValue={selectedFormat}
-          onFormatChange={(newFormat) => {
-            setSelectedFormat(newFormat);
-          }}
-          onPreviewTabSelect={() => {
-            setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
-          }}
-          selectedTab={selectedTab}
-        />
-      </div>
-      <div className={classnames('flex-1 query-response-content', selectedTab === 'editor' ? 'px-2 py-1' : '')}>
+      {!hideResultTypeSelector && (
+        <div className="flex items-center justify-end p-2 result-type-selector">
+
+          <QueryResultTypeSelector
+            formatOptions={previewFormatOptions}
+            formatValue={selectedFormat}
+            onFormatChange={(newFormat) => {
+              setSelectedFormat(newFormat);
+            }}
+            onPreviewTabSelect={() => {
+              setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
+            }}
+            selectedTab={selectedTab}
+          />
+        </div>
+      )}
+      <div className={classnames('flex-1 result-content', selectedTab === 'editor' ? 'px-2 py-1' : '')}>
         <QueryResult
           item={item}
           collection={collection}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconPlus, IconFolder, IconFileImport } from '@tabler/icons';
+import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CreateCollection from 'components/Sidebar/CreateCollection';
@@ -116,7 +116,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 <span>Open Collection</span>
               </button>
               <button className="quick-action-btn" onClick={handleImportCollection}>
-                <IconFileImport size={14} strokeWidth={1.5} />
+                <IconDownload size={14} strokeWidth={1.5} />
                 <span>Import Collection</span>
               </button>
             </div>

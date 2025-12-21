@@ -32,7 +32,7 @@ const Request = ({ collection, request, item }) => {
       <Headers headers={headers} type="request" />
 
       {/* Body */}
-      <BodyBlock collection={collection} data={data} dataBuffer={dataBuffer} error={error} headers={headers} item={item} />
+      <BodyBlock collection={collection} data={data} dataBuffer={dataBuffer} error={error} headers={headers} item={item} type="request" />
     </div>
   );
 };

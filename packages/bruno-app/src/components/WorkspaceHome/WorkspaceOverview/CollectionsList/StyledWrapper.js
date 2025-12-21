@@ -53,7 +53,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${(props) => props.theme.workspace.accent};
     flex-shrink: 0;
   }
 

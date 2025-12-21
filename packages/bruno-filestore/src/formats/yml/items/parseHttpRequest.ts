@@ -6,6 +6,7 @@ import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoParams } from '../common/params';
 import { toBrunoBody } from '../common/body';
 import { toBrunoVariables } from '../common/variables';
+import { toBrunoPostResponseVariables } from '../common/actions';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { uuid } from '../../../utils';
@@ -59,9 +60,13 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     brunoRequest.tests = scripts.tests;
   }
 
-  // variables
+  // variables (pre-request from variables, post-response from actions)
   const variables = toBrunoVariables(runtime?.variables);
-  brunoRequest.vars = variables;
+  const postResponseVars = toBrunoPostResponseVariables(runtime?.actions);
+  brunoRequest.vars = {
+    req: variables.req,
+    res: postResponseVars
+  };
 
   // assertions
   const assertions = toBrunoAssertions(runtime?.assertions);

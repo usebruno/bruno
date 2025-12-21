@@ -17,6 +17,10 @@ const colors = {
   GRAY_4: '#e5e5e5',
   GRAY_5: '#cbcbcb',
   GRAY_6: '#b0b0b0',
+  GRAY_7: '#666666',
+  GRAY_8: '#444444',
+  GRAY_9: '#3D3D3D',
+  GRAY_10: '#252526',
 
   CODEMIRROR_TOKENS: {
     DEFINITION: '#566f4e', // Deep moss
@@ -75,7 +79,8 @@ const lightTheme = {
     },
     bg: {
       danger: '#dc3545'
-    }
+    },
+    accent: '#b96f1d'
   },
 
   input: {
@@ -130,6 +135,9 @@ const lightTheme = {
         indentBorder: `solid 1px ${colors.GRAY_4}`,
         active: {
           indentBorder: `solid 1px ${colors.GRAY_4}`
+        },
+        example: {
+          iconColor: colors.GRAY_7
         }
       }
     },
@@ -195,18 +203,18 @@ const lightTheme = {
 
   request: {
     methods: {
-      get: 'rgb(5, 150, 105)',
-      post: '#8e44ad',
-      put: '#ca7811',
-      delete: 'rgb(185, 28, 28)',
-      // customize these colors if needed
-      patch: '#ca7811',
-      options: '#ca7811',
-      head: '#ca7811'
+      get: '#3f8f7a', // Muted jade green (aligned with NUMBER / VARIABLE)
+      post: '#7c5aa8', // Soft plum (matches ATOM family)
+      put: '#b8742f', // Warm bronze (close to BRAND, slightly darker)
+      delete: '#a54b4b', // Muted brick red (fits KEYWORD ruby tone)
+      patch: '#b8742f', // Same as PUT (semantic consistency)
+      options: '#8a7a52', // Olive slate (neutral, non-invasive)
+      head: '#6b7a8f' // Slate blue (reuses OPERATOR tone)
     },
-    grpc: '#6366f1',
-    ws: '#f59e0b',
-    gql: '#e535ab'
+
+    grpc: '#5b65c8', // Muted indigo (technical, calm)
+    ws: '#c28a2c', // Golden bronze (pairs with BRAND without overpowering)
+    gql: '#b04a8f' // Dusty magenta (softened GraphQL pink)
   },
 
   requestTabPanel: {
@@ -366,6 +374,9 @@ const lightTheme = {
       hoverColor: 'rgb(76 76 76)',
       hoverBg: 'rgb(234, 234, 234)'
     },
+    example: {
+      iconColor: colors.GRAY_7
+    },
     active: {
       bg: '#e7e7e7'
     },
@@ -482,7 +493,7 @@ const lightTheme = {
     optionHoverBg: '#f8f9fa',
     optionLabelColor: '#212529',
     optionCountColor: '#6c757d',
-    checkboxColor: '#0d6efd',
+    checkboxColor: colors.BRAND,
     scrollbarTrack: '#f8f9fa',
     scrollbarThumb: '#ced4da',
     scrollbarThumbHover: '#adb5bd'

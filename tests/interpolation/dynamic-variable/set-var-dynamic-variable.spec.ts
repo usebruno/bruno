@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollectionAndAcceptSandbox, sendRequest } from '../../utils/page';
+import { closeAllCollections, openCollection, sendRequest } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe.serial('Dynamic Variable Interpolation', () => {
@@ -11,7 +11,7 @@ test.describe.serial('Dynamic Variable Interpolation', () => {
     const locators = buildCommonLocators(page);
 
     // Open collection and accept sandbox mode
-    await openCollectionAndAcceptSandbox(page, 'dynamic-variable-interpolation', 'safe');
+    await openCollection(page, 'dynamic-variable-interpolation');
 
     // Navigate to the request
     await locators.sidebar.request('set-var-dynamic-variable').click();

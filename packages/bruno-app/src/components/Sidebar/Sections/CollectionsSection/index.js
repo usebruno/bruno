@@ -10,7 +10,9 @@ import {
   IconSearch,
   IconSortAscendingLetters,
   IconSortDescendingLetters,
-  IconSquareX
+  IconSquareX,
+  IconBox,
+  IconTerminal2
 } from '@tabler/icons';
 
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
@@ -25,7 +27,7 @@ import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollect
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
-import { IconBox } from '@tabler/icons';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionsSection = () => {
   const [showSearch, setShowSearch] = useState(false);
@@ -143,19 +145,19 @@ const CollectionsSection = () => {
       }
     },
     {
-      id: 'import',
-      leftSection: IconDownload,
-      label: 'Import collection',
-      onClick: () => {
-        setImportCollectionModalOpen(true);
-      }
-    },
-    {
       id: 'open',
       leftSection: IconFolder,
       label: 'Open collection',
       onClick: () => {
         handleOpenCollection();
+      }
+    },
+    {
+      id: 'import',
+      leftSection: IconDownload,
+      label: 'Import collection',
+      onClick: () => {
+        setImportCollectionModalOpen(true);
       }
     }
   ];
@@ -175,6 +177,14 @@ const CollectionsSection = () => {
       label: 'Close all',
       onClick: () => {
         selectAllCollectionsToClose();
+      }
+    },
+    {
+      id: 'open-in-terminal',
+      leftSection: IconTerminal2,
+      label: 'Open in Terminal',
+      onClick: () => {
+        openDevtoolsAndSwitchToTerminal(dispatch, activeWorkspace?.pathname);
       }
     }
   ];

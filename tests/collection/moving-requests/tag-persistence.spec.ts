@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createUntitledRequest, selectRequestPaneTab } from '../../utils/page';
+import { closeAllCollections, createRequest, selectRequestPaneTab } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Tag persistence', () => {
@@ -10,45 +10,40 @@ test.describe('Tag persistence', () => {
 
   test('Verify tag persistence while moving requests within a collection', async ({ page, createTmpDir }) => {
     const locators = buildCommonLocators(page);
+    const collectionName = 'test-collection';
+    const requestUrl = 'https://httpfaker.org/api/echo';
+    const tagName = 'smoke';
+
     // Create first collection - click plus icon button to open dropdown
     await locators.plusMenu.button().click();
     await locators.plusMenu.createCollection().click();
-    await page.getByLabel('Name').fill('test-collection');
+    await page.getByLabel('Name').fill(collectionName);
     const locationInput = locators.modal.byTitle('Create Collection').getByLabel('Location');
     if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir('test-collection'));
+      await locationInput.fill(await createTmpDir(collectionName));
     }
     await locators.modal.button('Create').click();
-    await locators.sidebar.collection('test-collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await locators.sidebar.collection(collectionName).click();
     await page.waitForTimeout(1000);
-    // Create three requests, each with URL and tag (auto-saved after each is completely created)
-    // The createUntitledRequest function now waits for each request to be fully created
-    // before returning, ensuring unique names are generated
-    await createUntitledRequest(page, {
-      requestType: 'HTTP',
-      url: 'https://httpfaker.org/api/echo',
-      tag: 'smoke'
-    });
-    await createUntitledRequest(page, {
-      requestType: 'HTTP',
-      url: 'https://httpfaker.org/api/echo',
-      tag: 'smoke'
-    });
-    await createUntitledRequest(page, {
-      requestType: 'HTTP',
-      url: 'https://httpfaker.org/api/echo',
-      tag: 'smoke'
-    });
+    // Create three requests via the dialog/modal flow, then add a tag to each
+    const requestNames = ['request-1', 'request-2', 'request-3'];
+    for (const requestName of requestNames) {
+      await createRequest(page, requestName, collectionName, { url: requestUrl });
+      await locators.sidebar.request(requestName).click();
+      await locators.tabs.requestTab(requestName).waitFor({ state: 'visible' });
+      await selectRequestPaneTab(page, 'Settings');
+      await page.waitForTimeout(200);
+      await locators.tags.input().fill(tagName);
+      await locators.tags.input().press('Enter');
+      await page.waitForTimeout(200);
+      await expect(locators.tags.item(tagName)).toBeVisible();
+      await page.keyboard.press('Meta+s');
+      await page.waitForTimeout(200);
+    }
 
-    // Wait for all 3 requests to be visible in the sidebar
-    const untitledRequests = page.locator('.item-name').filter({ hasText: /^Untitled/ });
-    await expect(untitledRequests).toHaveCount(3);
-
-    // Move the last untitled request to just above the first untitled request within the same collection
-    const r3Request = untitledRequests.nth(2); // Third request (0-indexed)
-    const r1Request = untitledRequests.first(); // First request
+    // Move the last request to just above the first request within the same collection
+    const r3Request = locators.sidebar.request('request-3');
+    const r1Request = locators.sidebar.request('request-1');
 
     await expect(r3Request).toBeVisible();
     await expect(r1Request).toBeVisible();
@@ -59,15 +54,17 @@ test.describe('Tag persistence', () => {
     });
 
     // Verify the requests are still in the collection
-    await expect(untitledRequests).toHaveCount(3);
+    for (const requestName of requestNames) {
+      await expect(locators.sidebar.request(requestName)).toBeVisible();
+    }
 
-    // Click on the moved request (now first) to verify the tag persisted after the move
-    await untitledRequests.first().click();
-    await locators.tabs.activeRequestTab().waitFor({ state: 'visible' });
+    // Click on the moved request to verify the tag persisted after the move
+    await r3Request.click();
+    await locators.tabs.requestTab('request-3').waitFor({ state: 'visible' });
     await selectRequestPaneTab(page, 'Settings');
     await page.waitForTimeout(200);
     // Verify the tag is still present after the move
-    await expect(locators.tags.item('smoke')).toBeVisible();
+    await expect(locators.tags.item(tagName)).toBeVisible();
   });
 
   test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
@@ -82,8 +79,6 @@ test.describe('Tag persistence', () => {
     }
     await locators.modal.button('Create').click();
     await locators.sidebar.collection('test-collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a new folder
     await locators.sidebar.collectionRow('test-collection').hover();

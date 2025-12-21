@@ -39,7 +39,7 @@ export const buildCommonLocators = (page: Page) => ({
   tabs: {
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
     activeRequestTab: () => page.locator('.request-tab.active'),
-    closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).locator('.close-icon')
+    closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon')
   },
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
@@ -102,6 +102,51 @@ export const buildCommonLocators = (page: Page) => ({
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
+  },
+  /**
+   * Build generic table locators for any table with a testId
+   * @param testId - The testId of the table
+   * @returns Table locators object
+   */
+  table: (testId: string) => {
+    const container = () => page.getByTestId(testId);
+    const getBodyRow = (index?: number) => {
+      const locator = container().locator('tbody tr');
+      return index !== undefined ? locator.nth(index) : locator;
+    };
+
+    return {
+      container,
+      row: (index?: number) => getBodyRow(index),
+      rowCell: (columnKey: string, rowIndex?: number) => {
+        const row = getBodyRow(rowIndex);
+        return row.getByTestId(`column-${columnKey}`);
+      },
+      rowCheckbox: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-checkbox'),
+      rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
+      allRows: () => container().locator('tbody tr')
+    };
+  },
+  /**
+   * Assertions table locators (extends generic table with assertion-specific helpers)
+   * @returns Assertions table locators object
+   */
+  assertionsTable: () => {
+    const baseTable = buildCommonLocators(page).table('assertions-table');
+    return {
+      ...baseTable,
+      // Assertion-specific helpers
+      rowExprInput: (rowIndex: number) => {
+        const cell = baseTable.rowCell('name', rowIndex);
+        // Wait for the cell to be visible, then find the textbox
+        return cell.getByRole('textbox').or(cell.locator('input[type="text"]'));
+      },
+      rowOperatorSelect: (rowIndex: number) => {
+        const cell = baseTable.rowCell('operator', rowIndex);
+        return cell.getByTestId('assertion-operator-select').or(cell.locator('select'));
+      },
+      rowValueInput: (rowIndex: number) => baseTable.rowCell('value', rowIndex)
+    };
   }
 });
 

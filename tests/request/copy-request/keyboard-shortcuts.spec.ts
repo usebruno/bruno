@@ -7,7 +7,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
   });
 
   test('should copy and paste request using keyboard shortcuts', async ({ page, createTmpDir }) => {
-    await createCollection(page, 'keyboard-test', await createTmpDir('keyboard-test'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'keyboard-test', await createTmpDir('keyboard-test'));
     const collection = page.locator('.collection-name').filter({ hasText: 'keyboard-test' });
 
     // Create a request

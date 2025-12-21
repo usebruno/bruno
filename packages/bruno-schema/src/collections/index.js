@@ -33,6 +33,46 @@ const keyValueSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const assertionOperators = [
+  'eq',
+  'neq',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'in',
+  'notIn',
+  'contains',
+  'notContains',
+  'length',
+  'matches',
+  'notMatches',
+  'startsWith',
+  'endsWith',
+  'between',
+  'isEmpty',
+  'isNotEmpty',
+  'isNull',
+  'isUndefined',
+  'isDefined',
+  'isTruthy',
+  'isFalsy',
+  'isJson',
+  'isNumber',
+  'isString',
+  'isBoolean',
+  'isArray'
+];
+
+const assertionSchema = keyValueSchema.shape({
+  operator: Yup.string()
+    .oneOf(assertionOperators)
+    .nullable()
+    .optional()
+})
+  .noUnknown(true)
+  .strict();
+
 const varsSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
@@ -372,7 +412,7 @@ const requestSchema = Yup.object({
     .noUnknown(true)
     .strict()
     .nullable(),
-  assertions: Yup.array().of(keyValueSchema).nullable(),
+  assertions: Yup.array().of(assertionSchema).nullable(),
   tests: Yup.string().nullable(),
   docs: Yup.string().nullable()
 })
@@ -408,7 +448,7 @@ const grpcRequestSchema = Yup.object({
     .noUnknown(true)
     .strict()
     .nullable(),
-  assertions: Yup.array().of(keyValueSchema).nullable(),
+  assertions: Yup.array().of(assertionSchema).nullable(),
   tests: Yup.string().nullable(),
   docs: Yup.string().nullable(),
 })
@@ -446,7 +486,7 @@ const wsRequestSchema = Yup.object({
     .noUnknown(true)
     .strict()
     .nullable(),
-  assertions: Yup.array().of(keyValueSchema).nullable(),
+  assertions: Yup.array().of(assertionSchema).nullable(),
   tests: Yup.string().nullable(),
   docs: Yup.string().nullable()
 })
