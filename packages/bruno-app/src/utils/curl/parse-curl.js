@@ -26,6 +26,8 @@ const FLAG_CATEGORIES = {
   'head': ['-I', '--head'],
   'compressed': ['--compressed'],
   'insecure': ['-k', '--insecure'],
+  'digest': ['--digest'],
+  'ntlm': ['--ntlm'],
   /**
    * Query flags: mark data for conversion to query parameters.
    * While this is an immediate action flag, the actual conversion to a query string occurs later during post-build request processing.
@@ -149,6 +151,14 @@ const handleFlagCategory = (category, arg, request) => {
       request.insecure = true;
       return null;
 
+    case 'digest':
+      request.isDigestAuth = true;
+      return null;
+
+    case 'ntlm':
+      request.isNtlmAuth = true;
+      return null;
+
     case 'query':
       // set temporary property isQuery to true to indicate that the data should be converted to query string
       // this is processed later at post build request processing
@@ -199,6 +209,7 @@ const setUserAgent = (request, value) => {
 
 /**
  * Set authentication
+ * Supports basic, digest, and NTLM auth based on --digest/--ntlm flags
  */
 const setAuth = (request, value) => {
   if (typeof value !== 'string') {
@@ -206,9 +217,18 @@ const setAuth = (request, value) => {
   }
 
   const [username, password] = value.split(':');
+
+  // Determine auth mode based on flags
+  let mode = 'basic';
+  if (request.isDigestAuth) {
+    mode = 'digest';
+  } else if (request.isNtlmAuth) {
+    mode = 'ntlm';
+  }
+
   request.auth = {
-    mode: 'basic',
-    basic: {
+    mode: mode,
+    [mode]: {
       username: username || '',
       password: password || ''
     }
@@ -433,7 +453,7 @@ const convertDataToQueryString = (request) => {
 
 /**
  * Post-build processing of request
- * Handles method conversion and query parameter processing
+ * Handles method conversion, query parameter processing, and auth mode correction
  */
 const postBuildProcessRequest = (request) => {
   if (request.isQuery && request.data) {
@@ -446,6 +466,22 @@ const postBuildProcessRequest = (request) => {
     if (!request.method || request.method === 'HEAD') {
       request.method = 'POST';
     }
+  }
+
+  // Fix auth mode if digest/ntlm flag was set after -u flag
+  // (handles case where -u comes before --digest/--ntlm in the command)
+  if (request.auth && request.isDigestAuth && request.auth.mode !== 'digest') {
+    const { username, password } = request.auth[request.auth.mode] || {};
+    request.auth = {
+      mode: 'digest',
+      digest: { username: username || '', password: password || '' }
+    };
+  } else if (request.auth && request.isNtlmAuth && request.auth.mode !== 'ntlm') {
+    const { username, password } = request.auth[request.auth.mode] || {};
+    request.auth = {
+      mode: 'ntlm',
+      ntlm: { username: username || '', password: password || '' }
+    };
   }
 
   // if method is not set, set it to GET
