@@ -3,7 +3,13 @@ import { COPY_SUCCESS_TIMEOUT, extractVariableInfo, renderVarInfo } from './brun
 
 // Mock the dependencies
 jest.mock('@usebruno/common', () => ({
-  interpolate: jest.fn()
+  interpolate: jest.fn(),
+  mockDataFunctions: {
+    randomFirstName: jest.fn(() => 'John'),
+    randomLastName: jest.fn(() => 'Doe'),
+    randomEmail: jest.fn(() => 'john.doe@example.com'),
+    randomUUID: jest.fn(() => '123e4567-e89b-12d3-a456-426614174000')
+  }
 }));
 
 jest.mock('providers/ReduxStore', () => ({
@@ -422,6 +428,95 @@ describe('renderVarInfo', () => {
 
       expect(clipboardText).toBe('');
       expect(console.error).toHaveBeenCalledWith('Failed to copy to clipboard:', 'Clipboard error');
+    });
+  });
+
+  describe('dynamic/faker variable rendering', () => {
+    function setupDynamicRender(variableName, variables = {}) {
+      const result = renderVarInfo({ string: `{{${variableName}}}` }, { variables, collection: null, item: null });
+      if (!result) return { result: null, containerDiv: null };
+
+      const containerDiv = result;
+      const header = containerDiv.querySelector('.var-info-header');
+      const scopeBadge = containerDiv.querySelector('.var-scope-badge');
+      const readOnlyNote = containerDiv.querySelector('.var-readonly-note');
+      const warningNote = containerDiv.querySelector('.var-warning-note');
+      const valueContainer = containerDiv.querySelector('.var-value-container');
+
+      return { result, containerDiv, header, scopeBadge, readOnlyNote, warningNote, valueContainer };
+    }
+
+    it('should show read-only note for dynamic variables', () => {
+      const { readOnlyNote } = setupDynamicRender('$randomFirstName');
+
+      expect(readOnlyNote).not.toBeNull();
+      expect(readOnlyNote.textContent).toBe('Generates random value on each request');
+    });
+
+    it('should not show value container for valid dynamic variables', () => {
+      const { valueContainer } = setupDynamicRender('$randomFirstName');
+
+      // Value is generated at runtime, so no value display
+      expect(valueContainer).toBeNull();
+    });
+
+    it('should show warning for unknown dynamic variable', () => {
+      const { warningNote, scopeBadge } = setupDynamicRender('$unknownFaker');
+
+      expect(scopeBadge.textContent).toBe('Dynamic');
+      expect(warningNote).not.toBeNull();
+      expect(warningNote.textContent).toContain('Unknown dynamic variable');
+    });
+  });
+
+  describe('OAuth2 variable rendering', () => {
+    function setupOAuth2Render(variableName, variables = {}) {
+      const result = renderVarInfo({ string: `{{${variableName}}}` }, { variables, collection: null, item: null });
+      if (!result) return { result: null, containerDiv: null };
+
+      const containerDiv = result;
+      const header = containerDiv.querySelector('.var-info-header');
+      const scopeBadge = containerDiv.querySelector('.var-scope-badge');
+      const readOnlyNote = containerDiv.querySelector('.var-readonly-note');
+      const warningNote = containerDiv.querySelector('.var-warning-note');
+      const valueContainer = containerDiv.querySelector('.var-value-container');
+      const valueDisplay = containerDiv.querySelector('.var-value-display');
+
+      return { result, containerDiv, header, scopeBadge, readOnlyNote, warningNote, valueContainer, valueDisplay };
+    }
+
+    it('should show OAuth2 scope badge for $oauth2 variables', () => {
+      const { scopeBadge } = setupOAuth2Render('$oauth2.credentials.access_token', {
+        '$oauth2.credentials.access_token': 'test-token-123'
+      });
+
+      expect(scopeBadge.textContent).toBe('OAuth2');
+    });
+
+    it('should show read-only note for valid OAuth2 variables', () => {
+      const { readOnlyNote } = setupOAuth2Render('$oauth2.credentials.access_token', {
+        '$oauth2.credentials.access_token': 'test-token-123'
+      });
+
+      expect(readOnlyNote).not.toBeNull();
+      expect(readOnlyNote.textContent).toBe('read-only');
+    });
+
+    it('should display the token value for valid OAuth2 variables', () => {
+      const { valueDisplay } = setupOAuth2Render('$oauth2.credentials.access_token', {
+        '$oauth2.credentials.access_token': 'test-token-123'
+      });
+
+      expect(valueDisplay).not.toBeNull();
+      expect(valueDisplay.textContent).toBe('test-token-123');
+    });
+
+    it('should show warning for OAuth2 variable when token is not found', () => {
+      const { warningNote, scopeBadge } = setupOAuth2Render('$oauth2.credentials.access_token', {});
+
+      expect(scopeBadge.textContent).toBe('OAuth2');
+      expect(warningNote).not.toBeNull();
+      expect(warningNote.textContent).toContain('OAuth2 token not found');
     });
   });
 });
