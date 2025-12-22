@@ -85,6 +85,7 @@ setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 const menu = Menu.buildFromTemplate(menuTemplate);
 const isMac = process.platform === 'darwin';
 const isWindows = process.platform === 'win32';
+const isLinux = process.platform === 'linux';
 
 let mainWindow;
 let appProtocolUrl;
@@ -155,8 +156,8 @@ app.on('ready', async () => {
     },
     title: 'Bruno',
     icon: path.join(__dirname, 'about/256x256.png'),
-    // Custom title bar – ensure React titlebar occupies the window chrome on all OSes
-    titleBarStyle: isMac ? 'hiddenInset' : isWindows ? 'hidden' : 'default',
+    titleBarStyle: isMac ? 'hiddenInset' : isWindows ? 'hidden' : undefined,
+    frame: isLinux ? false : true,
     trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined
     // we will bring this back
     // see https://github.com/usebruno/bruno/issues/440
@@ -167,14 +168,13 @@ app.on('ready', async () => {
     mainWindow.maximize();
   }
 
-  // Window control IPC handlers (Windows custom titlebar)
   ipcMain.on('renderer:window-minimize', () => {
-    if (!isWindows) return;
+    if (!isWindows && !isLinux) return;
     mainWindow.minimize();
   });
 
   ipcMain.on('renderer:window-maximize', () => {
-    if (!isWindows) return;
+    if (!isWindows && !isLinux) return;
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
     } else {
@@ -183,12 +183,12 @@ app.on('ready', async () => {
   });
 
   ipcMain.on('renderer:window-close', () => {
-    if (!isWindows) return;
+    if (!isWindows && !isLinux) return;
     mainWindow.close();
   });
 
   ipcMain.handle('renderer:window-is-maximized', () => {
-    if (!isWindows) return false;
+    if (!isWindows && !isLinux) return false;
     return mainWindow.isMaximized();
   });
 
