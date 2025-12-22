@@ -254,7 +254,7 @@ const ResponsePane = ({ item, collection }) => {
             collection={collection}
             responseSize={responseSize}
             selectedFormat={selectedFormat}
-            selectedTab={selectedTab}
+            selectedTab={selectedViewTab}
             data={response.data}
             dataBuffer={response.dataBuffer}
           />
