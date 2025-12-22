@@ -150,8 +150,11 @@ class WsClient {
         messageToSend = message;
       }
 
+      // If messageToSend is a string, send it raw. If it is an object, stringify it.
+      const payload = typeof messageToSend === 'string' ? messageToSend : JSON.stringify(messageToSend);
+
       // Send the message
-      connectionMeta.connection.send(JSON.stringify(messageToSend), (error) => {
+      connectionMeta.connection.send(payload, (error) => {
         if (error) {
           this.eventCallback('main:ws:error', requestId, collectionUid, { error });
         } else {
