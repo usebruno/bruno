@@ -89,18 +89,6 @@ const Preferences = ({ onClose }) => {
               <IconWorld size={16} strokeWidth={1.5} />
               <span>Proxy</span>
             </div>
-            <div className={getTabClassname('license')} role="tab" onClick={() => setTab('license')}>
-              <IconKey size={16} strokeWidth={1.5} />
-              <span>License</span>
-            </div>
-            <div className={getTabClassname('features')} role="tab" onClick={() => setTab('features')}>
-              <IconStar size={16} strokeWidth={1.5} />
-              <span>Features</span>
-            </div>
-            <div className={getTabClassname('secret-manager')} role="tab" onClick={() => setTab('secret-manager')}>
-              <IconShield size={16} strokeWidth={1.5} />
-              <span>Secret Manager</span>
-            </div>
             <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
               <IconKeyboard size={16} strokeWidth={1.5} />
               <span>Keybindings</span>
@@ -112,10 +100,6 @@ const Preferences = ({ onClose }) => {
             <div className={getTabClassname('beta')} role="tab" onClick={() => setTab('beta')}>
               <IconFlask size={16} strokeWidth={1.5} />
               <span>Beta</span>
-            </div>
-            <div className={getTabClassname('about')} role="tab" onClick={() => setTab('about')}>
-              <IconInfoCircle size={16} strokeWidth={1.5} />
-              <span>About</span>
             </div>
           </div>
           <section className="flex flex-grow px-4 pt-2 pb-4 tab-panel">{getTabPanel(tab)}</section>

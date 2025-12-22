@@ -28,10 +28,6 @@ const Wrapper = styled.div`
       border-bottom: 2px solid transparent;
     }
 
-    &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    }
-
     div.tippy-box {
       position: relative;
       top: -0.625rem;

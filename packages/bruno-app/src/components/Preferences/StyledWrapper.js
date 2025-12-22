@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   div.tabs {
     border-right: 1px solid ${(props) => props.theme.modal.header.borderBottom};
-    padding-right: 8px;
+    padding: 8px;
     min-width: 160px;
 
     .search-container {
@@ -44,7 +44,7 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 8px;
       width: 100%;
-      padding: 8px 10px;
+      padding: 6px 10px;
       border: none;
       border-radius: 4px;
       color: ${(props) => props.theme.colors.text.muted};
@@ -76,16 +76,16 @@ const StyledWrapper = styled.div`
   }
 
   section.tab-panel {
-    min-height: 400px;
-    max-height: 400px;
+    min-height: 70vh;
+    max-height: 70vh;
     overflow-y: auto;
-    width: 100%;
+    max-width: 50vw;
   }
 
   /* Accent colors for checkboxes and radio buttons */
   input[type="checkbox"],
   input[type="radio"] {
-    accent-color: ${(props) => props.theme.brand};
+    accent-color: ${(props) => props.theme.workspace.accent};
     cursor: pointer;
   }
 
