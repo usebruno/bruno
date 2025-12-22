@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { find, get } from 'lodash';
@@ -53,7 +53,6 @@ const HttpRequestPane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
   const rightContentRef = useRef(null);
-  const initialAutoSelectDone = useRef(false);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
@@ -116,13 +115,6 @@ const HttpRequestPane = ({ item, collection }) => {
     const Component = TAB_PANELS[requestPaneTab];
     return Component ? <Component item={item} collection={collection} /> : <div className="mt-4">404 | Not found</div>;
   }, [requestPaneTab, item, collection]);
-
-  useEffect(() => {
-    if (!initialAutoSelectDone.current && activeCounts.params === 0 && body.mode !== 'none') {
-      selectTab('body');
-    }
-    initialAutoSelectDone.current = true;
-  }, [activeCounts.params, body.mode, selectTab]);
 
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
