@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
-import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -35,22 +34,44 @@ const ResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState('raw');
-  const [selectedTab, setSelectedTab] = useState('editor');
   const rightContentRef = useRef(null);
 
   const response = item.response || {};
+
+  // Get the focused tab for reading persisted format/view state
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
 
   // Initialize format and tab only once when data loads.
   const { initialFormat, initialTab } = useInitialResponseFormat(response?.dataBuffer, response?.headers);
   const previewFormatOptions = useResponsePreviewFormatOptions(response?.dataBuffer, response?.headers);
 
+  const persistedFormat = focusedTab?.responseFormat;
+  const persistedViewTab = focusedTab?.responseViewTab;
+
+  // Use persisted values from Redux, falling back to initial values or defaults
+  const selectedFormat = persistedFormat ?? initialFormat ?? 'raw';
+  const selectedViewTab = persistedViewTab ?? initialTab ?? 'editor';
+
   useEffect(() => {
-    if (initialFormat !== null && initialTab !== null) {
-      setSelectedFormat(initialFormat);
-      setSelectedTab(initialTab);
+    if (!focusedTab || initialFormat === null || initialTab === null) {
+      return;
     }
-  }, [initialFormat, initialTab]);
+    if (persistedFormat === null) {
+      dispatch(updateResponseFormat({ uid: item.uid, responseFormat: initialFormat }));
+    }
+    if (persistedViewTab === null) {
+      dispatch(updateResponseViewTab({ uid: item.uid, responseViewTab: initialTab }));
+    }
+  }, [initialFormat, initialTab, persistedFormat, persistedViewTab, focusedTab, item.uid, dispatch]);
+
+  const handleFormatChange = useCallback((newFormat) => {
+    dispatch(updateResponseFormat({ uid: item.uid, responseFormat: newFormat }));
+  }, [dispatch, item.uid]);
+
+  const handleViewTabToggle = useCallback(() => {
+    const newViewTab = selectedViewTab === 'editor' ? 'preview' : 'editor';
+    dispatch(updateResponseViewTab({ uid: item.uid, responseViewTab: newViewTab }));
+  }, [dispatch, item.uid, selectedViewTab]);
 
   const requestTimeline = ([...(collection.timeline || [])]).filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -138,7 +159,7 @@ const ResponsePane = ({ item, collection }) => {
             error={response.error}
             key={item.filename}
             selectedFormat={selectedFormat}
-            selectedTab={selectedTab}
+            selectedTab={selectedViewTab}
           />
         );
       }
@@ -193,7 +214,6 @@ const ResponsePane = ({ item, collection }) => {
     return <div>Something went wrong</div>;
   }
 
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   if (!focusedTab || !focusedTab.uid || !focusedTab.responsePaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
@@ -211,13 +231,9 @@ const ResponsePane = ({ item, collection }) => {
           <QueryResultTypeSelector
             formatOptions={previewFormatOptions}
             formatValue={selectedFormat}
-            onFormatChange={(newFormat) => {
-              setSelectedFormat(newFormat);
-            }}
-            onPreviewTabSelect={() => {
-              setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
-            }}
-            selectedTab={selectedTab}
+            onFormatChange={handleFormatChange}
+            onPreviewTabSelect={handleViewTabToggle}
+            selectedTab={selectedViewTab}
           />
         </>
       ) : null}
