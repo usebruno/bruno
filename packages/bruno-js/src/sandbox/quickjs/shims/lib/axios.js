@@ -7,6 +7,8 @@ const methods = ['get', 'post', 'put', 'patch', 'delete'];
 const buildAxiosErrorData = (err) => {
   return {
     message: err.message,
+    code: err.code,
+    isAxiosError: err.isAxiosError,
     ...(err.response && {
       response: {
         status: err.response.status,
