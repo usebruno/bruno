@@ -11,6 +11,8 @@ const { decryptStringSafe } = require('../utils/encryption');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
+const DEFAULT_WORKSPACE_NAME = 'My Workspace';
+
 const envHasSecrets = (environment) => {
   const secrets = _.filter(environment.variables, (v) => v.secret === true);
   return secrets && secrets.length > 0;
@@ -48,6 +50,7 @@ const handleWorkspaceFileChange = (win, workspacePath) => {
 
     win.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, {
       ...workspaceConfig,
+      name: isDefault ? DEFAULT_WORKSPACE_NAME : workspaceConfig.name,
       type: isDefault ? 'default' : workspaceConfig.type
     });
   } catch (error) {

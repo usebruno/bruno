@@ -5,11 +5,17 @@ const { generateUidBasedOnHash } = require('../utils/common');
 const { writeFile } = require('../utils/filesystem');
 const { getPreferences, savePreferences } = require('./preferences');
 const { globalEnvironmentsStore } = require('./global-environments');
-const { generateYamlContent, readWorkspaceConfig, validateWorkspaceConfig } = require('../utils/workspace-config');
+const {
+  generateYamlContent,
+  readWorkspaceConfig,
+  validateWorkspaceConfig,
+  isValidCollectionEntry
+} = require('../utils/workspace-config');
 
 const OPENCOLLECTION_VERSION = '1.0.0';
 const WORKSPACE_TYPE = 'workspace';
 const DEFAULT_WORKSPACE_UID = 'default';
+const MAX_WORKSPACE_CREATION_ATTEMPTS = 100;
 
 class DefaultWorkspaceManager {
   constructor() {
@@ -106,9 +112,13 @@ class DefaultWorkspaceManager {
 
     let workspacePath = baseWorkspacePath;
     let counter = 1;
-    while (fs.existsSync(workspacePath)) {
+    while (fs.existsSync(workspacePath) && counter < MAX_WORKSPACE_CREATION_ATTEMPTS) {
       workspacePath = `${baseWorkspacePath}-${counter}`;
       counter++;
+    }
+
+    if (counter >= MAX_WORKSPACE_CREATION_ATTEMPTS) {
+      throw new Error('Unable to create default workspace: too many existing workspace directories');
     }
 
     fs.mkdirSync(workspacePath, { recursive: true });
@@ -126,8 +136,9 @@ class DefaultWorkspaceManager {
       docs: ''
     };
 
+    let migrationCleanupFn = null;
     if (migrateFromPreferences) {
-      await this.migrateFromPreferences(workspacePath, workspaceConfig);
+      migrationCleanupFn = await this.migrateFromPreferences(workspacePath, workspaceConfig);
     }
 
     const yamlContent = generateYamlContent(workspaceConfig);
@@ -135,27 +146,38 @@ class DefaultWorkspaceManager {
 
     await this.setDefaultWorkspacePath(workspacePath);
 
+    if (migrationCleanupFn) {
+      migrationCleanupFn();
+    }
+
     return workspacePath;
   }
 
   async migrateFromPreferences(workspacePath, workspaceConfig) {
-    try {
-      const Store = require('electron-store');
-      const preferencesStore = new Store({ name: 'preferences' });
+    const Store = require('electron-store');
+    const preferencesStore = new Store({ name: 'preferences' });
 
+    let shouldClearGlobalEnvStore = false;
+    let shouldDeleteWorkspaceDocs = false;
+
+    try {
       const lastOpenedCollections = preferencesStore.get('lastOpenedCollections', []);
 
       if (lastOpenedCollections && lastOpenedCollections.length > 0) {
-        const collections = lastOpenedCollections.map((collectionPath) => {
-          const absolutePath = path.resolve(collectionPath);
-          const collectionName = path.basename(absolutePath);
+        const collections = lastOpenedCollections
+          .map((collectionPath) => {
+            if (!collectionPath || typeof collectionPath !== 'string') {
+              return null;
+            }
+            const absolutePath = path.resolve(collectionPath);
+            const collectionName = path.basename(absolutePath);
 
-          return {
-            type: 'preference',
-            path: absolutePath,
-            name: collectionName
-          };
-        });
+            return {
+              path: absolutePath,
+              name: collectionName
+            };
+          })
+          .filter((collection) => isValidCollectionEntry(collection));
 
         workspaceConfig.collections = collections;
       }
@@ -168,6 +190,10 @@ class DefaultWorkspaceManager {
         const environmentsDir = path.join(workspacePath, 'environments');
 
         for (const env of globalEnvironments) {
+          if (!env || !env.name || typeof env.name !== 'string') {
+            continue;
+          }
+
           const envFilePath = path.join(environmentsDir, `${env.name}.yml`);
 
           const environment = {
@@ -184,18 +210,31 @@ class DefaultWorkspaceManager {
           }
         }
 
-        const globalEnvStore = new Store({ name: 'global-environments' });
-        globalEnvStore.clear();
+        shouldClearGlobalEnvStore = true;
       }
 
       const defaultWorkspaceDocs = preferencesStore.get('preferences.defaultWorkspaceDocs', '');
       if (defaultWorkspaceDocs) {
         workspaceConfig.docs = defaultWorkspaceDocs;
-        preferencesStore.delete('preferences.defaultWorkspaceDocs');
+        shouldDeleteWorkspaceDocs = true;
       }
     } catch (error) {
       console.error('Failed to migrate from preferences:', error);
     }
+
+    return () => {
+      try {
+        if (shouldClearGlobalEnvStore) {
+          const globalEnvStore = new Store({ name: 'global-environments' });
+          globalEnvStore.clear();
+        }
+        if (shouldDeleteWorkspaceDocs) {
+          preferencesStore.delete('preferences.defaultWorkspaceDocs');
+        }
+      } catch (cleanupError) {
+        console.error('Failed to cleanup after migration:', cleanupError);
+      }
+    };
   }
 
   needsMigration() {
