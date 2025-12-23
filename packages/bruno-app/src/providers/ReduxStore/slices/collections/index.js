@@ -2683,7 +2683,12 @@ export const collectionsSlice = createSlice({
             item.examples = file.data.examples;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
-            item.draft = null;
+
+            // Only clear draft if it matches the file content
+            // This preserves characters typed during autosave
+            if (item.draft && areItemsTheSameExceptSeqUpdate(item.draft, file.data)) {
+              item.draft = null;
+            }
           }
         }
       }
