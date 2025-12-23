@@ -78,7 +78,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
-        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" message={warningMessage} />}
+        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );
