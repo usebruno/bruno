@@ -1,5 +1,5 @@
 const colors = {
-  BRAND: '#cf8730',
+  BRAND: '#c7822e',
   TEXT: 'rgb(52, 52, 52)',
   TEXT_MUTED: '#838383',
   TEXT_LINK: '#1663bb',
@@ -9,7 +9,7 @@ const colors = {
   BLACK: '#000',
   SLATE_BLACK: '#343434',
   GREEN: '#047857',
-  YELLOW: '#cf8730',
+  YELLOW: '#c7822e',
 
   GRAY_1: '#f8f8f8',
   GRAY_2: '#f3f3f3',
@@ -318,6 +318,9 @@ const lightTheme = {
     },
     backdrop: {
       opacity: 0.4
+    },
+    closeButton: {
+      hoverBg: 'rgba(0, 0, 0, 0.08)'
     }
   },
 
@@ -351,7 +354,7 @@ const lightTheme = {
     active: {
       fontWeight: 400,
       color: colors.SLATE_BLACK,
-      border: '#cf8730'
+      border: '#c7822e'
     },
     secondary: {
       active: {

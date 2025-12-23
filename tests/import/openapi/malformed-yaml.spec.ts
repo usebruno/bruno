@@ -22,6 +22,6 @@ test.describe('Invalid OpenAPI - Malformed YAML', () => {
     await expect(parseError.or(importError)).toBeVisible({ timeout: 10000 });
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });
