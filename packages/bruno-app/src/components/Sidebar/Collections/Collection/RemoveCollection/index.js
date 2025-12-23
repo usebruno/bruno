@@ -2,11 +2,12 @@ import React, { useMemo } from 'react';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconFiles } from '@tabler/icons';
+import { IconAlertCircle } from '@tabler/icons';
 import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges } from 'utils/collections/index';
 import filter from 'lodash/filter';
 import ConfirmCollectionCloseDrafts from './ConfirmCollectionCloseDrafts';
+import StyledWrapper from './StyledWrapper';
 
 const RemoveCollection = ({ onClose, collectionUid }) => {
   const dispatch = useDispatch();
@@ -42,21 +43,35 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
     return <ConfirmCollectionCloseDrafts onClose={onClose} collection={collection} collectionUid={collectionUid} />;
   }
 
+  const customHeader = (
+    <div className="flex items-center gap-2">
+      <IconAlertCircle size={18} strokeWidth={1.5} className="text-red-500" />
+      <span>Close Collection</span>
+    </div>
+  );
+
   // Otherwise, show the standard remove confirmation modal
   return (
-    <Modal size="sm" title="Remove Collection" confirmText="Remove" handleConfirm={onConfirm} handleCancel={onClose}>
-      <div className="flex items-center">
-        <IconFiles size={18} strokeWidth={1.5} />
-        <span className="ml-2 mr-4 font-medium">{collection.name}</span>
-      </div>
-      <div className="break-words text-xs mt-1">{collection.pathname}</div>
-      <div className="mt-4">
-        Are you sure you want to remove collection <span className="font-medium">{collection.name}</span> from this workspace?
-      </div>
-      <div className="mt-4 text-muted">
-        The collection files will remain on disk and can be re-added to this or another workspace later.
-      </div>
-    </Modal>
+    <StyledWrapper>
+      <Modal
+        size="sm"
+        title="Close Collection"
+        customHeader={customHeader}
+        confirmText="Remove"
+        confirmButtonClass="btn-danger"
+        handleConfirm={onConfirm}
+        handleCancel={onClose}
+      >
+        <p className="mb-4">Are you sure you want to close following collection in Bruno?</p>
+        <div className="collection-info-card">
+          <div className="collection-name">{collection.name}</div>
+          <div className="collection-path">{collection.pathname}</div>
+        </div>
+        <p className="mt-4 text-muted text-sm">
+          It will still be available in the filesystem at the above location and can be re-opened later.
+        </p>
+      </Modal>
+    </StyledWrapper>
   );
 };
 
