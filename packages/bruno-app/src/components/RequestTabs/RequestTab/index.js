@@ -108,6 +108,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     if (menuDropdown.state.isShown) {
       menuDropdown.hide();
     } else {
+      menuDropdown.setProps({
+        getReferenceClientRect: () => ({
+          width: 0,
+          height: 0,
+          top: _event.clientY,
+          bottom: _event.clientY,
+          left: _event.clientX,
+          right: _event.clientX
+        })
+      });
       menuDropdown.show();
     }
   };
@@ -458,7 +468,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
       }
 
       dispatch(closeTabs({ tabUids: [tabUid] }));
-    } catch (err) { }
+    } catch (err) {}
   }
 
   function handleRevertChanges(event) {
@@ -528,7 +538,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
         />
       )}
 
-      <Dropdown onCreate={onDropdownCreate} icon={<span></span>} placement="bottom-start">
+      <Dropdown portalElement={document.querySelector('.collection-tabs')} onCreate={onDropdownCreate} icon={<span></span>} placement="bottom-start">
         <button
           className="dropdown-item w-full"
           onClick={() => {
