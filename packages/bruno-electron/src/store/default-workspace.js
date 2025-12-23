@@ -15,7 +15,7 @@ const {
 const OPENCOLLECTION_VERSION = '1.0.0';
 const WORKSPACE_TYPE = 'workspace';
 const DEFAULT_WORKSPACE_UID = 'default';
-const MAX_WORKSPACE_CREATION_ATTEMPTS = 100;
+const MAX_WORKSPACE_CREATION_ATTEMPTS = 20;
 
 class DefaultWorkspaceManager {
   constructor() {

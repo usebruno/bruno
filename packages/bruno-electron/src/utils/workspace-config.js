@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const yaml = require('js-yaml');
+const crypto = require('node:crypto');
 const { writeFile, validateName } = require('./filesystem');
 const { generateUidBasedOnHash } = require('./common');
 const { withLock, getWorkspaceLockKey } = require('./workspace-lock');
@@ -24,7 +25,7 @@ const quoteYamlValue = (value) => {
 
 const writeWorkspaceFileAtomic = async (workspacePath, content) => {
   const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-  const tempFilePath = path.join(os.tmpdir(), `workspace-${Date.now()}-${Math.random().toString(36).slice(2)}.yml`);
+  const tempFilePath = path.join(os.tmpdir(), `workspace-${Date.now()}-${crypto.randomBytes(16).toString('hex')}.yml`);
 
   try {
     await writeFile(tempFilePath, content);
