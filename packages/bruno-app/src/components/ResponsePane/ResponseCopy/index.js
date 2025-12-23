@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef, useMemo } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef, useCallback } from 'react';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { IconCopy, IconCheck } from '@tabler/icons';
@@ -6,21 +6,22 @@ import classnames from 'classnames';
 import ActionIcon from 'ui/ActionIcon/index';
 import { formatResponse } from 'utils/common';
 
+// Helper function to get text to copy
+const getTextToCopy = (selectedTab, selectedFormat, data, dataBuffer) => {
+  // If preview is on, copy raw data (what's shown in TextPreview)
+  if (selectedTab === 'preview') {
+    return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  }
+  // If editor is on, copy formatted data based on selected format
+  if (selectedFormat && data && dataBuffer) {
+    return formatResponse(data, dataBuffer, selectedFormat, null);
+  }
+  return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+};
+
 // Hook to get copy response function
 export const useResponseCopy = (item, selectedFormat, selectedTab, data, dataBuffer) => {
   const [copied, setCopied] = useState(false);
-
-  const textToCopy = useMemo(() => {
-    // If preview is on, copy raw data (what's shown in TextPreview)
-    if (selectedTab === 'preview') {
-      return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-    }
-    // If editor is on, copy formatted data based on selected format
-    if (selectedFormat && data && dataBuffer) {
-      return formatResponse(data, dataBuffer, selectedFormat, null);
-    }
-    return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-  }, [data, dataBuffer, selectedFormat, selectedTab]);
 
   useEffect(() => {
     if (copied) {
@@ -31,15 +32,16 @@ export const useResponseCopy = (item, selectedFormat, selectedTab, data, dataBuf
     }
   }, [copied]);
 
-  const copyResponse = async () => {
+  const copyResponse = useCallback(async () => {
     try {
+      const textToCopy = getTextToCopy(selectedTab, selectedFormat, data, dataBuffer);
       await navigator.clipboard.writeText(textToCopy);
       toast.success('Response copied to clipboard');
       setCopied(true);
     } catch (error) {
       toast.error('Failed to copy response');
     }
-  };
+  }, [selectedTab, selectedFormat, data, dataBuffer]);
 
   return { copyResponse, copied, hasData: !!data };
 };
