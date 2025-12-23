@@ -60,6 +60,18 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.mode === 'dark' ? '#6366f1' : '#4f46e5'};
     }
   }
+
+  .oauth2-badge {
+    background-color: ${(props) => props.theme.oauth2.badge.bg};
+  }
+
+  .oauth2-icon {
+    color: ${(props) => props.theme.oauth2.icon};
+  }
+
+  .oauth2-label {
+    color: ${(props) => props.theme.oauth2.label};
+  }
 `;
 
 export default StyledWrapper;

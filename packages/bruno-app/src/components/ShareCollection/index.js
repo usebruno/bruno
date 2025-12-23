@@ -60,10 +60,8 @@ const ShareCollection = ({ onClose, collectionUid }) => {
       <StyledWrapper className="flex flex-col h-full w-[500px]">
         <div className="space-y-2">
           <div
-            className={`flex border border-gray-200 dark:border-gray-600 items-center p-3 rounded-lg transition-colors ${
-              isCollectionLoading
-                ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
+            className={`export-option flex items-center p-3 rounded-lg ${
+              isCollectionLoading ? 'disabled' : 'cursor-pointer'
             }`}
             onClick={isCollectionLoading ? undefined : handleExportBrunoCollection}
           >
@@ -77,15 +75,13 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           </div>
 
           <div
-            className={`flex flex-col border border-gray-200 dark:border-gray-600 items-center rounded-lg transition-colors ${
-              isCollectionLoading
-                ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
+            className={`export-option flex flex-col items-center rounded-lg ${
+              isCollectionLoading ? 'disabled' : 'cursor-pointer'
             }`}
             onClick={isCollectionLoading ? undefined : handleExportPostmanCollection}
           >
             {hasNonExportableRequestTypes.has && (
-              <div className="px-3 py-2 bg-yellow-50 w-full dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 text-xs border-b border-yellow-100 dark:border-yellow-800/20 flex items-center">
+              <div className="warning-banner px-3 py-2 w-full text-xs flex items-center">
                 <IconAlertTriangle size={16} className="mr-2 flex-shrink-0" />
                 <span>
                   Note:

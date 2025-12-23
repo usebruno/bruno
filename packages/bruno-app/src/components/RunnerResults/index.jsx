@@ -67,16 +67,14 @@ const FILTERS = {
 const FilterButton = ({ label, count, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 pb-2 ${
-      active
-        ? 'text-[#343434] dark:text-[#CCCCCC] border-[#F59E0B]'
-        : 'text-[#989898] dark:text-[#CCCCCC80] border-transparent'
+    className={`filter-button font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 pb-2 ${
+      active ? 'active border-[#F59E0B]' : 'border-transparent'
     }`}
     style={{ fontFamily: 'Inter', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
   >
     {label}
     <span
-      className="px-[4.5px] py-[2px] rounded-[2px] bg-[#F7F7F7] dark:bg-[#242424] border border-[#EFEFEF] dark:border-[#92929233] text-[#989898] dark:text-inherit"
+      className="filter-badge px-[4.5px] py-[2px] rounded-[2px] border"
       style={{ borderWidth: '1px', fontFamily: 'Inter', fontSize: '10px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
     >
       {count}
@@ -302,7 +300,7 @@ export default function RunnerResults({ collection }) {
             <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
             {/* Configure requests option */}
-            <div className="flex flex-col border-b pb-6 mb-6 border-gray-200 dark:border-gray-700">
+            <div className="section-border flex flex-col border-b pb-6 mb-6">
               <div className="flex gap-2">
                 <input
                   className="cursor-pointer"
@@ -335,7 +333,7 @@ export default function RunnerResults({ collection }) {
           </div>
 
           {configureMode && (
-            <div className="w-1/2 border-l border-gray-200 dark:border-gray-700">
+            <div className="section-border w-1/2 border-l">
               <RunConfigurationPanel
                 collection={collection}
                 selectedItems={selectedRequestItems}
@@ -352,13 +350,13 @@ export default function RunnerResults({ collection }) {
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       {/* Filter Bar and Actions */}
       <div className="flex items-center justify-between mb-4 pt-[14px] gap-4">
-        <div className="flex items-stretch rounded-lg border border-[#EFEFEF] dark:border-[#92929233] max-h-[35px] flex-shrink-0" style={{ borderWidth: '1px' }}>
-          <div className="flex items-center px-3 py-2 rounded-l-lg bg-[#F3F3F3] dark:bg-[#2B2D2F]">
-            <span className="text-gray-600 dark:text-gray-400" style={{ fontFamily: 'Inter', fontWeight: 400 }}>
+        <div className="filter-container flex items-stretch rounded-lg border max-h-[35px] flex-shrink-0" style={{ borderWidth: '1px' }}>
+          <div className="filter-label-bg flex items-center px-3 py-2 rounded-l-lg">
+            <span className="filter-label-text" style={{ fontFamily: 'Inter', fontWeight: 400 }}>
               Filter by:
             </span>
           </div>
-          <div className="flex items-center gap-5 px-3 pt-2 pb-0 rounded-r-lg bg-transparent dark:bg-transparent">
+          <div className="flex items-center gap-5 px-3 pt-2 pb-0 rounded-r-lg bg-transparent">
             {Object.entries(FILTERS).map(([key, { label }]) => (
               <FilterButton
                 key={key}
@@ -379,7 +377,7 @@ export default function RunnerResults({ collection }) {
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
               type="button"
-              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
+              className="action-button px-3 py-1.5 rounded-md bg-transparent border hover:opacity-80 transition-colors button-sm"
               style={{ fontFamily: 'Inter', fontWeight: 500 }}
               onClick={runAgain}
             >
@@ -387,7 +385,7 @@ export default function RunnerResults({ collection }) {
             </button>
             <button
               type="button"
-              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
+              className="action-button px-3 py-1.5 rounded-md bg-transparent border hover:opacity-80 transition-colors button-sm"
               style={{ fontFamily: 'Inter', fontWeight: 500 }}
               onClick={resetRunner}
             >
@@ -573,7 +571,7 @@ export default function RunnerResults({ collection }) {
                 </div>
                 <button
                   onClick={() => setSelectedItem(null)}
-                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer flex items-center justify-center"
+                  className="icon-button p-1 rounded transition-colors cursor-pointer flex items-center justify-center"
                   title="Close"
                   aria-label="Close response view"
                 >
@@ -586,10 +584,10 @@ export default function RunnerResults({ collection }) {
         ) : (
           <div className="flex flex-1 w-[50%] overflow-y-auto">
             <div className="flex flex-col w-full h-full items-center justify-center text-center">
-              <div className="mb-4 text-gray-400 dark:text-gray-500">
+              <div className="empty-state-text mb-4">
                 <IconExternalLink size={64} strokeWidth={1.5} />
               </div>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="empty-state-description">
                 Click on the status code to view the response
               </p>
             </div>

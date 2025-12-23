@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import StyledWrapper from './StyledWrapper';
 
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
@@ -25,94 +26,96 @@ const Info = ({ collection }) => {
   };
 
   return (
-    <div className="w-full flex flex-col h-fit">
-      <div className="rounded-lg py-6">
-        <div className="grid gap-5">
-          {/* Location Row */}
-          <div className="flex items-start">
-            <div className="flex-shrink-0 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <IconFolder className="w-5 h-5 text-blue-500" stroke={1.5} />
-            </div>
-            <div className="ml-4">
-              <div className="font-medium">Location</div>
-              <div className="mt-1 text-muted break-all text-xs">
-                {collection.pathname}
+    <StyledWrapper>
+      <div className="w-full flex flex-col h-fit">
+        <div className="rounded-lg py-6">
+          <div className="grid gap-5">
+            {/* Location Row */}
+            <div className="flex items-start">
+              <div className="info-icon-bg blue flex-shrink-0 p-3 rounded-lg">
+                <IconFolder className="w-5 h-5 text-blue-500" stroke={1.5} />
+              </div>
+              <div className="ml-4">
+                <div className="font-medium">Location</div>
+                <div className="mt-1 text-muted break-all text-xs">
+                  {collection.pathname}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Environments Row */}
-          <div className="flex items-start">
-            <div className="flex-shrink-0 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <IconWorld className="w-5 h-5 text-green-500" stroke={1.5} />
-            </div>
-            <div className="ml-4">
-              <div className="font-medium text-sm">Environments</div>
-              <div className="mt-1 flex flex-col gap-1">
-                <button
-                  type="button"
-                  className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
-                  onClick={() => {
-                    dispatch(
-                      addTab({
-                        uid: `${collection.uid}-environment-settings`,
-                        collectionUid: collection.uid,
-                        type: 'environment-settings'
-                      })
-                    );
-                  }}
-                >
-                  {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
-                </button>
-                <button
-                  type="button"
-                  className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
-                  onClick={() => {
-                    dispatch(
-                      addTab({
-                        uid: `${collection.uid}-global-environment-settings`,
-                        collectionUid: collection.uid,
-                        type: 'global-environment-settings'
-                      })
-                    );
-                  }}
-                >
-                  {globalEnvironmentCount} global environment{globalEnvironmentCount !== 1 ? 's' : ''}
-                </button>
+            {/* Environments Row */}
+            <div className="flex items-start">
+              <div className="info-icon-bg green flex-shrink-0 p-3 rounded-lg">
+                <IconWorld className="w-5 h-5 text-green-500" stroke={1.5} />
+              </div>
+              <div className="ml-4">
+                <div className="font-medium text-sm">Environments</div>
+                <div className="mt-1 flex flex-col gap-1">
+                  <button
+                    type="button"
+                    className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
+                    onClick={() => {
+                      dispatch(
+                        addTab({
+                          uid: `${collection.uid}-environment-settings`,
+                          collectionUid: collection.uid,
+                          type: 'environment-settings'
+                        })
+                      );
+                    }}
+                  >
+                    {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
+                  </button>
+                  <button
+                    type="button"
+                    className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
+                    onClick={() => {
+                      dispatch(
+                        addTab({
+                          uid: `${collection.uid}-global-environment-settings`,
+                          collectionUid: collection.uid,
+                          type: 'global-environment-settings'
+                        })
+                      );
+                    }}
+                  >
+                    {globalEnvironmentCount} global environment{globalEnvironmentCount !== 1 ? 's' : ''}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Requests Row */}
-          <div className="flex items-start">
-            <div className="flex-shrink-0 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <IconApi className="w-5 h-5 text-purple-500" stroke={1.5} />
-            </div>
-            <div className="ml-4">
-              <div className="font-medium">Requests</div>
-              <div className="mt-1 text-muted text-xs">
-                {
-                  isCollectionLoading ? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
-                }
+            {/* Requests Row */}
+            <div className="flex items-start">
+              <div className="info-icon-bg purple flex-shrink-0 p-3 rounded-lg">
+                <IconApi className="w-5 h-5 text-purple-500" stroke={1.5} />
+              </div>
+              <div className="ml-4">
+                <div className="font-medium">Requests</div>
+                <div className="mt-1 text-muted text-xs">
+                  {
+                    isCollectionLoading ? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
+                  }
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-start group cursor-pointer" onClick={handleToggleShowShareCollectionModal(true)}>
-            <div className="flex-shrink-0 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-              <IconShare className="w-5 h-5 text-indigo-500" stroke={1.5} />
-            </div>
-            <div className="ml-4 h-full flex flex-col justify-start">
-              <div className="font-medium h-fit my-auto">Share</div>
-              <div className="group-hover:underline text-link text-xs">
-                Share Collection
+            <div className="flex items-start group cursor-pointer" onClick={handleToggleShowShareCollectionModal(true)}>
+              <div className="info-icon-bg indigo flex-shrink-0 p-3 rounded-lg">
+                <IconShare className="w-5 h-5 text-indigo-500" stroke={1.5} />
+              </div>
+              <div className="ml-4 h-full flex flex-col justify-start">
+                <div className="font-medium h-fit my-auto">Share</div>
+                <div className="group-hover:underline text-link text-xs">
+                  Share Collection
+                </div>
               </div>
             </div>
+            {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
           </div>
-          {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 

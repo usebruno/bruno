@@ -70,6 +70,43 @@ const Wrapper = styled.div`
     background-size: 100% 30px, 100% 30px, 100% 10px, 100% 10px;
     background-attachment: local, local, scroll, scroll;
   }
+
+  .cookie-count {
+    color: ${(props) => props.theme.cookies.count};
+  }
+
+  .cookie-add-button {
+    color: ${(props) => props.theme.cookies.addButton.color};
+    
+    &:hover {
+      color: ${(props) => props.theme.cookies.addButton.hoverColor};
+    }
+  }
+
+  .cookie-delete-button {
+    color: ${(props) => props.theme.cookies.deleteButton.color};
+    
+    &:hover {
+      color: ${(props) => props.theme.cookies.deleteButton.hoverColor};
+    }
+  }
+
+  .cookie-table-header {
+    border-color: ${(props) => props.theme.cookies.table.headerBorder};
+    color: ${(props) => props.theme.cookies.table.headerText};
+  }
+
+  .cookie-table-row {
+    border-color: ${(props) => props.theme.cookies.table.rowBorder};
+  }
+
+  .cookie-edit-button {
+    color: ${(props) => props.theme.cookies.editButton.color};
+    
+    &:hover {
+      color: ${(props) => props.theme.cookies.editButton.hoverColor};
+    }
+  }
 `;
 
 export default Wrapper;

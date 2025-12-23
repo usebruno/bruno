@@ -50,6 +50,10 @@ const StyledWrapper = styled.div`
     word-break: break-all;
     color: ${(props) => props.theme.text};
   }
+
+  .error-separator {
+    border-color: ${(props) => props.theme.scriptError.separator};
+  }
 `;
 
 export default StyledWrapper;

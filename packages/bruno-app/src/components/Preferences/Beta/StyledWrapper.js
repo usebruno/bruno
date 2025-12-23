@@ -30,6 +30,14 @@ const StyledWrapper = styled.div`
     color: var(--color-gray-500);
     font-style: italic;
   }
+
+  .beta-description {
+    color: ${(props) => props.theme.beta.description};
+  }
+
+  .beta-feature-description {
+    color: ${(props) => props.theme.beta.featureDescription};
+  }
 `;
 
 export default StyledWrapper;

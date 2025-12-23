@@ -13,6 +13,10 @@ const StyledWrapper = styled.div`
     div.border-top {
       border-top: 1px solid ${(props) => props.theme.requestTabPanel.card.border};
     }
+
+    .warning-banner {
+      background-color: ${(props) => props.theme.requestNotLoaded.warning.bg};
+    }
   }
 `;
 

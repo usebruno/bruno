@@ -95,8 +95,8 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="oauth2-badge flex items-center px-2.5 py-1.5 rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
         <span className="font-medium">
           Configuration
@@ -152,10 +152,10 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         </div>
       </div>
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="oauth2-badge flex items-center px-2.5 py-1.5 rounded-md">
+          <IconKey size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-label font-medium">
           Token
         </span>
       </div>
@@ -232,10 +232,10 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
             )
       }
       <div className="flex items-center gap-2.5 mt-4 mb-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="oauth2-badge flex items-center px-2.5 py-1.5 rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-label font-medium">
           Advanced Settings
         </span>
       </div>
@@ -255,8 +255,8 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
       </div>
 
       <div className="flex items-center gap-2.5 mt-4">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="oauth2-badge flex items-center px-2.5 py-1.5 rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
         <span className="font-medium">Settings</span>
       </div>

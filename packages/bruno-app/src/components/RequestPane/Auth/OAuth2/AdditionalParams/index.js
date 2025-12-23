@@ -167,10 +167,10 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   return (
     <StyledWrapper className="mt-4">
       <div className="flex items-center gap-2.5 mb-3">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="oauth2-badge flex items-center px-2.5 py-1.5 rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-label font-medium">
           Additional Parameters
         </span>
       </div>

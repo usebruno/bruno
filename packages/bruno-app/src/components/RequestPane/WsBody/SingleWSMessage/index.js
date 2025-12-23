@@ -146,17 +146,17 @@ export const SingleWSMessage = ({
 
   return (
     <div
-      className={`flex flex-col mb-3 border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden ${getContainerHeight} relative`}
+      className={`ws-message-container flex flex-col mb-3 border rounded-md overflow-hidden ${getContainerHeight} relative`}
     >
       <div
-        className="ws-message-header flex items-center justify-between px-3 py-2 bg-neutral-100 dark:bg-neutral-700 cursor-pointer"
+        className="ws-message-header flex items-center justify-between px-3 py-2 cursor-pointer"
         onClick={onToggleCollapse}
       >
         <div className="flex items-center gap-2">
           {isCollapsed ? (
-            <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+            <IconChevronDown size={16} strokeWidth={1.5} className="ws-chevron-icon" />
           ) : (
-            <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+            <IconChevronUp size={16} strokeWidth={1.5} className="ws-chevron-icon" />
           )}
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -164,9 +164,9 @@ export const SingleWSMessage = ({
           <ToolHint text="Prettify" toolhintId={`prettify-msg-${index}`}>
             <button
               onClick={onPrettify}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+              className="ws-action-button p-1 rounded transition-colors"
             >
-              <IconWand size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+              <IconWand size={16} strokeWidth={1.5} className="ws-action-icon" />
             </button>
           </ToolHint>
 
@@ -174,16 +174,17 @@ export const SingleWSMessage = ({
             <ToolHint text="Delete this message" toolhintId={`delete-msg-${index}`}>
               <button
                 onClick={onDeleteMessage}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+                className="ws-action-button p-1 rounded transition-colors"
               >
-                <IconTrash size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                <IconTrash size={16} strokeWidth={1.5} className="ws-action-icon" />
               </button>
             </ToolHint>
           )}
         </div>
       </div>
+
       {!isCollapsed && (
-        <div className={`flex ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'h-80'} relative`}>
+        <div className={`flex flex-1 w-full ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'min-h-0' : 'h-80'} relative`}>
           <CodeEditor
             collection={collection}
             theme={displayedTheme}

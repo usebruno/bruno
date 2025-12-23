@@ -10,6 +10,7 @@ import { importEnvironment } from 'providers/ReduxStore/slices/collections/actio
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { toastError } from 'utils/common/error';
 import { IconFileImport } from '@tabler/icons';
+import StyledWrapper from './StyledWrapper';
 
 const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
@@ -134,32 +135,30 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
   };
 
   return (
-    <Portal>
-      <Modal size="md" title={modalTitle} hideFooter={true} handleConfirm={onClose} handleCancel={onClose} dataTestId={modalTestId}>
-        <div className="py-2">
-          <div
-            className={`flex justify-center flex-col items-center w-full dark:bg-zinc-700 rounded-lg border-2 border-dashed p-12 text-center cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
-              isDragOver
-                ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20'
-                : 'border-zinc-300 dark:border-zinc-400 hover:border-zinc-400'
-            }`}
-            onClick={handleFileSelect}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            data-testid={importTestId}
-          >
-            <IconFileImport size={64} />
-            <span className="mt-2 block font-medium">
-              {isDragOver ? 'Drop your environment files here' : 'Import your environments'}
-            </span>
-            <span className="mt-1 block text-xs text-muted">
-              Drag & drop JSON files/folders or click to browse. Supports both Bruno and Postman formats.
-            </span>
+    <StyledWrapper>
+      <Portal>
+        <Modal size="md" title={modalTitle} hideFooter={true} handleConfirm={onClose} handleCancel={onClose} dataTestId={modalTestId}>
+          <div className="py-2">
+            <div
+              className={`import-zone flex justify-center flex-col items-center w-full rounded-lg border-2 border-dashed p-12 text-center cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${isDragOver ? 'drag-over' : ''}`}
+              onClick={handleFileSelect}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              data-testid={importTestId}
+            >
+              <IconFileImport size={64} />
+              <span className="mt-2 block font-medium">
+                {isDragOver ? 'Drop your environment files here' : 'Import your environments'}
+              </span>
+              <span className="mt-1 block text-xs text-muted">
+                Drag & drop JSON files/folders or click to browse. Supports both Bruno and Postman formats.
+              </span>
+            </div>
           </div>
-        </div>
-      </Modal>
-    </Portal>
+        </Modal>
+      </Portal>
+    </StyledWrapper>
   );
 };
 

@@ -19,6 +19,10 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.requestTabPanel.cardTable.table.thead.color};
       }
     }
+
+    .warning-banner {
+      background-color: ${(props) => props.theme.requestNotLoaded.warning.bg};
+    }
   }
 `;
 

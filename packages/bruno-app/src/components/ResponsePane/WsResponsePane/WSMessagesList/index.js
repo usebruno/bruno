@@ -138,9 +138,9 @@ const WSMessageItem = ({ message, inFocus }) => {
             ? (
                 <span className="text-gray-600">
                   {isOpen ? (
-                    <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                    <IconChevronDown size={16} strokeWidth={1.5} className="chevron-icon" />
                   ) : (
-                    <IconChevronRight size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                    <IconChevronRight size={16} strokeWidth={1.5} className="chevron-icon" />
                   )}
                 </span>
               )

@@ -52,6 +52,18 @@ const Wrapper = styled.div`
       padding: 0.2rem 0.6rem !important;
     }
   }
+
+  .oauth2-badge {
+    background-color: ${(props) => props.theme.oauth2.badge.bg};
+  }
+
+  .oauth2-icon {
+    color: ${(props) => props.theme.oauth2.icon};
+  }
+
+  .oauth2-label {
+    color: ${(props) => props.theme.oauth2.label};
+  }
 `;
 
 export default Wrapper;

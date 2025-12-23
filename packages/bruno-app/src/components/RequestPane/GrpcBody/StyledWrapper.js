@@ -54,6 +54,55 @@ const Wrapper = styled.div`
     border-top-left-radius: 0;
     border-top-right-radius: 0;
   }
+
+  .grpc-empty-message {
+    color: ${(props) => props.theme.grpc.body.emptyMessage};
+  }
+
+  .grpc-add-button {
+    border: 1px solid ${(props) => props.theme.grpc.body.addButton.border};
+    background-color: ${(props) => props.theme.grpc.body.addButton.bg};
+    color: ${(props) => props.theme.grpc.body.addButton.text};
+
+    &:hover {
+      background-color: ${(props) => props.theme.grpc.body.addButton.hoverBg};
+    }
+  }
+
+  .grpc-add-icon {
+    color: ${(props) => props.theme.grpc.body.addButton.icon};
+  }
+
+  .grpc-message-container {
+    border: 1px solid ${(props) => props.theme.grpc.body.messageContainer.border};
+    
+    &.h-full {
+      height: 100%;
+      min-height: 0;
+    }
+    
+    &.h-80 {
+      height: 20rem;
+    }
+  }
+
+  .grpc-message-header {
+    background-color: ${(props) => props.theme.grpc.body.messageHeader.bg};
+  }
+
+  .grpc-chevron-icon {
+    color: ${(props) => props.theme.grpc.body.icon};
+  }
+
+  .grpc-action-button {
+    &:hover {
+      background-color: ${(props) => props.theme.grpc.body.actionButton.hoverBg};
+    }
+  }
+
+  .grpc-action-icon {
+    color: ${(props) => props.theme.grpc.body.icon};
+  }
 `;
 
 export default Wrapper;

@@ -80,7 +80,7 @@ const Beta = ({ close }) => {
             <IconFlask size={20} className="mr-2 text-orange-500" />
             <h2 className="text-lg font-medium">Beta Features</h2>
           </div>
-          <p className="text-gray-500 dark:text-gray-400 mb-4 text-wrap">
+          <p className="beta-description mb-4 text-wrap">
             Beta features are experimental previews that may change before full release. Try them and share feedback.
           </p>
         </div>
@@ -101,7 +101,7 @@ const Beta = ({ close }) => {
                   {feature.label}
                 </label>
               </div>
-              <div className="beta-feature-description ml-6 text-xs text-gray-500 dark:text-gray-400">
+              <div className="beta-feature-description ml-6 text-xs">
                 {feature.description}
               </div>
             </div>

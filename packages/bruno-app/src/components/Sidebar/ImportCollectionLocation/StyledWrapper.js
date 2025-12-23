@@ -17,6 +17,14 @@ const Wrapper = styled.div`
   [data-tippy-root] {
     left: 0 !important;
   }
+
+  .grouping-label {
+    color: ${(props) => props.theme.importCollectionLocation.groupingLabel};
+  }
+
+  .grouping-description {
+    color: ${(props) => props.theme.importCollectionLocation.groupingDescription};
+  }
 `;
 
 export default Wrapper;

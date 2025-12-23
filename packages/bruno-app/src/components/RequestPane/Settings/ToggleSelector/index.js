@@ -1,4 +1,5 @@
 import React from 'react';
+import StyledWrapper from './StyledWrapper';
 
 const ToggleSelector = ({
   checked,
@@ -30,46 +31,37 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
+    <StyledWrapper>
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <label className="toggle-label text-xs font-medium">
+            {label}
+          </label>
+          {description && (
+            <p className="toggle-description text-xs">
+              {description}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onChange}
+          disabled={disabled}
+          data-testid={dataTestId}
+          className={`toggle-switch relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-1 focus:ring-offset-1 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${checked ? 'checked' : ''}`}
+          role="switch"
+          aria-checked={checked}
+          aria-disabled={disabled}
+        >
+          <span
+            className={`
+              inline-block ${currentSize.thumb} transform rounded-full bg-white transition-transform
+              ${currentSize.translate}
+            `}
+          />
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onChange}
-        disabled={disabled}
-        data-testid={dataTestId}
-        className={`
-          relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors
-          focus:outline-none focus:ring-1 focus:ring-offset-1
-          ${disabled
-      ? 'opacity-50 cursor-not-allowed'
-      : 'cursor-pointer'
-    }
-          ${checked
-      ? 'bg-blue-600 dark:bg-blue-500'
-      : 'bg-gray-200 dark:bg-gray-700'
-    }
-        `}
-        role="switch"
-        aria-checked={checked}
-        aria-disabled={disabled}
-      >
-        <span
-          className={`
-            inline-block ${currentSize.thumb} transform rounded-full bg-white transition-transform
-            ${currentSize.translate}
-          `}
-        />
-      </button>
-    </div>
+    </StyledWrapper>
   );
 };
 

@@ -33,9 +33,9 @@ const TokenSection = ({ title, token }) => {
   };
 
   return (
-    <div className="mb-2 border dark:border-gray-700 rounded-lg overflow-hidden">
+    <div className="token-section mb-2 border rounded-lg overflow-hidden">
       <div
-        className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+        className="token-header flex items-center justify-between px-3 py-2 cursor-pointer transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center space-x-2 w-full">
@@ -54,7 +54,7 @@ const TokenSection = ({ title, token }) => {
             <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => handleCopy(token)}
-                className="p-1 bg-indigo-100 dark:hover:bg-indigo-200 rounded"
+                className="token-copy-button p-1 rounded"
                 title="Copy token"
               >
                 {copied
@@ -62,18 +62,18 @@ const TokenSection = ({ title, token }) => {
                   : <IconCopy size={16} className="text-gray-500" />}
               </button>
             </div>
-            <div className="font-mono text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded break-all">
+            <div className="token-content font-mono text-xs p-2 rounded break-all">
               {token}
             </div>
           </div>
           {decodedToken && (
             <div className="mt-3">
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Decoded Payload</div>
+              <div className="token-label text-xs font-medium mb-2">Decoded Payload</div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 {Object.entries(decodedToken).map(([key, value]) => (
                   <div key={key} className="overflow-hidden text-ellipsis">
                     <span className="font-medium text-xs">{key}: </span>
-                    <span className="text-xs text-gray-600 dark:text-gray-300">
+                    <span className="token-value text-xs">
                       {typeof value === 'object' ? JSON.stringify(value) : value.toString()}
                     </span>
                   </div>
@@ -112,10 +112,7 @@ const ExpiryTimer = ({ expiresIn }) => {
 
   return (
     <div
-      className={`text-xs px-2 py-1 rounded-full min-w-[120px] text-center ${timeLeft <= 30
-        ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-        : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-      }`}
+      className={`token-expiry text-xs px-2 py-1 rounded-full min-w-[120px] text-center ${timeLeft <= 30 ? 'expiring' : ''}`}
     >
       {timeLeft > 0 ? `Expires in ${formatExpiryTime(timeLeft)}` : `Expired`}
     </div>
@@ -137,25 +134,25 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
     <StyledWrapper className="relative w-auto h-fit mt-2">
       {Object.keys(creds)?.length ? (
         creds?.error ? (
-          <pre className="text-red-600 dark:text-red-400">Error fetching token. Check network logs for more details.</pre>
+          <pre className="token-error">Error fetching token. Check network logs for more details.</pre>
         ) : (
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+          <div className="token-info-container border rounded-lg p-4 shadow-sm">
             <TokenSection title="Access Token" token={creds.access_token} />
             <TokenSection title="Refresh Token" token={creds.refresh_token} />
             <TokenSection title="ID Token" token={creds.id_token} />
             {(creds.token_type || creds.scope) ? (
-              <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs">
+              <div className="token-info-section mt-3 p-2 rounded-lg text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   {creds.token_type ? (
                     <div className="flex items-center space-x-1">
                       <span className="font-medium">Token Type:</span>
-                      <span className="text-gray-600 dark:text-gray-300">{creds.token_type}</span>
+                      <span className="token-value">{creds.token_type}</span>
                     </div>
                   ) : null}
                   {creds?.scope ? (
                     <div className="flex items-center space-x-1 min-w-0">
                       <span className="font-medium flex-shrink-0">Scope:</span>
-                      <span className="text-gray-600 dark:text-gray-300 truncate" title={creds.scope}>
+                      <span className="token-value truncate" title={creds.scope}>
                         {creds.scope}
                       </span>
                     </div>
@@ -166,7 +163,7 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
           </div>
         )
       ) : (
-        <div className="text-gray-500 dark:text-gray-400">No token found</div>
+        <div className="token-empty">No token found</div>
       )}
     </StyledWrapper>
   );
