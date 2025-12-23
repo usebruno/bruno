@@ -1,9 +1,9 @@
 import * as FileSaver from 'file-saver';
 import jsyaml from 'js-yaml';
-import { stringifyBundledCollection } from 'utils/opencollection';
+import { toOpenCollection } from '@usebruno/converters';
 
 export const brunoToOpenCollection = (collection) => {
-  return stringifyBundledCollection(collection);
+  return toOpenCollection(collection);
 };
 
 export const exportCollection = (collection) => {
