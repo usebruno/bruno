@@ -10,7 +10,7 @@ test.describe('Default Collection Location Feature', () => {
     await expect(defaultLocationInput).toHaveValue('/tmp/bruno-collections');
 
     // close the preferences
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
 
     // wait for 2 seconds
     await page.waitForTimeout(2000);
@@ -28,7 +28,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.waitForTimeout(1000);
 
     // close the preferences
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
 
     // wait for modal to close
     await page.waitForTimeout(500);
@@ -48,7 +48,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.waitForTimeout(1000);
 
     // close the preferences
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
 
     // wait for modal to close
     await page.waitForTimeout(500);

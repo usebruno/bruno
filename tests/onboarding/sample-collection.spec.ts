@@ -93,7 +93,7 @@ test.describe('Onboarding', () => {
     await removeOption.click();
 
     // Confirm removal in the modal
-    await page.locator('[data-testid="close-collection-modal-title"]', { hasText: 'Close Collection' }).waitFor({ state: 'visible' });
+    await page.locator('[data-testid="close-collection-modal-title"]', { hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
     await page.locator('.bruno-modal-footer .submit').click();
 
     // Verify collection is closed (no longer visible in sidebar)

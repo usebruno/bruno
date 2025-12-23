@@ -46,7 +46,7 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
   const customHeader = (
     <div className="flex items-center gap-2" data-testid="close-collection-modal-title">
       <IconAlertCircle size={18} strokeWidth={1.5} className="text-red-500" />
-      <span>Close Collection</span>
+      <span>Remove Collection</span>
     </div>
   );
 
@@ -55,7 +55,7 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
     <StyledWrapper>
       <Modal
         size="sm"
-        title="Close Collection"
+        title="Remove Collection"
         customHeader={customHeader}
         confirmText="Remove"
         confirmButtonClass="btn-danger"

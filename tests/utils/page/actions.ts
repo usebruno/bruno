@@ -17,11 +17,11 @@ const closeAllCollections = async (page) => {
       await firstCollection.hover();
       await firstCollection.locator('.collection-actions .icon').click();
       await page.locator('.dropdown-item').getByText('Remove').click();
-      // Wait for the close collection modal to be visible
-      await page.locator('[data-testid="close-collection-modal-title"]', { hasText: 'Close Collection' }).waitFor({ state: 'visible' });
+      // Wait for the remove collection modal to be visible
+      await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
       await page.locator('.bruno-modal-footer .submit').click();
-      // Wait for the close collection modal to be hidden
-      await page.locator('[data-testid="close-collection-modal-title"]', { hasText: 'Close Collection' }).waitFor({ state: 'hidden' });
+      // Wait for the remove collection modal to be hidden
+      await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
     }
 
     // Wait until no collections are left open (check sidebar only)
@@ -288,9 +288,9 @@ const removeCollection = async (page: Page, collectionName: string) => {
     await locators.dropdown.item('Remove').click();
 
     // Wait for and confirm modal
-    await page.locator('[data-testid="close-collection-modal-title"]', { hasText: 'Close Collection' }).waitFor({ state: 'visible' });
+    await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
     await locators.modal.button('Remove').click();
-    await page.locator('[data-testid="close-collection-modal-title"]', { hasText: 'Close Collection' }).waitFor({ state: 'hidden' });
+    await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
 
     // Verify collection is removed
     await expect(

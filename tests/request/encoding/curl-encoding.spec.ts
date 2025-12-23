@@ -4,7 +4,7 @@ import { closeAllCollections, createRequest } from '../../utils/page';
 test.describe('Code Generation URL Encoding', () => {
   test.afterEach(async ({ page }) => {
     try {
-      const modalCloseButton = page.locator('[data-test-id="modal-close-button"]');
+      const modalCloseButton = page.getByTestId('modal-close-button');
       if (await modalCloseButton.isVisible()) {
         await modalCloseButton.click();
         await modalCloseButton.waitFor({ state: 'hidden' });
@@ -52,9 +52,9 @@ test.describe('Code Generation URL Encoding', () => {
 
     expect(generatedCode).toContain('http://base.source/?name=John%20Doe');
 
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
 
-    await page.locator('[data-test-id="modal-close-button"]').waitFor({ state: 'hidden' });
+    await page.getByTestId('modal-close-button').waitFor({ state: 'hidden' });
   });
 
   test('Should generate code with proper URL encoding for encoded input', async ({
@@ -95,8 +95,8 @@ test.describe('Code Generation URL Encoding', () => {
 
     expect(generatedCode).toContain('http://base.source/?name=John%20Doe');
 
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
 
-    await page.locator('[data-test-id="modal-close-button"]').waitFor({ state: 'hidden' });
+    await page.getByTestId('modal-close-button').waitFor({ state: 'hidden' });
   });
 });
