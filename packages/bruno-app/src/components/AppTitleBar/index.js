@@ -20,11 +20,12 @@ import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
 import { toTitleCase } from 'utils/common/index';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
-import { isMacOS, isWindowsOS } from 'utils/common/platform';
+import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
 
 const getOsClass = () => {
   if (isMacOS()) return 'os-mac';
   if (isWindowsOS()) return 'os-windows';
+  if (isLinuxOS()) return 'os-linux';
   return 'os-other';
 };
 
@@ -34,6 +35,8 @@ const AppTitleBar = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const osClass = getOsClass();
   const isWindows = osClass === 'os-windows';
+  const isLinux = osClass === 'os-linux';
+  const showWindowControls = isWindows || isLinux;
 
   // Listen for fullscreen changes
   useEffect(() => {
@@ -54,13 +57,11 @@ const AppTitleBar = () => {
     };
   }, []);
 
-  // Check initial maximized state and listen for changes (Windows only)
   useEffect(() => {
-    if (!isWindows) return;
+    if (!showWindowControls) return;
     const { ipcRenderer } = window;
     if (!ipcRenderer) return;
 
-    // Get initial state
     ipcRenderer.invoke('renderer:window-is-maximized')
       .then((maximized) => {
         setIsMaximized(maximized);
@@ -69,7 +70,6 @@ const AppTitleBar = () => {
         console.error('Error getting initial maximized state:', error);
       });
 
-    // Listen for maximize/unmaximize events from main process
     const removeMaximizedListener = ipcRenderer.on('main:window-maximized', () => {
       setIsMaximized(true);
     });
@@ -82,9 +82,8 @@ const AppTitleBar = () => {
       removeMaximizedListener();
       removeUnmaximizedListener();
     };
-  }, [isWindows]);
+  }, [showWindowControls]);
 
-  // Window control handlers (Windows only) - these always work, even with modals open
   const handleMinimize = useCallback(() => {
     window.ipcRenderer?.send('renderer:window-minimize');
   }, []);
@@ -300,7 +299,7 @@ const AppTitleBar = () => {
             <ResponseLayoutToggle />
           </div>
 
-          {isWindows && (
+          {showWindowControls && (
             <div className="window-controls">
               <button
                 className="window-control-btn minimize"

@@ -201,6 +201,15 @@ const Wrapper = styled.div`
     margin-left: 6px;
   }
 
+  &.os-linux .titlebar-content {
+    padding-right: 0px;
+    padding-left: 0px;
+  }
+
+  &.os-linux .titlebar-left {
+    margin-left: 6px;
+  }
+
   /* Custom window control buttons for Windows - always interactive, above modal overlay */
   .window-controls {
     display: flex;
