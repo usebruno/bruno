@@ -26,6 +26,17 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       brunoConfig.ignore = oc.extensions.ignore;
     }
 
+    // presets
+    if (oc.extensions?.presets) {
+      const presets = oc.extensions.presets as any;
+      if (presets.request) {
+        brunoConfig.presets = {
+          requestType: presets.request.type || [],
+          requestUrl: presets.request.url || []
+        };
+      }
+    }
+
     // protobuf
     if (oc.config?.protobuf) {
       brunoConfig.protobuf = {

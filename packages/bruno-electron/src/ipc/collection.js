@@ -13,8 +13,10 @@ const {
   stringifyCollection,
   parseFolder,
   stringifyFolder,
-  stringifyEnvironment
+  stringifyEnvironment,
+  parseEnvironment
 } = require('@usebruno/filestore');
+const { dotenvToJson } = require('@usebruno/lang');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
@@ -41,7 +43,11 @@ const {
   copyPath,
   removePath,
   getPaths,
-  generateUniqueName
+  generateUniqueName,
+  isDotEnvFile,
+  isBrunoConfigFile,
+  isBruEnvironmentConfig,
+  isCollectionRootBruFile
 } = require('../utils/filesystem');
 const { openCollectionDialog, openCollectionsByPathname } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
@@ -58,6 +64,7 @@ const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
 const { transformBrunoConfigBeforeSave } = require('../utils/transfomBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
+const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -1318,6 +1325,52 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
+    try {
+      if (request.oauth2) {
+        let requestCopy = _.cloneDeep(request);
+        const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+        const envVars = getEnvVars(environment);
+        const processEnvVars = getProcessEnvVars(collectionUid);
+        const partialItem = { uid: itemUid };
+        const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+        mergeVars(collection, requestCopy, requestTreePath);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
+
+        const certsAndProxyConfig = await getCertsAndProxyConfig({
+          collectionUid,
+          collection,
+          request: requestCopy,
+          envVars,
+          runtimeVariables,
+          processEnvVars,
+          collectionPath,
+          globalEnvironmentVariables
+        });
+
+        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+        return { credentials, url, collectionUid, credentialsId, debugInfo };
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:cancel-oauth2-authorization-request', async () => {
+    try {
+      const cancelled = cancelOAuth2AuthorizationRequest();
+      return { success: true, cancelled };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:is-oauth2-authorization-request-in-progress', () => {
+    return isOauth2AuthorizationRequestInProgress();
+  });
+
   // todo: could be removed
   ipcMain.handle('renderer:load-request-via-worker', async (event, { collectionUid, pathname }) => {
     let fileStats;
@@ -1364,39 +1417,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
-      return Promise.reject(error);
-    }
-  });
-
-  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
-    try {
-      if (request.oauth2) {
-        let requestCopy = _.cloneDeep(request);
-        const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
-        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
-        const envVars = getEnvVars(environment);
-        const processEnvVars = getProcessEnvVars(collectionUid);
-        const partialItem = { uid: itemUid };
-        const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
-        mergeVars(collection, requestCopy, requestTreePath);
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const globalEnvironmentVariables = collection.globalEnvironmentVariables;
-
-        const certsAndProxyConfig = await getCertsAndProxyConfig({
-          collectionUid,
-          collection,
-          request: requestCopy,
-          envVars,
-          runtimeVariables,
-          processEnvVars,
-          collectionPath,
-          globalEnvironmentVariables
-        });
-
-        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
-        return { credentials, url, collectionUid, credentialsId, debugInfo };
-      }
-    } catch (error) {
       return Promise.reject(error);
     }
   });
@@ -1539,6 +1559,116 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       console.error('Error converting Postman to Bruno:', error);
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('renderer:get-collection-json', async (event, collectionPath) => {
+    let variables = {};
+    let name = '';
+    const getBruFilesRecursively = async (dir) => {
+      const getFilesInOrder = async (dir) => {
+        let bruJsons = [];
+
+        const traverse = async (currentPath) => {
+          const filesInCurrentDir = fs.readdirSync(currentPath);
+
+          if (currentPath.includes('node_modules')) {
+            return;
+          }
+
+          for (const file of filesInCurrentDir) {
+            const filePath = path.join(currentPath, file);
+            const stats = fs.lstatSync(filePath);
+
+            if (stats.isDirectory() && !filePath.startsWith('.git') && !filePath.startsWith('node_modules')) {
+              await traverse(filePath);
+            }
+          }
+
+          const currentDirBruJsons = [];
+          for (const file of filesInCurrentDir) {
+            const filePath = path.join(currentPath, file);
+            const stats = fs.lstatSync(filePath);
+
+            if (isBrunoConfigFile(filePath, collectionPath)) {
+              try {
+                const content = fs.readFileSync(filePath, 'utf8');
+                const brunoConfig = JSON.parse(content);
+
+                name = brunoConfig?.name;
+              } catch (err) {
+                console.error(err);
+              }
+            }
+
+            if (isDotEnvFile(filePath, collectionPath)) {
+              try {
+                const content = fs.readFileSync(filePath, 'utf8');
+                const jsonData = dotenvToJson(content);
+                variables = {
+                  ...variables,
+                  processEnvVariables: {
+                    ...process.env,
+                    ...jsonData
+                  }
+                };
+                continue;
+              } catch (err) {
+                console.error(err);
+              }
+            }
+
+            if (isBruEnvironmentConfig(filePath, collectionPath)) {
+              try {
+                let bruContent = fs.readFileSync(filePath, 'utf8');
+                const environmentFilepathBasename = path.basename(filePath);
+                const environmentName = environmentFilepathBasename.substring(0, environmentFilepathBasename.length - 4);
+                let data = await parseEnvironment(bruContent);
+                variables = {
+                  ...variables,
+                  envVariables: {
+                    ...(variables?.envVariables || {}),
+                    [path.basename(filePath)]: data.variables
+                  }
+                };
+                continue;
+              } catch (err) {
+                console.error(err);
+              }
+            }
+
+            if (isCollectionRootBruFile(filePath, collectionPath)) {
+              try {
+                let bruContent = fs.readFileSync(filePath, 'utf8');
+                let data = await parseCollection(bruContent);
+                // TODO
+                continue;
+              } catch (err) {
+                console.error(err);
+              }
+            }
+            if (!stats.isDirectory() && path.extname(filePath) === '.bru' && file !== 'folder.bru') {
+              const bruContent = fs.readFileSync(filePath, 'utf8');
+              const bruJson = parseRequest(bruContent);
+
+              currentDirBruJsons.push({
+                ...bruJson
+              });
+            }
+          }
+
+          bruJsons = bruJsons.concat(currentDirBruJsons);
+        };
+
+        await traverse(dir);
+        return bruJsons;
+      };
+
+      const orderedFiles = await getFilesInOrder(dir);
+      return orderedFiles;
+    };
+
+    const files = await getBruFilesRecursively(collectionPath);
+    return { name, files, ...variables };
   });
 };
 

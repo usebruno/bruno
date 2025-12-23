@@ -1,14 +1,26 @@
 const colors = {
-  BRAND: '#546de5',
+  BRAND: '#c7822e',
   TEXT: 'rgb(52, 52, 52)',
+  TEXT_MUTED: '#838383',
   TEXT_LINK: '#1663bb',
   BACKGROUND: '#fff',
+
   WHITE: '#fff',
   BLACK: '#000',
+  SLATE_BLACK: '#343434',
+  GREEN: '#047857',
+  YELLOW: '#c7822e',
+
   GRAY_1: '#f8f8f8',
-  GRAY_2: '#eaeaea',
-  GRAY_3: '#e5e5e5',
-  GRAY_4: '#cbcbcb',
+  GRAY_2: '#f3f3f3',
+  GRAY_3: '#eaeaea',
+  GRAY_4: '#e5e5e5',
+  GRAY_5: '#cbcbcb',
+  GRAY_6: '#b0b0b0',
+  GRAY_7: '#666666',
+  GRAY_8: '#444444',
+  GRAY_9: '#3D3D3D',
+  GRAY_10: '#252526',
 
   CODEMIRROR_TOKENS: {
     DEFINITION: '#566f4e', // Deep moss
@@ -58,16 +70,17 @@ const lightTheme = {
 
   colors: {
     text: {
-      green: '#047857',
+      green: colors.GREEN,
       danger: '#B91C1C',
       warning: '#f57c00',
       muted: '#838383',
       purple: '#8e44ad',
-      yellow: '#d97706'
+      yellow: colors.YELLOW
     },
     bg: {
       danger: '#dc3545'
-    }
+    },
+    accent: '#b96f1d'
   },
 
   input: {
@@ -101,8 +114,8 @@ const lightTheme = {
     muted: '#4b5563',
     bg: colors.GRAY_1,
     dragbar: {
-      border: colors.GRAY_3,
-      activeBorder: colors.GRAY_4
+      border: colors.GRAY_4,
+      activeBorder: colors.GRAY_5
     },
 
     badge: {
@@ -116,12 +129,15 @@ const lightTheme = {
 
     collection: {
       item: {
-        bg: colors.GRAY_2,
-        hoverBg: colors.GRAY_2,
-        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
-        indentBorder: `solid 1px ${colors.GRAY_3}`,
+        bg: colors.GRAY_3,
+        hoverBg: colors.GRAY_3,
+        focusBorder: colors.GRAY_5,
+        indentBorder: `solid 1px ${colors.GRAY_4}`,
         active: {
-          indentBorder: `solid 1px ${colors.GRAY_3}`
+          indentBorder: `solid 1px ${colors.GRAY_4}`
+        },
+        example: {
+          iconColor: colors.GRAY_7
         }
       }
     },
@@ -187,18 +203,18 @@ const lightTheme = {
 
   request: {
     methods: {
-      get: 'rgb(5, 150, 105)',
-      post: '#8e44ad',
-      put: '#ca7811',
-      delete: 'rgb(185, 28, 28)',
-      // customize these colors if needed
-      patch: '#ca7811',
-      options: '#ca7811',
-      head: '#ca7811'
+      get: '#3f8f7a', // Muted jade green (aligned with NUMBER / VARIABLE)
+      post: '#7c5aa8', // Soft plum (matches ATOM family)
+      put: '#b8742f', // Warm bronze (close to BRAND, slightly darker)
+      delete: '#a54b4b', // Muted brick red (fits KEYWORD ruby tone)
+      patch: '#b8742f', // Same as PUT (semantic consistency)
+      options: '#8a7a52', // Olive slate (neutral, non-invasive)
+      head: '#6b7a8f' // Slate blue (reuses OPERATOR tone)
     },
-    grpc: '#6366f1',
-    ws: '#f59e0b',
-    gql: '#e535ab'
+
+    grpc: '#5b65c8', // Muted indigo (technical, calm)
+    ws: '#c28a2c', // Golden bronze (pairs with BRAND without overpowering)
+    gql: '#b04a8f' // Dusty magenta (softened GraphQL pink)
   },
 
   requestTabPanel: {
@@ -207,7 +223,7 @@ const lightTheme = {
       icon: '#515151',
       iconDanger: '#d91f11',
       errorHoverBg: '#fef2f2',
-      border: `solid 1px ${colors.GRAY_3}`
+      border: `solid 1px ${colors.GRAY_4}`
     },
     dragbar: {
       border: '#efefef',
@@ -302,6 +318,9 @@ const lightTheme = {
     },
     backdrop: {
       opacity: 0.4
+    },
+    closeButton: {
+      hoverBg: 'rgba(0, 0, 0, 0.08)'
     }
   },
 
@@ -331,9 +350,11 @@ const lightTheme = {
   },
 
   tabs: {
+    marginRight: '1.2rem',
     active: {
-      color: '#343434',
-      border: '#D97706'
+      fontWeight: 400,
+      color: colors.SLATE_BLACK,
+      border: '#c7822e'
     },
     secondary: {
       active: {
@@ -349,12 +370,15 @@ const lightTheme = {
 
   requestTabs: {
     color: 'rgb(52, 52, 52)',
-    bg: '#f7f7f7',
+    bg: '#f6f6f6',
     bottomBorder: '#efefef',
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(76 76 76)',
       hoverBg: 'rgb(234, 234, 234)'
+    },
+    example: {
+      iconColor: colors.GRAY_7
     },
     active: {
       bg: '#e7e7e7'
@@ -390,8 +414,7 @@ const lightTheme = {
         editorBorder: '#EFEFEF',
         editorFocusBorder: '#989898',
         editableDisplayHoverBg: 'rgba(0,0,0,0.02)',
-        border: '#EFEFEF',
-        editorBorder: '#EFEFEF'
+        border: '#EFEFEF'
       }
     },
     tokens: {
@@ -473,7 +496,7 @@ const lightTheme = {
     optionHoverBg: '#f8f9fa',
     optionLabelColor: '#212529',
     optionCountColor: '#6c757d',
-    checkboxColor: '#0d6efd',
+    checkboxColor: colors.BRAND,
     scrollbarTrack: '#f8f9fa',
     scrollbarThumb: '#ced4da',
     scrollbarThumbHover: '#adb5bd'
@@ -613,6 +636,41 @@ const lightTheme = {
     },
     checkbox: {
       color: '#fff'
+    }
+  },
+
+  app: {
+    collection: {
+      toolbar: {
+        environmentSelector: {
+          bg: colors.WHITE,
+          border: colors.GRAY_4,
+          icon: colors.BRAND,
+          text: colors.TEXT,
+          caret: colors.GRAY_6,
+          separator: colors.GRAY_4,
+          hoverBg: colors.WHITE,
+          hoverBorder: colors.GRAY_5,
+
+          noEnvironment: {
+            text: colors.TEXT_MUTED,
+            bg: colors.WHITE,
+            border: colors.GRAY_5,
+            hoverBg: colors.WHITE,
+            hoverBorder: colors.GRAY_6
+          }
+        },
+        sandboxMode: {
+          safeMode: {
+            bg: 'rgba(4, 120, 87, 0.12)',
+            color: colors.GREEN
+          },
+          developerMode: {
+            bg: 'rgba(204, 145, 73, 0.15)',
+            color: colors.YELLOW
+          }
+        }
+      }
     }
   }
 };

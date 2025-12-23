@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron');
+const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences, preferencesUtil } = require('../store/preferences');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 
@@ -37,6 +37,10 @@ const registerPreferencesIpc = (mainWindow, watcher) => {
     } catch (error) {
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.on('renderer:theme-change', (event, theme) => {
+    nativeTheme.themeSource = theme;
   });
 };
 

@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState, forwardRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { postmanToBruno } from 'utils/importers/postman-collection';
@@ -94,12 +95,21 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   const dropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
 
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const preferences = useSelector((state) => state.app.preferences);
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
+
+  const defaultLocation = isDefaultWorkspace
+    ? get(preferences, 'general.defaultCollectionLocation', '')
+    : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
+
   const collectionName = getCollectionName(format, rawData);
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionLocation: ''
+      collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
       collectionLocation: Yup.string()

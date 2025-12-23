@@ -14,18 +14,20 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
         await page.locator('#configure-env').click();
         await page.waitForTimeout(200);
 
-        // Remove the test environment variables
+        const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+
         const key1Row = page.getByRole('row', { name: 'multiple-persist-vars-key1' });
         if (await key1Row.isVisible()) {
-          await key1Row.getByRole('button').click(); // Click the delete button
+          await key1Row.getByRole('button').click();
         }
 
         const key2Row = page.getByRole('row', { name: 'multiple-persist-vars-key2' });
         if (await key2Row.isVisible()) {
-          await key2Row.getByRole('button').click(); // Click the delete button
+          await key2Row.getByRole('button').click();
         }
 
-        await page.getByTestId('modal-close-button').click();
+        await envTab.hover();
+        await envTab.getByTestId('request-tab-close-icon').click();
       }
     } catch (error) {
       // Ignore cleanup errors to avoid masking test failures
@@ -74,11 +76,16 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       await page.waitForTimeout(200);
       await page.locator('#configure-env').click();
       await page.waitForTimeout(200);
+
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(envTab).toBeVisible();
+
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key1' }).getByRole('cell').nth(1)).toBeVisible();
       await expect(page.getByRole('row', { name: 'value1' }).getByRole('cell').nth(2)).toBeVisible();
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key2' }).getByRole('cell').nth(1)).toBeVisible();
       await expect(page.getByRole('row', { name: 'value2' }).getByRole('cell').nth(2)).toBeVisible();
-      await page.getByTestId('modal-close-button').click();
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click();
     });
 
     await test.step('Verify variables are persisted to file', async () => {

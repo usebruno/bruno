@@ -16,13 +16,15 @@ const Wrapper = styled.div`
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    font-size: 12px;
 
-    thead,
     td {
-      padding: 4px 12px;
+      vertical-align: middle;
+      padding: 2px 10px;
 
-      &:nth-child(1),
+      &:nth-child(1) {
+        width: 25px;
+        border-right: none;
+      }
       &:nth-child(4) {
         width: 80px;
       }
@@ -36,19 +38,15 @@ const Wrapper = styled.div`
     }
 
     thead {
-      color: ${(props) => props.theme.colors.text.muted};
+      color: ${(props) => props.theme.table.thead.color} !important;
       background: ${(props) => props.theme.sidebar.bg};
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
       
       td {
-        padding: 8px 10px;
+        padding: 5px 10px !important;
         border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
         border-right: ${(props) => props.theme.workspace.environments.indentBorder};
-        font-weight: 600;
         
         &:last-child {
           border-right: none;
@@ -59,10 +57,6 @@ const Wrapper = styled.div`
     tbody {
       tr {
         transition: background 0.1s ease;
-        
-        &:hover {
-          background: ${(props) => props.theme.sidebar.bg};
-        }
         
         &:last-child td {
           border-bottom: none;
@@ -111,8 +105,7 @@ const Wrapper = styled.div`
     outline: none !important;
     background-color: transparent;
     color: ${(props) => props.theme.text};
-    padding: 5px 8px;
-    font-size: 12px;
+    padding: 0;
     border-radius: 4px;
     transition: all 0.15s ease;
 
@@ -125,7 +118,9 @@ const Wrapper = styled.div`
     cursor: pointer;
     width: 14px;
     height: 14px;
-    accent-color: ${(props) => props.theme.workspace.accent};
+    accent-color: ${(props) => props.theme.colors.accent};
+    vertical-align: middle;
+    margin: 0;
   }
   
   button {
@@ -142,7 +137,7 @@ const Wrapper = styled.div`
   }
   
   .button-container {
-    padding: 12px 0;
+    padding: 12px 2px;
     background: ${(props) => props.theme.bg};
     flex-shrink: 0;
     display: flex;
@@ -150,12 +145,11 @@ const Wrapper = styled.div`
   }
   
   .submit {
-    padding: 7px 16px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
     border: none;
-    background: ${(props) => props.theme.workspace.accent};
+    background: ${(props) => props.theme.brand};
     color: ${(props) => props.theme.bg};
     cursor: pointer;
     transition: opacity 0.15s ease;
@@ -168,18 +162,16 @@ const Wrapper = styled.div`
   .reset {
     background: transparent;
     padding: 6px 16px;
-    border: 1px solid ${(props) => props.theme.workspace.accent};
-    color: ${(props) => props.theme.workspace.accent};
+    color: ${(props) => props.theme.brand};
     &:hover {
       opacity: 0.9;
     }
   }
   
   .discard {
-    padding: 7px 16px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
     background: transparent;
     color: ${(props) => props.theme.text};
     border: ${(props) => props.theme.sidebar.collection.item.indentBorder};

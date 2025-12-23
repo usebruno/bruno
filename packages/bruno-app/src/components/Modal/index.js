@@ -10,7 +10,7 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
     {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
     {handleCancel && !hideClose ? (
       // TODO: Remove data-test-id and use data-testid instead across the codebase.
-      <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null} data-test-id="modal-close-button" data-testid="modal-close-button">
+      <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null} data-testid="modal-close-button">
         ×
       </div>
     ) : null}
@@ -82,13 +82,21 @@ const Modal = ({
 
   const handleKeydown = (event) => {
     const { keyCode, shiftKey, ctrlKey, altKey, metaKey } = event;
+
+    // Only handle events from elements inside this modal
+    if (keyCode !== ESC_KEY_CODE && (!modalRef.current || !modalRef.current.contains(event.target))) {
+      return;
+    }
+
     switch (keyCode) {
       case ESC_KEY_CODE: {
         if (disableEscapeKey) return;
         return closeModal({ type: 'esc' });
       }
       case ENTER_KEY_CODE: {
-        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm) {
+        // Skip if a submit button is focused - let native button click handle it to avoid double-fire
+        const isSubmitButton = event.target?.type === 'submit';
+        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm && !isSubmitButton) {
           return handleConfirm();
         }
       }

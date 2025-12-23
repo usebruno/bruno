@@ -44,6 +44,7 @@
     "i18next": "24.1.2",
     "idb": "^7.0.0",
     "immer": "^9.0.15",
+    "js-yaml": "^4.1.0",
     "jsesc": "^3.0.2",
     "jshint": "^2.13.6",
     "json5": "^2.2.3",
@@ -54,6 +55,7 @@
     "lodash": "^4.17.21",
     "markdown-it": "^13.0.2",
     "markdown-it-replace-link": "^1.2.0",
+    "mime-types": "^3.0.2",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.47",
     "mousetrap": "^1.6.5",
@@ -83,9 +85,11 @@
     "shell-quote": "^1.8.3",
     "strip-json-comments": "^5.0.1",
     "styled-components": "^5.3.3",
+    "swagger-ui-react": "5.17.12",
     "system": "^2.0.1",
     "url": "^0.11.3",
     "xml-formatter": "^3.5.0",
+    "xml2js": "^0.6.2",
     "yup": "^0.32.11"
   },
   "devDependencies": {

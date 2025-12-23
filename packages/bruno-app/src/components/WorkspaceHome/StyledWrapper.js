@@ -1,28 +1,48 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   .workspace-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
     position: relative;
   }
 
+  .workspace-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${(props) => props.theme.text};
+  }
+
   .workspace-rename-container {
-    height: 28px;
+    height: 26px;
     display: flex;
     align-items: center;
     background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    gap: 8px;
+    gap: 6px;
     border-radius: 4px;
   }
 
   .workspace-name-input {
     padding: 0 8px;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     border-radius: 4px;
     background: transparent;
-    color: ${(props) => props.theme.text.primary};
+    color: ${(props) => props.theme.text};
     outline: none;
-    min-width: 200px;
+    min-width: 180px;
 
     &:focus {
       outline: none;
@@ -31,7 +51,7 @@ const StyledWrapper = styled.div`
 
   .inline-actions {
     display: flex;
-    gap: 4px;
+    gap: 2px;
   }
 
   .inline-action-btn {
@@ -41,21 +61,21 @@ const StyledWrapper = styled.div`
     padding: 4px;
     border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
 
     &.save {
       color: ${(props) => props.theme.colors.text.green};
 
       &:hover {
-        background: ${(props) => props.theme.colors.bg.green};
+        background: ${(props) => props.theme.colors.text.green}1A;
       }
     }
 
     &.cancel {
-      color: ${(props) => props.theme.colors.text.red};
+      color: ${(props) => props.theme.colors.text.danger};
 
       &:hover {
-        background: ${(props) => props.theme.colors.bg.red};
+        background: ${(props) => props.theme.colors.text.danger}1A;
       }
     }
   }
@@ -63,71 +83,34 @@ const StyledWrapper = styled.div`
   .workspace-error {
     position: absolute;
     top: 100%;
-    left: 16px;
+    left: 0;
     margin-top: 4px;
-    font-size: 12px;
-    color: ${(props) => props.theme.colors.text.red};
+    font-size: 11px;
+    color: ${(props) => props.theme.colors.text.danger};
   }
 
   .workspace-menu-dropdown {
-    min-width: 150px;
+    min-width: 140px;
   }
 
   .dropdown-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     cursor: pointer;
-    transition: background 0.2s;
-    color: ${(props) => props.theme.text.primary};
-
-    &.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-
-  .tabs-container {
-    border-bottom: 1px solid ${(props) => props.theme.workspace.border};
-    background: ${(props) => props.theme.bg.primary};
-  }
-
-  .tab-item {
-    position: relative;
-    cursor: pointer;
-    color: var(--color-tab-inactive);
-    border-bottom: 2px solid transparent;
-    transition: all 0.15s ease;
+    transition: background 0.15s;
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.sm};
 
     &:hover {
-      color: ${(props) => props.theme.text.primary};
-      border-bottom-color: ${(props) => props.theme.colors.border};
-    }
-
-    &.active {
-      border-bottom-color: ${(props) => props.theme.colors.text.yellow};
-      color: ${(props) => props.theme.tabs.active.color};
+      background: ${(props) => props.theme.listItem.hoverBg};
     }
   }
 
-  .workspace-action-buttons {
-    gap: 4px;
-  }
-
-  .workspace-button {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 8px;
-    font-size: 12px;
-    border-radius: 8px;
-    color: ${(props) => props.theme.text.primary};
-    cursor: pointer;
-
-    &:hover {
-      background-color: ${(props) => props.theme.workspace.button.bg};
-    }
+  .tab-content {
+    flex: 1;
+    overflow: hidden;
   }
 `;
 

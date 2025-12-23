@@ -103,13 +103,11 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       let brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
 
-      if (!brunoConfig.ignore || brunoConfig.ignore.length === 0) {
-        // 5 Feb 2024:
-        // bruno.json now supports an "ignore" field to specify which folders to ignore
-        // if the ignore field is not present, we default to ignoring node_modules and .git
-        // this is to maintain backwards compatibility with older collections
-        brunoConfig.ignore = ['node_modules', '.git'];
-      }
+      // Always ensure node_modules and .git are ignored, regardless of user config
+      // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
+      const defaultIgnores = ['node_modules', '.git'];
+      const userIgnores = brunoConfig.ignore || [];
+      brunoConfig.ignore = [...new Set([...defaultIgnores, ...userIgnores])];
 
       // Transform the config to add existence checks for protobuf files and import paths
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);

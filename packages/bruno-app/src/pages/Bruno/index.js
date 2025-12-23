@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import WorkspaceHome from 'components/WorkspaceHome';
+import ManageWorkspace from 'components/ManageWorkspace';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
+import ApiSpecPanel from 'components/ApiSpecPanel';
 // import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -13,6 +15,7 @@ import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
+import 'swagger-ui-react/swagger-ui.css';
 import Devtools from 'components/Devtools';
 import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
 import useWsEventListeners from 'utils/network/ws-event-listeners';
@@ -52,8 +55,11 @@ require('utils/codemirror/autocomplete');
 
 export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
+  const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
+  const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
@@ -113,7 +119,11 @@ export default function Main() {
         <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
           <Sidebar />
           <section className="flex flex-grow flex-col overflow-hidden">
-            {showHomePage ? (
+            {showApiSpecPage && activeApiSpecUid ? (
+              <ApiSpecPanel key={activeApiSpecUid} />
+            ) : showManageWorkspacePage ? (
+              <ManageWorkspace />
+            ) : showHomePage ? (
               <WorkspaceHome />
             ) : (
               <>

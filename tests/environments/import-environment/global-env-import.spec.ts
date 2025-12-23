@@ -8,7 +8,7 @@ test.describe('Global Environment Import Tests', () => {
     const globalEnvFile = path.join(__dirname, 'fixtures', 'global-env.json');
 
     // Import test collection
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     const importModal = page.locator('[data-testid="import-collection-modal"]');
@@ -28,8 +28,6 @@ test.describe('Global Environment Import Tests', () => {
 
     // Configure collection
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Import global environment
     await page.getByTestId('environment-selector-trigger').click();
@@ -47,21 +45,20 @@ test.describe('Global Environment Import Tests', () => {
     // Wait for import to complete and global environment settings modal to open
     await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
 
-    // The global environment settings modal should now be visible with the imported environment
-    const globalEnvSettingsModal = page.locator('.bruno-modal').filter({ hasText: 'Global Environments' });
-    await expect(globalEnvSettingsModal).toBeVisible();
+    const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+    await expect(envTab).toBeVisible();
 
-    // Verify imported variables in Test Global Environment settings
-    await expect(globalEnvSettingsModal.locator('input[name="0.name"]')).toHaveValue('host');
-    await expect(globalEnvSettingsModal.locator('input[name="1.name"]')).toHaveValue('userId');
-    await expect(globalEnvSettingsModal.locator('input[name="2.name"]')).toHaveValue('apiKey');
-    await expect(globalEnvSettingsModal.locator('input[name="3.name"]')).toHaveValue('postTitle');
-    await expect(globalEnvSettingsModal.locator('input[name="4.name"]')).toHaveValue('postBody');
-    await expect(globalEnvSettingsModal.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
-    await expect(globalEnvSettingsModal.locator('input[name="5.secret"]')).toBeChecked();
-    await page.getByText('×').click();
+    const variablesTable = page.locator('.table-container');
+    await expect(variablesTable.locator('input[name="0.name"]')).toHaveValue('host');
+    await expect(variablesTable.locator('input[name="1.name"]')).toHaveValue('userId');
+    await expect(variablesTable.locator('input[name="2.name"]')).toHaveValue('apiKey');
+    await expect(variablesTable.locator('input[name="3.name"]')).toHaveValue('postTitle');
+    await expect(variablesTable.locator('input[name="4.name"]')).toHaveValue('postBody');
+    await expect(variablesTable.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
+    await expect(variablesTable.locator('input[name="5.secret"]')).toBeChecked();
+    await envTab.hover();
+    await envTab.getByTestId('request-tab-close-icon').click();
 
-    // Test GET request with global environment
     await page.locator('#collection-environment-test-collection .collection-item-name').first().click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');
     await page.locator('[data-testid="send-arrow-icon"]').click();

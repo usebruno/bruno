@@ -1,45 +1,37 @@
 import { test, expect } from '../../playwright';
-import { createCollection, closeAllCollections, createRequest } from '../utils/page';
+import {
+  createCollection,
+  closeAllCollections,
+  createRequest,
+  createEnvironment,
+  addEnvironmentVariables,
+  saveEnvironment,
+  closeEnvironmentPanel
+} from '../utils/page';
+import { buildCommonLocators } from '../utils/page/locators';
 
 test.describe('Variable Tooltip', () => {
   test.afterEach(async ({ page }) => {
-    await closeAllCollections(page);
+    if (!page.isClosed()) {
+      await closeAllCollections(page);
+    }
   });
 
   test('should test tooltip functionality with environment variables', async ({ page, createTmpDir }) => {
     const collectionName = 'tooltip-test';
 
     await test.step('Create collection and add environment variables', async () => {
-      await createCollection(page, collectionName, await createTmpDir('tooltip-collection'), {
-        openWithSandboxMode: 'safe'
-      });
-      await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
+      await createCollection(page, collectionName, await createTmpDir('tooltip-collection'));
 
-      // Open environment settings
-      await page.locator('[data-testid="environment-selector-trigger"]').click();
-      await expect(page.locator('[data-testid="env-tab-collection"]')).toHaveClass(/active/);
+      await createEnvironment(page, 'Test Env', 'collection');
 
-      // Create environment
-      await page.locator('button[id="create-env"]').click();
-      await page.locator('input[name="name"]').fill('Test Env');
-      await page.getByRole('button', { name: 'Create' }).click();
+      await addEnvironmentVariables(page, [
+        { name: 'apiKey', value: 'test-key-123' },
+        { name: 'secretToken', value: 'secret-xyz', isSecret: true }
+      ]);
 
-      // Add apiKey variable
-      await page.locator('button[data-testid="add-variable"]').click();
-      await page.locator('input[name="0.name"]').fill('apiKey');
-      await page.locator('tr').filter({ has: page.locator('input[name="0.name"]') }).locator('.CodeMirror').click();
-      await page.keyboard.type('test-key-123');
-
-      // Add secretToken variable
-      await page.locator('button[data-testid="add-variable"]').click();
-      await page.locator('input[name="1.name"]').fill('secretToken');
-      await page.locator('tr').filter({ has: page.locator('input[name="1.name"]') }).locator('.CodeMirror').click();
-      await page.keyboard.type('secret-xyz');
-      await page.locator('input[name="1.secret"]').check();
-
-      // Save and close
-      await page.getByRole('button', { name: 'Save' }).click();
-      await page.getByText('×').click();
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
     });
 
     await test.step('Create request and test tooltip', async () => {
@@ -69,18 +61,18 @@ test.describe('Variable Tooltip', () => {
     });
 
     await test.step('Test secret variable with toggle', async () => {
-      // Move mouse away to dismiss any active tooltip
       await page.mouse.move(0, 0);
 
-      // Add header with secret
       await page.getByRole('tab', { name: 'Headers' }).click();
-      await page.locator('button.btn-action').filter({ hasText: 'Add Header' }).click();
 
-      const headerNameEditor = page.locator('table tbody tr').first().locator('td').first().locator('.CodeMirror');
+      const headerTable = page.locator('table').first();
+      const headerRow = headerTable.locator('tbody tr').first();
+
+      const headerNameEditor = headerRow.locator('.CodeMirror').first();
       await headerNameEditor.click();
       await page.keyboard.type('Authorization');
 
-      const headerValueEditor = page.locator('table tbody tr').first().locator('td').nth(1).locator('.CodeMirror');
+      const headerValueEditor = headerRow.locator('.CodeMirror').nth(1);
       await headerValueEditor.click();
       await page.keyboard.type('Bearer {{secretToken}}');
       await page.keyboard.press('Control+s');
@@ -117,35 +109,17 @@ test.describe('Variable Tooltip', () => {
     const collectionName = 'tooltip-reference-test';
 
     await test.step('Create collection with interdependent variables', async () => {
-      await createCollection(page, collectionName, await createTmpDir('tooltip-ref-collection'), {
-        openWithSandboxMode: 'safe'
-      });
-      await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
+      await createCollection(page, collectionName, await createTmpDir('tooltip-ref-collection'));
 
-      // Open environment settings
-      await page.locator('[data-testid="environment-selector-trigger"]').click();
-      await expect(page.locator('[data-testid="env-tab-collection"]')).toHaveClass(/active/);
+      await createEnvironment(page, 'Ref Test Env', 'collection');
 
-      // Create environment
-      await page.locator('button[id="create-env"]').click();
-      await page.locator('input[name="name"]').fill('Ref Test Env');
-      await page.getByRole('button', { name: 'Create' }).click();
+      await addEnvironmentVariables(page, [
+        { name: 'host', value: 'api.example.com' },
+        { name: 'endpoint', value: 'https://{{host}}/users' }
+      ]);
 
-      // Add host variable
-      await page.locator('button[data-testid="add-variable"]').click();
-      await page.locator('input[name="0.name"]').fill('host');
-      await page.locator('tr').filter({ has: page.locator('input[name="0.name"]') }).locator('.CodeMirror').click();
-      await page.keyboard.type('api.example.com');
-
-      // Add endpoint that references host
-      await page.locator('button[data-testid="add-variable"]').click();
-      await page.locator('input[name="1.name"]').fill('endpoint');
-      await page.locator('tr').filter({ has: page.locator('input[name="1.name"]') }).locator('.CodeMirror').click();
-      await page.keyboard.type('https://{{host}}/users');
-
-      // Save and close
-      await page.getByRole('button', { name: 'Save' }).click();
-      await page.getByText('×').click();
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
     });
 
     await test.step('Create request with variable references', async () => {
@@ -253,25 +227,19 @@ test.describe('Variable Tooltip', () => {
     const collectionName = 'tooltip-readonly-test';
 
     await test.step('Create collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('tooltip-readonly-collection'), {
-        openWithSandboxMode: 'safe'
-      });
-      await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
+      await createCollection(page, collectionName, await createTmpDir('tooltip-readonly-collection'));
 
-      // Create environment
-      await page.locator('[data-testid="environment-selector-trigger"]').click();
-      await page.locator('button[id="create-env"]').click();
-      await page.locator('input[name="name"]').fill('Readonly Env');
-      await page.getByRole('button', { name: 'Create' }).click();
-      await page.getByRole('button', { name: 'Save' }).click();
-      await page.getByText('×').click();
+      await createEnvironment(page, 'Readonly Env', 'collection');
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
 
       // Create request using utility method
       await createRequest(page, 'Readonly Test', collectionName);
 
       // Set the URL
-      await page.locator('.collection-item-name').filter({ hasText: 'Readonly Test' }).click();
-      const urlEditor = page.locator('#request-url .CodeMirror');
+      const locators = buildCommonLocators(page);
+      await locators.sidebar.request('Readonly Test').click();
+      const urlEditor = locators.request.urlInput();
       await urlEditor.click();
       await page.keyboard.type('https://example.com');
       await page.keyboard.press('Control+s');
@@ -310,9 +278,7 @@ test.describe('Variable Tooltip', () => {
     const collectionName = 'draft-autosave-test';
 
     await test.step('Setup collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('draft-autosave'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('draft-autosave'));
 
       // Create request using utility method
       await createRequest(page, 'Autosave Test', collectionName);
@@ -403,12 +369,12 @@ test.describe('Variable Tooltip', () => {
       await expect(varRow).toBeVisible();
 
       // Check variable name
-      const varNameInput = varRow.locator('td').first().locator('input[type="text"]');
+      const varNameInput = varRow.locator('td').nth(1).getByRole('textbox');
       await expect(varNameInput).toBeVisible();
       await expect(varNameInput).toHaveValue('myApiKey');
 
       // Check variable value
-      const varValueTd = varRow.locator('td').nth(1);
+      const varValueTd = varRow.locator('td').nth(2);
       const varValue = varValueTd.locator('.CodeMirror');
       await expect(varValue).toBeVisible();
       const varValueContent = await varValue.locator('.CodeMirror-line').textContent();
@@ -420,9 +386,7 @@ test.describe('Variable Tooltip', () => {
     const collectionName = 'invalid-var-test';
 
     await test.step('Setup collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('invalid-var-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('invalid-var-collection'));
 
       // Create request using utility method
       await createRequest(page, 'Invalid Var Test', collectionName);

@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createRequest } from '../../utils/page';
 
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
@@ -8,32 +8,32 @@ test.describe('Create collection', () => {
   });
 
   test('Create collection and add a simple HTTP request', async ({ page, createTmpDir }) => {
-    await page.locator('.plus-icon-button').click();
+    const collectionName = 'test-collection';
+    const requestName = 'ping';
+
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').click();
-    await page.getByLabel('Name').fill('test-collection');
+    await page.getByLabel('Name').fill(collectionName);
     await page.getByLabel('Name').press('Tab');
     const locationInput = page.locator('.bruno-modal').getByLabel('Location');
     if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir('test-collection'));
+      await locationInput.fill(await createTmpDir(collectionName));
     }
     await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'test-collection' }).click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
 
-    // Select safe mode
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    // Create a new request using the dialog/modal flow
+    await createRequest(page, requestName, collectionName);
 
-    // Create a new request
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByPlaceholder('Request Name').fill('r1');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('http://localhost:8081');
-    await page.getByRole('button', { name: 'Create' }).click();
+    // Set the URL
+    await page.locator('#request-url .CodeMirror').click();
+    await page.locator('#request-url').locator('textarea').fill('http://localhost:8081');
+    await page.locator('#send-request').getByTitle('Save Request').click();
 
     // Send a request
     await page.locator('#request-url .CodeMirror').click();
-    await page.locator('textarea').fill('/ping');
+    await page.locator('#request-url').locator('textarea').fill('/ping');
     await page.locator('#send-request').getByTitle('Save Request').click();
     await page.locator('#send-request').getByRole('img').nth(2).click();
 

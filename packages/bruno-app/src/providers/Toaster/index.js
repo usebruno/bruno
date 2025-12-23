@@ -1,6 +1,7 @@
 import React from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useTheme } from 'providers/Theme';
+import { isPlaywright } from 'utils/common';
 
 export const ToastContext = React.createContext();
 
@@ -8,7 +9,7 @@ export const ToastProvider = (props) => {
   const { storedTheme } = useTheme();
 
   const toastOptions = {
-    duration: 2000,
+    duration: isPlaywright() ? 500 : 2000,
     style: {
       // Break long word like file-path, URL etc. to prevent overflow
       overflowWrap: 'anywhere'

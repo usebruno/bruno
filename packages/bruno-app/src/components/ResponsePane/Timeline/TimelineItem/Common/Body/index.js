@@ -1,7 +1,7 @@
-import QueryResult from 'components/ResponsePane/QueryResult/index';
+import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import { useState } from 'react';
 
-const BodyBlock = ({ collection, data, dataBuffer, headers, error, item }) => {
+const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type }) => {
   const [isBodyCollapsed, toggleBody] = useState(true);
   return (
     <div className="collapsible-section">
@@ -14,7 +14,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item }) => {
         <div className="mt-2">
           {data || dataBuffer ? (
             <div className="h-96 overflow-auto">
-              <QueryResult
+              <QueryResponse
                 item={item}
                 collection={collection}
                 data={data}
@@ -22,6 +22,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item }) => {
                 headers={headers}
                 error={error}
                 key={item?.uid}
+                hideResultTypeSelector={type === 'request'}
               />
             </div>
           ) : (

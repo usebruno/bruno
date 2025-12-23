@@ -1,12 +1,11 @@
 import { useDispatch } from 'react-redux';
-import { IconShieldLock } from '@tabler/icons';
+import { IconShieldCheck, IconCode } from '@tabler/icons';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common/index';
-import JsSandboxModeModal from '../JsSandboxModeModal';
 import StyledWrapper from './StyledWrapper';
 
 const JsSandboxMode = ({ collection }) => {
-  const jsSandboxMode = collection?.securityConfig?.jsSandboxMode;
+  const jsSandboxMode = collection?.securityConfig?.jsSandboxMode || 'safe';
   const dispatch = useDispatch();
 
   const viewSecuritySettings = () => {
@@ -23,21 +22,24 @@ const JsSandboxMode = ({ collection }) => {
     <StyledWrapper className="flex">
       {jsSandboxMode === 'safe' && (
         <div
-          className="flex items-center border rounded-md text-xs cursor-pointer safe-mode"
+          className="sandbox-icon safe-mode"
+          data-testid="sandbox-mode-selector"
           onClick={viewSecuritySettings}
+          title="Safe Mode"
         >
-          Safe Mode
+          <IconShieldCheck size={14} strokeWidth={2} />
         </div>
       )}
       {jsSandboxMode === 'developer' && (
         <div
-          className="flex items-center border rounded-md text-xs cursor-pointer developer-mode"
+          className="sandbox-icon developer-mode"
+          data-testid="sandbox-mode-selector"
           onClick={viewSecuritySettings}
+          title="Developer Mode"
         >
-          Developer Mode
+          <IconCode size={14} strokeWidth={2} />
         </div>
       )}
-      {!jsSandboxMode ? <JsSandboxModeModal collection={collection} /> : null}
     </StyledWrapper>
   );
 };

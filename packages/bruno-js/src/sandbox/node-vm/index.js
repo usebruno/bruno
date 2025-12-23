@@ -38,6 +38,15 @@ async function runScriptInNodeVm({
   try {
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
 
+    // Compute additional context roots
+    const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
+    const additionalContextRootsAbsolute = lodash
+      .chain(additionalContextRoots)
+      .map((acr) => (path.isAbsolute(acr) ? acr : path.join(collectionPath, acr)))
+      .map((acr) => path.normalize(acr))
+      .value();
+    additionalContextRootsAbsolute.push(path.normalize(collectionPath));
+
     // Create script context with all necessary variables
     const scriptContext = {
       // Bruno context
@@ -79,7 +88,8 @@ async function runScriptInNodeVm({
       scriptContext,
       currentModuleDir: collectionPath,
       localModuleCache,
-      allowScriptFilesystemAccess
+      allowScriptFilesystemAccess,
+      additionalContextRootsAbsolute
     });
 
     // Execute the script in an isolated VM context
@@ -107,6 +117,7 @@ async function runScriptInNodeVm({
  * @param {string} options.currentModuleDir - Current module directory for relative imports
  * @param {Map} options.localModuleCache - Cache for loaded local modules
  * @param {boolean} options.allowScriptFilesystemAccess - Whether to allow fs module access
+ * @param {Array<string>} options.additionalContextRootsAbsolute - Pre-computed absolute context roots
  * @returns {Function} Custom require function
  */
 function createCustomRequire({
@@ -115,19 +126,15 @@ function createCustomRequire({
   scriptContext,
   currentModuleDir = collectionPath,
   localModuleCache = new Map(),
-  allowScriptFilesystemAccess = false
+  allowScriptFilesystemAccess = false,
+  additionalContextRootsAbsolute = []
 }) {
-  const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
-  const additionalContextRootsAbsolute = lodash
-    .chain(additionalContextRoots)
-    .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
-    .value();
-  additionalContextRootsAbsolute.push(collectionPath);
-
   return (moduleName) => {
-    // Check if it's a local module (starts with ./ or ../)
-    if (moduleName.startsWith('./') || moduleName.startsWith('../')) {
-      return loadLocalModule({ moduleName, collectionPath, scriptContext, localModuleCache, currentModuleDir });
+    // Check if it's a local module (starts with ./ or ../ or .\ or ..\)
+    // Normalize backslashes to forward slashes for cross-platform compatibility
+    const normalizedModuleName = moduleName.replace(/\\/g, '/');
+    if (normalizedModuleName.startsWith('./') || normalizedModuleName.startsWith('../')) {
+      return loadLocalModule({ moduleName: normalizedModuleName, collectionPath, scriptContext, localModuleCache, currentModuleDir, additionalContextRootsAbsolute });
     }
 
     // Helper function to check if a module is the fs module or a submodule
@@ -178,6 +185,7 @@ function createCustomRequire({
  * @param {Object} options.scriptContext - Script execution context to inherit
  * @param {Map} options.localModuleCache - Cache for loaded modules
  * @param {string} options.currentModuleDir - Directory of the current module for relative resolution
+ * @param {Array<string>} options.additionalContextRootsAbsolute - Additional allowed context root paths
  * @returns {*} The exported content of the loaded module
  * @throws {Error} When module is outside collection path or cannot be loaded
  */
@@ -186,7 +194,8 @@ function loadLocalModule({
   collectionPath,
   scriptContext,
   localModuleCache,
-  currentModuleDir
+  currentModuleDir,
+  additionalContextRootsAbsolute = []
 }) {
   // Check if the filename has an extension
   const hasExtension = path.extname(moduleName) !== '';
@@ -195,12 +204,19 @@ function loadLocalModule({
   // Resolve the file path relative to the current module's directory
   const filePath = path.resolve(currentModuleDir, resolvedFilename);
   const normalizedFilePath = path.normalize(filePath);
-  const normalizedCollectionPath = path.normalize(collectionPath);
 
-  // Cross-platform security check: ensure the resolved file is within collectionPath
-  const relativePath = path.relative(normalizedCollectionPath, normalizedFilePath);
-  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-    throw new Error(`Access to files outside of the collectionPath is not allowed: ${moduleName}`);
+  const isWithinAllowedRoot = additionalContextRootsAbsolute.some((allowedRoot) => {
+    const normalizedAllowedRoot = path.normalize(allowedRoot);
+    const relativePath = path.relative(normalizedAllowedRoot, normalizedFilePath);
+    return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+  });
+
+  if (!isWithinAllowedRoot) {
+    const allowedRootsDisplay = additionalContextRootsAbsolute.map((root) => `  - ${root}`).join('\n');
+    throw new Error(
+      `Access to files outside of the allowed context roots is not allowed: ${moduleName}\n\n`
+      + `Allowed context roots:\n${allowedRootsDisplay}`
+    );
   }
 
   // Check cache first (use normalized path as key)
@@ -235,7 +251,8 @@ function loadLocalModule({
       scriptContext,
       currentModuleDir: moduleDir,
       localModuleCache,
-      allowScriptFilesystemAccess: get(scriptContext.scriptingConfig, 'filesystemAccess.allow', false)
+      allowScriptFilesystemAccess: get(scriptContext.scriptingConfig, 'filesystemAccess.allow', false),
+      additionalContextRootsAbsolute
     })
   };
 

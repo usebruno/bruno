@@ -1,5 +1,7 @@
 const { ipcRenderer, contextBridge, webUtils, shell } = require('electron');
 
+contextBridge.exposeInMainWorld('isPlaywright', process.env.PLAYWRIGHT === 'true');
+
 contextBridge.exposeInMainWorld('ipcRenderer', {
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
   send: (channel, ...args) => ipcRenderer.send(channel, ...args),

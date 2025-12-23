@@ -1,7 +1,4 @@
 const Store = require('electron-store');
-const { generateUidBasedOnHash } = require('../utils/common');
-
-const MAX_WORKSPACES = 10;
 
 class LastOpenedWorkspaces {
   constructor() {
@@ -15,32 +12,21 @@ class LastOpenedWorkspaces {
     return this.store.get('workspaces.lastOpenedWorkspaces', []);
   }
 
-  add(workspacePath, workspaceConfig) {
+  add(workspacePath) {
     const workspaces = this.getAll();
 
-    const workspaceUid = generateUidBasedOnHash(workspacePath);
+    if (workspaces.includes(workspacePath)) {
+      return workspaces;
+    }
 
-    const filteredWorkspaces = workspaces.filter((w) => w.uid !== workspaceUid);
-
-    const workspaceEntry = {
-      ...workspaceConfig,
-      uid: workspaceUid,
-      name: workspaceConfig.name,
-      lastOpened: new Date().toISOString(),
-      pathname: workspacePath
-    };
-
-    filteredWorkspaces.unshift(workspaceEntry);
-
-    const limitedWorkspaces = filteredWorkspaces.slice(0, MAX_WORKSPACES);
-
-    this.store.set('workspaces.lastOpenedWorkspaces', limitedWorkspaces);
-    return limitedWorkspaces;
+    workspaces.unshift(workspacePath);
+    this.store.set('workspaces.lastOpenedWorkspaces', workspaces);
+    return workspaces;
   }
 
-  remove(workspaceUid) {
+  remove(workspacePath) {
     const workspaces = this.getAll();
-    const filteredWorkspaces = workspaces.filter((w) => w.uid !== workspaceUid);
+    const filteredWorkspaces = workspaces.filter((w) => w !== workspacePath);
     this.store.set('workspaces.lastOpenedWorkspaces', filteredWorkspaces);
     return filteredWorkspaces;
   }

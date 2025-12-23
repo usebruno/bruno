@@ -32,12 +32,12 @@ const CreateEnvironment = ({ onClose, onEnvironmentCreated }) => {
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
         .required('Name is required')
-        .test('duplicate-name', 'Environment already exists', validateEnvironmentName)
+        .test('duplicate-name', 'Global environment already exists', validateEnvironmentName)
     }),
     onSubmit: (values) => {
       dispatch(addGlobalEnvironment({ name: values.name }))
         .then(() => {
-          toast.success('Environment created!');
+          toast.success('Global environment created!');
           onClose();
           // Call the callback if provided
           if (onEnvironmentCreated) {
@@ -62,14 +62,14 @@ const CreateEnvironment = ({ onClose, onEnvironmentCreated }) => {
     <Portal>
       <Modal
         size="sm"
-        title="Create Environment"
+        title="Create Global Environment"
         confirmText="Create"
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
         <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label htmlFor="name" className="block font-semibold">
+            <label htmlFor="environment-name" className="block font-semibold">
               Environment Name
             </label>
             <div className="flex items-center mt-2">

@@ -1,12 +1,23 @@
 const colors = {
-  BRAND: '#546de5',
+  BRAND: '#d9a342',
   TEXT: '#d4d4d4',
+  TEXT_MUTED: '#858585',
   TEXT_LINK: '#569cd6',
-  BACKGROUND: '#1e1e1e',
+  BG: '#1e1e1e',
 
-  GRAY_1: '#666666',
-  GRAY_2: '#444444',
-  GRAY_3: '#252526',
+  GREEN: '#4ec9b0',
+  YELLOW: '#d9a342',
+
+  GRAY_1: '#252526',
+  GRAY_2: '#3D3D3D',
+  GRAY_3: '#444444',
+  GRAY_4: '#666666',
+  GRAY_5: '#b0b0b0',
+  GRAY_6: '#cbcbcb',
+  GRAY_7: '#e5e5e5',
+  GRAY_8: '#eaeaea',
+  GRAY_9: '#f3f3f3',
+  GRAY_10: '#f8f8f8',
 
   CODEMIRROR_TOKENS: {
     DEFINITION: '#9ccc9c', // Softer, brighter sage — better contrast
@@ -25,7 +36,7 @@ const darkTheme = {
   brand: colors.BRAND,
   text: colors.TEXT,
   textLink: colors.TEXT_LINK,
-  bg: colors.BACKGROUND,
+  bg: colors.BG,
 
   font: {
     size: {
@@ -56,15 +67,16 @@ const darkTheme = {
 
   colors: {
     text: {
-      green: 'rgb(11 178 126)',
+      green: colors.GREEN,
       danger: '#f06f57',
-      muted: '#9d9d9d',
+      muted: colors.TEXT_MUTED,
       purple: '#cd56d6',
-      yellow: '#d9a342'
+      yellow: colors.YELLOW
     },
     bg: {
       danger: '#d03544'
-    }
+    },
+    accent: colors.BRAND
   },
 
   input: {
@@ -96,29 +108,32 @@ const darkTheme = {
   sidebar: {
     color: '#ccc',
     muted: '#9d9d9d',
-    bg: colors.GRAY_3,
+    bg: colors.GRAY_1,
     dragbar: {
       border: 'transparent',
-      activeBorder: colors.GRAY_1
+      activeBorder: colors.GRAY_4
     },
 
     badge: {
-      bg: '#3D3D3D'
+      bg: colors.GRAY_2
     },
 
     search: {
       border: '1px solid transparent',
-      bg: '#3D3D3D'
+      bg: colors.GRAY_2
     },
 
     collection: {
       item: {
         bg: '#37373D',
         hoverBg: '#2A2D2F',
-        keyboardFocusBg: 'rgba(10, 132, 255, 0.2)',
+        focusBorder: '#4e4e4e',
         indentBorder: 'solid 1px #585858',
         active: {
           indentBorder: 'solid 1px #4c4c4c'
+        },
+        example: {
+          iconColor: colors.GRAY_5
         }
       }
     },
@@ -151,11 +166,11 @@ const darkTheme = {
 
   listItem: {
     hoverBg: '#2A2D2F',
-    activeBg: '#3D3D3D'
+    activeBg: colors.GRAY_3
   },
 
   workspace: {
-    accent: '#F59E0B',
+    accent: '#D9A342',
     border: '#444',
     borderMuted: '#585858',
     card: {
@@ -177,34 +192,34 @@ const darkTheme = {
       indentBorder: 'solid 1px #313131',
       activeBg: '#37373c',
       search: {
-        bg: '#3D3D3D'
+        bg: colors.GRAY_2
       }
     }
   },
 
   request: {
     methods: {
-      get: '#8cd656',
-      post: '#cd56d6',
-      put: '#d69956',
-      delete: '#f06f57',
-      // customize these colors if needed
-      patch: '#d69956',
-      options: '#d69956',
-      head: '#d69956'
+      get: '#5fbf7a', // Fresh jade — readable, calm success tone
+      post: '#b58adf', // Soft amethyst — cool, composed accent
+      put: '#d7a35a', // Warm amber-bronze — bridges BRAND + STRING
+      delete: '#e06c75', // VSCode red — destructive but readable
+      patch: '#d7a35a', // Same as PUT
+      options: '#c8b072', // Muted olive-gold — neutral method
+      head: '#9da5b4' // Cool gray-blue — subtle, low priority
     },
-    grpc: '#6366f1',
-    ws: '#d9a342',
-    gql: '#e535ab'
+
+    grpc: '#5fb3c4', // Steel cyan — technical, protocol-heavy, calm
+    ws: '#d9a342', // Brand gold — perfect as-is
+    gql: '#c96ab1' // Softened GraphQL pink — less neon, still iconic
   },
 
   requestTabPanel: {
     url: {
-      bg: colors.BACKGROUND,
+      bg: colors.BG,
       icon: 'rgb(204, 204, 204)',
       iconDanger: '#fa5343',
       errorHoverBg: '#4a2a2a',
-      border: `solid 1px ${colors.GRAY_2}`
+      border: `solid 1px ${colors.GRAY_3}`
     },
     dragbar: {
       border: '#444',
@@ -232,7 +247,7 @@ const darkTheme = {
       bg: '#252526',
       table: {
         thead: {
-          bg: '#3D3D3D',
+          bg: colors.GRAY_2,
           color: '#ccc'
         }
       }
@@ -245,12 +260,12 @@ const darkTheme = {
 
   collection: {
     environment: {
-      bg: '#3D3D3D',
+      bg: colors.GRAY_2,
 
       settings: {
-        bg: '#3D3D3D',
+        bg: colors.GRAY_2,
         sidebar: {
-          bg: '#3D3D3D',
+          bg: colors.GRAY_2,
           borderRight: '#4f4f4f'
         },
         item: {
@@ -267,7 +282,7 @@ const darkTheme = {
   },
 
   notifications: {
-    bg: '#3D3D3D',
+    bg: colors.GRAY_3,
     list: {
       bg: '3D3D3D',
       borderRight: '#4f4f4f',
@@ -298,6 +313,9 @@ const darkTheme = {
     },
     backdrop: {
       opacity: 0.2
+    },
+    closeButton: {
+      hoverBg: 'rgba(255, 255, 255, 0.1)'
     }
   },
 
@@ -327,7 +345,9 @@ const darkTheme = {
   },
 
   tabs: {
+    marginRight: '1.2rem',
     active: {
+      fontWeight: 400,
       color: '#CCCCCC',
       border: '#d9a342'
     },
@@ -352,26 +372,29 @@ const darkTheme = {
       hoverColor: 'rgb(204, 204, 204)',
       hoverBg: '#1e1e1e'
     },
+    example: {
+      iconColor: colors.GRAY_5
+    },
     active: {
-      bg: '#3D3D3D'
+      bg: colors.GRAY_2
     },
     shortTab: {
       color: '#ccc',
       bg: 'transparent',
       hoverColor: '#ccc',
-      hoverBg: '#3D3D3D'
+      hoverBg: colors.GRAY_3
     }
   },
 
   codemirror: {
-    bg: colors.BACKGROUND,
-    border: colors.BACKGROUND,
+    bg: colors.BG,
+    border: colors.BG,
     placeholder: {
       color: '#a2a2a2',
       opacity: 0.5
     },
     gutter: {
-      bg: colors.BACKGROUND
+      bg: colors.BG
     },
     variable: {
       valid: 'rgb(11 178 126)',
@@ -383,11 +406,10 @@ const darkTheme = {
         boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
         editorBg: '#292929',
         iconColor: '#989898',
-        editorBorder: '#3D3D3D',
+        editorBorder: colors.GRAY_3,
         editorFocusBorder: '#CCCCCC',
         editableDisplayHoverBg: 'rgba(255,255,255,0.03)',
-        border: '#4F4F4F',
-        editorBorder: '#3D3D3D'
+        border: '#4F4F4F'
       }
     },
     tokens: {
@@ -418,7 +440,7 @@ const darkTheme = {
   },
 
   plainGrid: {
-    hoverBg: '#3D3D3D'
+    hoverBg: colors.GRAY_3
   },
 
   scrollbar: {
@@ -469,7 +491,7 @@ const darkTheme = {
     optionHoverBg: 'rgba(255, 255, 255, 0.05)',
     optionLabelColor: '#cccccc',
     optionCountColor: '#858585',
-    checkboxColor: '#0078d4',
+    checkboxColor: colors.BRAND,
     scrollbarTrack: '#2d2d30',
     scrollbarThumb: '#5a5a5a',
     scrollbarThumbHover: '#6a6a6a'
@@ -592,7 +614,7 @@ const darkTheme = {
     buttonIconColor: '#fff',
     border: '#444',
     urlBar: {
-      border: '#3D3D3D',
+      border: colors.GRAY_3,
       bg: '#292929'
     },
     table: {
@@ -603,6 +625,41 @@ const darkTheme = {
     },
     checkbox: {
       color: '#000'
+    }
+  },
+
+  app: {
+    collection: {
+      toolbar: {
+        environmentSelector: {
+          bg: colors.BG,
+          border: colors.GRAY_3,
+          icon: colors.BRAND,
+          text: colors.TEXT,
+          caret: colors.TEXT_MUTED,
+          separator: colors.GRAY_3,
+          hoverBg: colors.BG,
+          hoverBorder: colors.GRAY_4,
+
+          noEnvironment: {
+            text: colors.TEXT_MUTED,
+            bg: colors.BG,
+            border: colors.GRAY_3,
+            hoverBg: colors.BG,
+            hoverBorder: colors.GRAY_4
+          }
+        },
+        sandboxMode: {
+          safeMode: {
+            bg: 'rgba(78, 201, 176, 0.12)',
+            color: colors.GREEN
+          },
+          developerMode: {
+            bg: 'rgba(217, 163, 66, 0.11)',
+            color: colors.YELLOW
+          }
+        }
+      }
     }
   }
 };

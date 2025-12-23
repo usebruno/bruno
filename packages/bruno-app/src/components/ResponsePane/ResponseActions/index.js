@@ -3,7 +3,7 @@ import { IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
-import ResponseSave from 'src/components/ResponsePane/ResponseSave';
+import ResponseDownload from 'src/components/ResponsePane/ResponseDownload';
 
 const ResponseActions = ({ collection, item }) => {
   const menuDropdownTippyRef = useRef();
@@ -26,7 +26,7 @@ const ResponseActions = ({ collection, item }) => {
     <StyledWrapper className="ml-2 flex items-center">
       <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-end">
         <ResponseClear item={item} collection={collection} asDropdownItem onClose={handleClose} />
-        <ResponseSave item={item} asDropdownItem onClose={handleClose} />
+        <ResponseDownload item={item} asDropdownItem onClose={handleClose} />
       </Dropdown>
     </StyledWrapper>
   );

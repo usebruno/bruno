@@ -180,6 +180,7 @@ const ClientCertSettings = ({ collection }) => {
               <span className="protocol-placeholder">
                 <span className="protocol-https">https://</span>
                 <span className="protocol-grpcs">grpcs://</span>
+                <span className="protocol-wss">wss://</span>
               </span>
             </div>
             <input

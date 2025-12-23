@@ -25,13 +25,22 @@ const Wrapper = styled.div`
       padding-top: 0;
       padding-bottom: 0;
 
+      [role="menu"] {
+        outline: none;
+        &:focus {
+          outline: none;
+        }
+        &:focus-visible {
+          outline: none;
+        }
+      }
+
       .label-item {
         display: flex;
         align-items: center;
         padding: 0.375rem 0.625rem 0.25rem 0.625rem;
         font-size: 0.6875rem;
         font-weight: 600;
-        text-transform: uppercase;
         letter-spacing: 0.025em;
         color: ${(props) => props.theme.dropdown.color};
         opacity: 0.6;
@@ -59,6 +68,10 @@ const Wrapper = styled.div`
           }
         }
 
+        .dropdown-label {
+          flex: 1;
+        }
+
         .dropdown-icon {
           flex-shrink: 0;
           width: 16px;
@@ -70,8 +83,29 @@ const Wrapper = styled.div`
           opacity: 0.8;
         }
 
+        .dropdown-right-section {
+          margin-left: auto;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
         &:hover:not(:disabled) {
           background-color: ${(props) => props.theme.dropdown.hoverBg};
+        }
+
+        &.selected-focused:not(:disabled) {
+          background-color: ${(props) => props.theme.dropdown.hoverBg};
+        }
+
+        &:focus-visible:not(:disabled) {
+          outline: none;
+          background-color: ${(props) => props.theme.dropdown.hoverBg};
+        }
+
+        &:focus:not(:focus-visible) {
+          outline: none;
         }
 
         &:disabled {
@@ -101,6 +135,10 @@ const Wrapper = styled.div`
           border-top: solid 1px ${(props) => props.theme.dropdown.separator};
           margin-top: 0.25rem;
           padding-top: 0.375rem;
+        }
+
+        &.dropdown-item-select {
+          padding-left: 1.5rem;
         }
       }
 

@@ -12,6 +12,8 @@ import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
 import { removeCollection } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
+import { initializeWorkspaceTabs, setActiveWorkspaceTab } from '../workspaceTabs';
+import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -131,7 +133,11 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
         throw new Error('Workspace not found');
       }
 
-      const collection = collectionsState.collections.find((c) => c.pathname === collectionPath);
+      const normalizedCollectionPath = normalizePath(collectionPath);
+
+      const collection = collectionsState.collections.find(
+        (c) => normalizePath(c.pathname) === normalizedCollectionPath
+      );
 
       await ipcRenderer.invoke('renderer:remove-collection-from-workspace',
         workspaceUid,
@@ -139,8 +145,9 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
         collectionPath);
 
       if (collection) {
-        const workspaceCollection = workspace.collections?.find((wc) =>
-          wc.path === collectionPath);
+        const workspaceCollection = workspace.collections?.find(
+          (wc) => normalizePath(wc.path) === normalizedCollectionPath
+        );
 
         if (workspaceCollection) {
           dispatch(removeCollection({ collectionUid: collection.uid }));
@@ -165,23 +172,61 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
   };
 
   try {
-    const workspaceCollections = await dispatch(loadWorkspaceCollections(workspace.uid));
+    await dispatch(loadWorkspaceCollections(workspace.uid));
     const updatedWorkspace = await dispatch((_, getState) => getState().workspaces.workspaces.find((w) => w.uid === workspace.uid));
 
     if (updatedWorkspace?.collections?.length > 0) {
-      const alreadyOpenCollections = await dispatch((_, getState) => getState().collections.collections.map((c) => c.pathname));
+      const alreadyOpenCollections = await dispatch((_, getState) =>
+        getState().collections.collections.map((c) => normalizePath(c.pathname))
+      );
 
       const collectionPaths = updatedWorkspace.collections
         .map((wc) => wc.path)
-        .filter((p) => p && !alreadyOpenCollections.includes(p));
+        .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
       if (collectionPaths.length > 0) {
         await openCollectionsFunction(collectionPaths, updatedWorkspace.pathname);
       }
     }
+
+    // Load API specs for this workspace
+    await dispatch(loadWorkspaceApiSpecs(workspace.uid));
   } catch (error) {
     console.error('Failed to load workspace collections:', error);
   }
+};
+
+export const loadWorkspaceApiSpecs = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    try {
+      const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+      if (!workspace || !workspace.pathname) {
+        return;
+      }
+
+      const apiSpecs = await ipcRenderer.invoke('renderer:load-workspace-apispecs', workspace.pathname);
+
+      dispatch(updateWorkspace({
+        uid: workspaceUid,
+        apiSpecs: apiSpecs
+      }));
+
+      const allApiSpecs = getState().apiSpec.apiSpecs;
+      const alreadyOpenApiSpecs = allApiSpecs.map((a) => a.pathname);
+
+      for (const apiSpec of apiSpecs) {
+        if (apiSpec.path && !alreadyOpenApiSpecs.includes(apiSpec.path)) {
+          try {
+            await ipcRenderer.invoke('renderer:open-api-spec-file', apiSpec.path, workspace.pathname);
+          } catch (error) {
+            console.error('Error opening API spec:', error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading workspace API specs:', error);
+    }
+  };
 };
 
 export const switchWorkspace = (workspaceUid) => {
@@ -213,6 +258,13 @@ export const switchWorkspace = (workspaceUid) => {
 
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
     dispatch(showHomePage());
+
+    const permanentTabs = [
+      { type: 'overview', label: 'Overview' },
+      { type: 'environments', label: 'Global Environments' }
+    ];
+    dispatch(initializeWorkspaceTabs({ workspaceUid, permanentTabs }));
+    dispatch(setActiveWorkspaceTab({ workspaceUid, type: 'overview' }));
   };
 };
 
@@ -226,7 +278,7 @@ export const loadWorkspaceCollections = (workspaceUid, force = false) => {
 
       const hasProcessedCollections = workspace.collections
         && workspace.collections.length > 0
-        && workspace.collections.some((c) => c.path && c.path.startsWith('/'));
+        && workspace.collections.some((c) => c.path && path.isAbsolute(c.path));
 
       if (!force && hasProcessedCollections) {
         return workspace.collections;
@@ -333,7 +385,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
       return;
     }
 
-    const { collections, ...configWithoutCollections } = workspaceConfig;
+    const { collections, apiSpecs, ...configWithoutCollections } = workspaceConfig;
 
     dispatch(updateWorkspace({
       uid: workspaceUid,
@@ -346,12 +398,12 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
         await dispatch(loadWorkspaceCollections(workspaceUid, true));
 
         const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
-        const openCollections = getState().collections.collections.map((c) => c.pathname);
+        const openCollections = getState().collections.collections.map((c) => normalizePath(c.pathname));
 
         if (workspace?.collections?.length > 0) {
           const newCollectionPaths = workspace.collections
             .map((workspaceCollection) => workspaceCollection.path)
-            .filter((collectionPath) => collectionPath && !openCollections.includes(collectionPath));
+            .filter((collectionPath) => collectionPath && !openCollections.includes(normalizePath(collectionPath)));
 
           if (newCollectionPaths.length > 0) {
             try {
@@ -360,6 +412,9 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
             }
           }
         }
+
+        // Load API specs when workspace config is updated
+        await dispatch(loadWorkspaceApiSpecs(workspaceUid));
       } catch (error) {
       }
     }
@@ -442,8 +497,6 @@ export const renameWorkspaceAction = (workspaceUid, newName) => {
         uid: workspaceUid,
         name: newName
       }));
-
-      toast.success('Workspace renamed successfully');
     } catch (error) {
       throw error;
     }
@@ -462,8 +515,6 @@ export const closeWorkspaceAction = (workspaceUid) => {
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
       dispatch(removeWorkspace(workspaceUid));
-
-      toast.success('Workspace closed successfully');
     } catch (error) {
       toast.error(error.message || 'Failed to close workspace');
       throw error;
@@ -646,6 +697,55 @@ export const copyWorkspaceEnvironment = (workspaceUid, environmentUid, newName) 
       await dispatch(loadWorkspaceEnvironments(workspaceUid));
 
       return newEnvironment;
+    } catch (error) {
+      throw error;
+    }
+  };
+};
+
+export const exportWorkspaceAction = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    try {
+      const { workspaces } = getState().workspaces;
+      const workspace = workspaces.find((w) => w.uid === workspaceUid);
+
+      if (!workspace) {
+        throw new Error('Workspace not found');
+      }
+
+      if (!workspace.pathname) {
+        throw new Error('Workspace path not found');
+      }
+
+      const result = await ipcRenderer.invoke('renderer:export-workspace', workspace.pathname, workspace.name);
+
+      if (result.canceled) {
+        return { canceled: true };
+      }
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
+};
+
+export const importWorkspaceAction = (zipFilePath, extractLocation) => {
+  return async (dispatch) => {
+    try {
+      const result = await ipcRenderer.invoke('renderer:import-workspace', zipFilePath, extractLocation);
+
+      if (result.success) {
+        dispatch(createWorkspace({
+          uid: result.workspaceUid,
+          pathname: result.workspacePath,
+          ...result.workspaceConfig
+        }));
+
+        await dispatch(switchWorkspace(result.workspaceUid));
+      }
+
+      return result;
     } catch (error) {
       throw error;
     }

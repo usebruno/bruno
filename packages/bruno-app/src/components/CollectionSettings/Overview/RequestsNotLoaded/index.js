@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { isItemARequest, itemIsOpenedInTabs } from 'utils/tabs/index';
 import { getDefaultRequestPaneTab } from 'utils/collections/index';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { hideHomePage } from 'providers/ReduxStore/slices/app';
 
 const RequestsNotLoaded = ({ collection }) => {
   const dispatch = useDispatch();
@@ -21,7 +20,6 @@ const RequestsNotLoaded = ({ collection }) => {
   const handleRequestClick = (item) => (e) => {
     e.preventDefault();
     if (isItemARequest(item)) {
-      dispatch(hideHomePage());
       if (itemIsOpenedInTabs(item, tabs)) {
         dispatch(
           focusTab({

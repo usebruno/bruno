@@ -1,6 +1,6 @@
 import type { OpenCollection } from '@opencollection/types';
 import type { ProtoFileItem, ProtoFileImportPath } from '@opencollection/types/config/protobuf';
-import type { HttpHeader } from '@opencollection/types/requests/http';
+import type { HttpRequestHeader } from '@opencollection/types/requests/http';
 import type { ClientCertificate, PemCertificate, Pkcs12Certificate } from '@opencollection/types/config/certificates';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Scripts } from '@opencollection/types/common/scripts';
@@ -46,14 +46,20 @@ const hasRequestScripts = (collectionRoot: any): boolean => {
     || (collectionRoot.request?.tests);
 };
 
+const hasPresets = (brunoConfig: any): boolean => {
+  return brunoConfig?.presets?.requestType?.length
+    || brunoConfig?.presets?.requestUrl?.length;
+};
+
 const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
+  console.log('brunoConfig', brunoConfig);
   try {
     const oc: OpenCollection = {};
 
+    oc.opencollection = '1.0.0';
     oc.info = {
       name: brunoConfig.name || 'Untitled Collection'
     };
-    oc.opencollection = '1.0.0';
 
     // collection config
     if (hasCollectionConfig(brunoConfig)) {
@@ -128,7 +134,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
 
       // headers
       if (collectionRoot.request?.headers?.length) {
-        const ocHeaders: HttpHeader[] | undefined = toOpenCollectionHttpHeaders(collectionRoot.request?.headers);
+        const ocHeaders: HttpRequestHeader[] | undefined = toOpenCollectionHttpHeaders(collectionRoot.request?.headers);
         if (ocHeaders) {
           oc.request.headers = ocHeaders;
         }
@@ -178,6 +184,18 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
         ignoreList.push(ignore);
       });
       oc.extensions.ignore = ignoreList;
+    }
+    if (hasPresets(brunoConfig)) {
+      const presetsRequest: any = {};
+      if (brunoConfig.presets.requestType?.length) {
+        presetsRequest.type = brunoConfig.presets.requestType;
+      }
+      if (brunoConfig.presets.requestUrl?.length) {
+        presetsRequest.url = brunoConfig.presets.requestUrl;
+      }
+      oc.extensions.presets = {
+        request: presetsRequest
+      } as any;
     }
 
     return stringifyYml(oc);

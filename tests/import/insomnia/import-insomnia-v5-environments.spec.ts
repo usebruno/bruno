@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openCollectionAndAcceptSandbox, closeAllCollections } from '../../utils/page/actions';
+import { openCollection, closeAllCollections } from '../../utils/page/actions';
 
 test.describe('Import Insomnia v5 Collection - Environment Import', () => {
   test.afterEach(async ({ page }) => {
@@ -23,7 +23,7 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5-with-envs.yaml');
 
     await test.step('Import Insomnia v5 collection with environments', async () => {
-      await page.locator('.plus-icon-button').click();
+      await page.getByTestId('collections-header-add-menu').click();
       await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       const importModal = page.getByTestId('import-collection-modal');
@@ -39,7 +39,7 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await page.locator('#collection-location').fill(await createTmpDir('insomnia-v5-env-test'));
       await locationModal.getByRole('button', { name: 'Import' }).click();
 
-      await openCollectionAndAcceptSandbox(page, 'Test API Collection v5 with Environments', 'safe');
+      await openCollection(page, 'Test API Collection v5 with Environments');
     });
 
     await test.step('Open collection environments panel', async () => {
@@ -202,9 +202,10 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(page.getByTestId('env-var-row-user.roles[0]').locator('.CodeMirror-line').first()).toHaveText('admin');
     });
 
-    await test.step('Close environment modal', async () => {
-      // Close the environment configuration modal to ensure clean state
-      await page.getByText('×').click();
+    await test.step('Close environment tab', async () => {
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click();
     });
   });
 });

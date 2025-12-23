@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .collection-name {
-    height: 1.75rem;
+    height: 1.6rem;
     cursor: pointer;
     user-select: none;
     padding-left: 4px;
@@ -11,44 +11,25 @@ const Wrapper = styled.div`
     .rotate-90 {
       transform: rotateZ(90deg);
     }
+    .collection-actions {
+      visibility: hidden;
+    }
+
+    &:hover,
+    &:focus-within,
+    &.collection-keyboard-focused {
+      .collection-actions {
+        visibility: visible;
+      }
+    }
 
     &.item-hovered {
       border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       border-bottom: 2px solid transparent;
-      .collection-actions {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
-      }
-    }
-
-    .collection-actions {
-      .dropdown {
-        div[aria-expanded='true'] {
-          visibility: visible;
-        }
-        div[aria-expanded='false'] {
-          visibility: hidden;
-        }
-      }
-
-      svg {
-        height: 22px;
-        color: ${(props) => props.theme.sidebar.dropdownIcon.color};
-      }
     }
 
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .collection-actions {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
-      }
     }
 
     div.tippy-box {
