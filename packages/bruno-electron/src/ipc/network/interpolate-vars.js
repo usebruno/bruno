@@ -173,7 +173,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           if (!existingPathParam) {
             return '/' + path;
           }
-          return '/' + existingPathParam.value;
+          return '/' + encodeURIComponent(existingPathParam.value);
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -192,7 +192,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               if (name) {
                 const existingPathParam = request.pathParams.find((param) => param.name === name);
                 if (existingPathParam) {
-                  result = result.replace(':' + match[1], existingPathParam.value);
+                  result = result.replace(':' + match[1], encodeURIComponent(existingPathParam.value));
                 }
               }
             }
