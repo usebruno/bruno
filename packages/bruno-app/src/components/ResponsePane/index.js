@@ -52,8 +52,6 @@ const ResponsePane = ({ item, collection }) => {
   const selectedFormat = persistedFormat ?? initialFormat ?? 'raw';
   const selectedViewTab = persistedViewTab ?? initialTab ?? 'editor';
 
-  console.log('selectedViewTab', selectedViewTab);
-
   useEffect(() => {
     if (!focusedTab || initialFormat === null || initialTab === null) {
       return;
