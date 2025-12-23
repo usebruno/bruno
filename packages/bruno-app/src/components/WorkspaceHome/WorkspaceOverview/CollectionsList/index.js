@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { IconBox, IconTrash, IconEdit, IconShare, IconDots } from '@tabler/icons';
 import { removeCollectionFromWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
@@ -116,8 +115,6 @@ const CollectionsList = ({ workspace }) => {
         brunoConfig: collection.brunoConfig
       })
     );
-
-    dispatch(hideHomePage());
 
     dispatch(
       addTab({
