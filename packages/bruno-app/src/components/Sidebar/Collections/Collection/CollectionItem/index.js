@@ -37,7 +37,6 @@ import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
-import { hideHomePage, hideApiSpecPage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
@@ -214,8 +213,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
     if (isRequest) {
-      dispatch(hideHomePage());
-      dispatch(hideApiSpecPage());
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
@@ -233,8 +230,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         })
       );
     } else {
-      dispatch(hideHomePage());
-      dispatch(hideApiSpecPage());
       dispatch(
         addTab({
           uid: item.uid,
