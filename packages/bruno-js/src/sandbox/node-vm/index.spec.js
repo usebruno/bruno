@@ -165,6 +165,44 @@ describe('node-vm sandbox', () => {
 
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'yes');
     });
+
+    it('should handle nested additional context roots modules', async () => {
+      // Create an additional context root
+      const additionalRoot = path.join(testDir, 'shared');
+      fs.mkdirSync(additionalRoot);
+      fs.writeFileSync(
+        path.join(additionalRoot, 'allowed.js'),
+        'module.exports = { allowed: true };'
+      );
+
+      // Create a nested module that tries to require from additional root
+      fs.writeFileSync(
+        path.join(collectionPath, 'parent.js'),
+        `
+          const allowed = require('../shared/allowed');
+          module.exports = { nestedAccess: allowed.allowed };
+          `
+      );
+
+      const script = `
+          const parent = require('./parent');
+          bru.setVar('result', parent.nestedAccess);
+        `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const scriptingConfig = {
+        additionalContextRoots: [additionalRoot]
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig });
+
+      // Nested module should successfully access the additional root
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
   });
 
   describe('createCustomRequire - npm modules', () => {

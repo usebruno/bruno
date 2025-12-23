@@ -38,6 +38,15 @@ async function runScriptInNodeVm({
   try {
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
 
+    // Compute additional context roots
+    const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
+    const additionalContextRootsAbsolute = lodash
+      .chain(additionalContextRoots)
+      .map((acr) => (path.isAbsolute(acr) ? acr : path.join(collectionPath, acr)))
+      .map((acr) => path.normalize(acr))
+      .value();
+    additionalContextRootsAbsolute.push(path.normalize(collectionPath));
+
     // Create script context with all necessary variables
     const scriptContext = {
       // Bruno context
@@ -79,7 +88,8 @@ async function runScriptInNodeVm({
       scriptContext,
       currentModuleDir: collectionPath,
       localModuleCache,
-      allowScriptFilesystemAccess
+      allowScriptFilesystemAccess,
+      additionalContextRootsAbsolute
     });
 
     // Execute the script in an isolated VM context
@@ -107,6 +117,7 @@ async function runScriptInNodeVm({
  * @param {string} options.currentModuleDir - Current module directory for relative imports
  * @param {Map} options.localModuleCache - Cache for loaded local modules
  * @param {boolean} options.allowScriptFilesystemAccess - Whether to allow fs module access
+ * @param {Array<string>} options.additionalContextRootsAbsolute - Pre-computed absolute context roots
  * @returns {Function} Custom require function
  */
 function createCustomRequire({
@@ -115,16 +126,9 @@ function createCustomRequire({
   scriptContext,
   currentModuleDir = collectionPath,
   localModuleCache = new Map(),
-  allowScriptFilesystemAccess = false
+  allowScriptFilesystemAccess = false,
+  additionalContextRootsAbsolute = []
 }) {
-  const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
-  const additionalContextRootsAbsolute = lodash
-    .chain(additionalContextRoots)
-    .map((acr) => (path.isAbsolute(acr) ? acr : path.join(collectionPath, acr)))
-    .map((acr) => path.normalize(acr))
-    .value();
-  additionalContextRootsAbsolute.push(path.normalize(collectionPath));
-
   return (moduleName) => {
     // Check if it's a local module (starts with ./ or ../ or .\ or ..\)
     // Normalize backslashes to forward slashes for cross-platform compatibility
@@ -247,7 +251,8 @@ function loadLocalModule({
       scriptContext,
       currentModuleDir: moduleDir,
       localModuleCache,
-      allowScriptFilesystemAccess: get(scriptContext.scriptingConfig, 'filesystemAccess.allow', false)
+      allowScriptFilesystemAccess: get(scriptContext.scriptingConfig, 'filesystemAccess.allow', false),
+      additionalContextRootsAbsolute
     })
   };
 
