@@ -71,7 +71,7 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.modal.title.color};
     background-color: ${(props) => props.theme.modal.title.bg};
     font-size: ${(props) => props.theme.font.size.md};
-    padding: 6px 16px;
+    padding: 0.5rem 1rem;
     font-weight: 500;
     border-top-left-radius: ${(props) => props.theme.border.radius.base};
     border-top-right-radius: ${(props) => props.theme.border.radius.base};
@@ -88,12 +88,18 @@ const Wrapper = styled.div`
       justify-content: center;
       width: 24px;
       height: 24px;
+      margin-right: -0.5rem;
       font-size: 1.125rem;
       line-height: 1;
       color: ${(props) => props.theme.modal.title.color};
       border-radius: ${(props) => props.theme.border.radius.sm};
       opacity: 0.7;
       transition: opacity 0.2s ease, background-color 0.2s ease;
+
+      &:hover {
+        opacity: 1;
+        background-color: ${(props) => props.theme.modal.closeButton.hoverBg};
+      }
     }
   }
 
