@@ -24,14 +24,14 @@ test.describe('Default Collection Location Feature', () => {
     const defaultLocationInput = page.locator('.default-collection-location-input');
     await defaultLocationInput.clear();
 
-    // save preferences
-    await page.getByRole('button', { name: 'Save' }).click();
+    // wait for auto-save to complete (debounce is 500ms)
+    await page.waitForTimeout(1000);
 
-    // verify success message
-    await expect(page.locator('text=Preferences saved successfully').first()).toBeVisible();
+    // close the preferences
+    await page.locator('[data-test-id="modal-close-button"]').click();
 
-    // wait for 2 seconds
-    await page.waitForTimeout(2000);
+    // wait for modal to close
+    await page.waitForTimeout(500);
   });
 
   test('Should save a valid default location', async ({ pageWithUserData: page }) => {
@@ -44,14 +44,14 @@ test.describe('Default Collection Location Feature', () => {
     // fill the default location input
     await defaultLocationInput.fill('/tmp/bruno-collections');
 
-    // save preferences
-    await page.getByRole('button', { name: 'Save' }).click();
+    // wait for auto-save to complete (debounce is 500ms)
+    await page.waitForTimeout(1000);
 
-    // verify success message
-    await expect(page.locator('text=Preferences saved successfully').first()).toBeVisible();
+    // close the preferences
+    await page.locator('[data-test-id="modal-close-button"]').click();
 
-    // wait for 2 seconds
-    await page.waitForTimeout(2000);
+    // wait for modal to close
+    await page.waitForTimeout(500);
   });
 
   test('Should use default location in Create Collection modal', async ({ pageWithUserData: page }) => {

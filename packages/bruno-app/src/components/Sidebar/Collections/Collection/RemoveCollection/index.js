@@ -44,7 +44,7 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
   }
 
   const customHeader = (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" data-testid="close-collection-modal-title">
       <IconAlertCircle size={18} strokeWidth={1.5} className="text-red-500" />
       <span>Close Collection</span>
     </div>
