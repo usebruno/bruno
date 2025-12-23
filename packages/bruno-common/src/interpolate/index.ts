@@ -48,6 +48,23 @@ const processMockData = (replacement: string, escapeJSONStrings: boolean): strin
   });
 };
 
+const resolveObjMockData = (
+  obj: Record<string, any>,
+  escapeJSONStrings: boolean
+): Record<string, any> => {
+  const resolved: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === 'string') {
+      resolved[key] = processMockData(value, escapeJSONStrings);
+    } else {
+      resolved[key] = value;
+    }
+  }
+
+  return resolved;
+};
+
 const interpolate = (
   str: string,
   obj: Record<string, any>,
@@ -65,15 +82,15 @@ const interpolate = (
     return str;
   }
 
-  return replace(str, obj, new Set<string>(), new Map<string, string>(), escapeJSONStrings ?? false);
+  const resolvedObj = resolveObjMockData(obj, escapeJSONStrings ?? false);
+  return replace(str, resolvedObj);
 };
 
 const replace = (
   str: string,
   obj: Record<string, any>,
   visited = new Set<string>(),
-  results = new Map<string, string>(),
-  escapeJSONStrings = false
+  results = new Map<string, string>()
 ): string => {
   let resultStr = str;
   let matchFound;
@@ -90,16 +107,11 @@ const replace = (
         return results.get(match);
       }
 
-      // Process mock data functions ({{$keyword}}) in the replacement value
-      if (typeof replacement === 'string') {
-        replacement = processMockData(replacement, escapeJSONStrings);
-      }
-
       // Check for nested placeholders using non-global regex to avoid state pollution
       const hasNestedPlaceholders = typeof replacement === 'string' && PLACEHOLDER_TEST_PATTERN.test(replacement);
       if (hasNestedPlaceholders && !visited.has(match)) {
         visited.add(match);
-        const result = replace(replacement, obj, visited, results, escapeJSONStrings);
+        const result = replace(replacement, obj, visited, results);
         results.set(match, result);
 
         matchFound = true;
