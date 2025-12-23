@@ -72,14 +72,16 @@ describe('node-vm sandbox', () => {
     });
 
     it('should handle backslashes on Windows', async () => {
+      const subDir = path.join(collectionPath, 'utils');
+      fs.mkdirSync(subDir);
       fs.writeFileSync(
-        path.join(collectionPath, 'module.js'),
+        path.join(subDir, 'module.js'),
         'module.exports = { platform: "cross-platform" };'
       );
 
       // Simulate Windows-style path with backslashes
       const script = `
-        const mod = require('.\\\\module');
+        const mod = require('.\\\\utils\\\\module');
         bru.setVar('result', mod.platform);
       `;
 
@@ -107,8 +109,8 @@ describe('node-vm sandbox', () => {
   });
 
   describe('createCustomRequire - additionalContextRoots', () => {
-    it('should load module from additionalContextRoots', async () => {
-      // Create an additional context root
+    it('should allow module access from additionalContextRoots', async () => {
+      // Create an additional context root at same level as collection
       const additionalRoot = path.join(testDir, 'shared');
       fs.mkdirSync(additionalRoot);
       fs.writeFileSync(
@@ -116,8 +118,9 @@ describe('node-vm sandbox', () => {
         'module.exports = { shared: true };'
       );
 
+      // From collection, traverse up to testDir, then into shared directory
       const script = `
-        const shared = require('./shared');
+        const shared = require('../shared/shared');
         bru.setVar('result', shared.shared);
       `;
 
@@ -135,9 +138,9 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
     });
 
-    it('should handle relative additionalContextRoots', async () => {
-      // Create a relative context root
-      const libsDir = path.join(collectionPath, 'libs');
+    it('should handle relative additionalContextRoots path', async () => {
+      // Create a sibling directory to collection
+      const libsDir = path.join(testDir, 'libs');
       fs.mkdirSync(libsDir);
       fs.writeFileSync(
         path.join(libsDir, 'lib.js'),
@@ -145,7 +148,7 @@ describe('node-vm sandbox', () => {
       );
 
       const script = `
-        const lib = require('./lib');
+        const lib = require('../libs/lib');
         bru.setVar('result', lib.fromLib);
       `;
 
@@ -155,7 +158,7 @@ describe('node-vm sandbox', () => {
       };
 
       const scriptingConfig = {
-        additionalContextRoots: ['./libs']
+        additionalContextRoots: ['../libs']
       };
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig });

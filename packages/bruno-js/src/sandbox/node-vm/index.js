@@ -127,9 +127,10 @@ function createCustomRequire({
 
   return (moduleName) => {
     // Check if it's a local module (starts with ./ or ../ or .\ or ..\)
+    // Normalize backslashes to forward slashes for cross-platform compatibility
     const normalizedModuleName = moduleName.replace(/\\/g, '/');
     if (normalizedModuleName.startsWith('./') || normalizedModuleName.startsWith('../')) {
-      return loadLocalModule({ moduleName, collectionPath, scriptContext, localModuleCache, currentModuleDir, additionalContextRootsAbsolute });
+      return loadLocalModule({ moduleName: normalizedModuleName, collectionPath, scriptContext, localModuleCache, currentModuleDir, additionalContextRootsAbsolute });
     }
 
     // Helper function to check if a module is the fs module or a submodule
