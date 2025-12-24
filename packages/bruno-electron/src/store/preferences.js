@@ -30,7 +30,7 @@ const defaultPreferences = {
     codeFontSize: 13
   },
   proxy: {
-    mode: 'off',
+    mode: 'system',
     protocol: 'http',
     hostname: '',
     port: null,
@@ -198,7 +198,7 @@ const preferencesUtil = {
     return get(getPreferences(), 'request.timeout', 0);
   },
   getGlobalProxyConfig: () => {
-    return get(getPreferences(), 'proxy', {});
+    return get(getPreferences(), 'proxy', { mode: 'system' });
   },
   shouldStoreCookies: () => {
     return get(getPreferences(), 'request.storeCookies', true);
@@ -211,14 +211,6 @@ const preferencesUtil = {
   },
   getResponsePaneOrientation: () => {
     return get(getPreferences(), 'layout.responsePaneOrientation', 'horizontal');
-  },
-  getSystemProxyEnvVariables: () => {
-    const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;
-    return {
-      http_proxy: http_proxy || HTTP_PROXY,
-      https_proxy: https_proxy || HTTPS_PROXY,
-      no_proxy: no_proxy || NO_PROXY
-    };
   },
   isBetaFeatureEnabled: (featureName) => {
     return get(getPreferences(), `beta.${featureName}`, false);

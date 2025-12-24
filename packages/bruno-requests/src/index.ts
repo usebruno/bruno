@@ -6,3 +6,5 @@ export { default as cookies } from './cookies';
 export { getCACertificates } from './utils/ca-cert';
 
 export * as scripting from './scripting';
+
+export { getSystemProxy } from './network';
