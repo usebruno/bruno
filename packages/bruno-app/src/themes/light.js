@@ -348,7 +348,30 @@ const lightTheme = {
       border: '#dc3545'
     }
   },
-
+  button2: {
+    color: {
+      primary: {
+        bg: colors.BRAND,
+        text: '#fff'
+      },
+      secondary: {
+        bg: '#e5e7eb',
+        text: colors.TEXT
+      },
+      success: {
+        bg: '#4f9a7d',
+        text: '#fff'
+      },
+      warning: {
+        bg: '#c98b2b',
+        text: '#fff'
+      },
+      danger: {
+        bg: '#d14f5b',
+        text: '#fff'
+      }
+    }
+  },
   tabs: {
     marginRight: '1.2rem',
     active: {

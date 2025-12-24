@@ -17,6 +17,7 @@ import {
 } from 'providers/ReduxStore/slices/global-environments';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
+import Button from 'ui/Button';
 
 const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection }) => {
   const dispatch = useDispatch();
@@ -425,14 +426,14 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         </table>
       </div>
 
-      <div className="button-container">
-        <div className="flex items-center">
-          <button type="button" className="submit" onClick={handleSave} data-testid="save-env">
+      <div className="button-container mt-5">
+        <div className="flex items-center gap-2">
+          <Button type="submit" size="sm" onClick={handleSave} data-testid="save-env">
             Save
-          </button>
-          <button type="button" className="submit reset ml-2" onClick={handleReset} data-testid="reset-env">
+          </Button>
+          <Button type="reset" size="sm" color="secondary" variant="ghost" onClick={handleReset} data-testid="reset-env">
             Reset
-          </button>
+          </Button>
         </div>
       </div>
     </StyledWrapper>
