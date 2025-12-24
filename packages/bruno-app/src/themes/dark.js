@@ -2,11 +2,13 @@ const colors = {
   BRAND: '#d9a342',
   TEXT: '#d4d4d4',
   TEXT_MUTED: '#858585',
-  TEXT_LINK: '#569cd6',
+  TEXT_LINK: '#8BB7E0',
   BG: '#1e1e1e',
 
   GREEN: '#4ec9b0',
   YELLOW: '#d9a342',
+  WHITE: '#fff',
+  BLACK: '#000',
 
   GRAY_1: '#252526',
   GRAY_2: '#3D3D3D',
@@ -341,6 +343,30 @@ const darkTheme = {
       color: '#fff',
       bg: '#dc3545',
       border: '#dc3545'
+    }
+  },
+  button2: {
+    color: {
+      primary: {
+        bg: colors.BRAND,
+        text: colors.BLACK
+      },
+      secondary: {
+        bg: colors.GRAY_4,
+        text: '#fff'
+      },
+      success: {
+        bg: '#059669',
+        text: '#fff'
+      },
+      warning: {
+        bg: '#f59e0b',
+        text: '#1e1e1e'
+      },
+      danger: {
+        bg: '#f43f5e',
+        text: '#fff'
+      }
     }
   },
 

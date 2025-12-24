@@ -20,6 +20,11 @@
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {
+    "@storybook/addon-webpack5-compiler-babel": "^4.0.0",
+    "@storybook/builder-webpack5": "^10.1.10",
+    "@storybook/react": "^10.1.10",
+    "@storybook/react-webpack5": "^10.1.10",
+    "storybook": "^10.1.10",
     "@eslint/compat": "^1.3.2",
     "@faker-js/faker": "^7.6.0",
     "@jest/globals": "^29.2.0",
