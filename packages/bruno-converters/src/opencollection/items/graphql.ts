@@ -5,6 +5,7 @@ import {
   fromOpenCollectionParams,
   toOpenCollectionParams,
   fromOpenCollectionBody,
+  toOpenCollectionGraphqlBody,
   fromOpenCollectionAuth,
   toOpenCollectionAuth,
   fromOpenCollectionScripts,
@@ -12,33 +13,38 @@ import {
   fromOpenCollectionVariables,
   toOpenCollectionVariables,
   fromOpenCollectionAssertions,
-  toOpenCollectionAssertions,
-  toOpenCollectionGraphqlBody
+  toOpenCollectionAssertions
 } from '../common';
 import type {
   GraphQLRequest,
+  GraphQLRequestInfo,
+  GraphQLRequestDetails,
+  GraphQLRequestRuntime,
+  GraphQLRequestSettings,
   GraphQLBody,
+  GraphQLBodyVariant,
+  Auth,
   BrunoItem,
   BrunoKeyValue,
-  BrunoHttpRequestParam,
-  BrunoHttpRequest
+  BrunoHttpRequestParam
 } from '../types';
 
-type GraphqlRequestBody = BrunoHttpRequest;
+const getGraphqlBody = (body: GraphQLBody | GraphQLBodyVariant[] | undefined): GraphQLBody | undefined => {
+  if (!body) return undefined;
+  if (Array.isArray(body)) {
+    const selected = body.find((v) => v.selected);
+    return selected?.body || body[0]?.body;
+  }
+  return body;
+};
 
 export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem => {
   const info = item.info || {};
   const graphql = item.graphql || {};
   const runtime = item.runtime || {};
-  const settings = item.settings || {};
 
   const scripts = fromOpenCollectionScripts(runtime.scripts);
-
-  let gqlBody = graphql.body as GraphQLBody | undefined;
-  if (Array.isArray(graphql.body) && graphql.body.length > 0) {
-    const selected = graphql.body.find((v: any) => v.selected);
-    gqlBody = selected?.body || graphql.body[0]?.body;
-  }
+  const graphqlBody = getGraphqlBody(graphql.body);
 
   const brunoItem: BrunoItem = {
     uid: uuid(),
@@ -50,31 +56,31 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
       method: graphql.method || 'POST',
       headers: fromOpenCollectionHeaders(graphql.headers),
       params: fromOpenCollectionParams(graphql.params),
-      body: fromOpenCollectionBody(gqlBody, 'graphql'),
-      auth: fromOpenCollectionAuth(runtime.auth),
-      script: scripts.script,
+      body: fromOpenCollectionBody(graphqlBody, 'graphql'),
+      auth: fromOpenCollectionAuth(runtime.auth as Auth),
+      script: scripts?.script,
       vars: fromOpenCollectionVariables(runtime.variables),
       assertions: fromOpenCollectionAssertions(runtime.assertions),
-      tests: scripts.tests,
+      tests: scripts?.tests,
       docs: item.docs || ''
     }
   };
 
-  if (settings.encodeUrl !== undefined) {
-    brunoItem.settings = brunoItem.settings || {};
-    (brunoItem.settings as any).encodeUrl = settings.encodeUrl;
-  }
-  if (settings.timeout !== undefined) {
-    brunoItem.settings = brunoItem.settings || {};
-    (brunoItem.settings as any).timeout = settings.timeout;
-  }
-  if (settings.followRedirects !== undefined) {
-    brunoItem.settings = brunoItem.settings || {};
-    (brunoItem.settings as any).followRedirects = settings.followRedirects;
-  }
-  if (settings.maxRedirects !== undefined) {
-    brunoItem.settings = brunoItem.settings || {};
-    (brunoItem.settings as any).maxRedirects = settings.maxRedirects;
+  const settings = item.settings;
+  if (settings) {
+    brunoItem.settings = {};
+    if (settings.encodeUrl !== undefined) {
+      (brunoItem.settings as Record<string, unknown>).encodeUrl = settings.encodeUrl;
+    }
+    if (settings.timeout !== undefined) {
+      (brunoItem.settings as Record<string, unknown>).timeout = settings.timeout;
+    }
+    if (settings.followRedirects !== undefined) {
+      (brunoItem.settings as Record<string, unknown>).followRedirects = settings.followRedirects;
+    }
+    if (settings.maxRedirects !== undefined) {
+      (brunoItem.settings as Record<string, unknown>).maxRedirects = settings.maxRedirects;
+    }
   }
 
   if (info.tags?.length) {
@@ -85,77 +91,84 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
 };
 
 export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => {
-  const request = (item.request || {}) as Partial<GraphqlRequestBody>;
-  const brunoSettings = (item.settings as any) || {};
+  const request = (item.request || {}) as Record<string, unknown>;
+  const brunoSettings = (item.settings || {}) as Record<string, unknown>;
 
-  const ocRequest: GraphQLRequest = {
-    info: {
-      name: item.name || 'Untitled Request',
-      type: 'graphql'
-    },
-    graphql: {
-      url: request.url || '',
-      method: request.method || 'POST'
-    }
+  const info: GraphQLRequestInfo = {
+    name: item.name || 'Untitled Request',
+    type: 'graphql'
   };
 
   if (item.seq) {
-    ocRequest.info!.seq = item.seq;
+    info.seq = item.seq;
   }
 
   if (item.tags?.length) {
-    ocRequest.info!.tags = item.tags;
+    info.tags = item.tags;
   }
+
+  const graphql: GraphQLRequestDetails = {
+    url: request.url as string || '',
+    method: request.method as string || 'POST'
+  };
 
   const headers = toOpenCollectionHeaders(request.headers as BrunoKeyValue[]);
   if (headers) {
-    ocRequest.graphql!.headers = headers;
+    graphql.headers = headers;
   }
 
   const params = toOpenCollectionParams(request.params as BrunoHttpRequestParam[]);
   if (params) {
-    ocRequest.graphql!.params = params;
+    graphql.params = params;
   }
 
-  const body = toOpenCollectionGraphqlBody(request.body);
+  const body = toOpenCollectionGraphqlBody(request.body as Parameters<typeof toOpenCollectionGraphqlBody>[0]);
   if (body) {
-    ocRequest.graphql!.body = body;
+    graphql.body = body;
   }
 
-  const auth = toOpenCollectionAuth(request.auth);
-  const scripts = toOpenCollectionScripts(request);
-  const variables = toOpenCollectionVariables(request.vars);
+  const ocRequest: GraphQLRequest = {
+    info,
+    graphql
+  };
+
+  const auth = toOpenCollectionAuth(request.auth as Parameters<typeof toOpenCollectionAuth>[0]);
+  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
+  const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
   const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
 
   if (auth || scripts || variables || assertions) {
-    ocRequest.runtime = {};
+    const runtime: GraphQLRequestRuntime = {};
 
     if (auth) {
-      ocRequest.runtime.auth = auth;
+      runtime.auth = auth;
     }
 
     if (scripts) {
-      ocRequest.runtime.scripts = scripts;
+      runtime.scripts = scripts;
     }
 
     if (variables) {
-      ocRequest.runtime.variables = variables;
+      runtime.variables = variables;
     }
 
     if (assertions) {
-      ocRequest.runtime.assertions = assertions;
+      runtime.assertions = assertions;
     }
+
+    ocRequest.runtime = runtime;
   }
 
-  ocRequest.settings = {
-    encodeUrl: brunoSettings.encodeUrl !== undefined ? brunoSettings.encodeUrl : true,
-    timeout: brunoSettings.timeout !== undefined ? brunoSettings.timeout : 0,
-    followRedirects: brunoSettings.followRedirects !== undefined ? brunoSettings.followRedirects : true,
-    maxRedirects: brunoSettings.maxRedirects !== undefined ? brunoSettings.maxRedirects : 5
+  const settings: GraphQLRequestSettings = {
+    encodeUrl: typeof brunoSettings.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
+    timeout: typeof brunoSettings.timeout === 'number' ? brunoSettings.timeout : 0,
+    followRedirects: typeof brunoSettings.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
+    maxRedirects: typeof brunoSettings.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
   };
+  ocRequest.settings = settings;
 
   if (request.docs) {
-    ocRequest.docs = request.docs;
+    ocRequest.docs = request.docs as string;
   }
 
   return ocRequest;

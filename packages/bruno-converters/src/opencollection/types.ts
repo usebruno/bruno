@@ -1,16 +1,15 @@
-// OpenCollection types
+// OpenCollection types - main module
 export type { OpenCollection, Extensions } from '@opencollection/types';
 
 // OpenCollection collection/item types
-export type { Item, Folder, FolderInfo, ScriptFile } from '@opencollection/types/collection/item';
+export type { Item, Folder, FolderInfo } from '@opencollection/types/collection/item';
 
 // OpenCollection HTTP request types
 export type {
   HttpRequest,
-  HttpRequestInfo,
-  HttpRequestDetails,
-  HttpRequestRuntime,
+  HttpRequestHeader as HttpHeader,
   HttpRequestHeader,
+  HttpResponseHeader,
   HttpRequestParam,
   HttpRequestBody,
   HttpRequestSettings,
@@ -18,24 +17,26 @@ export type {
   HttpRequestExampleRequest,
   HttpRequestExampleResponse,
   HttpRequestExampleResponseBody,
-  HttpResponseHeader,
   HttpRequestBodyVariant,
+  HttpRequestInfo,
+  HttpRequestDetails,
+  HttpRequestRuntime,
   RawBody,
   FormUrlEncodedBody,
   FormUrlEncodedEntry,
   MultipartFormBody,
   MultipartFormEntry,
   FileBody,
-  FileBodyVariant
+  FileBodyVariant as FileBodyEntry
 } from '@opencollection/types/requests/http';
 
 // OpenCollection GraphQL request types
 export type {
   GraphQLRequest,
+  GraphQLRequestSettings,
   GraphQLRequestInfo,
   GraphQLRequestDetails,
   GraphQLRequestRuntime,
-  GraphQLRequestSettings,
   GraphQLBody,
   GraphQLBodyVariant
 } from '@opencollection/types/requests/graphql';
@@ -49,6 +50,7 @@ export type {
   GrpcMetadata,
   GrpcMessage,
   GrpcMessageVariant,
+  GrpcMessagePayload,
   GrpcMethodType
 } from '@opencollection/types/requests/grpc';
 
@@ -60,6 +62,7 @@ export type {
   WebSocketRequestRuntime,
   WebSocketMessage,
   WebSocketMessageVariant,
+  WebSocketPayload,
   WebSocketMessageType
 } from '@opencollection/types/requests/websocket';
 
@@ -77,11 +80,10 @@ export type { Info, Author } from '@opencollection/types/common/info';
 export type {
   Variable,
   Variable as OCVariable,
-  SecretVariable,
   VariableValue as OCVariableValue,
   VariableValueVariant
 } from '@opencollection/types/common/variables';
-export type { Scripts, Script as OCScript } from '@opencollection/types/common/scripts';
+export type { Scripts } from '@opencollection/types/common/scripts';
 export type { Assertion } from '@opencollection/types/common/assertions';
 export type { Tag } from '@opencollection/types/common/tags';
 

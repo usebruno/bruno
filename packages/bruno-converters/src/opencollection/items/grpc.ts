@@ -1,6 +1,5 @@
 import { uuid } from '../../common/index.js';
 import {
-  fromOpenCollectionHeaders,
   fromOpenCollectionAuth,
   toOpenCollectionAuth,
   fromOpenCollectionScripts,
@@ -12,13 +11,31 @@ import {
 } from '../common';
 import type {
   GrpcRequest,
+  GrpcRequestInfo,
+  GrpcRequestDetails,
+  GrpcRequestRuntime,
   GrpcMetadata,
   GrpcMessageVariant,
-  GrpcMessage,
+  GrpcMessagePayload,
+  Auth,
   BrunoItem,
   BrunoGrpcMessage,
   BrunoKeyValue
 } from '../types';
+
+const fromGrpcMetadata = (metadata: GrpcMetadata[] | undefined): BrunoKeyValue[] => {
+  if (!metadata?.length) {
+    return [];
+  }
+
+  return metadata.map((m): BrunoKeyValue => ({
+    uid: uuid(),
+    name: m.name || '',
+    value: m.value || '',
+    description: typeof m.description === 'string' ? m.description : (m.description as { content?: string } | undefined)?.content || null,
+    enabled: m.disabled !== true
+  }));
+};
 
 export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
   const info = item.info || {};
@@ -31,10 +48,10 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
     if (typeof grpc.message === 'string') {
       grpcMessages.push({ name: 'message 1', content: grpc.message });
     } else if (Array.isArray(grpc.message)) {
-      (grpc.message as GrpcMessageVariant[]).forEach((msg, index) => {
+      grpc.message.forEach((msg, index) => {
         grpcMessages.push({
           name: msg.title || `message ${index + 1}`,
-          content: typeof msg.message === 'string' ? msg.message : '',
+          content: typeof msg.message === 'string' ? msg.message : ''
         });
       });
     }
@@ -50,26 +67,26 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
     request: {
       url: grpc.url || '',
       method: grpc.method || '',
-      headers: fromOpenCollectionHeaders(grpc.metadata as any),
+      headers: fromGrpcMetadata(grpc.metadata),
       body: {
         mode: 'grpc',
         grpc: grpcMessages
       },
-      auth: fromOpenCollectionAuth(runtime.auth),
-      script: scripts.script,
+      auth: fromOpenCollectionAuth(runtime.auth as Auth),
+      script: scripts?.script,
       vars: fromOpenCollectionVariables(runtime.variables),
       assertions: fromOpenCollectionAssertions(runtime.assertions),
-      tests: scripts.tests,
-      docs: item.docs || ''
+      tests: scripts?.tests,
+      docs: ''
     }
   };
 
   // Add grpc-specific properties
   if (grpc.methodType) {
-    (brunoItem.request as any).methodType = grpc.methodType;
+    (brunoItem.request as unknown as Record<string, unknown>).methodType = grpc.methodType;
   }
   if (grpc.protoFilePath) {
-    (brunoItem.request as any).protoPath = grpc.protoFilePath;
+    (brunoItem.request as unknown as Record<string, unknown>).protoPath = grpc.protoFilePath;
   }
 
   if (info.tags?.length) {
@@ -80,47 +97,46 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
 };
 
 export const toOpenCollectionGrpcItem = (item: BrunoItem): GrpcRequest => {
-  const request = (item.request || {}) as any;
+  const request = (item.request || {}) as Record<string, unknown>;
 
-  const ocRequest: GrpcRequest = {
-    info: {
-      name: item.name || 'Untitled Request',
-      type: 'grpc'
-    },
-    grpc: {
-      url: request.url || '',
-      method: request.method || ''
-    }
+  const info: GrpcRequestInfo = {
+    name: item.name || 'Untitled Request',
+    type: 'grpc'
   };
 
   if (item.seq) {
-    ocRequest.info!.seq = item.seq;
+    info.seq = item.seq;
   }
 
   if (item.tags?.length) {
-    ocRequest.info!.tags = item.tags;
+    info.tags = item.tags;
   }
+
+  const grpc: GrpcRequestDetails = {
+    url: request.url as string || '',
+    method: request.method as string || ''
+  };
 
   if (request.methodType) {
-    ocRequest.grpc!.methodType = request.methodType;
+    grpc.methodType = request.methodType as GrpcRequestDetails['methodType'];
   }
-
   if (request.protoPath) {
-    ocRequest.grpc!.protoFilePath = request.protoPath;
+    grpc.protoFilePath = request.protoPath as string;
   }
 
-  if (request.headers?.length) {
-    ocRequest.grpc!.metadata = (request.headers as BrunoKeyValue[]).map((m): GrpcMetadata => {
+  const headers = request.headers as BrunoKeyValue[] | undefined;
+  if (headers?.length) {
+    grpc.metadata = headers.map((h): GrpcMetadata => {
       const metadata: GrpcMetadata = {
-        name: m.name || '',
-        value: m.value || ''
+        name: h.name || '',
+        value: h.value || ''
       };
 
-      if (m.description && typeof m.description === 'string' && m.description.trim().length) {
-        metadata.description = m.description;
+      if (h.description && typeof h.description === 'string' && h.description.trim().length) {
+        metadata.description = h.description;
       }
 
-      if (m.enabled === false) {
+      if (h.enabled === false) {
         metadata.disabled = true;
       }
 
@@ -128,45 +144,53 @@ export const toOpenCollectionGrpcItem = (item: BrunoItem): GrpcRequest => {
     });
   }
 
-  if (request.body?.grpc?.length) {
-    const messages = request.body.grpc as BrunoGrpcMessage[];
+  const body = request.body as { grpc?: BrunoGrpcMessage[] } | undefined;
+  if (body?.grpc?.length) {
+    const messages = body.grpc;
     if (messages.length === 1) {
-      ocRequest.grpc!.message = messages[0].content || '';
+      grpc.message = messages[0].content || '';
     } else {
-      ocRequest.grpc!.message = messages.map((msg): GrpcMessageVariant => ({
+      grpc.message = messages.map((msg): GrpcMessageVariant => ({
         title: msg.name || 'Untitled',
         message: msg.content || ''
       }));
     }
   }
 
-  const auth = toOpenCollectionAuth(request.auth);
-  const scripts = toOpenCollectionScripts(request);
-  const variables = toOpenCollectionVariables(request.vars);
+  const ocRequest: GrpcRequest = {
+    info,
+    grpc
+  };
+
+  const auth = toOpenCollectionAuth(request.auth as Parameters<typeof toOpenCollectionAuth>[0]);
+  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
+  const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
   const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
 
   if (auth || scripts || variables || assertions) {
-    ocRequest.runtime = {};
+    const runtime: GrpcRequestRuntime = {};
 
     if (auth) {
-      ocRequest.runtime.auth = auth;
+      runtime.auth = auth;
     }
 
     if (scripts) {
-      ocRequest.runtime.scripts = scripts;
+      runtime.scripts = scripts;
     }
 
     if (variables) {
-      ocRequest.runtime.variables = variables;
+      runtime.variables = variables;
     }
 
     if (assertions) {
-      ocRequest.runtime.assertions = assertions;
+      runtime.assertions = assertions;
     }
+
+    ocRequest.runtime = runtime;
   }
 
   if (request.docs) {
-    ocRequest.docs = request.docs;
+    ocRequest.docs = request.docs as string;
   }
 
   return ocRequest;

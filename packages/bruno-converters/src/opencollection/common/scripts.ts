@@ -1,64 +1,64 @@
-import type {
-  Scripts,
-  BrunoScript,
-  BrunoHttpRequest
-} from '../types';
+import type { Scripts, Script } from '@opencollection/types/common/scripts';
+import type { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
+import type { HttpRequest as BrunoHttpRequest } from '@usebruno/schema-types/requests/http';
+import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
+import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
 
-interface ScriptsResult {
-  script: BrunoScript;
-  tests: string | null;
-}
+export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined): Scripts | undefined => {
+  const ocScripts: Scripts = [];
 
-export const fromOpenCollectionScripts = (scripts: Scripts | undefined): ScriptsResult => {
-  const result: ScriptsResult = {
-    script: { req: null, res: null },
-    tests: null
-  };
-
-  if (!scripts?.length) {
-    return result;
+  if (request?.script?.req?.trim().length) {
+    ocScripts.push({
+      type: 'before-request',
+      code: request.script.req.trim()
+    });
+  }
+  if (request?.script?.res?.trim().length) {
+    ocScripts.push({
+      type: 'after-response',
+      code: request.script.res.trim()
+    });
+  }
+  if (request?.tests?.trim().length) {
+    ocScripts.push({
+      type: 'tests',
+      code: request.tests.trim()
+    });
   }
 
-  for (const script of scripts) {
-    switch (script.type) {
-      case 'before-request':
-        result.script.req = script.code || null;
-        break;
-      case 'after-response':
-        result.script.res = script.code || null;
-        break;
-      case 'tests':
-        result.tests = script.code || null;
-        break;
-    }
-  }
-
-  return result;
+  return ocScripts.length > 0 ? ocScripts : undefined;
 };
 
-interface BrunoRequest {
-  script?: BrunoScript | null;
+export const fromOpenCollectionScripts = (scripts: Scripts | null | undefined): {
+  script?: { req?: string | null; res?: string | null };
   tests?: string | null;
-}
-
-export const toOpenCollectionScripts = (request: BrunoRequest | null | undefined): Scripts | undefined => {
-  if (!request) {
+} | undefined => {
+  if (!scripts || !Array.isArray(scripts) || scripts.length === 0) {
     return undefined;
   }
 
-  const scripts: Scripts = [];
+  const brunoScripts: {
+    script?: { req?: string | null; res?: string | null };
+    tests?: string | null;
+  } = {};
 
-  if (request.script?.req) {
-    scripts.push({ type: 'before-request', code: request.script.req });
+  for (const script of scripts) {
+    if (script.type === 'before-request' && script.code) {
+      if (!brunoScripts.script) {
+        brunoScripts.script = {};
+      }
+      brunoScripts.script.req = script.code;
+    }
+    if (script.type === 'after-response' && script.code) {
+      if (!brunoScripts.script) {
+        brunoScripts.script = {};
+      }
+      brunoScripts.script.res = script.code;
+    }
+    if (script.type === 'tests' && script.code) {
+      brunoScripts.tests = script.code;
+    }
   }
 
-  if (request.script?.res) {
-    scripts.push({ type: 'after-response', code: request.script.res });
-  }
-
-  if (request.tests) {
-    scripts.push({ type: 'tests', code: request.tests });
-  }
-
-  return scripts.length > 0 ? scripts : undefined;
+  return Object.keys(brunoScripts).length > 0 ? brunoScripts : undefined;
 };

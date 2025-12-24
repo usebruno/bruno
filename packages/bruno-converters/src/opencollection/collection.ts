@@ -65,8 +65,8 @@ interface BrunoCollectionRoot {
 }
 
 const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
-  const extensions = oc.extensions as Record<string, unknown> | undefined;
-  const ignoreList = Array.isArray(extensions?.ignore)
+  const extensions = oc.extensions;
+  const ignoreList = extensions && Array.isArray(extensions.ignore)
     ? extensions.ignore as string[]
     : ['node_modules', '.git'];
 
@@ -157,9 +157,9 @@ const fromOpenCollectionRoot = (oc: OpenCollection): BrunoCollectionRoot => {
     root.request = {
       headers: fromOpenCollectionHeaders(oc.request.headers),
       auth: fromOpenCollectionAuth(oc.request.auth),
-      script: scripts.script,
+      script: scripts?.script,
       vars: fromOpenCollectionVariables(oc.request.variables),
-      tests: scripts.tests
+      tests: scripts?.tests
     };
   }
 
@@ -181,7 +181,7 @@ export const fromOpenCollection = (openCollection: OpenCollection): BrunoCollect
     uid: uuid(),
     name: openCollection.info?.name || 'Untitled Collection',
     version: '1',
-    items: fromOpenCollectionItems(openCollection.items, fromOpenCollectionFolder),
+    items: fromOpenCollectionItems(openCollection.items, (folder: unknown) => fromOpenCollectionFolder(folder as Parameters<typeof fromOpenCollectionFolder>[0])),
     environments: fromOpenCollectionEnvironments(openCollection.config?.environments),
     brunoConfig: fromOpenCollectionConfig(openCollection) as Record<string, unknown>,
     root: fromOpenCollectionRoot(openCollection)
@@ -309,7 +309,7 @@ export const toOpenCollection = (collection: BrunoCollection): OpenCollection =>
 
   const items = toOpenCollectionItems(collection.items, toOpenCollectionFolder);
   if (items.length) {
-    openCollection.items = items;
+    openCollection.items = items as OpenCollection['items'];
   }
 
   if (hasRequestDefaults(collection.root as BrunoCollectionRoot)) {

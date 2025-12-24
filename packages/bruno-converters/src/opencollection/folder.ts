@@ -12,9 +12,12 @@ import {
 import { fromOpenCollectionItems, toOpenCollectionItems } from './items';
 import type {
   Folder,
-  Item,
+  FolderInfo,
+  RequestDefaults,
+  Auth,
   BrunoItem,
-  BrunoFolderRoot
+  BrunoFolderRoot,
+  BrunoKeyValue
 } from './types';
 
 export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
@@ -34,17 +37,19 @@ export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
       const scripts = fromOpenCollectionScripts(folder.request.scripts);
       root.request = {
         headers: fromOpenCollectionHeaders(folder.request.headers),
-        auth: fromOpenCollectionAuth(folder.request.auth),
-        script: scripts.script,
+        auth: fromOpenCollectionAuth(folder.request.auth as Auth),
+        script: scripts?.script,
         vars: fromOpenCollectionVariables(folder.request.variables),
-        tests: scripts.tests
+        tests: scripts?.tests
       };
     }
 
     if (folder.docs) {
-      root.docs = typeof folder.docs === 'string'
-        ? folder.docs
-        : folder.docs.content || '';
+      if (typeof folder.docs === 'string') {
+        root.docs = folder.docs;
+      } else if (folder.docs && typeof folder.docs === 'object' && 'content' in folder.docs) {
+        root.docs = folder.docs.content || '';
+      }
     }
 
     root.meta = {
@@ -60,54 +65,58 @@ export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
   }
 
   if (folder.items?.length) {
-    brunoFolder.items = fromOpenCollectionItems(folder.items as Item[], fromOpenCollectionFolder);
+    brunoFolder.items = fromOpenCollectionItems(folder.items, fromOpenCollectionFolder as (f: unknown) => BrunoItem);
   }
 
   return brunoFolder;
 };
 
 export const toOpenCollectionFolder = (folder: BrunoItem): Folder => {
-  const ocFolder: Folder = {
-    info: {
-      name: folder.name || 'Untitled Folder',
-      type: 'folder'
-    }
+  const info: FolderInfo = {
+    name: folder.name || 'Untitled Folder',
+    type: 'folder'
   };
 
   if (folder.seq) {
-    ocFolder.info!.seq = folder.seq;
+    info.seq = folder.seq;
   }
 
   if (folder.tags?.length) {
-    ocFolder.info!.tags = folder.tags;
+    info.tags = folder.tags;
   }
+
+  const ocFolder: Folder = {
+    info
+  };
 
   if (folder.root) {
     const folderRequest = folder.root.request || {};
 
-    const headers = toOpenCollectionHeaders(folderRequest.headers);
+    const headers = toOpenCollectionHeaders(folderRequest.headers as BrunoKeyValue[]);
     const auth = toOpenCollectionAuth(folderRequest.auth);
-    const scripts = toOpenCollectionScripts(folderRequest as any);
+    const scripts = toOpenCollectionScripts(folderRequest as { script?: { req: string | null; res: string | null } | null; tests?: string | null });
     const variables = toOpenCollectionVariables(folderRequest.vars);
 
     if (headers || auth || scripts || variables) {
-      ocFolder.request = {};
+      const request: RequestDefaults = {};
 
       if (headers) {
-        ocFolder.request.headers = headers;
+        request.headers = headers;
       }
 
       if (auth) {
-        ocFolder.request.auth = auth;
+        request.auth = auth;
       }
 
       if (scripts) {
-        ocFolder.request.scripts = scripts;
+        request.scripts = scripts;
       }
 
       if (variables) {
-        ocFolder.request.variables = variables;
+        request.variables = variables;
       }
+
+      ocFolder.request = request;
     }
 
     if (folder.root.docs) {
@@ -119,7 +128,7 @@ export const toOpenCollectionFolder = (folder: BrunoItem): Folder => {
   }
 
   if (folder.items?.length) {
-    ocFolder.items = toOpenCollectionItems(folder.items, toOpenCollectionFolder) as Item[];
+    ocFolder.items = toOpenCollectionItems(folder.items, toOpenCollectionFolder as (f: BrunoItem) => unknown) as Folder['items'];
   }
 
   return ocFolder;

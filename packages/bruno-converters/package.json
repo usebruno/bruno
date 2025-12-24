@@ -28,7 +28,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.4",
-    "@opencollection/types": "0.1.0",
+    "@opencollection/types": "0.3.0",
     "@usebruno/schema-types": "0.0.1",
     "@rollup/plugin-alias": "^5.1.0",
     "@rollup/plugin-commonjs": "^23.0.2",

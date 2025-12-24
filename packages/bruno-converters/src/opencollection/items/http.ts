@@ -17,18 +17,23 @@ import {
 } from '../common';
 import type {
   HttpRequest,
+  HttpRequestSettings,
   HttpRequestExample,
+  HttpRequestInfo,
+  HttpRequestDetails,
+  HttpRequestRuntime,
   HttpRequestHeader,
   HttpRequestBody,
-  HttpRequestBodyVariant,
+  Auth,
   BrunoItem,
-  BrunoExample,
   BrunoKeyValue,
   BrunoHttpRequestParam,
+  BrunoExample,
   BrunoHttpRequest
 } from '../types';
+import type { HttpItemSettings as BrunoHttpItemSettings } from '@usebruno/schema-types/collection/item';
 
-const getHttpBody = (body: HttpRequestBody | HttpRequestBodyVariant[] | undefined): HttpRequestBody | undefined => {
+const getHttpBody = (body: HttpRequestBody | Array<{ title: string; selected?: boolean; body: HttpRequestBody }> | undefined): HttpRequestBody | undefined => {
   if (!body) return undefined;
   if (Array.isArray(body)) {
     const selected = body.find((v) => v.selected);
@@ -37,81 +42,90 @@ const getHttpBody = (body: HttpRequestBody | HttpRequestBodyVariant[] | undefine
   return body;
 };
 
-export const fromOpenCollectionHttpItem = (item: HttpRequest): BrunoItem => {
-  const info = item.info || {};
-  const http = item.http || {};
-  const runtime = item.runtime || {};
-  const settings = item.settings || {};
+export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem => {
+  const info = ocRequest.info;
+  const http = ocRequest.http;
+  const runtime = ocRequest.runtime;
 
-  const scripts = fromOpenCollectionScripts(runtime.scripts);
+  const scripts = fromOpenCollectionScripts(runtime?.scripts);
+  const httpBody = getHttpBody(http?.body as HttpRequestBody);
 
-  const httpBody = getHttpBody(http.body);
+  const brunoRequest: BrunoHttpRequest = {
+    url: http?.url || '',
+    method: http?.method || 'GET',
+    headers: fromOpenCollectionHeaders(http?.headers) || [],
+    params: fromOpenCollectionParams(http?.params) || [],
+    body: fromOpenCollectionBody(httpBody) || {
+      mode: 'none',
+      json: null,
+      text: null,
+      xml: null,
+      sparql: null,
+      formUrlEncoded: [],
+      multipartForm: [],
+      graphql: null,
+      file: []
+    },
+    auth: fromOpenCollectionAuth(runtime?.auth as Auth),
+    script: {
+      req: scripts?.script?.req || null,
+      res: scripts?.script?.res || null
+    },
+    vars: fromOpenCollectionVariables(runtime?.variables) || { req: [], res: [] },
+    assertions: fromOpenCollectionAssertions(runtime?.assertions) || [],
+    tests: scripts?.tests || null,
+    docs: ocRequest.docs || null
+  };
 
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'http-request',
-    name: info.name || 'Untitled Request',
-    seq: info.seq || 1,
-    request: {
-      url: http.url || '',
-      method: http.method || 'GET',
-      headers: fromOpenCollectionHeaders(http.headers),
-      params: fromOpenCollectionParams(http.params),
-      body: fromOpenCollectionBody(httpBody),
-      auth: fromOpenCollectionAuth(runtime.auth),
-      script: scripts.script,
-      vars: fromOpenCollectionVariables(runtime.variables),
-      assertions: fromOpenCollectionAssertions(runtime.assertions),
-      tests: scripts.tests,
-      docs: item.docs || ''
-    }
+    seq: info?.seq || 1,
+    name: info?.name || 'Untitled Request',
+    tags: info?.tags || [],
+    request: brunoRequest,
+    settings: null,
+    fileContent: null,
+    root: null,
+    items: [],
+    examples: [],
+    filename: null,
+    pathname: null
   };
 
-  if (settings.encodeUrl !== undefined) {
-    brunoItem.settings = brunoItem.settings || {};
-    (brunoItem.settings as any).encodeUrl = settings.encodeUrl;
-  }
-  if (settings.timeout !== undefined) {
-    brunoItem.settings = brunoItem.settings || {};
-    (brunoItem.settings as any).timeout = settings.timeout;
-  }
-  if (settings.followRedirects !== undefined) {
-    brunoItem.settings = brunoItem.settings || {};
-    (brunoItem.settings as any).followRedirects = settings.followRedirects;
-  }
-  if (settings.maxRedirects !== undefined) {
-    brunoItem.settings = brunoItem.settings || {};
-    (brunoItem.settings as any).maxRedirects = settings.maxRedirects;
+  if (ocRequest.settings) {
+    const settings: BrunoHttpItemSettings = {
+      encodeUrl: typeof ocRequest.settings.encodeUrl === 'boolean' ? ocRequest.settings.encodeUrl : true,
+      timeout: typeof ocRequest.settings.timeout === 'number' ? ocRequest.settings.timeout : 0,
+      followRedirects: typeof ocRequest.settings.followRedirects === 'boolean' ? ocRequest.settings.followRedirects : true,
+      maxRedirects: typeof ocRequest.settings.maxRedirects === 'number' ? ocRequest.settings.maxRedirects : 5
+    };
+    brunoItem.settings = settings;
   }
 
-  if (info.tags?.length) {
-    brunoItem.tags = info.tags;
-  }
-
-  if (item.examples?.length) {
-    const itemUid = brunoItem.uid;
-    brunoItem.examples = item.examples.map((example): BrunoExample => ({
+  if (ocRequest.examples?.length) {
+    brunoItem.examples = ocRequest.examples.map((example): BrunoExample => ({
       uid: uuid(),
-      itemUid,
+      itemUid: brunoItem.uid,
       name: example.name || 'Untitled Example',
-      description: typeof example.description === 'string' ? example.description : example.description?.content || null,
+      description: typeof example.description === 'string' ? example.description : (example.description as { content?: string })?.content || null,
       type: 'http-request',
       request: {
-        url: example.request?.url || http.url || '',
-        method: example.request?.method || http.method || 'GET',
-        headers: fromOpenCollectionHeaders(example.request?.headers),
-        params: fromOpenCollectionParams(example.request?.params),
-        body: fromOpenCollectionBody(example.request?.body)
+        url: example.request?.url || '',
+        method: example.request?.method || 'GET',
+        headers: fromOpenCollectionHeaders(example.request?.headers) || [],
+        params: fromOpenCollectionParams(example.request?.params) || [],
+        body: fromOpenCollectionBody(example.request?.body) || null
       },
-      response: {
-        status: String(example.response?.status || 200),
-        statusText: example.response?.statusText || 'OK',
-        headers: fromOpenCollectionHeaders(example.response?.headers as HttpRequestHeader[]),
-        body: example.response?.body ? {
+      response: example.response ? {
+        status: String(example.response.status || 200),
+        statusText: example.response.statusText || 'OK',
+        headers: fromOpenCollectionHeaders(example.response.headers as HttpRequestHeader[]) || [],
+        body: example.response.body ? {
           type: example.response.body.type || 'text',
           content: example.response.body.data || ''
         } : null
-      }
+      } : null
     }));
   }
 
@@ -119,77 +133,85 @@ export const fromOpenCollectionHttpItem = (item: HttpRequest): BrunoItem => {
 };
 
 export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
-  const request = (item.request || {}) as Partial<BrunoHttpRequest>;
-  const brunoSettings = (item.settings as any) || {};
+  const ocRequest: HttpRequest = {};
+  const brunoRequest = item.request as BrunoHttpRequest;
+  const brunoSettings = item.settings as BrunoHttpItemSettings | undefined;
 
-  const ocRequest: HttpRequest = {
-    info: {
-      name: item.name || 'Untitled Request',
-      type: 'http'
-    },
-    http: {
-      url: request.url || '',
-      method: request.method || 'GET'
-    }
+  const info: HttpRequestInfo = {
+    name: item.name || 'Untitled Request',
+    type: 'http'
   };
-
   if (item.seq) {
-    ocRequest.info!.seq = item.seq;
+    info.seq = item.seq;
   }
-
   if (item.tags?.length) {
-    ocRequest.info!.tags = item.tags;
+    info.tags = item.tags;
   }
+  ocRequest.info = info;
 
-  const headers = toOpenCollectionHeaders(request.headers as BrunoKeyValue[]);
-  if (headers) {
-    ocRequest.http!.headers = headers;
-  }
-
-  const params = toOpenCollectionParams(request.params as BrunoHttpRequestParam[]);
-  if (params) {
-    ocRequest.http!.params = params;
-  }
-
-  const body = toOpenCollectionBody(request.body);
-  if (body) {
-    ocRequest.http!.body = body;
-  }
-
-  const auth = toOpenCollectionAuth(request.auth);
-  const scripts = toOpenCollectionScripts(request);
-  const variables = toOpenCollectionVariables(request.vars);
-  const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
-
-  if (auth || scripts || variables || assertions) {
-    ocRequest.runtime = {};
-
-    if (auth) {
-      ocRequest.runtime.auth = auth;
-    }
-
-    if (scripts) {
-      ocRequest.runtime.scripts = scripts;
-    }
-
-    if (variables) {
-      ocRequest.runtime.variables = variables;
-    }
-
-    if (assertions) {
-      ocRequest.runtime.assertions = assertions;
-    }
-  }
-
-  ocRequest.settings = {
-    encodeUrl: brunoSettings.encodeUrl !== undefined ? brunoSettings.encodeUrl : true,
-    timeout: brunoSettings.timeout !== undefined ? brunoSettings.timeout : 0,
-    followRedirects: brunoSettings.followRedirects !== undefined ? brunoSettings.followRedirects : true,
-    maxRedirects: brunoSettings.maxRedirects !== undefined ? brunoSettings.maxRedirects : 5
+  const http: HttpRequestDetails = {
+    method: brunoRequest?.method || 'GET',
+    url: brunoRequest?.url || ''
   };
 
-  if (request.docs) {
-    ocRequest.docs = request.docs;
+  const headers = toOpenCollectionHeaders(brunoRequest?.headers as BrunoKeyValue[]);
+  if (headers) {
+    http.headers = headers;
+  }
+
+  const params = toOpenCollectionParams(brunoRequest?.params as BrunoHttpRequestParam[]);
+  if (params) {
+    http.params = params;
+  }
+
+  const body = toOpenCollectionBody(brunoRequest?.body);
+  if (body) {
+    http.body = body;
+  }
+
+  ocRequest.http = http;
+
+  const runtime: HttpRequestRuntime = {};
+  let hasRuntime = false;
+
+  const variables = toOpenCollectionVariables(brunoRequest?.vars);
+  if (variables) {
+    runtime.variables = variables;
+    hasRuntime = true;
+  }
+
+  const scripts = toOpenCollectionScripts(brunoRequest);
+  if (scripts) {
+    runtime.scripts = scripts;
+    hasRuntime = true;
+  }
+
+  const assertions = toOpenCollectionAssertions(brunoRequest?.assertions as BrunoKeyValue[]);
+  if (assertions) {
+    runtime.assertions = assertions;
+    hasRuntime = true;
+  }
+
+  const auth = toOpenCollectionAuth(brunoRequest?.auth);
+  if (auth) {
+    runtime.auth = auth;
+    hasRuntime = true;
+  }
+
+  if (hasRuntime) {
+    ocRequest.runtime = runtime;
+  }
+
+  const settings: HttpRequestSettings = {
+    encodeUrl: typeof brunoSettings?.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
+    timeout: typeof brunoSettings?.timeout === 'number' ? brunoSettings.timeout : 0,
+    followRedirects: typeof brunoSettings?.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
+    maxRedirects: typeof brunoSettings?.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
+  };
+  ocRequest.settings = settings;
+
+  if (brunoRequest?.docs) {
+    ocRequest.docs = brunoRequest.docs;
   }
 
   if (item.examples?.length) {
@@ -237,12 +259,12 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
 
         const responseHeaders = toOpenCollectionHeaders(example.response.headers as BrunoKeyValue[]);
         if (responseHeaders) {
-          ocExample.response.headers = responseHeaders as any;
+          ocExample.response.headers = responseHeaders;
         }
 
         if (example.response.body) {
           ocExample.response.body = {
-            type: (example.response.body.type as any) || 'text',
+            type: (example.response.body.type as 'json' | 'text' | 'xml' | 'html' | 'binary') || 'text',
             data: String(example.response.body.content || '')
           };
         }

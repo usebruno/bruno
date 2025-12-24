@@ -19,6 +19,7 @@ const externalDeps = [
   'lodash/each',
   'lodash/get',
   'lodash/cloneDeep',
+  'lodash/map',
   'js-yaml',
   'jscodeshift',
   'nanoid',
