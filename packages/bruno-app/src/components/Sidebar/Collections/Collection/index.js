@@ -437,6 +437,7 @@ const Collection = ({ collection, searchText }) => {
               items={menuItems}
               placement="bottom-start"
               appendTo={dropdownContainerRef?.current || document.body}
+              popperOptions={{ strategy: 'fixed' }}
               data-testid="collection-actions"
             >
               <ActionIcon className="collection-actions">

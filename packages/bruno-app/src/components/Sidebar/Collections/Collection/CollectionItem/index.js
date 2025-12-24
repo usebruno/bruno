@@ -682,6 +682,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               items={buildMenuItems()}
               placement="bottom-start"
               data-testid="collection-item-menu"
+              popperOptions={{ strategy: 'fixed' }}
               appendTo={dropdownContainerRef?.current || document.body}
             >
               <ActionIcon className="menu-icon">
