@@ -650,7 +650,7 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
       await overflowButton.click();
 
       // Wait for dropdown to appear and click the menu item (overflow tabs are rendered as menuitems)
-      const dropdownItem = page.locator('.tippy-content').getByRole('menuitem', { name: tabName });
+      const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
       await expect(dropdownItem).toBeVisible();
       await dropdownItem.click();
       return;
