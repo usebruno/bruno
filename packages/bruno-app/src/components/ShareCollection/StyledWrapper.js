@@ -26,6 +26,21 @@ const StyledWrapper = styled.div`
       }
     }
   }
+  
+  .share-button {
+    display: flex;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 10px;
+    border: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
+    background-color: ${(props) => props.theme.sidebar.bg};
+    color: ${(props) => props.theme.text};
+    cursor: pointer;
+    transition: all 0.1s ease;
+
+    &:hover {
+      background-color: ${(props) => props.theme.listItem.hoverBg};
+    }
+  }
 `;
 
 export default StyledWrapper;

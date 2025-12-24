@@ -67,10 +67,10 @@ const ShareCollection = ({ onClose, collectionUid }) => {
       <StyledWrapper className="flex flex-col h-full w-[500px]">
         <div className="space-y-2">
           <div
-            className={`flex border border-gray-200 dark:border-gray-600 items-center p-3 rounded-lg transition-colors ${
+            className={`share-button ${
               isCollectionLoading
                 ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
+                : 'cursor-pointer'
             }`}
             onClick={isCollectionLoading ? undefined : handleExportBrunoCollection}
           >
@@ -84,10 +84,10 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           </div>
 
           <div
-            className={`flex border border-gray-200 dark:border-gray-600 items-center p-3 rounded-lg transition-colors ${
+            className={`share-button ${
               isCollectionLoading
                 ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
+                : 'cursor-pointer'
             }`}
             onClick={isCollectionLoading ? undefined : handleExportOpenCollection}
           >
@@ -105,10 +105,10 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           </div>
 
           <div
-            className={`flex flex-col border border-gray-200 dark:border-gray-600 items-center rounded-lg transition-colors ${
+            className={`flex !flex-col share-button ${
               isCollectionLoading
                 ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
+                : 'cursor-pointer'
             }`}
             onClick={isCollectionLoading ? undefined : handleExportPostmanCollection}
           >

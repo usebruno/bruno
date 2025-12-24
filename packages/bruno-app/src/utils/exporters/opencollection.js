@@ -1,6 +1,7 @@
 import * as FileSaver from 'file-saver';
 import jsyaml from 'js-yaml';
 import { toOpenCollection } from '@usebruno/converters';
+import { sanitizeName } from 'utils/common/regex';
 
 export const brunoToOpenCollection = (collection) => {
   return toOpenCollection(collection);
@@ -16,7 +17,8 @@ export const exportCollection = (collection) => {
     sortKeys: false
   });
 
-  const fileName = `${collection.name}.yml`;
+  const sanitizedName = sanitizeName(collection.name);
+  const fileName = `${sanitizedName}.yml`;
   const fileBlob = new Blob([yamlContent], { type: 'application/x-yaml' });
 
   FileSaver.saveAs(fileBlob, fileName);
