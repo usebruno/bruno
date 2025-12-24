@@ -2,6 +2,7 @@
  * Telemetry in bruno is just an anonymous visit counter (triggered once per day).
  * The only details shared are:
  *      - OS (ex: mac, windows, linux)
+ *      - OS Architecture (ex: arm64, x64)
  *      - Bruno Version (ex: 1.3.0)
  * We don't track usage analytics / micro-interactions / crash logs / anything else.
  */
@@ -9,6 +10,7 @@
 import { useEffect } from 'react';
 import { PostHog } from 'posthog-node';
 import platformLib from 'platform';
+import os from 'os';
 import { uuid } from 'utils/common';
 
 const posthogApiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
@@ -58,6 +60,7 @@ const trackStart = (version) => {
     event: 'start',
     properties: {
       os: platformLib.os.family,
+      os_arch: os.arch(),
       version: version
     }
   });
