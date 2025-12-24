@@ -434,6 +434,7 @@ const Collection = ({ collection, searchText }) => {
               ref={menuDropdownRef}
               items={menuItems}
               placement="bottom-start"
+              appendTo={document.querySelector('.sidebar-sections-container')}
               data-testid="collection-actions"
             >
               <ActionIcon className="collection-actions">

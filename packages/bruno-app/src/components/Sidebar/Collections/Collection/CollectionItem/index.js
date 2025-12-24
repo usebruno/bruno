@@ -680,6 +680,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               items={buildMenuItems()}
               placement="bottom-start"
               data-testid="collection-item-menu"
+              appendTo={document.querySelector('.sidebar-sections-container')}
             >
               <ActionIcon className="menu-icon">
                 <IconDots size={18} className="collection-item-menu-icon" />
