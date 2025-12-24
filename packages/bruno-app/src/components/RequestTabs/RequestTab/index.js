@@ -26,7 +26,7 @@ import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
 
-const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow }) => {
+const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
@@ -403,6 +403,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           collectionRequestTabs={collectionRequestTabs}
           collection={collection}
           dispatch={dispatch}
+          dropdownContainerRef={dropdownContainerRef}
         />
       </div>
       <GradientCloseButton
@@ -422,7 +423,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   );
 };
 
-function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, collection, dispatch }) {
+function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, collection, dispatch, dropdownContainerRef }) {
   const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
   const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
 
@@ -559,7 +560,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       ref={menuDropdownRef}
       items={menuItems}
       placement="bottom-start"
-      appendTo={document.querySelector('.collection-tabs')}
+      appendTo={dropdownContainerRef?.current || document.body}
       getReferenceClientRect={getTabLabelRect}
     >
       <span></span>

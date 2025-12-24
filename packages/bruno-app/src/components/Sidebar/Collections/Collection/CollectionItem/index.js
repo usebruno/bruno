@@ -53,8 +53,10 @@ import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
   const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
 
@@ -680,7 +682,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               items={buildMenuItems()}
               placement="bottom-start"
               data-testid="collection-item-menu"
-              appendTo={document.querySelector('.sidebar-sections-container')}
+              appendTo={dropdownContainerRef?.current || document.body}
             >
               <ActionIcon className="menu-icon">
                 <IconDots size={18} className="collection-item-menu-icon" />

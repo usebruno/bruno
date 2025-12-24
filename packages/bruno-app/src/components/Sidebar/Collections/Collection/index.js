@@ -45,8 +45,10 @@ import { sortByNameThenSequence } from 'utils/common/index';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
 const Collection = ({ collection, searchText }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
@@ -434,7 +436,7 @@ const Collection = ({ collection, searchText }) => {
               ref={menuDropdownRef}
               items={menuItems}
               placement="bottom-start"
-              appendTo={document.querySelector('.sidebar-sections-container')}
+              appendTo={dropdownContainerRef?.current || document.body}
               data-testid="collection-actions"
             >
               <ActionIcon className="collection-actions">
