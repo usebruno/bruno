@@ -13,11 +13,10 @@ import StyledWrapper from './StyledWrapper';
 import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import Tab from 'components/Tab';
 import WSMessagesList from './WSMessagesList';
-import WSResponseSortOrder from './WSResponseSortOrder';
 import WSResponseHeaders from './WSResponseHeaders';
 
 const WSResult = ({ response }) => {
-  return <WSMessagesList order={response?.sortOrder} messages={response.responses || []} />;
+  return <WSMessagesList messages={response.responses || []} />;
 };
 
 const WSResponsePane = ({ item, collection }) => {
@@ -122,7 +121,6 @@ const WSResponsePane = ({ item, collection }) => {
               <>
                 <ResponseLayoutToggle />
                 <ResponseClear item={item} collection={collection} />
-                <WSResponseSortOrder item={item} collection={collection} />
                 <WSStatusCode
                   status={response.statusCode}
                   text={response.statusText}

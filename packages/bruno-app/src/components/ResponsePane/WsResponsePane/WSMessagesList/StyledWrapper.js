@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  overflow-y: auto; 
+  flex: 1;
+  min-height: 0; 
 
   .ws-message.new {
     background-color: ${({ theme }) => theme.table.striped};
