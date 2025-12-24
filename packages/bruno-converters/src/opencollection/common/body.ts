@@ -7,7 +7,7 @@ import type {
   MultipartFormBody,
   MultipartFormEntry,
   FileBody,
-  FileBodyEntry,
+  FileBodyVariant,
   GraphQLBody,
   BrunoHttpRequestBody,
   BrunoKeyValue,
@@ -198,7 +198,7 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
     }
 
     case 'file': {
-      const fileData: FileBodyEntry[] = (body.file || []).map((file): FileBodyEntry => ({
+      const fileData: FileBodyVariant[] = (body.file || []).map((file): FileBodyVariant => ({
         filePath: file.filePath || '',
         contentType: file.contentType || '',
         selected: file.selected !== false

@@ -6,6 +6,8 @@ import {
   toOpenCollectionScripts,
   fromOpenCollectionVariables,
   toOpenCollectionVariables,
+  fromOpenCollectionActions,
+  toOpenCollectionActions,
   fromOpenCollectionAssertions,
   toOpenCollectionAssertions
 } from '../common';
@@ -59,6 +61,10 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
 
   const scripts = fromOpenCollectionScripts(runtime.scripts);
 
+  // variables (pre-request from variables, post-response from actions)
+  const variables = fromOpenCollectionVariables(runtime.variables);
+  const postResponseVars = fromOpenCollectionActions((runtime as { actions?: Parameters<typeof fromOpenCollectionActions>[0] }).actions);
+
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'grpc-request',
@@ -74,7 +80,10 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
       },
       auth: fromOpenCollectionAuth(runtime.auth as Auth),
       script: scripts?.script,
-      vars: fromOpenCollectionVariables(runtime.variables),
+      vars: {
+        req: variables.req,
+        res: postResponseVars
+      },
       assertions: fromOpenCollectionAssertions(runtime.assertions),
       tests: scripts?.tests,
       docs: ''
@@ -167,7 +176,11 @@ export const toOpenCollectionGrpcItem = (item: BrunoItem): GrpcRequest => {
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
   const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
 
-  if (auth || scripts || variables || assertions) {
+  // actions (from post-response variables)
+  const vars = request.vars as { req?: unknown[]; res?: unknown[] } | undefined;
+  const actions = toOpenCollectionActions(vars?.res as Parameters<typeof toOpenCollectionActions>[0]);
+
+  if (auth || scripts || variables || assertions || actions) {
     const runtime: GrpcRequestRuntime = {};
 
     if (auth) {
@@ -184,6 +197,10 @@ export const toOpenCollectionGrpcItem = (item: BrunoItem): GrpcRequest => {
 
     if (assertions) {
       runtime.assertions = assertions;
+    }
+
+    if (actions) {
+      (runtime as { actions?: typeof actions }).actions = actions;
     }
 
     ocRequest.runtime = runtime;

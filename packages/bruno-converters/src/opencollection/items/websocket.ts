@@ -7,7 +7,9 @@ import {
   fromOpenCollectionScripts,
   toOpenCollectionScripts,
   fromOpenCollectionVariables,
-  toOpenCollectionVariables
+  toOpenCollectionVariables,
+  fromOpenCollectionActions,
+  toOpenCollectionActions
 } from '../common';
 import type {
   WebSocketRequest,
@@ -51,6 +53,10 @@ export const fromOpenCollectionWebsocketItem = (item: WebSocketRequest): BrunoIt
 
   const scripts = fromOpenCollectionScripts(runtime.scripts);
 
+  // variables (pre-request from variables, post-response from actions)
+  const variables = fromOpenCollectionVariables(runtime.variables);
+  const postResponseVars = fromOpenCollectionActions((runtime as { actions?: Parameters<typeof fromOpenCollectionActions>[0] }).actions);
+
   const wsBody: BrunoWebSocketRequestBody = {
     mode: 'ws',
     ws: wsMessages
@@ -67,7 +73,10 @@ export const fromOpenCollectionWebsocketItem = (item: WebSocketRequest): BrunoIt
       body: wsBody,
       auth: fromOpenCollectionAuth(runtime.auth as Auth),
       script: scripts?.script,
-      vars: fromOpenCollectionVariables(runtime.variables),
+      vars: {
+        req: variables.req,
+        res: postResponseVars
+      },
       tests: scripts?.tests,
       docs: item.docs || ''
     }
@@ -133,7 +142,11 @@ export const toOpenCollectionWebsocketItem = (item: BrunoItem): WebSocketRequest
   const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
 
-  if (auth || scripts || variables) {
+  // actions (from post-response variables)
+  const vars = request.vars as { req?: unknown[]; res?: unknown[] } | undefined;
+  const actions = toOpenCollectionActions(vars?.res as Parameters<typeof toOpenCollectionActions>[0]);
+
+  if (auth || scripts || variables || actions) {
     const runtime: WebSocketRequestRuntime = {};
 
     if (auth) {
@@ -146,6 +159,10 @@ export const toOpenCollectionWebsocketItem = (item: BrunoItem): WebSocketRequest
 
     if (variables) {
       runtime.variables = variables;
+    }
+
+    if (actions) {
+      (runtime as { actions?: typeof actions }).actions = actions;
     }
 
     ocRequest.runtime = runtime;

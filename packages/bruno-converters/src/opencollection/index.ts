@@ -1,4 +1,5 @@
-export { fromOpenCollection, toOpenCollection } from './collection';
+export { openCollectionToBruno } from './opencollection-to-bruno';
+export { brunoToOpenCollection } from './bruno-to-opencollection';
 export { fromOpenCollectionFolder, toOpenCollectionFolder } from './folder';
 export { fromOpenCollectionEnvironments, toOpenCollectionEnvironments } from './environment';
 

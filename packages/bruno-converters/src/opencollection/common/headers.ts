@@ -1,10 +1,10 @@
 import { uuid } from '../../common/index.js';
 import type {
-  HttpHeader,
+  HttpRequestHeader,
   BrunoKeyValue
 } from '../types';
 
-export const fromOpenCollectionHeaders = (headers: HttpHeader[] | undefined): BrunoKeyValue[] => {
+export const fromOpenCollectionHeaders = (headers: HttpRequestHeader[] | undefined): BrunoKeyValue[] => {
   if (!headers?.length) {
     return [];
   }
@@ -18,13 +18,13 @@ export const fromOpenCollectionHeaders = (headers: HttpHeader[] | undefined): Br
   }));
 };
 
-export const toOpenCollectionHeaders = (headers: BrunoKeyValue[] | null | undefined): HttpHeader[] | undefined => {
+export const toOpenCollectionHeaders = (headers: BrunoKeyValue[] | null | undefined): HttpRequestHeader[] | undefined => {
   if (!headers?.length) {
     return undefined;
   }
 
-  const ocHeaders = headers.map((header): HttpHeader => {
-    const httpHeader: HttpHeader = {
+  const ocHeaders = headers.map((header): HttpRequestHeader => {
+    const httpHeader: HttpRequestHeader = {
       name: header.name || '',
       value: header.value || ''
     };

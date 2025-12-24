@@ -2,7 +2,7 @@ import each from 'lodash/each';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, updateUidsInCollection, hydrateSeqInCollection } from './common';
-import { fromOpenCollection } from '@usebruno/converters';
+import { openCollectionToBruno } from '@usebruno/converters';
 
 const addUidsToRoot = (collection) => {
   if (collection.root?.request?.headers) {
@@ -52,7 +52,7 @@ const addUidsToRoot = (collection) => {
 
 export const processOpenCollection = async (jsonData) => {
   try {
-    let collection = fromOpenCollection(jsonData);
+    let collection = openCollectionToBruno(jsonData);
     collection = hydrateSeqInCollection(collection);
     collection = updateUidsInCollection(collection);
     collection = addUidsToRoot(collection);

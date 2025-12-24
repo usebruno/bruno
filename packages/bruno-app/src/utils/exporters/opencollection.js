@@ -1,11 +1,7 @@
 import * as FileSaver from 'file-saver';
 import jsyaml from 'js-yaml';
-import { toOpenCollection } from '@usebruno/converters';
+import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
-
-export const brunoToOpenCollection = (collection) => {
-  return toOpenCollection(collection);
-};
 
 export const exportCollection = (collection) => {
   const openCollection = brunoToOpenCollection(collection);

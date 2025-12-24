@@ -12,6 +12,8 @@ import {
   toOpenCollectionScripts,
   fromOpenCollectionVariables,
   toOpenCollectionVariables,
+  fromOpenCollectionActions,
+  toOpenCollectionActions,
   fromOpenCollectionAssertions,
   toOpenCollectionAssertions
 } from '../common';
@@ -50,6 +52,10 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
   const scripts = fromOpenCollectionScripts(runtime?.scripts);
   const httpBody = getHttpBody(http?.body as HttpRequestBody);
 
+  // variables (pre-request from variables, post-response from actions)
+  const variables = fromOpenCollectionVariables(runtime?.variables);
+  const postResponseVars = fromOpenCollectionActions(runtime?.actions);
+
   const brunoRequest: BrunoHttpRequest = {
     url: http?.url || '',
     method: http?.method || 'GET',
@@ -71,7 +77,10 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
       req: scripts?.script?.req || null,
       res: scripts?.script?.res || null
     },
-    vars: fromOpenCollectionVariables(runtime?.variables) || { req: [], res: [] },
+    vars: {
+      req: variables.req,
+      res: postResponseVars
+    },
     assertions: fromOpenCollectionAssertions(runtime?.assertions) || [],
     tests: scripts?.tests || null,
     docs: ocRequest.docs || null
@@ -189,6 +198,14 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
   const assertions = toOpenCollectionAssertions(brunoRequest?.assertions as BrunoKeyValue[]);
   if (assertions) {
     runtime.assertions = assertions;
+    hasRuntime = true;
+  }
+
+  // actions (from post-response variables)
+  const resVars = brunoRequest?.vars?.res;
+  const actions = toOpenCollectionActions(resVars);
+  if (actions) {
+    runtime.actions = actions;
     hasRuntime = true;
   }
 

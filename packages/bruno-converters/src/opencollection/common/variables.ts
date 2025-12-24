@@ -1,6 +1,6 @@
 import { uuid } from '../../common/index.js';
 import type {
-  OCVariable,
+  Variable,
   BrunoVariable,
   BrunoVariables
 } from '../types';
@@ -10,24 +10,20 @@ interface BrunoVars {
   res: BrunoVariables;
 }
 
-export const fromOpenCollectionVariables = (variables: OCVariable[] | undefined): BrunoVars => {
+export const fromOpenCollectionVariables = (variables: Variable[] | undefined): BrunoVars => {
   if (!variables?.length) {
     return { req: [], res: [] };
   }
 
-  const scopeMarker = '[post-response]';
   const reqVars: BrunoVariable[] = [];
-  const resVars: BrunoVariable[] = [];
 
-  variables.forEach((v: OCVariable) => {
+  variables.forEach((v: Variable) => {
     let value = '';
     if (typeof v.value === 'string') {
       value = v.value;
     } else if (v.value && typeof v.value === 'object' && 'data' in v.value) {
       value = (v.value as { data: string }).data || '';
     }
-
-    const isPostResponse = typeof v.description === 'string' && v.description.startsWith(scopeMarker);
 
     const variable: BrunoVariable = {
       uid: uuid(),
@@ -37,71 +33,43 @@ export const fromOpenCollectionVariables = (variables: OCVariable[] | undefined)
       local: false
     };
 
-    if (isPostResponse) {
-      const cleanDesc = (v.description as string).substring(scopeMarker.length).trim();
-      if (cleanDesc) {
-        variable.description = cleanDesc;
-      }
-      resVars.push(variable);
-    } else {
-      if (v.description) {
-        variable.description = typeof v.description === 'string' ? v.description : (v.description as { content?: string })?.content || null;
-      }
-      reqVars.push(variable);
+    if (v.description) {
+      variable.description = typeof v.description === 'string' ? v.description : (v.description as { content?: string })?.content || '';
     }
+
+    reqVars.push(variable);
   });
 
-  return { req: reqVars, res: resVars };
+  return { req: reqVars, res: [] };
 };
 
-export const toOpenCollectionVariables = (vars: BrunoVars | { req?: BrunoVariables; res?: BrunoVariables } | null | undefined): OCVariable[] | undefined => {
-  const reqVars = vars?.req || [];
-  const resVars = vars?.res || [];
+export const toOpenCollectionVariables = (vars: BrunoVars | { req?: BrunoVariables; res?: BrunoVariables } | null | undefined): Variable[] | undefined => {
+  // Handle folder variables (has req/res structure) - only use req vars
+  const hasReqRes = vars && 'req' in vars;
+  const reqVars = hasReqRes ? vars.req : vars as BrunoVariables;
 
-  const allVars: OCVariable[] = [];
-  const scopeMarker = '[post-response]';
+  const reqVarsArray = Array.isArray(reqVars) ? reqVars : [];
 
-  // Add request variables
-  if (Array.isArray(reqVars)) {
-    reqVars.forEach((v: BrunoVariable) => {
-      const ocVar: OCVariable = {
-        name: v.name || '',
-        value: v.value || ''
-      };
-
-      if (v.description && typeof v.description === 'string' && v.description.trim().length) {
-        ocVar.description = v.description;
-      }
-
-      if (v.enabled === false) {
-        ocVar.disabled = true;
-      }
-
-      allVars.push(ocVar);
-    });
+  if (!reqVarsArray.length) {
+    return undefined;
   }
 
-  // Add response variables with scope marker
-  if (Array.isArray(resVars)) {
-    resVars.forEach((v: BrunoVariable) => {
-      const ocVar: OCVariable = {
-        name: v.name || '',
-        value: v.value || ''
-      };
+  const ocVariables: Variable[] = reqVarsArray.map((v: BrunoVariable): Variable => {
+    const variable: Variable = {
+      name: v.name || '',
+      value: v.value || ''
+    };
 
-      if (v.description && typeof v.description === 'string' && v.description.trim().length) {
-        ocVar.description = `${scopeMarker} ${v.description}`;
-      } else {
-        ocVar.description = scopeMarker;
-      }
+    if (v.description && typeof v.description === 'string' && v.description.trim().length) {
+      variable.description = v.description;
+    }
 
-      if (v.enabled === false) {
-        ocVar.disabled = true;
-      }
+    if (v.enabled === false) {
+      variable.disabled = true;
+    }
 
-      allVars.push(ocVar);
-    });
-  }
+    return variable;
+  });
 
-  return allVars.length > 0 ? allVars : undefined;
+  return ocVariables.length > 0 ? ocVariables : undefined;
 };

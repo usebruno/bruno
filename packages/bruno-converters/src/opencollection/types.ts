@@ -7,7 +7,6 @@ export type { Item, Folder, FolderInfo } from '@opencollection/types/collection/
 // OpenCollection HTTP request types
 export type {
   HttpRequest,
-  HttpRequestHeader as HttpHeader,
   HttpRequestHeader,
   HttpResponseHeader,
   HttpRequestParam,
@@ -27,7 +26,7 @@ export type {
   MultipartFormBody,
   MultipartFormEntry,
   FileBody,
-  FileBodyVariant as FileBodyEntry
+  FileBodyVariant
 } from '@opencollection/types/requests/http';
 
 // OpenCollection GraphQL request types
@@ -79,13 +78,19 @@ export type { Description } from '@opencollection/types/common/description';
 export type { Info, Author } from '@opencollection/types/common/info';
 export type {
   Variable,
-  Variable as OCVariable,
-  VariableValue as OCVariableValue,
   VariableValueVariant
 } from '@opencollection/types/common/variables';
 export type { Scripts } from '@opencollection/types/common/scripts';
 export type { Assertion } from '@opencollection/types/common/assertions';
 export type { Tag } from '@opencollection/types/common/tags';
+export type {
+  Action,
+  ActionSetVariable,
+  ActionPhase,
+  ActionVariableScope,
+  SetVariableActionSelector,
+  SetVariableActionTarget
+} from '@opencollection/types/common/actions';
 
 // OpenCollection auth types
 export type {
@@ -159,3 +164,45 @@ export type {
   WebSocketRequestBody as BrunoWebSocketRequestBody,
   WebSocketMessage as BrunoWsMessage
 } from '@usebruno/schema-types/requests/websocket';
+
+export interface BrunoConfig {
+  version?: string;
+  name?: string;
+  type?: string;
+  ignore?: string[];
+  protobuf?: {
+    protoFiles?: { path: string }[];
+    importPaths?: { path: string; disabled?: boolean }[];
+  };
+  proxy?: {
+    enabled?: boolean | 'global';
+    protocol?: string;
+    hostname?: string;
+    port?: number;
+    auth?: {
+      enabled?: boolean;
+      username?: string;
+      password?: string;
+    };
+    bypassProxy?: string;
+  };
+  clientCertificates?: {
+    certs?: Array<{
+      domain?: string;
+      type?: 'pem' | 'pkcs12';
+      certFilePath?: string;
+      keyFilePath?: string;
+      pfxFilePath?: string;
+      passphrase?: string;
+    }>;
+  };
+}
+
+export interface BrunoCollectionRoot {
+  request?: any;
+  docs?: string;
+  meta?: {
+    name?: string;
+    seq?: number;
+  };
+}
