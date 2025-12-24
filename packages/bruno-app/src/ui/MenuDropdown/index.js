@@ -1,6 +1,6 @@
 import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo, Fragment } from 'react';
 import Dropdown from 'components/Dropdown';
-import { MenuDropdownGlobalStyle } from './StyledWrapper';
+import StyledWrapper, { MenuDropdownGlobalStyle } from './StyledWrapper';
 
 // Constants
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
@@ -65,6 +65,7 @@ const MenuDropdown = forwardRef(({
   groupStyle = 'action',
   autoFocusFirstOption = false,
   'data-testid': testId = 'menu-dropdown',
+  appendTo = document.body,
   ...dropdownProps
 }, ref) => {
   const tippyRef = useRef();
@@ -431,16 +432,20 @@ const MenuDropdown = forwardRef(({
       })
     : <div onClick={handleTriggerClick} data-testid={testId}>{children}</div>;
 
+  // Combine user className with scoped tippy class
+  const tippyClassName = className ? `menu-dropdown-tippy ${className}` : 'menu-dropdown-tippy';
+
   return (
-    <Fragment>
+    <StyledWrapper>
       <MenuDropdownGlobalStyle />
       <Dropdown
         onCreate={onDropdownCreate}
         icon={triggerElement}
         placement={placement}
-        className={className}
+        className={tippyClassName}
         visible={isOpen}
         onClickOutside={handleClickOutside}
+        appendTo={appendTo}
         {...dropdownProps}
       >
         <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
@@ -463,7 +468,7 @@ const MenuDropdown = forwardRef(({
           )}
         </div>
       </Dropdown>
-    </Fragment>
+    </StyledWrapper>
   );
 });
 

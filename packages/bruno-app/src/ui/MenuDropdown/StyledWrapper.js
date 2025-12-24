@@ -1,7 +1,7 @@
 import styled, { createGlobalStyle } from 'styled-components';
 
 const MenuDropdownGlobalStyle = createGlobalStyle`
-  .tippy-box {
+  .tippy-box.menu-dropdown-tippy {
     min-width: 160px;
     font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.dropdown.color};
@@ -172,4 +172,7 @@ const MenuDropdownGlobalStyle = createGlobalStyle`
   }
 `;
 
+const StyledWrapper = styled.div``;
+
+export default StyledWrapper;
 export { MenuDropdownGlobalStyle };
