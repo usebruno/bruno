@@ -32,7 +32,7 @@ const DeleteWorkspace = ({ onClose, workspace }) => {
         handleConfirm={onConfirm}
         handleCancel={onClose}
         confirmDisabled={isDeleting}
-        isDangerButton={true}
+        confirmButtonColor="danger"
       >
         <div className="flex items-center">
           <IconFolder size={18} strokeWidth={1.5} />
