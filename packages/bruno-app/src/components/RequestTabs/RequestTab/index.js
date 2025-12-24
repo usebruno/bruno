@@ -559,7 +559,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       ref={menuDropdownRef}
       items={menuItems}
       placement="bottom-start"
-      appendTo={document.body}
+      appendTo={document.querySelector('.collection-tabs')}
       getReferenceClientRect={getTabLabelRect}
     >
       <span></span>

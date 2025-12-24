@@ -1,6 +1,5 @@
-import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo, Fragment } from 'react';
+import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo } from 'react';
 import Dropdown from 'components/Dropdown';
-import StyledWrapper, { MenuDropdownGlobalStyle } from './StyledWrapper';
 
 // Constants
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
@@ -65,7 +64,6 @@ const MenuDropdown = forwardRef(({
   groupStyle = 'action',
   autoFocusFirstOption = false,
   'data-testid': testId = 'menu-dropdown',
-  appendTo = document.body,
   ...dropdownProps
 }, ref) => {
   const tippyRef = useRef();
@@ -432,43 +430,36 @@ const MenuDropdown = forwardRef(({
       })
     : <div onClick={handleTriggerClick} data-testid={testId}>{children}</div>;
 
-  // Combine user className with scoped tippy class
-  const tippyClassName = className ? `menu-dropdown-tippy ${className}` : 'menu-dropdown-tippy';
-
   return (
-    <StyledWrapper>
-      <MenuDropdownGlobalStyle />
-      <Dropdown
-        onCreate={onDropdownCreate}
-        icon={triggerElement}
-        placement={placement}
-        className={tippyClassName}
-        visible={isOpen}
-        onClickOutside={handleClickOutside}
-        appendTo={appendTo}
-        {...dropdownProps}
-      >
-        <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
-          {header && (
-            <div className="dropdown-header-container" onClick={handleClickOutside}>
-              {header}
-              <div className="dropdown-divider"></div>
-            </div>
-          )}
-          <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown}>
-            {renderMenuContent()}
+    <Dropdown
+      onCreate={onDropdownCreate}
+      icon={triggerElement}
+      placement={placement}
+      className={className}
+      visible={isOpen}
+      onClickOutside={handleClickOutside}
+      {...dropdownProps}
+    >
+      <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
+        {header && (
+          <div className="dropdown-header-container" onClick={handleClickOutside}>
+            {header}
+            <div className="dropdown-divider"></div>
           </div>
-          {footer && (
-            <>
-              <div className="dropdown-divider"></div>
-              <div className="dropdown-footer-container">
-                {footer}
-              </div>
-            </>
-          )}
+        )}
+        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown}>
+          {renderMenuContent()}
         </div>
-      </Dropdown>
-    </StyledWrapper>
+        {footer && (
+          <>
+            <div className="dropdown-divider"></div>
+            <div className="dropdown-footer-container">
+              {footer}
+            </div>
+          </>
+        )}
+      </div>
+    </Dropdown>
   );
 });
 
