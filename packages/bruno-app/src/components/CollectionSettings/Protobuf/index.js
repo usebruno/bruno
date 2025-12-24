@@ -12,6 +12,7 @@ import { getBasename } from 'utils/common/path';
 import { Tooltip } from 'react-tooltip';
 import useProtoFileManagement from '../../../hooks/useProtoFileManagement';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import Button from 'ui/Button';
 
 const ProtobufSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -335,9 +336,9 @@ const ProtobufSettings = ({ collection }) => {
       </div>
 
       <div className="mt-6">
-        <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="button" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
 
     </StyledWrapper>

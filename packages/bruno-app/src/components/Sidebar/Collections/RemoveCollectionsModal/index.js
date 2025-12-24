@@ -19,6 +19,7 @@ import {
 } from 'utils/collections/index';
 import { IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const MAX_COLLECTIONS_WIDTH = 530;
 const CHARACTER_WIDTH = 8;
@@ -226,17 +227,17 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
 
               <div className="flex justify-between mt-6">
                 <div>
-                  <button className="btn btn-sm btn-danger" onClick={handleDiscard}>
+                  <Button size="sm" color="danger" onClick={handleDiscard}>
                     Discard and Close
-                  </button>
+                  </Button>
                 </div>
                 <div>
-                  <button className="btn btn-close btn-sm mr-2" onClick={handleCancel}>
+                  <Button size="sm" color="secondary" variant="ghost" onClick={handleCancel}>
                     Cancel
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={handleSave}>
+                  </Button>
+                  <Button size="sm" onClick={handleSave}>
                     Save and Close
-                  </button>
+                  </Button>
                 </div>
               </div>
             </>

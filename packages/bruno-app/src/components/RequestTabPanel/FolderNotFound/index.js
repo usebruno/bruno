@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
+import Button from 'ui/Button';
 
 const FolderNotFound = ({ folderUid }) => {
   const dispatch = useDispatch();
@@ -32,9 +33,9 @@ const FolderNotFound = ({ folderUid }) => {
           This can happen when the folder was renamed or deleted on your filesystem.
         </div>
       </div>
-      <button className="btn btn-md btn-secondary mt-6" onClick={closeTab}>
+      <Button size="md" color="secondary" variant="ghost" onClick={closeTab}>
         Close Tab
-      </button>
+      </Button>
     </div>
   );
 };

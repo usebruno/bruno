@@ -26,7 +26,7 @@ const DeleteResponseExampleModal = ({ onClose, example, item, collection }) => {
         confirmText="Delete"
         handleConfirm={onConfirm}
         handleCancel={onClose}
-        confirmButtonClass="btn-danger"
+        isDangerButton={true}
       >
         Are you sure you want to delete the example <span className="font-medium">{example.name}</span>?
       </Modal>

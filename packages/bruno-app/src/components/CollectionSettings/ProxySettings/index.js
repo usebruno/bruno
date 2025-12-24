@@ -8,6 +8,7 @@ import { updateCollectionProxy } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
 import toast from 'react-hot-toast';
+import Button from 'ui/Button';
 
 const ProxySettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -358,9 +359,9 @@ const ProxySettings = ({ collection }) => {
           />
         </div>
         <div className="mt-6">
-          <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          <Button type="submit" size="sm" onClick={handleSave}>
             Save
-          </button>
+          </Button>
         </div>
       </div>
     </StyledWrapper>
