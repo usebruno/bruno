@@ -12,7 +12,7 @@ const Button = ({
   iconPosition = 'left',
   fullWidth = false,
   type = 'button',
-  rounded = 'sm',
+  rounded = 'base',
   fontWeight,
   onClick,
   onDoubleClick,

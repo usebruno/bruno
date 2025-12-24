@@ -31,7 +31,7 @@ export default {
     },
     rounded: {
       control: 'select',
-      options: ['sm', 'md', 'full'],
+      options: ['sm', 'base', 'md', 'lg', 'full'],
       description: 'Border radius style'
     },
     disabled: {
@@ -307,25 +307,16 @@ export const Loading = {
 };
 
 // Rounded variants
-export const RoundedSmall = {
-  args: {
-    children: 'Small Radius',
-    rounded: 'sm'
-  }
-};
-
-export const RoundedMedium = {
-  args: {
-    children: 'Medium Radius',
-    rounded: 'md'
-  }
-};
-
-export const RoundedFull = {
-  args: {
-    children: 'Pill Button',
-    rounded: 'full'
-  }
+export const Rounded = {
+  render: () => (
+    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <Button rounded="sm">Small</Button>
+      <Button rounded="base">Base</Button>
+      <Button rounded="md">Medium</Button>
+      <Button rounded="lg">Large</Button>
+      <Button rounded="full">Full</Button>
+    </div>
+  )
 };
 
 // Full Width
