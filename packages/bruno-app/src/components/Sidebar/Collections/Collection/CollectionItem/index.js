@@ -53,8 +53,10 @@ import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
   const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
 
@@ -640,8 +642,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
           >
-            <ActionIcon style={{ width: 16, minWidth: 16 }}>
-              {isFolder ? (
+
+            {isFolder ? (
+              <ActionIcon style={{ width: 16, minWidth: 16 }}>
                 <IconChevronRight
                   size={16}
                   strokeWidth={2}
@@ -651,7 +654,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   onDoubleClick={handleFolderDoubleClick}
                   data-testid="folder-chevron"
                 />
-              ) : hasExamples ? (
+              </ActionIcon>
+            ) : hasExamples ? (
+              <ActionIcon style={{ width: 16, minWidth: 16 }}>
                 <IconChevronRight
                   size={16}
                   strokeWidth={2}
@@ -661,8 +666,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   onDoubleClick={handleExamplesDoubleClick}
                   data-testid="request-item-chevron"
                 />
-              ) : null}
-            </ActionIcon>
+              </ActionIcon>
+            ) : null}
+
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
@@ -676,6 +682,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               items={buildMenuItems()}
               placement="bottom-start"
               data-testid="collection-item-menu"
+              popperOptions={{ strategy: 'fixed' }}
+              appendTo={dropdownContainerRef?.current || document.body}
             >
               <ActionIcon className="menu-icon">
                 <IconDots size={18} className="collection-item-menu-icon" />

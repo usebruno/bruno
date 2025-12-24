@@ -17,6 +17,7 @@ const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const scrollContainerRef = useRef();
+  const collectionTabsRef = useRef();
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [tabOverflowStates, setTabOverflowStates] = useState({});
   const [showChevrons, setShowChevrons] = useState(false);
@@ -115,7 +116,7 @@ const RequestTabs = () => {
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center pl-2">
+          <div className="flex items-center pl-2" ref={collectionTabsRef}>
             <ul role="tablist">
               {showChevrons ? (
                 <li className="select-none short-tab" onClick={leftSlide}>
@@ -158,6 +159,7 @@ const RequestTabs = () => {
                             folderUid={tab.folderUid}
                             hasOverflow={tabOverflowStates[tab.uid]}
                             setHasOverflow={createSetHasOverflow(tab.uid)}
+                            dropdownContainerRef={collectionTabsRef}
                           />
                         </DraggableTab>
                       );

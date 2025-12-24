@@ -1,6 +1,5 @@
 import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo } from 'react';
 import Dropdown from 'components/Dropdown';
-import StyledWrapper from './StyledWrapper';
 
 // Constants
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
@@ -432,37 +431,35 @@ const MenuDropdown = forwardRef(({
     : <div onClick={handleTriggerClick} data-testid={testId}>{children}</div>;
 
   return (
-    <StyledWrapper>
-      <Dropdown
-        onCreate={onDropdownCreate}
-        icon={triggerElement}
-        placement={placement}
-        className={className}
-        visible={isOpen}
-        onClickOutside={handleClickOutside}
-        {...dropdownProps}
-      >
-        <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
-          {header && (
-            <div className="dropdown-header-container" onClick={handleClickOutside}>
-              {header}
-              <div className="dropdown-divider"></div>
-            </div>
-          )}
-          <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown}>
-            {renderMenuContent()}
+    <Dropdown
+      onCreate={onDropdownCreate}
+      icon={triggerElement}
+      placement={placement}
+      className={className}
+      visible={isOpen}
+      onClickOutside={handleClickOutside}
+      {...dropdownProps}
+    >
+      <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
+        {header && (
+          <div className="dropdown-header-container" onClick={handleClickOutside}>
+            {header}
+            <div className="dropdown-divider"></div>
           </div>
-          {footer && (
-            <>
-              <div className="dropdown-divider"></div>
-              <div className="dropdown-footer-container">
-                {footer}
-              </div>
-            </>
-          )}
+        )}
+        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown}>
+          {renderMenuContent()}
         </div>
-      </Dropdown>
-    </StyledWrapper>
+        {footer && (
+          <>
+            <div className="dropdown-divider"></div>
+            <div className="dropdown-footer-container">
+              {footer}
+            </div>
+          </>
+        )}
+      </div>
+    </Dropdown>
   );
 });
 
