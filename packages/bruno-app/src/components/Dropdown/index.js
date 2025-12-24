@@ -11,7 +11,7 @@ const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, a
   return (
     <Tippy
       render={(attrs) => (
-        <StyledWrapper className="dropdown" transparent={transparent} tabIndex={-1} {...attrs}>
+        <StyledWrapper className="tippy-box dropdown" transparent={transparent} tabIndex={-1} {...attrs}>
           {children}
         </StyledWrapper>
       )}
