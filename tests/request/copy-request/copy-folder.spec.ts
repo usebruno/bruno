@@ -11,7 +11,7 @@ test.describe('Copy and Paste Folders', () => {
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection' });
 
     // Create a new folder with a request inside
-    await collection.locator('.collection-actions').hover();
+    await collection.hover();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('folder-to-copy');
@@ -65,7 +65,7 @@ test.describe('Copy and Paste Folders', () => {
     const folderToCopy = page.locator('.collection-item-name').filter({ hasText: 'folder-to-copy' }).first();
 
     // Create a target folder
-    await collection.locator('.collection-actions').hover();
+    await collection.hover();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('target-folder');
