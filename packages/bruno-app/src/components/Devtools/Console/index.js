@@ -64,6 +64,40 @@ const LogTimestamp = ({ timestamp }) => {
   return <span className="log-timestamp">{time}</span>;
 };
 
+// Helper function to detect URLs and make them clickable
+const linkifyText = (text) => {
+  if (typeof text !== 'string') {
+    return text;
+  }
+
+  // URL regex pattern that matches http and https URLs
+  const urlPattern = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g;
+
+  const parts = text.split(urlPattern);
+  if (parts.length === 1) {
+    return text;
+  }
+
+  return parts.map((part, index) => {
+    // Check if this part matches the URL pattern
+    if (part.match(/^https?:\/\//)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="log-link"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
@@ -92,10 +126,11 @@ const LogMessage = ({ message, args }) => {
             </div>
           );
         }
-        return String(arg);
+        // Convert to string and linkify any URLs
+        return linkifyText(String(arg));
       });
     }
-    return msg;
+    return linkifyText(msg);
   };
 
   const formattedMessage = formatMessage(message, args);
