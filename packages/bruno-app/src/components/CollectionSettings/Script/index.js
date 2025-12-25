@@ -7,6 +7,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
@@ -98,9 +99,9 @@ const Script = ({ collection }) => {
       </Tabs>
 
       <div className="mt-12">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

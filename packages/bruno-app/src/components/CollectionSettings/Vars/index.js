@@ -4,6 +4,7 @@ import VarsTable from './VarsTable';
 import StyledWrapper from './StyledWrapper';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
+import Button from 'ui/Button';
 
 const Vars = ({ collection }) => {
   const dispatch = useDispatch();
@@ -22,9 +23,9 @@ const Vars = ({ collection }) => {
         <VarsTable collection={collection} vars={responseVars} varType="response" />
       </div>
       <div className="mt-6">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

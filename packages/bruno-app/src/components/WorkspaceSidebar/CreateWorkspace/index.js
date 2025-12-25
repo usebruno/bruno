@@ -12,6 +12,7 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import { multiLineMsg } from 'utils/common/index';
 import { formatIpcError } from 'utils/common/error';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
+import Button from 'ui/Button';
 
 const CreateWorkspace = ({ onClose }) => {
   const inputRef = useRef();
@@ -188,7 +189,7 @@ const CreateWorkspace = ({ onClose }) => {
                 </p>
               </Help>
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <input
                 id="workspace-location"
                 type="text"
@@ -202,9 +203,9 @@ const CreateWorkspace = ({ onClose }) => {
                 value={formik.values.workspaceLocation || ''}
                 onClick={browse}
               />
-              <button type="button" className="btn btn-sm btn-secondary" onClick={browse}>
+              <Button type="button" onClick={browse}>
                 Browse
-              </button>
+              </Button>
             </div>
             {formik.touched.workspaceLocation && formik.errors.workspaceLocation ? (
               <div className="text-red-500 text-sm mt-1">{formik.errors.workspaceLocation}</div>

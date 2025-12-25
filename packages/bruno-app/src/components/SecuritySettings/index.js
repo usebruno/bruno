@@ -3,6 +3,7 @@ import { saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collec
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { useDispatch } from 'react-redux';
+import Button from 'ui/Button';
 
 const SecuritySettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -71,9 +72,9 @@ const SecuritySettings = ({ collection }) => {
             JavaScript code has access to the filesystem, can execute system commands and access sensitive information.
           </p>
         </div>
-        <button onClick={handleSave} className="submit btn btn-sm btn-secondary w-fit mt-6">
+        <Button size="sm" onClick={handleSave} className="w-fit mt-6">
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

@@ -2,6 +2,7 @@ import React from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
+import Button from 'ui/Button';
 
 const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose, isGlobal }) => {
   return (
@@ -25,17 +26,17 @@ const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose,
 
         <div className="flex justify-between mt-6">
           <div>
-            <button className="btn btn-sm btn-danger" onClick={onCloseWithoutSave}>
+            <Button size="sm" color="danger" onClick={onCloseWithoutSave}>
               Don't Save
-            </button>
+            </Button>
           </div>
           <div>
-            <button className="btn btn-close btn-sm mr-2" onClick={onCancel}>
+            <Button size="sm" color="secondary" variant="ghost" onClick={onCancel}>
               Cancel
-            </button>
-            <button className="btn btn-secondary btn-sm" onClick={onSaveAndClose}>
+            </Button>
+            <Button size="sm" onClick={onSaveAndClose}>
               Save
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

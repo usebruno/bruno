@@ -8,10 +8,12 @@ const StyledWrapper = styled.div`
   }
   .collection-name {
     font-weight: 500;
+    padding-left: 0 !important;
     color: ${(props) => props.theme.text};
     margin-bottom: 4px;
+    cursor: default !important;
     &:hover {
-      background: none;
+      background: none !important;
     }
   }
   .collection-path {

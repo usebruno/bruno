@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 import useFocusTrap from 'hooks/useFocusTrap';
+import Button from 'ui/Button';
 
 const ESC_KEY_CODE = 27;
 const ENTER_KEY_CODE = 13;
@@ -27,7 +28,7 @@ const ModalFooter = ({
   confirmDisabled,
   hideCancel,
   hideFooter,
-  confirmButtonClass = 'btn-secondary'
+  confirmButtonColor = 'primary'
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -39,19 +40,20 @@ const ModalFooter = ({
   return (
     <div className="flex justify-end p-4 bruno-modal-footer">
       <span className={hideCancel ? 'hidden' : 'mr-2'}>
-        <button type="button" onClick={handleCancel} className="btn btn-md btn-close">
+        <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
           {cancelText}
-        </button>
+        </Button>
       </span>
       <span>
-        <button
+        <Button
           type="submit"
-          className={`submit btn btn-md ${confirmButtonClass}`}
+          color={confirmButtonColor}
           disabled={confirmDisabled}
           onClick={handleSubmit}
+          className="submit"
         >
           {confirmText}
-        </button>
+        </Button>
       </span>
     </div>
   );
@@ -75,7 +77,7 @@ const Modal = ({
   onClick,
   closeModalFadeTimeout = 500,
   dataTestId,
-  confirmButtonClass
+  confirmButtonColor = 'primary'
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -149,7 +151,7 @@ const Modal = ({
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
-          confirmButtonClass={confirmButtonClass}
+          confirmButtonColor={confirmButtonColor}
         />
       </div>
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
+import Button from 'ui/Button';
 
 const ExampleNotFound = ({ exampleUid }) => {
   const dispatch = useDispatch();
@@ -30,9 +31,9 @@ const ExampleNotFound = ({ exampleUid }) => {
           This can occur when the example definition in your local file has been deleted or updated.
         </div>
       </div>
-      <button className="btn btn-md btn-secondary mt-6" onClick={closeTab}>
+      <Button size="md" color="secondary" variant="ghost" onClick={closeTab}>
         Close Tab
-      </button>
+      </Button>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
+import Button from 'ui/Button';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -122,9 +123,9 @@ const PresetsSettings = ({ collection }) => {
         </div>
 
         <div className="mt-6">
-          <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          <Button type="button" size="sm" onClick={handleSave}>
             Save
-          </button>
+          </Button>
         </div>
       </div>
     </StyledWrapper>
