@@ -22,6 +22,7 @@ import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
+import Button from 'ui/Button';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -594,16 +595,12 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 </Dropdown>
               </div>
               <div className="flex justify-end">
-                <span className="mr-2">
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button type="submit" className="submit btn btn-md btn-secondary">
-                    Create
-                  </button>
-                </span>
+                <Button type="button" size="md" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit" size="md">
+                  Create
+                </Button>
               </div>
             </div>
           </form>

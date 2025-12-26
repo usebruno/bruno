@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import Modal from 'components/Modal/index';
 import CodeEditor from 'components/CodeEditor';
+import Button from 'ui/Button';
 
 const GrpcurlModal = ({ isOpen, onClose, command }) => {
   const { displayedTheme } = useTheme();
@@ -39,12 +40,11 @@ const GrpcurlModal = ({ isOpen, onClose, command }) => {
         <div className="flex w-full min-h-[400px]">
           <div className="flex-grow relative">
             <div className="absolute top-2 right-2 z-10">
-              <button
+              <Button
+                size="sm"
                 onClick={handleCopy}
-                className="btn btn-sm btn-secondary flex items-center gap-2"
-              >
-                {copied ? <IconCheck size={20} /> : <IconCopy size={20} />}
-              </button>
+                icon={copied ? <IconCheck size={20} /> : <IconCopy size={20} />}
+              />
             </div>
             <CodeEditor
               value={command}
