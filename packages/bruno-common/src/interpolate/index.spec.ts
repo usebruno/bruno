@@ -375,6 +375,62 @@ describe('interpolate - recursive', () => {
       "x": "baz bar"
     }`);
   });
+
+  it('should replace variables pointing to mock data functions', () => {
+    const inputString = 'Timestamp: {{folderVar}}';
+    const inputObject = {
+      folderVar: '{{$isoTimestamp}}'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    // Validate that the result is a valid ISO timestamp
+    const timestampPattern = /^Timestamp: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+    expect(timestampPattern.test(result)).toBe(true);
+  });
+
+  it('should replace nested variables pointing to mock data functions', () => {
+    const inputString = 'Random values: {{var1}} and {{var2}}';
+    const inputObject = {
+      var1: '{{nestedVar}}',
+      nestedVar: '{{$randomInt}}',
+      var2: '{{$randomBoolean}}'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    // Validate the result
+    const parts = result.split(' and ');
+    expect(parts.length).toBe(2);
+
+    const randomInt = parts[0].replace('Random values: ', '');
+    const randomBoolean = parts[1];
+
+    // Check if randomInt is a number
+    expect(!isNaN(Number(randomInt))).toBe(true);
+    expect(Number(randomInt)).toBeGreaterThanOrEqual(0);
+    expect(Number(randomInt)).toBeLessThanOrEqual(1000);
+
+    // Check if randomBoolean is a boolean
+    expect(['true', 'false'].includes(randomBoolean)).toBe(true);
+  });
+
+  it('should replace variables pointing to mock data functions with escapeJSONStrings option', () => {
+    const inputString = '{"timestamp": "{{folderVar}}"}';
+    const inputObject = {
+      folderVar: '{{$isoTimestamp}}'
+    };
+
+    const result = interpolate(inputString, inputObject, { escapeJSONStrings: true });
+
+    // Should produce valid JSON
+    expect(() => {
+      const parsed = JSON.parse(result);
+      // Validate that the timestamp is a valid ISO timestamp
+      const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+      expect(timestampPattern.test(parsed.timestamp)).toBe(true);
+    }).not.toThrow();
+  });
 });
 
 describe('interpolate - object handling', () => {
