@@ -36,30 +36,12 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     };
   }
 
-  if (config.proxy && typeof config.proxy !== 'boolean') {
-    if (config.proxy === 'inherit') {
-      brunoConfig.proxy = { enabled: 'global' };
-    } else {
-      const proxyConfig = config.proxy;
-      brunoConfig.proxy = {
-        enabled: true,
-        protocol: proxyConfig.protocol || 'http',
-        hostname: proxyConfig.hostname || '',
-        port: proxyConfig.port || 0
-      };
-
-      if (proxyConfig.auth) {
-        brunoConfig.proxy.auth = {
-          enabled: true,
-          username: proxyConfig.auth.username || '',
-          password: proxyConfig.auth.password || ''
-        };
-      }
-
-      if (proxyConfig.bypassProxy) {
-        brunoConfig.proxy.bypassProxy = proxyConfig.bypassProxy;
-      }
-    }
+  if (config.proxy) {
+    brunoConfig.proxy = {
+      disabled: config.proxy.disabled,
+      inherit: config.proxy.inherit,
+      config: config.proxy.config
+    };
   }
 
   if (config.clientCertificates?.length) {
