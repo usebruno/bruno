@@ -54,7 +54,9 @@ const defaultPreferences = {
   autoSave: {
     enabled: false,
     interval: 1000
-  }
+  },
+  // Integrations preferences: { [id]: { enabled: boolean, config?: Record<string, any> } }
+  integrations: {}
 };
 
 const preferencesSchema = Yup.object().shape({
@@ -104,7 +106,9 @@ const preferencesSchema = Yup.object().shape({
   autoSave: Yup.object({
     enabled: Yup.boolean(),
     interval: Yup.number().min(100)
-  })
+  }),
+  // Shallow validation for integrations: we're only interested in existence (object) at this stage
+  integrations: Yup.object()
 });
 
 class PreferencesStore {
@@ -219,6 +223,26 @@ const preferencesUtil = {
       https_proxy: https_proxy || HTTPS_PROXY,
       no_proxy: no_proxy || NO_PROXY
     };
+  },
+  // Integrations helpers
+  getIntegrationPref: (id) => {
+    return get(getPreferences(), `integrations.${id}`, { enabled: false });
+  },
+  isIntegrationEnabled: (id) => {
+    return get(getPreferences(), `integrations.${id}.enabled`, false);
+  },
+  setIntegrationEnabled: async (id, enabled) => {
+    const preferences = getPreferences();
+    if (!preferences.integrations) {
+      preferences.integrations = {};
+    }
+    preferences.integrations[id] = Object.assign({}, preferences.integrations[id] || {}, { enabled });
+
+    try {
+      await savePreferences(preferences);
+    } catch (err) {
+      console.error('Failed to save preferences in setIntegrationEnabled:', err);
+    }
   },
   isBetaFeatureEnabled: (featureName) => {
     return get(getPreferences(), `beta.${featureName}`, false);

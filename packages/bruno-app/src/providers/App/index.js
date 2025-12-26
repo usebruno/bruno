@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { get } from 'lodash';
 import { useDispatch } from 'react-redux';
 import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
+import useIntegrations from 'providers/Integrations/useIntegrations';
 import StyledWrapper from './StyledWrapper';
 import { version } from '../../../package.json';
 
@@ -13,6 +14,8 @@ export const AppContext = React.createContext();
 export const AppProvider = (props) => {
   useTelemetry({ version });
   useIpcEvents();
+  const integrationContext = useMemo(() => ({}), []);
+  useIntegrations(integrationContext);
   const dispatch = useDispatch();
 
   useEffect(() => {

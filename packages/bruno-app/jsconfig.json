@@ -8,6 +8,7 @@
       "assets/*": ["src/assets/*"],
       "ui/*": ["src/ui/*"],
       "components/*": ["src/components/*"],
+      "integrations/*": ["src/integrations/*"],
       "hooks/*": ["src/hooks/*"],
       "themes/*": ["src/themes/*"],
       "api/*": ["src/api/*"],

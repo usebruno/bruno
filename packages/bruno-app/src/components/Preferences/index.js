@@ -8,6 +8,7 @@ import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
 import Beta from './Beta';
+import Integrations from './Integrations';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -42,6 +43,10 @@ const Preferences = ({ onClose }) => {
         return <Beta close={onClose} />;
       }
 
+      case 'integrations': {
+        return <Integrations close={onClose} />;
+      }
+
       case 'support': {
         return <Support />;
       }
@@ -64,6 +69,9 @@ const Preferences = ({ onClose }) => {
             </div>
             <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
               Keybindings
+            </div>
+            <div className={getTabClassname('integrations')} role="tab" onClick={() => setTab('integrations')}>
+              Integrations
             </div>
             <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
               Support
