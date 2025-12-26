@@ -256,12 +256,12 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                 Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
               </div>
               <div className="flex justify-end mt-6">
-                <button className="btn btn-close btn-sm mr-2" data-testid="modal-close-button" onClick={handleCancel}>
+                <Button size="sm" color="secondary" variant="ghost" onClick={handleCancel} className="mr-2" data-testid="modal-close-button">
                   Cancel
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={handleCloseAllCollections}>
+                </Button>
+                <Button size="sm" onClick={handleCloseAllCollections}>
                   {hasMultipleCollections ? 'Close All' : 'Close'}
-                </button>
+                </Button>
               </div>
             </>
           )}

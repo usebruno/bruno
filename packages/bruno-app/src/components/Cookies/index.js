@@ -162,17 +162,18 @@ const CollectionProperties = ({ onClose }) => {
               <IconCookieOff size={48} strokeWidth={1.5} className="text-gray-500" />
               <h2 className="text-lg font-medium mt-4">No cookies found</h2>
               <p className="text-gray-500 mt-2">Add cookies to get started</p>
-              <button
+              <Button
                 type="submit"
-                className="submit btn btn-sm btn-secondary flex items-center gap-1 mt-8"
+                size="sm"
+                className="mt-8"
+                icon={<IconCirclePlus strokeWidth={1.5} size={16} />}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAddCookie();
                 }}
               >
-                <IconCirclePlus strokeWidth={1.5} size={16} />
-                <span>Add Cookie</span>
-              </button>
+                Add Cookie
+              </Button>
             </div>
           ) : cookies.length && !filteredCookies.length ? (
             // No search results
