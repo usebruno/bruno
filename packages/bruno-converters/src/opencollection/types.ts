@@ -66,9 +66,10 @@ export type {
 } from '@opencollection/types/requests/websocket';
 
 // OpenCollection config types
-export type { Environment, CollectionConfig } from '@opencollection/types/config/environments';
+export type { Environment } from '@opencollection/types/config/environments';
+export type { CollectionConfig } from '@opencollection/types/config/collection';
 export type { Protobuf, ProtoFileItem, ProtoFileImportPath } from '@opencollection/types/config/protobuf';
-export type { Proxy, ProxyAuth } from '@opencollection/types/config/proxy';
+export type { Proxy, ProxyConnectionConfig, ProxyConnectionAuth } from '@opencollection/types/config/proxy';
 export type { ClientCertificate, PemCertificate, Pkcs12Certificate } from '@opencollection/types/config/certificates';
 
 // OpenCollection common types
@@ -175,16 +176,19 @@ export interface BrunoConfig {
     importPaths?: { path: string; disabled?: boolean }[];
   };
   proxy?: {
-    enabled?: boolean | 'global';
-    protocol?: string;
-    hostname?: string;
-    port?: number;
-    auth?: {
-      enabled?: boolean;
-      username?: string;
-      password?: string;
+    disabled?: boolean;
+    inherit?: boolean;
+    config?: {
+      protocol?: string;
+      hostname?: string;
+      port?: number;
+      auth?: {
+        disabled?: boolean;
+        username?: string;
+        password?: string;
+      };
+      bypassProxy?: string;
     };
-    bypassProxy?: string;
   };
   clientCertificates?: {
     certs?: Array<{

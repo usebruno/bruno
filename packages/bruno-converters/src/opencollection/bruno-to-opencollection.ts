@@ -32,27 +32,12 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
     }
   }
 
-  if (brunoConfig.proxy?.enabled) {
-    if (brunoConfig.proxy.enabled === 'global') {
-      config.proxy = 'inherit';
-    } else {
-      config.proxy = {
-        protocol: brunoConfig.proxy.protocol || 'http',
-        hostname: brunoConfig.proxy.hostname || '',
-        port: brunoConfig.proxy.port || 0
-      };
-
-      if (brunoConfig.proxy.auth?.enabled) {
-        config.proxy.auth = {
-          username: brunoConfig.proxy.auth.username || '',
-          password: brunoConfig.proxy.auth.password || ''
-        };
-      }
-
-      if (brunoConfig.proxy.bypassProxy) {
-        config.proxy.bypassProxy = brunoConfig.proxy.bypassProxy;
-      }
-    }
+  if (brunoConfig.proxy) {
+    config.proxy = {
+      disabled: brunoConfig.proxy.disabled,
+      inherit: brunoConfig.proxy.inherit,
+      config: brunoConfig.proxy.config
+    };
   }
 
   if (brunoConfig.clientCertificates?.certs?.length) {
