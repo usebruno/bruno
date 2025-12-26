@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
 import MenuDropdown from 'ui/MenuDropdown';
-import { IconChevronDown } from '@tabler/icons';
+import { IconChevronsRight } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const DROPDOWN_WIDTH = 60;
@@ -251,8 +251,7 @@ const ResponsiveTabs = ({
             selectedItemId={activeTab}
           >
             <div className="more-tabs select-none flex items-center cursor-pointer gap-1">
-              <span>More</span>
-              <IconChevronDown size={14} strokeWidth={2} />
+              <IconChevronsRight size={18} strokeWidth={2} />
             </div>
           </MenuDropdown>
         )}
