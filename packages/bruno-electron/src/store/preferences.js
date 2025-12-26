@@ -125,10 +125,10 @@ class PreferencesStore {
     // Migrate proxy configuration from old formats to new format
     const proxyMigrated = get(preferences, '_migrations.proxyConfigFormat', false);
     if (!proxyMigrated && preferences?.proxy) {
-      const proxy = preferences.proxy;
+      const proxy = preferences.proxy || {};
 
       // Check if this is an old format that needs migration
-      const hasOldFormat = 'enabled' in proxy || 'mode' in proxy;
+      const hasOldFormat = proxy.hasOwnProperty('enabled') || proxy.hasOwnProperty('mode');
 
       if (hasOldFormat) {
         let newProxy = {
@@ -146,10 +146,10 @@ class PreferencesStore {
         };
 
         // Handle old format 1: enabled (boolean)
-        if ('enabled' in proxy && typeof proxy.enabled === 'boolean') {
+        if (proxy.hasOwnProperty('enabled') && typeof proxy.enabled === 'boolean') {
           newProxy.disabled = !proxy.enabled;
           newProxy.inherit = false;
-        } else if ('mode' in proxy) {
+        } else if (proxy.hasOwnProperty('mode')) {
           // Handle old format 2: mode ('off' | 'on' | 'system')
           if (proxy.mode === 'off') {
             newProxy.disabled = true;
