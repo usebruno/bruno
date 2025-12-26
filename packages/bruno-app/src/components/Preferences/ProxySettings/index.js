@@ -18,56 +18,41 @@ const ProxySettings = ({ close }) => {
   console.log(preferences);
 
   const proxySchema = Yup.object({
-    mode: Yup.string().oneOf(['off', 'on', 'system']),
-    protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
-    hostname: Yup.string()
-      .when('enabled', {
-        is: 'on',
-        then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
-        otherwise: (hostname) => hostname.nullable()
-      })
-      .max(1024),
-    port: Yup.number()
-      .min(1)
-      .max(65535)
-      .typeError('Specify port between 1 and 65535')
-      .nullable()
-      .transform((_, val) => (val ? Number(val) : null)),
-    auth: Yup.object()
-      .when('enabled', {
-        is: 'on',
-        then: Yup.object({
-          enabled: Yup.boolean(),
-          username: Yup.string()
-            .when(['enabled'], {
-              is: true,
-              then: (username) => username.required('Specify username for proxy authentication.')
-            })
-            .max(1024),
-          password: Yup.string()
-            .when('enabled', {
-              is: true,
-              then: (password) => password.required('Specify password for proxy authentication.')
-            })
-            .max(1024)
-        })
-      })
-      .optional(),
-    bypassProxy: Yup.string().optional().max(1024)
+    disabled: Yup.boolean().optional(),
+    inherit: Yup.boolean().required(),
+    config: Yup.object({
+      protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
+      hostname: Yup.string().max(1024),
+      port: Yup.number()
+        .min(1)
+        .max(65535)
+        .typeError('Specify port between 1 and 65535')
+        .nullable()
+        .transform((_, val) => (val ? Number(val) : null)),
+      auth: Yup.object({
+        disabled: Yup.boolean().optional(),
+        username: Yup.string().max(1024),
+        password: Yup.string().max(1024)
+      }).optional(),
+      bypassProxy: Yup.string().optional().max(1024)
+    }).required()
   });
 
   const formik = useFormik({
     initialValues: {
-      mode: preferences.proxy.mode,
-      protocol: preferences.proxy.protocol || 'http',
-      hostname: preferences.proxy.hostname || '',
-      port: preferences.proxy.port || 0,
-      auth: {
-        enabled: preferences.proxy.auth ? preferences.proxy.auth.enabled || false : false,
-        username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
-        password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
-      },
-      bypassProxy: preferences.proxy.bypassProxy || ''
+      disabled: preferences.proxy.disabled || false,
+      inherit: preferences.proxy.inherit || false,
+      config: {
+        protocol: preferences.proxy.config?.protocol || 'http',
+        hostname: preferences.proxy.config?.hostname || '',
+        port: preferences.proxy.config?.port || 0,
+        auth: {
+          disabled: preferences.proxy.config?.auth?.disabled || false,
+          username: preferences.proxy.config?.auth?.username || '',
+          password: preferences.proxy.config?.auth?.password || ''
+        },
+        bypassProxy: preferences.proxy.config?.bypassProxy || ''
+      }
     },
     validationSchema: proxySchema,
     onSubmit: (values) => {
@@ -103,16 +88,19 @@ const ProxySettings = ({ close }) => {
 
   useEffect(() => {
     formik.setValues({
-      mode: preferences.proxy.mode,
-      protocol: preferences.proxy.protocol || 'http',
-      hostname: preferences.proxy.hostname || '',
-      port: preferences.proxy.port || '',
-      auth: {
-        enabled: preferences.proxy.auth ? preferences.proxy.auth.enabled || false : false,
-        username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
-        password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
-      },
-      bypassProxy: preferences.proxy.bypassProxy || ''
+      disabled: preferences.proxy.disabled || false,
+      inherit: preferences.proxy.inherit || false,
+      config: {
+        protocol: preferences.proxy.config?.protocol || 'http',
+        hostname: preferences.proxy.config?.hostname || '',
+        port: preferences.proxy.config?.port || '',
+        auth: {
+          disabled: preferences.proxy.config?.auth?.disabled || false,
+          username: preferences.proxy.config?.auth?.username || '',
+          password: preferences.proxy.config?.auth?.password || ''
+        },
+        bypassProxy: preferences.proxy.config?.bypassProxy || ''
+      }
     });
   }, [preferences]);
 
@@ -137,10 +125,11 @@ const ProxySettings = ({ close }) => {
               <input
                 type="radio"
                 name="mode"
-                value="false"
-                checked={formik.values.mode === 'off'}
+                value="off"
+                checked={formik.values.disabled === true}
                 onChange={(e) => {
-                  formik.setFieldValue('mode', 'off');
+                  formik.setFieldValue('disabled', true);
+                  formik.setFieldValue('inherit', false);
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -150,10 +139,11 @@ const ProxySettings = ({ close }) => {
               <input
                 type="radio"
                 name="mode"
-                value="true"
-                checked={formik.values.mode === 'on'}
+                value="on"
+                checked={formik.values.disabled === false && formik.values.inherit === false}
                 onChange={(e) => {
-                  formik.setFieldValue('mode', 'on');
+                  formik.setFieldValue('disabled', false);
+                  formik.setFieldValue('inherit', false);
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -164,15 +154,18 @@ const ProxySettings = ({ close }) => {
                 type="radio"
                 name="mode"
                 value="system"
-                checked={formik.values.mode === 'system'}
-                onChange={formik.handleChange}
+                checked={formik.values.disabled === false && formik.values.inherit === true}
+                onChange={(e) => {
+                  formik.setFieldValue('disabled', false);
+                  formik.setFieldValue('inherit', true);
+                }}
                 className="mr-1 cursor-pointer"
               />
               System Proxy
             </label>
           </div>
         </div>
-        {formik?.values?.mode === 'system' ? (
+        {formik.values.disabled === false && formik.values.inherit === true ? (
           <div className="mb-3 pt-1 text-muted system-proxy-settings">
             <small>
               Below values are sourced from your system environment variables and cannot be directly updated in Bruno.<br />
@@ -200,7 +193,7 @@ const ProxySettings = ({ close }) => {
             </div>
           </div>
         ) : null}
-        {formik?.values?.mode === 'on' ? (
+        {formik.values.disabled === false && formik.values.inherit === false ? (
           <>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="protocol">
@@ -210,9 +203,9 @@ const ProxySettings = ({ close }) => {
                 <label className="flex items-center">
                   <input
                     type="radio"
-                    name="protocol"
+                    name="config.protocol"
                     value="http"
-                    checked={formik.values.protocol === 'http'}
+                    checked={formik.values.config.protocol === 'http'}
                     onChange={formik.handleChange}
                     className="mr-1"
                   />
@@ -221,9 +214,9 @@ const ProxySettings = ({ close }) => {
                 <label className="flex items-center ml-4">
                   <input
                     type="radio"
-                    name="protocol"
+                    name="config.protocol"
                     value="https"
-                    checked={formik.values.protocol === 'https'}
+                    checked={formik.values.config.protocol === 'https'}
                     onChange={formik.handleChange}
                     className="mr-1"
                   />
@@ -232,9 +225,9 @@ const ProxySettings = ({ close }) => {
                 <label className="flex items-center ml-4">
                   <input
                     type="radio"
-                    name="protocol"
+                    name="config.protocol"
                     value="socks4"
-                    checked={formik.values.protocol === 'socks4'}
+                    checked={formik.values.config.protocol === 'socks4'}
                     onChange={formik.handleChange}
                     className="mr-1"
                   />
@@ -243,9 +236,9 @@ const ProxySettings = ({ close }) => {
                 <label className="flex items-center ml-4">
                   <input
                     type="radio"
-                    name="protocol"
+                    name="config.protocol"
                     value="socks5"
-                    checked={formik.values.protocol === 'socks5'}
+                    checked={formik.values.config.protocol === 'socks5'}
                     onChange={formik.handleChange}
                     className="mr-1"
                   />
@@ -254,92 +247,94 @@ const ProxySettings = ({ close }) => {
               </div>
             </div>
             <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="hostname">
+              <label className="settings-label" htmlFor="config.hostname">
                 Hostname
               </label>
               <input
-                id="hostname"
+                id="config.hostname"
                 type="text"
-                name="hostname"
+                name="config.hostname"
                 className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
                 onChange={formik.handleChange}
-                value={formik.values.hostname || ''}
+                value={formik.values.config.hostname || ''}
               />
-              {formik.touched.hostname && formik.errors.hostname ? (
-                <div className="ml-3 text-red-500">{formik.errors.hostname}</div>
+              {formik.touched.config?.hostname && formik.errors.config?.hostname ? (
+                <div className="ml-3 text-red-500">{formik.errors.config.hostname}</div>
               ) : null}
             </div>
             <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="port">
+              <label className="settings-label" htmlFor="config.port">
                 Port
               </label>
               <input
-                id="port"
+                id="config.port"
                 type="number"
-                name="port"
+                name="config.port"
                 className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
                 onChange={formik.handleChange}
-                value={formik.values.port}
+                value={formik.values.config.port}
               />
-              {formik.touched.port && formik.errors.port ? (
-                <div className="ml-3 text-red-500">{formik.errors.port}</div>
+              {formik.touched.config?.port && formik.errors.config?.port ? (
+                <div className="ml-3 text-red-500">{formik.errors.config.port}</div>
               ) : null}
             </div>
             <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="auth.enabled">
+              <label className="settings-label" htmlFor="config.auth.disabled">
                 Auth
               </label>
               <input
                 type="checkbox"
-                name="auth.enabled"
-                checked={formik.values.auth.enabled}
-                onChange={formik.handleChange}
+                name="config.auth.disabled"
+                checked={!formik.values.config.auth.disabled}
+                onChange={(e) => {
+                  formik.setFieldValue('config.auth.disabled', !e.target.checked);
+                }}
               />
             </div>
             <div>
               <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="auth.username">
+                <label className="settings-label" htmlFor="config.auth.username">
                   Username
                 </label>
                 <input
-                  id="auth.username"
+                  id="config.auth.username"
                   type="text"
-                  name="auth.username"
+                  name="config.auth.username"
                   className="block textbox"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck="false"
-                  value={formik.values.auth.username}
+                  value={formik.values.config.auth.username}
                   onChange={formik.handleChange}
                 />
-                {formik.touched.auth?.username && formik.errors.auth?.username ? (
-                  <div className="ml-3 text-red-500">{formik.errors.auth.username}</div>
+                {formik.touched.config?.auth?.username && formik.errors.config?.auth?.username ? (
+                  <div className="ml-3 text-red-500">{formik.errors.config.auth.username}</div>
                 ) : null}
               </div>
               <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="auth.password">
+                <label className="settings-label" htmlFor="config.auth.password">
                   Password
                 </label>
                 <div className="textbox flex flex-row items-center w-[13.2rem] h-[2.25rem] relative">
                   <input
-                    id="auth.password"
+                    id="config.auth.password"
                     type={passwordVisible ? `text` : 'password'}
-                    name="auth.password"
+                    name="config.auth.password"
                     className="outline-none w-[10.5rem] bg-transparent"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck="false"
-                    value={formik.values.auth.password}
+                    value={formik.values.config.auth.password}
                     onChange={formik.handleChange}
                   />
                   <button
@@ -350,29 +345,29 @@ const ProxySettings = ({ close }) => {
                     {passwordVisible ? <IconEyeOff size={18} strokeWidth={2} /> : <IconEye size={18} strokeWidth={2} />}
                   </button>
                 </div>
-                {formik.touched.auth?.password && formik.errors.auth?.password ? (
-                  <div className="ml-3 text-red-500">{formik.errors.auth.password}</div>
+                {formik.touched.config?.auth?.password && formik.errors.config?.auth?.password ? (
+                  <div className="ml-3 text-red-500">{formik.errors.config.auth.password}</div>
                 ) : null}
               </div>
             </div>
             <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="bypassProxy">
+              <label className="settings-label" htmlFor="config.bypassProxy">
                 Proxy Bypass
               </label>
               <input
-                id="bypassProxy"
+                id="config.bypassProxy"
                 type="text"
-                name="bypassProxy"
+                name="config.bypassProxy"
                 className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
                 onChange={formik.handleChange}
-                value={formik.values.bypassProxy || ''}
+                value={formik.values.config.bypassProxy || ''}
               />
-              {formik.touched.bypassProxy && formik.errors.bypassProxy ? (
-                <div className="ml-3 text-red-500">{formik.errors.bypassProxy}</div>
+              {formik.touched.config?.bypassProxy && formik.errors.config?.bypassProxy ? (
+                <div className="ml-3 text-red-500">{formik.errors.config.bypassProxy}</div>
               ) : null}
             </div>
           </>
