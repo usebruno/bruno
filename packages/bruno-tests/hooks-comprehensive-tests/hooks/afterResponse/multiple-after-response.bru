@@ -1,0 +1,60 @@
+meta {
+  name: multiple-after-response
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  // First hook
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    console.log('[afterResponse 1] First hook executing');
+    bru.setVar('hook-order', '1');
+    const status = res.getStatus();
+    bru.setVar('status-from-hook-1', status.toString());
+  });
+  
+  // Second hook
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    console.log('[afterResponse 2] Second hook executing');
+    const order = bru.getVar('hook-order') || '';
+    bru.setVar('hook-order', order + ',2');
+    
+    const status = res.getStatus();
+    bru.setVar('status-from-hook-2', status.toString());
+  });
+  
+  // Third hook (async)
+  bru.hooks.http.onAfterResponse(async({ res }) => {
+    console.log('[afterResponse 3] Third hook (async) executing');
+    await bru.sleep(200);
+    const order = bru.getVar('hook-order') || '';
+    bru.setVar('hook-order', order + ',3');
+    
+    const status = res.getStatus();
+    bru.setVar('status-from-hook-3', status.toString());
+  });
+}
+
+tests {
+  test("all afterResponse hooks should execute in order", function() {
+    const order = bru.getVar('hook-order');
+    expect(order).to.equal('1,2,3');
+  });
+  
+  test("all hooks should have access to response", function() {
+    const status1 = bru.getVar('status-from-hook-1');
+    const status2 = bru.getVar('status-from-hook-2');
+    const status3 = bru.getVar('status-from-hook-3');
+    
+    expect(status1).to.equal('200');
+    expect(status2).to.equal('200');
+    expect(status3).to.equal('200');
+  });
+}
+

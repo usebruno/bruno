@@ -1,0 +1,48 @@
+meta {
+  name: hook-chaining
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  // beforeRequest uses data (simulating data from onBeforeCollectionRun)
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Using setup data');
+    // Simulate token from collection-level setup
+    const token = bru.getVar('test-token') || 'default-token';
+    req.setHeader('X-Auth-Token', token);
+    bru.setVar('token-used-in-beforeRequest', 'true');
+  });
+  
+  // afterResponse reads and stores response data
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    console.log('[afterResponse] Storing response data');
+    const status = res.getStatus();
+    bru.setVar('last-response-status', status.toString());
+    bru.setVar('response-stored', 'true');
+  });
+}
+
+tests {
+  test("beforeRequest should have used token", function() {
+    const tokenUsed = bru.getVar('token-used-in-beforeRequest');
+    expect(tokenUsed).to.equal('true');
+  });
+  
+  test("afterResponse should have stored response data", function() {
+    const responseStored = bru.getVar('response-stored');
+    expect(responseStored).to.equal('true');
+  });
+  
+  test("should have stored last response status", function() {
+    const lastStatus = bru.getVar('last-response-status');
+    expect(lastStatus).to.equal('200');
+  });
+}
+
