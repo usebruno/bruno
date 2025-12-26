@@ -76,10 +76,10 @@ async function transformBrunoConfigAfterRead(brunoConfig, collectionPathname) {
 
   // Migrate proxy configuration from old format to new format
   if (brunoConfig.proxy) {
-    const proxy = brunoConfig.proxy;
+    const proxy = brunoConfig.proxy || {};
 
     // Check if this is an old format (has 'enabled' property)
-    if ('enabled' in proxy) {
+    if (proxy.hasOwnProperty('enabled')) {
       const enabled = proxy.enabled;
 
       let newProxy = {
