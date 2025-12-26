@@ -42,6 +42,7 @@ const GrpcurlModal = ({ isOpen, onClose, command }) => {
             <div className="absolute top-2 right-2 z-10">
               <Button
                 size="sm"
+                variant="ghost"
                 onClick={handleCopy}
                 icon={copied ? <IconCheck size={20} /> : <IconCopy size={20} />}
               />

@@ -81,22 +81,22 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
           <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
           <div className="flex justify-end bruno-modal-footer">
-            <Button type="button" size="md" color="secondary" variant="ghost" onClick={onClose} className="mr-3">
+            <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-3">
               Cancel
             </Button>
             {
               isCollectionRunInProgress
                 ? (
-                    <Button type="submit" size="md" onClick={handleViewRunner}>
+                    <Button type="submit" onClick={handleViewRunner}>
                       View Run
                     </Button>
                   )
                 : (
                     <>
-                      <Button type="submit" size="md" disabled={shouldDisableRecursiveFolderRun} onClick={() => onSubmit(true)} className="mr-3">
+                      <Button type="submit" disabled={shouldDisableRecursiveFolderRun} onClick={() => onSubmit(true)} className="mr-3">
                         Recursive Run
                       </Button>
-                      <Button type="submit" size="md" disabled={shouldDisableFolderRun} onClick={() => onSubmit(false)}>
+                      <Button type="submit" disabled={shouldDisableFolderRun} onClick={() => onSubmit(false)}>
                         Run
                       </Button>
                     </>
