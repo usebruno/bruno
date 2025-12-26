@@ -525,6 +525,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.activeGlobalEnvironmentUid = activeGlobalEnvironmentUid;
 
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
@@ -658,6 +659,7 @@ export const runCollectionFolder
         activeGlobalEnvironmentUid
       });
       collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+      collectionCopy.activeGlobalEnvironmentUid = activeGlobalEnvironmentUid;
 
       const folder = findItemInCollection(collectionCopy, folderUid);
 
@@ -2011,7 +2013,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 };
 
 export const mergeAndPersistEnvironment
-  = ({ persistentEnvVariables, collectionUid }) =>
+  = ({ persistentEnvVariables, collectionUid, requestEnvUid }) =>
     (_dispatch, getState) => {
       return new Promise((resolve, reject) => {
         const state = getState();
@@ -2021,7 +2023,7 @@ export const mergeAndPersistEnvironment
           return reject(new Error('Collection not found'));
         }
 
-        const environmentUid = collection.activeEnvironmentUid;
+        const environmentUid = requestEnvUid;
         if (!environmentUid) {
           return reject(new Error('No active environment found'));
         }
