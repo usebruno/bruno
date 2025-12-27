@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie, IconTool, IconSearch } from '@tabler/icons';
+import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
 import Preferences from 'components/Preferences';
-import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
+import ThemeDropdown from './ThemeDropdown';
 import { showPreferences } from 'providers/ReduxStore/slices/app';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { useApp } from 'providers/App';
@@ -80,6 +80,17 @@ const StatusBar = () => {
                 <IconSettings size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
             </ToolHint>
+
+            <ThemeDropdown>
+              <button
+                className="status-bar-button"
+                data-trigger="theme"
+                tabIndex={0}
+                aria-label="Change Theme"
+              >
+                <IconPalette size={16} strokeWidth={1.5} aria-hidden="true" />
+              </button>
+            </ThemeDropdown>
 
             <ToolHint text="Notifications" toolhintId="Notifications" place="top" offset={10}>
               <div className="status-bar-button">

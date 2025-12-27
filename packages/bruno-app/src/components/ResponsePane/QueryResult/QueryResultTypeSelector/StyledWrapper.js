@@ -7,7 +7,7 @@ const StyledWrapper = styled.div`
   }
 
   .button-dropdown-button {
-    color: ${(props) => props.theme.dropdown.primaryText};
+    color: ${(props) => props.theme.text};
     border-color: ${(props) => props.theme.workspace.border};
 
   }

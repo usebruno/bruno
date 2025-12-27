@@ -1,9 +1,11 @@
 import Modal from 'components/Modal/index';
 import classnames from 'classnames';
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 
 import Support from './Support';
 import General from './General';
+import Themes from './Themes';
 import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
@@ -12,7 +14,8 @@ import Beta from './Beta';
 import StyledWrapper from './StyledWrapper';
 
 const Preferences = ({ onClose }) => {
-  const [tab, setTab] = useState('general');
+  const preferencesTab = useSelector((state) => state.app.preferencesTab);
+  const [tab, setTab] = useState(preferencesTab || 'general');
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
@@ -24,6 +27,10 @@ const Preferences = ({ onClose }) => {
     switch (tab) {
       case 'general': {
         return <General close={onClose} />;
+      }
+
+      case 'themes': {
+        return <Themes close={onClose} />;
       }
 
       case 'proxy': {
@@ -55,6 +62,9 @@ const Preferences = ({ onClose }) => {
           <div className="flex flex-col items-center tabs" role="tablist">
             <div className={getTabClassname('general')} role="tab" onClick={() => setTab('general')}>
               General
+            </div>
+            <div className={getTabClassname('themes')} role="tab" onClick={() => setTab('themes')}>
+              Themes
             </div>
             <div className={getTabClassname('display')} role="tab" onClick={() => setTab('display')}>
               Display

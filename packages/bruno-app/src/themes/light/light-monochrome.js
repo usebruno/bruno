@@ -1,15 +1,15 @@
 const colors = {
-  BRAND: '#c7822e',
+  BRAND: '#525252',
   TEXT: 'rgb(52, 52, 52)',
-  TEXT_MUTED: '#838383',
-  TEXT_LINK: '#1663bb',
+  TEXT_MUTED: '#737373',
+  TEXT_LINK: '#404040',
   BACKGROUND: '#fff',
 
   WHITE: '#fff',
   BLACK: '#000',
   SLATE_BLACK: '#343434',
-  GREEN: '#047857',
-  YELLOW: '#c7822e',
+  GREEN: '#525252',
+  YELLOW: '#525252',
 
   GRAY_1: '#f8f8f8',
   GRAY_2: '#f3f3f3',
@@ -23,32 +23,52 @@ const colors = {
   GRAY_10: '#252526',
 
   CODEMIRROR_TOKENS: {
-    DEFINITION: '#566f4e', // Deep moss
-    PROPERTY: '#4b7bbb', // Muted azure
-    STRING: '#a06e3b', // Warm bronze
-    NUMBER: '#3d8b7c', // Muted jade
-    ATOM: '#8169ad', // Soft plum
-    VARIABLE: '#3f7b6f', // Deep teal
-    KEYWORD: '#b95d6a', // Muted ruby
-    COMMENT: '#8997aa', // Cool gray
-    OPERATOR: '#6b7a8f' // Slate blue
+    DEFINITION: '#525252',
+    PROPERTY: '#666666',
+    STRING: '#737373',
+    NUMBER: '#525252',
+    ATOM: '#666666',
+    VARIABLE: '#525252',
+    KEYWORD: '#404040',
+    COMMENT: '#a3a3a3',
+    OPERATOR: '#737373'
   }
 };
 
-const lightTheme = {
+const lightMonochromeTheme = {
+  mode: 'light',
   brand: colors.BRAND,
   text: colors.TEXT,
   textLink: colors.TEXT_LINK,
   bg: colors.BACKGROUND,
 
+  accents: {
+    primary: colors.BRAND
+  },
+
+  background: {
+    base: colors.BACKGROUND,
+    mantle: colors.GRAY_1,
+    crust: colors.GRAY_2,
+    surface0: colors.GRAY_3,
+    surface1: colors.GRAY_4,
+    surface2: colors.GRAY_5
+  },
+
+  overlay: {
+    overlay2: colors.GRAY_6,
+    overlay1: '#c0c0c0',
+    overlay0: '#d0d0d0'
+  },
+
   font: {
     size: {
-      xs: '0.6875rem', // 11px
-      sm: '0.75rem', // 12px
-      base: '0.8125rem', // 13px
-      md: '0.875rem', // 14px
-      lg: '1rem', // 16px
-      xl: '1.125rem' // 18px
+      xs: '0.6875rem',
+      sm: '0.75rem',
+      base: '0.8125rem',
+      md: '0.875rem',
+      lg: '1rem',
+      xl: '1.125rem'
     }
   },
 
@@ -65,22 +85,29 @@ const lightTheme = {
       md: '8px',
       lg: '10px',
       xl: '12px'
-    }
+    },
+    border2: colors.GRAY_5,
+    border1: colors.GRAY_4,
+    border0: colors.GRAY_3
   },
 
   colors: {
     text: {
-      green: colors.GREEN,
-      danger: '#B91C1C',
-      warning: '#f57c00',
+      white: '#fff',
+      green: '#525252',
+      danger: '#525252',
+      warning: '#525252',
       muted: '#838383',
-      purple: '#8e44ad',
-      yellow: colors.YELLOW
+      purple: '#525252',
+      yellow: colors.YELLOW,
+      subtext2: colors.GRAY_7,
+      subtext1: '#838383',
+      subtext0: '#9B9B9B'
     },
     bg: {
-      danger: '#dc3545'
+      danger: '#525252'
     },
-    accent: '#b96f1d'
+    accent: '#525252'
   },
 
   input: {
@@ -93,22 +120,6 @@ const lightTheme = {
     }
   },
 
-  menubar: {
-    bg: 'rgb(44, 44, 44)'
-  },
-
-  variables: {
-    bg: '#fff',
-
-    name: {
-      color: '#546de5'
-    },
-
-    runtime: {
-      color: 'rgb(0, 0, 0)'
-    }
-  },
-
   sidebar: {
     color: 'rgb(52, 52, 52)',
     muted: '#4b5563',
@@ -116,10 +127,6 @@ const lightTheme = {
     dragbar: {
       border: colors.GRAY_4,
       activeBorder: colors.GRAY_5
-    },
-
-    badge: {
-      bg: '#eaeaea'
     },
 
     search: {
@@ -147,11 +154,6 @@ const lightTheme = {
     }
   },
 
-  welcome: {
-    heading: '#737373',
-    muted: '#4b5563'
-  },
-
   dropdown: {
     color: 'rgb(48 48 48)',
     iconColor: 'rgb(75, 85, 99)',
@@ -159,130 +161,58 @@ const lightTheme = {
     hoverBg: '#e9ecef',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
     separator: '#e7e7e7',
-    labelBg: '#f3f3f3',
-    selectedBg: '#D977060F',
-    selectedColor: '#D97706',
-    mutedText: '#9B9B9B',
-    primaryText: '#343434',
-    secondaryText: '#6B7280',
-    headingText: '#343434'
-  },
-
-  listItem: {
-    hoverBg: '#e7e7e7',
-    activeBg: '#dcdcdc'
+    selectedColor: '#525252',
+    mutedText: '#9B9B9B'
   },
 
   workspace: {
-    accent: '#D97706',
+    accent: '#525252',
     border: '#e7e7e7',
-    borderMuted: '#f3f3f3',
-    card: {
-      bg: '#fff'
-    },
     button: {
-      bg: '#f3f3f3'
-    },
-    collection: {
-      header: {
-        indentBorder: 'solid 1px #efefef'
-      },
-      item: {
-        indentBorder: 'solid 1px #f9f9f9'
-      }
-    },
-    environments: {
-      bg: '#fbfbfb',
-      indentBorder: 'solid 1px #efefef',
-      activeBg: '#eeeeee',
-      search: {
-        bg: '#fff'
-      }
+      bg: colors.GRAY_3
     }
   },
 
   request: {
     methods: {
-      get: '#3f8f7a', // Muted jade green (aligned with NUMBER / VARIABLE)
-      post: '#7c5aa8', // Soft plum (matches ATOM family)
-      put: '#b8742f', // Warm bronze (close to BRAND, slightly darker)
-      delete: '#a54b4b', // Muted brick red (fits KEYWORD ruby tone)
-      patch: '#b8742f', // Same as PUT (semantic consistency)
-      options: '#8a7a52', // Olive slate (neutral, non-invasive)
-      head: '#6b7a8f' // Slate blue (reuses OPERATOR tone)
+      get: '#525252',
+      post: '#525252',
+      put: '#737373',
+      delete: '#404040',
+      patch: '#737373',
+      options: '#8a8a8a',
+      head: '#6b6b6b'
     },
 
-    grpc: '#5b65c8', // Muted indigo (technical, calm)
-    ws: '#c28a2c', // Golden bronze (pairs with BRAND without overpowering)
-    gql: '#b04a8f' // Dusty magenta (softened GraphQL pink)
+    grpc: '#525252',
+    ws: '#737373',
+    gql: '#404040'
   },
 
   requestTabPanel: {
     url: {
       bg: colors.WHITE,
       icon: '#515151',
-      iconDanger: '#d91f11',
-      errorHoverBg: '#fef2f2',
+      iconDanger: '#404040',
       border: `solid 1px ${colors.GRAY_4}`
     },
     dragbar: {
       border: '#efefef',
       activeBorder: 'rgb(200, 200, 200)'
     },
-    bodyModeSelect: {
-      color: '#efefef'
-    },
-    responseSendIcon: 'rgb(209, 213, 219)',
     responseStatus: 'rgb(117 117 117)',
-    responseOk: '#047857',
-    responseError: 'rgb(185, 28, 28)',
-    responsePending: '#1663bb',
+    responseOk: '#525252',
+    responseError: '#404040',
+    responsePending: '#525252',
     responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
     card: {
       bg: '#fff',
       border: '#f4f4f4',
       hr: '#f4f4f4'
     },
-    cardTable: {
-      border: '#efefef',
-      bg: '#fff',
-      table: {
-        thead: {
-          bg: 'rgb(249, 250, 251)',
-          color: 'rgb(75 85 99)'
-        }
-      }
-    },
     graphqlDocsExplorer: {
       bg: '#fff',
       color: 'rgb(52, 52, 52)'
-    }
-  },
-
-  collection: {
-    environment: {
-      bg: '#efefef',
-
-      settings: {
-        bg: 'white',
-        sidebar: {
-          bg: '#eaeaea',
-          borderRight: 'transparent'
-        },
-        item: {
-          border: '#546de5',
-          hoverBg: '#e4e4e4',
-          active: {
-            bg: '#dcdcdc',
-            hoverBg: '#dcdcdc'
-          }
-        },
-        gridBorder: '#f4f4f4'
-      }
-    },
-
-    sidebar: {
-      bg: '#eaeaea'
     }
   },
 
@@ -294,7 +224,7 @@ const lightTheme = {
       borderBottom: '#d3d3d3',
       hoverBg: '#e4e4e4',
       active: {
-        border: '#546de5',
+        border: '#525252',
         bg: '#dcdcdc',
         hoverBg: '#dcdcdc'
       }
@@ -304,8 +234,7 @@ const lightTheme = {
   modal: {
     title: {
       color: 'rgb(86 86 86)',
-      bg: '#f1f1f1',
-      iconColor: 'black'
+      bg: '#f1f1f1'
     },
     body: {
       color: 'rgb(52, 52, 52)',
@@ -318,9 +247,6 @@ const lightTheme = {
     },
     backdrop: {
       opacity: 0.4
-    },
-    closeButton: {
-      hoverBg: 'rgba(0, 0, 0, 0.08)'
     }
   },
 
@@ -344,31 +270,36 @@ const lightTheme = {
     },
     danger: {
       color: '#fff',
-      bg: '#dc3545',
-      border: '#dc3545'
+      bg: '#525252',
+      border: '#525252'
     }
   },
   button2: {
     color: {
       primary: {
         bg: colors.BRAND,
-        text: '#fff'
+        text: '#fff',
+        border: colors.BRAND
       },
       secondary: {
         bg: '#e5e7eb',
-        text: colors.TEXT
+        text: colors.TEXT,
+        border: '#d1d5db'
       },
       success: {
-        bg: '#4f9a7d',
-        text: '#fff'
+        bg: '#525252',
+        text: '#fff',
+        border: '#525252'
       },
       warning: {
-        bg: '#c98b2b',
-        text: '#fff'
+        bg: '#737373',
+        text: '#fff',
+        border: '#737373'
       },
       danger: {
-        bg: '#d14f5b',
-        text: '#fff'
+        bg: '#404040',
+        text: '#fff',
+        border: '#404040'
       }
     }
   },
@@ -377,7 +308,7 @@ const lightTheme = {
     active: {
       fontWeight: 400,
       color: colors.SLATE_BLACK,
-      border: '#c7822e'
+      border: '#525252'
     },
     secondary: {
       active: {
@@ -403,9 +334,6 @@ const lightTheme = {
     example: {
       iconColor: colors.GRAY_7
     },
-    active: {
-      bg: '#e7e7e7'
-    },
     shortTab: {
       color: 'rgb(117 117 117)',
       bg: 'white',
@@ -425,9 +353,9 @@ const lightTheme = {
       bg: colors.WHITE
     },
     variable: {
-      valid: '#047857',
-      invalid: 'rgb(185, 28, 28)',
-      prompt: '#186ADE',
+      valid: '#525252',
+      invalid: '#404040',
+      prompt: '#525252',
       info: {
         color: '#343434',
         bg: '#FFFFFF',
@@ -452,8 +380,8 @@ const lightTheme = {
       operator: colors.CODEMIRROR_TOKENS.OPERATOR
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
-    searchMatch: '#B8860B',
-    searchMatchActive: '#DAA520'
+    searchMatch: '#737373',
+    searchMatchActive: '#525252'
   },
 
   table: {
@@ -476,16 +404,10 @@ const lightTheme = {
   },
 
   dragAndDrop: {
-    border: '#8b8b8b', // Using the same gray as focusBorder from input
+    border: '#8b8b8b',
     borderStyle: '2px solid',
-    hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
+    hoverBg: 'rgba(139, 139, 139, 0.05)',
     transition: 'all 0.1s ease'
-  },
-
-  tooltip: {
-    bg: '#374151',
-    color: '#ffffff',
-    shortcutColor: '#f59e0b'
   },
 
   infoTip: {
@@ -512,8 +434,8 @@ const lightTheme = {
     timestampColor: '#6c757d',
     emptyColor: '#6c757d',
     logHoverBg: 'rgba(0, 0, 0, 0.03)',
-    resizeHandleHover: '#0d6efd',
-    resizeHandleActive: '#0d6efd',
+    resizeHandleHover: '#525252',
+    resizeHandleActive: '#525252',
     dropdownBg: '#ffffff',
     dropdownHeaderBg: '#f8f9fa',
     optionHoverBg: '#f8f9fa',
@@ -542,9 +464,6 @@ const lightTheme = {
       }
     },
     importPaths: {
-      container: {
-        bg: '#ffffff'
-      },
       header: {
         text: '#838383',
         button: {
@@ -554,10 +473,10 @@ const lightTheme = {
       },
       error: {
         bg: 'transparent',
-        text: '#B91C1C',
+        text: '#404040',
         link: {
-          color: '#B91C1C',
-          hoverColor: '#dc2626'
+          color: '#404040',
+          hoverColor: '#525252'
         }
       },
       item: {
@@ -570,7 +489,7 @@ const lightTheme = {
         },
         invalid: {
           opacity: 0.6,
-          text: '#B91C1C'
+          text: '#404040'
         }
       },
       empty: {
@@ -584,9 +503,6 @@ const lightTheme = {
       }
     },
     protoFiles: {
-      container: {
-        bg: '#ffffff'
-      },
       header: {
         text: '#838383',
         button: {
@@ -596,25 +512,25 @@ const lightTheme = {
       },
       error: {
         bg: 'transparent',
-        text: '#B91C1C',
+        text: '#404040',
         link: {
-          color: '#B91C1C',
-          hoverColor: '#dc2626'
+          color: '#404040',
+          hoverColor: '#525252'
         }
       },
       item: {
         bg: 'transparent',
         hoverBg: 'rgba(0, 0, 0, 0.05)',
         selected: {
-          bg: 'rgba(217, 119, 6, 0.2)',
-          border: '#d97706'
+          bg: 'rgba(82, 82, 82, 0.2)',
+          border: '#525252'
         },
         text: '#343434',
         secondaryText: '#838383',
         icon: '#838383',
         invalid: {
           opacity: 0.6,
-          text: '#B91C1C'
+          text: '#404040'
         }
       },
       empty: {
@@ -629,9 +545,9 @@ const lightTheme = {
     }
   },
   deprecationWarning: {
-    bg: 'rgba(217, 31, 17, 0.1)',
-    border: 'rgba(217, 31, 17, 0.1)',
-    icon: '#D91F11',
+    bg: 'rgba(64, 64, 64, 0.1)',
+    border: 'rgba(64, 64, 64, 0.1)',
+    icon: '#404040',
     text: '#343434'
   },
 
@@ -642,8 +558,8 @@ const lightTheme = {
   },
 
   examples: {
-    buttonBg: '#D977061A',
-    buttonColor: '#D97706',
+    buttonBg: '#5252521A',
+    buttonColor: '#525252',
     buttonText: '#fff',
     buttonIconColor: '#000',
     border: '#efefef',
@@ -685,12 +601,12 @@ const lightTheme = {
         },
         sandboxMode: {
           safeMode: {
-            bg: 'rgba(4, 120, 87, 0.12)',
-            color: colors.GREEN
+            bg: 'rgba(82, 82, 82, 0.12)',
+            color: '#525252'
           },
           developerMode: {
-            bg: 'rgba(204, 145, 73, 0.15)',
-            color: colors.YELLOW
+            bg: 'rgba(115, 115, 115, 0.15)',
+            color: '#737373'
           }
         }
       }
@@ -698,4 +614,4 @@ const lightTheme = {
   }
 };
 
-export default lightTheme;
+export default lightMonochromeTheme;

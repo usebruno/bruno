@@ -26,7 +26,7 @@ const StyledWrapper = styled.div`
     cursor: default;
 
     &:has(.tag-remove:hover) {
-      background-color: ${(props) => props.theme.requestTabs.active.bg};
+      background-color: ${(props) => props.theme.background.surface2};
       border-color: ${(props) => props.theme.requestTabs.active.border || props.theme.requestTabs.bottomBorder};
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transform: translateY(-1px);

@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -174,7 +175,7 @@ const StyledWrapper = styled.div`
     }
     
     &.active {
-      background: ${(props) => props.theme.workspace.environments.activeBg};
+      background: ${(props) => props.theme.background.surface0};
       color: ${(props) => props.theme.text};
     }
     
@@ -250,19 +251,18 @@ const StyledWrapper = styled.div`
         transition: all 0.15s ease;
         
         &.save {
-          color: ${(props) => props.theme.textLink};
+          color: ${(props) => props.theme.colors.text.green};
           
           &:hover {
-            background: ${(props) => props.theme.listItem.hoverBg};
+            background: ${(props) => rgba(props.theme.colors.text.green, 0.1)};
           }
         }
         
         &.cancel {
-          color: ${(props) => props.theme.colors.text.muted};
+          color: ${(props) => props.theme.colors.text.danger};
           
           &:hover {
-            background: ${(props) => props.theme.listItem.hoverBg};
-            color: ${(props) => props.theme.text};
+            background: ${(props) => rgba(props.theme.colors.text.danger, 0.1)};
           }
         }
       }

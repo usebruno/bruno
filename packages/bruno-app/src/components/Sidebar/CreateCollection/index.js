@@ -320,12 +320,12 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
               </div>
               <div className="flex justify-end">
                 <span className="mr-2">
-                  <Button type="button" size="sm" color="secondary" variant="ghost" onClick={onClose}>
+                  <Button type="button" color="secondary" variant="ghost" onClick={onClose}>
                     Cancel
                   </Button>
                 </span>
                 <span>
-                  <Button type="submit" size="sm">
+                  <Button type="submit">
                     Create
                   </Button>
                 </span>

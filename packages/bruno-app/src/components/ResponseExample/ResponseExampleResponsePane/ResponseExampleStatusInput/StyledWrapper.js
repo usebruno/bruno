@@ -61,7 +61,7 @@ const StyledWrapper = styled.div`
       cursor: pointer;
       transition: background-color 0.15s ease;
       font-size: ${(props) => props.theme.font.size.base};
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       width: 100%;
       box-sizing: border-box;
 

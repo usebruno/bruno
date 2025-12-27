@@ -1,4 +1,5 @@
 const colors = {
+  // BRAND: '#d9a342',
   BRAND: '#d9a342',
   TEXT: '#d4d4d4',
   TEXT_MUTED: '#858585',
@@ -23,22 +24,42 @@ const colors = {
 
   CODEMIRROR_TOKENS: {
     DEFINITION: '#9ccc9c', // Softer, brighter sage — better contrast
-    PROPERTY: '#7dcfff', // Soft sky blue, high clarity without being loud
-    STRING: '#d7ba7d', // VSCode-like warm string tone
-    NUMBER: '#4ec9b0', // Standard teal with higher clarity
-    ATOM: '#c586c0', // Brighter lavender, matches VSCode purple
-    VARIABLE: '#4fc1ff', // Clear aqua-blue (used widely in dark themes)
-    KEYWORD: '#c58679', // Coral-ish but muted to avoid eye strain
+    PROPERTY: 'hsl(202 90% 80% / 1)', // Soft sky blue, high clarity without being loud
+    STRING: 'hsl(41 50% 69% / 1)', // VSCode-like warm string tone
+    NUMBER: 'hsl(168 50% 57% / 1)', // Standard teal with higher clarity
+    ATOM: 'hsl(305 32% 69% / 1)', // Brighter lavender, matches VSCode purple
+    VARIABLE: 'hsl(201 90% 73% / 1)', // Clear aqua-blue (used widely in dark themes)
+    KEYWORD: 'hsl(10 36% 65% / 1)', // Coral-ish but muted to avoid eye strain
     COMMENT: '#6a9955', // Greenish-slate — very readable & subtle
     OPERATOR: '#d4d4d4' // Light gray — consistent with dark mode operators
   }
 };
 
 const darkTheme = {
+  mode: 'dark',
   brand: colors.BRAND,
   text: colors.TEXT,
   textLink: colors.TEXT_LINK,
   bg: colors.BG,
+
+  accents: {
+    primary: colors.BRAND
+  },
+
+  background: {
+    base: colors.BG,
+    mantle: colors.GRAY_1,
+    crust: '#333333',
+    surface0: colors.GRAY_2,
+    surface1: colors.GRAY_3,
+    surface2: colors.GRAY_4
+  },
+
+  overlay: {
+    overlay2: '#666666',
+    overlay1: '#555555',
+    overlay0: '#444444'
+  },
 
   font: {
     size: {
@@ -64,16 +85,24 @@ const darkTheme = {
       md: '8px',
       lg: '10px',
       xl: '12px'
-    }
+    },
+    border2: colors.GRAY_4,
+    border1: colors.GRAY_3,
+    border0: colors.GRAY_2
   },
 
   colors: {
     text: {
+      white: colors.WHITE,
       green: colors.GREEN,
       danger: '#f06f57',
+      warning: '#f57c00',
       muted: colors.TEXT_MUTED,
       purple: '#cd56d6',
-      yellow: colors.YELLOW
+      yellow: colors.YELLOW,
+      subtext2: colors.GRAY_6,
+      subtext1: colors.GRAY_5,
+      subtext0: colors.GRAY_4
     },
     bg: {
       danger: '#d03544'
@@ -91,33 +120,13 @@ const darkTheme = {
     }
   },
 
-  variables: {
-    bg: 'rgb(48, 48, 49)',
-
-    name: {
-      color: '#569cd6'
-    },
-
-    runtime: {
-      color: 'rgb(255, 255, 255)'
-    }
-  },
-
-  menubar: {
-    bg: '#333333'
-  },
-
   sidebar: {
     color: '#ccc',
     muted: '#9d9d9d',
-    bg: colors.GRAY_1,
+    bg: colors.BG,
     dragbar: {
-      border: 'transparent',
+      border: colors.GRAY_2,
       activeBorder: colors.GRAY_4
-    },
-
-    badge: {
-      bg: colors.GRAY_2
     },
 
     search: {
@@ -145,11 +154,6 @@ const darkTheme = {
     }
   },
 
-  welcome: {
-    heading: '#569cd6',
-    muted: '#9d9d9d'
-  },
-
   dropdown: {
     color: 'rgb(204, 204, 204)',
     iconColor: 'rgb(204, 204, 204)',
@@ -157,52 +161,22 @@ const darkTheme = {
     hoverBg: '#6A6A6A29',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
     separator: '#444',
-    labelBg: '#4a4949',
-    selectedBg: '#d9a34214',
     selectedColor: '#d9a342',
-    mutedText: '#9B9B9B',
-    primaryText: '#D4D4D4',
-    secondaryText: '#9CA3AF',
-    headingText: '#FFFFFF'
-  },
-
-  listItem: {
-    hoverBg: '#2A2D2F',
-    activeBg: colors.GRAY_3
+    mutedText: '#9B9B9B'
   },
 
   workspace: {
     accent: '#D9A342',
     border: '#444',
-    borderMuted: '#585858',
-    card: {
-      bg: '#2A2D2F'
-    },
     button: {
-      bg: '#242424'
-    },
-    collection: {
-      header: {
-        indentBorder: 'solid 1px #444444'
-      },
-      item: {
-        indentBorder: 'solid 1px #313131'
-      }
-    },
-    environments: {
-      bg: '#212121',
-      indentBorder: 'solid 1px #313131',
-      activeBg: '#37373c',
-      search: {
-        bg: colors.GRAY_2
-      }
+      bg: colors.GRAY_2
     }
   },
 
   request: {
     methods: {
       get: '#5fbf7a', // Fresh jade — readable, calm success tone
-      post: '#b58adf', // Soft amethyst — cool, composed accent
+      post: 'hsl(270 49% 74% / 1)', // Soft amethyst — cool, composed accent
       put: '#d7a35a', // Warm amber-bronze — bridges BRAND + STRING
       delete: '#e06c75', // VSCode red — destructive but readable
       patch: '#d7a35a', // Same as PUT
@@ -220,17 +194,12 @@ const darkTheme = {
       bg: colors.BG,
       icon: 'rgb(204, 204, 204)',
       iconDanger: '#fa5343',
-      errorHoverBg: '#4a2a2a',
       border: `solid 1px ${colors.GRAY_3}`
     },
     dragbar: {
       border: '#444',
       activeBorder: '#8a8a8a'
     },
-    bodyModeSelect: {
-      color: 'transparent'
-    },
-    responseSendIcon: '#555',
     responseStatus: '#ccc',
     responseOk: '#8cd656',
     responseError: '#f06f57',
@@ -240,46 +209,12 @@ const darkTheme = {
     card: {
       bg: '#252526',
       border: 'transparent',
-      borderDark: '#8cd656',
       hr: '#424242'
     },
 
-    cardTable: {
-      border: '#333',
-      bg: '#252526',
-      table: {
-        thead: {
-          bg: colors.GRAY_2,
-          color: '#ccc'
-        }
-      }
-    },
     graphqlDocsExplorer: {
       bg: '#1e1e1e',
       color: '#d4d4d4'
-    }
-  },
-
-  collection: {
-    environment: {
-      bg: colors.GRAY_2,
-
-      settings: {
-        bg: colors.GRAY_2,
-        sidebar: {
-          bg: colors.GRAY_2,
-          borderRight: '#4f4f4f'
-        },
-        item: {
-          border: '#569cd6',
-          hoverBg: 'transparent',
-          active: {
-            bg: 'transparent',
-            hoverBg: 'transparent'
-          }
-        },
-        gridBorder: '#4f4f4f'
-      }
     }
   },
 
@@ -301,8 +236,7 @@ const darkTheme = {
   modal: {
     title: {
       color: '#ccc',
-      bg: 'rgb(38, 38, 39)',
-      iconColor: '#ccc'
+      bg: 'rgb(38, 38, 39)'
     },
     body: {
       color: '#ccc',
@@ -315,9 +249,6 @@ const darkTheme = {
     },
     backdrop: {
       opacity: 0.2
-    },
-    closeButton: {
-      hoverBg: 'rgba(255, 255, 255, 0.1)'
     }
   },
 
@@ -349,23 +280,28 @@ const darkTheme = {
     color: {
       primary: {
         bg: colors.BRAND,
-        text: colors.BLACK
+        text: colors.BLACK,
+        border: colors.BRAND
       },
       secondary: {
-        bg: colors.GRAY_4,
-        text: '#fff'
+        bg: '#2a2a2a',
+        text: 'hsl(39 67% 64% / 1)',
+        border: '#3a3a3a'
       },
       success: {
         bg: '#059669',
-        text: '#fff'
+        text: '#fff',
+        border: '#059669'
       },
       warning: {
         bg: '#f59e0b',
-        text: '#1e1e1e'
+        text: '#1e1e1e',
+        border: '#f59e0b'
       },
       danger: {
         bg: '#f43f5e',
-        text: '#fff'
+        text: '#fff',
+        border: '#f43f5e'
       }
     }
   },
@@ -400,9 +336,6 @@ const darkTheme = {
     },
     example: {
       iconColor: colors.GRAY_5
-    },
-    active: {
-      bg: colors.GRAY_2
     },
     shortTab: {
       color: '#ccc',
@@ -479,12 +412,6 @@ const darkTheme = {
     hoverBg: 'rgba(102, 102, 102, 0.08)',
     transition: 'all 0.1s ease'
   },
-  tooltip: {
-    bg: '#1f1f1f',
-    color: '#ffffff',
-    shortcutColor: '#d9a342'
-  },
-
   infoTip: {
     bg: '#1f1f1f',
     border: '#333333',

@@ -88,7 +88,7 @@ const StyledWrapper = styled.div`
     width: 52px;
     height: 52px;
     border-radius: 8px;
-    background: ${(props) => props.theme.workspace.card.bg};
+    background: ${(props) => props.theme.background.mantle};
     border: 1px solid ${(props) => props.theme.workspace.border};
     color: ${(props) => props.theme.colors.text.muted};
     margin-bottom: 16px;

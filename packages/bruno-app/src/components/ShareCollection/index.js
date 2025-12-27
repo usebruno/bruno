@@ -105,7 +105,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           </div>
 
           <div
-            className={`flex !flex-col share-button ${
+            className={`flex !flex-col share-button no-padding ${
               isCollectionLoading
                 ? 'opacity-50 cursor-not-allowed'
                 : 'cursor-pointer'
@@ -113,7 +113,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             onClick={isCollectionLoading ? undefined : handleExportPostmanCollection}
           >
             {hasNonExportableRequestTypes.has && (
-              <div className="px-3 py-2 bg-yellow-50 w-full dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 text-xs border-b border-yellow-100 dark:border-yellow-800/20 flex items-center">
+              <div className="px-3 py-2 w-full flex items-center note-warning">
                 <IconAlertTriangle size={16} className="mr-2 flex-shrink-0" />
                 <span>
                   Note:

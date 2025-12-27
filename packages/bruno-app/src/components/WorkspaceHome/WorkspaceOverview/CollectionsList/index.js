@@ -288,7 +288,7 @@ const CollectionsList = ({ workspace }) => {
                       <span>Share</span>
                     </div>
                     <div
-                      className="dropdown-item dropdown-item-danger"
+                      className="dropdown-item delete-item"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveCollection(collection);
