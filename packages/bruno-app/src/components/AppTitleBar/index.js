@@ -17,8 +17,13 @@ import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
-import { toTitleCase } from 'utils/common/index';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
+
+// Helper to get display name for workspace
+const getWorkspaceDisplayName = (name) => {
+  if (!name || name === 'default') return 'Default Workspace';
+  return name;
+};
 
 const AppTitleBar = () => {
   const dispatch = useDispatch();
@@ -60,7 +65,7 @@ const AppTitleBar = () => {
   const WorkspaceName = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="workspace-name-container" {...props}>
-        <span className="workspace-name">{toTitleCase(activeWorkspace?.name) || 'Default Workspace'}</span>
+        <span className="workspace-name">{getWorkspaceDisplayName(activeWorkspace?.name)}</span>
         <IconChevronDown size={14} stroke={1.5} className="chevron-icon" />
       </div>
     );
@@ -72,7 +77,7 @@ const AppTitleBar = () => {
 
   const handleWorkspaceSwitch = (workspaceUid) => {
     dispatch(switchWorkspace(workspaceUid));
-    toast.success(`Switched to ${workspaces.find((w) => w.uid === workspaceUid)?.name}`);
+    toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
   };
 
   const handleOpenWorkspace = async () => {
@@ -88,12 +93,15 @@ const AppTitleBar = () => {
     setCreateWorkspaceModalOpen(true);
   };
 
-  const handlePinWorkspace = useCallback((workspaceUid, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const newPreferences = toggleWorkspacePin(workspaceUid, preferences);
-    dispatch(savePreferences(newPreferences));
-  }, [dispatch, preferences]);
+  const handlePinWorkspace = useCallback(
+    (workspaceUid, e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const newPreferences = toggleWorkspacePin(workspaceUid, preferences);
+      dispatch(savePreferences(newPreferences));
+    },
+    [dispatch, preferences]
+  );
 
   const handleToggleSidebar = () => {
     dispatch(toggleSidebarCollapse());
@@ -115,7 +123,7 @@ const AppTitleBar = () => {
 
       return {
         id: workspace.uid,
-        label: toTitleCase(workspace.name),
+        label: getWorkspaceDisplayName(workspace.name),
         onClick: () => handleWorkspaceSwitch(workspace.uid),
         className: `workspace-item ${isActive ? 'active' : ''}`,
         rightSection: (
@@ -127,11 +135,7 @@ const AppTitleBar = () => {
                 label={isPinned ? 'Unpin workspace' : 'Pin workspace'}
                 size="sm"
               >
-                {isPinned ? (
-                  <IconPinned size={14} stroke={1.5} />
-                ) : (
-                  <IconPin size={14} stroke={1.5} />
-                )}
+                {isPinned ? <IconPinned size={14} stroke={1.5} /> : <IconPin size={14} stroke={1.5} />}
               </ActionIcon>
             )}
             {isActive && <IconCheck size={16} stroke={1.5} className="check-icon" />}
@@ -162,19 +166,12 @@ const AppTitleBar = () => {
 
   return (
     <StyledWrapper className={`app-titlebar ${isFullScreen ? 'fullscreen' : ''}`}>
-      {createWorkspaceModalOpen && (
-        <CreateWorkspace onClose={() => setCreateWorkspaceModalOpen(false)} />
-      )}
+      {createWorkspaceModalOpen && <CreateWorkspace onClose={() => setCreateWorkspaceModalOpen(false)} />}
 
       <div className="titlebar-content">
         {/* Left section: Home + Workspace */}
         <div className="titlebar-left">
-          <ActionIcon
-            onClick={handleHomeClick}
-            label="Home"
-            size="lg"
-            className="home-button"
-          >
+          <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button">
             <IconHome size={16} stroke={1.5} />
           </ActionIcon>
 
