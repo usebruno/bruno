@@ -286,7 +286,7 @@ const lightTheme = {
       hoverBorder: '#696969'
     },
     close: {
-      color: '212529',
+      color: '#212529',
       bg: 'white',
       border: 'white',
       hoverBorder: ''

@@ -11,7 +11,6 @@ const initialState = {
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
-  preferencesTab: null,
   showApiSpecPage: false,
   showManageWorkspacePage: false,
   isEnvironmentSettingsModalOpen: false,
@@ -96,13 +95,7 @@ export const appSlice = createSlice({
       state.showApiSpecPage = false;
     },
     showPreferences: (state, action) => {
-      if (typeof action.payload === 'object') {
-        state.showPreferences = action.payload.show;
-        state.preferencesTab = action.payload.tab || null;
-      } else {
-        state.showPreferences = action.payload;
-        state.preferencesTab = null;
-      }
+      state.showPreferences = action.payload;
     },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;

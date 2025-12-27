@@ -1,7 +1,6 @@
 import Modal from 'components/Modal/index';
 import classnames from 'classnames';
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
 
 import Support from './Support';
 import General from './General';
@@ -14,8 +13,7 @@ import Beta from './Beta';
 import StyledWrapper from './StyledWrapper';
 
 const Preferences = ({ onClose }) => {
-  const preferencesTab = useSelector((state) => state.app.preferencesTab);
-  const [tab, setTab] = useState(preferencesTab || 'general');
+  const [tab, setTab] = useState('general');
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
