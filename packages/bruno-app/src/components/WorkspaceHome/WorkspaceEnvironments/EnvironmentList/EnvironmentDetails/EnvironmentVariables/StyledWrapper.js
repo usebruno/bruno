@@ -46,7 +46,7 @@ const Wrapper = styled.div`
       td {
         padding: 5px 10px !important;
         border-bottom: solid 1px ${(props) => props.theme.border.border0};
-        border-right: ${(props) => props.theme.border.border0};
+        border-right: solid 1px ${(props) => props.theme.border.border0};
         
         &:last-child {
           border-right: none;
