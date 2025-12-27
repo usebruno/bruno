@@ -1,3 +1,24 @@
+import React from 'react';
+
+/**
+ * Safely formats a message for display.
+ * Handles the case where message might be an object (when safeStringifyJSON fails in backend).
+ * Fixes issue #6505: HTTP response rendered as [object Object] in Timeline | Network Logs tab
+ */
+const formatMessage = (message) => {
+  if (message === null || message === undefined) {
+    return '';
+  }
+  if (typeof message === 'object') {
+    try {
+      return JSON.stringify(message, null, 2);
+    } catch (e) {
+      return '[Unable to display message]';
+    }
+  }
+  return message;
+};
+
 const Network = ({ logs }) => {
   return (
     <div className="bg-black/5 text-white network-logs rounded overflow-auto h-96">
@@ -9,10 +30,10 @@ const Network = ({ logs }) => {
           const nextLog = logs[index + 1];
           const isSameLogType = nextLog?.type === currentLog?.type;
           return (
-            <>
-              <NetworkLogsEntry key={index} entry={currentLog} />
+            <React.Fragment key={index}>
+              <NetworkLogsEntry entry={currentLog} />
               {!isSameLogType && <div className="mt-4" />}
-            </>
+            </React.Fragment>
           );
         })}
       </pre>
@@ -22,6 +43,7 @@ const Network = ({ logs }) => {
 
 const NetworkLogsEntry = ({ entry }) => {
   const { type, message } = entry;
+  const displayMessage = formatMessage(message);
   let className = '';
 
   switch (type) {
@@ -47,7 +69,7 @@ const NetworkLogsEntry = ({ entry }) => {
 
   return (
     <div className={`${className}`}>
-      <div>{message}</div>
+      <div>{displayMessage}</div>
     </div>
   );
 };
