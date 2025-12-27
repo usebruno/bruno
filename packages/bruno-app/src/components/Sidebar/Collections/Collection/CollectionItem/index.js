@@ -290,14 +290,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
-    const items = [
-      {
-        id: 'info',
-        leftSection: IconInfoCircle,
-        label: 'Info',
-        onClick: () => setItemInfoModalOpen(true)
-      }
-    ];
+    const items = [];
 
     if (isFolder) {
       items.push(
@@ -390,6 +383,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
 
     items.push({ id: 'separator-1', type: 'divider' });
+
+    items.push({
+      id: 'info',
+      leftSection: IconInfoCircle,
+      label: 'Info',
+      onClick: () => setItemInfoModalOpen(true)
+    });
 
     if (isFolder) {
       items.push(
