@@ -21,10 +21,10 @@ const getFormattedOauth2Credentials = () => {
   return credentialsVariables;
 };
 
-const getOAuth2Token = (oauth2Config) => {
+const getOAuth2Token = (oauth2Config, axiosInstance) => {
   let options = getOptions();
   let verbose = options?.verbose;
-  return _getOAuth2Token(oauth2Config, tokenStore, verbose);
+  return _getOAuth2Token(oauth2Config, tokenStore, verbose, axiosInstance);
 };
 
 module.exports = {
