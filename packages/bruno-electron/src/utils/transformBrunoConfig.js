@@ -1,5 +1,6 @@
 const path = require('path');
 const { isFile, isDirectory } = require('./filesystem');
+const { get } = require('lodash');
 
 function transformBrunoConfigBeforeSave(brunoConfig) {
   // remove exists from importPaths and protoFiles
@@ -14,6 +15,18 @@ function transformBrunoConfigBeforeSave(brunoConfig) {
       delete protoFile.exists;
       return protoFile;
     });
+  }
+
+  // Clean up proxy config before saving
+  if (brunoConfig.proxy) {
+    // Remove disabled: false (optional field)
+    if (brunoConfig.proxy.disabled === false) {
+      delete brunoConfig.proxy.disabled;
+    }
+    // Remove auth.disabled: false (optional field)
+    if (brunoConfig.proxy.config?.auth?.disabled === false) {
+      delete brunoConfig.proxy.config.auth.disabled;
+    }
   }
 
   return brunoConfig;
@@ -59,6 +72,59 @@ async function transformBrunoConfigAfterRead(brunoConfig, collectionPathname) {
         };
       }
     }));
+  }
+
+  // Migrate proxy configuration from old format to new format
+  if (brunoConfig.proxy) {
+    const proxy = brunoConfig.proxy || {};
+
+    // Check if this is an old format (has 'enabled' property)
+    if (proxy.hasOwnProperty('enabled')) {
+      const enabled = proxy.enabled;
+
+      let newProxy = {
+        inherit: true,
+        config: {
+          protocol: proxy.protocol || 'http',
+          hostname: proxy.hostname || '',
+          port: proxy.port || null,
+          auth: {
+            username: get(proxy, 'auth.username', ''),
+            password: get(proxy, 'auth.password', '')
+          },
+          bypassProxy: proxy.bypassProxy || ''
+        }
+      };
+
+      // Handle old format: enabled (true | false | 'global')
+      if (enabled === true) {
+        newProxy.disabled = false;
+        newProxy.inherit = false;
+      } else if (enabled === false) {
+        newProxy.disabled = true;
+        newProxy.inherit = false;
+      } else if (enabled === 'global') {
+        newProxy.disabled = false;
+        newProxy.inherit = true;
+      }
+
+      // Migrate auth.enabled to auth.disabled
+      if (get(proxy, 'auth.enabled') === false) {
+        newProxy.config.auth.disabled = true;
+      }
+      // If auth.enabled is true or undefined, omit disabled (defaults to false)
+
+      // Omit disabled: false at top level (optional field)
+      if (newProxy.disabled === false) {
+        delete newProxy.disabled;
+      }
+      // Omit auth.disabled: false (optional field)
+      if (newProxy.config.auth.disabled === false) {
+        delete newProxy.config.auth.disabled;
+      }
+
+      brunoConfig.proxy = newProxy;
+    }
   }
 
   return brunoConfig;

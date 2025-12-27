@@ -124,7 +124,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
         clientId: auth.credentials?.clientId || null,
         clientSecret: auth.credentials?.clientSecret || null,
         scope: auth.scope || null,
-        pkce: auth.pkce?.enabled || null,
+        pkce: (auth.pkce && !auth.pkce.disabled) || null,
         credentialsPlacement: getCredentialsPlacement(auth.credentials),
         credentialsId: auth.tokenConfig?.id || 'credentials',
         tokenPlacement: getTokenPlacement(auth.tokenConfig),
@@ -357,7 +357,7 @@ const toOpenCollectionOAuth2 = (oauth2: BrunoOAuth2 | null | undefined): AuthOAu
           placement: oauth2.credentialsPlacement === 'basic_auth_header' ? 'basic_auth_header' : 'body'
         },
         scope: oauth2.scope || '',
-        pkce: oauth2.pkce ? { enabled: true, method: 'S256' } : undefined,
+        pkce: oauth2.pkce ? { method: 'S256' } : undefined,
         tokenConfig: {
           id: oauth2.credentialsId || 'credentials',
           placement: oauth2.tokenPlacement === 'query'

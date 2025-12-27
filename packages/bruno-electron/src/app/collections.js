@@ -4,7 +4,7 @@ const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
 const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
+const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
 
 // todo: bruno.json config schema validation errors must be propagated to the UI
