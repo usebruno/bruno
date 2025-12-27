@@ -9,7 +9,7 @@ const Wrapper = styled.div`
   .table-container {
     overflow-y: auto;
     border-radius: 8px;
-    border: ${(props) => props.theme.workspace.environments.indentBorder};
+    border: solid 1px ${(props) => props.theme.border.border0};
   }
 
   table {
@@ -46,8 +46,8 @@ const Wrapper = styled.div`
 
       td {
         padding: 5px 10px !important;
-        border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-        border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+        border-bottom: solid 1px ${(props) => props.theme.border.border0};
+        border-right: solid 1px ${(props) => props.theme.border.border0};
 
         &:last-child {
           border-right: none;
@@ -64,34 +64,14 @@ const Wrapper = styled.div`
         }
 
         td {
-          border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-          border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+          border-bottom: solid 1px ${(props) => props.theme.border.border0};
+          border-right: solid 1px ${(props) => props.theme.border.border0};
 
           &:last-child {
             border-right: none;
           }
         }
       }
-    }
-  }
-
-  .btn-add-param {
-    font-size: 12px;
-    color: ${(props) => props.theme.textLink};
-    font-weight: 500;
-    padding: 7px 14px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 6px;
-    border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
-    background: transparent;
-    transition: all 0.15s ease;
-
-    &:hover {
-      background: ${(props) => props.theme.listItem.hoverBg};
-      border-color: ${(props) => props.theme.textLink};
     }
   }
 

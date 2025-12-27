@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const Wrapper = styled.div`
   min-width: 160px;
@@ -136,17 +137,21 @@ const Wrapper = styled.div`
 
     /* Active/selected state - applied to the currently selected item */
     &.dropdown-item-active {
-      color: ${({ theme }) => theme.colors.text.yellow};
-      background-color: ${({ theme }) => theme.dropdown.activeBg};
-      font-weight: 500;
+      color: ${({ theme }) => theme.dropdown.selectedColor} !important;
+      background-color: ${({ theme }) => rgba(theme.dropdown.selectedColor, 0.07)} !important;
       .dropdown-icon {
-        color: ${({ theme }) => theme.colors.text.yellow};
+        color: ${({ theme }) => theme.dropdown.selectedColor} !important;
+      }
+
+      &:hover {
+        color: ${({ theme }) => theme.dropdown.selectedColor} !important;
+        background-color: ${({ theme }) => rgba(theme.dropdown.selectedColor, 0.07)} !important;
       }
     }
 
     /* Combined state - when active item is also focused */
     &.dropdown-item-active.dropdown-item-focused {
-      background-color: ${({ theme }) => theme.dropdown.activeHoverBg};
+      background-color: ${({ theme }) => rgba(theme.dropdown.selectedColor, 0.07)} !important;
     }
 
     /* Focus visible for accessibility */

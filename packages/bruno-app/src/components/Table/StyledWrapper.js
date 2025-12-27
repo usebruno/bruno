@@ -25,14 +25,14 @@ const StyledWrapper = styled.div`
 
   table th {
     position: relative;
-    border-bottom: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
+    border-bottom: 1px solid ${(props) => props.theme.border.BORDER0};
   }
 
   table tr td {
     padding: 0.5rem;
     text-align: left;
-    border-top: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
-    border-right: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
+    border-top: 1px solid ${(props) => props.theme.border.BORDER0};
+    border-right: 1px solid ${(props) => props.theme.border.BORDER0};
   }
 
   tr {
@@ -50,11 +50,11 @@ const StyledWrapper = styled.div`
   table tr th {
     padding: 0.5rem;
     text-align: left;
-    border-top: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
-    border-right: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
+    border-top: 1px solid ${(props) => props.theme.border.BORDER0};
+    border-right: 1px solid ${(props) => props.theme.border.BORDER0};
 
     &:nth-child(1) {
-      border-left: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
+      border-left: 1px solid ${(props) => props.theme.border.BORDER0};
     }
   }
 `;

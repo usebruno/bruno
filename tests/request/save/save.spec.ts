@@ -4,8 +4,8 @@ import { buildCommonLocators } from '../../utils/page/locators';
 import { waitForPredicate } from '../../utils/wait';
 
 const isRequestSaved = async (saveButton: Locator) => {
-  const savedColor = '#9f9f9f';
-  return (await saveButton.evaluate((d) => d.querySelector('svg')?.getAttribute('stroke') ?? '#invalid')) === savedColor;
+  // Saved state uses the className cursor-default; unsaved uses cursor-pointer.
+  return await saveButton.locator('svg').evaluate((node) => (node as HTMLElement).classList.contains('cursor-default'));
 };
 
 const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Promise<string>) => {
@@ -61,13 +61,13 @@ test.describe.serial('save requests', () => {
     await page.keyboard.insertText(replacementUrl);
 
     // check if the request is now unsaved
-    expect(await isRequestSaved(locators.saveButton())).toBe(false);
+    await expect(await isRequestSaved(locators.saveButton())).toBe(false);
 
     // trigger a save
     locators.saveButton().click();
 
     // Wait for it to be saved
     const result = await waitForPredicate(() => isRequestSaved(locators.saveButton()));
-    expect(result).toBe(true);
+    await expect(result).toBe(true);
   });
 });

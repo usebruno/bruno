@@ -9,7 +9,7 @@ const Wrapper = styled.div`
     border-radius: 3px;
 
     .selected-body-mode {
-      color: ${(props) => props.theme.colors.text.yellow};
+      color: ${(props) => props.theme.brand};
     }
   }
 

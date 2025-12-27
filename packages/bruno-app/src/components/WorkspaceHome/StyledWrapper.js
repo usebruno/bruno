@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .main-content {
@@ -67,7 +68,7 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.green};
 
       &:hover {
-        background: ${(props) => props.theme.colors.text.green}1A;
+        background-color: ${(props) => rgba(props.theme.colors.text.green, 0.1)};
       }
     }
 
@@ -75,7 +76,7 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.danger};
 
       &:hover {
-        background: ${(props) => props.theme.colors.text.danger}1A;
+        background-color: ${(props) => rgba(props.theme.colors.text.danger, 0.1)};
       }
     }
   }
@@ -91,21 +92,6 @@ const StyledWrapper = styled.div`
 
   .workspace-menu-dropdown {
     min-width: 140px;
-  }
-
-  .dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    cursor: pointer;
-    transition: background 0.15s;
-    color: ${(props) => props.theme.text};
-    font-size: ${(props) => props.theme.font.size.sm};
-
-    &:hover {
-      background: ${(props) => props.theme.listItem.hoverBg};
-    }
   }
 
   .tab-content {

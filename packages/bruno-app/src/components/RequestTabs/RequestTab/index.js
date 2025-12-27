@@ -7,8 +7,6 @@ import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import darkTheme from 'themes/dark';
-import lightTheme from 'themes/light';
 import { findItemInCollection, hasRequestChanges } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
@@ -28,8 +26,7 @@ import toast from 'react-hot-toast';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
-  const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
+  const { theme } = useTheme();
   const tabNameRef = useRef(null);
   const tabLabelRef = useRef(null);
   const lastOverflowStateRef = useRef(null);

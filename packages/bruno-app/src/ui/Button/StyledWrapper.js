@@ -43,7 +43,7 @@ const sizeStyles = {
   `,
   base: css`
     padding: 0.5rem 1rem;
-    font-size: ${(props) => props.theme.font.size.base};
+    font-size: ${(props) => props.theme.font.size.sm};
     gap: 0.5rem;
 
     .button-icon {
@@ -58,7 +58,7 @@ const sizeStyles = {
   `,
   md: css`
     padding: 0.625rem 1.125rem;
-    font-size: ${(props) => props.theme.font.size.md};
+    font-size: ${(props) => props.theme.font.size.sm};
     gap: 0.5rem;
 
     .button-icon {
@@ -73,7 +73,7 @@ const sizeStyles = {
   `,
   lg: css`
     padding: 0.75rem 1.5rem;
-    font-size: ${(props) => props.theme.font.size.md};
+    font-size: ${(props) => props.theme.font.size.base};
     gap: 0.75rem;
 
     .button-icon {
@@ -121,7 +121,7 @@ const getVariantStyles = (variant, color) => {
     return css`
       background-color: ${(props) => props.theme.button2.color[color].bg};
       color: ${(props) => props.theme.button2.color[color].text};
-      border: 1px solid ${(props) => props.theme.button2.color[color].bg};
+      border: 1px solid ${(props) => props.theme.button2.color[color].border};
 
       &:disabled {
         color: ${(props) => props.theme.button2.color[color].text} !important;
@@ -129,10 +129,9 @@ const getVariantStyles = (variant, color) => {
 
       &:hover:not(:disabled) {
         ${(props) => {
-          const bg = props.theme.button2.color[color].bg;
           return css`
-            background-color: ${darken(0.03, bg)};
-            border-color: ${darken(0.03, bg)};
+            background-color: ${darken(0.03, props.theme.button2.color[color].bg)};
+            border-color: ${darken(0.03, props.theme.button2.color[color].border)};
           `;
         }}
       }

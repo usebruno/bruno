@@ -100,15 +100,14 @@ const StyledWrapper = styled.div`
   .default-badge {
     padding: 1px 6px;
     border-radius: ${(props) => props.theme.border.radius.sm};
-    background: ${(props) => props.theme.sidebar.badge.bg};
-    color: ${(props) => props.theme.colors.text.muted};
+    background: ${(props) => props.theme.background.surface1};
+    color: ${(props) => props.theme.text};
     font-size: ${(props) => props.theme.font.size.xs};
-    font-weight: 500;
   }
 
   .workspace-path {
     font-size: ${(props) => props.theme.font.size.xs};
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.text.muted};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
