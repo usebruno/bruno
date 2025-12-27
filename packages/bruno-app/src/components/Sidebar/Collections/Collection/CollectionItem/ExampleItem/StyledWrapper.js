@@ -49,6 +49,11 @@ const StyledWrapper = styled.div`
       }
     }
   }
+
+  .example-icon {
+    color: ${(props) => props.theme.sidebar.collection.item.example.iconColor};
+  }
+
 `;
 
 export default StyledWrapper;

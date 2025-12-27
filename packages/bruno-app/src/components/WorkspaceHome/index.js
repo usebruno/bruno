@@ -1,19 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder } from '@tabler/icons';
-import { renameWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder, IconUpload } from '@tabler/icons';
+import { renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
-import CloseWorkspace from 'components/Sidebar/SidebarHeader/CloseWorkspace';
+import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceEnvironments from './WorkspaceEnvironments';
+import WorkspaceTabs from 'components/WorkspaceTabs';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 
 const WorkspaceHome = () => {
   const dispatch = useDispatch();
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const [activeTab, setActiveTab] = useState('overview');
+  const workspaceTabs = useSelector((state) => state.workspaceTabs);
+  const activeTabUid = workspaceTabs.activeTabUid;
+  const activeTab = workspaceTabs.tabs.find((t) => t.uid === activeTabUid);
 
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
   const [workspaceNameInput, setWorkspaceNameInput] = useState('');
@@ -74,6 +77,19 @@ const WorkspaceHome = () => {
     }
   };
 
+  const handleExportWorkspace = () => {
+    dropdownTippyRef.current?.hide();
+    dispatch(exportWorkspaceAction(activeWorkspace.uid))
+      .then((result) => {
+        if (!result.canceled) {
+          toast.success('Workspace exported successfully');
+        }
+      })
+      .catch((error) => {
+        toast.error(error?.message || 'Error exporting workspace');
+      });
+  };
+
   const validateWorkspaceName = (name) => {
     if (!name || name.trim() === '') {
       return 'Name is required';
@@ -130,13 +146,10 @@ const WorkspaceHome = () => {
     }
   };
 
-  const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'environments', label: 'Environments' }
-  ];
-
   const renderTabContent = () => {
-    switch (activeTab) {
+    if (!activeTab) return null;
+
+    switch (activeTab.type) {
       case 'overview':
         return <WorkspaceOverview workspace={activeWorkspace} />;
       case 'environments':
@@ -214,6 +227,10 @@ const WorkspaceHome = () => {
                     <IconFolder size={16} strokeWidth={1.5} />
                     <span>Show in Folder</span>
                   </div>
+                  <div className="dropdown-item" onClick={handleExportWorkspace}>
+                    <IconUpload size={16} strokeWidth={1.5} />
+                    <span>Export</span>
+                  </div>
                   <div className="dropdown-item" onClick={handleCloseWorkspaceClick}>
                     <IconX size={16} strokeWidth={1.5} />
                     <span>Close</span>
@@ -227,17 +244,7 @@ const WorkspaceHome = () => {
             )}
           </div>
 
-          <div className="tabs-container">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                className={`tab-item ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <WorkspaceTabs workspaceUid={activeWorkspace.uid} />
 
           <div className="tab-content">{renderTabContent()}</div>
         </div>

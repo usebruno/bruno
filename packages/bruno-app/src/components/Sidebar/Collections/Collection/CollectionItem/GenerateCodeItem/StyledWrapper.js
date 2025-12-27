@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
   height: 50vh;
   display: flex;
   flex-direction: column;
-  background-color: ${(props) => props.theme.collection.environment.settings.bg};
+  background-color: ${(props) => props.theme.background.base};
 
   .code-generator {
     display: flex;

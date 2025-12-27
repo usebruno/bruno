@@ -1,6 +1,5 @@
 import React from 'react';
 import get from 'lodash/get';
-import AuthMode from './AuthMode';
 import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
@@ -73,6 +72,9 @@ const Auth = ({ item, collection }) => {
 
   const getAuthView = () => {
     switch (authMode) {
+      case 'none': {
+        return <div className="mt-2">No Auth</div>;
+      }
       case 'awsv4': {
         return <AwsV4Auth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
@@ -113,9 +115,6 @@ const Auth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full mt-1 overflow-auto">
-      <div className="flex flex-grow justify-start items-center">
-        <AuthMode item={item} collection={collection} />
-      </div>
       {getAuthView()}
     </StyledWrapper>
   );

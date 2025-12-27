@@ -9,14 +9,13 @@ const Wrapper = styled.div`
   .table-container {
     overflow-y: auto;
     border-radius: 8px;
-    border: ${(props) => props.theme.workspace.environments.indentBorder};
+    border: solid 1px ${(props) => props.theme.border.border0};
   }
 
   table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    font-size: 12px;
 
     td {
       vertical-align: middle;
@@ -39,15 +38,15 @@ const Wrapper = styled.div`
     }
 
     thead {
-      color: ${(props) => props.theme.colors.text};
+      color: ${(props) => props.theme.table.thead.color} !important;
       background: ${(props) => props.theme.sidebar.bg};
       font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
       
       td {
-        padding: 8px 10px;
-        border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-        border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+        padding: 5px 10px !important;
+        border-bottom: solid 1px ${(props) => props.theme.border.border0};
+        border-right: solid 1px ${(props) => props.theme.border.border0};
         
         &:last-child {
           border-right: none;
@@ -64,34 +63,14 @@ const Wrapper = styled.div`
         }
         
         td {
-          border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-          border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+          border-bottom: solid 1px ${(props) => props.theme.border.border0};
+          border-right: solid 1px ${(props) => props.theme.border.border0};
           
           &:last-child {
             border-right: none;
           }
         }
       }
-    }
-  }
-
-  .btn-add-param {
-    font-size: 12px;
-    color: ${(props) => props.theme.textLink};
-    font-weight: 500;
-    padding: 7px 14px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 6px;
-    border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
-    background: transparent;
-    transition: all 0.15s ease;
-    
-    &:hover {
-      background: ${(props) => props.theme.listItem.hoverBg};
-      border-color: ${(props) => props.theme.textLink};
     }
   }
 
@@ -107,7 +86,6 @@ const Wrapper = styled.div`
     background-color: transparent;
     color: ${(props) => props.theme.text};
     padding: 0;
-    font-size: 12px;
     border-radius: 4px;
     transition: all 0.15s ease;
 
@@ -120,72 +98,15 @@ const Wrapper = styled.div`
     cursor: pointer;
     width: 14px;
     height: 14px;
-    accent-color: ${(props) => props.theme.workspace.accent};
+    accent-color: ${(props) => props.theme.colors.accent};
     vertical-align: middle;
     margin: 0;
   }
   
-  button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    color: ${(props) => props.theme.colors.text.muted};
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: color 0.15s ease, background 0.15s ease;
-  }
-  
   .button-container {
-    padding: 12px 0;
-    background: ${(props) => props.theme.bg};
     flex-shrink: 0;
     display: flex;
     gap: 8px;
-  }
-  
-  .submit {
-    padding: 7px 16px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 6px;
-    border: none;
-    background: ${(props) => props.theme.workspace.accent};
-    color: ${(props) => props.theme.bg};
-    cursor: pointer;
-    transition: opacity 0.15s ease;
-    
-    &:hover {
-      opacity: 0.9;
-    }
-  }
-
-  .reset {
-    background: transparent;
-    padding: 6px 16px;
-    border: 1px solid ${(props) => props.theme.workspace.accent};
-    color: ${(props) => props.theme.workspace.accent};
-    &:hover {
-      opacity: 0.9;
-    }
-  }
-  
-  .discard {
-    padding: 7px 16px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 6px;
-    background: transparent;
-    color: ${(props) => props.theme.text};
-    border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
-    cursor: pointer;
-    transition: all 0.15s ease;
-    
-    &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    }
   }
 `;
 

@@ -88,7 +88,7 @@ const StyledWrapper = styled.div`
     transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
     
     &.is-selected {
-      background-color: ${(props) => props.theme.requestTabs.active.bg};
+      background-color: ${(props) => props.theme.background.surface2};
     }
     
     &.is-dragging {

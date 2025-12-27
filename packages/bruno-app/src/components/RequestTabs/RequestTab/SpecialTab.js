@@ -1,6 +1,6 @@
 import React from 'react';
 import GradientCloseButton from './GradientCloseButton';
-import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
+import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock, IconDatabase, IconWorld } from '@tabler/icons';
 
 const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
   const getTabInfo = (type, tabName) => {
@@ -50,6 +50,22 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
           <>
             <IconRun size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
             <span className="ml-1 tab-name">Runner</span>
+          </>
+        );
+      }
+      case 'environment-settings': {
+        return (
+          <>
+            <IconDatabase size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
+            <span className="ml-1 tab-name">Environments</span>
+          </>
+        );
+      }
+      case 'global-environment-settings': {
+        return (
+          <>
+            <IconWorld size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
+            <span className="ml-1 tab-name">Global Environments</span>
           </>
         );
       }

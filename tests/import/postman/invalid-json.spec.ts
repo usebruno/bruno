@@ -21,6 +21,6 @@ test.describe('Invalid Postman Collection - Invalid JSON', () => {
     expect(hasError).toBe(true);
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -10,11 +10,14 @@ import {
   IconSearch,
   IconSortAscendingLetters,
   IconSortDescendingLetters,
-  IconSquareX
+  IconSquareX,
+  IconBox,
+  IconTerminal2
 } from '@tabler/icons';
 
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
+import { normalizePath } from 'utils/common/path';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -24,7 +27,7 @@ import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollect
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
-import { IconBox } from '@tabler/icons';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionsSection = () => {
   const [showSearch, setShowSearch] = useState(false);
@@ -41,6 +44,13 @@ const CollectionsSection = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+
+  const workspaceCollections = useMemo(() => {
+    if (!activeWorkspace) return [];
+    return collections.filter((c) =>
+      activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
+    );
+  }, [activeWorkspace, collections]);
 
   const handleImportCollection = ({ rawData, type }) => {
     setImportCollectionModalOpen(false);
@@ -107,7 +117,7 @@ const CollectionsSection = () => {
   };
 
   const selectAllCollectionsToClose = () => {
-    setCollectionsToClose(collections.map((c) => c.uid));
+    setCollectionsToClose(workspaceCollections.map((c) => c.uid));
   };
 
   const clearCollectionsToClose = () => {
@@ -135,19 +145,19 @@ const CollectionsSection = () => {
       }
     },
     {
-      id: 'import',
-      leftSection: IconDownload,
-      label: 'Import collection',
-      onClick: () => {
-        setImportCollectionModalOpen(true);
-      }
-    },
-    {
       id: 'open',
       leftSection: IconFolder,
       label: 'Open collection',
       onClick: () => {
         handleOpenCollection();
+      }
+    },
+    {
+      id: 'import',
+      leftSection: IconDownload,
+      label: 'Import collection',
+      onClick: () => {
+        setImportCollectionModalOpen(true);
       }
     }
   ];
@@ -167,6 +177,14 @@ const CollectionsSection = () => {
       label: 'Close all',
       onClick: () => {
         selectAllCollectionsToClose();
+      }
+    },
+    {
+      id: 'open-in-terminal',
+      leftSection: IconTerminal2,
+      label: 'Open in Terminal',
+      onClick: () => {
+        openDevtoolsAndSwitchToTerminal(dispatch, activeWorkspace?.pathname);
       }
     }
   ];

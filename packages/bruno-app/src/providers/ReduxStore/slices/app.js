@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
+import { addTab, focusTab } from './tabs';
 
 const initialState = {
   isDragging: false,
@@ -11,6 +12,7 @@ const initialState = {
   showHomePage: false,
   showPreferences: false,
   showApiSpecPage: false,
+  showManageWorkspacePage: false,
   isEnvironmentSettingsModalOpen: false,
   isGlobalEnvironmentSettingsModalOpen: false,
   preferences: {
@@ -23,7 +25,10 @@ const initialState = {
       keepDefaultCaCertificates: {
         enabled: true
       },
-      timeout: 0
+      timeout: 0,
+      oauth2: {
+        useSystemBrowser: false
+      }
     },
     font: {
       codeFont: 'default'
@@ -65,18 +70,21 @@ export const appSlice = createSlice({
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
-    updateEnvironmentSettingsModalVisibility: (state, action) => {
-      state.isEnvironmentSettingsModalOpen = action.payload;
-    },
-    updateGlobalEnvironmentSettingsModalVisibility: (state, action) => {
-      state.isGlobalEnvironmentSettingsModalOpen = action.payload;
-    },
     showHomePage: (state) => {
       state.showHomePage = true;
       state.showApiSpecPage = false;
+      state.showManageWorkspacePage = false;
     },
     hideHomePage: (state) => {
       state.showHomePage = false;
+    },
+    showManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = true;
+      state.showHomePage = false;
+      state.showApiSpecPage = false;
+    },
+    hideManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = false;
     },
     showApiSpecPage: (state) => {
       state.showHomePage = false;
@@ -120,6 +128,20 @@ export const appSlice = createSlice({
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     }
+  },
+  extraReducers: (builder) => {
+    // Automatically hide special pages when any tab is added or focused
+    builder
+      .addCase(addTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      })
+      .addCase(focusTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      });
   }
 });
 
@@ -128,10 +150,10 @@ export const {
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
-  updateEnvironmentSettingsModalVisibility,
-  updateGlobalEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
+  showManageWorkspacePage,
+  hideManageWorkspacePage,
   showApiSpecPage,
   hideApiSpecPage,
   showPreferences,

@@ -11,11 +11,13 @@ import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateUntitledRequest from 'components/CreateUntitledRequest';
+import { IconPlus } from '@tabler/icons';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const scrollContainerRef = useRef();
+  const collectionTabsRef = useRef();
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [tabOverflowStates, setTabOverflowStates] = useState({});
   const [showChevrons, setShowChevrons] = useState(false);
@@ -83,10 +85,6 @@ const RequestTabs = () => {
     return null;
   }
 
-  if (!activeTab) {
-    return <StyledWrapper>Something went wrong!</StyledWrapper>;
-  }
-
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
   const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
 
@@ -118,7 +116,7 @@ const RequestTabs = () => {
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center pl-2">
+          <div className="flex items-center pl-2" ref={collectionTabsRef}>
             <ul role="tablist">
               {showChevrons ? (
                 <li className="select-none short-tab" onClick={leftSlide}>
@@ -161,6 +159,7 @@ const RequestTabs = () => {
                             folderUid={tab.folderUid}
                             hasOverflow={tabOverflowStates[tab.uid]}
                             setHasOverflow={createSetHasOverflow(tab.uid)}
+                            dropdownContainerRef={collectionTabsRef}
                           />
                         </DraggableTab>
                       );
@@ -178,14 +177,15 @@ const RequestTabs = () => {
                 </li>
               ) : null}
               <div className="flex items-center cursor-pointer short-tab">
-
-                {activeCollection && (
-                  <CreateUntitledRequest
-                    collectionUid={activeCollection.uid}
-                    itemUid={null}
-                    placement="bottom-start"
-                  />
-                )}
+                {
+                  activeCollection && (
+                    <IconPlus
+                      size={18}
+                      strokeWidth={1.5}
+                      onClick={() => setNewRequestModalOpen(true)}
+                    />
+                  )
+                }
               </div>
               {/* Moved to post mvp */}
               {/* <li className="select-none new-tab choose-request">

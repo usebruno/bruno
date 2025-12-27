@@ -57,13 +57,13 @@ describe('HttpMethodSelector', () => {
 
       await waitFor(() => {
         const standardMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT'];
-        const dropdownItems = screen.getAllByText((content, element) => {
-          return element?.classList.contains('dropdown-item');
-        });
-        const renderedMethods = dropdownItems.map((item) => item.textContent);
+        const dropdownItems = screen.getAllByRole('menuitem');
+        const renderedMethods = dropdownItems.map((item) => item.textContent.trim());
 
-        standardMethods.forEach((method) => {
-          expect(renderedMethods).toContain(method);
+        standardMethods.forEach((method, index) => {
+          // GET should have a checkmark (✓) since it's the default selected method
+          const expectedText = index === 0 ? method + '✓' : method;
+          expect(renderedMethods).toContain(expectedText);
         });
       });
     });
@@ -77,7 +77,8 @@ describe('HttpMethodSelector', () => {
       await waitFor(() => {
         const addCustomSpan = screen.getByText('+ Add Custom');
         expect(addCustomSpan).toBeInTheDocument();
-        expect(addCustomSpan).toHaveClass('text-link');
+        // The className is applied to the parent dropdown-item div, not the label span
+        expect(addCustomSpan.closest('.dropdown-item')).toHaveClass('text-link');
       });
     });
 
@@ -88,9 +89,12 @@ describe('HttpMethodSelector', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        const postMethod = screen.getByText('POST');
-        fireEvent.click(postMethod);
+        const postMethod = screen.getByRole('menuitem', { name: /^POST/ });
+        expect(postMethod).toBeInTheDocument();
       });
+
+      const postMethod = screen.getByRole('menuitem', { name: /^POST/ });
+      fireEvent.click(postMethod);
 
       expect(mockOnMethodSelect).toHaveBeenCalledWith('POST');
     });

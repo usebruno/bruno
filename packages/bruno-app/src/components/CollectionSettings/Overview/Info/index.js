@@ -1,11 +1,11 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconBox, IconFolder, IconWorld, IconApi, IconShare } from '@tabler/icons';
+import { IconFolder, IconWorld, IconApi, IconShare } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
-import { updateEnvironmentSettingsModalVisibility, updateGlobalEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
 
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
@@ -53,7 +53,13 @@ const Info = ({ collection }) => {
                   type="button"
                   className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
                   onClick={() => {
-                    dispatch(updateEnvironmentSettingsModalVisibility(true));
+                    dispatch(
+                      addTab({
+                        uid: `${collection.uid}-environment-settings`,
+                        collectionUid: collection.uid,
+                        type: 'environment-settings'
+                      })
+                    );
                   }}
                 >
                   {collectionEnvironmentCount} collection environment{collectionEnvironmentCount !== 1 ? 's' : ''}
@@ -61,7 +67,15 @@ const Info = ({ collection }) => {
                 <button
                   type="button"
                   className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
-                  onClick={() => dispatch(updateGlobalEnvironmentSettingsModalVisibility(true))}
+                  onClick={() => {
+                    dispatch(
+                      addTab({
+                        uid: `${collection.uid}-global-environment-settings`,
+                        collectionUid: collection.uid,
+                        type: 'global-environment-settings'
+                      })
+                    );
+                  }}
                 >
                   {globalEnvironmentCount} global environment{globalEnvironmentCount !== 1 ? 's' : ''}
                 </button>

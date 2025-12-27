@@ -8,6 +8,7 @@ import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { IconFileText, IconEdit, IconX } from '@tabler/icons';
+import Button from 'ui/Button';
 import toast from 'react-hot-toast';
 
 const WorkspaceDocs = ({ workspace }) => {
@@ -113,9 +114,9 @@ const WorkspaceDocs = ({ workspace }) => {
               <li>Key workflows</li>
               <li>Resources & FAQs</li>
             </ul>
-            <button className="add-docs-btn" onClick={handleAddDocumentation}>
+            <Button color="secondary" size="md" onClick={handleAddDocumentation}>
               Add Documentation
-            </button>
+            </Button>
           </div>
         )}
       </div>

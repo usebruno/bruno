@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const fsExtra = require('fs-extra');
+const archiver = require('archiver');
+const extractZip = require('extract-zip');
 const { ipcMain, dialog } = require('electron');
 const { createDirectory, sanitizeName } = require('../utils/filesystem');
 const yaml = require('js-yaml');
@@ -23,6 +25,19 @@ const {
   validateWorkspaceDirectory,
   getWorkspaceUid
 } = require('../utils/workspace-config');
+
+const DEFAULT_WORKSPACE_NAME = 'My Workspace';
+
+const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
+  if (isDefault) {
+    return {
+      ...workspaceConfig,
+      name: DEFAULT_WORKSPACE_NAME,
+      type: 'default'
+    };
+  }
+  return workspaceConfig;
+};
 
 const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   const lastOpenedWorkspaces = new LastOpenedWorkspaces();
@@ -56,17 +71,16 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
         lastOpenedWorkspaces.add(dirPath);
 
-        mainWindow.webContents.send('main:workspace-opened', dirPath, workspaceUid, {
-          ...workspaceConfig,
-          type: isDefault ? 'default' : workspaceConfig.type
-        });
+        const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, isDefault);
+
+        mainWindow.webContents.send('main:workspace-opened', dirPath, workspaceUid, configForClient);
 
         if (workspaceWatcher) {
           workspaceWatcher.addWatcher(mainWindow, dirPath);
         }
 
         return {
-          workspaceConfig: { ...workspaceConfig, type: isDefault ? 'default' : workspaceConfig.type },
+          workspaceConfig: configForClient,
           workspaceUid,
           workspacePath: dirPath
         };
@@ -84,18 +98,18 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       const workspaceUid = getWorkspaceUid(workspacePath);
       const isDefault = workspaceUid === 'default';
-      const configWithType = { ...workspaceConfig, type: isDefault ? 'default' : workspaceConfig.type };
+      const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, isDefault);
 
       lastOpenedWorkspaces.add(workspacePath);
 
-      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configWithType);
+      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
       if (workspaceWatcher) {
         workspaceWatcher.addWatcher(mainWindow, workspacePath);
       }
 
       return {
-        workspaceConfig: configWithType,
+        workspaceConfig: configForClient,
         workspaceUid,
         workspacePath
       };
@@ -124,18 +138,18 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       const workspaceUid = getWorkspaceUid(workspacePath);
       const isDefault = workspaceUid === 'default';
-      const configWithType = { ...workspaceConfig, type: isDefault ? 'default' : workspaceConfig.type };
+      const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, isDefault);
 
       lastOpenedWorkspaces.add(workspacePath);
 
-      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configWithType);
+      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
       if (workspaceWatcher) {
         workspaceWatcher.addWatcher(mainWindow, workspacePath);
       }
 
       return {
-        workspaceConfig: configWithType,
+        workspaceConfig: configForClient,
         workspaceUid,
         workspacePath
       };
@@ -238,6 +252,147 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       }
 
       return { success: true };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:export-workspace', async (event, workspacePath, workspaceName) => {
+    try {
+      if (!workspacePath || !fs.existsSync(workspacePath)) {
+        throw new Error('Workspace path does not exist');
+      }
+
+      const defaultFileName = `${sanitizeName(workspaceName)}.zip`;
+      const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+        title: 'Export Workspace',
+        defaultPath: defaultFileName,
+        filters: [{ name: 'Zip Files', extensions: ['zip'] }]
+      });
+
+      if (canceled || !filePath) {
+        return { success: false, canceled: true };
+      }
+
+      const ignoredDirectories = ['node_modules', '.git'];
+
+      await new Promise((resolve, reject) => {
+        const output = fs.createWriteStream(filePath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        output.on('close', () => {
+          resolve();
+        });
+
+        archive.on('error', (err) => {
+          reject(err);
+        });
+
+        archive.pipe(output);
+
+        const addDirectoryToArchive = (dirPath, archivePath) => {
+          const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+          for (const entry of entries) {
+            const fullPath = path.join(dirPath, entry.name);
+            const entryArchivePath = archivePath ? path.join(archivePath, entry.name) : entry.name;
+
+            if (entry.isDirectory()) {
+              if (!ignoredDirectories.includes(entry.name)) {
+                addDirectoryToArchive(fullPath, entryArchivePath);
+              }
+            } else {
+              archive.file(fullPath, { name: entryArchivePath });
+            }
+          }
+        };
+
+        addDirectoryToArchive(workspacePath, '');
+        archive.finalize();
+      });
+
+      return { success: true, filePath };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:import-workspace', async (event, zipFilePath, extractLocation) => {
+    try {
+      if (!zipFilePath || !fs.existsSync(zipFilePath)) {
+        throw new Error('Zip file does not exist');
+      }
+
+      if (!extractLocation || !fs.existsSync(extractLocation)) {
+        throw new Error('Extract location does not exist');
+      }
+
+      const tempDir = path.join(extractLocation, `_bruno_temp_${Date.now()}`);
+      await fsExtra.ensureDir(tempDir);
+
+      try {
+        await extractZip(zipFilePath, { dir: tempDir });
+
+        const extractedItems = fs.readdirSync(tempDir);
+        let workspaceDir = tempDir;
+
+        if (extractedItems.length === 1) {
+          const singleItem = path.join(tempDir, extractedItems[0]);
+          if (fs.statSync(singleItem).isDirectory()) {
+            workspaceDir = singleItem;
+          }
+        }
+
+        const workspaceYmlPath = path.join(workspaceDir, 'workspace.yml');
+        if (!fs.existsSync(workspaceYmlPath)) {
+          throw new Error('Invalid workspace: workspace.yml not found in the zip file');
+        }
+
+        const workspaceConfig = yaml.load(fs.readFileSync(workspaceYmlPath, 'utf8'));
+        const workspaceName = workspaceConfig.info.name || 'Imported Workspace';
+        const sanitizedName = sanitizeName(workspaceName);
+
+        let finalWorkspacePath = path.join(extractLocation, sanitizedName);
+        let counter = 1;
+        while (fs.existsSync(finalWorkspacePath)) {
+          finalWorkspacePath = path.join(extractLocation, `${sanitizedName} (${counter})`);
+          counter++;
+        }
+
+        if (workspaceDir !== tempDir) {
+          await fsExtra.move(workspaceDir, finalWorkspacePath);
+          await fsExtra.remove(tempDir);
+        } else {
+          await fsExtra.move(tempDir, finalWorkspacePath);
+        }
+
+        validateWorkspacePath(finalWorkspacePath);
+
+        const finalConfig = readWorkspaceConfig(finalWorkspacePath);
+        validateWorkspaceConfig(finalConfig);
+
+        const workspaceUid = getWorkspaceUid(finalWorkspacePath);
+        const isDefault = workspaceUid === 'default';
+        const configForClient = prepareWorkspaceConfigForClient(finalConfig, isDefault);
+
+        lastOpenedWorkspaces.add(finalWorkspacePath);
+
+        mainWindow.webContents.send('main:workspace-opened', finalWorkspacePath, workspaceUid, configForClient);
+
+        if (workspaceWatcher) {
+          workspaceWatcher.addWatcher(mainWindow, finalWorkspacePath);
+        }
+
+        return {
+          success: true,
+          workspaceConfig: configForClient,
+          workspaceUid,
+          workspacePath: finalWorkspacePath
+        };
+      } catch (error) {
+        await fsExtra.remove(tempDir).catch(() => {});
+        throw error;
+      }
     } catch (error) {
       throw error;
     }
@@ -347,10 +502,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const workspaceConfig = readWorkspaceConfig(workspacePath);
       const workspaceUid = getWorkspaceUid(workspacePath);
       const isDefault = workspaceUid === 'default';
-      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, {
-        ...workspaceConfig,
-        type: isDefault ? 'default' : workspaceConfig.type
-      });
+      const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, isDefault);
+      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, configForClient);
 
       return updatedCollections;
     } catch (error) {
@@ -391,10 +544,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       const correctWorkspaceUid = getWorkspaceUid(workspacePath);
       const isDefault = correctWorkspaceUid === 'default';
-      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, correctWorkspaceUid, {
-        ...result.updatedConfig,
-        type: isDefault ? 'default' : result.updatedConfig.type
-      });
+      const configForClient = prepareWorkspaceConfigForClient(result.updatedConfig, isDefault);
+      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, correctWorkspaceUid, configForClient);
 
       return true;
     } catch (error) {
@@ -445,12 +596,10 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       const { workspacePath, workspaceUid } = result;
       const workspaceConfig = readWorkspaceConfig(workspacePath);
+      const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, true);
 
       return {
-        workspaceConfig: {
-          ...workspaceConfig,
-          type: 'default'
-        },
+        workspaceConfig: configForClient,
         workspaceUid,
         workspacePath
       };
@@ -462,23 +611,19 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
   ipcMain.on('main:renderer-ready', async (win) => {
     try {
-      // Load default workspace
       const defaultResult = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
       if (defaultResult) {
         const { workspacePath, workspaceUid } = defaultResult;
         const workspaceConfig = readWorkspaceConfig(workspacePath);
+        const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, true);
 
-        win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, {
-          ...workspaceConfig,
-          type: 'default'
-        });
+        win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
         if (workspaceWatcher) {
           workspaceWatcher.addWatcher(win, workspacePath);
         }
       }
 
-      // Load other workspaces
       const workspacePaths = lastOpenedWorkspaces.getAll();
       const invalidPaths = [];
 
@@ -491,11 +636,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
             validateWorkspaceConfig(workspaceConfig);
             const workspaceUid = getWorkspaceUid(workspacePath);
             const isDefault = workspaceUid === 'default';
+            const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, isDefault);
 
-            win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, {
-              ...workspaceConfig,
-              type: isDefault ? 'default' : workspaceConfig.type
-            });
+            win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
             if (workspaceWatcher) {
               workspaceWatcher.addWatcher(win, workspacePath);

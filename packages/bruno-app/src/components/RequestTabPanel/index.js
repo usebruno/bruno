@@ -34,9 +34,11 @@ import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceHome from 'components/WorkspaceHome';
+import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
+import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 
 const MIN_LEFT_PANE_WIDTH = 300;
-const MIN_RIGHT_PANE_WIDTH = 480;
+const MIN_RIGHT_PANE_WIDTH = 490;
 const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
@@ -52,6 +54,7 @@ const RequestTabPanel = () => {
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
   // Use ref to avoid stale closure in event handlers
   const isVerticalLayoutRef = useRef(isVerticalLayout);
@@ -80,6 +83,7 @@ const RequestTabPanel = () => {
   const draggingRef = useRef(false);
 
   const { left: leftPaneWidth, top: topPaneHeight, reset: resetPaneBoundaries, setTop: setTopPaneHeight, setLeft: setLeftPaneWidth } = useTabPaneBoundaries(activeTabUid);
+  const previousTopPaneHeight = useRef(null); // Store height before devtools opens
 
   // Not a recommended pattern here to have the child component
   // make a callback to set state, but treating this as an exception
@@ -145,11 +149,37 @@ const RequestTabPanel = () => {
     };
   }, [handleMouseUp, handleMouseMove]);
 
-  if (!activeTabUid) {
+  useEffect(() => {
+    if (!isVerticalLayout) return;
+
+    if (isConsoleOpen) {
+      // Store current height before reducing
+      if (previousTopPaneHeight.current === null) {
+        previousTopPaneHeight.current = topPaneHeight;
+      }
+      // Reduce request pane height to make room for response pane when devtools is open
+      const maxHeight = 200;
+      if (topPaneHeight > maxHeight) {
+        setTopPaneHeight(maxHeight);
+      }
+    } else {
+      // Restore previous height when devtools closes
+      if (previousTopPaneHeight.current !== null) {
+        setTopPaneHeight(previousTopPaneHeight.current);
+        previousTopPaneHeight.current = null;
+      }
+    }
+  }, [isConsoleOpen, isVerticalLayout]);
+
+  if (!activeTabUid || !focusedTab) {
     return <WorkspaceHome />;
   }
 
-  if (!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
+  if (focusedTab.type === 'global-environment-settings') {
+    return <GlobalEnvironmentSettings />;
+  }
+
+  if (!focusedTab.uid || !focusedTab.collectionUid) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
@@ -198,6 +228,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'security-settings') {
     return <SecuritySettings collection={collection} />;
+  }
+
+  if (focusedTab.type === 'environment-settings') {
+    return <EnvironmentSettings collection={collection} />;
   }
 
   if (!item || !item.uid) {

@@ -5,6 +5,7 @@ import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Assertion } from '@opencollection/types/common/assertions';
+import type { Action } from '@opencollection/types/common/actions';
 import type { HttpRequestParam, HttpRequestBody } from '@opencollection/types/requests/http';
 import { stringifyYml } from '../utils';
 import { toOpenCollectionAuth } from '../common/auth';
@@ -12,6 +13,7 @@ import { toOpenCollectionHttpHeaders, toOpenCollectionResponseHeaders } from '..
 import { toOpenCollectionParams } from '../common/params';
 import { toOpenCollectionBody } from '../common/body';
 import { toOpenCollectionVariables } from '../common/variables';
+import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 import { isNumber, isNonEmptyString } from '../../../utils';
@@ -82,6 +84,14 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     const assertions: Assertion[] | undefined = toOpenCollectionAssertions(brunoRequest.assertions);
     if (assertions) {
       runtime.assertions = assertions;
+      hasRuntime = true;
+    }
+
+    // actions (from post-response variables)
+    const resVars = brunoRequest.vars?.res;
+    const actions: Action[] | undefined = toOpenCollectionActions(resVars);
+    if (actions) {
+      runtime.actions = actions;
       hasRuntime = true;
     }
 
@@ -179,9 +189,12 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
           }
 
           if (example.response.body && example.response.body.type && example.response.body.content !== undefined) {
+            const content = example.response.body.content;
+            const contentString = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+
             ocExample.response.body = {
               type: example.response.body.type as 'json' | 'text' | 'xml' | 'html' | 'binary',
-              data: String(example.response.body.content || '')
+              data: contentString
             };
           }
         }

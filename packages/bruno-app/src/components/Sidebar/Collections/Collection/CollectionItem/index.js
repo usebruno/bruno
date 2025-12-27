@@ -27,7 +27,6 @@ import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/s
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest } from 'providers/ReduxStore/slices/app';
-import MenuDropdown from 'ui/MenuDropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import RenameCollectionItem from './RenameCollectionItem';
@@ -38,7 +37,6 @@ import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
-import { hideHomePage, hideApiSpecPage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
@@ -49,12 +47,16 @@ import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
-import { calculateDraggedItemNewPathname, getInitialExampleName } from 'utils/collections/index';
+import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import ActionIcon from 'ui/ActionIcon';
+import MenuDropdown from 'ui/MenuDropdown';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
   const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
 
@@ -213,8 +215,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
     if (isRequest) {
-      dispatch(hideHomePage());
-      dispatch(hideApiSpecPage());
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
@@ -232,8 +232,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         })
       );
     } else {
-      dispatch(hideHomePage());
-      dispatch(hideApiSpecPage());
       dispatch(
         addTab({
           uid: item.uid,
@@ -285,7 +283,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    menuDropdownRef.current?.open();
+    menuDropdownRef.current?.show();
   };
 
   let indents = range(item.depth);
@@ -362,6 +360,16 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onClick: handleShowInFolder
       }
     );
+    if (!isFolder && isItemARequest(item) && !(item.type === 'http-request' || item.type === 'graphql-request')) {
+      items.push({
+        id: 'run',
+        leftSection: IconPlayerPlay,
+        label: 'Run',
+        onClick: () => {
+          handleRun();
+        }
+      });
+    }
 
     if (!isFolder && (item.type === 'http-request' || item.type === 'graphql-request')) {
       items.push({
@@ -527,13 +535,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const handlePasteItem = () => {
-    // Only allow paste into folders
+    // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
+    let targetFolderUid = item.uid;
     if (!isFolder) {
-      toast.error('Paste is only available for folders');
-      return;
+      const parentFolder = findParentItemInCollection(collection, item.uid);
+      targetFolderUid = parentFolder ? parentFolder.uid : null;
     }
 
-    dispatch(pasteItem(collectionUid, item.uid))
+    dispatch(pasteItem(collectionUid, targetFolderUid))
       .then(() => {
         toast.success('Item pasted successfully');
       })
@@ -633,8 +642,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
           >
-            <div style={{ width: 16, minWidth: 16 }}>
-              {isFolder ? (
+
+            {isFolder ? (
+              <ActionIcon style={{ width: 16, minWidth: 16 }}>
                 <IconChevronRight
                   size={16}
                   strokeWidth={2}
@@ -644,7 +654,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   onDoubleClick={handleFolderDoubleClick}
                   data-testid="folder-chevron"
                 />
-              ) : hasExamples ? (
+              </ActionIcon>
+            ) : hasExamples ? (
+              <ActionIcon style={{ width: 16, minWidth: 16 }}>
                 <IconChevronRight
                   size={16}
                   strokeWidth={2}
@@ -654,8 +666,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   onDoubleClick={handleExamplesDoubleClick}
                   data-testid="request-item-chevron"
                 />
-              ) : null}
-            </div>
+              </ActionIcon>
+            ) : null}
+
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
@@ -663,14 +676,18 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               </span>
             </div>
           </div>
-          <div className="menu-icon pr-2">
+          <div className="pr-2">
             <MenuDropdown
               ref={menuDropdownRef}
               items={buildMenuItems()}
               placement="bottom-start"
               data-testid="collection-item-menu"
+              popperOptions={{ strategy: 'fixed' }}
+              appendTo={dropdownContainerRef?.current || document.body}
             >
-              <IconDots size={22} />
+              <ActionIcon className="menu-icon">
+                <IconDots size={18} className="collection-item-menu-icon" />
+              </ActionIcon>
             </MenuDropdown>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { updateCollectionTests } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const Tests = ({ collection }) => {
   const dispatch = useDispatch();
@@ -41,9 +42,9 @@ const Tests = ({ collection }) => {
       />
 
       <div className="mt-6">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

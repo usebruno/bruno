@@ -1,11 +1,123 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const yaml = require('js-yaml');
+const crypto = require('node:crypto');
 const { writeFile, validateName } = require('./filesystem');
 const { generateUidBasedOnHash } = require('./common');
+const { withLock, getWorkspaceLockKey } = require('./workspace-lock');
 
 const WORKSPACE_TYPE = 'workspace';
 const OPENCOLLECTION_VERSION = '1.0.0';
+
+const quoteYamlValue = (value) => {
+  if (typeof value !== 'string') {
+    return `"${String(value)}"`;
+  }
+
+  if (value === '') {
+    return '""';
+  }
+
+  const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return `"${escaped}"`;
+};
+
+const writeWorkspaceFileAtomic = async (workspacePath, content) => {
+  const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+  const tempFilePath = path.join(os.tmpdir(), `workspace-${Date.now()}-${crypto.randomBytes(16).toString('hex')}.yml`);
+
+  try {
+    await writeFile(tempFilePath, content);
+
+    if (fs.existsSync(workspaceFilePath)) {
+      fs.unlinkSync(workspaceFilePath);
+    }
+
+    fs.renameSync(tempFilePath, workspaceFilePath);
+  } catch (error) {
+    if (fs.existsSync(tempFilePath)) {
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (_) {}
+    }
+    throw error;
+  }
+};
+
+const isValidCollectionEntry = (collection) => {
+  if (!collection || typeof collection !== 'object') {
+    return false;
+  }
+
+  if (!collection.name || typeof collection.name !== 'string' || collection.name.trim() === '') {
+    return false;
+  }
+
+  if (!collection.path || typeof collection.path !== 'string' || collection.path.trim() === '') {
+    return false;
+  }
+
+  return true;
+};
+
+const isValidSpecEntry = (spec) => {
+  if (!spec || typeof spec !== 'object') {
+    return false;
+  }
+
+  if (!spec.name || typeof spec.name !== 'string' || spec.name.trim() === '') {
+    return false;
+  }
+
+  if (!spec.path || typeof spec.path !== 'string' || spec.path.trim() === '') {
+    return false;
+  }
+
+  return true;
+};
+
+const sanitizeCollections = (collections) => {
+  if (!Array.isArray(collections)) {
+    return [];
+  }
+
+  return collections.filter((collection) => {
+    if (!isValidCollectionEntry(collection)) {
+      console.error('Skipping invalid collection entry:', collection);
+      return false;
+    }
+    return true;
+  }).map((collection) => {
+    const sanitized = {
+      name: collection.name.trim(),
+      path: collection.path.trim()
+    };
+
+    if (collection.remote && typeof collection.remote === 'string') {
+      sanitized.remote = collection.remote.trim();
+    }
+
+    return sanitized;
+  });
+};
+
+const sanitizeSpecs = (specs) => {
+  if (!Array.isArray(specs)) {
+    return [];
+  }
+
+  return specs.filter((spec) => {
+    if (!isValidSpecEntry(spec)) {
+      console.error('Skipping invalid spec entry:', spec);
+      return false;
+    }
+    return true;
+  }).map((spec) => ({
+    name: spec.name.trim(),
+    path: spec.path.trim()
+  }));
+};
 
 const makeRelativePath = (workspacePath, absolutePath) => {
   if (!path.isAbsolute(absolutePath)) {
@@ -102,23 +214,23 @@ const readWorkspaceConfig = (workspacePath) => {
 
 const generateYamlContent = (config) => {
   const yamlLines = [];
+  const workspaceName = config.info?.name || config.name || 'Unnamed Workspace';
+  const workspaceType = config.info?.type || config.type || WORKSPACE_TYPE;
+
   yamlLines.push(`opencollection: ${config.opencollection || OPENCOLLECTION_VERSION}`);
   yamlLines.push('info:');
-  yamlLines.push(`  name: ${config.info?.name || config.name}`);
-  yamlLines.push(`  type: ${config.info?.type || config.type || WORKSPACE_TYPE}`);
+  yamlLines.push(`  name: ${quoteYamlValue(workspaceName)}`);
+  yamlLines.push(`  type: ${workspaceType}`);
   yamlLines.push('');
 
-  const collections = config.collections || [];
+  const collections = sanitizeCollections(config.collections);
   if (collections.length > 0) {
     yamlLines.push('collections:');
     for (const collection of collections) {
-      yamlLines.push(`  - name: ${collection.name}`);
-      yamlLines.push(`    path: ${collection.path}`);
+      yamlLines.push(`  - name: ${quoteYamlValue(collection.name)}`);
+      yamlLines.push(`    path: ${quoteYamlValue(collection.path)}`);
       if (collection.remote) {
-        yamlLines.push(`    remote: ${collection.remote}`);
-      }
-      if (collection.type) {
-        yamlLines.push(`    type: ${collection.type}`);
+        yamlLines.push(`    remote: ${quoteYamlValue(collection.remote)}`);
       }
     }
   } else {
@@ -126,12 +238,12 @@ const generateYamlContent = (config) => {
   }
   yamlLines.push('');
 
-  const specs = config.specs || [];
+  const specs = sanitizeSpecs(config.specs);
   if (specs.length > 0) {
     yamlLines.push('specs:');
     for (const spec of specs) {
-      yamlLines.push(`  - name: ${spec.name}`);
-      yamlLines.push(`    path: ${spec.path}`);
+      yamlLines.push(`  - name: ${quoteYamlValue(spec.name)}`);
+      yamlLines.push(`    path: ${quoteYamlValue(spec.path)}`);
     }
   } else {
     yamlLines.push('specs:');
@@ -142,13 +254,13 @@ const generateYamlContent = (config) => {
   if (docs) {
     const escapedDocs = docs.includes('\n')
       ? `|-\n  ${docs.split('\n').join('\n  ')}`
-      : `'${docs.replace(/'/g, '\'\'')}'`;
+      : quoteYamlValue(docs);
     yamlLines.push(`docs: ${escapedDocs}`);
   } else {
     yamlLines.push('docs: \'\'');
   }
 
-  if (config.activeEnvironmentUid) {
+  if (config.activeEnvironmentUid && typeof config.activeEnvironmentUid === 'string') {
     yamlLines.push('');
     yamlLines.push(`activeEnvironmentUid: ${config.activeEnvironmentUid}`);
   }
@@ -159,8 +271,10 @@ const generateYamlContent = (config) => {
 };
 
 const writeWorkspaceConfig = async (workspacePath, config) => {
-  const yamlContent = generateYamlContent(config);
-  await writeFile(path.join(workspacePath, 'workspace.yml'), yamlContent);
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
+  });
 };
 
 const validateWorkspaceConfig = (config) => {
@@ -182,88 +296,104 @@ const validateWorkspaceConfig = (config) => {
 };
 
 const updateWorkspaceName = async (workspacePath, newName) => {
-  const config = readWorkspaceConfig(workspacePath);
-  config.name = newName;
-  if (config.info) {
-    config.info.name = newName;
-  }
-  await writeWorkspaceConfig(workspacePath, config);
-  return config;
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
+    config.name = newName;
+    if (config.info) {
+      config.info.name = newName;
+    }
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
+    return config;
+  });
 };
 
 const updateWorkspaceDocs = async (workspacePath, docs) => {
-  const config = readWorkspaceConfig(workspacePath);
-  config.docs = docs;
-  await writeWorkspaceConfig(workspacePath, config);
-  return docs;
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
+    config.docs = docs;
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
+    return docs;
+  });
 };
 
 const addCollectionToWorkspace = async (workspacePath, collection) => {
-  const config = readWorkspaceConfig(workspacePath);
-
-  if (!config.collections) {
-    config.collections = [];
+  if (!isValidCollectionEntry(collection)) {
+    throw new Error('Invalid collection: name and path are required');
   }
 
-  const normalizedCollection = {
-    name: collection.name,
-    path: collection.path
-  };
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
 
-  if (collection.remote) {
-    normalizedCollection.remote = collection.remote;
-  }
+    if (!config.collections) {
+      config.collections = [];
+    }
 
-  const existingIndex = config.collections.findIndex((c) => c.path === normalizedCollection.path);
+    const normalizedCollection = {
+      name: collection.name.trim(),
+      path: collection.path.trim()
+    };
 
-  if (existingIndex >= 0) {
-    config.collections[existingIndex] = normalizedCollection;
-  } else {
-    config.collections.push(normalizedCollection);
-  }
+    if (collection.remote && typeof collection.remote === 'string') {
+      normalizedCollection.remote = collection.remote.trim();
+    }
 
-  await writeWorkspaceConfig(workspacePath, config);
-  return config.collections;
+    const existingIndex = config.collections.findIndex((c) => c.path === normalizedCollection.path);
+
+    if (existingIndex >= 0) {
+      config.collections[existingIndex] = normalizedCollection;
+    } else {
+      config.collections.push(normalizedCollection);
+    }
+
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
+    return config.collections;
+  });
 };
 
 const removeCollectionFromWorkspace = async (workspacePath, collectionPath) => {
-  const config = readWorkspaceConfig(workspacePath);
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
 
-  let removedCollection = null;
-  let shouldDeleteFiles = false;
+    let removedCollection = null;
+    let shouldDeleteFiles = false;
 
-  config.collections = (config.collections || []).filter((c) => {
-    const collectionPathFromYml = c.path;
+    config.collections = (config.collections || []).filter((c) => {
+      const collectionPathFromYml = c.path;
 
-    if (!collectionPathFromYml) {
+      if (!collectionPathFromYml) {
+        return true;
+      }
+
+      const absoluteCollectionPath = path.isAbsolute(collectionPathFromYml)
+        ? collectionPathFromYml
+        : path.resolve(workspacePath, collectionPathFromYml);
+
+      if (path.normalize(absoluteCollectionPath) === path.normalize(collectionPath)) {
+        removedCollection = c;
+
+        const hasRemote = c.remote;
+        const isExternalPath = path.isAbsolute(collectionPathFromYml);
+
+        shouldDeleteFiles = !hasRemote && !isExternalPath;
+
+        return false;
+      }
+
       return true;
-    }
+    });
 
-    const absoluteCollectionPath = path.isAbsolute(collectionPathFromYml)
-      ? collectionPathFromYml
-      : path.resolve(workspacePath, collectionPathFromYml);
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
 
-    if (path.normalize(absoluteCollectionPath) === path.normalize(collectionPath)) {
-      removedCollection = c;
-
-      const hasRemote = c.remote;
-      const isExternalPath = path.isAbsolute(collectionPathFromYml);
-
-      shouldDeleteFiles = !hasRemote && !isExternalPath;
-
-      return false;
-    }
-
-    return true;
+    return {
+      removedCollection,
+      shouldDeleteFiles,
+      updatedConfig: config
+    };
   });
-
-  await writeWorkspaceConfig(workspacePath, config);
-
-  return {
-    removedCollection,
-    shouldDeleteFiles,
-    updatedConfig: config
-  };
 };
 
 const getWorkspaceCollections = (workspacePath) => {
@@ -297,62 +427,72 @@ const getWorkspaceApiSpecs = (workspacePath) => {
 };
 
 const addApiSpecToWorkspace = async (workspacePath, apiSpec) => {
-  const config = readWorkspaceConfig(workspacePath);
-
-  if (!config.specs) {
-    config.specs = [];
+  if (!isValidSpecEntry(apiSpec)) {
+    throw new Error('Invalid API spec: name and path are required');
   }
 
-  const normalizedSpec = {
-    name: apiSpec.name,
-    path: makeRelativePath(workspacePath, apiSpec.path)
-  };
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
 
-  const existingIndex = config.specs.findIndex(
-    (a) => a.name === normalizedSpec.name || a.path === normalizedSpec.path
-  );
+    if (!config.specs) {
+      config.specs = [];
+    }
 
-  if (existingIndex >= 0) {
-    config.specs[existingIndex] = normalizedSpec;
-  } else {
-    config.specs.push(normalizedSpec);
-  }
+    const normalizedSpec = {
+      name: apiSpec.name.trim(),
+      path: makeRelativePath(workspacePath, apiSpec.path).trim()
+    };
 
-  await writeWorkspaceConfig(workspacePath, config);
-  return config.specs;
+    const existingIndex = config.specs.findIndex(
+      (a) => a.name === normalizedSpec.name || a.path === normalizedSpec.path
+    );
+
+    if (existingIndex >= 0) {
+      config.specs[existingIndex] = normalizedSpec;
+    } else {
+      config.specs.push(normalizedSpec);
+    }
+
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
+    return config.specs;
+  });
 };
 
 const removeApiSpecFromWorkspace = async (workspacePath, apiSpecPath) => {
-  const config = readWorkspaceConfig(workspacePath);
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
 
-  if (!config.specs) {
-    return { removedApiSpec: null, updatedConfig: config };
-  }
-
-  let removedApiSpec = null;
-
-  config.specs = config.specs.filter((a) => {
-    const specPathFromYml = a.path;
-    if (!specPathFromYml) return true;
-
-    const absoluteSpecPath = path.isAbsolute(specPathFromYml)
-      ? specPathFromYml
-      : path.resolve(workspacePath, specPathFromYml);
-
-    if (path.normalize(absoluteSpecPath) === path.normalize(apiSpecPath)) {
-      removedApiSpec = a;
-      return false;
+    if (!config.specs) {
+      return { removedApiSpec: null, updatedConfig: config };
     }
 
-    return true;
+    let removedApiSpec = null;
+
+    config.specs = config.specs.filter((a) => {
+      const specPathFromYml = a.path;
+      if (!specPathFromYml) return true;
+
+      const absoluteSpecPath = path.isAbsolute(specPathFromYml)
+        ? specPathFromYml
+        : path.resolve(workspacePath, specPathFromYml);
+
+      if (path.normalize(absoluteSpecPath) === path.normalize(apiSpecPath)) {
+        removedApiSpec = a;
+        return false;
+      }
+
+      return true;
+    });
+
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
+
+    return {
+      removedApiSpec,
+      updatedConfig: config
+    };
   });
-
-  await writeWorkspaceConfig(workspacePath, config);
-
-  return {
-    removedApiSpec,
-    updatedConfig: config
-  };
 };
 
 const getWorkspaceUid = (workspacePath) => {
@@ -382,5 +522,8 @@ module.exports = {
   addApiSpecToWorkspace,
   removeApiSpecFromWorkspace,
   generateYamlContent,
-  getWorkspaceUid
+  getWorkspaceUid,
+  writeWorkspaceFileAtomic,
+  isValidCollectionEntry,
+  isValidSpecEntry
 };

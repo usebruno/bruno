@@ -280,6 +280,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const normalizeFilenameToBru = (filename) => {
+    if (!filename) return filename;
+    return filename.replace(/\.(yml|yaml)$/i, '.bru');
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
@@ -292,7 +297,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: si.uid,
         type: si.type,
         name: si.name,
-        filename: si.filename,
+        filename: isItemARequest(si) ? normalizeFilenameToBru(si.filename) : si.filename,
         seq: si.seq,
         settings: si.settings,
         tags: si.tags,
@@ -1055,6 +1060,16 @@ export const hasExampleChanges = (_item, exampleUid) => {
 
 export const getDefaultRequestPaneTab = (item) => {
   if (item.type === 'http-request') {
+    // If no params are enabled and body mode is set, default to 'body' tab
+    // This provides better UX for POST/PUT requests with a body
+    const request = item.draft?.request || item.request;
+    const params = request?.params || [];
+    const bodyMode = request?.body?.mode;
+    const hasEnabledParams = params.some((p) => p.enabled);
+
+    if (!hasEnabledParams && bodyMode && bodyMode !== 'none') {
+      return 'body';
+    }
     return 'params';
   }
 

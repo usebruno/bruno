@@ -1,31 +1,59 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  overflow-y: auto; 
+  overflow-y: auto;
 
-  .ws-message.new {
-    background-color: ${({ theme }) => theme.table.striped};
+  .empty-state {
+    padding: 1rem;
+    color: ${(props) => props.theme.colors.text.muted};
   }
 
-  .ws-message:not(:last-child) {
-    border-bottom: 1px solid ${({ theme }) => theme.table.border};
-  }
-
-  .ws-message:not(:last-child).open {
-    border-bottom-width: 0px;
-  }
-
-  .ws-incoming {
+  .ws-message {
     background: ${(props) => props.theme.bg};
-    border-color: ${(props) => props.theme.table.border};
+
+    &.new {
+      background-color: ${({ theme }) => theme.table.striped};
+    }
+
+    &:not(:last-child) {
+      border-bottom: 1px solid ${({ theme }) => theme.border.border1};
+    }
+
+    &:not(:last-child).open {
+      border-bottom-width: 0px;
+    }
+
+    .message-content {
+      color: ${(props) => props.theme.text};
+    }
+
+    .message-timestamp {
+      font-size: ${(props) => props.theme.font.size.xs};
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    .chevron-icon {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
   }
 
-  .ws-outgoing {
-    background: ${(props) => props.theme.bg};
-    border-color: ${(props) => props.theme.table.border};
+  .ws-incoming .message-type-icon {
+    color: ${(props) => props.theme.colors.text.green};
   }
 
-  .CodeMirror { 
+  .ws-outgoing .message-type-icon {
+    color: ${(props) => props.theme.colors.text.yellow};
+  }
+
+  .ws-info .message-type-icon {
+    color: ${(props) => props.theme.colors.text.blue};
+  }
+
+  .ws-error .message-type-icon {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
+
+  .CodeMirror {
     border-radius: 0.25rem;
   }
 
@@ -34,11 +62,12 @@ const StyledWrapper = styled.div`
   }
 
   div[role='tablist'] {
+    color: ${(props) => props.theme.colors.text.muted};
+
     .active {
       color: ${(props) => props.theme.colors.text.yellow};
     }
   }
-
 `;
 
 export default StyledWrapper;

@@ -1,7 +1,7 @@
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import { useState } from 'react';
 
-const BodyBlock = ({ collection, data, dataBuffer, headers, error, item }) => {
+const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type }) => {
   const [isBodyCollapsed, toggleBody] = useState(true);
   return (
     <div className="collapsible-section">
@@ -22,6 +22,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item }) => {
                 headers={headers}
                 error={error}
                 key={item?.uid}
+                hideResultTypeSelector={type === 'request'}
               />
             </div>
           ) : (

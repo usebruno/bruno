@@ -1,66 +1,167 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+
+  .table-container {
+    overflow-y: auto;
+    border-radius: 8px;
+    border: solid 1px ${(props) => props.theme.border.border0};
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
-    font-weight: 500;
     table-layout: fixed;
+    font-size: 12px;
 
-    thead,
     td {
-      border: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder};
-      padding: 4px 10px;
       vertical-align: middle;
+      padding: 2px 10px;
 
-      &:nth-child(1),
+      &:nth-child(1) {
+        width: 25px;
+        border-right: none;
+      }
       &:nth-child(4) {
-        width: 70px;
+        width: 80px;
       }
       &:nth-child(5) {
-        width: 40px;
+        width: 60px;
       }
 
       &:nth-child(2) {
-        width: 25%;
+        width: 30%;
       }
     }
 
     thead {
-      color: ${(props) => props.theme.table.thead.color};
+      color: ${(props) => props.theme.table.thead.color} !important;
+      background: ${(props) => props.theme.sidebar.bg};
       font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
-    }
-    thead td {
-      padding: 6px 10px;
-    }
-  }
 
-  .btn-add-param {
-    font-size: ${(props) => props.theme.font.size.base};
+      td {
+        padding: 5px 10px !important;
+        border-bottom: solid 1px ${(props) => props.theme.border.border0};
+        border-right: solid 1px ${(props) => props.theme.border.border0};
+
+        &:last-child {
+          border-right: none;
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        transition: background 0.1s ease;
+
+        &:last-child td {
+          border-bottom: none;
+        }
+
+        td {
+          border-bottom: solid 1px ${(props) => props.theme.border.border0};
+          border-right: solid 1px ${(props) => props.theme.border.border0};
+
+          &:last-child {
+            border-right: none;
+          }
+        }
+      }
+    }
   }
 
   .tooltip-mod {
-    font-size: ${(props) => props.theme.font.size.xs} !important;
-    width: 150px !important;
+    font-size: 11px !important;
+    max-width: 200px !important;
   }
 
   input[type='text'] {
     width: 100%;
-    border: solid 1px transparent;
+    border: 1px solid transparent;
     outline: none !important;
     background-color: transparent;
+    color: ${(props) => props.theme.text};
+    padding: 0;
+    border-radius: 4px;
+    transition: all 0.15s ease;
 
     &:focus {
       outline: none !important;
-      border: solid 1px transparent;
     }
   }
 
   input[type='checkbox'] {
     cursor: pointer;
+    width: 14px;
+    height: 14px;
+    accent-color: ${(props) => props.theme.colors.accent};
     vertical-align: middle;
     margin: 0;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .button-container {
+    padding: 12px 2px;
+    background: ${(props) => props.theme.bg};
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+  }
+
+  .submit {
+    padding: 6px 16px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    border: none;
+    background: ${(props) => props.theme.brand};
+    color: ${(props) => props.theme.bg};
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .reset {
+    background: transparent;
+    padding: 6px 16px;
+    color: ${(props) => props.theme.brand};
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .discard {
+    padding: 6px 16px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    background: transparent;
+    color: ${(props) => props.theme.text};
+    border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
   }
 `;
 

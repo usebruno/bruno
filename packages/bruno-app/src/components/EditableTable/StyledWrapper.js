@@ -9,7 +9,7 @@ const StyledWrapper = styled.div`
   .table-container {
     overflow-y: auto;
     border-radius: ${(props) => props.theme.border.radius.base};
-    border: ${(props) => props.theme.workspace.environments.indentBorder};
+    border: solid 1px ${(props) => props.theme.border.border0};
   }
 
   table {
@@ -17,22 +17,22 @@ const StyledWrapper = styled.div`
     border-collapse: collapse;
     table-layout: fixed;
     font-size: ${(props) => props.theme.font.size.base};
+    font-weight: normal !important;
   }
 
   thead {
-    color: ${(props) => props.theme.colors.text} !important;
+    color: ${(props) => props.theme.table.thead.color} !important;
     background: ${(props) => props.theme.sidebar.bg};
-    font-size: ${(props) => props.theme.font.size.base};
     user-select: none;
 
     border: none !important;
 
     td {
-      padding: 8px 10px;
+      padding: 5px 10px !important;
       border-top: none !important;
       border-left: none !important;
-      border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-      border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+      border-bottom: solid 1px ${(props) => props.theme.border.border0};
+      border-right: solid 1px ${(props) => props.theme.border.border0};
       vertical-align: middle;
 
       &:last-child {
@@ -55,11 +55,11 @@ const StyledWrapper = styled.div`
       }
 
       td {
-        padding: 2px 10px;
+        padding: 1px 10px !important;
         border-top: none !important;
         border-left: none !important;
-        border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-        border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+        border-bottom: solid 1px ${(props) => props.theme.border.border0};
+        border-right: solid 1px ${(props) => props.theme.border.border0};
         vertical-align: middle;
 
         &:last-child {
@@ -93,7 +93,6 @@ const StyledWrapper = styled.div`
     background-color: transparent;
     color: ${(props) => props.theme.text};
     padding: 0;
-    font-size: 12px;
     border-radius: 4px;
     transition: all 0.15s ease;
 
@@ -106,7 +105,7 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     width: 14px;
     height: 14px;
-    accent-color: ${(props) => props.theme.workspace.accent};
+    accent-color: ${(props) => props.theme.colors.accent};
     vertical-align: middle;
     margin: 0;
   }

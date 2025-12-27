@@ -28,6 +28,10 @@ const StyledWrapper = styled.div`
     // so that the name does not cutoff when italicized
     padding-right: 2px;
   }
+
+  .example-icon {
+    color: ${(props) => props.theme.requestTabs.example.iconColor};
+  }
 `;
 
 export default StyledWrapper;

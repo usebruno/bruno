@@ -18,6 +18,7 @@ import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
+import Button from 'ui/Button';
 
 const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => {
   const inputRef = useRef();
@@ -319,17 +320,14 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
               </div>
               <div className="flex justify-end">
                 <span className="mr-2">
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
+                  <Button type="button" color="secondary" variant="ghost" onClick={onClose}>
                     Cancel
-                  </button>
+                  </Button>
                 </span>
                 <span>
-                  <button
-                    type="submit"
-                    className="submit btn btn-md btn-secondary"
-                  >
+                  <Button type="submit">
                     Create
-                  </button>
+                  </Button>
                 </span>
               </div>
             </div>

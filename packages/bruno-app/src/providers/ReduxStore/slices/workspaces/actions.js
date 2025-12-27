@@ -12,6 +12,7 @@ import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
 import { removeCollection } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
+import { initializeWorkspaceTabs, setActiveWorkspaceTab } from '../workspaceTabs';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
@@ -34,6 +35,10 @@ const transformCollection = async (collection, type) => {
     case 'openapi': {
       const { convertOpenapiToBruno } = await import('utils/importers/openapi-collection');
       return convertOpenapiToBruno(collection);
+    }
+    case 'opencollection': {
+      const { processOpenCollection } = await import('utils/importers/opencollection');
+      return processOpenCollection(collection);
     }
     case 'wsdl': {
       const { wsdlToBruno } = await import('@usebruno/converters');
@@ -253,6 +258,13 @@ export const switchWorkspace = (workspaceUid) => {
 
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
     dispatch(showHomePage());
+
+    const permanentTabs = [
+      { type: 'overview', label: 'Overview' },
+      { type: 'environments', label: 'Global Environments' }
+    ];
+    dispatch(initializeWorkspaceTabs({ workspaceUid, permanentTabs }));
+    dispatch(setActiveWorkspaceTab({ workspaceUid, type: 'overview' }));
   };
 };
 
@@ -485,8 +497,6 @@ export const renameWorkspaceAction = (workspaceUid, newName) => {
         uid: workspaceUid,
         name: newName
       }));
-
-      toast.success('Workspace renamed successfully');
     } catch (error) {
       throw error;
     }
@@ -505,8 +515,6 @@ export const closeWorkspaceAction = (workspaceUid) => {
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
       dispatch(removeWorkspace(workspaceUid));
-
-      toast.success('Workspace closed successfully');
     } catch (error) {
       toast.error(error.message || 'Failed to close workspace');
       throw error;
@@ -689,6 +697,55 @@ export const copyWorkspaceEnvironment = (workspaceUid, environmentUid, newName) 
       await dispatch(loadWorkspaceEnvironments(workspaceUid));
 
       return newEnvironment;
+    } catch (error) {
+      throw error;
+    }
+  };
+};
+
+export const exportWorkspaceAction = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    try {
+      const { workspaces } = getState().workspaces;
+      const workspace = workspaces.find((w) => w.uid === workspaceUid);
+
+      if (!workspace) {
+        throw new Error('Workspace not found');
+      }
+
+      if (!workspace.pathname) {
+        throw new Error('Workspace path not found');
+      }
+
+      const result = await ipcRenderer.invoke('renderer:export-workspace', workspace.pathname, workspace.name);
+
+      if (result.canceled) {
+        return { canceled: true };
+      }
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
+};
+
+export const importWorkspaceAction = (zipFilePath, extractLocation) => {
+  return async (dispatch) => {
+    try {
+      const result = await ipcRenderer.invoke('renderer:import-workspace', zipFilePath, extractLocation);
+
+      if (result.success) {
+        dispatch(createWorkspace({
+          uid: result.workspaceUid,
+          pathname: result.workspacePath,
+          ...result.workspaceConfig
+        }));
+
+        await dispatch(switchWorkspace(result.workspaceUid));
+      }
+
+      return result;
     } catch (error) {
       throw error;
     }

@@ -167,7 +167,7 @@ const ExampleItem = ({ example, item, collection }) => {
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    menuDropdownRef.current?.open();
+    menuDropdownRef.current?.show();
   };
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
@@ -198,8 +198,8 @@ const ExampleItem = ({ example, item, collection }) => {
         style={{ paddingLeft: 8 }}
       >
         <div style={{ width: 16, minWidth: 16 }}></div>
-        <ExampleIcon size={16} color="currentColor" className="mr-2 text-gray-400 flex-shrink-0" />
-        <span className="item-name truncate text-gray-700 dark:text-gray-300 ">{example.name}</span>
+        <ExampleIcon size={16} color="currentColor" className="example-icon mr-1 flex-shrink-0" />
+        <span className="item-name truncate">{example.name}</span>
       </div>
       <div className="menu-icon pr-2">
         <MenuDropdown

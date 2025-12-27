@@ -37,8 +37,6 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
 
     // configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Duplicate Test Collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // verify that all 3 requests were imported correctly despite duplicate operation names
     await expect(page.locator('#collection-duplicate-test-collection .collection-item-name')).toHaveCount(3);

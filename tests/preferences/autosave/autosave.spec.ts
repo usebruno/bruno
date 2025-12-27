@@ -15,9 +15,7 @@ test.describe('Autosave', () => {
     const collectionName = 'autosave-test';
 
     await test.step('Create collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('autosave-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('autosave-collection'));
       await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
 
       await createRequest(page, 'Test Request', collectionName);
@@ -45,10 +43,11 @@ test.describe('Autosave', () => {
       const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
       await autoSaveCheckbox.check();
 
-      // Save preferences
-      await preferencesModal.locator('button[type="submit"]').click();
+      // Wait for auto-save to complete (debounce is 500ms)
+      await page.waitForTimeout(1000);
 
-      // Wait for preferences to close
+      // Close preferences modal
+      await preferencesModal.locator('[data-testid="modal-close-button"]').click();
       await expect(preferencesModal).not.toBeVisible();
     });
 
@@ -94,10 +93,11 @@ test.describe('Autosave', () => {
       const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
       await autoSaveCheckbox.uncheck();
 
-      // Save preferences
-      await preferencesModal.locator('button[type="submit"]').click();
+      // Wait for auto-save to complete (debounce is 500ms)
+      await page.waitForTimeout(1000);
 
-      // Wait for preferences to close
+      // Close preferences modal
+      await preferencesModal.locator('[data-testid="modal-close-button"]').click();
       await expect(preferencesModal).not.toBeVisible();
     });
 
@@ -127,9 +127,7 @@ test.describe('Autosave', () => {
     const collectionName = 'autosave-existing-drafts-test';
 
     await test.step('Create collection and request with initial URL', async () => {
-      await createCollection(page, collectionName, await createTmpDir('autosave-existing-drafts-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('autosave-existing-drafts-collection'));
       await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
 
       await createRequest(page, 'Draft Request', collectionName);
@@ -172,10 +170,11 @@ test.describe('Autosave', () => {
       const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
       await autoSaveCheckbox.check();
 
-      // Save preferences
-      await preferencesModal.locator('button[type="submit"]').click();
+      // Wait for auto-save to complete (debounce is 500ms)
+      await page.waitForTimeout(1000);
 
-      // Wait for preferences to close
+      // Close preferences modal
+      await preferencesModal.locator('[data-testid="modal-close-button"]').click();
       await expect(preferencesModal).not.toBeVisible();
 
       await page.waitForTimeout(1000);

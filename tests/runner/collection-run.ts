@@ -25,12 +25,10 @@ test.describe.parallel('Collection Run', () => {
     test.setTimeout(2 * 60 * 1000);
 
     await page.getByText('bruno-testbench').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
     await page.locator('.environment-selector').nth(1).click();
     await page.locator('.dropdown-item').getByText('Prod').click();
     const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'bruno-testbench' });
-    await collectionContainer.locator('.collection-actions').hover();
+    await collectionContainer.hover();
     await collectionContainer.locator('.collection-actions .icon').waitFor({ state: 'visible' });
     await collectionContainer.locator('.collection-actions .icon').click();
     await page.getByText('Run', { exact: true }).click();

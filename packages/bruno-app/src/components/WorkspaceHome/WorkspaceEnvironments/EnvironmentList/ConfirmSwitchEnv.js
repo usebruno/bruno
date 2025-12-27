@@ -2,6 +2,7 @@ import React from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import { createPortal } from 'react-dom';
+import Button from 'ui/Button';
 
 const ConfirmSwitchEnv = ({ onCancel }) => {
   const modalContent = (
@@ -26,9 +27,9 @@ const ConfirmSwitchEnv = ({ onCancel }) => {
 
       <div className="flex justify-between mt-6">
         <div>
-          <button className="btn btn-sm btn-danger" onClick={onCancel}>
+          <Button size="sm" color="danger" onClick={onCancel}>
             Close
-          </button>
+          </Button>
         </div>
         <div></div>
       </div>

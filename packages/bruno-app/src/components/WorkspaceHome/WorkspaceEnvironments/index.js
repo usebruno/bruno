@@ -6,18 +6,19 @@ import StyledWrapper from './StyledWrapper';
 import { IconFileAlert } from '@tabler/icons';
 import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
+import Button from 'ui/Button';
 
 const DefaultTab = ({ setTab }) => (
   <div className="empty-state">
     <IconFileAlert size={48} strokeWidth={1.5} />
     <div className="title">No Environments</div>
     <div className="actions">
-      <button className="shared-button" onClick={() => setTab('create')}>
+      <Button size="sm" color="secondary" onClick={() => setTab('create')}>
         Create Environment
-      </button>
-      <button className="shared-button" onClick={() => setTab('import')}>
+      </Button>
+      <Button size="sm" color="secondary" onClick={() => setTab('import')}>
         Import Environment
-      </button>
+      </Button>
     </div>
   </div>
 );

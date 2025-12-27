@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
+import Button from 'ui/Button';
 
 const RequestNotFound = ({ itemUid }) => {
   const dispatch = useDispatch();
@@ -36,9 +37,9 @@ const RequestNotFound = ({ itemUid }) => {
           This can happen when the .bru file associated with this request was deleted on your filesystem.
         </div>
       </div>
-      <button className="btn btn-md btn-secondary mt-6" onClick={closeTab}>
+      <Button size="md" color="secondary" variant="ghost" onClick={closeTab}>
         Close Tab
-      </button>
+      </Button>
     </div>
   );
 };

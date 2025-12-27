@@ -9,6 +9,7 @@ import { removeCollection } from 'providers/ReduxStore/slices/collections/action
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import toast from 'react-hot-toast';
+import Button from 'ui/Button';
 
 const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) => {
   const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
@@ -102,17 +103,17 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
 
       <div className="flex justify-between mt-6">
         <div>
-          <button className="btn btn-sm btn-danger" onClick={handleDiscardAll}>
+          <Button size="sm" color="danger" onClick={handleDiscardAll}>
             Discard and Remove
-          </button>
+          </Button>
         </div>
         <div>
-          <button className="btn btn-close btn-sm mr-2" onClick={onClose}>
+          <Button size="sm" color="secondary" variant="ghost" onClick={onClose}>
             Cancel
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={handleSaveAll}>
+          </Button>
+          <Button size="sm" onClick={handleSaveAll}>
             {currentDrafts.length > 1 ? 'Save All and Remove' : 'Save and Remove'}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

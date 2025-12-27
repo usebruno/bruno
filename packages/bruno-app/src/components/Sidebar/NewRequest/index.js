@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, forwardRef, useState } from 'react';
+import get from 'lodash/get';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -21,6 +22,7 @@ import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
+import Button from 'ui/Button';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -29,6 +31,11 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const storedTheme = useTheme();
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const collectionPresets = get(
+    collection,
+    collection?.draft?.brunoConfig ? 'draft.brunoConfig.presets' : 'brunoConfig.presets',
+    {}
+  );
   const [curlRequestTypeDetected, setCurlRequestTypeDetected] = useState(null);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
@@ -69,13 +76,41 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
   const [isEditing, toggleEditing] = useState(false);
 
+  const getRequestType = (collectionPresets) => {
+    if (!collectionPresets || !collectionPresets.requestType) {
+      return 'http-request';
+    }
+
+    // Note: Why different labels for the same thing?
+    // http-request and graphql-request are used inside the app's json representation of a request
+    // http and graphql are used in Bru DSL as well as collection exports
+    // We need to eventually standardize the app's DSL to use the same labels as bru DSL
+    if (collectionPresets.requestType === 'http') {
+      return 'http-request';
+    }
+
+    if (collectionPresets.requestType === 'graphql') {
+      return 'graphql-request';
+    }
+
+    if (collectionPresets.requestType === 'grpc') {
+      return 'grpc-request';
+    }
+
+    if (collectionPresets.requestType === 'ws') {
+      return 'ws-request';
+    }
+
+    return 'http-request';
+  };
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
       filename: '',
-      requestType: 'http-request',
-      requestUrl: '',
+      requestType: getRequestType(collectionPresets),
+      requestUrl: collectionPresets.requestUrl || '',
       requestMethod: 'GET',
       curlCommand: ''
     },
@@ -560,16 +595,12 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 </Dropdown>
               </div>
               <div className="flex justify-end">
-                <span className="mr-2">
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button type="submit" className="submit btn btn-md btn-secondary">
-                    Create
-                  </button>
-                </span>
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Create
+                </Button>
               </div>
             </div>
           </form>

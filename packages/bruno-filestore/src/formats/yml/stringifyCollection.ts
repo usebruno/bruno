@@ -18,8 +18,15 @@ const hasCollectionConfig = (brunoConfig: any): boolean => {
     || brunoConfig.protobuf?.importPaths?.length > 0
   );
 
-  // proxy
-  const hasProxy = !!brunoConfig.proxy?.enabled;
+  // proxy - check if proxy is configured in newer format
+  // Valid newer format: has 'inherit' property and 'config' object
+  const isValidProxyFormat = brunoConfig.proxy
+    && typeof brunoConfig.proxy === 'object'
+    && 'inherit' in brunoConfig.proxy
+    && brunoConfig.proxy.config
+    && typeof brunoConfig.proxy.config === 'object';
+
+  const hasProxy = isValidProxyFormat;
 
   // client certificates
   const hasClientCertificates = brunoConfig.clientCertificates?.certs?.length > 0;
@@ -46,14 +53,19 @@ const hasRequestScripts = (collectionRoot: any): boolean => {
     || (collectionRoot.request?.tests);
 };
 
+const hasPresets = (brunoConfig: any): boolean => {
+  return brunoConfig?.presets?.requestType?.length
+    || brunoConfig?.presets?.requestUrl?.length;
+};
+
 const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
   try {
     const oc: OpenCollection = {};
 
+    oc.opencollection = '1.0.0';
     oc.info = {
       name: brunoConfig.name || 'Untitled Collection'
     };
-    oc.opencollection = '1.0.0';
 
     // collection config
     if (hasCollectionConfig(brunoConfig)) {
@@ -72,22 +84,38 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
         };
       }
 
-      // proxy
-      if (brunoConfig.proxy?.enabled) {
-        if (brunoConfig.proxy.enabled === 'global') {
-          oc.config.proxy = 'inherit';
-        } else {
-          oc.config.proxy = {
-            protocol: brunoConfig.proxy.protocol,
-            hostname: brunoConfig.proxy.hostname,
-            port: brunoConfig.proxy.port
-          };
+      // proxy - only write newer format
+      // Validate that brunoConfig.proxy is in newer format before writing
+      const isValidProxyFormat = brunoConfig.proxy
+        && typeof brunoConfig.proxy === 'object'
+        && 'inherit' in brunoConfig.proxy
+        && brunoConfig.proxy.config
+        && typeof brunoConfig.proxy.config === 'object';
 
-          if (brunoConfig.proxy.auth?.enabled) {
-            oc.config.proxy.auth = {
-              username: brunoConfig.proxy.auth.username,
-              password: brunoConfig.proxy.auth.password
-            };
+      if (isValidProxyFormat) {
+        oc.config.proxy = {
+          inherit: brunoConfig.proxy.inherit,
+          config: {
+            protocol: brunoConfig.proxy.config.protocol || 'http',
+            hostname: brunoConfig.proxy.config.hostname || '',
+            port: brunoConfig.proxy.config.port || '',
+            auth: {
+              username: brunoConfig.proxy.config.auth?.username || '',
+              password: brunoConfig.proxy.config.auth?.password || ''
+            },
+            bypassProxy: brunoConfig.proxy.config.bypassProxy || ''
+          }
+        };
+
+        // Add optional disabled field if true
+        if (brunoConfig.proxy.disabled === true) {
+          oc.config.proxy.disabled = true;
+        }
+
+        // Add optional auth.disabled field if true
+        if (brunoConfig.proxy.config?.auth?.disabled === true) {
+          if (oc.config.proxy.config && oc.config.proxy.config.auth) {
+            oc.config.proxy.config.auth.disabled = true;
           }
         }
       }
@@ -178,6 +206,18 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
         ignoreList.push(ignore);
       });
       oc.extensions.ignore = ignoreList;
+    }
+    if (hasPresets(brunoConfig)) {
+      const presetsRequest: any = {};
+      if (brunoConfig.presets.requestType?.length) {
+        presetsRequest.type = brunoConfig.presets.requestType;
+      }
+      if (brunoConfig.presets.requestUrl?.length) {
+        presetsRequest.url = brunoConfig.presets.requestUrl;
+      }
+      oc.extensions.presets = {
+        request: presetsRequest
+      } as any;
     }
 
     return stringifyYml(oc);
