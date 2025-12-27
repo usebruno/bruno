@@ -195,7 +195,7 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     content: () => page.getByTestId('grpc-response-content'),
     container: () => page.getByTestId('grpc-responses-container'),
     singleResponse: () => page.getByTestId('grpc-single-response'),
-    accordion: () => page.getByTestId('grpc-responses-accordion'),
+    list: () => page.getByTestId('grpc-responses-list'),
     responseItem: (index: number) => page.getByTestId(`grpc-response-item-${index}`),
     responseItems: () => page.locator('[data-testid^="grpc-response-item-"]'),
     tabCount: () => page.getByTestId('tab-response-count')

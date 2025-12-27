@@ -30,7 +30,7 @@ const MessageToolbar = ({
   return (
     <div className="message-toolbar">
       <span className="message-label">Message {index + 1}</span>
-      <div className="toolbar-actions">
+      <div className="toolbar-actions mr-2">
         <ToolHint text="Format JSON" toolhintId={`prettify-msg-${index}`}>
           <button onClick={onPrettify} className="toolbar-btn">
             <IconWand size={16} strokeWidth={1.5} />
@@ -49,6 +49,7 @@ const MessageToolbar = ({
               onClick={onSend}
               disabled={!isConnectionActive}
               className={`toolbar-btn ${!isConnectionActive ? 'disabled' : ''}`}
+              data-testid={`grpc-send-message-${index}`}
             >
               <IconSend size={16} strokeWidth={1.5} />
             </button>
@@ -266,6 +267,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
     <StyledWrapper>
       <div
         ref={messagesContainerRef}
+        data-testid="grpc-messages-container"
         className={`messages-container ${canClientSendMultipleMessages && messagesToShow.length > 1 ? 'multi' : 'single'}`}
       >
         {messagesToShow.map((message, index) => (
@@ -292,6 +294,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
             size="sm"
             fullWidth
             icon={<IconPlus size={14} strokeWidth={1.5} />}
+            data-testid="grpc-add-message-button"
           >
             Add Message
           </Button>
