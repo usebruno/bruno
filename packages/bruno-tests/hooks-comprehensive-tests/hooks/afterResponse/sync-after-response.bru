@@ -1,0 +1,64 @@
+meta {
+  name: sync-after-response
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onAfterResponse(({ req, res }) => {
+    // Test: Can access req object
+    const reqUrl = req.getUrl();
+    const reqName = req.getName();
+    const reqMethod = req.getMethod();
+    
+    console.log('[afterResponse] Request:', reqMethod, reqUrl, reqName);
+    
+    // Test: Can access res object
+    const status = res.getStatus();
+    const statusText = res.getStatusText();
+    const body = res.getBody();
+    const responseTime = res.getResponseTime();
+    
+    console.log('[afterResponse] Response:', status, statusText, 'Time:', responseTime);
+    
+    // Test: Can use bru APIs
+    bru.setVar('afterResponse-executed', 'true');
+    bru.setVar('response-status', status.toString());
+    bru.setVar('response-body', body);
+    bru.setVar('response-time', responseTime.toString());
+    
+    console.log('[afterResponse] Hook executed successfully');
+  });
+}
+
+tests {
+  test("afterResponse hook should have executed", function() {
+    const executed = bru.getVar('afterResponse-executed');
+    expect(executed).to.equal('true');
+  });
+  
+  test("should have captured response status in hook", function() {
+    const status = bru.getVar('response-status');
+    expect(status).to.equal('200');
+  });
+  
+  test("should have captured response body in hook", function() {
+    const body = bru.getVar('response-body');
+    expect(body).to.equal('pong');
+  });
+  
+  test("should have captured response time in hook", function() {
+    const responseTime = bru.getVar('response-time');
+    const parsed = parseInt(responseTime);
+    expect(parsed).to.be.a('number');
+    expect(isNaN(parsed)).to.be.false;
+    expect(parsed).to.be.greaterThan(0);
+  });
+}
+

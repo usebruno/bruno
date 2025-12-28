@@ -5,9 +5,10 @@ import StyledWrapper from './StyledWrapper';
 const ScriptError = ({ item, onClose }) => {
   const preRequestError = item?.preRequestScriptErrorMessage;
   const postResponseError = item?.postResponseScriptErrorMessage;
+  const hooksError = item?.hookScriptErrorMessage;
   const testScriptError = item?.testScriptErrorMessage;
 
-  if (!preRequestError && !postResponseError && !testScriptError) return null;
+  if (!preRequestError && !postResponseError && !testScriptError && !hooksError) return null;
 
   const errors = [];
 
@@ -22,6 +23,13 @@ const ScriptError = ({ item, onClose }) => {
     errors.push({
       title: 'Post-Response Script Error',
       message: postResponseError
+    });
+  }
+
+  if (hooksError) {
+    errors.push({
+      title: 'Hooks Script Error',
+      message: hooksError
     });
   }
 

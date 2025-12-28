@@ -1,0 +1,45 @@
+meta {
+  name: before-request-modify-request
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Original URL:', req.getUrl());
+    console.log('[beforeRequest] Original method:', req.getMethod());
+    
+    // Test: Modify URL
+    const originalUrl = req.getUrl();
+    req.setUrl(originalUrl + '?modified=true');
+    
+    // Test: Modify headers
+    req.setHeader('X-Modified-By', 'beforeRequest-hook');
+    req.setHeader('X-Original-URL', originalUrl);
+    
+    // Test: Get existing headers
+    const existingHeaders = req.getHeaders();
+    bru.setVar('header-count', Object.keys(existingHeaders).length.toString());
+    
+    console.log('[beforeRequest] Modified URL:', req.getUrl());
+  });
+}
+
+tests {
+  test("request should have been modified by hook", function() {
+    // Verify hook executed
+    const headerCount = bru.getVar('header-count');
+    expect(parseInt(headerCount)).to.be.at.least(2);
+  });
+  
+  test("response should be successful", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

@@ -1,0 +1,63 @@
+meta {
+  name: async-after-response
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onAfterResponse(async({ req, res }) => {
+    console.log('[afterResponse] Starting async hook...');
+    
+    // Test: Can use async/await
+    await bru.sleep(1000);
+    
+    // Test: Can access req and res in async context
+    const reqUrl = req.getUrl();
+    const status = res.getStatus();
+    const body = res.getBody();
+    
+    console.log('[afterResponse] Request URL:', reqUrl);
+    console.log('[afterResponse] Response:', status, body);
+    
+    // Test: Can use bru APIs in async context
+    bru.setVar('async-afterResponse-executed', 'true');
+    bru.setVar('async-response-status', status.toString());
+    bru.setVar('async-response-body', body);
+    
+    // Test: Can read headers
+    const headers = res.getHeaders();
+    bru.setVar('response-header-count', Object.keys(headers).length.toString());
+    
+    await bru.sleep(500);
+    console.log('[afterResponse] Async hook completed');
+  });
+}
+
+tests {
+  test("async afterResponse hook should have executed", function() {
+    const executed = bru.getVar('async-afterResponse-executed');
+    expect(executed).to.equal('true');
+  });
+  
+  test("should have captured response in async hook", function() {
+    const status = bru.getVar('async-response-status');
+    expect(status).to.equal('200');
+  });
+  
+  test("should have captured response body in async hook", function() {
+    const body = bru.getVar('async-response-body');
+    expect(body).to.equal('pong');
+  });
+  
+  test("should have read headers in async hook", function() {
+    const headerCount = bru.getVar('response-header-count');
+    expect(parseInt(headerCount)).to.be.at.least(0);
+  });
+}
+

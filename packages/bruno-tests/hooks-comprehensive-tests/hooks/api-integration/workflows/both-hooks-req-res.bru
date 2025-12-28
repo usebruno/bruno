@@ -1,0 +1,61 @@
+meta {
+  name: both-hooks-req-res
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "test": "data"
+  }
+}
+
+script:hooks {
+  // beforeRequest: Only req is available
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    bru.setVar('before-req-url', req.getUrl());
+    bru.setVar('before-req-method', req.getMethod());
+    bru.setVar('before-req-name', req.getName());
+    req.setHeader('X-Modified-In-Before', 'yes');
+  });
+  
+  // afterResponse: Both req and res are available
+  bru.hooks.http.onAfterResponse(({ req, res }) => {
+    // Can still access req in afterResponse
+    bru.setVar('after-req-url', req.getUrl());
+    bru.setVar('after-req-method', req.getMethod());
+    bru.setVar('after-req-header', req.getHeader('X-Modified-In-Before'));
+    
+    // Access res
+    bru.setVar('after-res-status', res.getStatus());
+    bru.setVar('after-res-body', res.getBody());
+  });
+}
+
+tests {
+  test("req is accessible in beforeRequest", function() {
+    expect(bru.getVar('before-req-url')).to.include('/api/echo/json');
+    expect(bru.getVar('before-req-method')).to.equal('POST');
+  });
+  
+  test("req is accessible in afterResponse", function() {
+    expect(bru.getVar('after-req-url')).to.include('/api/echo/json');
+    expect(bru.getVar('after-req-method')).to.equal('POST');
+  });
+  
+  test("modifications from beforeRequest visible in afterResponse", function() {
+    expect(bru.getVar('after-req-header')).to.equal('yes');
+  });
+  
+  test("res is accessible in afterResponse", function() {
+    expect(bru.getVar('after-res-status')).to.equal(200);
+    expect(bru.getVar('after-res-body')).to.have.property('test');
+  });
+}
+

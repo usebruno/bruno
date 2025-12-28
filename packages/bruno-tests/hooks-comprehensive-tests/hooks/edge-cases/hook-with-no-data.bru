@@ -1,0 +1,43 @@
+meta {
+  name: hook-with-no-data
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  // Test: Hook that doesn't use data parameter
+  bru.hooks.http.onBeforeRequest(() => {
+    // Don't use the data parameter, just use bru APIs
+    bru.setVar('hook-executed-without-data', 'true');
+    console.log('[beforeRequest] Hook executed without using data parameter');
+  });
+  
+  bru.hooks.http.onAfterResponse(() => {
+    // Don't use the data parameter
+    bru.setVar('afterResponse-executed-without-data', 'true');
+    console.log('[afterResponse] Hook executed without using data parameter');
+  });
+}
+
+tests {
+  test("hook should execute without using data parameter", function() {
+    const executed = bru.getVar('hook-executed-without-data');
+    expect(executed).to.equal('true');
+  });
+  
+  test("afterResponse should execute without using data parameter", function() {
+    const executed = bru.getVar('afterResponse-executed-without-data');
+    expect(executed).to.equal('true');
+  });
+  
+  test("request should execute successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

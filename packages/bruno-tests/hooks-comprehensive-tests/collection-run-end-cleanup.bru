@@ -1,0 +1,20 @@
+meta {
+  name: collection-run-end-cleanup
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("request should execute successfully", function() {
+    // This request helps track request count for onAfterCollectionRun
+    // Actual onAfterCollectionRun verification is done in verify-collection-run-end.bru
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
