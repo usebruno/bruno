@@ -140,7 +140,7 @@ const builder = async (yargs) => {
       describe: 'Global environment name (requires collection to be in a workspace)',
       type: 'string'
     })
-    .option('workspace', {
+    .option('workspace-path', {
       describe: 'Path to workspace directory (auto-detected if not provided)',
       type: 'string'
     })
@@ -275,7 +275,7 @@ const builder = async (yargs) => {
       'Run a request with the global environment set to production'
     )
     .example(
-      '$0 run request.bru --global-env production --workspace /path/to/workspace',
+      '$0 run request.bru --global-env production --workspace-path /path/to/workspace',
       'Run a request with a global environment from the specified workspace'
     );
 };
@@ -290,7 +290,7 @@ const handler = async function (argv) {
       env,
       envFile,
       globalEnv,
-      workspace: workspacePath,
+      workspacePath,
       envVar,
       insecure,
       r: recursive,
@@ -438,7 +438,7 @@ const handler = async function (argv) {
       }
 
       if (!workspacePath) {
-        console.error(chalk.red(`Workspace not found. Please specify a workspace path using --workspace or ensure the collection is inside a workspace directory.`));
+        console.error(chalk.red(`Workspace not found. Please specify a workspace path using --workspace-path or ensure the collection is inside a workspace directory.`));
         process.exit(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_REQUIRES_WORKSPACE);
       }
 
