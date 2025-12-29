@@ -82,7 +82,7 @@ const StyledWrapper = styled.div`
   .searchbar-icon-btn.active {
     color: ${(props) => props.theme.brand};
     background-color: ${(props) => rgba(props.theme.brand, 0.1)};
-    font-weght: 500;
+    font-weight: 500;
   }
 `;
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ColorSwatch, ColorSection } from './components';
+import { ColorSection } from './components';
 
 // Catppuccin Latte (Light)
 const latte = {
