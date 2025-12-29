@@ -37,9 +37,8 @@ const Wrapper = styled.div`
   }
 
   .method-span {
-    width: 70px;
-    min-width: 70px;
-    max-width: 90px;
+    width: fit-content;
+    max-width: 10ch;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -47,11 +46,6 @@ const Wrapper = styled.div`
     text-align: center;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
-  }
-
-  .caret {
-    color: rgb(140, 140, 140);
-    fill: rgb(140 140 140);
   }
 `;
 

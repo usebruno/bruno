@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
+import { useTheme } from 'providers/Theme';
 
 const STANDARD_METHODS = Object.freeze(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT']);
 
@@ -10,20 +11,29 @@ const KEY = Object.freeze({ ENTER: 'Enter', ESCAPE: 'Escape' });
 const DEFAULT_METHOD = 'GET';
 
 const TriggerButton = ({ method, ...props }) => {
+  const { theme } = useTheme();
+  const methodColor = useMemo(() => {
+    const colorMap = {
+      ...theme.request.methods,
+      ...theme.request
+    };
+    return colorMap[method.toLocaleLowerCase()];
+  }, [method, theme]);
+
   return (
     <button
       type="button"
-      className="cursor-pointer flex items-center text-left w-full pr-4 select-none"
+      className="cursor-pointer flex items-center text-left w-full select-none"
       {...props}
     >
       <span
         className="px-3 truncate method-span"
         id="create-new-request-method"
         title={method}
+        style={{ color: methodColor }}
       >
         {method}
       </span>
-      <IconCaretDown className="caret" size={16} strokeWidth={2} />
     </button>
   );
 };
@@ -31,6 +41,7 @@ const TriggerButton = ({ method, ...props }) => {
 const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
   const [isCustomMode, setIsCustomMode] = useState(false);
   const inputRef = useRef();
+  const selectedMethodRef = useRef(method);
 
   const blurInput = () => inputRef.current?.blur();
 
@@ -41,13 +52,20 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
 
   const handleMethodSelect = useCallback((verb) => {
     onMethodSelect(verb);
+    selectedMethodRef.current = verb;
     setIsCustomMode(false);
     blurInput();
   }, [onMethodSelect]);
 
   const handleBlur = (e) => {
     // Keep the current value when blurring
-    const currentValue = e.target.value ? e.target.value.toUpperCase() : method;
+    let currentValue = '';
+    if (e.target.value && e.target.value.length > 0) {
+      currentValue = e.target.value.toUpperCase();
+      selectedMethodRef.current = currentValue;
+    } else {
+      currentValue = selectedMethodRef.current;
+    }
     onMethodSelect(currentValue);
     setIsCustomMode(false);
   };
@@ -119,7 +137,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
             <input
               ref={inputRef}
               type="text"
-              className="px-2 w-full focus:bg-transparent"
+              className="px-3 w-fit max-w-[10ch] focus:bg-transparent"
               value={method}
               onChange={handleInputChange}
               onBlur={handleBlur}
