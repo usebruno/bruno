@@ -472,7 +472,7 @@ const handler = async function (argv) {
 
       try {
         const globalEnvContent = fs.readFileSync(globalEnvFilePath, 'utf8');
-        const globalEnvJson = await parseEnvironment(globalEnvContent, { format: 'yml' });
+        const globalEnvJson = parseEnvironment(globalEnvContent, { format: 'yml' });
         globalEnvVars = getEnvVars(globalEnvJson);
         globalEnvVars.__name__ = globalEnv;
       } catch (err) {
