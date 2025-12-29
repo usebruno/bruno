@@ -19,9 +19,10 @@ import {
   IconX,
   IconSettings,
   IconTerminal2,
-  IconFolder
+  IconFolder,
+  IconEyeOff
 } from '@tabler/icons';
-import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection, collapseFullCollection, brunoConfigUpdateEvent } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -163,6 +164,22 @@ const Collection = ({ collection, searchText }) => {
       console.error('Error opening the folder', error);
       toast.error('Error opening the folder');
     });
+  };
+
+  const handleIgnoreFolder = (folderName) => {
+    const confirmIgnore = window.confirm(`Are you sure you want to ignore the folder "${folderName}"?`);
+    if (confirmIgnore) {
+      const currentIgnore = collection.brunoConfig?.ignore || [];
+      dispatch(
+        brunoConfigUpdateEvent({
+          collectionUid: collection.uid,
+          brunoConfig: {
+            ...collection.brunoConfig,
+            ignore: [...currentIgnore, folderName]
+          }
+        })
+      );
+    }
   };
 
   const handlePasteItem = () => {
@@ -310,6 +327,14 @@ const Collection = ({ collection, searchText }) => {
       testId: 'clone-collection',
       onClick: () => {
         setShowCloneCollectionModalOpen(true);
+      }
+    },
+    {
+      id: 'ignore-folder',
+      leftSection: IconEyeOff, // You need to import this icon at the top of the file
+      label: 'Ignore',
+      onClick: () => {
+        handleIgnoreFolder();
       }
     },
     ...(hasCopiedItems
