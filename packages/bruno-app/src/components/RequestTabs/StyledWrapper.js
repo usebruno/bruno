@@ -59,7 +59,6 @@ const Wrapper = styled.div`
       border: 1px solid transparent;
       padding: 6px 0;
       flex-shrink: 0;
-      transition: background-color 0.15s ease;
       margin-bottom: 3px;
 
       .tab-container {
