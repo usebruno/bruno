@@ -1,10 +1,9 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
-const { getCACertificates } = require('@usebruno/requests');
+const { getCACertificates, interpolateString } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
-const { interpolateString } = require('./interpolate-string');
 
 /**
  * Gets certificates and proxy configuration for a request

@@ -1,8 +1,7 @@
 const { ipcMain, app } = require('electron');
-const { WsClient } = require('@usebruno/requests');
+const { WsClient, interpolateVars, interpolateString, setAuthHeaders } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, each, get } = require('lodash');
-const interpolateVars = require('./interpolate-vars');
 const { preferencesUtil } = require('../../store/preferences');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const {
@@ -20,9 +19,7 @@ const {
   getOAuth2TokenUsingClientCredentials,
   getOAuth2TokenUsingAuthorizationCode
 } = require('../../utils/oauth2');
-const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
-const { setAuthHeaders } = require('./prepare-request');
 
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;

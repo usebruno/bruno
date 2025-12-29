@@ -1,11 +1,21 @@
-const { fromIni } = require('@aws-sdk/credential-providers');
-const { aws4Interceptor } = require('aws4-axios');
+import { fromIni } from '@aws-sdk/credential-providers';
+import { aws4Interceptor } from 'aws4-axios';
+import { AxiosInstance } from 'axios';
 
-function isStrPresent(str) {
-  return str && str !== '' && str !== 'undefined';
+export interface AwsV4Config {
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  sessionToken?: string;
+  region: string;
+  service: string;
+  profileName?: string;
 }
 
-async function resolveAwsV4Credentials(request) {
+const isStrPresent = (str: string | undefined | null): boolean => {
+  return !!str && str !== '' && str !== 'undefined';
+};
+
+export const resolveAwsV4Credentials = async (request: { awsv4config: AwsV4Config }): Promise<AwsV4Config> => {
   const awsv4 = request.awsv4config;
   if (isStrPresent(awsv4.profileName)) {
     try {
@@ -22,9 +32,9 @@ async function resolveAwsV4Credentials(request) {
     }
   }
   return awsv4;
-}
+};
 
-function addAwsV4Interceptor(axiosInstance, request) {
+export const addAwsV4Interceptor = (axiosInstance: AxiosInstance, request: { awsv4config?: AwsV4Config }): void => {
   if (!request.awsv4config) {
     console.warn('No Auth Config found!');
     return;
@@ -42,16 +52,11 @@ function addAwsV4Interceptor(axiosInstance, request) {
       service: awsv4.service
     },
     credentials: {
-      accessKeyId: awsv4.accessKeyId,
-      secretAccessKey: awsv4.secretAccessKey,
+      accessKeyId: awsv4.accessKeyId!,
+      secretAccessKey: awsv4.secretAccessKey!,
       sessionToken: awsv4.sessionToken
     }
   });
 
   axiosInstance.interceptors.request.use(interceptor);
-}
-
-module.exports = {
-  addAwsV4Interceptor,
-  resolveAwsV4Credentials
 };

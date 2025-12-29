@@ -12,12 +12,15 @@ const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
-const { interpolateString } = require('./interpolate-string');
-const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor } = require('@usebruno/requests');
+const {
+  interpolateString,
+  interpolateVars,
+  addDigestInterceptor,
+  resolveAwsV4Credentials,
+  addAwsV4Interceptor
+} = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
-const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');

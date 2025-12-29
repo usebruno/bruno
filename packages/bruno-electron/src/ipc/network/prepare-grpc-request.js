@@ -1,9 +1,9 @@
 const { cloneDeep, each, get } = require('lodash');
-const interpolateVars = require('./interpolate-vars');
+const { interpolateVars } = require('@usebruno/requests');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
-const { setAuthHeaders } = require('./prepare-request');
+const { setAuthHeaders } = require('@usebruno/requests');
 
 const processHeaders = (headers) => {
   Object.entries(headers).forEach(([key, value]) => {
@@ -101,7 +101,6 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     promptVariables,
     body: request.body,
     protoPath: request.protoPath,
-    // Add variable properties for interpolation
     vars: request.vars,
     collectionVariables: request.collectionVariables,
     folderVariables: request.folderVariables,
@@ -110,7 +109,10 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     oauth2CredentialVariables: request.oauth2CredentialVariables
   };
 
-  grpcRequest = setAuthHeaders(grpcRequest, request, collectionRoot);
+  grpcRequest = setAuthHeaders(grpcRequest, {
+    request: { auth: request.auth },
+    collectionRoot
+  });
 
   interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars, promptVariables);
   processHeaders(grpcRequest.headers);
