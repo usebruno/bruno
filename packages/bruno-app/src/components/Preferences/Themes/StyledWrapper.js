@@ -2,28 +2,30 @@ import styled from 'styled-components';
 import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
-  .theme-mode-selector {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-
+  padding: 8px 0;
+        
   .theme-mode-option {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-  }
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.md};
+    box-shadow: none;
+    padding: 6px 8px;
+    width: auto;
 
-  .theme-variant-section {
-    margin-top: 20px;
+    &.selected {
+      border: 1px solid ${(props) => props.theme.accents.primary};
+      background: ${(props) => rgba(props.theme.accents.primary, 0.07)};
+      cursor: default;
+    }
+
+    &:hover {
+      border: 1px solid ${(props) => props.theme.accents.primary};
+    }
   }
 
   .theme-variant-label {
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
     margin-bottom: 12px;
-    font-weight: 500;
   }
 
   .theme-variants {
@@ -41,7 +43,7 @@ const StyledWrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.md};
     cursor: pointer;
     transition: all 0.15s ease;
-    min-width: 120px;
+    min-width: 165px;
 
     &:hover {
       border-color: ${(props) => props.theme.input.focusBorder};
@@ -50,6 +52,7 @@ const StyledWrapper = styled.div`
     &.selected {
       border-color: ${(props) => props.theme.accents.primary};
       background: ${(props) => rgba(props.theme.accents.primary, 0.07)};
+      cursor: default;
     }
   }
 
@@ -90,7 +93,7 @@ const StyledWrapper = styled.div`
   .section-divider {
     height: 1px;
     background: ${(props) => props.theme.input.border};
-    margin: 24px 0;
+    margin: 15px 0;
   }
 `;
 
