@@ -1,4 +1,4 @@
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   width: 100%;

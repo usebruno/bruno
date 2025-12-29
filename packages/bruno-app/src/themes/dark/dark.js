@@ -132,8 +132,6 @@ const darkTheme = {
   input: {
     bg: 'transparent',
     border: palette.border.BORDER2,
-    // bg: palette.background.SURFACE1,
-    // border: palette.background.SURFACE1,
     focusBorder: rgba(palette.accents.PRIMARY, 0.8),
     placeholder: {
       color: palette.text.SUBTEXT1,

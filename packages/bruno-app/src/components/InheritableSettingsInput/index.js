@@ -38,7 +38,7 @@ const InheritableSettingsInput = ({
                 style={{
                   backgroundColor: theme.input.bg,
                   border: `1px solid ${theme.input.border}`,
-                  color: theme.input.text
+                  color: theme.text
                 }}
               >
                 <span>Inherit</span>
@@ -62,7 +62,7 @@ const InheritableSettingsInput = ({
               style={{
                 backgroundColor: theme.input.bg,
                 border: `1px solid ${theme.input.border}`,
-                color: theme.input.text
+                color: theme.text
               }}
               autoComplete="off"
               autoCorrect="off"
