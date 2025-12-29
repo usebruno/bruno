@@ -382,7 +382,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       </div>
       <div
         id="request-url"
-        className="h-full w-full flex flex-row"
+        className="h-full w-full flex flex-row input-container"
       >
         <SingleLineEditor
           ref={editorRef}
