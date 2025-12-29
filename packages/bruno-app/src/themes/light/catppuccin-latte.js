@@ -141,11 +141,6 @@ const catppuccinLatteTheme = {
       activeBorder: colors.SURFACE2
     },
 
-    search: {
-      border: `1px solid ${colors.SURFACE1}`,
-      bg: colors.BASE
-    },
-
     collection: {
       item: {
         bg: colors.SURFACE0,
@@ -172,6 +167,7 @@ const catppuccinLatteTheme = {
     bg: colors.BASE,
     hoverBg: colors.SURFACE0,
     shadow: 'rgba(76, 79, 105, 0.25) 0px 6px 12px -2px, rgba(76, 79, 105, 0.3) 0px 3px 7px -3px',
+    border: 'none',
     separator: colors.SURFACE1,
     selectedColor: colors.MAUVE,
     mutedText: colors.SUBTEXT0
@@ -562,12 +558,6 @@ const catppuccinLatteTheme = {
     border: 'rgba(210, 15, 57, 0.1)',
     icon: colors.RED,
     text: colors.TEXT
-  },
-
-  preferences: {
-    sidebar: {
-      border: colors.SURFACE1
-    }
   },
 
   examples: {

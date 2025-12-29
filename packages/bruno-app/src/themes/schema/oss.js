@@ -165,15 +165,6 @@ export const ossSchema = {
           required: ['border', 'activeBorder'],
           additionalProperties: false
         },
-        search: {
-          type: 'object',
-          properties: {
-            border: { type: 'string' },
-            bg: { type: 'string' }
-          },
-          required: ['border', 'bg'],
-          additionalProperties: false
-        },
         collection: {
           type: 'object',
           properties: {
@@ -217,7 +208,7 @@ export const ossSchema = {
           additionalProperties: false
         }
       },
-      required: ['color', 'muted', 'bg', 'dragbar', 'search', 'collection', 'dropdownIcon'],
+      required: ['color', 'muted', 'bg', 'dragbar', 'collection', 'dropdownIcon'],
       additionalProperties: false
     },
 
@@ -228,12 +219,13 @@ export const ossSchema = {
         iconColor: { type: 'string' },
         bg: { type: 'string' },
         hoverBg: { type: 'string' },
-        shadow: { type: 'string' },
+        shadow: { type: 'string', description: 'Box shadow. Use "none" for no shadow.' },
         separator: { type: 'string' },
         selectedColor: { type: 'string' },
-        mutedText: { type: 'string' }
+        mutedText: { type: 'string' },
+        border: { type: 'string', description: 'Border color. Use "none" for no border.' }
       },
-      required: ['color', 'iconColor', 'bg', 'hoverBg', 'shadow', 'separator', 'selectedColor', 'mutedText'],
+      required: ['color', 'iconColor', 'bg', 'hoverBg', 'shadow', 'separator', 'selectedColor', 'mutedText', 'border'],
       additionalProperties: false
     },
 
@@ -1026,22 +1018,6 @@ export const ossSchema = {
       additionalProperties: false
     },
 
-    preferences: {
-      type: 'object',
-      properties: {
-        sidebar: {
-          type: 'object',
-          properties: {
-            border: { type: 'string' }
-          },
-          required: ['border'],
-          additionalProperties: false
-        }
-      },
-      required: ['sidebar'],
-      additionalProperties: false
-    },
-
     examples: {
       type: 'object',
       properties: {
@@ -1167,7 +1143,7 @@ export const ossSchema = {
     'sidebar', 'dropdown', 'workspace', 'request',
     'requestTabPanel', 'notifications', 'modal', 'button', 'button2', 'tabs',
     'requestTabs', 'codemirror', 'table', 'plainGrid', 'scrollbar', 'dragAndDrop',
-    'infoTip', 'statusBar', 'console', 'grpc', 'deprecationWarning', 'preferences', 'examples', 'app'
+    'infoTip', 'statusBar', 'console', 'grpc', 'deprecationWarning', 'examples', 'app'
   ],
   additionalProperties: false
 };

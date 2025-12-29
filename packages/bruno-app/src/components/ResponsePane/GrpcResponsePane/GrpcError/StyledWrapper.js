@@ -1,12 +1,13 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  border-left: 3px solid ${(props) => props.theme.colors.text.danger};
-  border-radius: ${(props) => props.theme.border.radius.sm};
   max-height: 160px;
   overflow-y: auto;
-  background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 6%, transparent);
   margin-bottom: 8px;
+  background-color: ${(props) => props.theme.background.base};
+  border: solid 1px ${(props) => props.theme.border.border2};
+  border-left: 4px solid ${(props) => props.theme.colors.text.danger};
+  border-radius: ${(props) => props.theme.border.radius.base};
 
   .close-button {
     opacity: 0.6;

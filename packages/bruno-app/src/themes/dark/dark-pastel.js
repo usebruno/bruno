@@ -148,10 +148,6 @@ const darkPastelTheme = {
       border: colors.GRAY_3,
       activeBorder: colors.BRAND
     },
-    search: {
-      border: '1px solid transparent',
-      bg: colors.GRAY_2
-    },
     collection: {
       item: {
         bg: colors.GRAY_2,
@@ -176,7 +172,8 @@ const darkPastelTheme = {
     iconColor: colors.TEXT_MUTED,
     bg: colors.GRAY_2,
     hoverBg: colors.GRAY_3,
-    shadow: 'rgba(0, 0, 0, 0.5) 0px 6px 16px -2px',
+    shadow: 'none',
+    border: colors.GRAY_4,
     separator: colors.GRAY_4,
     selectedColor: colors.BRAND,
     mutedText: colors.GRAY_6
@@ -569,12 +566,6 @@ const darkPastelTheme = {
     border: `${colors.ORANGE}35`,
     icon: colors.ORANGE,
     text: colors.TEXT
-  },
-
-  preferences: {
-    sidebar: {
-      border: colors.GRAY_4
-    }
   },
 
   examples: {

@@ -128,11 +128,6 @@ const darkMonochromeTheme = {
       activeBorder: colors.GRAY_4
     },
 
-    search: {
-      border: '1px solid transparent',
-      bg: colors.GRAY_2
-    },
-
     collection: {
       item: {
         bg: '#37373D',
@@ -158,7 +153,8 @@ const darkMonochromeTheme = {
     iconColor: 'rgb(204, 204, 204)',
     bg: 'rgb(48, 48, 49)',
     hoverBg: '#6A6A6A29',
-    shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
+    shadow: 'none',
+    border: '#444',
     separator: '#444',
     selectedColor: '#a3a3a3',
     mutedText: '#9B9B9B'
@@ -283,8 +279,8 @@ const darkMonochromeTheme = {
         border: colors.BRAND
       },
       secondary: {
-        bg: colors.GRAY_4,
-        text: '#fff',
+        bg: colors.BG,
+        text: colors.TEXT,
         border: colors.GRAY_5
       },
       success: {
@@ -551,12 +547,6 @@ const darkMonochromeTheme = {
     border: 'rgba(176, 176, 176, 0.1)',
     icon: '#b0b0b0',
     text: '#B8B8B8'
-  },
-
-  preferences: {
-    sidebar: {
-      border: '#444444'
-    }
   },
 
   examples: {

@@ -1,23 +1,23 @@
-const palette = {
+export const palette = {
   accents: {
     PRIMARY: '#bd7a28',
-    RED: 'hsl(8 60% 52%)', // warm coral - NEW
-    ROSE: 'hsl(352 45% 50%)', // soft red (approved)
-    BROWN: 'hsl(28 55% 38%)', // warm brown (liked)
-    ORANGE: 'hsl(35 85% 42%)', // vibrant orange
-    YELLOW: 'hsl(45 75% 42%)', // golden yellow
-    LIME: 'hsl(85 45% 40%)', // yellow-green - NEW
-    GREEN: 'hsl(145 50% 36%)', // forest green
-    TEAL: 'hsl(178 50% 36%)', // true teal
-    CYAN: 'hsl(195 55% 42%)', // cyan-blue - NEW
-    BLUE: 'hsl(214 55% 45%)', // true blue (liked)
-    INDIGO: 'hsl(235 45% 45%)', // deep indigo
-    VIOLET: 'hsl(258 42% 50%)', // soft violet - NEW
-    PURPLE: 'hsl(280 45% 48%)', // rich purple
-    PINK: 'hsl(328 50% 48%)' // magenta-pink - NEW
+    RED: 'hsl(8,   60%, 52%)',
+    ROSE: 'hsl(352, 45%, 50%)',
+    BROWN: 'hsl(28,  55%, 38%)',
+    ORANGE: 'hsl(35,  85%, 42%)',
+    YELLOW: 'hsl(45,  75%, 42%)',
+    LIME: 'hsl(85,  45%, 40%)',
+    GREEN: 'hsl(145, 50%, 36%)',
+    TEAL: 'hsl(178, 50%, 36%)',
+    CYAN: 'hsl(195, 55%, 42%)',
+    BLUE: 'hsl(214, 55%, 45%)',
+    INDIGO: 'hsl(235, 45%, 45%)',
+    VIOLET: 'hsl(258, 42%, 50%)',
+    PURPLE: 'hsl(280, 45%, 48%)',
+    PINK: 'hsl(328, 50%, 48%)'
   },
   system: {
-    CONTROL_ACCENT: '#b96f1d' // for accent-color
+    CONTROL_ACCENT: '#b96f1d'
   },
   background: {
     BASE: '#ffffff',
@@ -157,15 +157,10 @@ const lightTheme = {
       activeBorder: palette.background.SURFACE2
     },
 
-    search: {
-      border: `1px solid ${palette.border.BORDER2}`,
-      bg: palette.utility.WHITE
-    },
-
     collection: {
       item: {
-        bg: palette.background.SURFACE0,
-        hoverBg: palette.background.SURFACE0,
+        bg: palette.background.SURFACE1,
+        hoverBg: palette.background.SURFACE1,
         focusBorder: palette.border.BORDER2,
         indentBorder: `solid 1px ${palette.border.BORDER1}`,
         active: {
@@ -187,7 +182,8 @@ const lightTheme = {
     iconColor: palette.text.SUBTEXT2,
     bg: palette.utility.WHITE,
     hoverBg: palette.background.CRUST,
-    shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
+    shadow: '0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+    border: 'none',
     separator: palette.border.BORDER1,
     selectedColor: palette.accents.PRIMARY,
     mutedText: palette.text.SUBTEXT0
@@ -577,12 +573,6 @@ const lightTheme = {
     border: 'rgba(217, 31, 17, 0.1)',
     icon: '#D91F11',
     text: palette.text.BASE
-  },
-
-  preferences: {
-    sidebar: {
-      border: palette.border.BORDER0
-    }
   },
 
   examples: {

@@ -20,6 +20,7 @@ const Wrapper = styled.div`
     &.collection-keyboard-focused {
       .collection-actions {
         visibility: visible;
+        background-color: transparent !important;
       }
     }
 

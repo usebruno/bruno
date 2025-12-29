@@ -75,12 +75,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.green} !important;
   }
 
-  .separator {
-    height: 16px;
-    border-left: 1px solid ${(props) => props.theme.preferences.sidebar.border};
-    margin: 0 8px;
-  }
-
   .result-view-tabs {
     display: flex;
     align-items: center;

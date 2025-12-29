@@ -17,7 +17,7 @@ const Wrapper = styled.div`
   }
 
   .indent-block {
-    border-right: ${(props) => props.theme.sidebar.collection.item.indentBorder};
+    border-right: 1px solid ${(props) => props.theme.border.border1};
   }
 
   .collection-item-name {
@@ -107,6 +107,7 @@ const Wrapper = styled.div`
       .menu-icon,
       .collection-item-menu-icon {
         visibility: visible;
+        background-color: transparent !important;
       }
     }
 
@@ -132,7 +133,7 @@ const Wrapper = styled.div`
       }
 
       .indent-block {
-        border-right: ${(props) => props.theme.sidebar.collection.item.active.indentBorder} !important;
+        border-right: 1px solid ${(props) => props.theme.border.border1} !important;
       }
     }
 
