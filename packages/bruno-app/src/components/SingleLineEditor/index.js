@@ -305,6 +305,7 @@ class SingleLineEditor extends Component {
         <StyledWrapper
           ref={this.editorRef}
           className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
+          $isCompact={this.props.isCompact}
           {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
         />
         <div className="flex items-center">

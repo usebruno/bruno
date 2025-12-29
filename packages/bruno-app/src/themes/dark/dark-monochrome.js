@@ -110,12 +110,12 @@ const darkMonochromeTheme = {
   },
 
   input: {
-    bg: 'rgb(65, 65, 65)',
-    border: 'rgb(65, 65, 65)',
-    focusBorder: 'rgb(65, 65, 65)',
+    bg: 'transparent',
+    border: colors.GRAY_3,
+    focusBorder: colors.BRAND,
     placeholder: {
-      color: '#a2a2a2',
-      opacity: 0.75
+      color: colors.TEXT_MUTED,
+      opacity: 0.6
     }
   },
 
@@ -238,9 +238,9 @@ const darkMonochromeTheme = {
       bg: 'rgb(48, 48, 49)'
     },
     input: {
-      bg: 'rgb(65, 65, 65)',
-      border: 'rgb(65, 65, 65)',
-      focusBorder: 'rgb(65, 65, 65)'
+      bg: 'transparent',
+      border: colors.GRAY_3,
+      focusBorder: colors.BRAND
     },
     backdrop: {
       opacity: 0.2

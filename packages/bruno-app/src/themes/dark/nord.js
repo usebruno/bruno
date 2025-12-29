@@ -130,12 +130,12 @@ const nordTheme = {
   },
 
   input: {
-    bg: colors.NORD1,
-    border: colors.NORD2,
+    bg: 'transparent',
+    border: colors.NORD3,
     focusBorder: colors.NORD8,
     placeholder: {
       color: colors.TEXT_MUTED,
-      opacity: 0.75
+      opacity: 0.6
     }
   },
 
@@ -253,8 +253,8 @@ const nordTheme = {
       bg: colors.NORD1
     },
     input: {
-      bg: colors.NORD2,
-      border: colors.NORD2,
+      bg: 'transparent',
+      border: colors.NORD3,
       focusBorder: colors.NORD8
     },
     backdrop: {

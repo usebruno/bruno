@@ -6,7 +6,7 @@ const StyledWrapper = styled.div`
 
   .response-status-input {
     background: ${(props) => props.theme.requestTabPanel.url.bg};
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    border: 1px solid ${(props) => props.theme.border.border1};
     border-radius: 3px;
     padding: 0.35rem 0.6rem;
     font-size: ${(props) => props.theme.font.size.base};
@@ -44,7 +44,7 @@ const StyledWrapper = styled.div`
     left: 0;
     right: 0;
     background: ${(props) => props.theme.dropdown.bg};
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    border: 1px solid ${(props) => props.theme.border.border1};
     border-top: none;
     border-radius: 0 0 3px 3px;
     box-shadow: ${(props) => props.theme.dropdown.shadow};

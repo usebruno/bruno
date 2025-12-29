@@ -91,7 +91,7 @@ const Wrapper = styled.div`
 
   .tab-button {
     color: ${(props) => props.theme.colors.text.subtext0};
-    font-size: ${(props) => props.theme.font.size.base};
+    font-size: ${(props) => props.theme.font.size.sm};
 
     .tab-content-wrapper {
       position: relative;

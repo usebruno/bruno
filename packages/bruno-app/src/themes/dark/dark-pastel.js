@@ -131,12 +131,12 @@ const darkPastelTheme = {
   },
 
   input: {
-    bg: colors.GRAY_2,
+    bg: 'transparent',
     border: colors.GRAY_4,
     focusBorder: colors.BRAND,
     placeholder: {
-      color: colors.GRAY_6,
-      opacity: 0.8
+      color: colors.TEXT_MUTED,
+      opacity: 0.6
     }
   },
 
@@ -254,7 +254,7 @@ const darkPastelTheme = {
       bg: colors.GRAY_2
     },
     input: {
-      bg: colors.GRAY_3,
+      bg: 'transparent',
       border: colors.GRAY_4,
       focusBorder: colors.BRAND
     },
