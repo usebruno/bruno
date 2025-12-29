@@ -15,9 +15,11 @@ const Wrapper = styled.div`
       visibility: hidden;
     }
 
+    /* Single source of truth for hover/focus states: background and menu icon visibility */
     &:hover,
     &:focus-within,
     &.collection-keyboard-focused {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .collection-actions {
         visibility: visible;
         background-color: transparent !important;
@@ -78,10 +80,11 @@ const Wrapper = styled.div`
     }
 
     &.collection-keyboard-focused {
-      background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg};
+      border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
       outline: none;
 
-      &:hover {
+       &:hover {
         background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg} !important;
       }
     }
