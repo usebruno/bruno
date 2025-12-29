@@ -28,7 +28,7 @@ const Wrapper = styled.div`
 
     .grant-type-label {
       width: fit-content;
-      color: ${(props) => props.theme.colors.text.yellow};
+      color: ${(props) => props.theme.brand};
       justify-content: space-between;
       padding: 0 0.5rem;
     }

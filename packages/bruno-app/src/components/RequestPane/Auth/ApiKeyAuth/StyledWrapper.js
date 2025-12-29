@@ -38,7 +38,6 @@ const Wrapper = styled.div`
 
     .auth-type-label {
       width: fit-content;
-      color: ${(props) => props.theme.colors.text.yellow};
       justify-content: space-between;
       padding: 0 0.5rem;
     }

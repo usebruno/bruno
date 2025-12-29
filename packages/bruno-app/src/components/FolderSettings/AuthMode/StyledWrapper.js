@@ -7,7 +7,7 @@ const StyledWrapper = styled.div`
     background: transparent;
 
     .auth-mode-label {
-      color: ${(props) => props.theme.colors.text.yellow};
+      color: ${(props) => props.theme.brand};
 
     .caret {
       color: rgb(140, 140, 140);
