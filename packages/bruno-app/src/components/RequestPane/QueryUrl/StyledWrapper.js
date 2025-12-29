@@ -5,35 +5,6 @@ const Wrapper = styled.div`
   border: ${(props) => props.theme.requestTabPanel.url.border};
   border-radius: ${(props) => props.theme.border.radius.base};
 
-  div.method-selector-container {
-    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
-    border-top-left-radius: ${(props) => props.theme.border.radius.base};
-    border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
-  }
-
-  div.input-container {
-    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
-    border-top-right-radius: ${(props) => props.theme.border.radius.base};
-    border-bottom-right-radius: ${(props) => props.theme.border.radius.base};
-
-    input {
-      background-color: ${(props) => props.theme.requestTabPanel.url.bg};
-      outline: none;
-      box-shadow: none;
-
-      &:focus {
-        outline: none !important;
-        box-shadow: none !important;
-      }
-    }
-  }
-
-  .caret {
-    color: rgb(140, 140, 140);
-    fill: rgb(140 140 140);
-    position: relative;
-    top: 1px;
-  }
 
   .infotip {
     position: relative;
