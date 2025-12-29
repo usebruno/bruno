@@ -10,8 +10,10 @@ import { cloneDeep } from 'lodash';
 import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
 import { useSelector } from 'react-redux';
 import { findCollectionByUid, areItemsLoading } from 'utils/collections/index';
+import { useApp } from 'providers/App';
 
 const ShareCollection = ({ onClose, collectionUid }) => {
+  const { version } = useApp();
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const isCollectionLoading = areItemsLoading(collection);
 
@@ -39,7 +41,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
 
   const handleExportBrunoCollection = () => {
     const collectionCopy = cloneDeep(collection);
-    exportBrunoCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+    exportBrunoCollection(transformCollectionToSaveToExportAsFile(collectionCopy), version);
     onClose();
   };
 
@@ -51,7 +53,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
 
   const handleExportOpenCollection = () => {
     const collectionCopy = cloneDeep(collection);
-    exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+    exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy), version);
     onClose();
   };
 
