@@ -1,6 +1,7 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
+const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
@@ -135,6 +136,14 @@ const builder = async (yargs) => {
       describe: 'Path to environment file (.bru or .json) - absolute or relative',
       type: 'string'
     })
+    .option('global-env', {
+      describe: 'Global environment name (requires collection to be in a workspace)',
+      type: 'string'
+    })
+    .option('workspace', {
+      describe: 'Path to workspace directory (auto-detected if not provided)',
+      type: 'string'
+    })
     .option('env-var', {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
@@ -260,6 +269,14 @@ const builder = async (yargs) => {
     .example(
       '$0 run folder --tags=hello,world --exclude-tags=skip',
       'Run only requests with tags "hello" or "world" and exclude any request with tag "skip".'
+    )
+    .example(
+      '$0 run request.bru --global-env production',
+      'Run a request with the global environment set to production'
+    )
+    .example(
+      '$0 run request.bru --global-env production --workspace /path/to/workspace',
+      'Run a request with a global environment from the specified workspace'
     );
 };
 
@@ -272,6 +289,8 @@ const handler = async function (argv) {
       disableCookies,
       env,
       envFile,
+      globalEnv,
+      workspace: workspacePath,
       envVar,
       insecure,
       r: recursive,
@@ -327,7 +346,7 @@ const handler = async function (argv) {
         }
       } catch (err) {
         console.error(chalk.red(`Unexpected error: ${err.message}`));
-        process.exit(constants.EXIT_STATUS.ERROR_UNKNOWN);
+        process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
       }
     }
 
@@ -374,6 +393,96 @@ const handler = async function (argv) {
         const envJson = parseEnvironment(envBruContent);
         envVars = getEnvVars(envJson);
         envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
+      }
+    }
+
+    let globalEnvVars = {};
+    if (globalEnv) {
+      const findWorkspacePath = (startPath) => {
+        let currentPath = startPath;
+        while (currentPath !== path.dirname(currentPath)) {
+          const workspaceYmlPath = path.join(currentPath, 'workspace.yml');
+          if (fs.existsSync(workspaceYmlPath)) {
+            return currentPath;
+          }
+          currentPath = path.dirname(currentPath);
+        }
+        return null;
+      };
+
+      const isCollectionInWorkspace = (wsPath, colPath) => {
+        const workspaceYmlPath = path.join(wsPath, 'workspace.yml');
+        if (!fs.existsSync(workspaceYmlPath)) {
+          return false;
+        }
+        try {
+          const realWsPath = fs.realpathSync(wsPath);
+          const realColPath = fs.realpathSync(colPath);
+          const yamlContent = fs.readFileSync(workspaceYmlPath, 'utf8');
+          const workspaceConfig = yaml.load(yamlContent);
+          const collections = workspaceConfig.collections || [];
+          return collections.some((c) => {
+            const resolvedPath = path.isAbsolute(c.path)
+              ? c.path
+              : path.resolve(realWsPath, c.path);
+            const realResolvedPath = fs.existsSync(resolvedPath) ? fs.realpathSync(resolvedPath) : resolvedPath;
+            return path.normalize(realResolvedPath) === path.normalize(realColPath);
+          });
+        } catch (err) {
+          return false;
+        }
+      };
+
+      if (!workspacePath) {
+        workspacePath = findWorkspacePath(collectionPath);
+      }
+
+      if (!workspacePath) {
+        console.error(chalk.red(`Workspace not found. Please specify a workspace path using --workspace or ensure the collection is inside a workspace directory.`));
+        process.exit(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_REQUIRES_WORKSPACE);
+      }
+
+      const workspaceExists = await exists(workspacePath);
+      if (!workspaceExists) {
+        console.error(chalk.red(`Workspace path not found: `) + chalk.dim(workspacePath));
+        process.exit(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
+      }
+
+      const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
+      const workspaceYmlExists = await exists(workspaceYmlPath);
+      if (!workspaceYmlExists) {
+        console.error(chalk.red(`Invalid workspace: workspace.yml not found in `) + chalk.dim(workspacePath));
+        process.exit(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
+      }
+
+      if (!isCollectionInWorkspace(workspacePath, collectionPath)) {
+        console.error(chalk.red(`Collection is not part of the specified workspace.`));
+        console.error(chalk.dim(`Collection: ${collectionPath}`));
+        console.error(chalk.dim(`Workspace: ${workspacePath}`));
+        process.exit(constants.EXIT_STATUS.ERROR_COLLECTION_NOT_IN_WORKSPACE);
+      }
+
+      const globalEnvFilePath = path.join(workspacePath, 'environments', `${globalEnv}.yml`);
+      const globalEnvFileExists = await exists(globalEnvFilePath);
+      if (!globalEnvFileExists) {
+        console.error(chalk.red(`Global environment not found: `) + chalk.dim(`environments/${globalEnv}.yml`));
+        console.error(chalk.dim(`Workspace: ${workspacePath}`));
+        process.exit(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_NOT_FOUND);
+      }
+
+      try {
+        const globalEnvContent = fs.readFileSync(globalEnvFilePath, 'utf8');
+        const globalEnvJson = await parseEnvironment(globalEnvContent, { format: 'yml' });
+        globalEnvVars = getEnvVars(globalEnvJson);
+        globalEnvVars.__name__ = globalEnv;
+      } catch (err) {
+        console.error(chalk.red(`Failed to parse global environment: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+
+      envVars = { ...globalEnvVars, ...envVars };
+      if (!envVars.__name__ && globalEnvVars.__name__) {
+        envVars.__name__ = globalEnvVars.__name__;
       }
     }
 
