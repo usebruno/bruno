@@ -116,7 +116,7 @@ const StyledWrapper = styled.div`
     span.cm-atom {
       color: ${(props) => props.theme.codemirror.tokens.atom} !important;
     }
-    span.cm-variable {
+    span.cm-variable, span.cm-variable-2 {
       color: ${(props) => props.theme.codemirror.tokens.variable} !important;
     }
     span.cm-keyword {

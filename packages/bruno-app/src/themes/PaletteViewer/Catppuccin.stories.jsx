@@ -1,4 +1,5 @@
 import React from 'react';
+import { ColorSwatch, ColorSection } from './components';
 
 // Catppuccin Latte (Light)
 const latte = {
@@ -150,24 +151,6 @@ const mocha = {
 
 const themes = [latte, frappe, macchiato, mocha];
 
-const ColorSwatch = ({ name, color, textColor }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-    <div
-      style={{
-        width: '56px',
-        height: '56px',
-        backgroundColor: color,
-        borderRadius: '8px',
-        border: '1px solid rgba(128,128,128,0.2)'
-      }}
-    />
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: '10px', fontWeight: 600, color: textColor }}>{name}</div>
-      <div style={{ fontSize: '9px', color: textColor, opacity: 0.7, fontFamily: 'monospace' }}>{color}</div>
-    </div>
-  </div>
-);
-
 const ThemeSection = ({ theme }) => {
   const textColor = theme.mode === 'dark' ? '#cdd6f4' : '#4c4f69';
   const mutedColor = theme.mode === 'dark' ? '#a6adc8' : '#6c6f85';
@@ -188,23 +171,8 @@ const ThemeSection = ({ theme }) => {
         {theme.mode === 'light' ? 'Light theme' : 'Dark theme'} — Base: {theme.base}
       </p>
 
-      <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: textColor }}>
-        Accents
-      </h3>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
-        {Object.entries(theme.accents).map(([name, color]) => (
-          <ColorSwatch key={name} name={name} color={color} textColor={textColor} />
-        ))}
-      </div>
-
-      <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: textColor }}>
-        Surface & Text
-      </h3>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-        {Object.entries(theme.surface).map(([name, color]) => (
-          <ColorSwatch key={name} name={name} color={color} textColor={textColor} />
-        ))}
-      </div>
+      <ColorSection title="Accents" colors={theme.accents} textColor={textColor} />
+      <ColorSection title="Surface & Text" colors={theme.surface} textColor={textColor} />
     </div>
   );
 };

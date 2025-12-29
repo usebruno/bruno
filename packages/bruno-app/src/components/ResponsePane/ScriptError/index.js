@@ -38,7 +38,7 @@ const ScriptError = ({ item, onClose }) => {
         <div className="flex-1 min-w-0">
           {errors.map((error, index) => (
             <div key={index}>
-              {index > 0 && <div className="border-t border-gray-300 my-3 dark:border-gray-600"></div>}
+              {index > 0 && <div className="separator my-2"></div>}
               <div className="error-title">
                 {error.title}
               </div>

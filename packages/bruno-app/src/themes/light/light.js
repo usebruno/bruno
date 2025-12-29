@@ -1,4 +1,4 @@
-const palette = {
+export const palette = {
   accents: {
     PRIMARY: '#bd7a28',
     RED: 'hsl(8 60% 52%)', // warm coral - NEW
@@ -157,15 +157,10 @@ const lightTheme = {
       activeBorder: palette.background.SURFACE2
     },
 
-    search: {
-      border: `1px solid ${palette.border.BORDER2}`,
-      bg: palette.utility.WHITE
-    },
-
     collection: {
       item: {
-        bg: palette.background.SURFACE0,
-        hoverBg: palette.background.SURFACE0,
+        bg: palette.background.SURFACE1,
+        hoverBg: palette.background.SURFACE1,
         focusBorder: palette.border.BORDER2,
         indentBorder: `solid 1px ${palette.border.BORDER1}`,
         active: {
@@ -187,7 +182,8 @@ const lightTheme = {
     iconColor: palette.text.SUBTEXT2,
     bg: palette.utility.WHITE,
     hoverBg: palette.background.CRUST,
-    shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
+    shadow: '0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+    border: 'none',
     separator: palette.border.BORDER1,
     selectedColor: palette.accents.PRIMARY,
     mutedText: palette.text.SUBTEXT0
@@ -577,12 +573,6 @@ const lightTheme = {
     border: 'rgba(217, 31, 17, 0.1)',
     icon: '#D91F11',
     text: palette.text.BASE
-  },
-
-  preferences: {
-    sidebar: {
-      border: palette.border.BORDER0
-    }
   },
 
   examples: {

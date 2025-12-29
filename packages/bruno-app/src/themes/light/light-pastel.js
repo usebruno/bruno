@@ -146,10 +146,6 @@ const lightPastelTheme = {
       border: colors.GRAY_4,
       activeBorder: colors.BRAND
     },
-    search: {
-      border: `1px solid ${colors.GRAY_4}`,
-      bg: colors.WHITE
-    },
     collection: {
       item: {
         bg: colors.GRAY_2,
@@ -175,6 +171,7 @@ const lightPastelTheme = {
     bg: colors.GRAY_1,
     hoverBg: colors.GRAY_2,
     shadow: 'rgba(0, 0, 0, 0.15) 0px 6px 16px -2px, rgba(0, 0, 0, 0.1) 0px 3px 8px -3px',
+    border: 'none',
     separator: colors.GRAY_3,
     selectedColor: colors.BRAND,
     mutedText: colors.GRAY_6
@@ -567,12 +564,6 @@ const lightPastelTheme = {
     border: '#fcd34d',
     icon: '#d97706',
     text: colors.TEXT
-  },
-
-  preferences: {
-    sidebar: {
-      border: colors.GRAY_3
-    }
   },
 
   examples: {

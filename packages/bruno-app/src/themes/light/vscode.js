@@ -150,10 +150,6 @@ const vscodeLightTheme = {
       border: colors.BORDER,
       activeBorder: colors.GRAY_5
     },
-    search: {
-      border: `1px solid ${colors.BORDER_DARK}`,
-      bg: colors.WHITE
-    },
     collection: {
       item: {
         bg: colors.GRAY_2,
@@ -179,6 +175,7 @@ const vscodeLightTheme = {
     bg: colors.WHITE,
     hoverBg: colors.GRAY_2,
     shadow: 'rgba(0, 0, 0, 0.16) 0px 6px 12px -2px, rgba(0, 0, 0, 0.1) 0px 3px 7px -3px',
+    border: 'none',
     separator: colors.BORDER,
     selectedColor: colors.BRAND,
     mutedText: colors.TEXT_MUTED
@@ -571,12 +568,6 @@ const vscodeLightTheme = {
     border: 'rgba(205, 49, 49, 0.15)',
     icon: colors.RED,
     text: colors.TEXT
-  },
-
-  preferences: {
-    sidebar: {
-      border: colors.BORDER
-    }
   },
 
   examples: {

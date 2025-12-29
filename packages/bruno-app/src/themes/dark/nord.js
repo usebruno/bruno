@@ -147,10 +147,6 @@ const nordTheme = {
       border: colors.NORD2,
       activeBorder: colors.NORD3
     },
-    search: {
-      border: '1px solid transparent',
-      bg: colors.NORD1
-    },
     collection: {
       item: {
         bg: colors.NORD1,
@@ -175,7 +171,8 @@ const nordTheme = {
     iconColor: colors.NORD4,
     bg: colors.NORD1,
     hoverBg: colors.NORD2,
-    shadow: 'rgba(0, 0, 0, 0.3) 0px 2px 8px',
+    shadow: 'none',
+    border: colors.NORD3,
     separator: colors.NORD3,
     selectedColor: colors.NORD8,
     mutedText: colors.TEXT_MUTED
@@ -568,12 +565,6 @@ const nordTheme = {
     border: 'rgba(191, 97, 106, 0.2)',
     icon: colors.NORD11,
     text: colors.NORD4
-  },
-
-  preferences: {
-    sidebar: {
-      border: colors.NORD3
-    }
   },
 
   examples: {

@@ -137,20 +137,15 @@ const catppuccinFrappeTheme = {
     muted: colors.SUBTEXT0,
     bg: colors.BASE,
     dragbar: {
-      border: colors.SURFACE1,
-      activeBorder: colors.SURFACE2
-    },
-
-    search: {
-      border: '1px solid transparent',
-      bg: colors.SURFACE0
+      border: colors.SURFACE0,
+      activeBorder: colors.OVERLAY0
     },
 
     collection: {
       item: {
         bg: colors.SURFACE0,
-        hoverBg: colors.SURFACE1,
-        focusBorder: colors.LAVENDER,
+        hoverBg: colors.SURFACE0,
+        focusBorder: colors.SURFACE1,
         indentBorder: `solid 1px ${colors.SURFACE2}`,
         active: {
           indentBorder: `solid 1px ${colors.MAUVE}`
@@ -169,9 +164,10 @@ const catppuccinFrappeTheme = {
   dropdown: {
     color: colors.TEXT,
     iconColor: colors.SUBTEXT1,
-    bg: colors.MANTLE,
+    bg: colors.SURFACE0,
     hoverBg: 'rgba(115, 121, 148, 0.16)',
-    shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
+    shadow: 'none',
+    border: colors.SURFACE1,
     separator: colors.SURFACE1,
     selectedColor: colors.MAUVE,
     mutedText: colors.SUBTEXT0
@@ -209,7 +205,7 @@ const catppuccinFrappeTheme = {
       border: `solid 1px ${colors.SURFACE0}`
     },
     dragbar: {
-      border: colors.SURFACE1,
+      border: colors.SURFACE0,
       activeBorder: colors.OVERLAY0
     },
     responseStatus: colors.TEXT,
@@ -564,12 +560,6 @@ const catppuccinFrappeTheme = {
     border: 'rgba(231, 130, 132, 0.1)',
     icon: colors.RED,
     text: colors.SUBTEXT1
-  },
-
-  preferences: {
-    sidebar: {
-      border: colors.SURFACE1
-    }
   },
 
   examples: {

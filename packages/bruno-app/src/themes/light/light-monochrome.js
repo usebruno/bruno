@@ -129,11 +129,6 @@ const lightMonochromeTheme = {
       activeBorder: colors.GRAY_5
     },
 
-    search: {
-      border: '1px solid rgb(211 211 211)',
-      bg: '#fff'
-    },
-
     collection: {
       item: {
         bg: colors.GRAY_3,
@@ -160,6 +155,7 @@ const lightMonochromeTheme = {
     bg: '#fff',
     hoverBg: '#e9ecef',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
+    border: 'none',
     separator: '#e7e7e7',
     selectedColor: '#525252',
     mutedText: '#9B9B9B'
@@ -549,12 +545,6 @@ const lightMonochromeTheme = {
     border: 'rgba(64, 64, 64, 0.1)',
     icon: '#404040',
     text: '#343434'
-  },
-
-  preferences: {
-    sidebar: {
-      border: '#EFEFEF'
-    }
   },
 
   examples: {
