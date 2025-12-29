@@ -229,8 +229,16 @@ const getPreferences = () => {
 
 const savePreferences = async (newPreferences) => {
   return new Promise((resolve, reject) => {
+    // Merge with existing preferences to allow partial updates.
+    // The validation schema requires all fields (e.g., proxy.inherit), but callers
+    // may only send partial updates (e.g., just defaultWorkspaceDocs). By merging
+    // with existing preferences first, we ensure all required fields are present
+    // before validation, while still allowing callers to update only what they need.
+    const existingPreferences = preferencesStore.getPreferences();
+    const mergedPreferences = merge({}, existingPreferences, newPreferences);
+
     preferencesSchema
-      .validate(newPreferences, { abortEarly: true })
+      .validate(mergedPreferences, { abortEarly: true })
       .then((validatedPreferences) => {
         preferencesStore.savePreferences(validatedPreferences);
         resolve();
