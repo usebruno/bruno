@@ -24,11 +24,14 @@ const DefaultTab = ({ setTab }) => (
 
 const EnvironmentSettings = ({ collection }) => {
   const [isModified, setIsModified] = useState(false);
-  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
+  const environments = collection?.environments || [];
+
+  const [selectedEnvironment, setSelectedEnvironment] = useState(() => {
+    if (!environments.length) return null;
+    return environments.find((env) => env.uid === collection?.activeEnvironmentUid) || environments[0];
+  });
   const [tab, setTab] = useState('default');
   const [showExportModal, setShowExportModal] = useState(false);
-
-  const environments = collection?.environments || [];
 
   if (!environments || !environments.length) {
     return (
