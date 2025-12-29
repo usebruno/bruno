@@ -2389,7 +2389,7 @@ export const importCollection = (collection, collectionLocation, options = {}) =
       const state = getState();
       const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
 
-      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation);
+      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || 'bru');
 
       if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
         const workspaceCollection = {

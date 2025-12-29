@@ -92,6 +92,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
+  const [collectionFormat, setCollectionFormat] = useState('bru');
   const dropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
 
@@ -119,7 +120,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
     }),
     onSubmit: async (values) => {
       const convertedCollection = await convertCollection(format, rawData, groupingType);
-      handleSubmit(convertedCollection, values.collectionLocation);
+      handleSubmit(convertedCollection, values.collectionLocation, { format: collectionFormat });
     }
   });
 
@@ -208,6 +209,31 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
               <span className="text-link cursor-pointer hover:underline" onClick={browse}>
                 Browse
               </span>
+            </div>
+
+            <div className="mt-4">
+              <label htmlFor="format" className="flex items-center font-medium">
+                File Format
+                <Help width="300">
+                  <p>Choose the file format for storing requests in this collection.</p>
+                  <p className="mt-2">
+                    <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                  </p>
+                  <p className="mt-1">
+                    <strong>BRU:</strong> Bruno's native file format (.bru files)
+                  </p>
+                </Help>
+              </label>
+              <select
+                id="format"
+                name="format"
+                className="block textbox mt-2 w-full"
+                value={collectionFormat}
+                onChange={(e) => setCollectionFormat(e.target.value)}
+              >
+                <option value="yml">OpenCollection (YAML)</option>
+                <option value="bru">BRU Format (.bru)</option>
+              </select>
             </div>
           </div>
 

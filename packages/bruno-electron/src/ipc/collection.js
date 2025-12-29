@@ -851,11 +851,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`collection: ${collectionPath} already exists`);
       }
 
+      const getFilenameWithFormat = (item, format) => {
+        if (item?.filename) {
+          const ext = path.extname(item.filename);
+          if (ext === '.bru' || ext === '.yml') {
+            return item.filename.replace(ext, `.${format}`);
+          }
+          return item.filename;
+        }
+        return `${item.name}.${format}`;
+      };
+
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = async (items = [], currentPath) => {
         await Promise.all(items.map(async (item) => {
           if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-            let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.${format}`);
+            let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
             const content = await stringifyRequestViaWorker(item, { format });
             const filePath = path.join(currentPath, sanitizedFilename);
             safeWriteFileSync(filePath, content);
