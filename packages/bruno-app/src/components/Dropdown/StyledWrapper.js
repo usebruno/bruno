@@ -3,7 +3,7 @@ import { rgba } from 'polished';
 
 const Wrapper = styled.div`
   min-width: 160px;
-  font-size: ${(props) => props.theme.font.size.base};
+  font-size: ${(props) => props.theme.font.size.sm};
   color: ${(props) => props.theme.dropdown.color};
   background-color: ${(props) => props.theme.dropdown.bg};
   ${(props) =>
@@ -53,7 +53,7 @@ const Wrapper = styled.div`
     cursor: pointer;
     border-radius: 6px;
     margin: 0.0625rem 0;
-    font-size: 0.8125rem;
+    font-size: ${(props) => props.theme.font.size.sm};
 
     &.active {
       color: ${(props) => props.theme.colors.text.yellow} !important;

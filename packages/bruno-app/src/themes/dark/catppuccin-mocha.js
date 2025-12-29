@@ -123,8 +123,8 @@ const catppuccinMochaTheme = {
   },
 
   input: {
-    bg: colors.SURFACE0,
-    border: colors.SURFACE0,
+    bg: 'transparent',
+    border: colors.SURFACE1,
     focusBorder: colors.LAVENDER,
     placeholder: {
       color: colors.OVERLAY0,
@@ -251,8 +251,8 @@ const catppuccinMochaTheme = {
       bg: colors.BASE
     },
     input: {
-      bg: colors.SURFACE0,
-      border: colors.SURFACE0,
+      bg: 'transparent',
+      border: colors.SURFACE1,
       focusBorder: colors.LAVENDER
     },
     backdrop: {

@@ -1,6 +1,8 @@
+import { rgba } from 'polished';
+
 export const palette = {
   accents: {
-    PRIMARY: '#d9a342',
+    PRIMARY: 'hsl(39, 74%, 59%)',
     RED: 'hsl(0,   70%, 71%)',
     ROSE: 'hsl(350, 65%, 78%)',
     BROWN: 'hsl(41,  52%, 77%)',
@@ -128,12 +130,14 @@ const darkTheme = {
   },
 
   input: {
-    bg: 'rgb(65, 65, 65)',
-    border: 'rgb(65, 65, 65)',
-    focusBorder: 'rgb(65, 65, 65)',
+    bg: 'transparent',
+    border: palette.border.BORDER2,
+    // bg: palette.background.SURFACE1,
+    // border: palette.background.SURFACE1,
+    focusBorder: rgba(palette.accents.PRIMARY, 0.8),
     placeholder: {
-      color: '#a2a2a2',
-      opacity: 0.75
+      color: palette.text.SUBTEXT1,
+      opacity: 0.6
     }
   },
 
@@ -256,9 +260,9 @@ const darkTheme = {
       bg: palette.background.MANTLE
     },
     input: {
-      bg: 'rgb(65, 65, 65)',
-      border: 'rgb(65, 65, 65)',
-      focusBorder: 'rgb(65, 65, 65)'
+      bg: 'transparent',
+      border: palette.border.BORDER2,
+      focusBorder: rgba(palette.accents.PRIMARY, 0.8)
     },
     backdrop: {
       opacity: 0.2
@@ -324,7 +328,7 @@ const darkTheme = {
     active: {
       fontWeight: 400,
       color: '#CCCCCC',
-      border: '#d9a342'
+      border: palette.accents.PRIMARY
     },
     secondary: {
       active: {

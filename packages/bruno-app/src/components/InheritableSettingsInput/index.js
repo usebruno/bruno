@@ -36,9 +36,9 @@ const InheritableSettingsInput = ({
                 type="button"
                 className="px-2 py-1 text-xs rounded-sm outline-none transition-colors duration-100 w-24 h-8 flex items-center justify-between"
                 style={{
-                  backgroundColor: theme.modal.input.bg,
-                  border: `1px solid ${theme.modal.input.border}`,
-                  color: theme.modal.input.text
+                  backgroundColor: theme.input.bg,
+                  border: `1px solid ${theme.input.border}`,
+                  color: theme.input.text
                 }}
               >
                 <span>Inherit</span>
@@ -60,9 +60,9 @@ const InheritableSettingsInput = ({
               type="text"
               className="block px-2 py-1 pr-6 rounded-sm outline-none transition-colors duration-100 w-24 h-8"
               style={{
-                backgroundColor: theme.modal.input.bg,
-                border: `1px solid ${theme.modal.input.border}`,
-                color: theme.modal.input.text
+                backgroundColor: theme.input.bg,
+                border: `1px solid ${theme.input.border}`,
+                color: theme.input.text
               }}
               autoComplete="off"
               autoCorrect="off"

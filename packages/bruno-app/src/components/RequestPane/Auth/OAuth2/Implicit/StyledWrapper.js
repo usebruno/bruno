@@ -2,7 +2,8 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   label {
-    font-size: ${(props) => props.theme.font.size.base};
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.subtext1};
   }
   .oauth2-input-wrapper {
     max-width: 400px;

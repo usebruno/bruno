@@ -116,6 +116,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 collection={collection}
                 item={item}
                 isSecret={isSecret}
+                isCompact
               />
               {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
             </div>
@@ -166,6 +167,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             onRun={handleRun}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>
@@ -207,13 +209,14 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                     onChange={(val) => handleChange('tokenHeaderPrefix', val)}
                     onRun={handleRun}
                     collection={collection}
+                    isCompact
                   />
                 </div>
               </div>
             )
           : (
               <div className="flex items-center gap-4 w-full" key="input-token-query-param-key">
-                <label className="block font-medium min-w-[140px]">Query Param Key</label>
+                <label className="block min-w-[140px]">Query Param Key</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
                     value={oAuth['tokenQueryKey'] || ''}
@@ -222,6 +225,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                     onChange={(val) => handleChange('tokenQueryKey', val)}
                     onRun={handleRun}
                     collection={collection}
+                    isCompact
                   />
                 </div>
               </div>
@@ -246,6 +250,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             onChange={(val) => handleChange('refreshTokenUrl', val)}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>

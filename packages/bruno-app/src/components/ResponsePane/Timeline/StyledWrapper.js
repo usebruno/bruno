@@ -63,7 +63,7 @@ const StyledWrapper = styled.div`
   }
 
   .tabs-switcher {
-    border-bottom: 1px solid ${(props) => props.theme.modal.input.border};
+    border-bottom: 1px solid ${(props) => props.theme.border.border1};
     margin-bottom: 16px;
     
     button {

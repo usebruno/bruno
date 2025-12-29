@@ -132,12 +132,12 @@ const vscodeDarkTheme = {
   },
 
   input: {
-    bg: colors.GRAY_2,
+    bg: 'transparent',
     border: colors.BORDER,
     focusBorder: colors.BRAND,
     placeholder: {
       color: colors.TEXT_MUTED,
-      opacity: 0.75
+      opacity: 0.6
     }
   },
 
@@ -255,7 +255,7 @@ const vscodeDarkTheme = {
       bg: colors.GRAY_2
     },
     input: {
-      bg: colors.GRAY_3,
+      bg: 'transparent',
       border: colors.BORDER,
       focusBorder: colors.BRAND
     },
