@@ -1,6 +1,5 @@
 // Catppuccin Latte - Light Theme
 // Based on https://catppuccin.com/palette/
-import { rgba } from 'polished';
 
 const colors = {
   // Catppuccin Latte Palette

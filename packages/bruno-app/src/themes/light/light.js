@@ -1,5 +1,3 @@
-import { rgba } from 'polished';
-
 export const palette = {
   primary: {
     SOLID: 'hsl(33, 80%, 46%)',
