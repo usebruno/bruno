@@ -31,7 +31,7 @@ const ScriptError = ({ item, onClose }) => {
     });
   }
 
-  return <ErrorMessage errors={errors} onClose={onClose} />;
+  return <ErrorMessage errors={errors} onClose={onClose} className="mt-4 mb-2" />;
 };
 
 export default ScriptError;

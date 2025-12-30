@@ -134,7 +134,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
-            className="mt-4 mb-2"
           />
         )}
         <div className="flex-1">
