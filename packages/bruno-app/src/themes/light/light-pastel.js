@@ -62,6 +62,13 @@ const lightPastelTheme = {
   textLink: colors.TEXT_LINK,
   bg: colors.BACKGROUND,
 
+  primary: {
+    solid: colors.BRAND,
+    text: colors.BRAND,
+    strong: colors.BRAND,
+    subtle: colors.BRAND
+  },
+
   accents: {
     primary: colors.BRAND
   },

@@ -66,6 +66,13 @@ const vscodeLightTheme = {
   textLink: colors.TEXT_LINK,
   bg: colors.EDITOR_BG,
 
+  primary: {
+    solid: colors.BRAND,
+    text: colors.TEXT_LINK,
+    strong: '#0078d4',
+    subtle: '#4da6ff'
+  },
+
   accents: {
     primary: colors.BRAND
   },
