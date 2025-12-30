@@ -153,8 +153,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
         <span className="font-medium">
           Configuration
@@ -258,8 +258,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         />
       </div>
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconKey size={14} className="oauth2-icon" />
         </div>
         <span className="font-medium text-gray-800 dark:text-gray-200">
           Token
@@ -341,8 +341,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             )
       }
       <div className="flex items-center gap-2.5 mt-4 mb-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
         <span className="font-medium text-gray-800 dark:text-gray-200">
           Advanced Settings
@@ -365,8 +365,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       </div>
 
       <div className="flex items-center gap-2.5 mt-4">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
         <span className="font-medium">Settings</span>
       </div>

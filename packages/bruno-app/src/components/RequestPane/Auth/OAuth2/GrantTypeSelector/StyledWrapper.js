@@ -1,6 +1,21 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const Wrapper = styled.div`
+  .oauth2-icon-container {
+    background-color: ${(props) => {
+      const primaryColor = props.theme.primary.solid;
+      if (props.theme.mode === 'dark') {
+        return rgba(primaryColor, 0.1);
+      }
+      return rgba(primaryColor, 0.1);
+    }};
+  }
+
+  .oauth2-icon {
+    color: ${(props) => props.theme.primary.solid};
+  }
+
   font-size: ${(props) => props.theme.font.size.base};
 
   .grant-type-mode-selector {
