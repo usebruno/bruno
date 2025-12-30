@@ -9,6 +9,7 @@ import {
 import SearchInput from 'components/SearchInput/index';
 import { search } from 'fast-fuzzy';
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
+import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
 const MethodDropdown = ({
@@ -17,6 +18,7 @@ const MethodDropdown = ({
   onMethodSelect,
   onMethodDropdownCreate
 }) => {
+  const { theme } = useTheme();
   const [searchText, setSearchText] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const searchInputRef = useRef();
@@ -59,15 +61,15 @@ const MethodDropdown = ({
   const getIconForMethodType = (type) => {
     switch (type) {
       case 'unary':
-        return <IconGrpcUnary size={20} strokeWidth={2} />;
+        return <IconGrpcUnary size={20} strokeWidth={2} color={theme.request.methods.get} />;
       case 'client-streaming':
-        return <IconGrpcClientStreaming size={20} strokeWidth={2} />;
+        return <IconGrpcClientStreaming size={20} strokeWidth={2} color={theme.request.methods.post} />;
       case 'server-streaming':
-        return <IconGrpcServerStreaming size={20} strokeWidth={2} />;
+        return <IconGrpcServerStreaming size={20} strokeWidth={2} color={theme.request.methods.put} />;
       case 'bidi-streaming':
-        return <IconGrpcBidiStreaming size={20} strokeWidth={2} />;
+        return <IconGrpcBidiStreaming size={20} strokeWidth={2} color={theme.colors.text.purple} />;
       default:
-        return <IconGrpcUnary size={20} strokeWidth={2} />;
+        return <IconGrpcUnary size={20} strokeWidth={2} color={theme.request.methods.get} />;
     }
   };
 
