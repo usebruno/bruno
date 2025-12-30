@@ -88,7 +88,7 @@ const Preferences = ({ onClose }) => {
               Beta
             </div>
           </div>
-          <section className="flex flex-grow px-2 pt-2 pb-6 tab-panel">{getTabPanel(tab)}</section>
+          <section className="flex flex-grow ps-2 pe-4 pt-2 pb-6 tab-panel">{getTabPanel(tab)}</section>
         </div>
       </Modal>
     </StyledWrapper>

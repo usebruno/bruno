@@ -8,6 +8,7 @@ import StyledWrapper from './StyledWrapper';
 import { isItemARequest } from 'utils/collections';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
+import Button from 'ui/Button/index';
 
 const ItemTypes = {
   REQUEST_ITEM: 'request-item'
@@ -285,13 +286,19 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
           {selectedItems.length} of {flattenedRequests.length} selected
         </div>
         <div className="actions">
-          <button className="btn-select-all" onClick={handleSelectAll}>
+          <Button
+            variant="ghost"
+            onClick={handleSelectAll}
+          >
             {selectedItems.length === flattenedRequests.length ? 'Deselect All' : 'Select All'}
-          </button>
-          <button className="btn-reset" onClick={handleReset} title="Reset selection and order">
-            <IconAdjustmentsAlt size={16} strokeWidth={1.5} />
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleReset}
+            title="Reset selection and order"
+          >
             Reset
-          </button>
+          </Button>
         </div>
       </div>
 

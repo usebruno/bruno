@@ -136,7 +136,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   return (
     <Portal>
       <StyledWrapper>
-        <Modal size="sm" title="Create Collection" hideFooter={true} handleCancel={onClose}>
+        <Modal size="md" title="Create Collection" hideFooter={true} handleCancel={onClose}>
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
               <label htmlFor="collection-name" className="flex items-center font-medium">

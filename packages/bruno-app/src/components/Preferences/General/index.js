@@ -173,7 +173,7 @@ const General = ({ close }) => {
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className="w-full">
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="flex items-center my-2">
           <input
