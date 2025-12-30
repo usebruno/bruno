@@ -10,6 +10,7 @@ import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
 import RunConfigurationPanel from './RunConfigurationPanel';
+import Button from 'ui/Button/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
   let relativePath = path.relative(fullPath, pathname);
@@ -302,7 +303,7 @@ export default function RunnerResults({ collection }) {
             <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
             {/* Configure requests option */}
-            <div className="flex flex-col border-b pb-6 mb-6 border-gray-200 dark:border-gray-700">
+            <div className="run-config-option flex flex-col border-b pb-6 mb-6">
               <div className="flex gap-2">
                 <input
                   className="cursor-pointer"
@@ -317,25 +318,24 @@ export default function RunnerResults({ collection }) {
             </div>
 
             <div className="flex flex-row gap-2">
-              <button
+              <Button
                 type="submit"
-                className="submit btn btn-sm btn-secondary"
                 disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading}
                 onClick={runCollection}
               >
                 {configureMode && selectedRequestItems.length > 0
                   ? `Run ${selectedRequestItems.length} Selected Request${selectedRequestItems.length > 1 ? 's' : ''}`
                   : 'Run Collection'}
-              </button>
+              </Button>
 
-              <button className="submit btn btn-sm btn-close" onClick={resetRunner}>
+              <Button type="button" variant="ghost" onClick={resetRunner}>
                 Reset
-              </button>
+              </Button>
             </div>
           </div>
 
           {configureMode && (
-            <div className="w-1/2 border-l border-gray-200 dark:border-gray-700">
+            <div className="run-config-panel w-1/2 border-l">
               <RunConfigurationPanel
                 collection={collection}
                 selectedItems={selectedRequestItems}
@@ -373,26 +373,36 @@ export default function RunnerResults({ collection }) {
 
         {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid ? (
           <div className="flex items-center flex-shrink-0">
-            <button className="btn btn-sm btn-danger" onClick={cancelExecution}>Cancel Execution</button>
+            <Button
+              type="button"
+              onClick={cancelExecution}
+              size="sm"
+              variant="filled"
+              color="danger"
+            >
+              Cancel Execution
+            </Button>
           </div>
         ) : runnerInfo.status === 'ended' ? (
           <div className="flex items-center gap-3 flex-shrink-0">
-            <button
+            <Button
               type="button"
-              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
-              style={{ fontFamily: 'Inter', fontWeight: 500 }}
               onClick={runAgain}
+              size="sm"
+              variant="filled"
+              color="secondary"
             >
               Run Again
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
-              style={{ fontFamily: 'Inter', fontWeight: 500 }}
               onClick={resetRunner}
+              size="sm"
+              variant="filled"
+              color="secondary"
             >
               Reset
-            </button>
+            </Button>
           </div>
         ) : null}
       </div>

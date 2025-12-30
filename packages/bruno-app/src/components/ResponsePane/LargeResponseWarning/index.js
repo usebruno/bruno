@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
 import { formatSize } from 'utils/common/index';
+import Button from 'ui/Button/index';
 
 const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
   const { ipcRenderer } = window;
@@ -58,32 +59,35 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
         </div>
       </div>
       <div className="warning-actions">
-        <button
-          className="btn-reveal"
+        <Button
+          icon={<IconEye size={18} strokeWidth={1.5} />}
+          iconPosition="left"
           onClick={onRevealResponse}
           title="Show response content"
+          color="secondary"
         >
-          <IconEye size={18} strokeWidth={1.5} />
           View
-        </button>
-        <button
-          className="btn-save"
+        </Button>
+        <Button
+          icon={<IconDownload size={18} strokeWidth={1.5} />}
+          iconPosition="left"
           onClick={saveResponseToFile}
           disabled={!response.dataBuffer}
           title="Save response to file"
+          color="secondary"
         >
-          <IconDownload size={18} strokeWidth={1.5} />
           Save
-        </button>
-        <button
-          className="btn-copy"
+        </Button>
+        <Button
+          icon={<IconCopy size={18} strokeWidth={1.5} />}
+          iconPosition="left"
           onClick={copyResponse}
           disabled={!response.data}
           title="Copy response to clipboard"
+          color="secondary"
         >
-          <IconCopy size={18} strokeWidth={1.5} />
           Copy
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

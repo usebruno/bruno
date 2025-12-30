@@ -458,13 +458,11 @@ export const saveWorkspaceDocs = (workspaceUid, docs) => {
         throw new Error('Workspace not found');
       }
 
-      if (workspace.type === 'default' || !workspace.pathname) {
-        await ipcRenderer.invoke('renderer:save-preferences', {
-          defaultWorkspaceDocs: docs || ''
-        });
-      } else {
-        await ipcRenderer.invoke('renderer:save-workspace-docs', workspace.pathname, docs || '');
+      if (!workspace.pathname) {
+        throw new Error('Workspace path not found');
       }
+
+      await ipcRenderer.invoke('renderer:save-workspace-docs', workspace.pathname, docs || '');
 
       dispatch(updateWorkspace({
         uid: workspaceUid,

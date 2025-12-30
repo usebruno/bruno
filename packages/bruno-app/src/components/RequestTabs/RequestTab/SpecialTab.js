@@ -21,14 +21,6 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
           </>
         );
       }
-      case 'security-settings': {
-        return (
-          <>
-            <IconShieldLock size={14} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
-            <span className="ml-1 tab-name">Security</span>
-          </>
-        );
-      }
       case 'folder-settings': {
         return (
           <>

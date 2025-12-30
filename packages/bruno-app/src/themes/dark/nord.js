@@ -50,7 +50,9 @@ const colors = {
     VARIABLE: '#d8dee9',
     KEYWORD: '#81a1c1',
     COMMENT: '#616e88',
-    OPERATOR: '#81a1c1'
+    OPERATOR: '#81a1c1',
+    TAG: '#81a1c1',
+    TAG_BRACKET: '#616e88'
   }
 };
 
@@ -60,6 +62,13 @@ const nordTheme = {
   text: colors.TEXT,
   textLink: colors.TEXT_LINK,
   bg: colors.BG,
+
+  primary: {
+    solid: colors.BRAND,
+    text: colors.BRAND,
+    strong: colors.BRAND,
+    subtle: colors.BRAND
+  },
 
   accents: {
     primary: colors.BRAND
@@ -347,12 +356,6 @@ const nordTheme = {
     },
     example: {
       iconColor: colors.TEXT_MUTED
-    },
-    shortTab: {
-      color: colors.NORD4,
-      bg: 'transparent',
-      hoverColor: colors.NORD4,
-      hoverBg: colors.NORD2
     }
   },
 
@@ -369,18 +372,7 @@ const nordTheme = {
     variable: {
       valid: colors.NORD14,
       invalid: colors.NORD11,
-      prompt: colors.NORD8,
-      info: {
-        color: colors.NORD6,
-        bg: colors.NORD2,
-        boxShadow: 'rgba(0, 0, 0, 0.3) 0px 2px 8px',
-        editorBg: colors.NORD1,
-        iconColor: colors.TEXT_MUTED,
-        editorBorder: colors.NORD3,
-        editorFocusBorder: colors.NORD4,
-        editableDisplayHoverBg: 'rgba(255, 255, 255, 0.03)',
-        border: colors.NORD3
-      }
+      prompt: colors.NORD8
     },
     tokens: {
       definition: colors.CODEMIRROR_TOKENS.DEFINITION,
@@ -391,7 +383,9 @@ const nordTheme = {
       variable: colors.CODEMIRROR_TOKENS.VARIABLE,
       keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
       comment: colors.CODEMIRROR_TOKENS.COMMENT,
-      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR,
+      tag: colors.CODEMIRROR_TOKENS.TAG,
+      tagBracket: colors.CODEMIRROR_TOKENS.TAG_BRACKET
     },
     searchLineHighlightCurrent: 'rgba(136, 192, 208, 0.15)',
     searchMatch: colors.NORD13,

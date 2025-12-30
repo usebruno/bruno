@@ -12,7 +12,6 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import { multiLineMsg } from 'utils/common/index';
 import { formatIpcError } from 'utils/common/error';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
-import Button from 'ui/Button';
 
 const CreateWorkspace = ({ onClose }) => {
   const inputRef = useRef();
@@ -30,9 +29,9 @@ const CreateWorkspace = ({ onClose }) => {
     },
     validationSchema: Yup.object({
       workspaceName: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
-        .required('workspace name is required')
+        .min(1, 'Must be at least 1 character')
+        .max(255, 'Must be 255 characters or less')
+        .required('Workspace name is required')
         .test('unique-name', 'A workspace with this name already exists', function (value) {
           if (!value) return true;
 
@@ -40,14 +39,14 @@ const CreateWorkspace = ({ onClose }) => {
             w.name.toLowerCase() === value.toLowerCase());
         }),
       workspaceFolderName: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
+        .min(1, 'Must be at least 1 character')
+        .max(255, 'Must be 255 characters or less')
         .test('is-valid-folder-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .required('folder name is required'),
-      workspaceLocation: Yup.string().min(1, 'location is required').required('location is required')
+        .required('Folder name is required'),
+      workspaceLocation: Yup.string().min(1, 'Location is required').required('Location is required')
     }),
     onSubmit: async (values) => {
       if (isSubmitting) return;
@@ -189,27 +188,30 @@ const CreateWorkspace = ({ onClose }) => {
                 </p>
               </Help>
             </label>
-            <div className="flex gap-2 items-center">
-              <input
-                id="workspace-location"
-                type="text"
-                name="workspaceLocation"
-                readOnly={true}
-                className="block textbox flex-1 bg-gray-50 cursor-pointer"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                value={formik.values.workspaceLocation || ''}
-                onClick={browse}
-              />
-              <Button type="button" onClick={browse}>
-                Browse
-              </Button>
-            </div>
+            <input
+              id="workspace-location"
+              type="text"
+              name="workspaceLocation"
+              readOnly={true}
+              className="block textbox mt-2 w-full cursor-pointer"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              value={formik.values.workspaceLocation || ''}
+              onClick={browse}
+            />
             {formik.touched.workspaceLocation && formik.errors.workspaceLocation ? (
               <div className="text-red-500 text-sm mt-1">{formik.errors.workspaceLocation}</div>
             ) : null}
+            <div className="mt-1">
+              <span
+                className="text-link cursor-pointer hover:underline"
+                onClick={browse}
+              >
+                Browse
+              </span>
+            </div>
           </div>
         </form>
       </div>

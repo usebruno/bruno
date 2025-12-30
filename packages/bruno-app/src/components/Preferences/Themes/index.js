@@ -1,12 +1,16 @@
 import React from 'react';
+import { rgba } from 'polished';
 import { useTheme } from 'providers/Theme';
-import { getLightThemes, getDarkThemes } from 'themes/index';
+import themes, { getLightThemes, getDarkThemes } from 'themes/index';
+import { IconBrightnessUp, IconMoon, IconDeviceDesktop } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const ThemePreview = ({ themeId, isDark }) => {
-  const bgColor = isDark ? '#1e1e1e' : '#ffffff';
-  const sidebarColor = isDark ? '#252526' : '#f8f8f8';
-  const lineColor = isDark ? '#3d3d3d' : '#e5e5e5';
+  const theme = themes[themeId] || themes[isDark ? 'dark' : 'light'];
+
+  const bgColor = theme.background.base;
+  const sidebarColor = theme.sidebar.bg;
+  const lineColor = rgba(theme.brand, 0.5);
 
   return (
     <div className="theme-preview" style={{ background: bgColor, border: `1px solid ${lineColor}` }}>
@@ -44,6 +48,12 @@ const Themes = () => {
   const lightThemes = getLightThemes();
   const darkThemes = getDarkThemes();
 
+  const themeModes = [
+    { key: 'light', label: 'Light', icon: IconBrightnessUp },
+    { key: 'dark', label: 'Dark', icon: IconMoon },
+    { key: 'system', label: 'System', icon: IconDeviceDesktop }
+  ];
+
   const handleModeChange = (mode) => {
     setStoredTheme(mode);
   };
@@ -66,42 +76,32 @@ const Themes = () => {
 
   return (
     <StyledWrapper>
-      <div className="flex flex-col gap-4 w-full">
+      <div className="flex flex-col gap-4 w-full appearance-container">
         <div>
           <div className="section-header">Appearance</div>
-          <div className="theme-mode-selector">
-            <label className="theme-mode-option">
-              <input
-                type="radio"
-                name="theme-mode"
-                value="light"
-                checked={storedTheme === 'light'}
-                onChange={() => handleModeChange('light')}
-              />
-              <span>Light</span>
-            </label>
-            <label className="theme-mode-option">
-              <input
-                type="radio"
-                name="theme-mode"
-                value="dark"
-                checked={storedTheme === 'dark'}
-                onChange={() => handleModeChange('dark')}
-              />
-              <span>Dark</span>
-            </label>
-            <label className="theme-mode-option">
-              <input
-                type="radio"
-                name="theme-mode"
-                value="system"
-                checked={storedTheme === 'system'}
-                onChange={() => handleModeChange('system')}
-              />
-              <span>System</span>
-            </label>
-          </div>
         </div>
+
+        <div className="flex gap-3 theme-mode-selector justify-start">
+          {themeModes.map((mode) => {
+            const Icon = mode.icon;
+            const isSelected = storedTheme === mode.key;
+
+            return (
+              <button
+                key={mode.key}
+                onClick={() => handleModeChange(mode.key)}
+                className={`theme-mode-option relative ${isSelected ? 'selected' : ''}`}
+              >
+                <div className="flex items-center justify-start gap-2">
+                  <Icon size={16} strokeWidth={1.5} />
+                  <span>{mode.label}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="section-divider" />
 
         {storedTheme === 'light' && (
           <>

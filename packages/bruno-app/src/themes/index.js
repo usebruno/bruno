@@ -32,7 +32,7 @@ const themes = {
 export const themeRegistry = {
   'light': {
     id: 'light',
-    name: 'Bruno Light',
+    name: 'Light',
     mode: 'light'
   },
   'light-monochrome': {
@@ -42,7 +42,7 @@ export const themeRegistry = {
   },
   'light-pastel': {
     id: 'light-pastel',
-    name: 'Bruno Light Pastel',
+    name: 'Light Pastel',
     mode: 'light'
   },
   'catppuccin-latte': {
@@ -52,17 +52,17 @@ export const themeRegistry = {
   },
   'dark': {
     id: 'dark',
-    name: 'Bruno Dark',
+    name: 'Dark',
     mode: 'dark'
   },
   'dark-monochrome': {
     id: 'dark-monochrome',
-    name: 'Bruno Dark Monochrome',
+    name: 'Dark Monochrome',
     mode: 'dark'
   },
   'dark-pastel': {
     id: 'dark-pastel',
-    name: 'Bruno Dark Pastel',
+    name: 'Dark Pastel',
     mode: 'dark'
   },
   'catppuccin-frappe': {

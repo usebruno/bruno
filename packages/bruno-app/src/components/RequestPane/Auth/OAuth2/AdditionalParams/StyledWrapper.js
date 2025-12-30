@@ -1,20 +1,37 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
-  .tabs {
-    .tab {
+  .oauth2-icon-container {
+    background-color: ${(props) => rgba(props.theme.primary.solid, 0.1)};
+  }
+
+  .oauth2-icon {
+    color: ${(props) => props.theme.primary.solid};
+  }
+
+  div.tabs {
+    div.tab {
       cursor: pointer;
       padding: 4px 8px !important;
       font-size: ${(props) => props.theme.font.size.sm};
       border-radius: 4px;
+      border: none !important;
+      border-bottom: none !important;
       
       &:hover {
-        background-color: ${(props) => props.theme.mode === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.1)'};
+        background-color: ${(props) => rgba(props.theme.primary.solid, 0.1)};
       }
       
       &.active {
-        background-color: ${(props) => props.theme.mode === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)'};
-        color: ${(props) => props.theme.mode === 'dark' ? '#6366f1' : '#4f46e5'};
+        background-color: ${(props) => {
+          return props.theme.mode === 'dark'
+            ? rgba(props.theme.primary.solid, 0.2)
+            : rgba(props.theme.primary.solid, 0.1);
+        }};
+        color: ${(props) => props.theme.primary.solid} !important;
+        border-bottom: none !important;
+        font-weight: normal !important;
       }
     }
   }
@@ -50,15 +67,20 @@ const StyledWrapper = styled.div`
       
       &:focus {
         outline: none;
-        border-color: ${(props) => props.theme.mode === 'dark' ? '#6366f1' : '#4f46e5'};
+        border-color: ${(props) => props.theme.primary.solid};
       }
     }
   }
   
   .add-additional-param-actions {
     &:hover {
-      color: ${(props) => props.theme.mode === 'dark' ? '#6366f1' : '#4f46e5'};
+      color: ${(props) => props.theme.primary.solid};
     }
+  }
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 `;
 

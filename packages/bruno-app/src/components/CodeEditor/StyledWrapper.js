@@ -128,6 +128,12 @@ const StyledWrapper = styled.div`
     span.cm-operator {
       color: ${(props) => props.theme.codemirror.tokens.operator} !important;
     }
+    span.cm-tag {
+      color: ${(props) => props.theme.codemirror.tokens.tag} !important;
+    }
+    span.cm-tag.cm-bracket {
+      color: ${(props) => props.theme.codemirror.tokens.tagBracket} !important;
+    }
   }
 
   /* Variable validation colors */

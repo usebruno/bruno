@@ -1,6 +1,11 @@
 export const palette = {
-  accents: {
-    PRIMARY: '#bd7a28',
+  primary: {
+    SOLID: 'hsl(33, 80%, 46%)',
+    TEXT: 'hsl(33, 67%, 45%)',
+    STRONG: 'hsl(33, 67%, 50%)',
+    SUBTLE: 'hsl(33, 69%, 56%)'
+  },
+  hues: {
     RED: 'hsl(8,   60%, 52%)',
     ROSE: 'hsl(352, 45%, 50%)',
     BROWN: 'hsl(28,  55%, 38%)',
@@ -49,29 +54,43 @@ export const palette = {
   }
 };
 
-const colors = {
-  CODEMIRROR_TOKENS: {
-    DEFINITION: palette.accents.INDIGO,
-    PROPERTY: palette.accents.BLUE,
-    STRING: palette.accents.BROWN,
-    NUMBER: palette.accents.GREEN,
-    ATOM: palette.accents.PURPLE,
-    VARIABLE: palette.accents.PINK,
-    KEYWORD: palette.accents.ROSE,
-    COMMENT: palette.text.SUBTEXT0,
-    OPERATOR: palette.accents.BLUE
-  }
+palette.intent = {
+  INFO: palette.hues.BLUE,
+  SUCCESS: palette.hues.GREEN,
+  WARNING: palette.hues.ORANGE,
+  DANGER: palette.hues.RED
+};
+
+palette.syntax = {
+  DEFINITION: palette.hues.INDIGO,
+  PROPERTY: palette.hues.BLUE,
+  STRING: palette.hues.BROWN,
+  NUMBER: palette.hues.GREEN,
+  ATOM: palette.hues.PURPLE,
+  VARIABLE: palette.hues.PINK,
+  KEYWORD: palette.hues.ROSE,
+  COMMENT: palette.text.SUBTEXT0,
+  OPERATOR: palette.hues.BLUE,
+  TAG: palette.hues.ROSE,
+  TAG_BRACKET: palette.text.SUBTEXT0
 };
 
 const lightTheme = {
   mode: 'light',
-  brand: palette.accents.PRIMARY,
+  brand: palette.primary.SOLID,
   text: palette.text.BASE,
-  textLink: palette.accents.BLUE,
+  textLink: palette.hues.BLUE,
   bg: palette.background.BASE,
 
+  primary: {
+    solid: palette.primary.SOLID,
+    text: palette.primary.TEXT,
+    strong: palette.primary.STRONG,
+    subtle: palette.primary.SUBTLE
+  },
+
   accents: {
-    primary: palette.accents.PRIMARY
+    primary: palette.primary.SOLID
   },
 
   background: {
@@ -122,18 +141,18 @@ const lightTheme = {
   colors: {
     text: {
       white: palette.utility.WHITE,
-      green: palette.accents.GREEN,
-      danger: palette.accents.RED,
-      warning: palette.accents.ORANGE,
+      green: palette.intent.SUCCESS,
+      danger: palette.intent.DANGER,
+      warning: palette.intent.WARNING,
       muted: palette.text.SUBTEXT1,
-      purple: palette.accents.PURPLE,
-      yellow: palette.accents.YELLOW,
+      purple: palette.hues.PURPLE,
+      yellow: palette.hues.YELLOW,
       subtext2: palette.text.SUBTEXT2,
       subtext1: palette.text.SUBTEXT1,
       subtext0: palette.text.SUBTEXT0
     },
     bg: {
-      danger: palette.accents.RED
+      danger: palette.hues.RED
     },
     accent: palette.system.CONTROL_ACCENT
   },
@@ -182,10 +201,10 @@ const lightTheme = {
     iconColor: palette.text.SUBTEXT2,
     bg: palette.utility.WHITE,
     hoverBg: palette.background.CRUST,
-    shadow: '0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+    shadow: '0 0px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
     border: 'none',
     separator: palette.border.BORDER1,
-    selectedColor: palette.accents.PRIMARY,
+    selectedColor: palette.primary.TEXT,
     mutedText: palette.text.SUBTEXT0
   },
 
@@ -199,25 +218,25 @@ const lightTheme = {
 
   request: {
     methods: {
-      get: palette.accents.GREEN,
-      post: palette.accents.PURPLE,
-      put: palette.accents.ORANGE,
-      delete: palette.accents.RED,
-      patch: palette.accents.PURPLE,
-      options: palette.accents.TEAL,
-      head: palette.accents.CYAN
+      get: palette.hues.GREEN,
+      post: palette.hues.PURPLE,
+      put: palette.hues.ORANGE,
+      delete: palette.hues.RED,
+      patch: palette.hues.PURPLE,
+      options: palette.hues.TEAL,
+      head: palette.hues.CYAN
     },
 
-    grpc: palette.accents.INDIGO,
-    ws: palette.accents.ORANGE,
-    gql: palette.accents.PINK
+    grpc: palette.hues.INDIGO,
+    ws: palette.hues.ORANGE,
+    gql: palette.hues.PINK
   },
 
   requestTabPanel: {
     url: {
       bg: palette.utility.WHITE,
       icon: palette.text.SUBTEXT2,
-      iconDanger: palette.accents.RED,
+      iconDanger: palette.hues.RED,
       border: `solid 1px ${palette.border.BORDER1}`
     },
     dragbar: {
@@ -225,9 +244,9 @@ const lightTheme = {
       activeBorder: palette.border.BORDER2
     },
     responseStatus: palette.text.SUBTEXT1,
-    responseOk: palette.accents.GREEN,
-    responseError: palette.accents.RED,
-    responsePending: palette.accents.BLUE,
+    responseOk: palette.hues.GREEN,
+    responseError: palette.hues.RED,
+    responsePending: palette.hues.BLUE,
     responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
     card: {
       bg: palette.background.BASE,
@@ -248,7 +267,7 @@ const lightTheme = {
       borderBottom: palette.border.BORDER2,
       hoverBg: palette.background.SURFACE1,
       active: {
-        border: palette.accents.BLUE,
+        border: palette.hues.BLUE,
         bg: palette.background.SURFACE1,
         hoverBg: palette.background.SURFACE2
       }
@@ -301,9 +320,9 @@ const lightTheme = {
   button2: {
     color: {
       primary: {
-        bg: palette.accents.PRIMARY,
+        bg: palette.primary.SOLID,
         text: palette.utility.WHITE,
-        border: palette.accents.PRIMARY
+        border: palette.primary.SOLID
       },
       secondary: {
         bg: palette.background.MANTLE,
@@ -311,19 +330,19 @@ const lightTheme = {
         text: palette.text.BASE
       },
       success: {
-        bg: palette.accents.GREEN,
+        bg: palette.hues.GREEN,
         text: palette.utility.WHITE,
-        border: palette.accents.GREEN
+        border: palette.hues.GREEN
       },
       warning: {
-        bg: palette.accents.ORANGE,
+        bg: palette.hues.ORANGE,
         text: palette.utility.WHITE,
-        border: palette.accents.ORANGE
+        border: palette.hues.ORANGE
       },
       danger: {
-        bg: palette.accents.RED,
+        bg: palette.hues.RED,
         text: palette.utility.WHITE,
-        border: palette.accents.RED
+        border: palette.hues.RED
       }
     }
   },
@@ -332,7 +351,7 @@ const lightTheme = {
     active: {
       fontWeight: 400,
       color: palette.text.BASE,
-      border: palette.accents.PRIMARY
+      border: palette.primary.STRONG
     },
     secondary: {
       active: {
@@ -357,12 +376,6 @@ const lightTheme = {
     },
     example: {
       iconColor: palette.text.SUBTEXT2
-    },
-    shortTab: {
-      color: palette.text.SUBTEXT1,
-      bg: palette.utility.WHITE,
-      hoverColor: palette.text.SUBTEXT2,
-      hoverBg: palette.background.SURFACE1
     }
   },
 
@@ -377,31 +390,22 @@ const lightTheme = {
       bg: palette.utility.WHITE
     },
     variable: {
-      valid: palette.accents.GREEN,
-      invalid: palette.accents.RED,
-      prompt: palette.accents.BLUE,
-      info: {
-        color: palette.text.BASE,
-        bg: palette.utility.WHITE,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
-        editorBg: palette.background.CRUST,
-        iconColor: palette.text.SUBTEXT0,
-        editorBorder: palette.border.BORDER0,
-        editorFocusBorder: palette.text.SUBTEXT0,
-        editableDisplayHoverBg: 'rgba(0,0,0,0.02)',
-        border: palette.border.BORDER0
-      }
+      valid: palette.hues.GREEN,
+      invalid: palette.hues.RED,
+      prompt: palette.hues.BLUE
     },
     tokens: {
-      definition: colors.CODEMIRROR_TOKENS.DEFINITION,
-      property: colors.CODEMIRROR_TOKENS.PROPERTY,
-      string: colors.CODEMIRROR_TOKENS.STRING,
-      number: colors.CODEMIRROR_TOKENS.NUMBER,
-      atom: colors.CODEMIRROR_TOKENS.ATOM,
-      variable: colors.CODEMIRROR_TOKENS.VARIABLE,
-      keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
-      comment: colors.CODEMIRROR_TOKENS.COMMENT,
-      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+      definition: palette.syntax.DEFINITION,
+      property: palette.syntax.PROPERTY,
+      string: palette.syntax.STRING,
+      number: palette.syntax.NUMBER,
+      atom: palette.syntax.ATOM,
+      variable: palette.syntax.VARIABLE,
+      keyword: palette.syntax.KEYWORD,
+      comment: palette.syntax.COMMENT,
+      operator: palette.syntax.OPERATOR,
+      tag: palette.syntax.TAG,
+      tagBracket: palette.syntax.TAG_BRACKET
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
     searchMatch: '#B8860B',
@@ -465,7 +469,7 @@ const lightTheme = {
     optionHoverBg: '#f8f9fa',
     optionLabelColor: '#212529',
     optionCountColor: '#6c757d',
-    checkboxColor: palette.accents.PRIMARY,
+    checkboxColor: palette.primary.SOLID,
     scrollbarTrack: '#f8f9fa',
     scrollbarThumb: '#ced4da',
     scrollbarThumbHover: '#adb5bd'
@@ -602,7 +606,7 @@ const lightTheme = {
         environmentSelector: {
           bg: palette.utility.WHITE,
           border: palette.border.BORDER1,
-          icon: palette.accents.PRIMARY,
+          icon: palette.primary.TEXT,
           text: palette.text.BASE,
           caret: palette.overlay.OVERLAY1,
           separator: palette.border.BORDER1,
@@ -620,11 +624,11 @@ const lightTheme = {
         sandboxMode: {
           safeMode: {
             bg: 'rgba(4, 120, 87, 0.12)',
-            color: palette.accents.GREEN
+            color: palette.hues.GREEN
           },
           developerMode: {
             bg: 'rgba(204, 145, 73, 0.15)',
-            color: palette.accents.YELLOW
+            color: palette.hues.YELLOW
           }
         }
       }

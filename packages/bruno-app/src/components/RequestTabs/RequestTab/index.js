@@ -172,7 +172,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     setShowConfirmGlobalEnvironmentClose(true);
   };
 
-  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings', 'environment-settings', 'global-environment-settings'].includes(tab.type)) {
+  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'environment-settings', 'global-environment-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
@@ -320,7 +320,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   if (!item) {
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container px-1"
+        className="flex items-center justify-between tab-container"
         onMouseUp={(e) => {
           if (e.button === 1) {
             e.preventDefault();

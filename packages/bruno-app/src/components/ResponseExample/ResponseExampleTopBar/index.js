@@ -142,7 +142,7 @@ const ResponseExampleTopBar = ({
                 onClick={handleSave}
                 data-testid="response-example-save-btn"
               >
-                <IconDeviceFloppy size={16} color={theme.examples.buttonText} />
+                <IconDeviceFloppy size={16} />
                 Save
               </button>
             </div>
@@ -188,6 +188,7 @@ const ResponseExampleTopBar = ({
             </button>
             <button
               className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
+              style={{ color: theme.examples.buttonText }}
               onClick={onEditToggle}
               data-testid="response-example-edit-btn"
             >
