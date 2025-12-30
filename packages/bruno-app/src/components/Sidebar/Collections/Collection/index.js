@@ -489,3 +489,4 @@ const Collection = ({ collection, searchText }) => {
 };
 
 export default Collection;
+// ignore feature

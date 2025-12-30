@@ -565,7 +565,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (confirmIgnore) {
       // 1. Get current list and filter out any existing nulls or garbage
       const currentIgnore = (collection?.brunoConfig?.ignore || []).filter(Boolean);
-      
+
       // 2. Only add the name if it's NOT already in the list (prevents duplicates)
       if (!currentIgnore.includes(folderName)) {
         const updatedIgnore = [...currentIgnore, folderName];
