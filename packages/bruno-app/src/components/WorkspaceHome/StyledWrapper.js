@@ -21,13 +21,14 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    height: 24px;
     font-size: 15px;
     font-weight: 600;
     color: ${(props) => props.theme.text};
   }
 
   .workspace-rename-container {
-    height: 26px;
+    height: 24px;
     display: flex;
     align-items: center;
     background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
@@ -37,7 +38,7 @@ const StyledWrapper = styled.div`
 
   .workspace-name-input {
     padding: 0 8px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     border-radius: 4px;
     background: transparent;
@@ -83,11 +84,17 @@ const StyledWrapper = styled.div`
 
   .workspace-error {
     position: absolute;
-    top: 100%;
-    left: 0;
+    top: 80%;
+    left: 40px;
+    z-index: 10;
     margin-top: 4px;
+    padding: 4px 8px;
     font-size: 11px;
     color: ${(props) => props.theme.colors.text.danger};
+    background: ${(props) => props.theme.bg};
+    border: 1px solid ${(props) => props.theme.colors.text.danger};
+    border-radius: 4px;
+    white-space: nowrap;
   }
 
   .workspace-menu-dropdown {
