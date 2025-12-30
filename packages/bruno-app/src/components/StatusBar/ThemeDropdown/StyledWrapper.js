@@ -10,6 +10,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.dropdown.bg};
     border-radius: 6px;
     box-shadow: 0px 1px 4px 0px #0000000D;
+    outline: none;
 
     &.two-columns {
       min-width: 400px;
@@ -56,18 +57,17 @@ const StyledWrapper = styled.div`
     &.focused {
       background: ${(props) => props.theme.dropdown.hoverBg};
       color: ${(props) => props.theme.dropdown.color};
-      outline: 2px solid ${(props) => props.theme.dropdown.selectedColor};
-      outline-offset: 1px;
+      outline: none;
     }
 
     &.active {
-      background: ${(props) => props.theme.dropdown.color};
-      border-color: ${(props) => props.theme.dropdown.color};
-      color: ${(props) => props.theme.dropdown.bg};
+      background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.08)};
+      border-color: ${(props) => props.theme.dropdown.selectedColor};
+      color: ${(props) => props.theme.dropdown.selectedColor};
 
       &.focused {
-        outline: 2px solid ${(props) => props.theme.dropdown.selectedColor};
-        outline-offset: 1px;
+        background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.15)};
+        outline: none;
       }
     }
   }
