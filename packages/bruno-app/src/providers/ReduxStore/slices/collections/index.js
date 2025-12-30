@@ -383,7 +383,7 @@ export const collectionsSlice = createSlice({
       }
     },
     requestCancelled: (state, action) => {
-      const { itemUid, collectionUid } = action.payload;
+      const { itemUid, collectionUid, seq, timestamp } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -391,10 +391,22 @@ export const collectionsSlice = createSlice({
         if (item) {
           if (item.response?.stream?.running) {
             item.response.stream.running = null;
+            item.response.data.push({
+              type: 'info',
+              seq: seq,
+              timestamp: timestamp || Date.now(),
+              message: 'Connection Closed'
+            });
 
             const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
-            item.response.data = [{ type: 'info', timestamp: Date.now(), message: 'Connection Closed' }].concat(item.response.data);
+            if (item.response?.data?.length) {
+              item.response.data.sort((a, b) => {
+                const sa = Number.isFinite(a.seq) ? a.seq : Number.POSITIVE_INFINITY;
+                const sb = Number.isFinite(b.seq) ? b.seq : Number.POSITIVE_INFINITY;
+                return sb - sa;
+              });
+            }
           } else {
             item.response = null;
             item.requestUid = null;
@@ -3118,22 +3130,28 @@ export const collectionsSlice = createSlice({
       }
     },
     streamDataReceived: (state, action) => {
-      const { itemUid, collectionUid, data } = action.payload;
+      const { itemUid, collectionUid, seq, timestamp, data } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (data.data) {
           item.response.data ||= [];
-          item.response.data = [{
+          const newMessage = {
             type: 'incoming',
+            seq,
             message: data.data,
             messageHexdump: hexdump(data.data),
-            timestamp: Date.now()
-          }].concat(item.response.data);
+            timestamp: timestamp || Date.now()
+          };
+
+          const insertIndex = item.response.data.findIndex((m) => (m.seq ?? Infinity) < seq);
+          if (insertIndex === -1) item.response.data.push(newMessage);
+          else item.response.data.splice(insertIndex, 0, newMessage);
+
+          item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+          item.response.size = data.data?.length + (item.response.size || 0);
         }
-        item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
-        item.response.size = data.data?.length + (item.response.size || 0);
       }
     },
     addRequestTag: (state, action) => {
