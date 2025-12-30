@@ -552,24 +552,6 @@ const darkPastelTheme = {
         border: colors.GRAY_4,
         hoverBorder: colors.GRAY_6
       }
-    },
-    methodDropdown: {
-      serviceHeader: {
-        bg: colors.GRAY_3
-      },
-      methodItem: {
-        text: colors.TEXT,
-        secondaryText: colors.TEXT_MUTED,
-        icon: colors.TEXT_MUTED,
-        hoverBg: colors.GRAY_3,
-        selected: {
-          border: colors.BRAND,
-          bg: `${colors.BRAND}25`
-        },
-        focused: {
-          bg: colors.GRAY_3
-        }
-      }
     }
   },
 

@@ -555,24 +555,6 @@ const vscodeLightTheme = {
         border: colors.GRAY_4,
         hoverBorder: colors.GRAY_5
       }
-    },
-    methodDropdown: {
-      serviceHeader: {
-        bg: colors.GRAY_1
-      },
-      methodItem: {
-        text: colors.TEXT,
-        secondaryText: colors.TEXT_MUTED,
-        icon: colors.TEXT_MUTED,
-        hoverBg: rgba(colors.BLACK, 0.05),
-        selected: {
-          border: colors.BRAND,
-          bg: rgba(colors.BRAND, 0.2)
-        },
-        focused: {
-          bg: rgba(colors.BLACK, 0.05)
-        }
-      }
     }
   },
 

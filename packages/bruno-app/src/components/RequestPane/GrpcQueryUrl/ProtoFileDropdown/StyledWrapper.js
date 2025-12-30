@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
   .proto-file-dropdown-text {
     font-size: ${(props) => props.theme.font.size.xs};
     white-space: nowrap;
-    color: ${(props) => props.theme.grpc.methodDropdown.methodItem.text};
+    color: ${(props) => props.theme.dropdown.color};
   }
 
   .proto-file-dropdown-caret {

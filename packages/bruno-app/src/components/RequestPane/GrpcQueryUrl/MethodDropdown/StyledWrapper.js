@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .method-dropdown-container {
@@ -24,7 +25,7 @@ const StyledWrapper = styled.div`
   .method-dropdown-trigger-text {
     font-size: ${(props) => props.theme.font.size.xs};
     white-space: nowrap;
-    color: ${(props) => props.theme.grpc.methodDropdown.methodItem.text};
+    color: ${(props) => props.theme.dropdown.color};
   }
 
   .method-dropdown-caret {
@@ -53,8 +54,8 @@ const StyledWrapper = styled.div`
     position: sticky;
     top: 0;
     z-index: 10;
-    background-color: ${(props) => props.theme.grpc.methodDropdown.serviceHeader.bg};
-    color: ${(props) => props.theme.grpc.methodDropdown.methodItem.text};
+    background-color: ${(props) => props.theme.dropdown.separator};
+    color: ${(props) => props.theme.dropdown.color};
   }
 
   .method-dropdown-method-item {
@@ -68,16 +69,16 @@ const StyledWrapper = styled.div`
     cursor: pointer;
 
     &:hover {
-      background-color: ${(props) => props.theme.grpc.methodDropdown.methodItem.hoverBg};
+      background-color: ${(props) => props.theme.dropdown.hoverBg};
     }
 
     &--selected {
-      border-left-color: ${(props) => props.theme.grpc.methodDropdown.methodItem.selected.border};
-      background-color: ${(props) => props.theme.grpc.methodDropdown.methodItem.selected.bg};
+      border-left-color: ${(props) => props.theme.dropdown.selectedColor};
+      background-color: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.2)};
     }
 
     &--focused {
-      background-color: ${(props) => props.theme.grpc.methodDropdown.methodItem.focused.bg};
+      background-color: ${(props) => props.theme.dropdown.hoverBg};
     }
   }
 
@@ -89,7 +90,7 @@ const StyledWrapper = styled.div`
   .method-dropdown-method-icon {
     font-size: ${(props) => props.theme.font.size.xs};
     margin-right: 0.75rem;
-    color: ${(props) => props.theme.grpc.methodDropdown.methodItem.icon};
+    color: ${(props) => props.theme.dropdown.iconColor};
   }
 
   .method-dropdown-method-details {
@@ -100,12 +101,12 @@ const StyledWrapper = styled.div`
 
   .method-dropdown-method-name {
     font-weight: 500;
-    color: ${(props) => props.theme.grpc.methodDropdown.methodItem.text};
+    color: ${(props) => props.theme.dropdown.color};
   }
 
   .method-dropdown-method-type {
     font-size: ${(props) => props.theme.font.size.xs};
-    color: ${(props) => props.theme.grpc.methodDropdown.methodItem.secondaryText};
+    color: ${(props) => props.theme.dropdown.mutedText};
   }
 
   .method-dropdown-empty-state {
@@ -120,7 +121,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     font-size: ${(props) => props.theme.font.size.xs};
     margin-right: 0.75rem;
-    color: ${(props) => props.theme.grpc.methodDropdown.methodItem.secondaryText};
+    color: ${(props) => props.theme.dropdown.mutedText};
   }
 `;
 

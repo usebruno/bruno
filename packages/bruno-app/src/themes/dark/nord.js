@@ -551,24 +551,6 @@ const nordTheme = {
         border: colors.NORD10,
         hoverBorder: colors.NORD9
       }
-    },
-    methodDropdown: {
-      serviceHeader: {
-        bg: colors.NORD1
-      },
-      methodItem: {
-        text: colors.NORD4,
-        secondaryText: colors.TEXT_MUTED,
-        icon: colors.TEXT_MUTED,
-        hoverBg: 'rgba(255, 255, 255, 0.05)',
-        selected: {
-          border: colors.BRAND,
-          bg: 'rgba(136, 192, 208, 0.2)'
-        },
-        focused: {
-          bg: 'rgba(255, 255, 255, 0.05)'
-        }
-      }
     }
   },
 

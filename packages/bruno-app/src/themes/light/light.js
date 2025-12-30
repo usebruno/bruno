@@ -572,24 +572,6 @@ const lightTheme = {
         border: '#dae0e5',
         hoverBorder: '#696969'
       }
-    },
-    methodDropdown: {
-      serviceHeader: {
-        bg: '#f5f5f5'
-      },
-      methodItem: {
-        text: '#343434',
-        secondaryText: '#838383',
-        icon: '#838383',
-        hoverBg: 'rgba(0, 0, 0, 0.05)',
-        selected: {
-          border: palette.primary.SOLID,
-          bg: rgba(palette.primary.SOLID, 0.2)
-        },
-        focused: {
-          bg: 'rgba(0, 0, 0, 0.05)'
-        }
-      }
     }
   },
   deprecationWarning: {
