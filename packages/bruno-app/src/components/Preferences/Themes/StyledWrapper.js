@@ -2,7 +2,9 @@ import styled from 'styled-components';
 import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
-  padding: 8px 0;
+  .appearance-container {
+    padding: 8px 0 16px 0;
+  }
         
   .theme-mode-option {
     border: 1px solid ${(props) => props.theme.input.border};
@@ -38,12 +40,12 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 16px;
+    padding: 12px 8px;
     border: 2px solid ${(props) => props.theme.input.border};
     border-radius: ${(props) => props.theme.border.radius.md};
     cursor: pointer;
     transition: all 0.15s ease;
-    min-width: 165px;
+    min-width: 155px;
 
     &:hover {
       border-color: ${(props) => props.theme.input.focusBorder};
