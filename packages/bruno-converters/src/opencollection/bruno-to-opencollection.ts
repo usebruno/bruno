@@ -145,12 +145,33 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
 
   openCollection.bundled = true;
 
-  const extensions: { ignore?: string[] } = {};
+  const brunoExtension: {
+    ignore?: string[];
+    presets?: {
+      requestType?: string;
+      requestUrl?: string;
+    };
+  } = {};
+
   if ((collection.brunoConfig as BrunoConfig)?.ignore?.length) {
-    extensions.ignore = (collection.brunoConfig as BrunoConfig).ignore;
+    brunoExtension.ignore = (collection.brunoConfig as BrunoConfig).ignore;
   }
-  if (Object.keys(extensions).length > 0) {
-    openCollection.extensions = extensions;
+
+  const presets = (collection.brunoConfig as BrunoConfig)?.presets;
+  if (presets?.requestType || presets?.requestUrl) {
+    brunoExtension.presets = {};
+    if (presets.requestType) {
+      brunoExtension.presets.requestType = presets.requestType;
+    }
+    if (presets.requestUrl) {
+      brunoExtension.presets.requestUrl = presets.requestUrl;
+    }
+  }
+
+  if (Object.keys(brunoExtension).length > 0) {
+    openCollection.extensions = {
+      bruno: brunoExtension
+    };
   }
 
   return openCollection;

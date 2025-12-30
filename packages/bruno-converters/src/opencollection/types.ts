@@ -171,6 +171,10 @@ export interface BrunoConfig {
   name?: string;
   type?: string;
   ignore?: string[];
+  presets?: {
+    requestType?: string;
+    requestUrl?: string;
+  };
   protobuf?: {
     protoFiles?: { path: string }[];
     importPaths?: { path: string; disabled?: boolean }[];
