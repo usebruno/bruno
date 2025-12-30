@@ -35,11 +35,25 @@ async function createWorkspace(
     const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
     await expect(modal).toBeVisible();
 
+    // Wait for the workspace name input to be ready (ensures form is loaded)
+    const workspaceNameInput = modal.locator('#workspace-name');
+    await expect(workspaceNameInput).toBeVisible();
+    await expect(workspaceNameInput).toBeEnabled();
+
     // Fill in workspace name
-    await modal.locator('#workspace-name').fill(workspaceName);
+    await workspaceNameInput.fill(workspaceName);
+
+    // Wait for Browse button to be visible and enabled before clicking
+    // The button should be within the modal form
+    const browseButton = modal.getByRole('button', { name: 'Browse' });
+
+    // Wait for button to be attached to DOM, visible, and enabled
+    await browseButton.waitFor({ state: 'attached', timeout: 10000 });
+    await expect(browseButton).toBeVisible({ timeout: 5000 });
+    await expect(browseButton).toBeEnabled({ timeout: 5000 });
 
     // Click Browse button - the mocked dialog will return our location
-    await modal.getByRole('button', { name: 'Browse' }).click();
+    await browseButton.click();
 
     // Wait for the location to be set (the IPC call should complete)
     // The location input should update after the IPC call completes

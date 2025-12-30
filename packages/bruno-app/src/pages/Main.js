@@ -49,7 +49,7 @@ function Main({ children }) {
       <Provider store={ReduxStore}>
         <PersistGate persistor={persistor}>
           {(bootstrapped) => {
-            if (bootstrapped && window.ipcRenderer && !rendererReadyCalled.current) {
+            if (bootstrapped && !rendererReadyCalled.current) {
               rendererReadyCalled.current = true;
               window.ipcRenderer.invoke('renderer:ready').catch((error) => {
                 console.error('Error calling renderer:ready:', error);

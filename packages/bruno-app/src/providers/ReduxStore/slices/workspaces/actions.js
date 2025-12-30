@@ -402,6 +402,7 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     try {
       await dispatch(loadWorkspaceCollections(workspaceUid));
     } catch (error) {
+      console.error('Failed to load workspace collections:', error);
     }
 
     ensureActiveWorkspace(dispatch, getState);
