@@ -76,7 +76,7 @@ const Themes = () => {
 
   return (
     <StyledWrapper>
-      <div className="flex flex-col gap-4 w-full">
+      <div className="flex flex-col gap-4 w-full appearance-container">
         <div>
           <div className="section-header">Appearance</div>
         </div>
