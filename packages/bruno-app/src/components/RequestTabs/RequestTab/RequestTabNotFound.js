@@ -28,7 +28,7 @@ const RequestTabNotFound = ({ handleCloseClick }) => {
           </>
         ) : null}
       </div>
-      <GradientCloseButton onClick={handleCloseClick} hasChanges={false} />
+      <GradientCloseButton onClick={handleCloseClick} hasChanges={true} />
     </>
   );
 };
