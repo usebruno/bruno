@@ -49,7 +49,9 @@ const colors = {
     VARIABLE: '#3f7cac', // Steel blue
     KEYWORD: '#c57a92', // Dusty rose
     COMMENT: '#9a9488', // Warm muted gray
-    OPERATOR: '#7c7a73' // Soft graphite
+    OPERATOR: '#7c7a73', // Soft graphite
+    TAG: '#3a7cc4', // Muted azure
+    TAG_BRACKET: '#9a9488' // Warm muted gray
   }
 };
 
@@ -346,12 +348,6 @@ const lightPastelTheme = {
     },
     example: {
       iconColor: colors.GRAY_7
-    },
-    shortTab: {
-      color: colors.TEXT_MUTED,
-      bg: colors.WHITE,
-      hoverColor: colors.TEXT,
-      hoverBg: colors.GRAY_2
     }
   },
 
@@ -368,18 +364,7 @@ const lightPastelTheme = {
     variable: {
       valid: colors.GREEN,
       invalid: colors.RED,
-      prompt: colors.BLUE,
-      info: {
-        color: colors.TEXT,
-        bg: colors.WHITE,
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        editorBg: colors.GRAY_1,
-        iconColor: colors.GRAY_6,
-        editorBorder: colors.GRAY_3,
-        editorFocusBorder: colors.BRAND,
-        editableDisplayHoverBg: colors.GRAY_1,
-        border: colors.GRAY_3
-      }
+      prompt: colors.BLUE
     },
     tokens: {
       definition: colors.CODEMIRROR_TOKENS.DEFINITION,
@@ -390,7 +375,9 @@ const lightPastelTheme = {
       variable: colors.CODEMIRROR_TOKENS.VARIABLE,
       keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
       comment: colors.CODEMIRROR_TOKENS.COMMENT,
-      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR,
+      tag: colors.CODEMIRROR_TOKENS.TAG,
+      tagBracket: colors.CODEMIRROR_TOKENS.TAG_BRACKET
     },
     searchLineHighlightCurrent: `${colors.BRAND}12`,
     searchMatch: '#e5c27a',

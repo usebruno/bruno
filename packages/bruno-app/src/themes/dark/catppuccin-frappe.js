@@ -1,6 +1,8 @@
 // Catppuccin Frappé - Dark Theme
 // Based on https://catppuccin.com/palette/
 
+const { rgba } = require('polished');
+
 const colors = {
   // Catppuccin Frappé Palette
   ROSEWATER: '#f2d5cf',
@@ -43,7 +45,9 @@ const colors = {
     VARIABLE: '#85c1dc',
     KEYWORD: '#e78284',
     COMMENT: '#737994',
-    OPERATOR: '#81c8be'
+    OPERATOR: '#81c8be',
+    TAG: '#8caaee',
+    TAG_BRACKET: '#737994'
   }
 };
 
@@ -167,7 +171,7 @@ const catppuccinFrappeTheme = {
     bg: colors.SURFACE0,
     hoverBg: 'rgba(115, 121, 148, 0.16)',
     shadow: 'none',
-    border: colors.SURFACE1,
+    border: rgba(colors.SURFACE1, 0.5),
     separator: colors.SURFACE1,
     selectedColor: colors.MAUVE,
     mutedText: colors.SUBTEXT0
@@ -344,12 +348,6 @@ const catppuccinFrappeTheme = {
     },
     example: {
       iconColor: colors.OVERLAY1
-    },
-    shortTab: {
-      color: colors.TEXT,
-      bg: 'transparent',
-      hoverColor: colors.TEXT,
-      hoverBg: colors.SURFACE0
     }
   },
 
@@ -366,18 +364,7 @@ const catppuccinFrappeTheme = {
     variable: {
       valid: colors.GREEN,
       invalid: colors.RED,
-      prompt: colors.BLUE,
-      info: {
-        color: colors.TEXT,
-        bg: colors.SURFACE0,
-        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
-        editorBg: colors.MANTLE,
-        iconColor: colors.OVERLAY0,
-        editorBorder: colors.SURFACE0,
-        editorFocusBorder: colors.LAVENDER,
-        editableDisplayHoverBg: 'rgba(198, 208, 245, 0.03)',
-        border: colors.SURFACE2
-      }
+      prompt: colors.BLUE
     },
     tokens: {
       definition: colors.CODEMIRROR_TOKENS.DEFINITION,
@@ -388,7 +375,9 @@ const catppuccinFrappeTheme = {
       variable: colors.CODEMIRROR_TOKENS.VARIABLE,
       keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
       comment: colors.CODEMIRROR_TOKENS.COMMENT,
-      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR,
+      tag: colors.CODEMIRROR_TOKENS.TAG,
+      tagBracket: colors.CODEMIRROR_TOKENS.TAG_BRACKET
     },
     searchLineHighlightCurrent: 'rgba(115, 121, 148, 0.18)',
     searchMatch: colors.YELLOW,

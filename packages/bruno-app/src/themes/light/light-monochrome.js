@@ -31,7 +31,9 @@ const colors = {
     VARIABLE: '#525252',
     KEYWORD: '#404040',
     COMMENT: '#a3a3a3',
-    OPERATOR: '#737373'
+    OPERATOR: '#737373',
+    TAG: '#404040',
+    TAG_BRACKET: '#a3a3a3'
   }
 };
 
@@ -329,12 +331,6 @@ const lightMonochromeTheme = {
     },
     example: {
       iconColor: colors.GRAY_7
-    },
-    shortTab: {
-      color: 'rgb(117 117 117)',
-      bg: 'white',
-      hoverColor: 'rgb(76 76 76)',
-      hoverBg: '#eaeaea'
     }
   },
 
@@ -351,18 +347,7 @@ const lightMonochromeTheme = {
     variable: {
       valid: '#525252',
       invalid: '#404040',
-      prompt: '#525252',
-      info: {
-        color: '#343434',
-        bg: '#FFFFFF',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
-        editorBg: '#F7F7F7',
-        iconColor: '#989898',
-        editorBorder: '#EFEFEF',
-        editorFocusBorder: '#989898',
-        editableDisplayHoverBg: 'rgba(0,0,0,0.02)',
-        border: '#EFEFEF'
-      }
+      prompt: '#525252'
     },
     tokens: {
       definition: colors.CODEMIRROR_TOKENS.DEFINITION,
@@ -373,7 +358,9 @@ const lightMonochromeTheme = {
       variable: colors.CODEMIRROR_TOKENS.VARIABLE,
       keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
       comment: colors.CODEMIRROR_TOKENS.COMMENT,
-      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR,
+      tag: colors.CODEMIRROR_TOKENS.TAG,
+      tagBracket: colors.CODEMIRROR_TOKENS.TAG_BRACKET
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.10)',
     searchMatch: '#737373',

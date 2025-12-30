@@ -30,7 +30,9 @@ const colors = {
     VARIABLE: '#b0b0b0',
     KEYWORD: '#d4d4d4',
     COMMENT: '#6a6a6a',
-    OPERATOR: '#d4d4d4'
+    OPERATOR: '#d4d4d4',
+    TAG: '#d4d4d4',
+    TAG_BRACKET: '#6a6a6a'
   }
 };
 
@@ -331,12 +333,6 @@ const darkMonochromeTheme = {
     },
     example: {
       iconColor: colors.GRAY_5
-    },
-    shortTab: {
-      color: '#ccc',
-      bg: 'transparent',
-      hoverColor: '#ccc',
-      hoverBg: colors.GRAY_3
     }
   },
 
@@ -353,18 +349,7 @@ const darkMonochromeTheme = {
     variable: {
       valid: '#a3a3a3',
       invalid: '#b0b0b0',
-      prompt: '#a3a3a3',
-      info: {
-        color: '#FFFFFF',
-        bg: '#343434',
-        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
-        editorBg: '#292929',
-        iconColor: '#989898',
-        editorBorder: colors.GRAY_3,
-        editorFocusBorder: '#CCCCCC',
-        editableDisplayHoverBg: 'rgba(255,255,255,0.03)',
-        border: '#4F4F4F'
-      }
+      prompt: '#a3a3a3'
     },
     tokens: {
       definition: colors.CODEMIRROR_TOKENS.DEFINITION,
@@ -375,7 +360,9 @@ const darkMonochromeTheme = {
       variable: colors.CODEMIRROR_TOKENS.VARIABLE,
       keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
       comment: colors.CODEMIRROR_TOKENS.COMMENT,
-      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR,
+      tag: colors.CODEMIRROR_TOKENS.TAG,
+      tagBracket: colors.CODEMIRROR_TOKENS.TAG_BRACKET
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.18)',
     searchMatch: '#a3a3a3',
