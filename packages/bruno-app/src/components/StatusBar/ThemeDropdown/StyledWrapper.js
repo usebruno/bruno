@@ -2,79 +2,149 @@ import styled from 'styled-components';
 import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
+  /* Main container */
   .theme-menu {
-    min-width: 160px;
-    padding: 4px 0;
+    min-width: 200px;
+    height: 325px;
+    padding: 8px;
     background: ${(props) => props.theme.dropdown.bg};
-    border: 1px solid ${(props) => props.theme.dropdown.separator};
-    border-radius: ${(props) => props.theme.border.radius.md};
-    box-shadow: ${(props) => props.theme.dropdown.shadow};
+    border-radius: 6px;
+    box-shadow: 0px 1px 4px 0px #0000000D;
+
+    &.two-columns {
+      min-width: 400px;
+    }
   }
 
-  .menu-label {
-    padding: 6px 12px 4px;
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
+  /* Mode section */
+  .mode-section {
+    padding: 0 8px 12px 8px;
+    margin: 0 -8px;
+    border-bottom: 1px solid ${(props) => props.theme.dropdown.separator};
+  }
+
+  .mode-label {
+    font-size: 12px;
     color: ${(props) => props.theme.dropdown.mutedText};
-    letter-spacing: 0.5px;
+    margin-bottom: 8px;
   }
 
-  .menu-item {
+  .mode-buttons {
+    display: flex;
+    gap: 10px;
+  }
+
+  .mode-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 8px 4px;
+    border: 1px solid ${(props) => props.theme.dropdown.separator};
+    border-radius: 4px;
+    background: transparent;
+    color: ${(props) => props.theme.dropdown.mutedText};
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.dropdown.hoverBg};
+      color: ${(props) => props.theme.dropdown.color};
+    }
+
+    &.focused {
+      background: ${(props) => props.theme.dropdown.hoverBg};
+      color: ${(props) => props.theme.dropdown.color};
+      outline: 2px solid ${(props) => props.theme.dropdown.selectedColor};
+      outline-offset: 1px;
+    }
+
+    &.active {
+      background: ${(props) => props.theme.dropdown.color};
+      border-color: ${(props) => props.theme.dropdown.color};
+      color: ${(props) => props.theme.dropdown.bg};
+
+      &.focused {
+        outline: 2px solid ${(props) => props.theme.dropdown.selectedColor};
+        outline-offset: 1px;
+      }
+    }
+  }
+
+  /* Theme lists container */
+  .theme-lists {
+    display: flex;
+    gap: 24px;
+
+    &.two-columns {
+      gap: 0;
+
+      .theme-list {
+        flex: 1;
+        padding: 8px 0;
+
+        &:first-child {
+          padding-right: 12px;
+          border-right: 1px solid ${(props) => props.theme.dropdown.separator};
+        }
+
+        &:last-child {
+          padding-left: 12px;
+        }
+      }
+    }
+  }
+
+  /* Individual theme list */
+  .theme-list {
+    min-width: 180px;
+    padding-top: 8px;
+  }
+
+  .theme-list-label {
+    font-size: 12px;
+    color: ${(props) => props.theme.dropdown.mutedText};
+    margin-bottom: 8px;
+  }
+
+  /* Theme item */
+  .theme-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 12px;
+    height: 26px;
+    padding: 4px 8px;
+    border-radius: 4px;
     cursor: pointer;
+    outline: none;
     color: ${(props) => props.theme.dropdown.color};
     font-size: ${(props) => props.theme.font.size.sm};
 
-    &:hover {
+    &:hover,
+    &.focused {
       background: ${(props) => props.theme.dropdown.hoverBg};
     }
 
     &.active {
       color: ${(props) => props.theme.dropdown.selectedColor};
-      background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.07)};
-    }
+      background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.08)};
 
-    &.has-submenu {
-      padding-right: 8px;
+      &.focused {
+        background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.15)};
+      }
     }
   }
 
-  .menu-item-icon {
-    margin-right: 8px;
-    opacity: 0.7;
-  }
-
-  .menu-item-label {
+  .theme-item-label {
     flex: 1;
+    white-space: nowrap;
   }
 
   .check-icon {
+    flex-shrink: 0;
+    margin-left: 12px;
     color: ${(props) => props.theme.dropdown.selectedColor};
-    margin-left: 8px;
-  }
-
-  .chevron-icon {
-    opacity: 0.6;
-    margin-left: 8px;
-  }
-
-  .menu-divider {
-    height: 1px;
-    background: ${(props) => props.theme.dropdown.separator};
-    margin: 4px 0;
-  }
-
-  .submenu {
-    min-width: 180px;
-    padding: 4px 0;
-    background: ${(props) => props.theme.dropdown.bg};
-    border: 1px solid ${(props) => props.theme.dropdown.separator};
-    border-radius: ${(props) => props.theme.border.radius.md};
-    box-shadow: ${(props) => props.theme.dropdown.shadow};
   }
 `;
 
