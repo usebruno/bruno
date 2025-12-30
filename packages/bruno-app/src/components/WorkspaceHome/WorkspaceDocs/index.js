@@ -10,6 +10,7 @@ import StyledWrapper from './StyledWrapper';
 import { IconFileText, IconEdit, IconX } from '@tabler/icons';
 import Button from 'ui/Button';
 import toast from 'react-hot-toast';
+import ActionIcon from 'ui/ActionIcon/index';
 
 const WorkspaceDocs = ({ workspace }) => {
   const dispatch = useDispatch();
@@ -66,14 +67,14 @@ const WorkspaceDocs = ({ workspace }) => {
           <span>Documentation</span>
         </div>
         {hasDocs && !isEditing && (
-          <button className="edit-btn" onClick={toggleViewMode}>
-            <IconEdit size={14} strokeWidth={1.5} />
-          </button>
+          <ActionIcon className="edit-btn" onClick={toggleViewMode}>
+            <IconEdit size={16} strokeWidth={1.5} />
+          </ActionIcon>
         )}
         {isEditing && (
-          <button className="edit-btn" onClick={handleDiscardChanges}>
-            <IconX size={14} strokeWidth={1.5} />
-          </button>
+          <ActionIcon className="edit-btn" onClick={handleDiscardChanges}>
+            <IconX size={16} strokeWidth={1.5} />
+          </ActionIcon>
         )}
       </div>
 
@@ -90,9 +91,9 @@ const WorkspaceDocs = ({ workspace }) => {
               fontSize={get(preferences, 'font.codeFontSize')}
             />
             <div className="editor-actions">
-              <button className="save-btn" onClick={onSave}>
+              <Button onClick={onSave}>
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         ) : hasDocs ? (
