@@ -842,6 +842,29 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  ipcMain.handle('renderer:delete-collection', async (event, collectionPath, collectionUid, workspacePath) => {
+    if (watcher && mainWindow) {
+      watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+
+      if (wsClient) {
+        wsClient.closeForCollection(collectionUid);
+      }
+    }
+
+    if (workspacePath && workspacePath !== 'default') {
+      try {
+        const { removeCollectionFromWorkspace } = require('../utils/workspace-config');
+        await removeCollectionFromWorkspace(workspacePath, collectionPath);
+      } catch (error) {
+        console.error('Error removing collection from workspace.yml:', error);
+      }
+    }
+
+    if (fs.existsSync(collectionPath)) {
+      await fsExtra.remove(collectionPath);
+    }
+  });
+
   ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, format = 'bru') => {
     try {
       let collectionName = sanitizeName(collection.name);

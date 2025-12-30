@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconAlertCircle } from '@tabler/icons';
+import { IconAlertCircle, IconAlertTriangle } from '@tabler/icons';
 import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges } from 'utils/collections/index';
 import filter from 'lodash/filter';
@@ -12,6 +12,7 @@ import StyledWrapper from './StyledWrapper';
 const RemoveCollection = ({ onClose, collectionUid }) => {
   const dispatch = useDispatch();
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
+  const [deleteFromDisk, setDeleteFromDisk] = useState(false);
 
   // Detect drafts in the collection
   const drafts = useMemo(() => {
@@ -26,9 +27,9 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
       onClose();
       return;
     }
-    dispatch(removeCollection(collection.uid))
+    dispatch(removeCollection(collection.uid, deleteFromDisk))
       .then(() => {
-        toast.success('Collection removed from workspace');
+        toast.success(deleteFromDisk ? 'Collection deleted' : 'Collection removed from workspace');
         onClose();
       })
       .catch(() => toast.error('An error occurred while removing the collection'));
@@ -57,7 +58,7 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
         size="sm"
         title="Remove Collection"
         customHeader={customHeader}
-        confirmText="Remove"
+        confirmText={deleteFromDisk ? 'Delete' : 'Remove'}
         confirmButtonColor="danger"
         handleConfirm={onConfirm}
         handleCancel={onClose}
@@ -67,9 +68,28 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
           <div className="collection-name">{collection.name}</div>
           <div className="collection-path">{collection.pathname}</div>
         </div>
-        <p className="mt-4 text-muted text-sm">
-          It will still be available in the filesystem at the above location and can be re-opened later.
-        </p>
+
+        <div className="delete-checkbox-container mt-4">
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={deleteFromDisk}
+              onChange={(e) => setDeleteFromDisk(e.target.checked)}
+            />
+            <span className="ml-2">Also delete collection from filesystem</span>
+          </label>
+        </div>
+
+        {deleteFromDisk ? (
+          <div className="delete-warning mt-3">
+            <IconAlertTriangle size={16} strokeWidth={1.5} />
+            <span>This action is permanent and cannot be undone. The collection folder and all its contents will be deleted from your filesystem.</span>
+          </div>
+        ) : (
+          <p className="mt-4 text-muted text-sm">
+            It will still be available in the filesystem at the above location and can be re-opened later.
+          </p>
+        )}
       </Modal>
     </StyledWrapper>
   );
