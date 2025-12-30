@@ -4,6 +4,9 @@ const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
 
+// Load environment variables from .env file
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
 if (isDev) {
   if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
     console.log('JS Sandbox libraries have not been bundled yet');
@@ -48,6 +51,7 @@ const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window')
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+const registerAISuggestionsIpc = require('./ipc/ai-suggestions');
 const TerminalManager = require('./ipc/terminal');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
@@ -312,6 +316,7 @@ app.on('ready', async () => {
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);
   registerSystemMonitorIpc(mainWindow, systemMonitor);
+  registerAISuggestionsIpc(mainWindow);
 });
 
 // Quit the app once all windows are closed

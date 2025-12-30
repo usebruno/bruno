@@ -9,6 +9,7 @@ import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupGhostText } from 'utils/codemirror/ghostText';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
@@ -208,6 +209,22 @@ export default class CodeEditor extends React.Component {
         autoCompleteOptions
       );
 
+      // Setup Ghost Text suggestions
+      if (this.props.enableGhostText !== false) {
+        const ghostTextOptions = {
+          ...autoCompleteOptions,
+          scriptType: this.props.scriptType,
+          enableAI: this.props.scriptType ? true : false,
+          getRequestContext: () => ({
+            url: this.props.item?.request?.url || this.props.item?.draft?.request?.url || '',
+            method: this.props.item?.request?.method || this.props.item?.draft?.request?.method || 'GET',
+            collectionName: this.props.collection?.name || '',
+            requestName: this.props.item?.name || ''
+          })
+        };
+        this.ghostTextCleanup = setupGhostText(editor, ghostTextOptions);
+      }
+
       setupLinkAware(editor);
 
       // Setup lint error tooltip on line number hover
@@ -288,6 +305,9 @@ export default class CodeEditor extends React.Component {
 
       const wrapper = this.editor.getWrapperElement();
       wrapper?.parentNode?.removeChild(wrapper);
+
+      // Clean up ghost text
+      this.ghostTextCleanup?.();
 
       this.editor = null;
     }
