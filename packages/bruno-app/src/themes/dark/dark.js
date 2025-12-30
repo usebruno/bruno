@@ -582,6 +582,24 @@ const darkTheme = {
         border: '#185387',
         hoverBorder: '#696969'
       }
+    },
+    methodDropdown: {
+      serviceHeader: {
+        bg: palette.background.SURFACE1
+      },
+      methodItem: {
+        text: '#d4d4d4',
+        secondaryText: palette.text.SUBTEXT1,
+        icon: palette.text.SUBTEXT1,
+        hoverBg: 'rgba(255, 255, 255, 0.05)',
+        selected: {
+          border: palette.primary.SOLID,
+          bg: rgba(palette.primary.SOLID, 0.2)
+        },
+        focused: {
+          bg: 'rgba(255, 255, 255, 0.05)'
+        }
+      }
     }
   },
   deprecationWarning: {

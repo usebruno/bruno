@@ -987,9 +987,52 @@ export const ossSchema = {
           },
           required: ['header', 'error', 'item', 'empty', 'button'],
           additionalProperties: false
+        },
+        methodDropdown: {
+          type: 'object',
+          properties: {
+            serviceHeader: {
+              type: 'object',
+              properties: {
+                bg: { type: 'string' }
+              },
+              required: ['bg'],
+              additionalProperties: false
+            },
+            methodItem: {
+              type: 'object',
+              properties: {
+                text: { type: 'string' },
+                secondaryText: { type: 'string' },
+                icon: { type: 'string' },
+                hoverBg: { type: 'string' },
+                selected: {
+                  type: 'object',
+                  properties: {
+                    border: { type: 'string' },
+                    bg: { type: 'string' }
+                  },
+                  required: ['border', 'bg'],
+                  additionalProperties: false
+                },
+                focused: {
+                  type: 'object',
+                  properties: {
+                    bg: { type: 'string' }
+                  },
+                  required: ['bg'],
+                  additionalProperties: false
+                }
+              },
+              required: ['text', 'secondaryText', 'icon', 'hoverBg', 'selected', 'focused'],
+              additionalProperties: false
+            }
+          },
+          required: ['serviceHeader', 'methodItem'],
+          additionalProperties: false
         }
       },
-      required: ['tabNav', 'importPaths', 'protoFiles'],
+      required: ['tabNav', 'importPaths', 'protoFiles', 'methodDropdown'],
       additionalProperties: false
     },
 

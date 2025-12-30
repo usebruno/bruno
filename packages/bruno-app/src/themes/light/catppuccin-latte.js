@@ -1,5 +1,6 @@
 // Catppuccin Latte - Light Theme
 // Based on https://catppuccin.com/palette/
+import { rgba } from 'polished';
 
 const colors = {
   // Catppuccin Latte Palette
@@ -544,6 +545,24 @@ const catppuccinLatteTheme = {
         color: colors.TEXT,
         border: colors.SURFACE1,
         hoverBorder: colors.OVERLAY0
+      }
+    },
+    methodDropdown: {
+      serviceHeader: {
+        bg: colors.SURFACE0
+      },
+      methodItem: {
+        text: colors.TEXT,
+        secondaryText: colors.SUBTEXT0,
+        icon: colors.SUBTEXT0,
+        hoverBg: rgba(colors.TEXT, 0.05),
+        selected: {
+          border: colors.MAUVE,
+          bg: rgba(colors.MAUVE, 0.2)
+        },
+        focused: {
+          bg: rgba(colors.TEXT, 0.05)
+        }
       }
     }
   },

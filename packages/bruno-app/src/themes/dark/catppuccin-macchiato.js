@@ -549,6 +549,24 @@ const catppuccinMacchiatoTheme = {
         border: colors.SURFACE0,
         hoverBorder: colors.OVERLAY0
       }
+    },
+    methodDropdown: {
+      serviceHeader: {
+        bg: colors.SURFACE1
+      },
+      methodItem: {
+        text: colors.TEXT,
+        secondaryText: colors.SUBTEXT0,
+        icon: colors.SUBTEXT0,
+        hoverBg: rgba(colors.TEXT, 0.05),
+        selected: {
+          border: colors.MAUVE,
+          bg: rgba(colors.MAUVE, 0.2)
+        },
+        focused: {
+          bg: rgba(colors.TEXT, 0.05)
+        }
+      }
     }
   },
   deprecationWarning: {

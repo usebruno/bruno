@@ -534,6 +534,24 @@ const darkMonochromeTheme = {
         border: '#525252',
         hoverBorder: '#696969'
       }
+    },
+    methodDropdown: {
+      serviceHeader: {
+        bg: '#404040'
+      },
+      methodItem: {
+        text: '#d4d4d4',
+        secondaryText: '#9d9d9d',
+        icon: '#9d9d9d',
+        hoverBg: 'rgba(255, 255, 255, 0.05)',
+        selected: {
+          border: '#a3a3a3',
+          bg: 'rgba(163, 163, 163, 0.2)'
+        },
+        focused: {
+          bg: 'rgba(255, 255, 255, 0.05)'
+        }
+      }
     }
   },
   deprecationWarning: {

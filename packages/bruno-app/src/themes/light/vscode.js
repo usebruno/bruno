@@ -1,5 +1,6 @@
 // VS Code Light+ Theme for Bruno
 // Based on the default Visual Studio Code Light+ theme
+import { rgba } from 'polished';
 
 const colors = {
   // VS Code Light+ Core Colors
@@ -488,12 +489,12 @@ const vscodeLightTheme = {
         text: colors.RED,
         link: {
           color: colors.RED,
-          hoverColor: '#e03e3e'
+          hoverColor: colors.RED
         }
       },
       item: {
         bg: 'transparent',
-        hoverBg: 'rgba(0, 0, 0, 0.05)',
+        hoverBg: rgba(colors.BLACK, 0.05),
         text: colors.TEXT,
         icon: colors.TEXT_MUTED,
         checkbox: {
@@ -527,14 +528,14 @@ const vscodeLightTheme = {
         text: colors.RED,
         link: {
           color: colors.RED,
-          hoverColor: '#e03e3e'
+          hoverColor: colors.RED
         }
       },
       item: {
         bg: 'transparent',
-        hoverBg: 'rgba(0, 0, 0, 0.05)',
+        hoverBg: rgba(colors.BLACK, 0.05),
         selected: {
-          bg: 'rgba(0, 122, 204, 0.15)',
+          bg: rgba(colors.BRAND, 0.15),
           border: colors.BRAND
         },
         text: colors.TEXT,
@@ -553,6 +554,24 @@ const vscodeLightTheme = {
         color: colors.TEXT,
         border: colors.GRAY_4,
         hoverBorder: colors.GRAY_5
+      }
+    },
+    methodDropdown: {
+      serviceHeader: {
+        bg: colors.GRAY_1
+      },
+      methodItem: {
+        text: colors.TEXT,
+        secondaryText: colors.TEXT_MUTED,
+        icon: colors.TEXT_MUTED,
+        hoverBg: rgba(colors.BLACK, 0.05),
+        selected: {
+          border: colors.BRAND,
+          bg: rgba(colors.BRAND, 0.2)
+        },
+        focused: {
+          bg: rgba(colors.BLACK, 0.05)
+        }
       }
     }
   },
