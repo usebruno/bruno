@@ -1,0 +1,13 @@
+{
+  "maximized": false,
+  "workspaces": {
+    "lastOpenedWorkspaces": [
+      "{{projectRoot}}/tests/workspace/persistence/fixtures/workspaces/workspace-1",
+      "{{projectRoot}}/tests/workspace/persistence/fixtures/workspaces/workspace-2",
+      "{{projectRoot}}/tests/workspace/persistence/fixtures/workspaces/workspace-3",
+      "{{projectRoot}}/tests/workspace/persistence/fixtures/workspaces/workspace-4",
+      "{{projectRoot}}/tests/workspace/persistence/fixtures/workspaces/workspace-5"
+    ]
+  }
+}
+
