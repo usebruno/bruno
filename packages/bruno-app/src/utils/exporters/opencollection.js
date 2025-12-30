@@ -9,8 +9,11 @@ export const exportCollection = (collection, version) => {
   if (!openCollection.extensions) {
     openCollection.extensions = {};
   }
-  openCollection.extensions.exportedAt = new Date().toISOString();
-  openCollection.extensions.exportedUsing = version ? `Bruno/${version}` : 'Bruno';
+  if (!openCollection.extensions.bruno) {
+    openCollection.extensions.bruno = {};
+  }
+  openCollection.extensions.bruno.exportedAt = new Date().toISOString();
+  openCollection.extensions.bruno.exportedUsing = version ? `Bruno/${version}` : 'Bruno';
 
   const yamlContent = jsyaml.dump(openCollection, {
     indent: 2,

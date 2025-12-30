@@ -60,16 +60,16 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
         clientSecret: base.clientSecret || null,
         scope: base.scope || null,
         state: base.state || null,
-        pkce: base.pkce || null,
+        pkce: base.pkce ?? false,
         credentialsPlacement: base.credentialsPlacement || null,
         credentialsId: base.credentialsId || null,
         tokenPlacement: base.tokenPlacement || null,
         tokenHeaderPrefix: base.tokenHeaderPrefix || null,
         tokenQueryKey: base.tokenQueryKey || null,
         refreshTokenUrl: base.refreshTokenUrl || null,
-        autoRefreshToken: base.autoRefreshToken || null,
-        autoFetchToken: base.autoFetchToken || null,
-        additionalParameters: null
+        autoRefreshToken: base.autoRefreshToken ?? false,
+        autoFetchToken: base.autoFetchToken ?? false,
+        additionalParameters: {}
       },
       wsse: null,
       apikey: null

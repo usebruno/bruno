@@ -7,9 +7,16 @@ import { fromOpenCollectionFolder } from "./folder";
 import { fromOpenCollectionEnvironments } from "./environment";
 
 const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
-  const extensions = oc.extensions;
-  const ignoreList = extensions && Array.isArray(extensions.ignore)
-    ? extensions.ignore as string[]
+  const brunoExtension = oc.extensions?.bruno as {
+    ignore?: string[];
+    presets?: {
+      requestType?: string;
+      requestUrl?: string;
+    };
+  } | undefined;
+
+  const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
+    ? brunoExtension.ignore
     : ['node_modules', '.git'];
 
   const brunoConfig: BrunoConfig = {
@@ -18,6 +25,16 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     type: 'collection',
     ignore: ignoreList
   };
+
+  if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl) {
+    brunoConfig.presets = {};
+    if (brunoExtension.presets.requestType) {
+      brunoConfig.presets.requestType = brunoExtension.presets.requestType;
+    }
+    if (brunoExtension.presets.requestUrl) {
+      brunoConfig.presets.requestUrl = brunoExtension.presets.requestUrl;
+    }
+  }
 
   const config = oc.config;
   if (!config) {

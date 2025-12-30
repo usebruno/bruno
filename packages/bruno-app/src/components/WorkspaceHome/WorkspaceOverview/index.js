@@ -57,8 +57,8 @@ const WorkspaceOverview = ({ workspace }) => {
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
-    dispatch(importCollection(convertedCollection, collectionLocation))
+  const handleImportCollectionLocation = (convertedCollection, collectionLocation, options = {}) => {
+    dispatch(importCollection(convertedCollection, collectionLocation, options))
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
