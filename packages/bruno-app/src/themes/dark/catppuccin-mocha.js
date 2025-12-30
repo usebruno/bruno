@@ -1,6 +1,8 @@
 // Catppuccin Mocha - Dark Theme (Original)
 // Based on https://catppuccin.com/palette/
 
+import { rgba } from 'polished';
+
 const colors = {
   // Catppuccin Mocha Palette
   ROSEWATER: '#f5e0dc',
@@ -43,7 +45,9 @@ const colors = {
     VARIABLE: '#74c7ec',
     KEYWORD: '#f38ba8',
     COMMENT: '#6c7086',
-    OPERATOR: '#94e2d5'
+    OPERATOR: '#94e2d5',
+    TAG: '#89b4fa',
+    TAG_BRACKET: '#6c7086'
   }
 };
 
@@ -164,10 +168,10 @@ const catppuccinMochaTheme = {
   dropdown: {
     color: colors.TEXT,
     iconColor: colors.SUBTEXT1,
-    bg: colors.MANTLE,
+    bg: colors.SURFACE0,
     hoverBg: 'rgba(108, 112, 134, 0.16)',
     shadow: 'none',
-    border: colors.SURFACE1,
+    border: rgba(colors.SURFACE1, 0.5),
     separator: colors.SURFACE1,
     selectedColor: colors.MAUVE,
     mutedText: colors.SUBTEXT0
@@ -344,12 +348,6 @@ const catppuccinMochaTheme = {
     },
     example: {
       iconColor: colors.OVERLAY1
-    },
-    shortTab: {
-      color: colors.TEXT,
-      bg: 'transparent',
-      hoverColor: colors.TEXT,
-      hoverBg: colors.SURFACE0
     }
   },
 
@@ -366,18 +364,7 @@ const catppuccinMochaTheme = {
     variable: {
       valid: colors.GREEN,
       invalid: colors.RED,
-      prompt: colors.BLUE,
-      info: {
-        color: colors.TEXT,
-        bg: colors.SURFACE0,
-        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
-        editorBg: colors.MANTLE,
-        iconColor: colors.OVERLAY0,
-        editorBorder: colors.SURFACE0,
-        editorFocusBorder: colors.LAVENDER,
-        editableDisplayHoverBg: 'rgba(205, 214, 244, 0.03)',
-        border: colors.SURFACE2
-      }
+      prompt: colors.BLUE
     },
     tokens: {
       definition: colors.CODEMIRROR_TOKENS.DEFINITION,
@@ -388,7 +375,9 @@ const catppuccinMochaTheme = {
       variable: colors.CODEMIRROR_TOKENS.VARIABLE,
       keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
       comment: colors.CODEMIRROR_TOKENS.COMMENT,
-      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR,
+      tag: colors.CODEMIRROR_TOKENS.TAG,
+      tagBracket: colors.CODEMIRROR_TOKENS.TAG_BRACKET
     },
     searchLineHighlightCurrent: 'rgba(108, 112, 134, 0.18)',
     searchMatch: colors.YELLOW,

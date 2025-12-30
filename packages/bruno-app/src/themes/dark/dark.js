@@ -1,8 +1,13 @@
 import { rgba } from 'polished';
 
 export const palette = {
-  accents: {
-    PRIMARY: 'hsl(39, 74%, 59%)',
+  primary: {
+    SOLID: 'hsl(39, 74%, 59%)',
+    TEXT: 'hsl(39, 74%, 64%)',
+    STRONG: 'hsl(39, 74%, 69%)',
+    SUBTLE: 'hsl(39, 74%, 54%)'
+  },
+  hues: {
     RED: 'hsl(0,   70%, 71%)',
     ROSE: 'hsl(350, 65%, 78%)',
     BROWN: 'hsl(41,  52%, 77%)',
@@ -18,12 +23,16 @@ export const palette = {
     PURPLE: 'hsl(285, 60%, 78%)',
     PINK: 'hsl(320, 65%, 81%)'
   },
+  system: {
+    CONTROL_ACCENT: '#D9A342'
+  },
   background: {
     BASE: 'hsl(0deg 0% 10%)',
     MANTLE: '#252526',
     CRUST: '#1e1e1e',
     SURFACE0: '#26292b',
-    SURFACE1: 'hsl(204, 4%, 23%)'
+    SURFACE1: 'hsl(204, 4%, 23%)',
+    SURFACE2: '#666666'
   },
   text: {
     BASE: 'hsl(0deg 0% 80%)',
@@ -31,20 +40,41 @@ export const palette = {
     SUBTEXT1: '#aaa',
     SUBTEXT0: '#999'
   },
-  border: {
-    BORDER2: '#444444',
-    BORDER1: '#333333',
-    BORDER0: '#2a2a2a'
-  },
   overlay: {
     OVERLAY2: '#666666',
     OVERLAY1: '#555555',
     OVERLAY0: '#444444'
   },
+  border: {
+    BORDER2: '#444444',
+    BORDER1: '#333333',
+    BORDER0: '#2a2a2a'
+  },
   utility: {
     WHITE: '#ffffff',
     BLACK: '#000000'
   }
+};
+
+palette.intent = {
+  INFO: palette.hues.BLUE,
+  SUCCESS: palette.hues.GREEN,
+  WARNING: palette.hues.ORANGE,
+  DANGER: palette.hues.RED
+};
+
+palette.syntax = {
+  DEFINITION: palette.hues.GREEN,
+  PROPERTY: palette.hues.BLUE,
+  STRING: palette.hues.BROWN,
+  NUMBER: palette.hues.GREEN,
+  ATOM: palette.hues.YELLOW,
+  VARIABLE: palette.hues.ROSE,
+  KEYWORD: palette.hues.ROSE,
+  COMMENT: palette.text.SUBTEXT1,
+  OPERATOR: palette.hues.BROWN,
+  TAG: palette.hues.ROSE,
+  TAG_BRACKET: palette.text.SUBTEXT1
 };
 
 const colors = {
@@ -56,13 +86,20 @@ const colors = {
 
 const darkTheme = {
   mode: 'dark',
-  brand: palette.accents.PRIMARY,
+  brand: palette.primary.SOLID,
   text: palette.text.BASE,
-  textLink: palette.accents.BLUE,
+  textLink: palette.hues.BLUE,
   bg: palette.background.BASE,
 
+  primary: {
+    solid: palette.primary.SOLID,
+    text: palette.primary.TEXT,
+    strong: palette.primary.STRONG,
+    subtle: palette.primary.SUBTLE
+  },
+
   accents: {
-    primary: palette.accents.PRIMARY
+    primary: palette.primary.SOLID
   },
 
   background: {
@@ -113,26 +150,26 @@ const darkTheme = {
   colors: {
     text: {
       white: palette.text.BASE,
-      green: palette.accents.GREEN,
-      danger: palette.accents.RED,
-      warning: palette.accents.ORANGE,
+      green: palette.intent.SUCCESS,
+      danger: palette.intent.DANGER,
+      warning: palette.intent.WARNING,
       muted: palette.text.SUBTEXT1,
-      purple: palette.accents.PURPLE,
-      yellow: palette.accents.YELLOW,
+      purple: palette.hues.PURPLE,
+      yellow: palette.hues.YELLOW,
       subtext2: palette.text.SUBTEXT2,
       subtext1: palette.text.SUBTEXT1,
       subtext0: palette.text.SUBTEXT0
     },
     bg: {
-      danger: '#d03544'
+      danger: palette.hues.RED
     },
-    accent: palette.accents.PRIMARY
+    accent: palette.system.CONTROL_ACCENT
   },
 
   input: {
     bg: 'transparent',
     border: palette.border.BORDER2,
-    focusBorder: rgba(palette.accents.PRIMARY, 0.8),
+    focusBorder: rgba(palette.primary.SOLID, 0.8),
     placeholder: {
       color: palette.text.SUBTEXT1,
       opacity: 0.6
@@ -176,7 +213,7 @@ const darkTheme = {
     shadow: 'none',
     border: palette.border.BORDER1,
     separator: palette.border.BORDER1,
-    selectedColor: palette.accents.PRIMARY,
+    selectedColor: palette.primary.TEXT,
     mutedText: palette.text.SUBTEXT1
   },
 
@@ -190,18 +227,18 @@ const darkTheme = {
 
   request: {
     methods: {
-      get: palette.accents.GREEN,
-      post: palette.accents.INDIGO,
-      put: palette.accents.ORANGE,
-      delete: palette.accents.RED,
-      patch: palette.accents.ORANGE,
-      options: palette.accents.TEAL,
-      head: palette.accents.CYAN
+      get: palette.hues.GREEN,
+      post: palette.hues.INDIGO,
+      put: palette.hues.ORANGE,
+      delete: palette.hues.RED,
+      patch: palette.hues.ORANGE,
+      options: palette.hues.TEAL,
+      head: palette.hues.CYAN
     },
 
-    grpc: palette.accents.BROWN,
-    ws: palette.accents.ORANGE,
-    gql: palette.accents.PINK
+    grpc: palette.hues.BROWN,
+    ws: palette.hues.ORANGE,
+    gql: palette.hues.PINK
   },
 
   requestTabPanel: {
@@ -216,9 +253,9 @@ const darkTheme = {
       activeBorder: palette.border.BORDER2
     },
     responseStatus: '#ccc',
-    responseOk: palette.accents.GREEN,
-    responseError: palette.accents.RED,
-    responsePending: palette.accents.BLUE,
+    responseOk: palette.hues.GREEN,
+    responseError: palette.hues.RED,
+    responsePending: palette.hues.BLUE,
     responseOverlayBg: 'rgba(30, 30, 30, 0.6)',
 
     card: {
@@ -260,7 +297,7 @@ const darkTheme = {
     input: {
       bg: 'transparent',
       border: palette.border.BORDER2,
-      focusBorder: rgba(palette.accents.PRIMARY, 0.8)
+      focusBorder: rgba(palette.primary.SOLID, 0.8)
     },
     backdrop: {
       opacity: 0.2
@@ -294,9 +331,9 @@ const darkTheme = {
   button2: {
     color: {
       primary: {
-        bg: palette.accents.PRIMARY,
+        bg: palette.primary.SOLID,
         text: palette.utility.BLACK,
-        border: palette.accents.PRIMARY
+        border: palette.primary.SOLID
       },
       secondary: {
         bg: palette.background.MANTLE,
@@ -304,19 +341,19 @@ const darkTheme = {
         border: palette.border.BORDER1
       },
       success: {
-        bg: palette.accents.GREEN,
+        bg: palette.hues.GREEN,
         text: palette.utility.WHITE,
-        border: palette.accents.GREEN
+        border: palette.hues.GREEN
       },
       warning: {
-        bg: palette.accents.ORANGE,
+        bg: palette.hues.ORANGE,
         text: '#1e1e1e',
-        border: palette.accents.ORANGE
+        border: palette.hues.ORANGE
       },
       danger: {
-        bg: palette.accents.RED,
+        bg: palette.hues.RED,
         text: palette.utility.WHITE,
-        border: palette.accents.RED
+        border: palette.hues.RED
       }
     }
   },
@@ -326,7 +363,7 @@ const darkTheme = {
     active: {
       fontWeight: 400,
       color: '#CCCCCC',
-      border: palette.accents.PRIMARY
+      border: palette.primary.STRONG
     },
     secondary: {
       active: {
@@ -351,12 +388,6 @@ const darkTheme = {
     },
     example: {
       iconColor: colors.GRAY_5
-    },
-    shortTab: {
-      color: palette.text.BASE,
-      bg: 'transparent',
-      hoverColor: palette.text.BASE,
-      hoverBg: colors.GRAY_3
     }
   },
 
@@ -371,31 +402,22 @@ const darkTheme = {
       bg: palette.background.BASE
     },
     variable: {
-      valid: 'rgb(11 178 126)',
-      invalid: '#f06f57',
-      prompt: '#3D8DF5',
-      info: {
-        color: '#FFFFFF',
-        bg: '#343434',
-        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
-        editorBg: '#292929',
-        iconColor: '#989898',
-        editorBorder: colors.GRAY_3,
-        editorFocusBorder: '#CCCCCC',
-        editableDisplayHoverBg: 'rgba(255,255,255,0.03)',
-        border: '#4F4F4F'
-      }
+      valid: palette.hues.GREEN,
+      invalid: palette.hues.RED,
+      prompt: palette.hues.BLUE
     },
     tokens: {
-      definition: palette.accents.GREEN,
-      property: palette.accents.BLUE,
-      string: palette.accents.BROWN,
-      number: palette.accents.GREEN,
-      atom: palette.accents.YELLOW,
-      variable: palette.accents.ROSE,
-      keyword: palette.accents.ROSE,
-      comment: palette.text.SUBTEXT1,
-      operator: palette.accents.BROWN
+      definition: palette.syntax.DEFINITION,
+      property: palette.syntax.PROPERTY,
+      string: palette.syntax.STRING,
+      number: palette.syntax.NUMBER,
+      atom: palette.syntax.ATOM,
+      variable: palette.syntax.VARIABLE,
+      keyword: palette.syntax.KEYWORD,
+      comment: palette.syntax.COMMENT,
+      operator: palette.syntax.OPERATOR,
+      tag: palette.syntax.TAG,
+      tagBracket: palette.syntax.TAG_BRACKET
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.18)',
     searchMatch: '#FFD700',
@@ -459,7 +481,7 @@ const darkTheme = {
     optionHoverBg: 'rgba(255, 255, 255, 0.05)',
     optionLabelColor: '#cccccc',
     optionCountColor: '#858585',
-    checkboxColor: palette.accents.PRIMARY,
+    checkboxColor: palette.primary.SOLID,
     scrollbarTrack: '#2d2d30',
     scrollbarThumb: '#5a5a5a',
     scrollbarThumbHover: '#6a6a6a'
@@ -596,7 +618,7 @@ const darkTheme = {
         environmentSelector: {
           bg: palette.background.BASE,
           border: colors.GRAY_3,
-          icon: palette.accents.PRIMARY,
+          icon: palette.primary.TEXT,
           text: palette.text.BASE,
           caret: palette.text.SUBTEXT1,
           separator: colors.GRAY_3,
@@ -614,11 +636,11 @@ const darkTheme = {
         sandboxMode: {
           safeMode: {
             bg: 'rgba(78, 201, 176, 0.12)',
-            color: palette.accents.GREEN
+            color: palette.hues.GREEN
           },
           developerMode: {
             bg: 'rgba(217, 163, 66, 0.11)',
-            color: palette.accents.YELLOW
+            color: palette.hues.YELLOW
           }
         }
       }

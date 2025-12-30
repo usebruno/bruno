@@ -580,20 +580,9 @@ export const ossSchema = {
           },
           required: ['iconColor'],
           additionalProperties: false
-        },
-        shortTab: {
-          type: 'object',
-          properties: {
-            color: { type: 'string' },
-            bg: { type: 'string' },
-            hoverColor: { type: 'string' },
-            hoverBg: { type: 'string' }
-          },
-          required: ['color', 'bg', 'hoverColor', 'hoverBg'],
-          additionalProperties: false
         }
       },
-      required: ['color', 'bg', 'bottomBorder', 'icon', 'example', 'shortTab'],
+      required: ['color', 'bg', 'bottomBorder', 'icon', 'example'],
       additionalProperties: false
     },
 
@@ -624,25 +613,9 @@ export const ossSchema = {
           properties: {
             valid: { type: 'string' },
             invalid: { type: 'string' },
-            prompt: { type: 'string' },
-            info: {
-              type: 'object',
-              properties: {
-                color: { type: 'string' },
-                bg: { type: 'string' },
-                boxShadow: { type: 'string' },
-                editorBg: { type: 'string' },
-                iconColor: { type: 'string' },
-                editorBorder: { type: 'string' },
-                editorFocusBorder: { type: 'string' },
-                editableDisplayHoverBg: { type: 'string' },
-                border: { type: 'string' }
-              },
-              required: ['color', 'bg', 'boxShadow', 'editorBg', 'iconColor', 'editorBorder', 'editorFocusBorder', 'editableDisplayHoverBg', 'border'],
-              additionalProperties: false
-            }
+            prompt: { type: 'string' }
           },
-          required: ['valid', 'invalid', 'prompt', 'info'],
+          required: ['valid', 'invalid', 'prompt'],
           additionalProperties: false
         },
         tokens: {
@@ -656,9 +629,11 @@ export const ossSchema = {
             variable: { type: 'string' },
             keyword: { type: 'string' },
             comment: { type: 'string' },
-            operator: { type: 'string' }
+            operator: { type: 'string' },
+            tag: { type: 'string' },
+            tagBracket: { type: 'string' }
           },
-          required: ['definition', 'property', 'string', 'number', 'atom', 'variable', 'keyword', 'comment', 'operator'],
+          required: ['definition', 'property', 'string', 'number', 'atom', 'variable', 'keyword', 'comment', 'operator', 'tag', 'tagBracket'],
           additionalProperties: false
         },
         searchLineHighlightCurrent: { type: 'string' },

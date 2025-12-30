@@ -51,7 +51,9 @@ const colors = {
     VARIABLE: '#a8c5f0', // Periwinkle - variables flow
     KEYWORD: '#e09fd9', // Orchid - keywords command attention
     COMMENT: '#7a7294', // Muted violet - comments recede
-    OPERATOR: '#b8b0cc' // Pale violet - operators connect
+    OPERATOR: '#b8b0cc', // Pale violet - operators connect
+    TAG: '#7db8f0', // Sky blue - tags are structural
+    TAG_BRACKET: '#7a7294' // Muted violet - brackets recede
   }
 };
 
@@ -348,12 +350,6 @@ const darkPastelTheme = {
     },
     example: {
       iconColor: colors.GRAY_6
-    },
-    shortTab: {
-      color: colors.TEXT_MUTED,
-      bg: 'transparent',
-      hoverColor: colors.TEXT,
-      hoverBg: colors.GRAY_3
     }
   },
 
@@ -370,18 +366,7 @@ const darkPastelTheme = {
     variable: {
       valid: colors.GREEN,
       invalid: colors.RED,
-      prompt: colors.BLUE,
-      info: {
-        color: colors.TEXT,
-        bg: colors.GRAY_2,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
-        editorBg: colors.GRAY_3,
-        iconColor: colors.GRAY_6,
-        editorBorder: colors.GRAY_4,
-        editorFocusBorder: colors.BRAND,
-        editableDisplayHoverBg: colors.GRAY_3,
-        border: colors.GRAY_4
-      }
+      prompt: colors.BLUE
     },
     tokens: {
       definition: colors.CODEMIRROR_TOKENS.DEFINITION,
@@ -392,7 +377,9 @@ const darkPastelTheme = {
       variable: colors.CODEMIRROR_TOKENS.VARIABLE,
       keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
       comment: colors.CODEMIRROR_TOKENS.COMMENT,
-      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR,
+      tag: colors.CODEMIRROR_TOKENS.TAG,
+      tagBracket: colors.CODEMIRROR_TOKENS.TAG_BRACKET
     },
     searchLineHighlightCurrent: `${colors.BRAND}20`,
     searchMatch: colors.YELLOW,

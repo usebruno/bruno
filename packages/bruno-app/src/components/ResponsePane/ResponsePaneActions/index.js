@@ -16,7 +16,7 @@ const StyledMenuIcon = styled.button`
   height: 1.25rem;
   width: 1.5rem;
   border: 1px solid ${(props) => props.theme.workspace.border};
-  color: ${(props) => props.theme.codemirror.variable.info.iconColor};
+  color: ${(props) => props.theme.dropdown.iconColor};
   border-radius: 4px;
 
   &:hover {

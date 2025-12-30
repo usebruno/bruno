@@ -53,7 +53,9 @@ const colors = {
     VARIABLE: '#001080',
     KEYWORD: '#af00db',
     COMMENT: '#008000',
-    OPERATOR: '#000000'
+    OPERATOR: '#000000',
+    TAG: '#800000',
+    TAG_BRACKET: '#800000'
   }
 };
 
@@ -350,12 +352,6 @@ const vscodeLightTheme = {
     },
     example: {
       iconColor: colors.GRAY_7
-    },
-    shortTab: {
-      color: colors.TEXT_SECONDARY,
-      bg: colors.WHITE,
-      hoverColor: colors.TEXT_SECONDARY,
-      hoverBg: colors.GRAY_2
     }
   },
 
@@ -372,18 +368,7 @@ const vscodeLightTheme = {
     variable: {
       valid: colors.GREEN,
       invalid: colors.RED,
-      prompt: colors.BRAND,
-      info: {
-        color: colors.TEXT,
-        bg: colors.WHITE,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
-        editorBg: colors.GRAY_1,
-        iconColor: colors.GRAY_6,
-        editorBorder: colors.BORDER,
-        editorFocusBorder: colors.GRAY_6,
-        editableDisplayHoverBg: 'rgba(0, 0, 0, 0.02)',
-        border: colors.BORDER
-      }
+      prompt: colors.BRAND
     },
     tokens: {
       definition: colors.CODEMIRROR_TOKENS.DEFINITION,
@@ -394,7 +379,9 @@ const vscodeLightTheme = {
       variable: colors.CODEMIRROR_TOKENS.VARIABLE,
       keyword: colors.CODEMIRROR_TOKENS.KEYWORD,
       comment: colors.CODEMIRROR_TOKENS.COMMENT,
-      operator: colors.CODEMIRROR_TOKENS.OPERATOR
+      operator: colors.CODEMIRROR_TOKENS.OPERATOR,
+      tag: colors.CODEMIRROR_TOKENS.TAG,
+      tagBracket: colors.CODEMIRROR_TOKENS.TAG_BRACKET
     },
     searchLineHighlightCurrent: 'rgba(255, 255, 0, 0.2)',
     searchMatch: '#a8ac94',
