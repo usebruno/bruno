@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
-import ErrorMessage from 'components/ErrorMessage';
+import ErrorBanner from 'ui/ErrorBanner';
 import Button from 'ui/Button';
 
 const ExampleNotFound = ({ exampleUid }) => {
@@ -33,7 +33,7 @@ const ExampleNotFound = ({ exampleUid }) => {
 
   return (
     <div className="mt-6 px-6">
-      <ErrorMessage errors={errors} className="mb-4" hideClose={true} />
+      <ErrorBanner errors={errors} className="mb-4" />
       <Button size="md" color="secondary" variant="ghost" onClick={closeTab}>
         Close Tab
       </Button>

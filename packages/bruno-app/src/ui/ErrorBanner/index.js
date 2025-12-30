@@ -2,7 +2,7 @@ import React from 'react';
 import { IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
-const ErrorMessage = ({ errors, onClose, className = '', hideClose = false }) => {
+const ErrorBanner = ({ errors, onClose, className = '' }) => {
   if (!errors || errors.length === 0) return null;
 
   return (
@@ -21,7 +21,7 @@ const ErrorMessage = ({ errors, onClose, className = '', hideClose = false }) =>
             </div>
           ))}
         </div>
-        {onClose && !hideClose && (
+        {onClose && (
           <div
             className="close-button flex-shrink-0 cursor-pointer"
             onClick={onClose}
@@ -34,4 +34,4 @@ const ErrorMessage = ({ errors, onClose, className = '', hideClose = false }) =>
   );
 };
 
-export default ErrorMessage;
+export default ErrorBanner;

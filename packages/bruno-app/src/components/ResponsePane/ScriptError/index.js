@@ -1,5 +1,5 @@
 import React from 'react';
-import ErrorMessage from 'components/ErrorMessage';
+import ErrorBanner from 'ui/ErrorBanner';
 
 const ScriptError = ({ item, onClose }) => {
   const preRequestError = item?.preRequestScriptErrorMessage;
@@ -31,7 +31,7 @@ const ScriptError = ({ item, onClose }) => {
     });
   }
 
-  return <ErrorMessage errors={errors} onClose={onClose} className="mt-4 mb-2" />;
+  return <ErrorBanner errors={errors} onClose={onClose} className="mt-4 mb-2" />;
 };
 
 export default ScriptError;
