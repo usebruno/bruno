@@ -10,12 +10,14 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.primary.solid};
   }
 
-  .tabs {
-    .tab {
+  div.tabs {
+    div.tab {
       cursor: pointer;
       padding: 4px 8px !important;
       font-size: ${(props) => props.theme.font.size.sm};
       border-radius: 4px;
+      border: none !important;
+      border-bottom: none !important;
       
       &:hover {
         background-color: ${(props) => rgba(props.theme.primary.solid, 0.1)};
@@ -27,7 +29,9 @@ const StyledWrapper = styled.div`
             ? rgba(props.theme.primary.solid, 0.2)
             : rgba(props.theme.primary.solid, 0.1);
         }};
-        color: ${(props) => props.theme.primary.solid};
+        color: ${(props) => props.theme.primary.solid} !important;
+        border-bottom: none !important;
+        font-weight: normal !important;
       }
     }
   }
@@ -72,6 +76,11 @@ const StyledWrapper = styled.div`
     &:hover {
       color: ${(props) => props.theme.primary.solid};
     }
+  }
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 `;
 

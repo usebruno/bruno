@@ -11,6 +11,11 @@ const Wrapper = styled.div`
     border: solid 1px ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
   }
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
 `;
 
 export default Wrapper;
