@@ -32,7 +32,6 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
-  const isGrpc = item.type === 'grpc-request';
   const isLoading = ['queued', 'sending'].includes(item.requestState);
 
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
@@ -372,13 +371,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper className="flex items-center w-full">
       <div className="flex items-center h-full min-w-fit">
-        {isGrpc ? (
-          <div className="flex items-center justify-center h-full w-16">
-            <span className="text-xs text-indigo-500 font-bold">gRPC</span>
-          </div>
-        ) : (
-          <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
-        )}
+        <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
       </div>
       <div
         id="request-url"
