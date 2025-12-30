@@ -57,15 +57,15 @@ const Docs = ({ collection }) => {
         <div className="flex flex-row gap-2 items-center justify-center">
           {isEditing ? (
             <>
-              <ActionIcon className="editing-mode" role="tab" onClick={handleDiscardChanges}>
-                <IconX className="cursor-pointer" size={16} strokeWidth={1.5} />
-              </ActionIcon>
-              <Button type="submit" onClick={onSave}>
+              <Button type="button" color="secondary" onClick={handleDiscardChanges}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={onSave}>
                 Save
               </Button>
             </>
           ) : (
-            <ActionIcon className="editing-mode" role="tab" onClick={toggleViewMode}>
+            <ActionIcon className="editing-mode" onClick={toggleViewMode}>
               <IconEdit className="cursor-pointer" size={16} strokeWidth={1.5} />
             </ActionIcon>
           )}
