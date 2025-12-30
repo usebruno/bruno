@@ -2,7 +2,7 @@ import React from 'react';
 import { useTheme } from 'styled-components';
 import { palette as darkPalette } from '../dark/dark';
 import { palette as lightPalette } from '../light/light';
-import { ColorSwatch, ColorSection } from '../PaletteViewer/components';
+import { ColorSection } from '../PaletteViewer/components';
 
 export default {
   title: 'Design System/Theme',

@@ -474,7 +474,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .copy-success {
-    color: ${(props) => props.theme.accents.GREEN} !important;
+    color: ${(props) => props.theme.colors.text.green} !important;
   }
 
   /* Read-only Note */
@@ -487,7 +487,7 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-warning-note {
     font-size: 0.75rem;
-    color: ${(props) => props.theme.accents.RED};
+    color: ${(props) => props.theme.colors.text.danger};
     margin-top: 0.375rem;
     line-height: 1.25rem;
   }
