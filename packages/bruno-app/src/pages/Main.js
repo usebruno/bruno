@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useRef } from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { AppProvider } from 'providers/App';
@@ -29,6 +29,8 @@ import { setupPolyfills } from 'utils/common/setupPolyfills';
 setupPolyfills();
 
 function Main({ children }) {
+  const rendererReadyCalled = useRef(false);
+
   if (!window.ipcRenderer) {
     return (
       <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-10 my-10 rounded relative" role="alert">
@@ -45,18 +47,35 @@ function Main({ children }) {
   return (
     <ErrorBoundary>
       <Provider store={ReduxStore}>
-        <PersistGate loading={<LoadingScreen />} persistor={persistor}>
-          <ThemeProvider>
-            <ToastProvider>
-              <PromptVariablesProvider>
-                <AppProvider>
-                  <HotkeysProvider>
-                    {children}
-                  </HotkeysProvider>
-                </AppProvider>
-              </PromptVariablesProvider>
-            </ToastProvider>
-          </ThemeProvider>
+        <PersistGate persistor={persistor}>
+          {(bootstrapped) => {
+            // Call renderer:ready only once after persistence is complete (bootstrapped === true)
+            // This ensures activeWorkspaceUid is read from the rehydrated state, not the initial default value
+            if (bootstrapped && window.ipcRenderer && !rendererReadyCalled.current) {
+              rendererReadyCalled.current = true;
+              window.ipcRenderer.invoke('renderer:ready').catch((error) => {
+                console.error('Error calling renderer:ready:', error);
+              });
+            }
+
+            if (!bootstrapped) {
+              return <LoadingScreen />;
+            }
+
+            return (
+              <ThemeProvider>
+                <ToastProvider>
+                  <PromptVariablesProvider>
+                    <AppProvider>
+                      <HotkeysProvider>
+                        {children}
+                      </HotkeysProvider>
+                    </AppProvider>
+                  </PromptVariablesProvider>
+                </ToastProvider>
+              </ThemeProvider>
+            );
+          }}
         </PersistGate>
       </Provider>
     </ErrorBoundary>

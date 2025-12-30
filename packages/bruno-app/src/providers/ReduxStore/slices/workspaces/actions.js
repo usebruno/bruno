@@ -356,6 +356,51 @@ export const loadLastOpenedWorkspaces = () => {
   };
 };
 
+// Helper function to determine which workspace should be active and switch to it
+// This runs after all workspace collections are loaded to avoid race conditions
+const ensureActiveWorkspace = (dispatch, getState) => {
+  const state = getState();
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+
+  // Check if all workspaces with pathname have finished loading their collections
+  // Workspaces without pathname (like default) don't need to load collections
+  const workspacesToLoad = workspaces.filter((w) => w.pathname);
+  const allWorkspacesLoaded = workspacesToLoad.length === 0 || workspacesToLoad.every((workspace) => {
+    const loadingState = workspace.loadingState;
+    // Consider loaded if: explicitly 'loaded' or 'error'
+    // If loadingState is undefined, the workspace hasn't started loading yet, so it's not loaded
+    return loadingState === 'loaded' || loadingState === 'error';
+  });
+
+  // Only proceed if all workspaces have finished loading
+  if (!allWorkspacesLoaded) {
+    return;
+  }
+
+  // Check if the active workspace exists
+  const activeWorkspaceExists = activeWorkspaceUid
+    ? workspaces.some((w) => w.uid === activeWorkspaceUid)
+    : false;
+
+  // Determine which workspace should be active
+  let targetWorkspaceUid = null;
+
+  if (activeWorkspaceUid && activeWorkspaceExists) {
+    // If the rehydrated active workspace exists, use it
+    targetWorkspaceUid = activeWorkspaceUid;
+  } else {
+    // If no active workspace or it doesn't exist, find the first available workspace
+    // Prefer default workspace if it exists, otherwise use the first workspace
+    const defaultWorkspace = workspaces.find((w) => w.uid === 'default');
+    targetWorkspaceUid = defaultWorkspace ? defaultWorkspace.uid : (workspaces[0]?.uid || null);
+  }
+
+  // Switch to the target workspace if we have one and it's different from current
+  if (targetWorkspaceUid && targetWorkspaceUid !== activeWorkspaceUid) {
+    dispatch(switchWorkspace(targetWorkspaceUid));
+  }
+};
+
 export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfig) => {
   return async (dispatch, getState) => {
     dispatch(createWorkspace({
@@ -367,15 +412,12 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     try {
       await dispatch(loadWorkspaceCollections(workspaceUid));
     } catch (error) {
+      // Even if loading fails, mark as loaded so we can proceed with switching
     }
 
-    // If this is the default workspace or no workspace is active yet, switch to it
-    const state = getState();
-    const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
-
-    if (!activeWorkspaceUid || workspaceConfig.type === 'default') {
-      dispatch(switchWorkspace(workspaceUid));
-    }
+    // After collections are loaded, check if we should switch to active workspace
+    // This ensures all workspace collections are loaded before switching
+    ensureActiveWorkspace(dispatch, getState);
   };
 };
 
