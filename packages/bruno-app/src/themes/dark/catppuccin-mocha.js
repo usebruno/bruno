@@ -561,8 +561,8 @@ const catppuccinMochaTheme = {
   examples: {
     buttonBg: 'rgba(203, 166, 247, 0.1)',
     buttonColor: colors.MAUVE,
-    buttonText: colors.CRUST,
-    buttonIconColor: colors.CRUST,
+    buttonText: colors.TEXT,
+    buttonIconColor: colors.TEXT,
     border: colors.SURFACE1,
     urlBar: {
       border: colors.SURFACE0,

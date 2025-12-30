@@ -561,8 +561,8 @@ const catppuccinFrappeTheme = {
   examples: {
     buttonBg: 'rgba(202, 158, 230, 0.1)',
     buttonColor: colors.MAUVE,
-    buttonText: colors.CRUST,
-    buttonIconColor: colors.CRUST,
+    buttonText: colors.TEXT,
+    buttonIconColor: colors.TEXT,
     border: colors.SURFACE1,
     urlBar: {
       border: colors.SURFACE0,

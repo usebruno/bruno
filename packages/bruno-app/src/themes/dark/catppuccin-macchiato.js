@@ -561,8 +561,8 @@ const catppuccinMacchiatoTheme = {
   examples: {
     buttonBg: 'rgba(198, 160, 246, 0.1)',
     buttonColor: colors.MAUVE,
-    buttonText: colors.CRUST,
-    buttonIconColor: colors.CRUST,
+    buttonText: colors.TEXT,
+    buttonIconColor: colors.TEXT,
     border: colors.SURFACE1,
     urlBar: {
       border: colors.SURFACE0,
