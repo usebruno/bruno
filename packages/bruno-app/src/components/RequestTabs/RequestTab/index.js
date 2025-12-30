@@ -320,7 +320,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   if (!item) {
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container px-1"
+        className="flex items-center justify-between tab-container"
         onMouseUp={(e) => {
           if (e.button === 1) {
             e.preventDefault();

@@ -58,7 +58,7 @@ const ExampleTab = ({ tab, collection }) => {
   if (!item || !example) {
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container px-3"
+        className="flex items-center justify-between tab-container"
         onMouseUp={(e) => {
           if (e.button === 1) {
             e.preventDefault();
