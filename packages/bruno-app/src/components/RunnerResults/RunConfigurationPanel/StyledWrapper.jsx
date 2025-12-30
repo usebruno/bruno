@@ -25,29 +25,12 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
     }
-
-    .btn-select-all,
-    .btn-reset {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: ${(props) => props.theme.font.size.base};
-      color: ${(props) => props.theme.textLink};
-      background: none;
-      border: none;
-      padding: 0.25rem 0.5rem;
-      cursor: pointer;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
   }
 
   .request-list {
     flex: 1;
     overflow-y: auto;
-      
+
     &::-webkit-scrollbar {
       width: 6px;
     }
