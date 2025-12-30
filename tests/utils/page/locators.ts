@@ -201,3 +201,16 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     tabCount: () => page.getByTestId('tab-response-count')
   }
 });
+
+/**
+ * Builds locators for sandbox mode settings
+ * @param page - The Playwright page object
+ * @returns Object with locators for sandbox elements
+ */
+export const buildSandboxLocators = (page: Page) => ({
+  sandboxModeSelector: () => page.getByTestId('sandbox-mode-selector'),
+  safeModeRadio: () => page.getByTestId('sandbox-mode-safe'),
+  developerModeRadio: () => page.getByTestId('sandbox-mode-developer'),
+  jsSandboxHeading: () => page.getByText('JavaScript Sandbox'),
+  saveButton: () => page.getByRole('button', { name: 'Save' })
+});
