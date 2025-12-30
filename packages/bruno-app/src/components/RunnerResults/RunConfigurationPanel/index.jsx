@@ -107,7 +107,7 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
 
       <div className="checkbox-container" onClick={() => onSelect(item)}>
         <div className="checkbox">
-          {isSelected && <IconCheck size={12} />}
+          {isSelected && <IconCheck className="checkbox-icon" size={12} strokeWidth={3} />}
         </div>
       </div>
 
