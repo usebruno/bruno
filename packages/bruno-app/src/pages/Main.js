@@ -49,8 +49,6 @@ function Main({ children }) {
       <Provider store={ReduxStore}>
         <PersistGate persistor={persistor}>
           {(bootstrapped) => {
-            // Call renderer:ready only once after persistence is complete (bootstrapped === true)
-            // This ensures activeWorkspaceUid is read from the rehydrated state, not the initial default value
             if (bootstrapped && window.ipcRenderer && !rendererReadyCalled.current) {
               rendererReadyCalled.current = true;
               window.ipcRenderer.invoke('renderer:ready').catch((error) => {
