@@ -66,6 +66,11 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.primary};
     user-select: none;
   }
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
 `;
 
 export default Wrapper;

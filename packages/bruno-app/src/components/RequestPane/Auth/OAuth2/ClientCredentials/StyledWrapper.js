@@ -62,6 +62,11 @@ const Wrapper = styled.div`
       padding: 0.2rem 0.6rem !important;
     }
   }
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
 `;
 
 export default Wrapper;
