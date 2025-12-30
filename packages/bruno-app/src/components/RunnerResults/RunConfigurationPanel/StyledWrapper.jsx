@@ -73,13 +73,13 @@ const StyledWrapper = styled.div`
       background-color: ${(props) => props.theme.background.surface0};
 
       .checkbox {
-          background-color: ${(props) => props.theme.primary.solid};
-          border-color: ${(props) => props.theme.primary.solid};
-        }
+        background-color: ${(props) => props.theme.primary.solid};
+        border-color: ${(props) => props.theme.primary.solid};
+      }
 
       .checkbox-icon {
-          color: ${(props) => props.theme.bg};
-        }
+        color: ${(props) => props.theme.bg};
+      }
     }
 
     &.is-dragging {
