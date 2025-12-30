@@ -51,7 +51,7 @@ const {
 } = require('../utils/filesystem');
 const { openCollectionDialog, openCollectionsByPathname } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
-const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
+const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
@@ -348,6 +348,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
+
+      // Sync example UIDs cache to maintain consistency when examples are added/deleted/reordered
+      syncExampleUidsCache(pathname, request.examples);
 
       const content = await stringifyRequestViaWorker(request, { format });
       await writeFile(pathname, content);

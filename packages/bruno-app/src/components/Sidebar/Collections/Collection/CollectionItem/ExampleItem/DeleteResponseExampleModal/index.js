@@ -4,11 +4,14 @@ import Portal from 'components/Portal';
 import { useDispatch } from 'react-redux';
 import { deleteResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
 const DeleteResponseExampleModal = ({ onClose, example, item, collection }) => {
   const dispatch = useDispatch();
 
-  const onConfirm = () => {
+  const onConfirm = (e) => {
+    e.stopPropagation();
+    dispatch(closeTabs({ tabUids: [example.uid] }));
     dispatch(deleteResponseExample({
       itemUid: item.uid,
       collectionUid: collection.uid,
