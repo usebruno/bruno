@@ -70,7 +70,16 @@ const StyledWrapper = styled.div`
     transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 
     &.is-selected {
-      background-color: ${(props) => props.theme.background.surface2};
+      background-color: ${(props) => props.theme.background.surface0};
+
+      .checkbox {
+        background-color: ${(props) => props.theme.primary.solid};
+        border-color: ${(props) => props.theme.primary.solid};
+      }
+
+      .checkbox-icon {
+        color: ${(props) => props.theme.bg};
+      }
     }
 
     &.is-dragging {
@@ -144,7 +153,7 @@ const StyledWrapper = styled.div`
       .checkbox {
         width: 1rem;
         height: 1rem;
-        border: 1px solid ${(props) => props.theme.sidebar.dragbar};
+        border: 1px solid ${(props) => props.theme.border.border2};
         border-radius: 3px;
         display: flex;
         align-items: center;
@@ -152,7 +161,7 @@ const StyledWrapper = styled.div`
         transition: all 0.1s ease;
 
         &:hover {
-          border-color: ${(props) => props.theme.textLink};
+          border-color: ${(props) => props.theme.primary.solid};
         }
       }
     }

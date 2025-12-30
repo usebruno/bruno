@@ -52,6 +52,10 @@ const Wrapper = styled.div`
   .button-sm {
     font-size: ${(props) => props.theme.font.size.sm};
   }
+
+  .run-config-panel, .run-config-option {
+    border-color: ${(props) => props.theme.background.surface1};
+  }
 `;
 
 export default Wrapper;

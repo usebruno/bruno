@@ -303,7 +303,7 @@ export default function RunnerResults({ collection }) {
             <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
             {/* Configure requests option */}
-            <div className="flex flex-col border-b pb-6 mb-6 border-gray-200 dark:border-gray-700">
+            <div className="run-config-option flex flex-col border-b pb-6 mb-6">
               <div className="flex gap-2">
                 <input
                   className="cursor-pointer"
@@ -335,7 +335,7 @@ export default function RunnerResults({ collection }) {
           </div>
 
           {configureMode && (
-            <div className="w-1/2 border-l border-gray-200 dark:border-gray-700">
+            <div className="run-config-panel w-1/2 border-l">
               <RunConfigurationPanel
                 collection={collection}
                 selectedItems={selectedRequestItems}
