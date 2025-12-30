@@ -65,6 +65,13 @@ const vscodeDarkTheme = {
   textLink: colors.TEXT_LINK,
   bg: colors.EDITOR_BG,
 
+  primary: {
+    solid: colors.BRAND,
+    text: colors.TEXT_LINK,
+    strong: '#0098ff',
+    subtle: '#005a9e'
+  },
+
   accents: {
     primary: colors.BRAND
   },

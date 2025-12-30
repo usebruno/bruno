@@ -56,6 +56,13 @@ const catppuccinLatteTheme = {
   textLink: colors.BLUE,
   bg: colors.BASE,
 
+  primary: {
+    solid: colors.MAUVE,
+    text: colors.MAUVE,
+    strong: colors.MAUVE,
+    subtle: colors.MAUVE
+  },
+
   accents: {
     primary: colors.MAUVE
   },

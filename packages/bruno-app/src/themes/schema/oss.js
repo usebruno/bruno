@@ -7,6 +7,18 @@ export const ossSchema = {
     textLink: { type: 'string', description: 'Link text color' },
     bg: { type: 'string', description: 'Background color' },
 
+    primary: {
+      type: 'object',
+      properties: {
+        solid: { type: 'string', description: 'Buttons, toggles, active pills' },
+        text: { type: 'string', description: 'Links, emphasized text' },
+        strong: { type: 'string', description: 'Thick borders, tab underlines' },
+        subtle: { type: 'string', description: 'Focus rings, subtle outlines' }
+      },
+      required: ['solid', 'text', 'strong', 'subtle'],
+      additionalProperties: false
+    },
+
     accents: {
       type: 'object',
       properties: {
@@ -1114,7 +1126,7 @@ export const ossSchema = {
     }
   },
   required: [
-    'mode', 'brand', 'text', 'textLink', 'bg', 'accents', 'background', 'overlay', 'font', 'shadow', 'border', 'colors', 'input',
+    'mode', 'brand', 'text', 'textLink', 'bg', 'primary', 'accents', 'background', 'overlay', 'font', 'shadow', 'border', 'colors', 'input',
     'sidebar', 'dropdown', 'workspace', 'request',
     'requestTabPanel', 'notifications', 'modal', 'button', 'button2', 'tabs',
     'requestTabs', 'codemirror', 'table', 'plainGrid', 'scrollbar', 'dragAndDrop',
