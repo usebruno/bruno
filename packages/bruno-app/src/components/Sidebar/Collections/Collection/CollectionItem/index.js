@@ -312,6 +312,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           leftSection: IconPlayerPlay,
           label: 'Run',
           onClick: () => setRunCollectionModalOpen(true)
+        },
+        {
+          id: 'ignore-folder',
+          leftSection: IconEyeOff,
+          label: 'Ignore',
+          onClick: handleIgnoreFolder
         }
       );
     }
@@ -322,12 +328,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         leftSection: IconCopy,
         label: 'Clone',
         onClick: () => setCloneItemModalOpen(true)
-      },
-      {
-        id: 'ignore-folder',
-        leftSection: IconEyeOff,
-        label: 'Ignore',
-        onClick: handleIgnoreFolder
       },
       {
         id: 'copy',
@@ -565,7 +565,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (confirmIgnore) {
       // 1. Get current list and filter out any existing nulls or garbage
       const currentIgnore = (collection?.brunoConfig?.ignore || []).filter(Boolean);
-
       // 2. Only add the name if it's NOT already in the list (prevents duplicates)
       if (!currentIgnore.includes(folderName)) {
         const updatedIgnore = [...currentIgnore, folderName];

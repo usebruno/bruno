@@ -166,19 +166,29 @@ const Collection = ({ collection, searchText }) => {
     });
   };
 
-  const handleIgnoreFolder = (folderName) => {
-    const confirmIgnore = window.confirm(`Are you sure you want to ignore the folder "${folderName}"?`);
+  const handleIgnoreFolder = () => {
+    const folderName = collection.name; // Automatically get the name from the collection object
+    if (!folderName) return;
+
+    const confirmIgnore = window.confirm(`Are you sure you want to ignore the collection "${folderName}"?`);
     if (confirmIgnore) {
-      const currentIgnore = collection.brunoConfig?.ignore || [];
-      dispatch(
-        brunoConfigUpdateEvent({
-          collectionUid: collection.uid,
-          brunoConfig: {
-            ...collection.brunoConfig,
-            ignore: [...currentIgnore, folderName]
-          }
-        })
-      );
+      // 1. Get current list and filter out any existing nulls
+      const currentIgnore = (collection.brunoConfig?.ignore || []).filter(Boolean);
+
+      // 2. Only add the name if it's NOT already in the list (prevents duplicates)
+      if (!currentIgnore.includes(folderName)) {
+        const updatedIgnore = [...currentIgnore, folderName];
+
+        dispatch(
+          brunoConfigUpdateEvent({
+            collectionUid: collection.uid,
+            brunoConfig: {
+              ...collection.brunoConfig,
+              ignore: updatedIgnore
+            }
+          })
+        );
+      }
     }
   };
 
@@ -331,11 +341,9 @@ const Collection = ({ collection, searchText }) => {
     },
     {
       id: 'ignore-folder',
-      leftSection: IconEyeOff, // You need to import this icon at the top of the file
+      leftSection: IconEyeOff,
       label: 'Ignore',
-      onClick: () => {
-        handleIgnoreFolder();
-      }
+      onClick: handleIgnoreFolder
     },
     ...(hasCopiedItems
       ? [
@@ -489,4 +497,3 @@ const Collection = ({ collection, searchText }) => {
 };
 
 export default Collection;
-// ignore feature
