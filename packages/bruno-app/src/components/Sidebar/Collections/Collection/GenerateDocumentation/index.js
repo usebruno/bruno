@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from 'components/Modal';
-import { IconFileText, IconCheck, IconInfoCircle, IconAlertTriangle, IconLoader2 } from '@tabler/icons';
+import { IconCheck, IconInfoCircle, IconAlertTriangle, IconLoader2 } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { cloneDeep } from 'lodash';
 import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
@@ -12,6 +12,7 @@ import * as FileSaver from 'file-saver';
 import jsyaml from 'js-yaml';
 import toast from 'react-hot-toast';
 import { useApp } from 'providers/App';
+import { escapeHtml } from 'utils/response';
 
 const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const { version } = useApp();
@@ -45,12 +46,14 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
         .replace(/`/g, '\\`')
         .replace(/\$/g, '\\$');
 
+      const escapedCollectionName = escapeHtml(collection.name);
+
       const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${collection.name} - API Documentation</title>
+    <title>${escapedCollectionName} - API Documentation</title>
     <style>
         body {
             margin: 0;
