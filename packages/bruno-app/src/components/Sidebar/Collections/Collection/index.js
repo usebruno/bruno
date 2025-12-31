@@ -19,9 +19,10 @@ import {
   IconX,
   IconSettings,
   IconTerminal2,
-  IconFolder
+  IconFolder,
+  IconEyeOff
 } from '@tabler/icons';
-import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection, collapseFullCollection, brunoConfigUpdateEvent } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -163,6 +164,32 @@ const Collection = ({ collection, searchText }) => {
       console.error('Error opening the folder', error);
       toast.error('Error opening the folder');
     });
+  };
+
+  const handleIgnoreFolder = () => {
+    const folderName = collection.name; // Automatically get the name from the collection object
+    if (!folderName) return;
+
+    const confirmIgnore = window.confirm(`Are you sure you want to ignore the collection "${folderName}"?`);
+    if (confirmIgnore) {
+      // 1. Get current list and filter out any existing nulls
+      const currentIgnore = (collection.brunoConfig?.ignore || []).filter(Boolean);
+
+      // 2. Only add the name if it's NOT already in the list (prevents duplicates)
+      if (!currentIgnore.includes(folderName)) {
+        const updatedIgnore = [...currentIgnore, folderName];
+
+        dispatch(
+          brunoConfigUpdateEvent({
+            collectionUid: collection.uid,
+            brunoConfig: {
+              ...collection.brunoConfig,
+              ignore: updatedIgnore
+            }
+          })
+        );
+      }
+    }
   };
 
   const handlePasteItem = () => {
@@ -311,6 +338,12 @@ const Collection = ({ collection, searchText }) => {
       onClick: () => {
         setShowCloneCollectionModalOpen(true);
       }
+    },
+    {
+      id: 'ignore-folder',
+      leftSection: IconEyeOff,
+      label: 'Ignore',
+      onClick: handleIgnoreFolder
     },
     ...(hasCopiedItems
       ? [

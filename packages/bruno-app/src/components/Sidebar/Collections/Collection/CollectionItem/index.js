@@ -18,12 +18,13 @@ import {
   IconTrash,
   IconSettings,
   IconInfoCircle,
-  IconTerminal2
+  IconTerminal2,
+  IconEyeOff
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem, addResponseExample, brunoConfigUpdateEvent } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest } from 'providers/ReduxStore/slices/app';
@@ -311,6 +312,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           leftSection: IconPlayerPlay,
           label: 'Run',
           onClick: () => setRunCollectionModalOpen(true)
+        },
+        {
+          id: 'ignore-folder',
+          leftSection: IconEyeOff,
+          label: 'Ignore',
+          onClick: handleIgnoreFolder
         }
       );
     }
@@ -549,6 +556,30 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       .catch((err) => {
         toast.error(err ? err.message : 'An error occurred while pasting the item');
       });
+  };
+  const handleIgnoreFolder = () => {
+    const folderName = item?.name;
+    if (!folderName) return;
+
+    const confirmIgnore = window.confirm(`Are you sure you want to ignore "${folderName}"?`);
+    if (confirmIgnore) {
+      // 1. Get current list and filter out any existing nulls or garbage
+      const currentIgnore = (collection?.brunoConfig?.ignore || []).filter(Boolean);
+      // 2. Only add the name if it's NOT already in the list (prevents duplicates)
+      if (!currentIgnore.includes(folderName)) {
+        const updatedIgnore = [...currentIgnore, folderName];
+
+        dispatch(
+          brunoConfigUpdateEvent({
+            collectionUid: collectionUid,
+            brunoConfig: {
+              ...collection.brunoConfig,
+              ignore: updatedIgnore
+            }
+          })
+        );
+      }
+    }
   };
 
   // Keyboard shortcuts handler
