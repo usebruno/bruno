@@ -135,6 +135,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
+                readOnly={true}
                 value={formik.values.collectionLocation || ''}
                 onClick={browse}
                 onChange={(e) => {

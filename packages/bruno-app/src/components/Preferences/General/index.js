@@ -367,6 +367,7 @@ const General = ({ close }) => {
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
+            readOnly={true}
             onChange={formik.handleChange}
             value={formik.values.defaultCollectionLocation || ''}
             onClick={browseDefaultLocation}

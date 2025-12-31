@@ -38,8 +38,8 @@ const ConfirmRequestClose = ({ item, example, onCancel, onCloseWithoutSave, onSa
             Don't Save
           </Button>
         </div>
-        <div>
-          <Button className="mr-2" color="secondary" variant="ghost" onClick={onCancel}>
+        <div className="flex gap-2">
+          <Button size="sm" color="secondary" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
           <Button onClick={onSaveAndClose}>Save</Button>
