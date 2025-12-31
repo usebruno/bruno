@@ -273,8 +273,31 @@ const GlobalStyle = createGlobalStyle`
     z-index: 10;
   }
 
+  // Autocomplete hints dropdown container
   .CodeMirror-hints {
     z-index: 50 !important;
+    background: ${(props) => props.theme.dropdown.bg};
+    ${(props) =>
+      props.theme.dropdown.border && props.theme.dropdown.border !== 'none'
+        ? `border: 1px solid ${props.theme.dropdown.border};`
+        : ''}
+    ${(props) =>
+      props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
+        ? `box-shadow: ${props.theme.dropdown.shadow};`
+        : ''}
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.25rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-family: inherit;
+  }
+
+  // Individual hint items
+  .CodeMirror-hint {
+    color: ${(props) => props.theme.dropdown.color};
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    cursor: pointer;
   }
 
   .CodeMirror-brunoVarInfo :first-child {
@@ -492,9 +515,10 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1.25rem;
   }
 
+  // Active/selected hint - using theme colors instead of hardcoded blue
   .CodeMirror-hint-active {
-    background: #08f !important;
-    color: #fff !important;
+    background: ${(props) => props.theme.dropdown.hoverBg} !important;
+    color: ${(props) => props.theme.dropdown.color} !important;
   }
   
   .hovered-link.CodeMirror-link {
