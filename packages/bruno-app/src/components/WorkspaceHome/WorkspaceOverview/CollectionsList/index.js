@@ -195,6 +195,7 @@ const CollectionsList = ({ workspace }) => {
         handleConfirm={confirmRemoveCollection}
         confirmText={isDelete ? 'Delete' : 'Remove'}
         cancelText="Cancel"
+        confirmButtonColor={isDelete ? 'warning' : 'primary'}
         style="new"
       >
         <p className="text-gray-600 dark:text-gray-300">

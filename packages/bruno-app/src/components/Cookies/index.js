@@ -23,12 +23,12 @@ const ClearDomainCookiesModal = ({ onClose, domain, onClear }) => (
 
     <div className="flex justify-between mt-6">
       <div>
-        <Button size="sm" color="secondary" variant="ghost" onClick={onClose}>
+        <Button color="secondary" variant="ghost" onClick={onClose}>
           Close
         </Button>
       </div>
       <div>
-        <Button size="sm" color="danger" onClick={onClear}>
+        <Button color="danger" onClick={onClear}>
           Clear All
         </Button>
       </div>
@@ -48,12 +48,12 @@ const DeleteCookieModal = ({ onClose, cookieName, onDelete }) => (
 
     <div className="flex justify-between mt-6">
       <div>
-        <Button size="sm" color="secondary" variant="ghost" onClick={onClose}>
+        <Button color="secondary" variant="ghost" onClick={onClose}>
           Close
         </Button>
       </div>
       <div>
-        <Button size="sm" color="danger" onClick={onDelete}>
+        <Button color="danger" onClick={onDelete}>
           Delete
         </Button>
       </div>
