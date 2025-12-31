@@ -567,7 +567,11 @@ describe('generateSnippet with OAuth2 authentication', () => {
       if (requestAuth?.mode === 'oauth2') {
         const oauth2Config = requestAuth.oauth2 || {};
         const tokenPlacement = oauth2Config.tokenPlacement || 'header';
-        const tokenHeaderPrefix = oauth2Config.tokenHeaderPrefix || 'Bearer';
+        // Use the actual value from config, defaulting to 'Bearer' only if undefined
+        // Empty string should be preserved to test no-prefix scenarios
+        const tokenHeaderPrefix = oauth2Config.tokenHeaderPrefix !== undefined
+          ? oauth2Config.tokenHeaderPrefix
+          : 'Bearer';
         let accessToken = oauth2Config.accessToken || '<access_token>';
 
         // If collection and item are provided, try to look up stored credentials
