@@ -198,10 +198,29 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
   return new Promise((resolve, reject) => {
     const itemsToSave = [];
+    const localVarsToSave = [];
+
     each(items, (item) => {
       const collection = findCollectionByUid(collections, item.collectionUid);
       if (collection) {
         const itemToSave = transformRequestToSaveToFilesystem(item);
+
+        // Handle non-persistent variables
+        const allPreRequestVars = get(itemToSave, 'request.vars.req', []);
+        const nonPersistentVars = filter(allPreRequestVars, (v) => v.persist === false);
+
+        // For .bru file: keep all vars, but clear values for non-persistent ones
+        // This way the variable structure is visible in version control but value is local
+        const varsForBruFile = allPreRequestVars.map((v) => {
+          const { persist, ...rest } = v;
+          if (persist === false) {
+            // Save structure with sentinel to .bru file
+            return { ...rest, value: '__BRUNO_LOCAL__' };
+          }
+          return rest;
+        });
+        set(itemToSave, 'request.vars.req', varsForBruFile);
+
         const itemIsValid = itemSchema.validateSync(itemToSave);
         if (itemIsValid) {
           itemsToSave.push({
@@ -209,6 +228,13 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
             pathname: item.pathname,
             format: collection.format
           });
+
+          if (nonPersistentVars.length > 0) {
+            localVarsToSave.push({
+              pathname: item.pathname,
+              vars: nonPersistentVars
+            });
+          }
         }
       }
     });
@@ -217,6 +243,13 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:save-multiple-requests', itemsToSave)
+      .then(() => {
+        // Save local vars for all items
+        const localVarsPromises = localVarsToSave.map((lv) =>
+          ipcRenderer.invoke('renderer:save-local-vars', lv.pathname, lv.vars)
+        );
+        return Promise.all(localVarsPromises);
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save requests!');
