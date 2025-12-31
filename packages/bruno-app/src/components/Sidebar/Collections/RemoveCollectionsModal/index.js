@@ -50,6 +50,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
   const dispatch = useDispatch();
   const allCollections = useSelector((state) => state.collections.collections || []);
   const [showAllCollections, setShowAllCollections] = useState(false);
+  const [deleteFromDisk, setDeleteFromDisk] = useState(false);
 
   const allDrafts = useMemo(() => {
     const requestDrafts = [];
@@ -111,11 +112,11 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
     = allDrafts.collectionDrafts.length > 0 || allDrafts.folderDrafts.length > 0 || allDrafts.requestDrafts.length > 0;
 
   const handleCloseAllCollections = () => {
-    const removalPromises = collectionUids.map((uid) => dispatch(removeCollection(uid)));
+    const removalPromises = collectionUids.map((uid) => dispatch(removeCollection(uid, deleteFromDisk)));
 
     Promise.all(removalPromises)
       .then(() => {
-        toast.success('Closed all collections');
+        toast.success(deleteFromDisk ? 'Deleted all collections' : 'Closed all collections');
       })
       .catch((error) => {
         console.error('Error closing collections:', error);
@@ -187,11 +188,31 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
     </span>
   ) : null;
 
+  const deleteCheckbox = (
+    <div className="delete-checkbox-container mt-4">
+      <label className="flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          checked={deleteFromDisk}
+          onChange={(e) => setDeleteFromDisk(e.target.checked)}
+        />
+        <span className="ml-2">Also delete {hasMultipleCollections ? 'collections' : 'collection'} from filesystem</span>
+      </label>
+    </div>
+  );
+
+  const deleteWarning = deleteFromDisk && (
+    <div className="delete-warning mt-3">
+      <IconAlertTriangle size={16} strokeWidth={1.5} />
+      <span>This action is permanent and cannot be undone. The collection {hasMultipleCollections ? 'folders' : 'folder'} and all {hasMultipleCollections ? 'their' : 'its'} contents will be deleted from your filesystem.</span>
+    </div>
+  );
+
   return (
     <Portal>
       <Modal
         size="md"
-        title="Close all collections"
+        title={deleteFromDisk ? 'Delete all collections' : 'Close all collections'}
         disableEscapeKey={hasUnsavedChanges}
         disableCloseOnOutsideClick={hasUnsavedChanges}
         handleCancel={handleCancel}
@@ -208,9 +229,6 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                 Do you want to save changes you made to the following{' '}
                 {collectionsWithUnsavedChanges.length === 1 ? 'collection' : 'collections'}?
               </div>
-              <div className="mt-2 text-xs text-gray-500">
-                Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
-              </div>
 
               <div className="mt-4">
                 <div className="collections-list-container">
@@ -225,10 +243,19 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                 </div>
               </div>
 
+              {deleteCheckbox}
+              {deleteWarning}
+
+              {!deleteFromDisk && (
+                <div className="mt-3 text-xs text-muted">
+                  Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
+                </div>
+              )}
+
               <div className="flex justify-between mt-6">
                 <div>
                   <Button size="sm" color="danger" onClick={handleDiscard}>
-                    Discard and Close
+                    {deleteFromDisk ? 'Discard and Delete' : 'Discard and Close'}
                   </Button>
                 </div>
                 <div>
@@ -236,7 +263,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                     Cancel
                   </Button>
                   <Button size="sm" onClick={handleSave}>
-                    Save and Close
+                    {deleteFromDisk ? 'Save and Delete' : 'Save and Close'}
                   </Button>
                 </div>
               </div>
@@ -252,15 +279,24 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                   </>
                 )}
               </div>
-              <div className="mt-4 text-xs text-gray-500">
-                Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
-              </div>
+
+              {deleteCheckbox}
+              {deleteWarning}
+
+              {!deleteFromDisk && (
+                <div className="mt-3 text-xs text-muted">
+                  Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
+                </div>
+              )}
+
               <div className="flex justify-end mt-6">
                 <Button size="sm" color="secondary" variant="ghost" onClick={handleCancel} className="mr-2" data-testid="modal-close-button">
                   Cancel
                 </Button>
-                <Button size="sm" onClick={handleCloseAllCollections}>
-                  {hasMultipleCollections ? 'Close All' : 'Close'}
+                <Button size="sm" color={deleteFromDisk ? 'danger' : 'primary'} onClick={handleCloseAllCollections}>
+                  {deleteFromDisk
+                    ? (hasMultipleCollections ? 'Delete All' : 'Delete')
+                    : (hasMultipleCollections ? 'Close All' : 'Close')}
                 </Button>
               </div>
             </>

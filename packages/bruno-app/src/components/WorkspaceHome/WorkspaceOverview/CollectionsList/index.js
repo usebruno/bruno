@@ -8,6 +8,7 @@ import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import RenameCollection from 'components/Sidebar/Collections/Collection/RenameCollection';
+import RemoveCollection from 'components/Sidebar/Collections/Collection/RemoveCollection';
 import ShareCollection from 'components/ShareCollection';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
@@ -64,35 +65,6 @@ const CollectionsList = ({ workspace }) => {
       };
     });
   }, [workspace.collections, collections]);
-
-  const isInternalCollection = (collection) => {
-    if (!workspace.pathname || !collection.pathname) return false;
-    const workspaceCollectionsFolder = normalizePath(`${workspace.pathname}/collections`);
-    const collectionPath = normalizePath(collection.pathname);
-    return collectionPath.startsWith(workspaceCollectionsFolder);
-  };
-
-  const getCollectionWorkspaceInfo = (collection) => {
-    if (Object.prototype.hasOwnProperty.call(collection, 'isGitBacked')) {
-      return {
-        isGitBacked: collection.isGitBacked,
-        gitRemoteUrl: collection.gitRemoteUrl,
-        isLoaded: collection.isLoaded !== false,
-        isInternal: isInternalCollection(collection)
-      };
-    }
-
-    const workspaceCollection = workspace.collections?.find(
-      (wc) => normalizePath(collection.pathname) === normalizePath(wc.path)
-    );
-
-    return {
-      isGitBacked: !!workspaceCollection?.remote,
-      gitRemoteUrl: workspaceCollection?.remote,
-      isLoaded: true,
-      isInternal: isInternalCollection(collection)
-    };
-  };
 
   const handleOpenCollectionClick = (collection, event) => {
     if (event.target.closest('.collection-menu')) {
@@ -159,21 +131,12 @@ const CollectionsList = ({ workspace }) => {
     setCollectionToRemove(collection);
   };
 
-  const confirmRemoveCollection = async () => {
+  const confirmRemoveUnloadedCollection = async () => {
     if (!collectionToRemove) return;
 
     try {
-      const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
-      const isDelete = collectionInfo.isInternal && !collectionInfo.isGitBacked;
-
       await dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collectionToRemove.pathname));
-
-      if (isDelete) {
-        toast.success(`Deleted "${collectionToRemove.name}" collection`);
-      } else {
-        toast.success(`Removed "${collectionToRemove.name}" from workspace`);
-      }
-
+      toast.success(`Removed "${collectionToRemove.name}" from workspace`);
       setCollectionToRemove(null);
     } catch (error) {
       console.error('Error removing collection:', error);
@@ -184,27 +147,31 @@ const CollectionsList = ({ workspace }) => {
   const renderRemoveModal = () => {
     if (!collectionToRemove) return null;
 
-    const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
-    const isDelete = collectionInfo.isInternal && !collectionInfo.isGitBacked;
+    const isLoaded = collectionToRemove.isLoaded !== false;
+
+    if (isLoaded) {
+      return (
+        <RemoveCollection
+          collectionUid={collectionToRemove.uid}
+          onClose={() => setCollectionToRemove(null)}
+        />
+      );
+    }
 
     return (
       <Modal
         size="sm"
-        title={isDelete ? 'Delete Collection' : 'Remove Collection'}
+        title="Remove Collection"
         handleCancel={() => setCollectionToRemove(null)}
-        handleConfirm={confirmRemoveCollection}
-        confirmText={isDelete ? 'Delete' : 'Remove'}
+        handleConfirm={confirmRemoveUnloadedCollection}
+        confirmText="Remove"
         cancelText="Cancel"
-        style="new"
       >
-        <p className="text-gray-600 dark:text-gray-300">
-          Are you sure you want to {isDelete ? 'delete' : 'remove'}{' '}
-          <strong>"{collectionToRemove.name}"</strong>?
+        <p>
+          Are you sure you want to remove <strong>"{collectionToRemove.name}"</strong> from this workspace?
         </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-          {isDelete
-            ? 'This will permanently delete the collection files from the workspace collections folder.'
-            : 'This will remove the collection from the workspace. The collection files will not be deleted.'}
+        <p className="text-sm text-muted mt-3">
+          This will remove the collection reference from the workspace.
         </p>
       </Modal>
     );
