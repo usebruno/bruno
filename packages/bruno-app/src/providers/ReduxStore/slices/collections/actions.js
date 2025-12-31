@@ -933,6 +933,21 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
     const parentItem = findParentItemInCollection(collectionCopy, itemUid);
     const filename = resolveRequestFilename(newFilename, collection.format);
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
+
+    // Handle non-persistent variables
+    const allPreRequestVars = get(itemToSave, 'request.vars.req', []);
+    const nonPersistentVars = filter(allPreRequestVars, (v) => v.persist === false);
+
+    const varsForBruFile = allPreRequestVars.map((v) => {
+      const clone = { ...v };
+      if (clone.persist === false) {
+        clone.value = '__BRUNO_LOCAL__';
+      }
+      delete clone.persist;
+      return clone;
+    });
+    set(itemToSave, 'request.vars.req', varsForBruFile);
+
     set(itemToSave, 'name', trim(newName));
     set(itemToSave, 'filename', trim(filename));
     if (!parentItem) {
@@ -949,6 +964,11 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
         itemSchema
           .validate(itemToSave)
           .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
+          .then(() => {
+            if (nonPersistentVars.length > 0) {
+              return ipcRenderer.invoke('renderer:save-local-vars', fullPathname, nonPersistentVars);
+            }
+          })
           .then(resolve)
           .catch(reject);
 
@@ -978,6 +998,11 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
         itemSchema
           .validate(itemToSave)
           .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+          .then(() => {
+            if (nonPersistentVars.length > 0) {
+              return ipcRenderer.invoke('renderer:save-local-vars', fullName, nonPersistentVars);
+            }
+          })
           .then(resolve)
           .catch(reject);
 
