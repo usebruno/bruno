@@ -168,6 +168,17 @@ const RequestTabs = () => {
               </ul>
             </div>
 
+            <div className="flex items-center cursor-pointer short-tab px-2">
+              {
+                activeCollection && (
+                  <IconPlus
+                    size={18}
+                    strokeWidth={1.5}
+                    onClick={() => setNewRequestModalOpen(true)}
+                  />
+                )
+              }
+            </div>
             <ul role="tablist">
               {showChevrons ? (
                 <li className="select-none short-tab" onClick={rightSlide}>
@@ -176,17 +187,6 @@ const RequestTabs = () => {
                   </div>
                 </li>
               ) : null}
-              <div className="flex items-center cursor-pointer short-tab">
-                {
-                  activeCollection && (
-                    <IconPlus
-                      size={18}
-                      strokeWidth={1.5}
-                      onClick={() => setNewRequestModalOpen(true)}
-                    />
-                  )
-                }
-              </div>
               {/* Moved to post mvp */}
               {/* <li className="select-none new-tab choose-request">
                 <div className="flex items-center">
