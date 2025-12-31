@@ -362,16 +362,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // save local (non-persistent) pre-request variables
-  ipcMain.handle('renderer:save-local-vars', async (event, pathname, vars) => {
+  ipcMain.handle('renderer:save-local-vars', (event, pathname, vars) => {
     try {
-      localVarsStore.storeLocalVars(pathname, vars);
+      return localVarsStore.storeLocalVars(pathname, vars);
     } catch (error) {
       return Promise.reject(error);
     }
   });
 
   // get local (non-persistent) pre-request variables
-  ipcMain.handle('renderer:get-local-vars', async (event, pathname) => {
+  ipcMain.handle('renderer:get-local-vars', (event, pathname) => {
     try {
       return localVarsStore.getLocalVars(pathname);
     } catch (error) {
@@ -380,18 +380,18 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // delete local vars when a request is deleted
-  ipcMain.handle('renderer:delete-local-vars', async (event, pathname) => {
+  ipcMain.handle('renderer:delete-local-vars', (event, pathname) => {
     try {
-      localVarsStore.deleteLocalVars(pathname);
+      return localVarsStore.deleteLocalVars(pathname);
     } catch (error) {
       return Promise.reject(error);
     }
   });
 
   // move local vars when a request is renamed/moved
-  ipcMain.handle('renderer:move-local-vars', async (event, oldPathname, newPathname) => {
+  ipcMain.handle('renderer:move-local-vars', (event, oldPathname, newPathname) => {
     try {
-      localVarsStore.moveLocalVars(oldPathname, newPathname);
+      return localVarsStore.moveLocalVars(oldPathname, newPathname);
     } catch (error) {
       return Promise.reject(error);
     }
