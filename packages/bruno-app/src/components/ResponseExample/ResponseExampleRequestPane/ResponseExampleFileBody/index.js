@@ -210,7 +210,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       width: '20%',
       readOnly: !editMode,
       render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
-        <div className="flex items-center justify-center pl-4">
+        <div className="flex items-center justify-center">
           <RadioButton
             key={row.uid}
             id={`file-${row.uid}`}
