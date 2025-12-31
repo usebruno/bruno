@@ -69,7 +69,7 @@ const Wrapper = styled.div`
     }
 
     .file-name {
-      color: ${(props) => props.theme.text};
+      color: ${(props) => props.theme.colors.text.subtext2};
     }
 
     .clear-file-btn {
@@ -138,7 +138,7 @@ const Wrapper = styled.div`
     svg {
       width: 16px;
       height: 16px;
-      color: ${(props) => props.theme.text};
+      color: ${(props) => props.theme.colors.text.muted};
     }
   }
 `;

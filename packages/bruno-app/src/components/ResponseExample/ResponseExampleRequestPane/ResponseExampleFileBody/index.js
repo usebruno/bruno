@@ -169,7 +169,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
         }
 
         return (
-          <div className="flex items-center value-cell">
+          <div className="flex items-center">
             <span className="flex-1 placeholder-text">{isLastEmptyRow ? 'Select a file' : ''}</span>
             {editMode && (
               <button
