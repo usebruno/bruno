@@ -168,9 +168,13 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
 
     .empty-icon {
-      font-size: 2rem;
       margin-bottom: 1rem;
-      opacity: 0.5;
+      opacity: 0.3;
+      color: ${(props) => props.theme.colors.text.muted};
+
+      svg {
+        display: block;
+      }
     }
   }
 `;

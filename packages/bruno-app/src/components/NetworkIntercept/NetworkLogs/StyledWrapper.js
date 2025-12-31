@@ -197,9 +197,13 @@ const StyledWrapper = styled.div`
     padding: 2rem;
 
     .empty-icon {
-      font-size: 3rem;
       margin-bottom: 1rem;
       opacity: 0.3;
+      color: ${(props) => props.theme.colors.text.muted};
+      
+      svg {
+        display: block;
+      }
     }
 
     .empty-title {

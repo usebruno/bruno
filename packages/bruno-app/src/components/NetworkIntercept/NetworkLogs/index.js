@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconSearch } from '@tabler/icons-react';
+import { IconSearch, IconAntenna } from '@tabler/icons-react';
 import {
   setSearchFilter,
   toggleMethodFilter,
@@ -101,7 +101,9 @@ const NetworkLogs = () => {
       <div className="logs-table-container">
         {filteredRequests.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📡</div>
+            <div className="empty-icon">
+              <IconAntenna size={48} strokeWidth={1.5} />
+            </div>
             <div className="empty-title">
               {isRunning ? 'No requests captured yet' : 'Proxy not running'}
             </div>
