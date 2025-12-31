@@ -34,6 +34,7 @@ const ThemeDropdown = ({ children }) => {
   const {
     storedTheme,
     setStoredTheme,
+    displayedTheme,
     themeVariantLight,
     themeVariantDark,
     setThemeVariantLight,
@@ -209,10 +210,14 @@ const ThemeDropdown = ({ children }) => {
   const renderThemeList = (themes, isLight, currentVariant, label) => {
     const refs = isLight ? lightItemRefs : darkItemRefs;
     const section = isLight ? 'light' : 'dark';
+    const isActiveSystemTheme = isSystemMode && ((isLight && displayedTheme === 'light') || (!isLight && displayedTheme === 'dark'));
 
     return (
       <div className="theme-list" role="listbox" aria-label={label}>
-        <div className="theme-list-label">{label}</div>
+        <div className="theme-list-label">
+          {label}
+          {isActiveSystemTheme && <span className="active-badge">Active</span>}
+        </div>
         {themes.map((theme, index) => {
           const isActive = currentVariant === theme.id;
           return (
@@ -270,7 +275,7 @@ const ThemeDropdown = ({ children }) => {
         aria-label="Theme selector"
       >
         <div className="mode-section">
-          <div className="mode-label" id="mode-label">Mode</div>
+          <div className="mode-label" id="mode-label">Appearance</div>
           {renderModeButtons()}
         </div>
 
