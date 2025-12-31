@@ -2,6 +2,7 @@ const { ipcMain } = require('electron');
 const { getProxyServer, DEFAULT_PORT } = require('./proxy-server');
 const { getCAManager } = require('./ca-manager');
 const { getBrowserLauncher } = require('./browser-launcher');
+const systemProxyManager = require('./system-proxy-manager');
 
 /**
  * Register all network intercept IPC handlers
@@ -49,6 +50,12 @@ const registerNetworkInterceptIpc = (mainWindow) => {
       await proxyServer.stop();
       // Also close any launched browsers
       await browserLauncher.closeAll();
+      // Also clear system proxy if it was set
+      try {
+        await systemProxyManager.clearProxy();
+      } catch (e) {
+        // Ignore errors on cleanup
+      }
       return { success: true };
     } catch (error) {
       console.error('Failed to stop proxy:', error);
@@ -136,6 +143,32 @@ const registerNetworkInterceptIpc = (mainWindow) => {
     return browserLauncher.getLaunchedBrowsers();
   });
 
+  // Set system proxy
+  ipcMain.handle('network-intercept:set-system-proxy', async () => {
+    try {
+      const port = proxyServer.getPort();
+      if (!proxyServer.isRunning) {
+        return { success: false, error: 'Proxy server is not running' };
+      }
+      await systemProxyManager.setProxy(port);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to set system proxy:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Clear system proxy
+  ipcMain.handle('network-intercept:clear-system-proxy', async () => {
+    try {
+      await systemProxyManager.clearProxy();
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to clear system proxy:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Get terminal setup command
   ipcMain.handle('network-intercept:get-terminal-setup', async () => {
     const port = proxyServer.getPort();
@@ -165,6 +198,11 @@ const registerNetworkInterceptIpc = (mainWindow) => {
     try {
       await proxyServer.stop();
       await browserLauncher.closeAll();
+      try {
+        await systemProxyManager.clearProxy();
+      } catch (e) {
+        // Ignore
+      }
     } catch (error) {
       console.error('Cleanup error:', error);
     }
