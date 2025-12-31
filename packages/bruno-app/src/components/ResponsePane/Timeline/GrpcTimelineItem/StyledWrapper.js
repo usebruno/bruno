@@ -2,6 +2,8 @@ import styled from 'styled-components';
 import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
+  font-size: ${(props) => props.theme.font.size.base};
+
   /* Event type border colors */
   &.event-metadata {
     border-left: 4px solid ${(props) => rgba(props.theme.request.methods.post, 0.2)};
@@ -62,6 +64,23 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.warning};
   }
 
+  /* Event Header */
+  .event-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+
+    span:nth-of-type(1) {
+      font-weight: 500;
+    }
+
+    pre {
+      font-size: ${(props) => props.theme.font.size.xs};
+      margin: 0;
+    }
+  }
+
   /* Request/Message content */
   .content-request,
   .content-message {
@@ -73,6 +92,7 @@ const StyledWrapper = styled.div`
   .content-message-label {
     color: ${(props) => props.theme.request.methods.put};
     font-weight: 500;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   /* Metadata content */
@@ -84,6 +104,7 @@ const StyledWrapper = styled.div`
   .content-metadata-label {
     color: ${(props) => props.theme.request.methods.post};
     font-weight: 500;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   /* Response content */
@@ -95,6 +116,7 @@ const StyledWrapper = styled.div`
   .content-response-label {
     color: ${(props) => props.theme.request.methods.get};
     font-weight: 500;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   /* Status content */
@@ -106,6 +128,7 @@ const StyledWrapper = styled.div`
   .content-status-label {
     color: ${(props) => props.theme.colors.text.purple};
     font-weight: 500;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   /* Error content */
@@ -117,12 +140,15 @@ const StyledWrapper = styled.div`
   .content-error-label {
     color: ${(props) => props.theme.colors.text.danger};
     font-weight: 500;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   /* End content */
   .content-end {
     background-color: ${(props) => rgba(props.theme.colors.text.muted, 0.1)};
     border-radius: ${(props) => props.theme.border.radius.base};
+    font-weight: 500;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   /* Cancel content */
@@ -134,17 +160,25 @@ const StyledWrapper = styled.div`
   .content-cancel-label {
     color: ${(props) => props.theme.colors.text.warning};
     font-weight: 500;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   /* Common content styles */
   .content-box {
     background-color: ${(props) => props.theme.bg};
     border-radius: ${(props) => props.theme.border.radius.base};
+
+    pre {
+      font-family: ${(props) => props.theme.font.mono || 'monospace'};
+      font-size: ${(props) => props.theme.font.size.xs};
+      margin: 0;
+    }
   }
 
   .empty-text {
     color: ${(props) => props.theme.colors.text.muted};
     font-style: italic;
+    font-size: ${(props) => props.theme.font.size.xs};
   }
 
   /* Method type badge */
@@ -152,15 +186,28 @@ const StyledWrapper = styled.div`
     background-color: ${(props) => rgba(props.theme.request.methods.put, 0.15)};
     color: ${(props) => props.theme.request.methods.put};
     border-radius: ${(props) => props.theme.border.radius.base};
+    font-size: ${(props) => props.theme.font.size.xs};
+    font-weight: 500;
   }
 
   /* Timestamp and URL */
   .timestamp-text {
     color: ${(props) => props.theme.colors.text.muted};
+    font-size: ${(props) => props.theme.font.size.xs};
   }
 
   .url-text {
     color: ${(props) => props.theme.colors.text.muted};
+    font-size: ${(props) => props.theme.font.size.xs};
+  }
+
+  .contents {
+    display: contents;
+    font-size: ${(props) => props.theme.font.size.xs};
+    
+    div:first-child {
+      font-weight: 500;
+    }
   }
 `;
 

@@ -77,12 +77,12 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
 
             {effectiveRequest.headers && Object.keys(effectiveRequest.headers).length > 0 && (
               <div className="mb-3">
-                <div className="content-request-label text-xs font-medium mb-1">Metadata</div>
+                <div className="content-request-label mb-1">Metadata</div>
                 <div className="content-box grid grid-cols-2 gap-1 p-2">
                   {Object.entries(effectiveRequest.headers).map(([key, value], idx) => (
                     <div key={idx} className="contents">
-                      <div className="text-xs font-medium overflow-hidden text-ellipsis">{key}:</div>
-                      <div className="text-xs overflow-hidden text-ellipsis">{typeof value === 'string' ? value : '[Buffer Buffer]'}</div>
+                      <div className="overflow-hidden text-ellipsis">{key}:</div>
+                      <div className="overflow-hidden text-ellipsis">{typeof value === 'string' ? value : '[Buffer Buffer]'}</div>
                     </div>
                   ))}
                 </div>
@@ -92,13 +92,13 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             {/* gRPC Messages section */}
             {!isClientStreaming && effectiveRequest.body?.mode === 'grpc' && effectiveRequest.body?.grpc?.length > 0 && (
               <div>
-                <div className="content-request-label text-xs font-medium mb-1">
+                <div className="content-request-label mb-1">
                   Message
                 </div>
                 <div className="space-y-2">
                   {effectiveRequest.body.grpc.filter((_, index) => index === 0).map((message, idx) => (
                     <div key={idx} className="content-box p-2">
-                      <pre className="text-xs overflow-auto max-h-[150px]">
+                      <pre className="overflow-auto max-h-[150px]">
                         {typeof message.content === 'string'
                           ? message.content
                           : JSON.stringify(message.content, null, 2)}
@@ -114,8 +114,8 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'message':
         return (
           <div className="content-message mt-2 p-2">
-            <div className="content-message-label font-medium mb-1">Message</div>
-            <pre className="text-xs content-box p-2 overflow-auto max-h-[200px]">
+            <div className="content-message-label mb-1">Message</div>
+            <pre className="content-box p-2 overflow-auto max-h-[200px]">
               {typeof eventData === 'string'
                 ? eventData
                 : JSON.stringify(eventData, null, 2)}
@@ -126,18 +126,18 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'metadata':
         return (
           <div className="content-metadata mt-2 p-2">
-            <div className="content-metadata-label font-medium mb-1">Metadata Headers</div>
+            <div className="content-metadata-label mb-1">Metadata Headers</div>
             {response.metadata && response.metadata.length > 0 ? (
               <div className="grid grid-cols-2 gap-1">
                 {response.metadata.map((header, idx) => (
                   <div key={idx} className="contents">
-                    <div className="text-xs font-medium">{header.name}:</div>
-                    <div className="text-xs">{header.value}</div>
+                    <div>{header.name}:</div>
+                    <div>{header.value}</div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="empty-text italic">No metadata headers</div>
+              <div className="empty-text">No metadata headers</div>
             )}
           </div>
         );
@@ -146,15 +146,15 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For message responses, show the response data
         return (
           <div className="content-response mt-2 p-2">
-            <div className="content-response-label font-medium mb-1">
+            <div className="content-response-label mb-1">
               Response Message #{(response?.responses?.length) || 0}
             </div>
             {response?.responses && response.responses.length > 0 ? (
-              <pre className="text-xs content-box p-2 overflow-auto max-h-[200px]">
+              <pre className="content-box p-2 overflow-auto max-h-[200px]">
                 {JSON.stringify(response.responses[response.responses.length - 1], null, 2)}
               </pre>
             ) : (
-              <div className="empty-text italic">Empty message</div>
+              <div className="empty-text">Empty message</div>
             )}
           </div>
         );
@@ -173,12 +173,12 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
 
             {response.trailers && response.trailers.length > 0 && (
               <>
-                <div className="content-status-label font-medium mt-2 mb-1">Trailers</div>
+                <div className="content-status-label mt-2 mb-1">Trailers</div>
                 <div className="grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
-                      <div className="text-xs font-medium">{trailer.name}:</div>
-                      <div className="text-xs">{trailer.value || ''}</div>
+                      <div>{trailer.name}:</div>
+                      <div>{trailer.value || ''}</div>
                     </div>
                   ))}
                 </div>
@@ -191,7 +191,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For error events, show error details
         return (
           <div className="content-error mt-2 p-2">
-            <div className="content-error-label font-medium mb-1">Error</div>
+            <div className="content-error-label mb-1">Error</div>
             <div className="mb-2">{response.error || 'Unknown error'}</div>
 
             <div className="flex items-center gap-2">
@@ -200,12 +200,12 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
 
             {response.trailers && response.trailers.length > 0 && (
               <>
-                <div className="content-error-label font-medium mt-2 mb-1">Error Metadata</div>
+                <div className="content-error-label mt-2 mb-1">Error Metadata</div>
                 <div className="grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
-                      <div className="text-xs font-medium">{trailer.name}:</div>
-                      <div className="text-xs">{trailer.value}</div>
+                      <div>{trailer.name}:</div>
+                      <div>{trailer.value}</div>
                     </div>
                   ))}
                 </div>
@@ -218,7 +218,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For end events, show summary
         return (
           <div className="content-end mt-2 p-2">
-            <div className="font-medium mb-1">Stream Ended</div>
+            <div className="mb-1">Stream Ended</div>
             <div>
               Total messages: {(response?.responses?.length) || 0}
             </div>
@@ -229,7 +229,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For cancel events, show cancellation info
         return (
           <div className="content-cancel mt-2 p-2">
-            <div className="content-cancel-label font-medium mb-1">Stream Cancelled</div>
+            <div className="content-cancel-label mb-1">Stream Cancelled</div>
             <div>{response.statusDescription || 'The gRPC stream was cancelled'}</div>
           </div>
         );
@@ -241,12 +241,12 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
 
   return (
     <StyledWrapper className={`${eventClass} pl-3 py-2 mb-3`}>
-      <div className="flex items-center gap-2 cursor-pointer" onClick={toggleCollapse}>
+      <div className="event-header" onClick={toggleCollapse}>
         {isCollapsed ? <IconChevronRight size={16} strokeWidth={1.5} /> : <IconChevronDown size={16} strokeWidth={1.5} />}
         {eventIcon}
-        <span className="font-medium">{eventName}</span>
+        <span>{eventName}</span>
         {eventType === 'request' && effectiveRequest.methodType && (
-          <span className="method-type-badge px-2 py-0.5 text-xs">
+          <span className="method-type-badge px-2 py-0.5">
             {effectiveRequest.methodType}
           </span>
         )}
@@ -255,14 +255,14 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             <Status statusCode={statusCode} statusText={statusText} />
           </div>
         )}
-        <pre className="text-xs opacity-70">[{new Date(timestamp).toISOString()}]</pre>
-        <span className="timestamp-text text-xs ml-auto">
+        <pre className="opacity-70">[{new Date(timestamp).toISOString()}]</pre>
+        <span className="timestamp-text ml-auto">
           <RelativeTime timestamp={timestamp} />
         </span>
       </div>
 
       {/* Always show the URL */}
-      <div className="url-text text-xs mt-1 ml-6">{url}</div>
+      <div className="url-text mt-1 ml-6">{url}</div>
 
       {/* Expanded content - only show for non-status items */}
       {!isCollapsed && renderEventContent()}
