@@ -127,7 +127,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               onRun={handleRun}
               collection={collection}
               item={item}
-              placeholder={useSystemBrowser ? 'https://oauth2.usebruno.com/callback' : undefined}
+              placeholder={useSystemBrowser ? 'https://oauth.usebruno.com/callback' : undefined}
               isCompact
             />
           </div>

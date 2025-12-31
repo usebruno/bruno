@@ -34,17 +34,15 @@ const ConfirmRequestClose = ({ item, example, onCancel, onCloseWithoutSave, onSa
 
       <div className="flex justify-between mt-6">
         <div>
-          <Button size="sm" color="danger" onClick={onCloseWithoutSave}>
+          <Button color="danger" onClick={onCloseWithoutSave}>
             Don't Save
           </Button>
         </div>
         <div>
-          <Button size="sm" color="secondary" variant="ghost" onClick={onCancel}>
+          <Button className="mr-2" color="secondary" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button size="sm" onClick={onSaveAndClose}>
-            Save
-          </Button>
+          <Button onClick={onSaveAndClose}>Save</Button>
         </div>
       </div>
     </Modal>

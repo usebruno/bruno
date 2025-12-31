@@ -158,15 +158,15 @@ const SaveRequestsModal = ({ onClose }) => {
 
       <div className="flex justify-between mt-6">
         <div>
-          <Button size="sm" color="danger" onClick={closeWithoutSave}>
+          <Button color="danger" onClick={closeWithoutSave}>
             Don't Save
           </Button>
         </div>
         <div>
-          <Button size="sm" color="secondary" variant="ghost" onClick={onClose}>
+          <Button className="mr-2" color="secondary" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" onClick={closeWithSave}>
+          <Button onClick={closeWithSave}>
             {totalDraftsCount > 1 ? 'Save All' : 'Save'}
           </Button>
         </div>

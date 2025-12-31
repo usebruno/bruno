@@ -58,7 +58,7 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
         title="Remove Collection"
         customHeader={customHeader}
         confirmText="Remove"
-        confirmButtonColor="danger"
+        confirmButtonColor="warning"
         handleConfirm={onConfirm}
         handleCancel={onClose}
       >
