@@ -98,26 +98,17 @@ const openCollectionDialog = async (win, watcher) => {
 };
 
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
-  if (!watcher.hasWatcher(collectionPath)) {
+  // If watcher already exists, collection is already loaded in the app
+  // Just send the collection info so frontend can add to workspace if needed
+  if (watcher.hasWatcher(collectionPath)) {
     try {
       let brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
-
-      // Always ensure node_modules and .git are ignored, regardless of user config
-      // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
-      const defaultIgnores = ['node_modules', '.git'];
-      const userIgnores = brunoConfig.ignore || [];
-      brunoConfig.ignore = [...new Set([...defaultIgnores, ...userIgnores])];
-
-      // Transform the config to add existence checks for protobuf files and import paths
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
-
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
-
       win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {
@@ -125,8 +116,32 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
         });
       }
     }
-  } else {
-    win.webContents.send('main:collection-already-opened', collectionPath);
+    return;
+  }
+
+  try {
+    let brunoConfig = await getCollectionConfigFile(collectionPath);
+    const uid = generateUidBasedOnHash(collectionPath);
+
+    // Always ensure node_modules and .git are ignored, regardless of user config
+    const defaultIgnores = ['node_modules', '.git'];
+    const userIgnores = brunoConfig.ignore || [];
+    brunoConfig.ignore = [...new Set([...defaultIgnores, ...userIgnores])];
+
+    brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
+
+    const { size, filesCount } = await getCollectionStats(collectionPath);
+    brunoConfig.size = size;
+    brunoConfig.filesCount = filesCount;
+
+    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+  } catch (err) {
+    if (!options.dontSendDisplayErrors) {
+      win.webContents.send('main:display-error', {
+        message: err.message || 'An error occurred while opening the local collection'
+      });
+    }
   }
 };
 

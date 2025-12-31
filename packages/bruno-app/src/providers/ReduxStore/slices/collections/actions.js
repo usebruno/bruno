@@ -2242,43 +2242,94 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
 };
 
 export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
-  const collection = {
-    version: '1',
-    uid: uid,
-    name: brunoConfig.name,
-    pathname: pathname,
-    items: [],
-    runtimeVariables: {},
-    brunoConfig: brunoConfig
-  };
-
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
+    const state = getState();
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+
+    // Check if collection already exists in Redux state
+    const existingCollection = state.collections.collections.find(
+      (c) => normalizePath(c.pathname) === normalizePath(pathname)
+    );
+
+    // Check if collection is already in the current workspace
+    const isAlreadyInWorkspace = activeWorkspace?.collections?.some(
+      (c) => normalizePath(c.path) === normalizePath(pathname)
+    );
+
+    // If collection already exists in Redux AND in current workspace, show toast and return
+    if (existingCollection && isAlreadyInWorkspace) {
+      toast.success('Collection is already opened');
+      resolve();
+      return;
+    }
+
+    // If collection exists in Redux but not in workspace, add to workspace
+    if (existingCollection) {
+      if (state.app.sidebarCollapsed) {
+        dispatch(toggleSidebarCollapse());
+      }
+
+      if (activeWorkspace) {
+        const workspaceCollection = {
+          name: brunoConfig.name,
+          path: pathname
+        };
+
+        ipcRenderer
+          .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
+          .then(() => {
+            toast.success('Collection added to workspace');
+          })
+          .catch((err) => {
+            console.error('Failed to add collection to workspace', err);
+            toast.error('Failed to add collection to workspace');
+          });
+      }
+
+      resolve();
+      return;
+    }
+
+    // Collection doesn't exist - create it
+    const collection = {
+      version: '1',
+      uid: uid,
+      name: brunoConfig.name,
+      pathname: pathname,
+      items: [],
+      runtimeVariables: {},
+      brunoConfig: brunoConfig
+    };
+
     ipcRenderer.invoke('renderer:get-collection-security-config', pathname).then((securityConfig) => {
       collectionSchema
         .validate(collection)
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
-          const state = getState();
-          if (state.app.sidebarCollapsed) {
+          const currentState = getState();
+          if (currentState.app.sidebarCollapsed) {
             dispatch(toggleSidebarCollapse());
           }
 
-          const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
-          if (activeWorkspace) {
-            const isAlreadyInWorkspace = activeWorkspace.collections?.some(
+          const currentWorkspace = currentState.workspaces.workspaces.find(
+            (w) => w.uid === currentState.workspaces.activeWorkspaceUid
+          );
+
+          if (currentWorkspace) {
+            const alreadyInWorkspace = currentWorkspace.collections?.some(
               (c) => normalizePath(c.path) === normalizePath(pathname)
             );
 
-            if (!isAlreadyInWorkspace) {
+            if (!alreadyInWorkspace) {
               const workspaceCollection = {
                 name: brunoConfig.name,
                 path: pathname
               };
 
               ipcRenderer
-                .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
+                .invoke('renderer:add-collection-to-workspace', currentWorkspace.pathname, workspaceCollection)
                 .catch((err) => {
                   console.error('Failed to add collection to workspace', err);
                   toast.error('Failed to add collection to workspace');

@@ -609,11 +609,22 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  // Guard to prevent main:renderer-ready from running multiple times
+  let rendererReadyProcessed = false;
+
   ipcMain.on('main:renderer-ready', async (win) => {
+    if (rendererReadyProcessed) {
+      return;
+    }
+    rendererReadyProcessed = true;
+
     try {
+      let defaultWorkspacePath = null;
+
       const defaultResult = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
       if (defaultResult) {
         const { workspacePath, workspaceUid } = defaultResult;
+        defaultWorkspacePath = workspacePath;
         const workspaceConfig = readWorkspaceConfig(workspacePath);
         const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, true);
 
@@ -628,6 +639,10 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const invalidPaths = [];
 
       for (const workspacePath of workspacePaths) {
+        if (defaultWorkspacePath && workspacePath === defaultWorkspacePath) {
+          continue;
+        }
+
         const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
 
         if (fs.existsSync(workspaceYmlPath)) {
