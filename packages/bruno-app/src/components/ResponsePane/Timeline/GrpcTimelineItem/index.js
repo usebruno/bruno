@@ -223,7 +223,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
         // For end events, show summary
         return (
           <div className="content-end">
-            <div className="font-medium">Stream Ended</div>
+            <div>Stream Ended</div>
             <div>
               Total messages: {(response?.responses?.length) || 0}
             </div>
@@ -245,7 +245,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
   };
 
   return (
-    <StyledWrapper className={`${eventClass} pl-3 mb-3`}>
+    <StyledWrapper className={`${eventClass} pl-1 mb-3`}>
       <div className="event-header" onClick={toggleCollapse}>
         {isCollapsed ? <IconChevronRight size={16} strokeWidth={1.5} /> : <IconChevronDown size={16} strokeWidth={1.5} />}
         {eventIcon}

@@ -68,7 +68,7 @@ const StyledWrapper = styled.div`
   .event-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.25rem;
     cursor: pointer;
 
     span:nth-of-type(1) {
