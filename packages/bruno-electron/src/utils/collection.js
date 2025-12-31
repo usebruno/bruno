@@ -415,7 +415,11 @@ const hydrateRequestWithUuid = (request, pathname) => {
 
   params.forEach((param) => (param.uid = uuid()));
   headers.forEach((header) => (header.uid = uuid()));
-  requestVars.forEach((variable) => (variable.uid = uuid()));
+  // Mark vars from .bru file as persistent
+  requestVars.forEach((variable) => {
+    variable.uid = uuid();
+    variable.persist = true;
+  });
   responseVars.forEach((variable) => (variable.uid = uuid()));
   assertions.forEach((assertion) => (assertion.uid = uuid()));
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
@@ -437,6 +441,36 @@ const hydrateRequestWithUuid = (request, pathname) => {
     bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
     file.forEach((param) => (param.uid = uuid()));
   });
+
+  return request;
+};
+
+/**
+ * Merge local (non-persistent) pre-request vars into a request.
+ * Local vars are marked with persist: false.
+ * @param {Object} request - The request object to hydrate
+ * @param {Array} localVars - Array of local variable objects from LocalVarsStore
+ */
+const hydrateRequestWithLocalVars = (request, localVars = []) => {
+  if (!localVars || localVars.length === 0) {
+    return request;
+  }
+
+  // Mark local vars as non-persistent
+  const hydratedLocalVars = localVars.map((v) => ({
+    ...v,
+    uid: v.uid || uuid(),
+    persist: false
+  }));
+
+  // Get existing request vars, or initialize empty array
+  const existingVars = get(request, 'request.vars.req', []);
+
+  // Merge: persistent vars first, then non-persistent
+  if (!request.request.vars) {
+    request.request.vars = {};
+  }
+  request.request.vars.req = [...existingVars, ...hydratedLocalVars];
 
   return request;
 };
@@ -745,6 +779,7 @@ module.exports = {
   parseBruFileMeta,
   parseFileMeta,
   hydrateRequestWithUuid,
+  hydrateRequestWithLocalVars,
   transformRequestToSaveToFilesystem,
   sortCollection,
   sortFolder,

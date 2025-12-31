@@ -150,9 +150,22 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
+    // Separate persistent and non-persistent pre-request vars
+    const allPreRequestVars = get(itemToSave, 'request.vars.req', []);
+    const persistentVars = filter(allPreRequestVars, (v) => v.persist !== false);
+    const nonPersistentVars = filter(allPreRequestVars, (v) => v.persist === false);
+
+    // Only save persistent vars to the .bru file (strip persist property)
+    const persistentVarsCleaned = persistentVars.map(({ persist, ...rest }) => rest);
+    set(itemToSave, 'request.vars.req', persistentVarsCleaned);
+
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave, collection.format))
+      .then(() => {
+        // Save non-persistent vars to local storage
+        return ipcRenderer.invoke('renderer:save-local-vars', item.pathname, nonPersistentVars);
+      })
       .then(() => {
         if (!silent) {
           toast.success('Request saved successfully');

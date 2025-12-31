@@ -50,7 +50,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '35%'
+      width: varType === 'request' ? '30%' : '35%'
     },
     {
       key: 'value',
@@ -73,13 +73,34 @@ const VarsTable = ({ item, collection, vars, varType }) => {
           placeholder={isLastEmptyRow ? (varType === 'request' ? 'Value' : 'Expr') : ''}
         />
       )
-    }
+    },
+    // Persist column only for pre-request vars
+    ...(varType === 'request' ? [{
+      key: 'persist',
+      name: (
+        <div className="flex items-center">
+          <span>Persist</span>
+          <InfoTip content="If unchecked, this variable will not be saved to the .bru file (useful for sensitive values)" infotipId="request-var-persist" />
+        </div>
+      ),
+      width: '80px',
+      render: ({ row, value, onChange, isLastEmptyRow }) => (
+        isLastEmptyRow ? null : (
+          <input
+            type="checkbox"
+            className="cursor-pointer"
+            checked={value !== false}
+            onChange={(e) => onChange(e.target.checked)}
+          />
+        )
+      )
+    }] : [])
   ];
 
   const defaultRow = {
     name: '',
     value: '',
-    ...(varType === 'response' ? { local: false } : {})
+    ...(varType === 'request' ? { persist: true } : { local: false })
   };
 
   return (
