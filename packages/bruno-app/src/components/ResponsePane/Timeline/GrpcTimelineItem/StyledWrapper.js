@@ -81,11 +81,27 @@ const StyledWrapper = styled.div`
     }
   }
 
+  /* Common content container styles */
+  .content-request,
+  .content-message,
+  .content-metadata,
+  .content-response,
+  .content-status,
+  .content-error,
+  .content-end,
+  .content-cancel {
+    margin-top: 0.375rem;
+    padding: 0.375rem;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
   /* Request/Message content */
   .content-request,
   .content-message {
     background-color: ${(props) => rgba(props.theme.request.methods.put, 0.1)};
-    border-radius: ${(props) => props.theme.border.radius.base};
   }
 
   .content-request-label,
@@ -98,7 +114,6 @@ const StyledWrapper = styled.div`
   /* Metadata content */
   .content-metadata {
     background-color: ${(props) => rgba(props.theme.request.methods.post, 0.1)};
-    border-radius: ${(props) => props.theme.border.radius.base};
   }
 
   .content-metadata-label {
@@ -110,7 +125,6 @@ const StyledWrapper = styled.div`
   /* Response content */
   .content-response {
     background-color: ${(props) => rgba(props.theme.request.methods.get, 0.1)};
-    border-radius: ${(props) => props.theme.border.radius.base};
   }
 
   .content-response-label {
@@ -122,7 +136,6 @@ const StyledWrapper = styled.div`
   /* Status content */
   .content-status {
     background-color: ${(props) => rgba(props.theme.colors.text.purple, 0.1)};
-    border-radius: ${(props) => props.theme.border.radius.base};
   }
 
   .content-status-label {
@@ -134,7 +147,6 @@ const StyledWrapper = styled.div`
   /* Error content */
   .content-error {
     background-color: ${(props) => rgba(props.theme.colors.text.danger, 0.1)};
-    border-radius: ${(props) => props.theme.border.radius.base};
   }
 
   .content-error-label {
@@ -146,7 +158,6 @@ const StyledWrapper = styled.div`
   /* End content */
   .content-end {
     background-color: ${(props) => rgba(props.theme.colors.text.muted, 0.1)};
-    border-radius: ${(props) => props.theme.border.radius.base};
     font-weight: 500;
     font-size: ${(props) => props.theme.font.size.sm};
   }
@@ -154,7 +165,6 @@ const StyledWrapper = styled.div`
   /* Cancel content */
   .content-cancel {
     background-color: ${(props) => rgba(props.theme.colors.text.warning, 0.1)};
-    border-radius: ${(props) => props.theme.border.radius.base};
   }
 
   .content-cancel-label {
@@ -167,6 +177,7 @@ const StyledWrapper = styled.div`
   .content-box {
     background-color: ${(props) => props.theme.bg};
     border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.375rem;
 
     pre {
       font-family: ${(props) => props.theme.font.mono || 'monospace'};

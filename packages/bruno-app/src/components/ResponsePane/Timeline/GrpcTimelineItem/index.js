@@ -73,12 +73,11 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
     switch (eventType) {
       case 'request':
         return (
-          <div className="content-request mt-2 p-2">
-
+          <div className="content-request">
             {effectiveRequest.headers && Object.keys(effectiveRequest.headers).length > 0 && (
-              <div className="mb-3">
+              <div>
                 <div className="content-request-label mb-1">Metadata</div>
-                <div className="content-box grid grid-cols-2 gap-1 p-2">
+                <div className="content-box grid grid-cols-2 gap-1">
                   {Object.entries(effectiveRequest.headers).map(([key, value], idx) => (
                     <div key={idx} className="contents">
                       <div className="overflow-hidden text-ellipsis">{key}:</div>
@@ -92,12 +91,10 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             {/* gRPC Messages section */}
             {!isClientStreaming && effectiveRequest.body?.mode === 'grpc' && effectiveRequest.body?.grpc?.length > 0 && (
               <div>
-                <div className="content-request-label mb-1">
-                  Message
-                </div>
-                <div className="space-y-2">
+                <div className="content-request-label mb-1">Message</div>
+                <div className="space-y-1">
                   {effectiveRequest.body.grpc.filter((_, index) => index === 0).map((message, idx) => (
-                    <div key={idx} className="content-box p-2">
+                    <div key={idx} className="content-box">
                       <pre className="overflow-auto max-h-[150px]">
                         {typeof message.content === 'string'
                           ? message.content
@@ -113,68 +110,74 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
 
       case 'message':
         return (
-          <div className="content-message mt-2 p-2">
-            <div className="content-message-label mb-1">Message</div>
-            <pre className="content-box p-2 overflow-auto max-h-[200px]">
-              {typeof eventData === 'string'
-                ? eventData
-                : JSON.stringify(eventData, null, 2)}
-            </pre>
+          <div className="content-message">
+            <div>
+              <div className="content-message-label mb-1">Message</div>
+              <pre className="content-box overflow-auto max-h-[200px]">
+                {typeof eventData === 'string'
+                  ? eventData
+                  : JSON.stringify(eventData, null, 2)}
+              </pre>
+            </div>
           </div>
         );
 
       case 'metadata':
         return (
-          <div className="content-metadata mt-2 p-2">
-            <div className="content-metadata-label mb-1">Metadata Headers</div>
-            {response.metadata && response.metadata.length > 0 ? (
-              <div className="grid grid-cols-2 gap-1">
-                {response.metadata.map((header, idx) => (
-                  <div key={idx} className="contents">
-                    <div>{header.name}:</div>
-                    <div>{header.value}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-text">No metadata headers</div>
-            )}
+          <div className="content-metadata">
+            <div>
+              <div className="content-metadata-label mb-1">Metadata Headers</div>
+              {response.metadata && response.metadata.length > 0 ? (
+                <div className="content-box grid grid-cols-2 gap-1">
+                  {response.metadata.map((header, idx) => (
+                    <div key={idx} className="contents">
+                      <div>{header.name}:</div>
+                      <div>{header.value}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-text">No metadata headers</div>
+              )}
+            </div>
           </div>
         );
 
       case 'response':
         // For message responses, show the response data
         return (
-          <div className="content-response mt-2 p-2">
-            <div className="content-response-label mb-1">
-              Response Message #{(response?.responses?.length) || 0}
+          <div className="content-response">
+            <div>
+              <div className="content-response-label mb-1">
+                Response Message #{(response?.responses?.length) || 0}
+              </div>
+              {response?.responses && response.responses.length > 0 ? (
+                <pre className="content-box overflow-auto max-h-[200px]">
+                  {JSON.stringify(response.responses[response.responses.length - 1], null, 2)}
+                </pre>
+              ) : (
+                <div className="empty-text">Empty message</div>
+              )}
             </div>
-            {response?.responses && response.responses.length > 0 ? (
-              <pre className="content-box p-2 overflow-auto max-h-[200px]">
-                {JSON.stringify(response.responses[response.responses.length - 1], null, 2)}
-              </pre>
-            ) : (
-              <div className="empty-text">Empty message</div>
-            )}
           </div>
         );
 
       case 'status':
         // For status events, show status and trailers
         return (
-          <div className="content-status mt-2 p-2">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="content-status">
+            <div className="flex items-center gap-2">
               <Status statusCode={statusCode} statusText={statusText} />
             </div>
 
             {response.statusDescription && (
-              <div className="mb-2">{response.statusDescription}</div>
+              <div>{response.statusDescription}</div>
             )}
 
             {response.trailers && response.trailers.length > 0 && (
-              <>
-                <div className="content-status-label mt-2 mb-1">Trailers</div>
-                <div className="grid grid-cols-2 gap-1">
+              <div>
+                <div className="content-status-label mb-1">Trailers</div>
+                <div className="content-box grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
                       <div>{trailer.name}:</div>
@@ -182,7 +185,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                     </div>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </div>
         );
@@ -190,18 +193,20 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'error':
         // For error events, show error details
         return (
-          <div className="content-error mt-2 p-2">
-            <div className="content-error-label mb-1">Error</div>
-            <div className="mb-2">{response.error || 'Unknown error'}</div>
+          <div className="content-error">
+            <div>
+              <div className="content-error-label mb-1">Error</div>
+              <div>{response.error || 'Unknown error'}</div>
+            </div>
 
             <div className="flex items-center gap-2">
               <Status statusCode={statusCode} statusText={statusText} />
             </div>
 
             {response.trailers && response.trailers.length > 0 && (
-              <>
-                <div className="content-error-label mt-2 mb-1">Error Metadata</div>
-                <div className="grid grid-cols-2 gap-1">
+              <div>
+                <div className="content-error-label mb-1">Error Metadata</div>
+                <div className="content-box grid grid-cols-2 gap-1">
                   {response.trailers.map((trailer, idx) => (
                     <div key={idx} className="contents">
                       <div>{trailer.name}:</div>
@@ -209,7 +214,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
                     </div>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </div>
         );
@@ -217,8 +222,8 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'end':
         // For end events, show summary
         return (
-          <div className="content-end mt-2 p-2">
-            <div className="mb-1">Stream Ended</div>
+          <div className="content-end">
+            <div className="font-medium">Stream Ended</div>
             <div>
               Total messages: {(response?.responses?.length) || 0}
             </div>
@@ -228,7 +233,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'cancel':
         // For cancel events, show cancellation info
         return (
-          <div className="content-cancel mt-2 p-2">
+          <div className="content-cancel">
             <div className="content-cancel-label mb-1">Stream Cancelled</div>
             <div>{response.statusDescription || 'The gRPC stream was cancelled'}</div>
           </div>
