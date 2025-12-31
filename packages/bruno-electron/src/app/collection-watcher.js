@@ -631,6 +631,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
         name: basename
       }
     };
+    localVarsStore.deleteLocalVars(pathname);
     win.webContents.send('main:collection-tree-updated', 'unlink', file);
   }
 };
@@ -660,6 +661,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
       name
     }
   };
+  localVarsStore.deleteLocalVarsForCollection(pathname);
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 
