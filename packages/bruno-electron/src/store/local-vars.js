@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const path = require('path');
 const Store = require('electron-store');
 
 /**
@@ -118,7 +119,7 @@ class LocalVarsStore {
    */
   getLocalVarsForCollection(collectionPath) {
     const requests = this.store.get('requests') || [];
-    return requests.filter((r) => r.pathname.startsWith(collectionPath));
+    return requests.filter((r) => r.pathname === collectionPath || r.pathname.startsWith(collectionPath + path.sep));
   }
 
   /**
@@ -127,7 +128,7 @@ class LocalVarsStore {
    */
   deleteLocalVarsForCollection(collectionPath) {
     const requests = this.store.get('requests') || [];
-    const filteredRequests = requests.filter((r) => !r.pathname.startsWith(collectionPath));
+    const filteredRequests = requests.filter((r) => !(r.pathname === collectionPath || r.pathname.startsWith(collectionPath + path.sep)));
     this.store.set('requests', filteredRequests);
   }
 }
