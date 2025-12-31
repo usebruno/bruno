@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconX, IconCopy } from '@tabler/icons-react';
+import { IconX, IconCopy, IconClipboardList } from '@tabler/icons-react';
 import Button from 'ui/Button';
 import {
   clearSelectedRequest,
@@ -24,7 +24,9 @@ const RequestDetail = () => {
     return (
       <StyledWrapper>
         <div className="empty-detail">
-          <div className="empty-icon">📋</div>
+          <div className="empty-icon">
+            <IconClipboardList size={48} strokeWidth={1.5} />
+          </div>
           <div className="empty-text">Select a request to view details</div>
         </div>
       </StyledWrapper>
