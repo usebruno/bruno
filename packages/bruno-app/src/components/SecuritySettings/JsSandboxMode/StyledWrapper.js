@@ -13,16 +13,18 @@ const StyledWrapper = styled.div`
     transition: all 0.15s ease;
 
     &:hover {
-      background-color: ${(props) => props.theme.background.surface0};
+      opacity: 0.8;
     }
   }
 
   .safe-mode {
     color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.safeMode.color};
+    background-color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.safeMode.bg};
   }
 
   .developer-mode {
     color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.developerMode.color};
+    background-color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.developerMode.bg};
   }
 
   .sandbox-dropdown {
@@ -94,7 +96,7 @@ const StyledWrapper = styled.div`
 
   .recommended-badge {
     padding: 0.125rem 0.5rem;
-    font-size: 0.75rem;
+    font-size: ${(props) => props.theme.font.size.xs};
     background-color: ${(props) => rgba(props.theme.colors.text.green, 0.1)};
     color: ${(props) => props.theme.colors.text.green};
     border-radius: ${(props) => props.theme.border.radius.sm};

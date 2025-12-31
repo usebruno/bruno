@@ -25,12 +25,15 @@ export const ThemeProvider = (props) => {
   };
 
   useEffect(() => {
-    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+    const handleChange = (e) => {
       if (storedTheme !== 'system') return;
       setDisplayedTheme(e.matches ? 'light' : 'dark');
       toggleHtml();
-    });
-  }, []);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [storedTheme]);
 
   useEffect(() => {
     const root = window.document.documentElement;
