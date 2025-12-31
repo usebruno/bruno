@@ -51,7 +51,7 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth, collection = nul
         ];
       }
       return [];
-    case 'oauth2':
+    case 'oauth2': {
       const oauth2Config = get(auth, 'oauth2', {});
       const tokenPlacement = get(oauth2Config, 'tokenPlacement', 'header');
       const tokenHeaderPrefix = get(oauth2Config, 'tokenHeaderPrefix', 'Bearer');
@@ -112,6 +112,7 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth, collection = nul
       }
       // If tokenPlacement is 'url', the token will be added to query params, not headers
       return [];
+    }
     default:
       return [];
   }
