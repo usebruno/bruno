@@ -3243,7 +3243,7 @@ export const collectionsSlice = createSlice({
     wsResponseReceived: (state, action) => {
       const { itemUid, collectionUid, eventType, eventData } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-
+      let newResponse;
       if (!collection) return;
 
       const item = findItemInCollection(collection, itemUid);
@@ -3264,17 +3264,19 @@ export const collectionsSlice = createSlice({
       switch (eventType) {
         case 'message':
           // Add message to responses list
-          updatedResponse.responses = (currentResponse?.responses || []).concat(eventData);
+          updatedResponse.responses = [eventData].concat(currentResponse?.responses || []);
           break;
 
         case 'redirect':
           updatedResponse.requestHeaders = eventData.headers;
           updatedResponse.responses ||= [];
-          updatedResponse.responses.push({
+          newResponse = {
             message: eventData.message,
             type: eventData.type,
-            timestamp: eventData.timestamp
-          });
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
+          };
+          updatedResponse.responses = [newResponse].concat(updatedResponse.responses || []);
           break;
 
         case 'upgrade':
@@ -3286,11 +3288,13 @@ export const collectionsSlice = createSlice({
           updatedResponse.statusText = 'CONNECTED';
           updatedResponse.statusCode = 0;
           updatedResponse.responses ||= [];
-          updatedResponse.responses.push({
+          newResponse = {
             message: `Connected to ${eventData.url}`,
             type: 'info',
-            timestamp: eventData.timestamp
-          });
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
+          };
+          updatedResponse.responses = [newResponse].concat(updatedResponse.responses || []);
           break;
 
         case 'close':
@@ -3302,11 +3306,13 @@ export const collectionsSlice = createSlice({
           updatedResponse.statusText = wsStatusCodes[code] || 'CLOSED';
           updatedResponse.statusDescription = reason;
 
-          updatedResponse.responses.push({
+          newResponse = {
             type: code !== 1000 ? 'info' : 'error',
             message: reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
-            timestamp
-          });
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
+          };
+          updatedResponse.responses = [newResponse].concat(updatedResponse.responses || []);
           break;
 
         case 'error':
@@ -3317,12 +3323,13 @@ export const collectionsSlice = createSlice({
           updatedResponse.statusCode = wsStatusCodes[1011];
           updatedResponse.statusText = 'ERROR';
 
-          updatedResponse.responses.push({
+          newResponse = {
             type: 'error',
             message: errorDetails || 'WebSocket error occurred',
-            timestamp
-          });
-
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
+          };
+          updatedResponse.responses = [newResponse].concat(updatedResponse.responses || []);
           break;
 
         case 'connecting':
