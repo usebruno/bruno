@@ -25,13 +25,12 @@ const ConfirmSwitchEnv = ({ onCancel }) => {
       </div>
       <div className="font-normal mt-4">You have unsaved changes in this environment.</div>
 
-      <div className="flex justify-between mt-6">
+      <div className="flex justify-end mt-6">
         <div>
-          <Button size="sm" color="danger" onClick={onCancel}>
+          <Button color="warning" onClick={onCancel}>
             Close
           </Button>
         </div>
-        <div></div>
       </div>
     </Modal>
   );

@@ -43,6 +43,7 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
         size="sm"
         title={`Delete ${isFolder ? 'Folder' : 'Request'}`}
         confirmText="Delete"
+        confirmButtonColor="danger"
         handleConfirm={onConfirm}
         handleCancel={onClose}
       >
