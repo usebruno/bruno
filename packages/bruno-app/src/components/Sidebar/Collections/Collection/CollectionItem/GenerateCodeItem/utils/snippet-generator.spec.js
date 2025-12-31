@@ -563,12 +563,36 @@ describe('generateSnippet with OAuth2 authentication', () => {
     jest.clearAllMocks();
     // Mock getAuthHeaders to return OAuth2 headers based on the auth config
     const authUtils = require('utils/codegenerator/auth');
-    authUtils.getAuthHeaders.mockImplementation((collectionAuth, requestAuth) => {
+    authUtils.getAuthHeaders.mockImplementation((collectionRootAuth, requestAuth, collection = null, item = null) => {
       if (requestAuth?.mode === 'oauth2') {
         const oauth2Config = requestAuth.oauth2 || {};
         const tokenPlacement = oauth2Config.tokenPlacement || 'header';
         const tokenHeaderPrefix = oauth2Config.tokenHeaderPrefix || 'Bearer';
-        const accessToken = oauth2Config.accessToken || '<access_token>';
+        let accessToken = oauth2Config.accessToken || '<access_token>';
+
+        // If collection and item are provided, try to look up stored credentials
+        if (collection && item && collection.oauth2Credentials) {
+          const grantType = oauth2Config.grantType || '';
+          const urlToLookup = grantType === 'implicit'
+            ? oauth2Config.authorizationUrl || ''
+            : oauth2Config.accessTokenUrl || '';
+          const credentialsId = oauth2Config.credentialsId || 'credentials';
+          const collectionUid = collection.uid;
+
+          if (urlToLookup && collectionUid) {
+            // Look up stored credentials (simplified - assumes URL is already interpolated in test data)
+            const credentialsData = collection.oauth2Credentials.find(
+              (creds) =>
+                creds?.url === urlToLookup
+                && creds?.collectionUid === collectionUid
+                && creds?.credentialsId === credentialsId
+            );
+
+            if (credentialsData?.credentials?.access_token) {
+              accessToken = credentialsData.credentials.access_token;
+            }
+          }
+        }
 
         if (tokenPlacement === 'header') {
           const headerValue = tokenHeaderPrefix
