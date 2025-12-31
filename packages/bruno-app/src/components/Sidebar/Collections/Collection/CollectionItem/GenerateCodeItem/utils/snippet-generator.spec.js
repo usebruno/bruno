@@ -554,3 +554,194 @@ describe('generateSnippet with edge-case bodies', () => {
     expect(result).toMatch(/^curl -X POST/);
   });
 });
+
+describe('generateSnippet with OAuth2 authentication', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Mock getAuthHeaders to return OAuth2 headers based on the auth config
+    const authUtils = require('utils/codegenerator/auth');
+    authUtils.getAuthHeaders.mockImplementation((collectionAuth, requestAuth) => {
+      if (requestAuth?.mode === 'oauth2') {
+        const oauth2Config = requestAuth.oauth2 || {};
+        const tokenPlacement = oauth2Config.tokenPlacement || 'header';
+        const tokenHeaderPrefix = oauth2Config.tokenHeaderPrefix || 'Bearer';
+        const accessToken = oauth2Config.accessToken || '<access_token>';
+
+        if (tokenPlacement === 'header') {
+          const headerValue = tokenHeaderPrefix
+            ? `${tokenHeaderPrefix} ${accessToken}`.trim()
+            : accessToken;
+          return [
+            {
+              enabled: true,
+              name: 'Authorization',
+              value: headerValue
+            }
+          ];
+        }
+      }
+      return [];
+    });
+  });
+
+  it('should include OAuth2 Bearer token in Authorization header when tokenPlacement is header', () => {
+    const item = {
+      uid: 'oauth-req',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/users',
+        headers: [],
+        auth: {
+          mode: 'oauth2',
+          oauth2: {
+            grantType: 'client_credentials',
+            tokenPlacement: 'header',
+            tokenHeaderPrefix: 'Bearer',
+            accessToken: 'test-access-token-123'
+          }
+        }
+      }
+    };
+
+    generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    const harUtils = require('utils/codegenerator/har');
+    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    expect(harCall.headers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Authorization',
+          value: 'Bearer test-access-token-123'
+        })
+      ])
+    );
+  });
+
+  it('should use custom tokenHeaderPrefix when provided', () => {
+    const item = {
+      uid: 'oauth-req-custom',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/users',
+        headers: [],
+        auth: {
+          mode: 'oauth2',
+          oauth2: {
+            grantType: 'client_credentials',
+            tokenPlacement: 'header',
+            tokenHeaderPrefix: 'OAuth',
+            accessToken: 'custom-token-456'
+          }
+        }
+      }
+    };
+
+    generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    const harUtils = require('utils/codegenerator/har');
+    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    expect(harCall.headers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Authorization',
+          value: 'OAuth custom-token-456'
+        })
+      ])
+    );
+  });
+
+  it('should not include Authorization header when tokenPlacement is url', () => {
+    const item = {
+      uid: 'oauth-req-url',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/users',
+        headers: [],
+        auth: {
+          mode: 'oauth2',
+          oauth2: {
+            grantType: 'client_credentials',
+            tokenPlacement: 'url',
+            tokenQueryKey: 'access_token',
+            accessToken: 'token-in-url'
+          }
+        }
+      }
+    };
+
+    generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    const harUtils = require('utils/codegenerator/har');
+    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    const authHeader = harCall.headers.find((h) => h.name === 'Authorization');
+    expect(authHeader).toBeUndefined();
+  });
+
+  it('should use placeholder when accessToken is not available', () => {
+    const item = {
+      uid: 'oauth-req-placeholder',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/users',
+        headers: [],
+        auth: {
+          mode: 'oauth2',
+          oauth2: {
+            grantType: 'client_credentials',
+            tokenPlacement: 'header',
+            tokenHeaderPrefix: 'Bearer'
+          }
+        }
+      }
+    };
+
+    generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    const harUtils = require('utils/codegenerator/har');
+    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    expect(harCall.headers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Authorization',
+          value: 'Bearer <access_token>'
+        })
+      ])
+    );
+  });
+
+  it('should handle empty tokenHeaderPrefix', () => {
+    const item = {
+      uid: 'oauth-req-no-prefix',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/users',
+        headers: [],
+        auth: {
+          mode: 'oauth2',
+          oauth2: {
+            grantType: 'client_credentials',
+            tokenPlacement: 'header',
+            tokenHeaderPrefix: '',
+            accessToken: 'token-without-prefix'
+          }
+        }
+      }
+    };
+
+    generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    const harUtils = require('utils/codegenerator/har');
+    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    expect(harCall.headers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Authorization',
+          value: 'token-without-prefix'
+        })
+      ])
+    );
+  });
+});

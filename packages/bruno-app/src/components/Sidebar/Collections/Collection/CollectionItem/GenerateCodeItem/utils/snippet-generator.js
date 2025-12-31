@@ -20,7 +20,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // Add auth headers if needed
     if (request.auth && request.auth.mode !== 'none') {
       const collectionAuth = collection?.draft?.root ? get(collection, 'draft.root.request.auth', null) : get(collection, 'root.request.auth', null);
-      const authHeaders = getAuthHeaders(collectionAuth, request.auth);
+      const authHeaders = getAuthHeaders(collectionAuth, request.auth, collection, item);
       headers = [...headers, ...authHeaders];
     }
 
