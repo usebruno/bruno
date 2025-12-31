@@ -3,7 +3,7 @@ import { get } from 'lodash';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { IconUpload, IconX, IconFile } from '@tabler/icons';
-import { addFile as _addFile, updateFile, deleteFile } from 'providers/ReduxStore/slices/collections/index';
+import { addFile, updateFile, deleteFile } from 'providers/ReduxStore/slices/collections/index';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import mime from 'mime-types';
@@ -17,7 +17,7 @@ import { isWindowsOS } from 'utils/common/platform';
 const FileBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const params = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file');
+  const files = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file');
 
   // Ref to store pending file data for newly added files
   const pendingFileRef = useRef(null);
@@ -25,11 +25,15 @@ const FileBody = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
+  // Helper to get fresh files from item (avoids stale closures)
+  const getFiles = useCallback(() => {
+    return item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file') || [];
+  }, [item]);
+
   // Effect to handle updating newly added files with their pending file path
   useEffect(() => {
-    if (pendingFileRef.current && params && params.length > 0) {
-      const { filePath, contentType } = pendingFileRef.current;
-      const newFile = params[params.length - 1];
+    if (pendingFileRef.current && files && files.length > 0) {
+      const newFile = files[files.length - 1];
 
       // Only update if the new file doesn't have a filePath yet (freshly added)
       if (newFile && (!newFile.filePath || newFile.filePath.trim() === '')) {
@@ -47,80 +51,34 @@ const FileBody = ({ item, collection }) => {
         }));
       }
     }
-  }, [params, dispatch, item.uid, collection.uid]);
+  }, [files, dispatch, item.uid, collection.uid]);
 
-  // Unified handler for EditableTable onChange
-  const handleParamsChange = useCallback((updatedParams) => {
-    // Filter out empty rows (rows with no filePath)
-    const validParams = updatedParams.filter((p) => p.filePath && p.filePath.trim() !== '');
-    // Read current params fresh from item to avoid stale closures
-    const currentParams = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file') || [];
-    const currentUids = new Set(currentParams.map((p) => p.uid));
-    const validUids = new Set(validParams.map((p) => p.uid));
+  const handleFilePathChange = useCallback((row, newFilePath) => {
+    const currentFiles = getFiles();
+    const existingFile = currentFiles.find((f) => f.uid === row.uid);
 
-    // Find deleted params
-    const deletedUids = currentParams
-      .filter((p) => !validUids.has(p.uid))
-      .map((p) => p.uid);
-
-    // Delete removed params
-    deletedUids.forEach((uid) => {
-      dispatch(deleteFile({
-        paramUid: uid,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      }));
-    });
-
-    // Update existing params
-    validParams.forEach((updatedParam) => {
-      if (currentUids.has(updatedParam.uid)) {
-        const currentParam = currentParams.find((p) => p.uid === updatedParam.uid);
-        // Only update if something changed
-        if (
-          updatedParam.filePath !== currentParam.filePath
-          || updatedParam.contentType !== currentParam.contentType
-          || updatedParam.selected !== currentParam.selected
-        ) {
-          dispatch(updateFile({
-            param: updatedParam,
-            itemUid: item.uid,
-            collectionUid: collection.uid
-          }));
-        }
-      }
-    });
-  }, [dispatch, item, collection.uid]);
-
-  const handleFilePathChange = useCallback((paramUid, newFilePath) => {
-    // Read current params fresh from item to avoid stale closures
-    const currentParams = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file') || [];
-    const existingParam = currentParams.find((p) => p.uid === paramUid);
-
-    if (existingParam) {
-      // Update existing param
-      const updatedParam = { ...existingParam, filePath: newFilePath };
+    if (existingFile) {
+      const updatedFile = { ...existingFile, filePath: newFilePath };
       // Auto-detect content type from file extension
       if (newFilePath) {
         const contentType = mime.contentType(path.extname(newFilePath));
-        updatedParam.contentType = contentType || '';
+        updatedFile.contentType = contentType || '';
       } else {
-        updatedParam.contentType = '';
+        updatedFile.contentType = '';
       }
 
       dispatch(updateFile({
-        param: updatedParam,
+        param: updatedFile,
         itemUid: item.uid,
         collectionUid: collection.uid
       }));
     }
-  }, [dispatch, item, collection.uid]);
+  }, [dispatch, item.uid, collection.uid, getFiles]);
 
   const handleBrowseFile = useCallback((row) => {
-    // Read current params fresh from item to avoid stale closures
-    const currentParams = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file') || [];
-    const existingParam = currentParams.find((p) => p.uid === row.uid);
-    const isNewRow = !existingParam;
+    const currentFiles = getFiles();
+    const existingFile = currentFiles.find((f) => f.uid === row.uid);
+    const isNewRow = !existingFile;
 
     dispatch(browseFiles())
       .then((filePaths) => {
@@ -133,71 +91,91 @@ const FileBody = ({ item, collection }) => {
           const contentType = mime.contentType(path.extname(processedPath)) || '';
 
           if (isNewRow) {
-            // Store the pending file data - useEffect will apply it when params updates
+            // Store the pending file data - useEffect will apply it when files updates
             pendingFileRef.current = { filePath: processedPath, contentType };
 
             // Add a new file entry
-            dispatch(_addFile({
+            dispatch(addFile({
               itemUid: item.uid,
               collectionUid: collection.uid
             }));
           } else {
-            // Update existing file - read fresh params to get the uid
-            handleFilePathChange(row.uid, processedPath);
+            handleFilePathChange(row, processedPath);
           }
         }
       })
       .catch((error) => {
         console.error(error);
       });
-  }, [dispatch, collection.pathname, handleFilePathChange, item, collection.uid]);
+  }, [dispatch, collection.pathname, handleFilePathChange, item.uid, collection.uid, getFiles]);
 
   const handleClearFile = useCallback((row) => {
-    handleFilePathChange(row.uid, '');
+    handleFilePathChange(row, '');
   }, [handleFilePathChange]);
 
   const handleContentTypeChange = useCallback((row, newContentType) => {
-    // Read current params fresh from item to avoid stale closures
-    const currentParams = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file') || [];
-    const existingParam = currentParams.find((p) => p.uid === row.uid);
+    const currentFiles = getFiles();
+    const existingFile = currentFiles.find((f) => f.uid === row.uid);
 
-    if (existingParam) {
-      const updatedParam = { ...existingParam, contentType: newContentType };
+    if (existingFile) {
       dispatch(updateFile({
-        param: updatedParam,
+        param: { ...existingFile, contentType: newContentType },
         itemUid: item.uid,
         collectionUid: collection.uid
       }));
     }
-  }, [dispatch, item, collection.uid]);
+  }, [dispatch, item.uid, collection.uid, getFiles]);
 
   const handleSelectedChange = useCallback((row, checked) => {
-    // Read current params fresh from item to avoid stale closures
-    const currentParams = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file') || [];
-    const existingParam = currentParams.find((p) => p.uid === row.uid);
+    const currentFiles = getFiles();
+    const existingFile = currentFiles.find((f) => f.uid === row.uid);
 
-    if (existingParam && checked) {
+    if (existingFile && checked) {
       // The Redux updateFile action automatically deselects all others when selecting one
       dispatch(updateFile({
-        param: {
-          ...existingParam,
-          selected: true
-        },
+        param: { ...existingFile, selected: true },
         itemUid: item.uid,
         collectionUid: collection.uid
       }));
     }
-  }, [dispatch, item, collection.uid]);
+  }, [dispatch, item.uid, collection.uid, getFiles]);
 
-  const handleParamDrag = useCallback(({ updateReorderedItem }) => {
-    // Read current params fresh from item to avoid stale closures
-    const currentParams = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file') || [];
-    const reorderedParams = updateReorderedItem.map((uid) => {
-      return currentParams.find((p) => p.uid === uid);
-    }).filter(Boolean);
+  const handleFilesChange = useCallback((updatedFiles) => {
+    // Filter out empty rows (rows with no filePath)
+    const validFiles = updatedFiles.filter((f) => f.filePath && f.filePath.trim() !== '');
+    const currentFiles = getFiles();
+    const currentUids = new Set(currentFiles.map((f) => f.uid));
+    const validUids = new Set(validFiles.map((f) => f.uid));
 
-    handleParamsChange(reorderedParams);
-  }, [item, handleParamsChange]);
+    // Find and delete removed files
+    currentFiles
+      .filter((f) => !validUids.has(f.uid))
+      .forEach((f) => {
+        dispatch(deleteFile({
+          paramUid: f.uid,
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        }));
+      });
+
+    // Update existing files if changed
+    validFiles.forEach((updatedFile) => {
+      if (currentUids.has(updatedFile.uid)) {
+        const currentFile = currentFiles.find((f) => f.uid === updatedFile.uid);
+        if (
+          updatedFile.filePath !== currentFile.filePath
+          || updatedFile.contentType !== currentFile.contentType
+          || updatedFile.selected !== currentFile.selected
+        ) {
+          dispatch(updateFile({
+            param: updatedFile,
+            itemUid: item.uid,
+            collectionUid: collection.uid
+          }));
+        }
+      }
+    });
+  }, [dispatch, item.uid, collection.uid, getFiles]);
 
   const getFileName = (filePath) => {
     if (!filePath) return null;
@@ -269,7 +247,7 @@ const FileBody = ({ item, collection }) => {
       key: 'selected',
       name: 'Selected',
       width: '20%',
-      render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
+      render: ({ row, rowIndex }) => (
         <div className="flex items-center justify-center">
           <RadioButton
             key={row.uid}
@@ -296,11 +274,9 @@ const FileBody = ({ item, collection }) => {
     <StyledWrapper className="w-full">
       <EditableTable
         columns={columns}
-        rows={params || []}
-        onChange={handleParamsChange}
+        rows={files || []}
+        onChange={handleFilesChange}
         defaultRow={defaultRow}
-        reorderable={true}
-        onReorder={handleParamDrag}
         showAddRow={true}
         showCheckbox={false}
       />
