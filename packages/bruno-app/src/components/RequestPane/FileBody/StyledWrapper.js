@@ -1,64 +1,50 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-weight: 500;
-    table-layout: fixed;
-
-    thead,
-    td {
-      border: 1px solid ${(props) => props.theme.table.border};
-    }
-
-    thead {
-      color: ${(props) => props.theme.table.thead.color};
-      font-size: ${(props) => props.theme.font.size.base};
-      user-select: none;
-    }
-    td {
-      padding: 6px 10px;
-
-      &:nth-child(1) {
-        width: 30%;
-      }
-
-      &:nth-child(2) {
-        width: 45%;
-      }
-
-      &:nth-child(3) {
-        width: 25%;
-      }
-
-      &:nth-child(4) {
-        width: 70px;
-      }
-    }
-  }
-
-  .btn-add-param {
-    font-size: ${(props) => props.theme.font.size.base};
-  }
-
-  input[type='text'] {
-    width: 100%;
-    border: solid 1px transparent;
-    outline: none !important;
-    color: ${(props) => props.theme.table.input.color};
+  .upload-btn,
+  .clear-file-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
     background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.15s ease;
 
-    &:focus {
-      outline: none !important;
-      border: solid 1px transparent;
+    &:hover {
+      color: ${(props) => props.theme.colors.text.link};
     }
   }
 
-  input[type='radio'] {
-    cursor: pointer;
-    position: relative;
-    top: 1px;
+  .clear-file-btn:hover {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
+
+  .file-value-cell {
+    padding: 4px 0;
+
+    .file-icon {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    .file-name {
+      font-size: 12px;
+      color: ${(props) => props.theme.colors.text.subtext2};
+    }
+  }
+
+  .value-cell {
+    .flex-1 {
+      min-width: 0;
+    }
+  }
+
+  .placeholder-text {
+    color: ${(props) => props.theme.colors.text.muted};
+    font-style: italic;
   }
 `;
 
