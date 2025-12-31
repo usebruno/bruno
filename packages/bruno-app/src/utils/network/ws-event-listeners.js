@@ -8,9 +8,19 @@ const useWsEventListeners = () => {
   const { ipcRenderer } = window;
   const dispatch = useDispatch();
 
-  const seqRef = useRef(0);
-  const nextSeq = () => (++seqRef.current);
-  const resetSeq = () => { seqRef.current = 0; };
+  // requestId -> seq
+  const seqByRequestRef = useRef(new Map());
+
+  const nextSeq = (requestId) => {
+    const map = seqByRequestRef.current;
+    const next = (map.get(requestId) ?? 0) + 1;
+    map.set(requestId, next);
+    return next;
+  };
+
+  const resetSeq = (requestId) => {
+    seqByRequestRef.current.delete(requestId);
+  };
 
   useEffect(() => {
     if (!isElectron()) {
@@ -24,7 +34,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         requestUid: requestId,
-        eventData: { ...eventData, seq: nextSeq() }
+        eventData: { ...eventData, seq: nextSeq(requestId) }
       }));
     });
 
@@ -33,7 +43,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'upgrade',
-        eventData: { ...eventData, seq: nextSeq() }
+        eventData: { ...eventData, seq: nextSeq(requestId) }
       }));
     });
 
@@ -42,7 +52,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'redirect',
-        eventData: { ...eventData, seq: nextSeq() }
+        eventData: { ...eventData, seq: nextSeq(requestId) }
       }));
     });
 
@@ -52,7 +62,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'message',
-        eventData: { ...eventData, seq: nextSeq() }
+        eventData: { ...eventData, seq: nextSeq(requestId) }
       }));
     });
 
@@ -62,7 +72,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'open',
-        eventData: { ...eventData, seq: nextSeq() }
+        eventData: { ...eventData, seq: nextSeq(requestId) }
       }));
     });
 
@@ -72,9 +82,9 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'close',
-        eventData: { ...eventData, seq: nextSeq() }
+        eventData: { ...eventData, seq: nextSeq(requestId) }
       }));
-      resetSeq();
+      resetSeq(requestId);
     });
 
     // Handle WebSocket error event
@@ -83,7 +93,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'error',
-        eventData: { ...eventData, seq: nextSeq() }
+        eventData: { ...eventData, seq: nextSeq(requestId) }
       }));
     });
 
@@ -93,7 +103,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'connecting',
-        eventData: { ...eventData, seq: nextSeq() }
+        eventData: { ...eventData, seq: nextSeq(requestId) }
       }));
     });
 
