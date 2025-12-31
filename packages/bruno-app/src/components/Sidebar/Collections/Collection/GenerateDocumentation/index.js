@@ -17,7 +17,28 @@ import { escapeHtml } from 'utils/response';
 const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const { version } = useApp();
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
-  const isCollectionLoading = areItemsLoading(collection);
+  const isCollectionLoading = collection ? areItemsLoading(collection) : false;
+
+  if (!collection) {
+    return (
+      <Modal
+        size="md"
+        title="Generate Documentation"
+        confirmText="Close"
+        handleConfirm={onClose}
+        hideCancel={true}
+      >
+        <StyledWrapper className="w-[500px]">
+          <div className="flex flex-col gap-4">
+            <div className="note-section flex items-start gap-2 p-3">
+              <IconAlertTriangle size={16} className="shrink-0 mt-px" />
+              <span>Collection not found. It may have been deleted or is no longer available.</span>
+            </div>
+          </div>
+        </StyledWrapper>
+      </Modal>
+    );
+  }
 
   const generateHtmlDocumentation = () => {
     try {
