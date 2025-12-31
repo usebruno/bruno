@@ -63,32 +63,47 @@ const Wrapper = styled.div`
     }
   }
 
-  .btn-secondary {
-    &.edit-mode {
-      background-color: ${(props) => props.theme.colors.text.yellow}20;
-      border-color: ${(props) => props.theme.colors.text.yellow};
-      color: ${(props) => props.theme.colors.text.yellow};
-    }
-
-    &.view-mode {
-      background-color: transparent;
-      border-color: ${(props) => props.theme.colors.text.muted};
+  .file-value-cell {
+    .file-icon {
       color: ${(props) => props.theme.colors.text.muted};
-      cursor: default;
     }
 
-    /* Fix alignment for file picker content */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    button {
+    .file-name {
+      color: ${(props) => props.theme.text};
+    }
+
+    .clear-file-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px;
+      color: ${(props) => props.theme.colors.text.muted};
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 2px;
-      margin-right: 4px;
+
+      &:hover {
+        color: ${(props) => props.theme.colors.text.danger};
+      }
     }
+  }
+
+  .upload-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      color: ${(props) => props.theme.primary.solid};
+    }
+  }
+
+  .placeholder-text {
+    color: ${(props) => props.theme.colors.text.muted};
+    font-style: italic;
   }
 
   tr {

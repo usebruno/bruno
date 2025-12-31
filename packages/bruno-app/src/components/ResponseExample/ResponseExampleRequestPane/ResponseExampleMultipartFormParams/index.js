@@ -178,17 +178,19 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
         if (fileName) {
           return (
             <div className="flex items-center file-value-cell">
-              <IconFile size={16} className="text-muted mr-1" />
+              <IconFile size={16} className="mr-1" />
               <span className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
                 {fileName}
               </span>
-              <button
-                className="clear-file-btn ml-1"
-                onClick={() => handleClearFile(row)}
-                title="Remove file"
-              >
-                <IconX size={16} />
-              </button>
+              {editMode && (
+                <button
+                  className="clear-file-btn ml-1"
+                  onClick={() => handleClearFile(row)}
+                  title="Remove file"
+                >
+                  <IconX size={16} />
+                </button>
+              )}
             </div>
           );
         }
@@ -209,7 +211,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                 placeholder={isLastEmptyRow ? 'Value' : ''}
               />
             </div>
-            {!hasTextValue && !isLastEmptyRow && (
+            {editMode && !hasTextValue && !isLastEmptyRow && (
               <button
                 className="upload-btn ml-1"
                 onClick={() => handleBrowseFiles(row, onChange)}

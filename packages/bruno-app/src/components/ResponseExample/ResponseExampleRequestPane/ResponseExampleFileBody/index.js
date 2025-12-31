@@ -2,14 +2,16 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { get } from 'lodash';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
+import { IconUpload, IconX, IconFile } from '@tabler/icons';
 import { updateResponseExampleFileBodyParams } from 'providers/ReduxStore/slices/collections';
+import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import RadioButton from 'components/RadioButton';
+import { isWindowsOS } from 'utils/common/platform';
 
 const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
@@ -105,6 +107,36 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     }));
   }, [editMode, dispatch, item.uid, collection.uid, exampleUid, params]);
 
+  const handleBrowseFile = useCallback((row, onChange) => {
+    if (!editMode) return;
+
+    dispatch(browseFiles())
+      .then((filePaths) => {
+        if (filePaths && filePaths.length > 0) {
+          const filePath = filePaths[0];
+          const collectionDir = collection.pathname;
+          const processedPath = filePath.startsWith(collectionDir)
+            ? path.relative(collectionDir, filePath)
+            : filePath;
+          handleFilePathChange(row, processedPath, onChange);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, [editMode, dispatch, collection.pathname, handleFilePathChange]);
+
+  const handleClearFile = useCallback((row, onChange) => {
+    if (!editMode) return;
+    handleFilePathChange(row, '', onChange);
+  }, [editMode, handleFilePathChange]);
+
+  const getFileName = (filePath) => {
+    if (!filePath) return null;
+    const separator = isWindowsOS() ? '\\' : '/';
+    return filePath.split(separator).pop();
+  };
+
   const columns = [
     {
       key: 'filePath',
@@ -113,15 +145,44 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       placeholder: 'File',
       width: '50%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
-        <FilePickerEditor
-          isSingleFilePicker={true}
-          value={value || ''}
-          onChange={(newPath) => handleFilePathChange(row, newPath, onChange)}
-          collection={collection}
-          readOnly={!editMode}
-        />
-      )
+      render: ({ row, value, onChange, isLastEmptyRow }) => {
+        const fileName = getFileName(value);
+
+        if (fileName) {
+          return (
+            <div className="flex items-center file-value-cell">
+              <IconFile size={16} className="file-icon mr-1" />
+              <span className="file-name flex-1 truncate" title={value}>
+                {fileName}
+              </span>
+              {editMode && (
+                <button
+                  className="clear-file-btn ml-1"
+                  onClick={() => handleClearFile(row, onChange)}
+                  title="Remove file"
+                >
+                  <IconX size={16} />
+                </button>
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex items-center value-cell">
+            <span className="flex-1 placeholder-text">{isLastEmptyRow ? 'Select a file' : ''}</span>
+            {editMode && (
+              <button
+                className="upload-btn ml-1"
+                onClick={() => handleBrowseFile(row, onChange)}
+                title="Select file"
+              >
+                <IconUpload size={16} />
+              </button>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'contentType',
@@ -187,6 +248,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
         onReorder={handleParamDrag}
         showAddRow={editMode}
         showCheckbox={false}
+        showDelete={editMode}
       />
     </StyledWrapper>
   );
