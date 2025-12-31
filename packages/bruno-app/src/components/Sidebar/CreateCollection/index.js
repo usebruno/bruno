@@ -246,7 +246,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                       className="report-issue-link"
                       onClick={(e) => {
                         e.preventDefault();
-                        window.open('https://github.com/usebruno/bruno/discussions', '_blank');
+                        window.open('https://github.com/usebruno/bruno/discussions/6466', '_blank', 'noopener,noreferrer,noreferrer');
                       }}
                     >
                       <IconExternalLink size={14} strokeWidth={1.5} />
