@@ -153,7 +153,7 @@ const MethodDropdown = ({
             onKeyDown={handleKeyDown}
             onBlur={focusSearchInput}
             onChange={handleSearchChange}
-            className="mt-2 mb-3 "
+            className="mt-2 mb-3"
             data-testid="grpc-methods-search-input"
           />
           <div ref={listRef} className="method-dropdown-list" data-testid="grpc-methods-list">
