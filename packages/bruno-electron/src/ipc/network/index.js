@@ -1012,105 +1012,32 @@ const registerNetworkIpc = (mainWindow) => {
       const stream = response.stream;
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
-      let raw = '';
-      let streamEnded = false;
-      // Buffer parsed SSE events here so we don't spam the renderer with IPC messages.
-      // Rendering each streamed event immediately can freeze the UI under high-volume streams.
-      let eventBuffer = [];
-
-      // Flush a limited number of events at a fixed cadence to keep the renderer responsive.
-      // BATCH_SIZE controls how many events are sent per flush.
-      // TICK_RATE controls how often we flush (ms).
-      const BATCH_SIZE = 10;
-      const TICK_RATE = 50;
-
-      const flush = () => {
-        if (!eventBuffer.length) return;
-        const batch = eventBuffer.splice(0, BATCH_SIZE);
-        for (const evt of batch) {
-          mainWindow.webContents.send('main:http-stream-new-data', evt);
-        }
-      };
-
-      // Periodically deliver buffered events to the renderer.
-      // When the network stream has ended AND we've delivered everything, emit stream-end once.
-      const ticker = setInterval(() => {
-        flush();
-        if (streamEnded && eventBuffer.length === 0) {
-          clearInterval(ticker);
-          mainWindow.webContents.send('main:http-stream-end', { collectionUid, itemUid: item.uid, seq: seq + 1, timestamp: Date.now() });
-          deleteCancelToken(response.cancelTokenUid);
-        }
-      }, TICK_RATE);
-
-      const parseSseBlock = (block) => {
-        // Normalize CRLF/CR -> LF
-        block = block.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-        let dataLines = [];
-        let id = null;
-        let eventType = null;
-
-        for (const line of block.split('\n')) {
-          if (!line) continue;
-          if (line.startsWith(':')) continue;
-
-          if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
-          else if (line.startsWith('id:')) id = line.slice(3).trimStart();
-          else if (line.startsWith('event:')) eventType = line.slice(6).trimStart();
-        }
-
-        const dataText = dataLines.join('\n');
-        if (!dataText) return;
-
+      stream.on('data', (newData) => {
         seq += 1;
-        const parsed = parseDataFromResponse({ data: dataText, headers: {} });
 
-        eventBuffer.push({
+        const parsed = parseDataFromResponse({ data: newData, headers: {} });
+
+        mainWindow.webContents.send('main:http-stream-new-data', {
           collectionUid,
           itemUid: item.uid,
           seq,
           timestamp: Date.now(),
-          data: parsed,
-          event: eventType
+          data: parsed
         });
-      };
-
-      stream.on('data', (chunk) => {
-        raw += chunk.toString('utf8');
-
-        while (true) {
-          // Find earliest delimiter: \n\n or \r\n\r\n (we normalize per block anyway)
-          const a = raw.indexOf('\n\n');
-          const b = raw.indexOf('\r\n\r\n');
-          let cut = -1;
-
-          if (a !== -1 && b !== -1) cut = Math.min(a, b);
-          else cut = a !== -1 ? a : b;
-
-          if (cut === -1) break;
-
-          const block = raw.slice(0, cut);
-          raw = raw.slice(cut);
-
-          if (raw.startsWith('\r\n\r\n')) raw = raw.slice(4);
-          else if (raw.startsWith('\n\n')) raw = raw.slice(2);
-
-          parseSseBlock(block);
-        }
       });
 
-      const finish = () => {
-        if (raw.trim()) {
-          parseSseBlock(raw);
-        }
-        raw = '';
-        streamEnded = true;
-      };
+      stream.on('close', () => {
+        if (!cancelTokens[response.cancelTokenUid]) return;
 
-      stream.on('end', finish);
-      stream.on('close', finish);
-      // stream.on('error', finish);
+        mainWindow.webContents.send('main:http-stream-end', {
+          collectionUid,
+          itemUid: item.uid,
+          seq: seq + 1,
+          timestamp: Date.now()
+        });
+
+        deleteCancelToken(response.cancelTokenUid);
+      });
     }
     return response;
   });
