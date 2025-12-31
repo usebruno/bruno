@@ -38,9 +38,10 @@ class LocalVarsStore {
   storeLocalVars(requestPathname, vars) {
     const requests = this.store.get('requests') || [];
     const existingRequest = _.find(requests, (r) => r.pathname === requestPathname);
+    const safeVars = Array.isArray(vars) ? vars : [];
 
     // Filter and clean vars for storage
-    const varsToStore = vars.map((v) => ({
+    const varsToStore = safeVars.map((v) => ({
       uid: v.uid,
       name: v.name,
       value: v.value,
