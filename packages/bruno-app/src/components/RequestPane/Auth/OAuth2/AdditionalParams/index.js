@@ -165,12 +165,12 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   );
 
   return (
-    <StyledWrapper className="mt-4">
+    <StyledWrapper className="mt-4 oauth2-additional-params-wrapper">
       <div className="flex items-center gap-2.5 mb-3">
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="text-gray-800 dark:text-gray-200">
           Additional Parameters
         </span>
       </div>

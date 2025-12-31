@@ -10,7 +10,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.primary.solid};
   }
 
-  div.tabs {
+  &.oauth2-additional-params-wrapper div.tabs {
     div.tab {
       cursor: pointer;
       padding: 4px 8px !important;
@@ -18,6 +18,7 @@ const StyledWrapper = styled.div`
       border-radius: 4px;
       border: none !important;
       border-bottom: none !important;
+      margin-right: 0;
       
       &:hover {
         background-color: ${(props) => rgba(props.theme.primary.solid, 0.1)};
