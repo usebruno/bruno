@@ -80,9 +80,9 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth, collection = nul
               const credentialsData = find(
                 collection?.oauth2Credentials,
                 (creds) =>
-                  creds?.url == interpolatedUrl
-                  && creds?.collectionUid == collectionUid
-                  && creds?.credentialsId == credentialsId
+                  creds?.url === interpolatedUrl
+                  && creds?.collectionUid === collectionUid
+                  && creds?.credentialsId === credentialsId
               );
 
               if (credentialsData?.credentials?.access_token) {
