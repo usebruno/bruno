@@ -14,6 +14,7 @@ const EditableTable = ({
   showDelete = true,
   checkboxLabel = '',
   checkboxKey = 'enabled',
+  checkboxReadOnly = false,
   reorderable = false,
   onReorder,
   showAddRow = true,
@@ -285,9 +286,10 @@ const EditableTable = ({
                       {!isEmpty && (
                         <input
                           type="checkbox"
-                          className="mousetrap"
+                          className={`mousetrap ${checkboxReadOnly ? 'checkbox-readonly' : ''}`}
                           data-testid="column-checkbox"
                           checked={row[checkboxKey] ?? true}
+                          disabled={checkboxReadOnly}
                           onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
                         />
                       )}

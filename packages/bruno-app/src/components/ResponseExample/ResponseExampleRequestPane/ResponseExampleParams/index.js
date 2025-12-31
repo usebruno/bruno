@@ -192,6 +192,8 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
         reorderable={editMode}
         onReorder={handleQueryParamDrag}
         showAddRow={editMode}
+        showDelete={editMode}
+        checkboxReadOnly={!editMode}
       />
       {editMode && (
         <div className="flex justify-end mt-2">

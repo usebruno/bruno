@@ -108,6 +108,12 @@ const StyledWrapper = styled.div`
     accent-color: ${(props) => props.theme.colors.accent};
     vertical-align: middle;
     margin: 0;
+
+    &.checkbox-readonly,
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
   }
 
   button {
