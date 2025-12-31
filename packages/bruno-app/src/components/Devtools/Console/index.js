@@ -13,7 +13,8 @@ import {
   IconChevronDown,
   IconTerminal2,
   IconNetwork,
-  IconDashboard
+  IconDashboard,
+  IconRadar
 } from '@tabler/icons';
 import {
   closeConsole,
@@ -32,6 +33,7 @@ import RequestDetailsPanel from './RequestDetailsPanel';
 // import DebugTab from './DebugTab';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
 import Performance from '../Performance';
+import NetworkIntercept from 'components/NetworkIntercept';
 import StyledWrapper from './StyledWrapper';
 
 const LogIcon = ({ type }) => {
@@ -388,6 +390,8 @@ const Console = () => {
         );
       case 'network':
         return <NetworkTab />;
+      case 'intercept':
+        return <NetworkIntercept />;
       case 'performance':
         return <Performance />;
       case 'terminal':
@@ -445,6 +449,8 @@ const Console = () => {
             </div>
           </div>
         );
+      case 'intercept':
+        return null; // Controls are built into the NetworkIntercept component
       case 'terminal':
         return null; // No controls needed for terminal
       // case 'debug':
@@ -490,6 +496,14 @@ const Console = () => {
           >
             <IconNetwork size={16} strokeWidth={1.5} />
             <span>Network</span>
+          </button>
+
+          <button
+            className={`console-tab ${activeTab === 'intercept' ? 'active' : ''}`}
+            onClick={() => handleTabChange('intercept')}
+          >
+            <IconRadar size={16} strokeWidth={1.5} />
+            <span>Intercept</span>
           </button>
 
           <button
