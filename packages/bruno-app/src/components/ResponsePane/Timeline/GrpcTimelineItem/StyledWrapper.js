@@ -68,14 +68,18 @@ const StyledWrapper = styled.div`
   .event-header {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
     cursor: pointer;
+
+    > *:not(:first-child) {
+      margin-right: 0.35rem;
+    }
 
     span:nth-of-type(1) {
       font-weight: 500;
     }
 
     pre {
+      font-family: var(--font-family-mono);
       font-size: ${(props) => props.theme.font.size.xs};
       margin: 0;
     }
@@ -174,16 +178,12 @@ const StyledWrapper = styled.div`
   }
 
   /* Common content styles */
-  .content-box {
+  pre.content-box {
     background-color: ${(props) => props.theme.bg};
     border-radius: ${(props) => props.theme.border.radius.base};
     padding: 0.375rem;
-
-    pre {
-      font-family: ${(props) => props.theme.font.mono || 'monospace'};
-      font-size: ${(props) => props.theme.font.size.xs};
-      margin: 0;
-    }
+    font-family: var(--font-family-mono);
+    margin: 0;
   }
 
   .empty-text {
