@@ -113,7 +113,8 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth, collection = nul
           }
         ];
       }
-      // If tokenPlacement is 'url', the token will be added to query params, not headers
+      // If tokenPlacement is 'url', this function does not add any auth headers;
+      // token placement in the URL/query params must be handled elsewhere.
       return [];
     }
     default:
