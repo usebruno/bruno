@@ -40,6 +40,11 @@ const StyledWrapper = styled.div`
   .muted {
     color: ${(props) => props.theme.colors.text.muted};
   }
+
+  input[type='radio'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
 `;
 
 export default StyledWrapper;
