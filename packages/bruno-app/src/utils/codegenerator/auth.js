@@ -78,7 +78,7 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth, collection = nul
 
               // Look up stored credentials
               const credentialsData = find(
-                collection?.oauth2Credentials,
+                collection?.oauth2Credentials || [],
                 (creds) =>
                   creds?.url === interpolatedUrl
                   && creds?.collectionUid === collectionUid
