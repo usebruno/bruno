@@ -4,6 +4,7 @@ const fsExtra = require('fs-extra');
 const archiver = require('archiver');
 const extractZip = require('extract-zip');
 const { ipcMain, dialog } = require('electron');
+const isDev = require('electron-is-dev');
 const { createDirectory, sanitizeName } = require('../utils/filesystem');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
@@ -609,11 +610,11 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
-  // Guard to prevent main:renderer-ready from running multiple times
+  // Guard to prevent main:renderer-ready from running multiple times (only needed in dev mode due to strict mode)
   let rendererReadyProcessed = false;
 
   ipcMain.on('main:renderer-ready', async (win) => {
-    if (rendererReadyProcessed) {
+    if (isDev && rendererReadyProcessed) {
       return;
     }
     rendererReadyProcessed = true;
