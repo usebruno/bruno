@@ -27,7 +27,22 @@ const StyledWrapper = styled.div`
       }
     }
   }
-  
+
+  .beta-badge-corner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.15)};
+    color: ${(props) => props.theme.colors.text.yellow};
+    border-top-right-radius: ${(props) => props.theme.border.radius.base};
+    border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
+  }
+
   .share-button {
     display: flex;
     border-radius: ${(props) => props.theme.border.radius.base};
