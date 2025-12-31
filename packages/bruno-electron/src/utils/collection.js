@@ -451,22 +451,24 @@ const hydrateRequestWithUuid = (request, pathname) => {
  * @param {Array} localVars - Array of local variable objects from LocalVarsStore
  */
 const hydrateRequestWithLocalVars = (request, localVars = []) => {
-  if (!localVars || localVars.length === 0) {
-    return request;
-  }
-
   // Create a map of local vars by name for quick lookup
   const localVarsByName = {};
-  localVars.forEach((v) => {
-    localVarsByName[v.name] = v;
-  });
+  if (localVars && localVars.length > 0) {
+    localVars.forEach((v) => {
+      localVarsByName[v.name] = v;
+    });
+  }
 
   // Get existing request vars from the .bru file
   const existingVars = get(request, 'request.vars.req', []);
 
-  // Hydrate vars: if a var has a matching local var, use local value and mark as non-persistent
+  // Hydrate vars
   const hydratedVars = existingVars.map((v) => {
     const localVar = localVarsByName[v.name];
+
+    // Check if this is a marked non-persistent var (sentinel value)
+    const isSentinel = v.value === '__BRUNO_LOCAL__';
+
     if (localVar) {
       // This var has a local value - hydrate it and mark as non-persistent
       return {
@@ -476,7 +478,18 @@ const hydrateRequestWithLocalVars = (request, localVars = []) => {
         persist: false
       };
     }
-    // No local var - keep as is (persistent)
+
+    if (isSentinel) {
+      // Marked as non-persistent but no local value found (e.g. another user)
+      // Set persist: false and clear the sentinel value
+      return {
+        ...v,
+        value: '',
+        persist: false
+      };
+    }
+
+    // No local var and not a sentinel - keep as is (persistent)
     return {
       ...v,
       persist: true

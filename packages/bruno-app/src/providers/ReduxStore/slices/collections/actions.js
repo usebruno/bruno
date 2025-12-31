@@ -159,8 +159,8 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     const varsForBruFile = allPreRequestVars.map((v) => {
       const { persist, ...rest } = v;
       if (persist === false) {
-        // Save structure but not value to .bru file
-        return { ...rest, value: '' };
+        // Save structure with sentinel to .bru file
+        return { ...rest, value: '__BRUNO_LOCAL__' };
       }
       return rest;
     });
