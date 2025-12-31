@@ -262,7 +262,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
             <Status statusCode={statusCode} statusText={statusText} />
           </div>
         )}
-        <pre className="opacity-70">[{new Date(timestamp).toISOString()}]</pre>
+        <pre className="event-timestamp">[{new Date(timestamp).toISOString()}]</pre>
         <span className="timestamp-text ml-auto">
           <RelativeTime timestamp={timestamp} />
         </span>

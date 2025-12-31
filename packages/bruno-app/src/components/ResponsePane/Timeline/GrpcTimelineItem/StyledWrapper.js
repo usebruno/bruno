@@ -4,7 +4,7 @@ import { rgba } from 'polished';
 const StyledWrapper = styled.div`
   font-size: ${(props) => props.theme.font.size.base};
 
-  /* Event type border colors */
+  /* Event type styles */
   &.event-metadata {
     border-left: 4px solid ${(props) => rgba(props.theme.request.methods.post, 0.2)};
   }
@@ -87,6 +87,10 @@ const StyledWrapper = styled.div`
       font-family: var(--font-family-mono);
       font-size: ${(props) => props.theme.font.size.xs};
       margin: 0;
+    }
+
+    .event-timestamp {
+      opacity: 0.7;
     }
   }
 
@@ -183,12 +187,20 @@ const StyledWrapper = styled.div`
   }
 
   /* Common content styles */
-  pre.content-box {
+  .content-box {
     background-color: ${(props) => props.theme.bg};
     border-radius: ${(props) => props.theme.border.radius.base};
     padding: 0.375rem;
-    font-family: var(--font-family-mono);
     margin: 0;
+
+    &,
+    pre {
+      font-family: var(--font-family-mono);
+    }
+
+    pre {
+      margin: 0;
+    }
   }
 
   .empty-text {
