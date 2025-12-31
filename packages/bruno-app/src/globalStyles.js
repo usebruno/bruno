@@ -222,7 +222,7 @@ const GlobalStyle = createGlobalStyle`
 
     &:hover {
       scrollbar-color: ${(props) => props.theme.scrollbar.color} transparent;
-      
+
       &::-webkit-scrollbar-thumb {
         background-color: ${(props) => props.theme.scrollbar.color};
       }
@@ -278,11 +278,11 @@ const GlobalStyle = createGlobalStyle`
     z-index: 50 !important;
     background: ${(props) => props.theme.dropdown.bg};
     ${(props) =>
-      props.theme.dropdown.border && props.theme.dropdown.border !== 'none'
+      props.theme.dropdown.border !== 'none'
         ? `border: 1px solid ${props.theme.dropdown.border};`
         : ''}
     ${(props) =>
-      props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
+      props.theme.dropdown.shadow !== 'none'
         ? `box-shadow: ${props.theme.dropdown.shadow};`
         : ''}
     border-radius: ${(props) => props.theme.border.radius.base};
@@ -294,8 +294,9 @@ const GlobalStyle = createGlobalStyle`
   // Individual hint items
   .CodeMirror-hint {
     color: ${(props) => props.theme.dropdown.color};
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    padding: 1rem 0.5rem;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    line-height: 1.5rem;
     font-size: ${(props) => props.theme.font.size.sm};
     cursor: pointer;
   }
@@ -520,7 +521,7 @@ const GlobalStyle = createGlobalStyle`
     background: ${(props) => props.theme.dropdown.hoverBg} !important;
     color: ${(props) => props.theme.dropdown.color} !important;
   }
-  
+
   .hovered-link.CodeMirror-link {
     text-decoration: underline !important;
   }
