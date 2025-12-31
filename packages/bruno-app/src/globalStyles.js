@@ -181,16 +181,16 @@ const GlobalStyle = createGlobalStyle`
     * {
       scrollbar-color: ${(props) => props.theme.scrollbar.color};
     }
-    
+
     *::-webkit-scrollbar {
       width: 5px;
     }
-    
+
     *::-webkit-scrollbar-track {
       background: transparent;
       border-radius: 5px;
     }
-    
+
     *::-webkit-scrollbar-thumb {
       background-color: ${(props) => props.theme.scrollbar.color};
       border-radius: 14px;
@@ -294,7 +294,6 @@ const GlobalStyle = createGlobalStyle`
   // Individual hint items
   .CodeMirror-hint {
     color: ${(props) => props.theme.dropdown.color};
-    padding: 1rem 0.5rem;
     border-radius: ${(props) => props.theme.border.radius.base};
     line-height: 1.5rem;
     font-size: ${(props) => props.theme.font.size.sm};
