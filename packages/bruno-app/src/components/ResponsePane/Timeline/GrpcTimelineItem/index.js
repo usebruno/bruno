@@ -248,7 +248,9 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
     <StyledWrapper className={`${eventClass} pl-1 mb-3`}>
       <div className="event-header" onClick={toggleCollapse}>
         {isCollapsed ? <IconChevronRight size={16} strokeWidth={1.5} /> : <IconChevronDown size={16} strokeWidth={1.5} />}
-        {eventIcon}
+        <div className="event-icon-container">
+          {eventIcon}
+        </div>
         <span>{eventName}</span>
         {eventType === 'request' && effectiveRequest.methodType && (
           <span className="method-type-badge px-2 py-0.5">
@@ -267,7 +269,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       </div>
 
       {/* Always show the URL */}
-      <div className="url-text mt-1 ml-6">{url}</div>
+      <div className="url-text">{url}</div>
 
       {/* Expanded content - only show for non-status items */}
       {!isCollapsed && renderEventContent()}

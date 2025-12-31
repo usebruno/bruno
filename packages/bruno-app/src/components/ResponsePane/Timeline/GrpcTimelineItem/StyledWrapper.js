@@ -68,10 +68,15 @@ const StyledWrapper = styled.div`
   .event-header {
     display: flex;
     align-items: center;
+    gap: 0.375rem;
     cursor: pointer;
 
-    > *:not(:first-child) {
-      margin-right: 0.35rem;
+    .event-icon-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.25rem;
+      flex-shrink: 0;
     }
 
     span:nth-of-type(1) {
@@ -210,6 +215,8 @@ const StyledWrapper = styled.div`
   .url-text {
     color: ${(props) => props.theme.colors.text.muted};
     font-size: ${(props) => props.theme.font.size.xs};
+    margin-left: 1.5rem;
+    margin-top: 0.25rem;
   }
 
   .contents {
