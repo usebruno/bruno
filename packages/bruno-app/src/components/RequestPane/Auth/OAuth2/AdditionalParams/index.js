@@ -170,7 +170,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Additional Parameters
         </span>
       </div>
