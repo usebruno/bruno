@@ -98,9 +98,12 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth, collection = nul
         // Build the authorization header value
         // If tokenHeaderPrefix is empty, just use the token
         // Otherwise, use the format: "prefix token"
-        const headerValue = tokenHeaderPrefix
-          ? `${tokenHeaderPrefix} ${accessToken}`.trim()
-          : accessToken;
+        // Always trim the final result for consistent formatting
+        const headerValue = (
+          tokenHeaderPrefix
+            ? `${tokenHeaderPrefix} ${accessToken}`
+            : accessToken
+        ).trim();
 
         return [
           {

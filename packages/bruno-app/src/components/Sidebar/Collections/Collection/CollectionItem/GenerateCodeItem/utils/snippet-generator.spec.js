@@ -599,9 +599,10 @@ describe('generateSnippet with OAuth2 authentication', () => {
         }
 
         if (tokenPlacement === 'header') {
+          // Always trim the final result for consistent formatting
           const headerValue = tokenHeaderPrefix
             ? `${tokenHeaderPrefix} ${accessToken}`.trim()
-            : accessToken;
+            : accessToken.trim();
           return [
             {
               enabled: true,
