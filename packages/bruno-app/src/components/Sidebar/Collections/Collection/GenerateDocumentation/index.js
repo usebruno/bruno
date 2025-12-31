@@ -105,17 +105,17 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       confirmDisabled={isCollectionLoading}
     >
       <StyledWrapper className="w-[500px]">
-        <div className="documentation-info">
-          <div className="info-card">
-            <div className="info-icon">
+        <div className="flex flex-col gap-4">
+          <div className="info-card flex items-start p-4 gap-3">
+            <div className="info-icon shrink-0">
               {isCollectionLoading ? (
                 <IconLoader2 size={20} className="animate-spin" />
               ) : (
                 <IconInfoCircle size={20} />
               )}
             </div>
-            <div className="info-content">
-              <div className="info-title">
+            <div className="flex-1">
+              <div className="info-title mb-1">
                 {isCollectionLoading ? 'Loading collection...' : 'Interactive API Documentation'}
               </div>
               <div className="info-description">
@@ -128,23 +128,23 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
 
           {!isCollectionLoading && (
             <>
-              <div className="features-list">
-                <div className="feature-item">
-                  <IconCheck size={16} className="feature-icon" />
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="feature-item flex items-center gap-2 py-2 px-3">
+                  <IconCheck size={16} className="feature-icon shrink-0" />
                   <span>Standalone HTML file - no server required</span>
                 </div>
-                <div className="feature-item">
-                  <IconCheck size={16} className="feature-icon" />
+                <div className="feature-item flex items-center gap-2 py-2 px-3">
+                  <IconCheck size={16} className="feature-icon shrink-0" />
                   <span>Interactive API playground</span>
                 </div>
-                <div className="feature-item">
-                  <IconCheck size={16} className="feature-icon" />
+                <div className="feature-item flex items-center gap-2 py-2 px-3">
+                  <IconCheck size={16} className="feature-icon shrink-0" />
                   <span>Host on any static file server</span>
                 </div>
               </div>
 
-              <div className="note-section">
-                <IconAlertTriangle size={16} className="note-icon" />
+              <div className="note-section flex items-start gap-2 p-3">
+                <IconAlertTriangle size={16} className="shrink-0 mt-px" />
                 <span>
                   The generated file uses OpenCollection CDN for rendering. An internet connection is required when viewing the documentation.
                 </span>
