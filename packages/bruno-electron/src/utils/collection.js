@@ -415,10 +415,9 @@ const hydrateRequestWithUuid = (request, pathname) => {
 
   params.forEach((param) => (param.uid = uuid()));
   headers.forEach((header) => (header.uid = uuid()));
-  // Mark vars from .bru file as persistent
+  // Add UIDs to request vars
   requestVars.forEach((variable) => {
     variable.uid = uuid();
-    variable.persist = true;
   });
   responseVars.forEach((variable) => (variable.uid = uuid()));
   assertions.forEach((assertion) => (assertion.uid = uuid()));
@@ -446,8 +445,8 @@ const hydrateRequestWithUuid = (request, pathname) => {
 };
 
 /**
- * Merge local (non-persistent) pre-request vars into a request.
- * Local vars are marked with persist: false.
+ * Merge local (non-persistent) pre-request var values into a request.
+ * Vars from .bru file with empty values are hydrated with values from local storage.
  * @param {Object} request - The request object to hydrate
  * @param {Array} localVars - Array of local variable objects from LocalVarsStore
  */
@@ -456,21 +455,38 @@ const hydrateRequestWithLocalVars = (request, localVars = []) => {
     return request;
   }
 
-  // Mark local vars as non-persistent
-  const hydratedLocalVars = localVars.map((v) => ({
-    ...v,
-    uid: v.uid || uuid(),
-    persist: false
-  }));
+  // Create a map of local vars by name for quick lookup
+  const localVarsByName = {};
+  localVars.forEach((v) => {
+    localVarsByName[v.name] = v;
+  });
 
-  // Get existing request vars, or initialize empty array
+  // Get existing request vars from the .bru file
   const existingVars = get(request, 'request.vars.req', []);
 
-  // Merge: persistent vars first, then non-persistent
+  // Hydrate vars: if a var has a matching local var, use local value and mark as non-persistent
+  const hydratedVars = existingVars.map((v) => {
+    const localVar = localVarsByName[v.name];
+    if (localVar) {
+      // This var has a local value - hydrate it and mark as non-persistent
+      return {
+        ...v,
+        value: localVar.value,
+        enabled: localVar.enabled !== undefined ? localVar.enabled : v.enabled,
+        persist: false
+      };
+    }
+    // No local var - keep as is (persistent)
+    return {
+      ...v,
+      persist: true
+    };
+  });
+
   if (!request.request.vars) {
     request.request.vars = {};
   }
-  request.request.vars.req = [...existingVars, ...hydratedLocalVars];
+  request.request.vars.req = hydratedVars;
 
   return request;
 };
