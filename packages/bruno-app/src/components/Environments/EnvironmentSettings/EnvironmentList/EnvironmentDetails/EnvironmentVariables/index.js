@@ -22,7 +22,6 @@ import useLocalStorage from 'hooks/useLocalStorage';
 const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const addButtonRef = useRef(null);
   const [nameColumnWidth, setNameColumnWidth] = useLocalStorage('bruno.environmentVariables.columnWidths.name', 25);
   const columnWidthRef = useRef(nameColumnWidth);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
@@ -31,8 +30,8 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
 
   // Track environment changes for draft restoration
-  const prevEnvUidRef = React.useRef(null);
-  const mountedRef = React.useRef(false);
+  const prevEnvUidRef = useRef(null);
+  const mountedRef = useRef(false);
 
   let _collection = collection ? cloneDeep(collection) : {};
 
@@ -90,7 +89,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
 
   // Initial values based only on saved environment variables (not draft)
   // Draft restoration happens in a separate effect to avoid infinite loops
-  const initialValues = React.useMemo(() => {
+  const initialValues = useMemo(() => {
     const vars = environment.variables || [];
     return [
       ...vars,
@@ -154,8 +153,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     onSubmit: () => {}
   });
 
-  // Keep ref in sync with state
-  React.useEffect(() => {
+  useEffect(() => {
     columnWidthRef.current = nameColumnWidth;
   }, [nameColumnWidth]);
 
@@ -376,7 +374,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     setIsModified(false);
   };
 
-  const handleResize = React.useCallback((e) => {
+  const handleResize = useCallback((e) => {
     e.preventDefault();
     const table = e.currentTarget.closest('table');
     if (!table) return;
@@ -408,6 +406,29 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     document.addEventListener('mouseup', handleMouseUp);
   }, [setNameColumnWidth]);
 
+  const handleKeyboardResize = useCallback((e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+      return;
+    }
+
+    e.preventDefault();
+    const step = e.shiftKey ? 5 : 1; // Larger steps when holding shift
+    const delta = e.key === 'ArrowLeft' ? -step : step;
+    const newWidth = Math.max(15, Math.min(60, columnWidthRef.current + delta));
+
+    if (newWidth !== columnWidthRef.current) {
+      columnWidthRef.current = newWidth;
+      const table = e.currentTarget.closest('table');
+      if (table) {
+        const nameColumnCells = table.querySelectorAll('.name-column');
+        nameColumnCells.forEach((cell) => {
+          cell.style.width = `${newWidth}%`;
+        });
+      }
+      setNameColumnWidth(newWidth);
+    }
+  }, [setNameColumnWidth]);
+
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
 
@@ -432,7 +453,14 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
               <td className="text-center"></td>
               <td className="name-column">
                 Name
-                <div className="resize-handle" onMouseDown={handleResize} />
+                <div
+                  className="resize-handle"
+                  onMouseDown={handleResize}
+                  onKeyDown={handleKeyboardResize}
+                  tabIndex={0}
+                  role="separator"
+                  aria-label="Resize Name column"
+                />
               </td>
               <td>Value</td>
               <td className="text-center">Secret</td>
@@ -477,7 +505,14 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                       />
                       <ErrorMessage name={`${index}.name`} index={index} />
                     </div>
-                    <div className="resize-handle" onMouseDown={handleResize} />
+                    <div
+                      className="resize-handle"
+                      onMouseDown={handleResize}
+                      onKeyDown={handleKeyboardResize}
+                      tabIndex={0}
+                      role="separator"
+                      aria-label="Resize Name column"
+                    />
                   </td>
                   <td className="flex flex-row flex-nowrap items-center">
                     <div className="overflow-hidden grow w-full relative">

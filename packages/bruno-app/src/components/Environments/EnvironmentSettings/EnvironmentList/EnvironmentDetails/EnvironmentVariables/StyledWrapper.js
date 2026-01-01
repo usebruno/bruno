@@ -62,6 +62,12 @@ const Wrapper = styled.div`
       cursor: col-resize;
       user-select: none;
       z-index: 1;
+      outline: none;
+
+      &:focus-visible {
+        outline: 2px solid ${(props) => props.theme.colors.accent};
+        outline-offset: -1px;
+      }
     }
 
     &:has(.resize-handle:hover) .name-column::after {
@@ -71,7 +77,6 @@ const Wrapper = styled.div`
     &:has(.resize-handle:active) .name-column::after {
       background-color: ${(props) => props.theme.sidebar.dragbar};
     }
-  }
 
     thead {
       color: ${(props) => props.theme.table.thead.color} !important;
