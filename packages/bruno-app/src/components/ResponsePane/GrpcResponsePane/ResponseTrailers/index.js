@@ -23,7 +23,7 @@ const ResponseTrailers = ({ trailers }) => {
             ))
           ) : (
             <tr>
-              <td colSpan="2" className="text-center py-4 text-gray-500">
+              <td colSpan="2" className="text-center py-4 empty-message">
                 No trailers received
               </td>
             </tr>

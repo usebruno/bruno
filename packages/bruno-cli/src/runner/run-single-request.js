@@ -25,10 +25,63 @@ const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const { getCACertificates } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
-const { encodeUrl, buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
+};
+
+const getCACertHostRegex = (domain) => {
+  return '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+};
+
+/**
+ * Extract prompt variables from a request
+ * Tries to respect the hierarchy of the variables and avoid unnecessary prompts as much as possible
+ * Note: TO BE CALLED ONLY AFTER THE PREPARE REQUEST
+ *
+ * @param {*} request - request object built by prepareRequest
+ * @returns {string[]} An array of extracted prompt variables
+ */
+const extractPromptVariablesForRequest = ({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig }) => {
+  const { vars, collectionVariables, folderVariables, requestVariables, ...requestObj } = request;
+
+  const allVariables = {
+    ...envVariables,
+    ...collectionVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
+    process: {
+      env: {
+        ...processEnvVars
+      }
+    }
+  };
+
+  const prompts = extractPromptVariables(requestObj);
+  prompts.push(...extractPromptVariables(allVariables));
+
+  const interpolationOptions = {
+    envVars: envVariables,
+    runtimeVariables,
+    processEnvVars
+  };
+
+  // client certificate config
+  const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+  for (let clientCert of clientCertConfig) {
+    const domain = interpolateString(clientCert?.domain, interpolationOptions);
+    if (domain) {
+      const hostRegex = getCACertHostRegex(domain);
+      if (request.url.match(hostRegex)) {
+        prompts.push(...extractPromptVariables(clientCert));
+      }
+    }
+  }
+
+  // return unique prompt variables
+  return Array.from(new Set(prompts));
 };
 
 const runSingleRequest = async function (
@@ -74,6 +127,39 @@ const runSingleRequest = async function (
 
     request = await prepareRequest(item, collection);
 
+    // Detect prompt variables before proceeding
+    const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });
+
+    if (promptVars.length > 0) {
+      const errorMsg = `Prompt variables detected in request. CLI execution is not supported for requests with prompt variables. \nPrompts: ${promptVars.join(', ')}`;
+      console.log(chalk.yellow(stripExtension(relativeItemPathname) + ' Skipped:') + chalk.dim(` (${errorMsg})`));
+      return {
+        test: {
+          filename: relativeItemPathname
+        },
+        request: {
+          method: request.method,
+          url: request.url,
+          headers: request.headers,
+          data: request.data
+        },
+        response: {
+          status: 'skipped',
+          statusText: errorMsg,
+          data: null,
+          responseTime: 0
+        },
+        error: null,
+        status: 'skipped',
+        skipped: true,
+        assertionResults: [],
+        testResults: [],
+        preRequestTestResults: [],
+        postResponseTestResults: [],
+        shouldStopRunnerExecution
+      };
+    }
+
     request.__bruno__executionMode = 'cli';
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
@@ -81,7 +167,7 @@ const runSingleRequest = async function (
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
-    const collectionName = collection?.brunoConfig?.name
+    const collectionName = collection?.brunoConfig?.name;
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
@@ -150,7 +236,7 @@ const runSingleRequest = async function (
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const httpsAgentRequestFields = {};
-    
+
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
@@ -172,7 +258,7 @@ const runSingleRequest = async function (
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {
-        const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+        const hostRegex = getCACertHostRegex(domain);
         if (request.url.match(hostRegex)) {
           if (type === 'cert') {
             try {
@@ -205,7 +291,7 @@ const runSingleRequest = async function (
 
     const collectionProxyConfig = get(brunoConfig, 'proxy', {});
     const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
-    
+
     if (noproxy) {
       // If noproxy flag is set, don't use any proxy
       proxyMode = 'off';
@@ -297,40 +383,40 @@ const runSingleRequest = async function (
       });
     }
 
-    //set cookies if enabled
+    // set cookies if enabled
     if (!options.disableCookies) {
       const cookieString = getCookieStringForUrl(request.url);
       if (cookieString && typeof cookieString === 'string' && cookieString.length) {
         const existingCookieHeaderName = Object.keys(request.headers).find(
-            name => name.toLowerCase() === 'cookie'
+          (name) => name.toLowerCase() === 'cookie'
         );
         const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
-    
+
         // Helper function to parse cookies into an object
         const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
-            const [name, ...rest] = cookie.split('=');
-            if (name && name.trim()) {
-                cookies[name.trim()] = rest.join('=').trim();
-            }
-            return cookies;
+          const [name, ...rest] = cookie.split('=');
+          if (name && name.trim()) {
+            cookies[name.trim()] = rest.join('=').trim();
+          }
+          return cookies;
         }, {});
-    
+
         const mergedCookies = {
-            ...parseCookies(existingCookieString),
-            ...parseCookies(cookieString),
+          ...parseCookies(existingCookieString),
+          ...parseCookies(cookieString)
         };
-    
+
         const combinedCookieString = Object.entries(mergedCookies)
-            .map(([name, value]) => `${name}=${value}`)
-            .join('; ');
-    
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ');
+
         request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
       }
     }
 
     // stringify the request url encoded params
     const contentTypeHeader = Object.keys(request.headers).find(
-      name => name.toLowerCase() === 'content-type'
+      (name) => name.toLowerCase() === 'content-type'
     );
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
@@ -376,7 +462,7 @@ const runSingleRequest = async function (
         const token = await getOAuth2Token(request.oauth2);
         if (token) {
           const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
-          
+
           if (tokenPlacement === 'header' && token) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
           } else if (tokenPlacement === 'url') {
@@ -392,14 +478,13 @@ const runSingleRequest = async function (
       } catch (error) {
         console.error('OAuth2 token fetch error:', error.message);
       }
-      
+
       // Remove oauth2 config from request to prevent it from being sent
       delete request.oauth2;
     }
 
     let response, responseTime;
     try {
-      
       // Set timeout from request settings, default to 0 (no timeout)
       const requestTimeout = request.settings?.timeout || 0;
       if (requestTimeout > 0) {
@@ -415,7 +500,6 @@ const runSingleRequest = async function (
         axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
         delete request.ntlmConfig;
       }
-
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js
@@ -451,7 +535,7 @@ const runSingleRequest = async function (
       responseTime = response.headers.get('request-duration');
       response.headers.delete('request-duration');
 
-      //save cookies if enabled
+      // save cookies if enabled
       if (!options.disableCookies) {
         saveCookies(request.url, response.headers);
       }
@@ -485,7 +569,7 @@ const runSingleRequest = async function (
             url: null,
             responseTime: 0
           },
-          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          error: err?.message || err?.errors?.map((e) => e?.message)?.at(0) || err?.code || 'Request Failed!',
           status: 'error',
           assertionResults: [],
           testResults: [],
@@ -500,8 +584,8 @@ const runSingleRequest = async function (
     response.responseTime = responseTime;
 
     console.log(
-      chalk.green(stripExtension(relativeItemPathname)) +
-      chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      chalk.green(stripExtension(relativeItemPathname))
+      + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
 
     // Log pre-request test results
@@ -534,7 +618,7 @@ const runSingleRequest = async function (
           envVariables,
           runtimeVariables,
           collectionPath,
-          null,
+          onConsoleLog,
           processEnvVars,
           scriptingConfig,
           runSingleRequestByPathname,
@@ -582,7 +666,7 @@ const runSingleRequest = async function (
           envVariables,
           runtimeVariables,
           collectionPath,
-          null,
+          onConsoleLog,
           processEnvVars,
           scriptingConfig,
           runSingleRequestByPathname,
@@ -603,7 +687,6 @@ const runSingleRequest = async function (
         console.error('Test script execution error:', error);
       }
     }
-
 
     logResults(assertionResults, 'Assertions');
 

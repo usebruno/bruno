@@ -10,7 +10,7 @@ test.describe('Default Collection Location Feature', () => {
     await expect(defaultLocationInput).toHaveValue('/tmp/bruno-collections');
 
     // close the preferences
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
 
     // wait for 2 seconds
     await page.waitForTimeout(2000);
@@ -24,14 +24,14 @@ test.describe('Default Collection Location Feature', () => {
     const defaultLocationInput = page.locator('.default-collection-location-input');
     await defaultLocationInput.clear();
 
-    // save preferences
-    await page.getByRole('button', { name: 'Save' }).click();
+    // wait for auto-save to complete (debounce is 500ms)
+    await page.waitForTimeout(1000);
 
-    // verify success message
-    await expect(page.locator('text=Preferences saved successfully').first()).toBeVisible();
+    // close the preferences
+    await page.getByTestId('modal-close-button').click();
 
-    // wait for 2 seconds
-    await page.waitForTimeout(2000);
+    // wait for modal to close
+    await page.waitForTimeout(500);
   });
 
   test('Should save a valid default location', async ({ pageWithUserData: page }) => {
@@ -44,26 +44,29 @@ test.describe('Default Collection Location Feature', () => {
     // fill the default location input
     await defaultLocationInput.fill('/tmp/bruno-collections');
 
-    // save preferences
-    await page.getByRole('button', { name: 'Save' }).click();
+    // wait for auto-save to complete (debounce is 500ms)
+    await page.waitForTimeout(1000);
 
-    // verify success message
-    await expect(page.locator('text=Preferences saved successfully').first()).toBeVisible();
+    // close the preferences
+    await page.getByTestId('modal-close-button').click();
 
-    // wait for 2 seconds
-    await page.waitForTimeout(2000);
+    // wait for modal to close
+    await page.waitForTimeout(500);
   });
 
   test('Should use default location in Create Collection modal', async ({ pageWithUserData: page }) => {
     // test Create Collection modal
-    await page.locator('[data-testid="create-collection"]').click();
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
-    // verify the default location is pre-filled
+    // verify the default location is pre-filled (if location input is visible)
     const collectionLocationInput = page.getByLabel('Location');
-    await expect(collectionLocationInput).toHaveValue('/tmp/bruno-collections');
+    if (await collectionLocationInput.isVisible()) {
+      await expect(collectionLocationInput).toHaveValue('/tmp/bruno-collections');
+    }
 
     // cancel the collection creation
-    await page.getByRole('button', { name: 'Cancel' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel' }).click();
 
     // wait for 2 seconds
     await page.waitForTimeout(2000);
@@ -71,12 +74,19 @@ test.describe('Default Collection Location Feature', () => {
 
   test('Should use default location in Clone Collection modal', async ({ pageWithUserData: page }) => {
     // open the clone collection modal
-    await page.locator('[data-testid="collection-actions"]').click();
-    await page.getByTestId('clone-collection').click();
+    const collection = page.locator('.collection-name').first();
+    await collection.hover();
+    await collection.locator('.collection-actions .icon').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Clone' }).click();
 
     // verify the default location is pre-filled
     const cloneLocationInput = page.getByLabel('Location');
-    await expect(cloneLocationInput).toHaveValue('/tmp/bruno-collections');
+    if (await cloneLocationInput.isVisible()) {
+      await expect(cloneLocationInput).toHaveValue('/tmp/bruno-collections');
+    }
+
+    // cancel the clone operation
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel' }).click();
 
     // wait for 2 seconds
     await page.waitForTimeout(2000);

@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
+import { closeAllCollections, openCollection } from '../../utils/page';
 
 test.describe('Import OpenAPI Collection with Examples', () => {
   let originalShowOpenDialog;
@@ -35,7 +35,8 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     }, { importDir });
 
     await test.step('Open import collection modal', async () => {
-      await page.getByRole('button', { name: 'Import Collection' }).click();
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
     });
 
     await test.step('Wait for import modal and verify title', async () => {
@@ -47,10 +48,10 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     await test.step('Upload OpenAPI collection file using hidden file input', async () => {
       // The "choose a file" button triggers a hidden file input, so we can directly set files on it
       await page.setInputFiles('input[type="file"]', openApiFile);
-    });
 
-    await test.step('Wait for file processing to complete', async () => {
-      await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      // Wait for location modal to appear after file processing
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     });
 
     await test.step('Verify no parsing errors occurred', async () => {
@@ -60,24 +61,24 @@ test.describe('Import OpenAPI Collection with Examples', () => {
       }
     });
 
-    await test.step('Verify OpenAPI import settings modal appears', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
-      await settingsModal.getByRole('button', { name: 'Import' }).click();
+    await test.step('Verify Import Collection location modal appears', async () => {
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+      await expect(locationModal.getByText('API with Examples')).toBeVisible();
     });
 
     await test.step('Click Browse link to select collection folder', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await settingsModal.getByText('Browse').click();
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.getByText('Browse').click();
     });
 
     await test.step('Complete import by clicking import button', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await settingsModal.getByRole('button', { name: 'Import' }).click();
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.getByRole('button', { name: 'Import' }).click();
     });
 
     await test.step('Handle sandbox modal', async () => {
-      await openCollectionAndAcceptSandbox(page, 'API with Examples', 'safe');
+      await openCollection(page, 'API with Examples');
     });
 
     await test.step('Verify collection name appears in sidebar', async () => {
@@ -124,8 +125,8 @@ test.describe('Import OpenAPI Collection with Examples', () => {
       await chevronIcon.click();
 
       // Check if examples are visible
-      const createdExample = page.locator('.collection-item-name').getByText('User Created');
-      const validationErrorExample = page.locator('.collection-item-name').getByText('Validation Error');
+      const createdExample = page.locator('.collection-item-name').getByText('User Created (Valid User)');
+      const validationErrorExample = page.locator('.collection-item-name').getByText('Validation Error (Invalid User)');
 
       await expect(createdExample).toBeVisible();
       await expect(validationErrorExample).toBeVisible();
@@ -151,7 +152,8 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     }, { importDir });
 
     await test.step('Open import collection modal', async () => {
-      await page.getByRole('button', { name: 'Import Collection' }).click();
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
     });
 
     await test.step('Wait for import modal and verify title', async () => {
@@ -162,10 +164,10 @@ test.describe('Import OpenAPI Collection with Examples', () => {
 
     await test.step('Upload OpenAPI collection file using hidden file input', async () => {
       await page.setInputFiles('input[type="file"]', openApiFile);
-    });
 
-    await test.step('Wait for file processing to complete', async () => {
-      await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      // Wait for location modal to appear after file processing
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     });
 
     await test.step('Verify no parsing errors occurred', async () => {
@@ -175,38 +177,36 @@ test.describe('Import OpenAPI Collection with Examples', () => {
       }
     });
 
-    await test.step('Verify OpenAPI import settings modal appears', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
+    await test.step('Verify Import Collection location modal appears', async () => {
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+      await expect(locationModal.getByText('API with Examples')).toBeVisible();
     });
 
     await test.step('Select path-based grouping option from dropdown', async () => {
-      const settingsModal = page.getByRole('dialog');
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
 
       // Click on the grouping dropdown to open it
-      const groupingDropdown = settingsModal.getByTestId('grouping-dropdown');
+      const groupingDropdown = locationModal.getByTestId('grouping-dropdown');
       await groupingDropdown.click();
 
       // Wait for dropdown to open and select "Paths" option (note: it's "Paths" not "Path")
       const pathOption = page.getByTestId('grouping-option-path');
       await pathOption.click();
-      // click on import button
-      const importButton = settingsModal.getByRole('button', { name: 'Import' });
-      await importButton.click();
     });
 
     await test.step('Click Browse link to select collection folder', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await settingsModal.getByText('Browse').click();
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.getByText('Browse').click();
     });
 
     await test.step('Complete import by clicking import button', async () => {
-      const settingsModal = page.getByRole('dialog');
-      await settingsModal.getByRole('button', { name: 'Import' }).click();
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.getByRole('button', { name: 'Import' }).click();
     });
 
     await test.step('Handle sandbox modal', async () => {
-      await openCollectionAndAcceptSandbox(page, 'API with Examples', 'safe');
+      await openCollection(page, 'API with Examples');
     });
 
     await test.step('Verify collection name appears in sidebar', async () => {

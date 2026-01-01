@@ -14,7 +14,7 @@ const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
-  const brunoConfig = get(collection, 'brunoConfig', {});
+  const brunoConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig', {}) : get(collection, 'brunoConfig', {});
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
@@ -48,7 +48,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
     responseType: 'arraybuffer'
   };
 
-  const collectionAuth = get(collection, 'root.request.auth');
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth?.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.basicAuth = {
@@ -65,7 +66,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
       if (collectionAuth.apikey?.placement === 'header') {
         axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
       }
-      
+
       if (collectionAuth.apikey?.placement === 'queryparams') {
         if (axiosRequest.url && collectionAuth.apikey?.key) {
           try {
@@ -88,7 +89,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
     if (collectionAuth.mode === 'oauth2') {
       const grantType = get(collectionAuth, 'oauth2.grantType');
-      
+
       if (grantType === 'client_credentials') {
         axiosRequest.oauth2 = {
           grantType,
@@ -225,7 +226,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
     if (request.auth.mode === 'oauth2') {
       const grantType = get(request, 'auth.oauth2.grantType');
-      
+
       if (grantType === 'client_credentials') {
         axiosRequest.oauth2 = {
           grantType: grantType,
@@ -264,12 +265,12 @@ const prepareRequest = async (item = {}, collection = {}) => {
         };
       }
     }
-    
+
     if (request.auth.mode === 'apikey') {
       if (request.auth.apikey?.placement === 'header') {
         axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
       }
-      
+
       if (request.auth.apikey?.placement === 'queryparams') {
         if (axiosRequest.url && request.auth.apikey?.key) {
           try {

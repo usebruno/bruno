@@ -1,7 +1,6 @@
 import get from 'lodash/get';
 
 export const getAuthHeaders = (collectionRootAuth, requestAuth) => {
-
   // Discovered edge case where code generation fails when you create a collection which has not been saved yet:
   // Collection auth therefore null, and request inherits from collection, therefore it is also null
   // TypeError: Cannot read properties of undefined (reading 'mode')

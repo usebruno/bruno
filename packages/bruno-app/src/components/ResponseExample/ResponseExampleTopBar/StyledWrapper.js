@@ -16,10 +16,6 @@ const StyledWrapper = styled.div`
     background-color: ${(props) => props.theme.examples.buttonColor};
     border: 1px solid ${(props) => props.theme.examples.buttonColor};
     color: white;
-
-    svg {
-      color: ${(props) => props.theme.text} !important;
-    }
   }
 
   .secondary-btn {
@@ -34,7 +30,7 @@ const StyledWrapper = styled.div`
 
   .example-input-label {
     display: block;
-    font-size: 14px;
+    font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
     color: ${(props) => props.theme.text};
     margin-bottom: 4px;
@@ -48,7 +44,7 @@ const StyledWrapper = styled.div`
     background-color: transparent;
     color: ${(props) => props.theme.text};
     font-family: inherit;
-    font-size: 14px;
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;
     transition: all 0.2s ease;
     outline: none;
@@ -74,7 +70,7 @@ const StyledWrapper = styled.div`
   }
 
   .example-input-description {
-    font-size: 0.875rem;
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.6;
     resize: none;
     min-height: 80px;

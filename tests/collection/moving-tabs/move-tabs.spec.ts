@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, openCollection } from '../../utils/page';
 
 test.describe('Move tabs', () => {
   test.afterEach(async ({ page }) => {
@@ -9,21 +9,23 @@ test.describe('Move tabs', () => {
 
   test('Verify tab move by drag and drop', async ({ page, createTmpDir }) => {
     // Create a collection
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('source-collection-drag-drop');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection-drag-drop'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    const locationInput = page.locator('.bruno-modal').getByLabel('Location');
+    if (await locationInput.isVisible()) {
+      await locationInput.fill(await createTmpDir('source-collection-drag-drop'));
+    }
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for collection to appear and click on it
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-drag-drop' })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-drag-drop' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await openCollection(page, 'source-collection-drag-drop');
 
     // Create a folder in the collection
     const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-drag-drop' });
-    await sourceCollection.locator('.collection-actions').hover();
+    await sourceCollection.hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
@@ -42,12 +44,12 @@ test.describe('Move tabs', () => {
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-folder' })).toBeVisible();
 
     // Add a request to the collection
-    await sourceCollection.locator('.collection-actions').hover();
+    await sourceCollection.hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
+    await page.locator('#new-request-url textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created
@@ -97,21 +99,22 @@ test.describe('Move tabs', () => {
 
   test('Verify tab move by keyboard shortcut', async ({ page, createTmpDir }) => {
     // Create a collection
-    await page.locator('.dropdown-icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
     await page.getByLabel('Name').fill('source-collection-keyboard-shortcut');
-    await page.getByLabel('Location').fill(await createTmpDir('source-collection-keyboard-shortcut'));
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    const locationInput2 = page.locator('.bruno-modal').getByLabel('Location');
+    if (await locationInput2.isVisible()) {
+      await locationInput2.fill(await createTmpDir('source-collection-keyboard-shortcut'));
+    }
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for collection to appear and click on it
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' })).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Create a folder in the collection
     const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' });
-    await sourceCollection.locator('.collection-actions').hover();
+    await sourceCollection.hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
@@ -130,12 +133,12 @@ test.describe('Move tabs', () => {
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-folder' })).toBeVisible();
 
     // Add a request to the collection
-    await sourceCollection.locator('.collection-actions').hover();
+    await sourceCollection.hover();
     await sourceCollection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
+    await page.locator('#new-request-url textarea').fill('https://echo.usebruno.com');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created

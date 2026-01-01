@@ -63,7 +63,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
     `.trim();
 
     const result = bruToJson(input);
-    
+
     // Verify all config types are present
     expect(result).toHaveProperty('oauth2_additional_parameters_auth_req_headers');
     expect(result).toHaveProperty('oauth2_additional_parameters_auth_req_queryparams');
@@ -94,7 +94,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-auth-header-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_auth_req_queryparams).toEqual([{
       name: 'auth-query-param',
       value: 'auth-query-param-value',
@@ -104,7 +104,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-auth-query-param-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_access_token_req_headers).toEqual([{
       name: 'token-header',
       value: 'token-header-value',
@@ -114,7 +114,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-token-header-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_access_token_req_queryparams).toEqual([{
       name: 'token-query-param',
       value: 'token-query-param-value',
@@ -124,7 +124,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-token-query-param-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_access_token_req_bodyvalues).toEqual([{
       name: 'token-body',
       value: 'token-body-value',
@@ -134,7 +134,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-token-body-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_refresh_token_req_headers).toEqual([{
       name: 'refresh-header',
       value: 'refresh-header-value',
@@ -144,7 +144,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-refresh-header-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_refresh_token_req_queryparams).toEqual([{
       name: 'refresh-query-param',
       value: 'refresh-query-param-value',
@@ -154,7 +154,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-refresh-query-param-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_refresh_token_req_bodyvalues).toEqual([{
       name: 'refresh-body',
       value: 'refresh-body-value',
@@ -224,7 +224,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
    `.trim();
 
     const result = collectionBruToJson(input);
-    
+
     // Verify all config types are present
     expect(result).toHaveProperty('oauth2_additional_parameters_auth_req_headers');
     expect(result).toHaveProperty('oauth2_additional_parameters_auth_req_queryparams');
@@ -255,7 +255,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-auth-header-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_auth_req_queryparams).toEqual([{
       name: 'auth-query-param',
       value: 'auth-query-param-value',
@@ -265,7 +265,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-auth-query-param-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_access_token_req_headers).toEqual([{
       name: 'token-header',
       value: 'token-header-value',
@@ -275,7 +275,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-token-header-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_access_token_req_queryparams).toEqual([{
       name: 'token-query-param',
       value: 'token-query-param-value',
@@ -285,7 +285,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-token-query-param-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_access_token_req_bodyvalues).toEqual([{
       name: 'token-body',
       value: 'token-body-value',
@@ -295,7 +295,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-token-body-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_refresh_token_req_headers).toEqual([{
       name: 'refresh-header',
       value: 'refresh-header-value',
@@ -305,7 +305,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-refresh-header-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_refresh_token_req_queryparams).toEqual([{
       name: 'refresh-query-param',
       value: 'refresh-query-param-value',
@@ -315,7 +315,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       value: 'disabled-refresh-query-param-value',
       enabled: false
     }]);
-    
+
     expect(result.oauth2_additional_parameters_refresh_token_req_bodyvalues).toEqual([{
       name: 'refresh-body',
       value: 'refresh-body-value',

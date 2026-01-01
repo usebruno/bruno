@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
   height: 50vh;
   display: flex;
   flex-direction: column;
-  background-color: ${(props) => props.theme.collection.environment.settings.bg};
+  background-color: ${(props) => props.theme.background.base};
 
   .code-generator {
     display: flex;
@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
     flex: 1;
     overflow: hidden;
     position: relative;
-    background: ${props => props.theme.bg};
+    background: ${(props) => props.theme.bg};
   }
 
   .error-message {
@@ -26,18 +26,18 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: ${props => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.colors.text.muted};
     text-align: center;
     padding: 20px;
 
     h1 {
-      font-size: 14px;
+      font-size: ${(props) => props.theme.font.size.base};
       margin-bottom: 8px;
-      color: ${props => props.theme.text};
+      color: ${(props) => props.theme.text};
     }
 
     p {
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       opacity: 0.8;
     }
   }

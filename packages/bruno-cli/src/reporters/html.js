@@ -2,7 +2,7 @@ const fs = require('fs');
 const { generateHtmlReport } = require('@usebruno/common/runner');
 const { CLI_VERSION } = require('../constants');
 
-const makeHtmlOutput = async (results, outputPath, runCompletionTime) => {
+const makeHtmlOutput = async (results, outputPath, runCompletionTime, environment = null) => {
   let runnerResults = results;
   if (!results) {
     runnerResults = [];
@@ -16,10 +16,8 @@ const makeHtmlOutput = async (results, outputPath, runCompletionTime) => {
   } else if (Array.isArray(results)) {
     runnerResults = results;
   }
-  
-  const environment = runnerResults.length > 0 ? runnerResults[0].environment : null;
-  
-  const htmlString = generateHtmlReport({ 
+
+  const htmlString = generateHtmlReport({
     runnerResults: runnerResults,
     version: `usebruno v${CLI_VERSION}`,
     environment: environment,

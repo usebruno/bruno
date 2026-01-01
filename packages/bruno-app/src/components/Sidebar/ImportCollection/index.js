@@ -3,13 +3,12 @@ import { IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 import jsyaml from 'js-yaml';
-import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
-import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
-import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isPostmanCollection } from 'utils/importers/postman-collection';
+import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
+import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
-import { processBrunoCollection } from 'utils/importers/bruno-collection';
-import { wsdlToBruno } from '@usebruno/converters';
-import ImportSettings from 'components/Sidebar/ImportSettings';
+import { isBrunoCollection } from 'utils/importers/bruno-collection';
+import { isOpenCollection } from 'utils/importers/opencollection';
 import FullscreenLoader from './FullscreenLoader/index';
 
 const convertFileToObject = async (file) => {
@@ -38,9 +37,6 @@ const convertFileToObject = async (file) => {
 const ImportCollection = ({ onClose, handleSubmit }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [showImportSettings, setShowImportSettings] = useState(false);
-  const [openApiData, setOpenApiData] = useState(null);
-  const [groupingType, setGroupingType] = useState('tags');
   const fileInputRef = useRef(null);
 
   const handleDrag = (e) => {
@@ -58,16 +54,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     }
   };
 
-  const handleImportSettings = () => {
-    try {
-      const collection = convertOpenapiToBruno(openApiData, { groupBy: groupingType });
-      handleSubmit({ collection });
-    } catch (err) {
-      console.error(err);
-      toastError(err, 'Failed to process OpenAPI specification');
-    }
-  };
-
   const processFile = async (file) => {
     setIsLoading(true);
     try {
@@ -77,26 +63,25 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         throw new Error('Failed to parse file content');
       }
 
-      // Check if it's an OpenAPI spec and show settings
+      let type = null;
+
       if (isOpenApiSpec(data)) {
-        setOpenApiData(data);
-        setIsLoading(false);
-        setShowImportSettings(true);
-        return;
-      }
-
-      let collection;
-      if (isWSDLCollection(data)) {
-        collection = await wsdlToBruno(data);
+        type = 'openapi';
+      } else if (isWSDLCollection(data)) {
+        type = 'wsdl';
       } else if (isPostmanCollection(data)) {
-        collection = await postmanToBruno(data);
+        type = 'postman';
       } else if (isInsomniaCollection(data)) {
-        collection = convertInsomniaToBruno(data);
+        type = 'insomnia';
+      } else if (isOpenCollection(data)) {
+        type = 'opencollection';
+      } else if (isBrunoCollection(data)) {
+        type = 'bruno';
       } else {
-        collection = await processBrunoCollection(data);
+        throw new Error('Unsupported collection format');
       }
 
-      handleSubmit({ collection });
+      handleSubmit({ rawData: data, type });
     } catch (err) {
       toastError(err, 'Import collection failed');
     } finally {
@@ -140,22 +125,11 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     'application/xml'
   ];
 
-  if (showImportSettings) {
-    return (
-      <ImportSettings
-        groupingType={groupingType}
-        setGroupingType={setGroupingType}
-        onClose={onClose}
-        onConfirm={handleImportSettings}
-      />
-    );
-  }
-
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
       <div className="flex flex-col">
         <div className="mb-4">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
+          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
           <div
             onDragEnter={handleDrag}
             onDragOver={handleDrag}
@@ -178,7 +152,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                 onChange={handleFileInputChange}
                 accept={acceptedFileTypes.join(',')}
               />
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+              <p className="text-gray-600 dark:text-gray-300 mb-2">
                 Drop file to import or{' '}
                 <button
                   className="text-blue-500 underline cursor-pointer"
@@ -188,7 +162,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                 </button>
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, Postman, Insomnia, OpenAPI v3, and WSDL formats
+                Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI v3, and WSDL formats
               </p>
             </div>
           </div>

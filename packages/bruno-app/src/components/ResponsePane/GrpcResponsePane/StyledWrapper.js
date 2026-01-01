@@ -11,8 +11,8 @@ const StyledWrapper = styled.div`
       padding: 6px 0px;
       border: none;
       border-bottom: solid 2px transparent;
-      margin-right: 1.25rem;
-      color: var(--color-tab-inactive);
+      margin-right: ${(props) => props.theme.tabs.marginRight};
+      color: ${(props) => props.theme.colors.text.subtext0};
       cursor: pointer;
 
       &:focus,
@@ -25,6 +25,7 @@ const StyledWrapper = styled.div`
       }
 
       &.active {
+        font-weight: ${(props) => props.theme.tabs.active.fontWeight} !important;
         color: ${(props) => props.theme.tabs.active.color} !important;
         border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }

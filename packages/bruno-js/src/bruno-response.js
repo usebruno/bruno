@@ -65,7 +65,7 @@ class BrunoResponse {
 
     const { data, dataBuffer, headers } = this.res;
     let bodySize = 0;
-    
+
     // Use raw received bytes
     if (Buffer.isBuffer(dataBuffer)) {
       bodySize = dataBuffer.length;
@@ -94,7 +94,6 @@ class BrunoResponse {
     const headerSize = Buffer.byteLength(headerLines.join('\r\n'));
 
     return { header: headerSize, body: bodySize, total: headerSize + bodySize };
-    
   }
 
   getDataBuffer() {

@@ -24,7 +24,22 @@ app.use(bodyParser.json({ verify: saveRawBody }));
 app.use(bodyParser.urlencoded({ extended: true, verify: saveRawBody }));
 app.use(bodyParser.text({ verify: saveRawBody }));
 app.use(xmlParser());
-app.use(express.raw({ type: '*/*', limit: '100mb', verify: saveRawBody }));
+// Only parse raw body for content types not already handled by other parsers
+app.use(express.raw({
+  type: (req) => {
+    const contentType = req.headers['content-type'] || '';
+    // Skip if already handled by json, urlencoded, text, or xml parsers
+    if (contentType.includes('application/json')
+      || contentType.includes('application/x-www-form-urlencoded')
+      || contentType.includes('text/')
+      || contentType.includes('application/xml')) {
+      return false;
+    }
+    return true;
+  },
+  limit: '100mb',
+  verify: saveRawBody
+}));
 
 formDataParser.init(app, express);
 

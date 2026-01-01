@@ -142,7 +142,7 @@ const ResponseExampleTopBar = ({
                 onClick={handleSave}
                 data-testid="response-example-save-btn"
               >
-                <IconDeviceFloppy size={16} color={theme.examples.buttonText} />
+                <IconDeviceFloppy size={16} />
                 Save
               </button>
             </div>
@@ -156,9 +156,9 @@ const ResponseExampleTopBar = ({
   return (
     <StyledWrapper className="p-4">
       <div className="max-w-full">
-        <div className="flex items-start justify-between gap-6 md:flex-row flex-col">
+        <div className="flex items-center justify-between gap-6 md:flex-row flex-col">
           <div className="flex-1 min-w-0">
-            <h2 className="response-example-title font-semibold mb-2 leading-tight" data-testid="response-example-title">
+            <h2 className="response-example-title font-medium leading-tight" data-testid="response-example-title">
               <span className="opacity-60">{item.name}</span>
               {' / '}
               <span>{example.name}</span>
@@ -168,7 +168,7 @@ const ResponseExampleTopBar = ({
                 text={example.description}
                 maxLines={2}
                 className="response-example-description-container"
-                textClassName="response-example-description text-sm leading-relaxed max-w-fit"
+                textClassName="response-example-description leading-relaxed max-w-fit"
                 buttonClassName="text-blue-600 hover:text-blue-800 font-medium"
                 viewMoreText="View More"
                 viewLessText="View Less"
@@ -188,6 +188,7 @@ const ResponseExampleTopBar = ({
             </button>
             <button
               className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
+              style={{ color: theme.examples.buttonText }}
               onClick={onEditToggle}
               data-testid="response-example-edit-btn"
             >

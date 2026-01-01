@@ -2,46 +2,55 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .current-environment {
-    border-radius: 0.9375rem;
-    padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.25rem 0.3rem 0.25rem 0.5rem;
     user-select: none;
-    background-color: transparent;
-    border: 1px solid ${(props) => props.theme.dropdown.selectedColor};
+    background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.bg};
+    border: 1px solid ${(props) => props.theme.app.collection.toolbar.environmentSelector.border};
     line-height: 1rem;
+    transition: all 0.15s ease;
+
+    &:hover {
+      border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder};
+      background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBg};
+    }
 
     .caret {
       margin-left: 0.25rem;
-      color: rgb(140, 140, 140);
-      fill: rgb(140, 140, 140);
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.caret};
+      fill: ${(props) => props.theme.app.collection.toolbar.environmentSelector.caret};
+      align-self: center;
     }
 
     .env-icon {
       margin-right: 0.25rem;
-      color: ${(props) => props.theme.dropdown.selectedColor};
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.icon};
     }
 
     .env-text {
-      color: ${(props) => props.theme.dropdown.selectedColor};
-      font-size: 0.875rem;
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.text};
       display: block;
     }
 
     .env-separator {
-      color: #8c8c8c;
-      margin: 0 0.25rem;
-      opacity: 0.7;
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator};
+      margin: 0 0.35rem;
     }
 
     .env-text-inactive {
-      color: ${(props) => props.theme.dropdown.color};
-      font-size: 0.875rem;
-      opacity: 0.7;
+      color: ${(props) => props.theme.colors.text.muted};
+      font-size: ${(props) => props.theme.font.size.sm};
     }
 
     &.no-environments {
-      background-color: ${(props) => props.theme.sidebar.badge.bg};
-      border: 1px solid transparent;
-      color: ${(props) => props.theme.dropdown.secondaryText};
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.text};
+      background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.bg};
+      border: 1px dashed ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.border};
+
+      &:hover {
+        border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.hoverBorder};
+        background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.noEnvironment.hoverBg};
+      }
     }
   }
 
@@ -51,38 +60,9 @@ const Wrapper = styled.div`
     max-width: 650px !important;
     min-height: 15.5rem;
     max-height: 75vh;
-    font-size: 0.8125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     position: relative;
     overflow: hidden;
-  }
-
-  .tippy-box .tippy-content {
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-
-    .dropdown-item {
-      display: flex;
-      align-items: center;
-      padding: 0.35rem 0.6rem;
-      cursor: pointer;
-      font-size: 0.8125rem;
-      color: ${(props) => props.theme.dropdown.primaryText};
-
-      &:hover:not(:disabled) {
-        background-color: ${(props) => props.theme.dropdown.hoverBg};
-      }
-
-      &.active {
-        background-color: ${(props) => props.theme.dropdown.selectedBg};
-        color: ${(props) => props.theme.dropdown.selectedColor};
-      }
-
-      &.no-environment {
-        color: ${(props) => props.theme.dropdown.mutedText};
-      }
-    }
   }
 
   .configure-button {
@@ -100,7 +80,7 @@ const Wrapper = styled.div`
     }
 
     button {
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       display: flex;
       align-items: center;
       justify-content: center;
@@ -110,8 +90,8 @@ const Wrapper = styled.div`
   }
 
   .tab-button {
-    color: var(--color-tab-inactive);
-    font-size: 0.8125rem;
+    color: ${(props) => props.theme.colors.text.subtext0};
+    font-size: ${(props) => props.theme.font.size.sm};
 
     .tab-content-wrapper {
       position: relative;
@@ -161,17 +141,17 @@ const Wrapper = styled.div`
     min-height: 12.5rem;
 
     h3 {
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       font-size: 1rem;
-      font-weight: 600;
+      font-weight: 500;
       margin-bottom: 0.5rem;
       line-height: 1.4;
     }
 
     p {
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       opacity: 0.75;
-      font-size: 0.6875rem;
+      font-size: ${(props) => props.theme.font.size.xs};
       line-height: 1.5;
       margin-bottom: 1rem;
       max-width: 11.875rem;
@@ -185,14 +165,14 @@ const Wrapper = styled.div`
     }
 
     .space-y-2 > button {
-      border: 0.0625rem solid ${(props) => props.theme.dropdown.primaryText};
+      border: 0.0625rem solid ${(props) => props.theme.text};
       background: transparent;
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       padding: 0.5rem 1rem;
       border-radius: 0.375rem;
       width: 100%;
       margin-bottom: 0.5rem;
-      font-size: 0.75rem;
+      font-size: ${(props) => props.theme.font.size.sm};
       font-weight: 500;
       display: flex;
       align-items: center;
@@ -215,15 +195,15 @@ const Wrapper = styled.div`
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    color: ${(props) => props.theme.dropdown.primaryText};
-    font-size: 0.8125rem;
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;
     text-align: center;
     opacity: 0.75;
 
     svg {
       margin: 0 auto 1rem auto;
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       opacity: 0.5;
     }
   }

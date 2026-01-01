@@ -15,7 +15,7 @@ const addCookieToJar = (setCookieHeader: string, requestUrl: string): void => {
 
 const getCookiesForUrl = (url: string) => {
   return cookieJar.getCookiesSync(url, {
-    secure: isPotentiallyTrustworthyOrigin(url),
+    secure: isPotentiallyTrustworthyOrigin(url)
   } as any);
 };
 
@@ -37,7 +37,7 @@ const getDomainsWithCookies = (): Promise<Array<{ domain: string; cookies: Cooki
       cookies.forEach((cookie) => {
         // Handle null domain by skipping the cookie
         if (!cookie.domain) return;
-        
+
         if (!domainCookieMap[cookie.domain]) {
           domainCookieMap[cookie.domain] = [cookie];
         } else {
@@ -163,7 +163,7 @@ const createCookieString = (cookieObj: any): string => {
     cookieString += `; Domain=${cookieObj.domain}`;
   }
   return cookieString;
-}
+};
 
 const saveCookies = (url: string, headers: any) => {
   if (headers['set-cookie']) {
@@ -180,7 +180,7 @@ const saveCookies = (url: string, headers: any) => {
 
 const cookieJarWrapper = () => {
   return {
-  
+
     // Get the full cookie object for the given URL & name.
     getCookie: function (
       url: string,
@@ -213,7 +213,7 @@ const cookieJarWrapper = () => {
         });
       });
     },
-   
+
     // Get all cookies that would be sent to the given URL.
     getCookies: function (url: string, callback?: (err: Error | null | undefined, cookies?: Cookie[]) => void) {
       if (!url) {
@@ -263,7 +263,7 @@ const cookieJarWrapper = () => {
           const cookie = new Cookie({
             key: cookieName,
             value: cookieValue,
-            domain: new URL(url).hostname,
+            domain: new URL(url).hostname
           });
 
           cookieJar.setCookieSync(cookie, url, { ignoreError: true });
@@ -279,7 +279,7 @@ const cookieJarWrapper = () => {
 
           const base = {
             domain: new URL(url).hostname,
-            ...obj,
+            ...obj
           } as any;
 
           const processedCookie = createCookieObj(base);
@@ -313,7 +313,6 @@ const cookieJarWrapper = () => {
         }
       });
     },
-
 
     setCookies: function (
       url: string,
@@ -364,7 +363,6 @@ const cookieJarWrapper = () => {
         }
       });
     },
-
 
     clear: function (callback?: (err?: Error | undefined) => void) {
       if (callback) {
@@ -483,7 +481,6 @@ const cookieJarWrapper = () => {
   } as const;
 };
 
-
 const cookiesModule = {
   cookieJar,
   addCookieToJar,
@@ -502,4 +499,4 @@ const cookiesModule = {
   saveCookies
 };
 
-export default cookiesModule; 
+export default cookiesModule;

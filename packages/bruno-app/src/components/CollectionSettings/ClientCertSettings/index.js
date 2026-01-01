@@ -9,8 +9,19 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
 import { useTheme } from 'styled-components';
+import { useDispatch } from 'react-redux';
+import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import get from 'lodash/get';
+import Button from 'ui/Button';
 
-const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }) => {
+const ClientCertSettings = ({ collection }) => {
+  const dispatch = useDispatch();
+
+  // Get client certs from draft if exists, otherwise from brunoConfig
+  const clientCertConfig = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.clientCertificates.certs', [])
+    : get(collection, 'brunoConfig.clientCertificates.certs', []);
   const certFilePathInputRef = useRef();
   const keyFilePathInputRef = useRef();
   const pfxFilePathInputRef = useRef();
@@ -29,7 +40,7 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
       domain: Yup.string()
         .required()
         .trim()
-        .test('not-empty-after-trim', 'Domain is required', value => value && value.trim().length > 0),
+        .test('not-empty-after-trim', 'Domain is required', (value) => value && value.trim().length > 0),
       type: Yup.string().required().oneOf(['cert', 'pfx']),
       certFilePath: Yup.string().when('type', {
         is: (type) => type == 'cert',
@@ -63,7 +74,19 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
           passphrase: values.passphrase
         };
       }
-      onUpdate(relevantValues);
+
+      // Add the new cert to the existing certs in draft
+      const updatedCerts = [...clientCertConfig, relevantValues];
+      const clientCertificates = {
+        enabled: true,
+        certs: updatedCerts
+      };
+
+      dispatch(updateCollectionClientCertificates({
+        collectionUid: collection.uid,
+        clientCertificates
+      }));
+
       formik.resetForm();
       resetFileInputFields();
     }
@@ -81,9 +104,15 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
   };
 
   const resetFileInputFields = () => {
-    certFilePathInputRef.current.value = '';
-    keyFilePathInputRef.current.value = '';
-    pfxFilePathInputRef.current.value = '';
+    if (certFilePathInputRef.current) {
+      certFilePathInputRef.current.value = '';
+    }
+    if (keyFilePathInputRef.current) {
+      keyFilePathInputRef.current.value = '';
+    }
+    if (pfxFilePathInputRef.current) {
+      pfxFilePathInputRef.current.value = '';
+    }
   };
 
   const handleTypeChange = (e) => {
@@ -99,34 +128,49 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
     }
   };
 
+  const handleRemove = (indexToRemove) => {
+    const updatedCerts = clientCertConfig.filter((cert, index) => index !== indexToRemove);
+    const clientCertificates = {
+      enabled: true,
+      certs: updatedCerts
+    };
+
+    dispatch(updateCollectionClientCertificates({
+      collectionUid: collection.uid,
+      clientCertificates
+    }));
+  };
+
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
+
   return (
     <StyledWrapper className="w-full h-full">
       <div className="text-xs mb-4 text-muted">Add client certificates to be used for specific domains.</div>
 
-      <h1 className="font-semibold">Client Certificates</h1>
+      <h1 className="font-medium">Client Certificates</h1>
       <ul className="mt-4">
         {!clientCertConfig.length
           ? 'No client certificates added'
           : clientCertConfig.map((clientCert, index) => (
-            <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
-              <div className="flex items-center w-full justify-between">
-                <div className="flex w-full items-center">
-                  <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
-                  {clientCert.domain}
+              <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
+                <div className="flex items-center w-full justify-between">
+                  <div className="flex w-full items-center">
+                    <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
+                    {clientCert.domain}
+                  </div>
+                  <div className="flex w-full items-center">
+                    <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
+                    {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
+                  </div>
+                  <button onClick={() => handleRemove(index)} className="remove-certificate ml-2">
+                    <IconTrash size={18} strokeWidth={1.5} />
+                  </button>
                 </div>
-                <div className="flex w-full items-center">
-                  <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
-                  {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
-                </div>
-                <button onClick={() => onRemove(clientCert)} className="remove-certificate ml-2">
-                  <IconTrash size={18} strokeWidth={1.5} />
-                </button>
-              </div>
-            </li>
-          ))}
+              </li>
+            ))}
       </ul>
 
-      <h1 className="font-semibold mt-8 mb-2">Add Client Certificate</h1>
+      <h1 className="font-medium mt-8 mb-2">Add Client Certificate</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="domain">
@@ -137,6 +181,7 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
               <span className="protocol-placeholder">
                 <span className="protocol-https">https://</span>
                 <span className="protocol-grpcs">grpcs://</span>
+                <span className="protocol-wss">wss://</span>
               </span>
             </div>
             <input
@@ -329,10 +374,14 @@ const ClientCertSettings = ({ collection, clientCertConfig, onUpdate, onRemove }
             <div className="ml-1 text-red-500">{formik.errors.passphrase}</div>
           ) : null}
         </div>
-        <div className="mt-6">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
+        <div className="mt-6 flex flex-row gap-2 items-center">
+          <Button type="submit" size="sm" data-testid="add-client-cert">
             Add
-          </button>
+          </Button>
+          <div className="h-4 border-l border-gray-600"></div>
+          <Button type="button" size="sm" onClick={handleSave}>
+            Save
+          </Button>
         </div>
       </form>
     </StyledWrapper>

@@ -10,7 +10,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
   }
 
-  font-size: 0.8125rem;
+  font-size: ${(props) => props.theme.font.size.base};
 
   .body-mode-selector {
     background: transparent;
@@ -26,7 +26,7 @@ const StyledWrapper = styled.div`
     }
 
     .selected-body-mode {
-      color: ${(props) => props.theme.colors.text.yellow};
+      color: ${(props) => props.theme.brand};
     }
 
     &.cursor-default {

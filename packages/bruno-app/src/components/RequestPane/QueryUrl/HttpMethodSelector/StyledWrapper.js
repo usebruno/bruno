@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  font-size: 0.8125rem;
+  font-size: ${(props) => props.theme.font.size.base};
 
   .dropdown {
     width: 100%;
@@ -18,6 +18,10 @@ const Wrapper = styled.div`
     .dropdown-item {
       padding: 0.25rem 0.6rem !important;
     }
+
+    .text-link {
+      color: ${(props) => props.theme.textLink};
+    }
   }
 
   input {
@@ -33,18 +37,15 @@ const Wrapper = styled.div`
   }
 
   .method-span {
-    width: 70px;
-    min-width: 70px;
-    max-width: 90px;
+    width: fit-content;
+    max-width: 10ch;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
     display: inline-block;
-  }
-
-  .caret {
-    color: rgb(140, 140, 140);
-    fill: rgb(140 140 140);
+    text-align: center;
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 500;
   }
 `;
 

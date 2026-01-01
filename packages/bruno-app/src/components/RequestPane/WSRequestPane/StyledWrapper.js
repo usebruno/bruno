@@ -6,8 +6,8 @@ const StyledWrapper = styled.div`
       padding: 6px 0px;
       border: none;
       border-bottom: solid 2px transparent;
-      margin-right: 1.25rem;
-      color: var(--color-tab-inactive);
+      margin-right: ${(props) => props.theme.tabs.marginRight};
+      color: ${(props) => props.theme.colors.text.subtext0};
       cursor: pointer;
 
       &:focus,

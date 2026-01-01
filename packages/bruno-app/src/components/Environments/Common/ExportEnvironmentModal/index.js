@@ -6,6 +6,7 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const ExportEnvironmentModal = ({ onClose, environments = [], environmentType }) => {
   const dispatch = useDispatch();
@@ -146,7 +147,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
               {environments && environments.length > 0 ? (
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between items-center mb-2 pb-1">
-                    <h3 className="font-semibold text-sm text-theme">
+                    <h3 className="font-medium text-theme">
                       {environmentType === 'global' ? 'Global Environments' : 'Collection Environments'}
                     </h3>
                     <button
@@ -175,7 +176,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
               ) : (
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between items-center mb-2 pb-1">
-                    <h3 className="font-semibold text-sm text-theme">
+                    <h3 className="font-medium text-theme">
                       {environmentType === 'global' ? 'Global Environments' : 'Collection Environments'}
                     </h3>
                   </div>
@@ -191,7 +192,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
             {/* Export Format Section */}
             {selectedCount > 0 && (
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2 text-theme">
+                <label className="block font-medium mb-2 text-theme">
                   Export Format
                 </label>
                 <div className="space-y-2">
@@ -207,7 +208,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
                         className={`mt-0.5 mr-3 w-4 h-4 ${option.disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                       />
                       <div>
-                        <div className={`text-sm font-medium ${option.disabled ? 'text-muted' : 'text-theme'}`}>{option.label}</div>
+                        <div className={`font-medium ${option.disabled ? 'text-muted' : 'text-theme'}`}>{option.label}</div>
                         <div className="text-xs text-muted">{option.description}</div>
                       </div>
                     </label>
@@ -218,7 +219,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
 
             {/* Location Input Section */}
             <div className="mb-4">
-              <label htmlFor="export-location" className="block text-sm font-medium mb-2 text-theme">
+              <label htmlFor="export-location" className="block font-medium mb-2 text-theme">
                 Location
               </label>
               <div className="flex flex-col relative items-center">
@@ -242,22 +243,26 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
 
             {/* Export Actions */}
             <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-              <button
+              <Button
                 type="button"
-                className="btn btn-sm btn-cancel mt-2 flex items-center"
+                size="sm"
+                color="secondary"
+                variant="ghost"
                 onClick={onClose}
                 disabled={isExporting}
+                className="mt-2 mr-2"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="btn btn-sm btn-secondary mt-2 flex items-center"
+                size="sm"
                 onClick={handleExport}
                 disabled={isExporting || selectedCount === 0}
+                className="mt-2"
               >
                 {isExporting ? 'Exporting...' : `Export ${selectedCount || ''} Environment${selectedCount !== 1 ? 's' : ''}`}
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>

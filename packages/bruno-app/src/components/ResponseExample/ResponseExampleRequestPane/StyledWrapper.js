@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  font-size: 0.8125rem;
+  font-size: ${(props) => props.theme.font.size.base};
   height: 300px;
 
   .body-mode-selector {
@@ -18,7 +18,7 @@ const StyledWrapper = styled.div`
     }
 
     .selected-body-mode {
-      color: ${(props) => props.theme.colors.text.yellow};
+      color: ${(props) => props.theme.brand};
     }
   }
 

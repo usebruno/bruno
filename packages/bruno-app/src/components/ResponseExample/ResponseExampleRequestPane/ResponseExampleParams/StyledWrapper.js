@@ -10,7 +10,7 @@ const StyledWrapper = styled.div`
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
     transition: opacity 0.2s ease;
     color: ${(props) => props.theme.colors.text.muted};
@@ -31,8 +31,8 @@ const StyledWrapper = styled.div`
     
     thead {
       td {
-        font-weight: 600;
-        font-size: 12px;
+        font-weight: 500;
+        font-size: ${(props) => props.theme.font.size.sm};
         text-transform: uppercase;
         letter-spacing: 0.5px;
         padding: 8px 0;
@@ -43,12 +43,16 @@ const StyledWrapper = styled.div`
     tbody {
       tr {
         border-bottom: 1px solid ${(props) => props.theme.table.border};
-        
-        &:hover {
-          background: ${(props) => props.theme.plainGrid.hoverBg};
-        }
       }
     }
+  }
+
+  /* Override styles for EditableTable to prevent uppercase transformation and ensure proper spacing */
+  /* The .table-container is from EditableTable component */
+  .table-container table thead td {
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    padding: 8px 10px !important;
   }
   
 

@@ -1,16 +1,20 @@
 import React, { useMemo } from 'react';
 import Modal from 'components/Modal';
-import { IconDownload, IconLoader2, IconAlertTriangle } from '@tabler/icons';
+import { IconUpload, IconLoader2, IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import Bruno from 'components/Bruno';
+import OpenCollectionIcon from 'components/Icons/OpenCollectionIcon';
 import exportBrunoCollection from 'utils/collections/export';
 import exportPostmanCollection from 'utils/exporters/postman-collection';
+import exportOpenCollection from 'utils/exporters/opencollection';
 import { cloneDeep } from 'lodash';
 import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
 import { useSelector } from 'react-redux';
 import { findCollectionByUid, areItemsLoading } from 'utils/collections/index';
+import { useApp } from 'providers/App';
 
 const ShareCollection = ({ onClose, collectionUid }) => {
+  const { version } = useApp();
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const isCollectionLoading = areItemsLoading(collection);
 
@@ -38,13 +42,19 @@ const ShareCollection = ({ onClose, collectionUid }) => {
 
   const handleExportBrunoCollection = () => {
     const collectionCopy = cloneDeep(collection);
-    exportBrunoCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+    exportBrunoCollection(transformCollectionToSaveToExportAsFile(collectionCopy), version);
     onClose();
   };
 
   const handleExportPostmanCollection = () => {
     const collectionCopy = cloneDeep(collection);
     exportPostmanCollection(collectionCopy);
+    onClose();
+  };
+
+  const handleExportOpenCollection = () => {
+    const collectionCopy = cloneDeep(collection);
+    exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy), version);
     onClose();
   };
 
@@ -60,10 +70,10 @@ const ShareCollection = ({ onClose, collectionUid }) => {
       <StyledWrapper className="flex flex-col h-full w-[500px]">
         <div className="space-y-2">
           <div
-            className={`flex border border-gray-200 dark:border-gray-600 items-center p-3 rounded-lg transition-colors ${
+            className={`share-button ${
               isCollectionLoading
                 ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
+                : 'cursor-pointer'
             }`}
             onClick={isCollectionLoading ? undefined : handleExportBrunoCollection}
           >
@@ -77,15 +87,37 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           </div>
 
           <div
-            className={`flex flex-col border border-gray-200 dark:border-gray-600 items-center rounded-lg transition-colors ${
+            className={`share-button relative ${
               isCollectionLoading
                 ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
+                : 'cursor-pointer'
+            }`}
+            onClick={isCollectionLoading ? undefined : handleExportOpenCollection}
+          >
+            <span className="beta-badge-corner">Beta</span>
+            <div className="mr-3 p-1 rounded-full">
+              {isCollectionLoading ? (
+                <IconLoader2 size={28} className="animate-spin" />
+              ) : (
+                <OpenCollectionIcon size={28} />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="font-medium">OpenCollection</div>
+              <div className="text-xs">{isCollectionLoading ? 'Loading collection...' : 'Export in OpenCollection format'}</div>
+            </div>
+          </div>
+
+          <div
+            className={`flex !flex-col share-button no-padding ${
+              isCollectionLoading
+                ? 'opacity-50 cursor-not-allowed'
+                : 'cursor-pointer'
             }`}
             onClick={isCollectionLoading ? undefined : handleExportPostmanCollection}
           >
             {hasNonExportableRequestTypes.has && (
-              <div className="px-3 py-2 bg-yellow-50 w-full dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 text-xs border-b border-yellow-100 dark:border-yellow-800/20 flex items-center">
+              <div className="px-3 py-2 w-full flex items-center note-warning">
                 <IconAlertTriangle size={16} className="mr-2 flex-shrink-0" />
                 <span>
                   Note:
@@ -100,7 +132,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
                 {isCollectionLoading ? (
                   <IconLoader2 size={28} className="animate-spin" />
                 ) : (
-                  <IconDownload size={28} strokeWidth={1} className="" />
+                  <IconUpload size={28} strokeWidth={1} className="" />
                 )}
               </div>
               <div className="flex-1">

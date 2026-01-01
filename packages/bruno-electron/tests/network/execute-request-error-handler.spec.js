@@ -14,26 +14,26 @@ describe('executeRequestOnFailHandler', () => {
 
   it('should do nothing when request is null', async () => {
     const error = new Error('Test error');
-    
+
     await executeRequestOnFailHandler(null, error);
-    
+
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
   it('should do nothing when request is undefined', async () => {
     const error = new Error('Test error');
-    
+
     await executeRequestOnFailHandler(undefined, error);
-    
+
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
   it('should do nothing when onFailHandler is not a function', async () => {
     const request = { onFailHandler: 'not a function' };
     const error = new Error('Test error');
-    
+
     await executeRequestOnFailHandler(request, error);
-    
+
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
@@ -41,9 +41,9 @@ describe('executeRequestOnFailHandler', () => {
     const mockHandler = jest.fn();
     const request = { onFailHandler: mockHandler };
     const error = new Error('Test error');
-    
+
     await executeRequestOnFailHandler(request, error);
-    
+
     expect(mockHandler).toHaveBeenCalledWith(error);
     expect(mockHandler).toHaveBeenCalledTimes(1);
     expect(consoleSpy).not.toHaveBeenCalled();
@@ -98,15 +98,15 @@ describe('executeRequestOnFailHandler', () => {
     } catch (err) {
       error = err;
     }
-    
+
     // Verify this is actually a hard error (no response)
     expect(error.response).toBeUndefined();
-    
+
     await executeRequestOnFailHandler(request, error);
-    
+
     expect(mockHandler).toHaveBeenCalledWith(error);
     const passedError = mockHandler.mock.calls[0][0];
     expect(passedError.response).toBeUndefined(); // Should be undefined for hard errors
     expect(passedError.code).toBe('ECONNABORTED'); // Connection aborted due to timeout
   });
-}); 
+});

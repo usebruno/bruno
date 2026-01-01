@@ -43,13 +43,6 @@ Bruno funciona sin conexión a internet. No tenemos intenciones de añadir sincr
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
-### Golden Edition ✨
-
-La mayoría de nuestras funcionalidades son gratis y de código abierto.
-Queremos alcanzar un equilibrio en armonía entre los [principios open-source y la sostenibilidad](https://github.com/usebruno/bruno/discussions/269).
-
-¡Puedes reservar la [Golden Edition](https://www.usebruno.com/pricing) por ~~$19~~ **$9**! <br/>
-
 ### Instalación
 
 Bruno está disponible para su descarga [en nuestro sitio web](https://www.usebruno.com/downloads) para Mac, Windows y Linux.

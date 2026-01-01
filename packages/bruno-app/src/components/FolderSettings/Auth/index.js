@@ -18,6 +18,7 @@ import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
 import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import Button from 'ui/Button';
 
 const GrantTypeComponentMap = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -26,7 +27,8 @@ const GrantTypeComponentMap = ({ collection, folder }) => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
 
-  let request = get(folder, 'root.request', {});
+  const folderRoot = folder?.draft || folder?.root;
+  let request = get(folderRoot, 'request', {});
   const grantType = get(request, 'auth.oauth2.grantType', 'authorization_code');
 
   switch (grantType) {
@@ -45,13 +47,15 @@ const GrantTypeComponentMap = ({ collection, folder }) => {
 
 const Auth = ({ collection, folder }) => {
   const dispatch = useDispatch();
-  let request = get(folder, 'root.request', {});
-  const authMode = get(folder, 'root.request.auth.mode');
+  const folderRoot = folder?.draft || folder?.root;
+  let request = get(folderRoot, 'request', {});
+  const authMode = get(folderRoot, 'request.auth.mode');
 
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
 
-    const collectionAuth = get(collection, 'root.request.auth');
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    const collectionAuth = get(collectionRoot, 'request.auth');
     let effectiveSource = {
       type: 'collection',
       name: 'Collection',
@@ -60,13 +64,14 @@ const Auth = ({ collection, folder }) => {
 
     // Get path from collection to current folder
     const folderTreePath = getTreePathFromCollectionToItem(collection, folder);
-    
+
     // Check parent folders to find closest auth configuration
     // Skip the last item which is the current folder
     for (let i = 0; i < folderTreePath.length - 1; i++) {
       const parentFolder = folderTreePath[i];
       if (parentFolder.type === 'folder') {
-        const folderAuth = get(parentFolder, 'root.request.auth');
+        const parentFolderRoot = parentFolder?.draft || parentFolder?.root;
+        const folderAuth = get(parentFolderRoot, 'request.auth');
         if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
           effectiveSource = {
             type: 'folder',
@@ -168,8 +173,8 @@ const Auth = ({ collection, folder }) => {
         return (
           <>
             <GrantTypeSelector
-              request={request} 
-              updateAuth={updateFolderAuth} 
+              request={request}
+              updateAuth={updateFolderAuth}
               collection={collection}
               item={folder}
             />
@@ -196,24 +201,23 @@ const Auth = ({ collection, folder }) => {
     }
   };
 
-
   return (
     <StyledWrapper className="w-full">
       <div className="text-xs mb-4 text-muted">
         Configures authentication for the entire folder. This applies to all requests using the{' '}
         <span className="font-medium">Inherit</span> option in the <span className="font-medium">Auth</span> tab.
       </div>
-      <div className="flex flex-grow justify-start items-center mb-4">
+      <div className="flex flex-grow justify-start items-center">
         <AuthMode collection={collection} folder={folder} />
       </div>
       {getAuthView()}
       <div className="mt-6">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );
 };
 
-export default Auth; 
+export default Auth;

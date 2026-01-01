@@ -305,19 +305,19 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
   const settings = item.draft?.settings ?? item.settings;
-  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
+  const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
-  
+
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name?.toLowerCase() === 'content-type') {
       contentTypeDefined = true;
       return false;
     }
   });
-  
+
   const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
@@ -327,8 +327,8 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     mergeAuth(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
+    request.promptVariables = collection?.promptVariables || {};
   }
-
 
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
@@ -389,17 +389,17 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
     }
-  
+
     const bodyFile = find(request.body.file, (param) => param.selected);
     if (bodyFile) {
       let { filePath, contentType } = bodyFile;
-      
+
       axiosRequest.headers['content-type'] = contentType;
       if (filePath) {
         if (!path.isAbsolute(filePath)) {
           filePath = path.join(collectionPath, filePath);
         }
-  
+
         try {
           // Large files can cause "JavaScript heap out of memory" errors when loaded entirely into memory.
           if (isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)) {
@@ -446,7 +446,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   // if the mode is 'none' then set the content-type header to false. #1693
   if (request.body.mode === 'none' && request.auth.mode !== 'awsv4') {
-    if(!contentTypeDefined) {
+    if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = false;
     }
   }
@@ -463,6 +463,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
+  axiosRequest.promptVariables = request.promptVariables;
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
@@ -474,4 +475,4 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 module.exports = {
   prepareRequest,
   setAuthHeaders
-}
+};

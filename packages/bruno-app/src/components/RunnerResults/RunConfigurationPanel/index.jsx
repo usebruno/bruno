@@ -8,6 +8,7 @@ import StyledWrapper from './StyledWrapper';
 import { isItemARequest } from 'utils/collections';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
+import Button from 'ui/Button/index';
 
 const ItemTypes = {
   REQUEST_ITEM: 'request-item'
@@ -33,13 +34,13 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
     item: { uid: item.uid, name: item.name, request: item.request, index },
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
     options: {
-      dropEffect: "move"
+      dropEffect: 'move'
     },
     end: (draggedItem, monitor) => {
       if (monitor.didDrop()) {
         onDrop();
       }
-    },
+    }
   });
 
   const [{ isOver, canDrop }, drop] = useDrop({
@@ -49,24 +50,24 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
         setDropType(null);
         return;
       }
-      
+
       const dropType = determineDropType(monitor);
       setDropType(dropType);
     },
     drop: (draggedItem, monitor) => {
       if (draggedItem.uid === item.uid) return;
-      
+
       const dropType = determineDropType(monitor);
       let targetIndex = index;
-      
+
       if (dropType === 'below') {
         targetIndex = index + 1;
       }
-      
+
       if (draggedItem.index < targetIndex) {
         targetIndex = targetIndex - 1;
       }
-      
+
       moveItem(draggedItem.uid, targetIndex);
       setDropType(null);
       return { item: draggedItem };
@@ -74,7 +75,7 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
     collect: (monitor) => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop()
-    }),
+    })
   });
 
   useEffect(() => {
@@ -106,7 +107,7 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
 
       <div className="checkbox-container" onClick={() => onSelect(item)}>
         <div className="checkbox">
-          {isSelected && <IconCheck size={12} />}
+          {isSelected && <IconCheck className="checkbox-icon" size={12} strokeWidth={3} />}
         </div>
       </div>
 
@@ -136,7 +137,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
     const processItems = (items) => {
       if (!items?.length) return;
 
-      items.forEach(item => {
+      items.forEach((item) => {
         if (isItemARequest(item) && !item.partial) {
           const relativePath = path.relative(collection.pathname, path.dirname(item.pathname));
           const folderPath = relativePath !== '.' ? relativePath : '';
@@ -167,9 +168,9 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
       const savedConfiguration = get(collection, 'runnerConfiguration', null);
       if (savedConfiguration?.requestItemsOrder?.length > 0) {
         const orderedRequests = [];
-        const requestMap = new Map(requests.map(req => [req.uid, req]));
+        const requestMap = new Map(requests.map((req) => [req.uid, req]));
 
-        savedConfiguration.requestItemsOrder.forEach(uid => {
+        savedConfiguration.requestItemsOrder.forEach((uid) => {
           const request = requestMap.get(uid);
           if (request) {
             orderedRequests.push(request);
@@ -177,7 +178,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
           }
         });
 
-        requestMap.forEach(request => {
+        requestMap.forEach((request) => {
           orderedRequests.push(request);
         });
 
@@ -188,7 +189,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
 
       setOriginalRequests(cloneDeep(requests));
     } catch (error) {
-      console.error("Error loading collection structure:", error);
+      console.error('Error loading collection structure:', error);
     } finally {
       setIsLoading(false);
     }
@@ -196,7 +197,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
 
   const moveItem = useCallback((draggedItemUid, hoverIndex) => {
     setFlattenedRequests((prevRequests) => {
-      const dragIndex = prevRequests.findIndex(item => item.uid === draggedItemUid);
+      const dragIndex = prevRequests.findIndex((item) => item.uid === draggedItemUid);
 
       if (dragIndex === -1 || dragIndex === hoverIndex) {
         return prevRequests;
@@ -213,12 +214,12 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
   const handleDrop = useCallback(() => {
     const selectedUids = new Set(selectedItems);
 
-    setFlattenedRequests(currentRequests => {
+    setFlattenedRequests((currentRequests) => {
       const newOrderedSelectedUids = currentRequests
-        .filter(item => selectedUids.has(item.uid))
-        .map(item => item.uid);
+        .filter((item) => selectedUids.has(item.uid))
+        .map((item) => item.uid);
 
-      const allRequestUidsOrder = currentRequests.map(item => item.uid);
+      const allRequestUidsOrder = currentRequests.map((item) => item.uid);
 
       setSelectedItems(newOrderedSelectedUids);
       dispatch(updateRunnerConfiguration(collection.uid, newOrderedSelectedUids, allRequestUidsOrder));
@@ -230,32 +231,32 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
   const handleRequestSelect = useCallback((item) => {
     try {
       if (selectedItems.includes(item.uid)) {
-        const newSelectedUids = selectedItems.filter(uid => uid !== item.uid);
+        const newSelectedUids = selectedItems.filter((uid) => uid !== item.uid);
         setSelectedItems(newSelectedUids);
-        
-        const allRequestUidsOrder = flattenedRequests.map(item => item.uid);
+
+        const allRequestUidsOrder = flattenedRequests.map((item) => item.uid);
         dispatch(updateRunnerConfiguration(collection.uid, newSelectedUids, allRequestUidsOrder));
       } else {
         const newSelectedUids = [...selectedItems, item.uid];
 
         const orderedSelectedUids = flattenedRequests
-          .filter(req => newSelectedUids.includes(req.uid))
-          .map(req => req.uid);
+          .filter((req) => newSelectedUids.includes(req.uid))
+          .map((req) => req.uid);
 
         setSelectedItems(orderedSelectedUids);
 
-        const allRequestUidsOrder = flattenedRequests.map(item => item.uid);
+        const allRequestUidsOrder = flattenedRequests.map((item) => item.uid);
         dispatch(updateRunnerConfiguration(collection.uid, orderedSelectedUids, allRequestUidsOrder));
       }
     } catch (error) {
-      console.error("Error selecting item:", error);
+      console.error('Error selecting item:', error);
     }
   }, [selectedItems, setSelectedItems, flattenedRequests, dispatch, collection.uid]);
 
   const handleSelectAll = useCallback(() => {
     try {
-      const allRequestUidsOrder = flattenedRequests.map(item => item.uid);
-      
+      const allRequestUidsOrder = flattenedRequests.map((item) => item.uid);
+
       if (selectedItems.length === flattenedRequests.length) {
         setSelectedItems([]);
         dispatch(updateRunnerConfiguration(collection.uid, [], allRequestUidsOrder));
@@ -264,7 +265,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
         dispatch(updateRunnerConfiguration(collection.uid, allRequestUidsOrder, allRequestUidsOrder));
       }
     } catch (error) {
-      console.error("Error selecting/deselecting all items:", error);
+      console.error('Error selecting/deselecting all items:', error);
     }
   }, [flattenedRequests, selectedItems, setSelectedItems, dispatch, collection.uid]);
 
@@ -274,7 +275,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
       setSelectedItems([]);
       dispatch(updateRunnerConfiguration(collection.uid, [], []));
     } catch (error) {
-      console.error("Error resetting configuration:", error);
+      console.error('Error resetting configuration:', error);
     }
   }, [originalRequests, setSelectedItems, collection.uid, dispatch]);
 
@@ -285,13 +286,19 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
           {selectedItems.length} of {flattenedRequests.length} selected
         </div>
         <div className="actions">
-          <button className="btn-select-all" onClick={handleSelectAll}>
-            {selectedItems.length === flattenedRequests.length ? "Deselect All" : "Select All"}
-          </button>
-          <button className="btn-reset" onClick={handleReset} title="Reset selection and order">
-            <IconAdjustmentsAlt size={16} strokeWidth={1.5} />
+          <Button
+            variant="ghost"
+            onClick={handleSelectAll}
+          >
+            {selectedItems.length === flattenedRequests.length ? 'Deselect All' : 'Select All'}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleReset}
+            title="Reset selection and order"
+          >
             Reset
-          </button>
+          </Button>
         </div>
       </div>
 

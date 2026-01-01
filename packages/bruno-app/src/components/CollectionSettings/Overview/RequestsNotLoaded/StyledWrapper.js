@@ -5,9 +5,9 @@ const StyledWrapper = styled.div`
     background-color: ${(props) => props.theme.requestTabPanel.card.bg};
 
     .title {
-      border-top: 1px solid ${(props) => props.theme.requestTabPanel.cardTable.border};
-      border-left: 1px solid ${(props) => props.theme.requestTabPanel.cardTable.border};
-      border-right: 1px solid ${(props) => props.theme.requestTabPanel.cardTable.border};
+      border-top: 1px solid ${(props) => props.theme.border.BORDER0};
+      border-left: 1px solid ${(props) => props.theme.border.BORDER0};
+      border-right: 1px solid ${(props) => props.theme.border.BORDER0};
 
       border-top-left-radius: 3px;
       border-top-right-radius: 3px;
@@ -15,8 +15,8 @@ const StyledWrapper = styled.div`
 
     .table {
       thead {
-        background-color: ${(props) => props.theme.requestTabPanel.cardTable.table.thead.bg};
-        color: ${(props) => props.theme.requestTabPanel.cardTable.table.thead.color};
+        color: ${(props) => props.theme.table.thead.color} !important;
+        background: ${(props) => props.theme.sidebar.bg};
       }
     }
   }

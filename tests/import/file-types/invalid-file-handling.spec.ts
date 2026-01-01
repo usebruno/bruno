@@ -5,7 +5,8 @@ test.describe('Invalid File Handling', () => {
   test('Handle invalid file without crashing', async ({ page }) => {
     const invalidFile = path.resolve(__dirname, 'fixtures', 'invalid.txt');
 
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
     const importModal = page.getByRole('dialog');
@@ -21,6 +22,6 @@ test.describe('Invalid File Handling', () => {
     expect(hasError).toBe(true);
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });

@@ -6,10 +6,10 @@ const StyledWrapper = styled.div`
 
   .response-status-input {
     background: ${(props) => props.theme.requestTabPanel.url.bg};
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    border: 1px solid ${(props) => props.theme.border.border1};
     border-radius: 3px;
     padding: 0.35rem 0.6rem;
-    font-size: 0.8125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
     color: ${(props) => props.theme.text.primary};
     min-width: 120px;
@@ -44,7 +44,7 @@ const StyledWrapper = styled.div`
     left: 0;
     right: 0;
     background: ${(props) => props.theme.dropdown.bg};
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    border: 1px solid ${(props) => props.theme.border.border1};
     border-top: none;
     border-radius: 0 0 3px 3px;
     box-shadow: ${(props) => props.theme.dropdown.shadow};
@@ -60,8 +60,8 @@ const StyledWrapper = styled.div`
       margin: 0;
       cursor: pointer;
       transition: background-color 0.15s ease;
-      font-size: 0.8125rem;
-      color: ${(props) => props.theme.dropdown.primaryText};
+      font-size: ${(props) => props.theme.font.size.base};
+      color: ${(props) => props.theme.text};
       width: 100%;
       box-sizing: border-box;
 
@@ -70,7 +70,7 @@ const StyledWrapper = styled.div`
       }
 
       .status {
-        font-weight: 600;
+        font-weight: 500;
         color: inherit;
         margin-right: 0.5rem;
         min-width: 40px;

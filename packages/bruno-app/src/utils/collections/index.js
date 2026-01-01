@@ -1,4 +1,4 @@
-import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
+import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
@@ -146,7 +146,7 @@ export const areItemsLoading = (folder) => {
   if (!folder || folder.isLoading) {
     return true;
   }
-  
+
   let flattenedItems = flattenItems(folder.items);
   return flattenedItems?.reduce((isLoading, i) => {
     if (i?.loading) {
@@ -154,13 +154,13 @@ export const areItemsLoading = (folder) => {
     }
     return isLoading;
   }, false);
-}
+};
 
 export const getItemsLoadStats = (folder) => {
   let loadingCount = 0;
   let flattenedItems = flattenItems(folder.items);
-  flattenedItems?.forEach(i => {
-    if(i?.loading) {
+  flattenedItems?.forEach((i) => {
+    if (i?.loading) {
       loadingCount += 1;
     }
   });
@@ -168,7 +168,7 @@ export const getItemsLoadStats = (folder) => {
     loading: loadingCount,
     total: flattenedItems?.length
   };
-}
+};
 
 export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
   const copyHeaders = (headers) => {
@@ -228,9 +228,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         filePath: param.filePath,
         contentType: param.contentType,
         selected: param.selected
-      }
+      };
     });
-  }
+  };
 
   const copyExamples = (examples = []) => {
     return map(examples, (example) => {
@@ -280,19 +280,24 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const normalizeFilenameToBru = (filename) => {
+    if (!filename) return filename;
+    return filename.replace(/\.(yml|yaml)$/i, '.bru');
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
         return;
       }
 
-      const isGrpcRequest = si.type === 'grpc-request'
+      const isGrpcRequest = si.type === 'grpc-request';
 
       const di = {
         uid: si.uid,
         type: si.type,
         name: si.name,
-        filename: si.filename,
+        filename: isItemARequest(si) ? normalizeFilenameToBru(si.filename) : si.filename,
         seq: si.seq,
         settings: si.settings,
         tags: si.tags,
@@ -330,7 +335,6 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           di.request.protoPath = si.request.protoPath;
           delete di.request.params;
         }
-        
 
         // Handle auth object dynamically
         di.request.auth = {
@@ -371,7 +375,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.ntlm.password', ''),
               domain: get(si.request, 'auth.ntlm.domain', '')
             };
-            break;            
+            break;
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -392,7 +396,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'authorization_code':
@@ -413,7 +417,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'implicit':
@@ -429,7 +433,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'client_credentials':
@@ -447,7 +451,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
             }
@@ -474,10 +478,10 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
 
         if (di.request.body.mode === 'grpc') {
-          di.request.body.grpc = di.request.body.grpc.map(({name, content}, index) => ({
+          di.request.body.grpc = di.request.body.grpc.map(({ name, content }, index) => ({
             name: name ? name : `message ${index + 1}`,
             content: replaceTabsWithSpaces(content)
-          }))
+          }));
         }
 
         if (di.request.body.mode === 'ws') {
@@ -684,7 +688,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (_item.type === 'grpc-request') {
     itemToSave.request.methodType = _item.request.methodType;
     itemToSave.request.protoPath = _item.request.protoPath;
-    delete itemToSave.request.params
+    delete itemToSave.request.params;
   }
 
   if (_item.type === 'ws-request') {
@@ -727,7 +731,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'grpc') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+      grpc: itemToSave.request.body.grpc.map(({ name, content }, index) => ({
         name: name ? name : `message ${index + 1}`,
         content: replaceTabsWithSpaces(content)
       }))
@@ -746,6 +750,60 @@ export const transformRequestToSaveToFilesystem = (item) => {
   }
 
   return itemToSave;
+};
+
+export const transformCollectionRootToSave = (collection) => {
+  const _collection = collection.draft?.root ? collection.draft.root : collection.root;
+
+  const collectionRootToSave = {
+    docs: _collection?.docs,
+    meta: _collection?.meta,
+    request: {
+      auth: _collection?.request?.auth,
+      headers: [],
+      script: _collection?.request?.script,
+      vars: _collection?.request?.vars,
+      tests: _collection?.request?.tests
+    }
+  };
+
+  each(_collection?.request?.headers, (header) => {
+    collectionRootToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  return collectionRootToSave;
+};
+
+export const transformFolderRootToSave = (folder) => {
+  const _folder = folder.draft ? folder.draft : folder.root;
+  const folderRootToSave = {
+    docs: _folder.docs,
+    request: {
+      auth: _folder?.request?.auth,
+      headers: [],
+      script: _folder?.request?.script,
+      vars: _folder?.request?.vars,
+      tests: _folder?.request?.tests
+    }
+  };
+
+  each(_folder.request.headers, (header) => {
+    folderRootToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  return folderRootToSave;
 };
 
 // todo: optimize this
@@ -841,7 +899,7 @@ export const humanizeRequestAuthMode = (mode) => {
     case 'ntlm': {
       label = 'NTLM';
       break;
-    }     
+    }
     case 'oauth2': {
       label = 'OAuth 2.0';
       break;
@@ -1002,6 +1060,16 @@ export const hasExampleChanges = (_item, exampleUid) => {
 
 export const getDefaultRequestPaneTab = (item) => {
   if (item.type === 'http-request') {
+    // If no params are enabled and body mode is set, default to 'body' tab
+    // This provides better UX for POST/PUT requests with a body
+    const request = item.draft?.request || item.request;
+    const params = request?.params || [];
+    const bodyMode = request?.body?.mode;
+    const hasEnabledParams = params.some((p) => p.enabled);
+
+    if (!hasEnabledParams && bodyMode && bodyMode !== 'none') {
+      return 'body';
+    }
     return 'params';
   }
 
@@ -1016,7 +1084,7 @@ export const getDefaultRequestPaneTab = (item) => {
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
   let variables = {};
-  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
   if (environment) {
     each(environment.variables, (variable) => {
       if (variable.name && variable.enabled) {
@@ -1028,7 +1096,7 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
 };
 
 export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
-  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
 
   if (environment && Array.isArray(environment.variables)) {
     return environment.variables
@@ -1038,7 +1106,6 @@ export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, active
 
   return [];
 };
-
 
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
@@ -1100,18 +1167,19 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
-  if(!collection) return {};
+  if (!collection) return {};
   const envVariables = getEnvironmentVariables(collection);
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
   const pathParams = getPathParams(item);
   const { globalEnvironmentVariables = {} } = collection;
 
-  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {} } = collection;
   const mergedVariables = {
     ...folderVariables,
     ...requestVariables,
-    ...runtimeVariables
+    ...runtimeVariables,
+    ...promptVariables
   };
 
   const mergedVariablesGlobal = {
@@ -1120,7 +1188,8 @@ export const getAllVariables = (collection, item) => {
     ...folderVariables,
     ...requestVariables,
     ...runtimeVariables,
-  }
+    ...promptVariables
+  };
 
   const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
   const maskedGlobalEnvVariables = collection?.globalEnvSecrets || [];
@@ -1130,7 +1199,7 @@ export const getAllVariables = (collection, item) => {
 
   const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
-  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials })
+  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
 
   return {
     ...globalEnvironmentVariables,
@@ -1140,6 +1209,7 @@ export const getAllVariables = (collection, item) => {
     ...requestVariables,
     ...oauth2CredentialVariables,
     ...runtimeVariables,
+    ...promptVariables,
     pathParams: {
       ...pathParams
     },
@@ -1150,6 +1220,44 @@ export const getAllVariables = (collection, item) => {
       }
     }
   };
+};
+
+// Merge headers from collection, folders, and request
+export const mergeHeaders = (collection, request, requestTreePath) => {
+  let headers = new Map();
+
+  // Add collection headers first
+  const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
+  collectionHeaders.forEach((header) => {
+    if (header.enabled) {
+      headers.set(header.name, header);
+    }
+  });
+
+  // Add folder headers next, traversing from root to leaf
+  if (requestTreePath && requestTreePath.length > 0) {
+    for (let i of requestTreePath) {
+      if (i.type === 'folder') {
+        const folderHeaders = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'root.request.headers', []);
+        folderHeaders.forEach((header) => {
+          if (header.enabled) {
+            headers.set(header.name, header);
+          }
+        });
+      }
+    }
+  }
+
+  // Add request headers last (they take precedence)
+  const requestHeaders = request.headers || [];
+  requestHeaders.forEach((header) => {
+    if (header.enabled) {
+      headers.set(header.name, header);
+    }
+  });
+
+  // Convert Map back to array
+  return Array.from(headers.values());
 };
 
 export const maskInputValue = (value) => {
@@ -1177,22 +1285,29 @@ const mergeVars = (collection, requestTreePath = []) => {
   let collectionVariables = {};
   let folderVariables = {};
   let requestVariables = {};
-  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
       collectionVariables[_var.name] = _var.value;
     }
   });
   for (let i of requestTreePath) {
+    if (!i) {
+      continue;
+    }
+
     if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.req', []);
+      // Check draft first, then fall back to root
+      const folderRoot = i.draft || i.root;
+      let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderVariables[_var.name] = _var.value;
         }
       });
     } else {
-      let vars = get(i, 'request.vars.req', []);
+      let vars = i.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           requestVariables[_var.name] = _var.value;
@@ -1240,7 +1355,6 @@ export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = []
   return credentialsVariables;
 };
 
-
 // item sequence utils - START
 
 export const resetSequencesInFolder = (folderItems) => {
@@ -1272,7 +1386,7 @@ export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, dragg
   const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
   const targetSequence = targetItem?.seq;
   const draggedSequence = draggedItem?.seq;
-  itemsWithFixedSequences?.forEach(item => {
+  itemsWithFixedSequences?.forEach((item) => {
     const isDraggedItem = item?.uid === draggedItemUid;
     const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
     if (isBetween) {
@@ -1284,15 +1398,15 @@ export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, dragg
     }
   });
   // only return items that have been reordered
-  return itemsWithFixedSequences.filter(item => 
-    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  return itemsWithFixedSequences.filter((item) =>
+    items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
 };
 
 export const getReorderedItemsInSourceDirectory = ({ items }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
-  return itemsWithFixedSequences.filter(item => 
-    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  return itemsWithFixedSequences.filter((item) =>
+    items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
 };
 
@@ -1304,9 +1418,9 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
   const isTargetItemAFolder = isItemAFolder(targetItem);
 
   if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
-    return path.join(targetItemPathname, draggedItemFilename)
+    return path.join(targetItemPathname, draggedItemFilename);
   } else if (dropType === 'adjacent') {
-    return path.join(targetItemDirname, draggedItemFilename)
+    return path.join(targetItemDirname, draggedItemFilename);
   }
   return null;
 };
@@ -1316,10 +1430,10 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 export const getUniqueTagsFromItems = (items = []) => {
   const allTags = new Set();
   const getTags = (items) => {
-    items.forEach(item => {
+    items.forEach((item) => {
       if (isItemARequest(item)) {
         const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
-        tags.forEach(tag => allTags.add(tag));
+        tags.forEach((tag) => allTags.add(tag));
       }
       if (item.items) {
         getTags(item.items);
@@ -1330,10 +1444,9 @@ export const getUniqueTagsFromItems = (items = []) => {
   return Array.from(allTags).sort();
 };
 
-
 export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
   let requestItems = [];
-  
+
   if (recursive) {
     requestItems = flattenItems(items);
   } else {
@@ -1345,7 +1458,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   }
 
   const requestTypes = ['http-request', 'graphql-request'];
-  requestItems = requestItems.filter(request => requestTypes.includes(request.type));
+  requestItems = requestItems.filter((request) => requestTypes.includes(request.type));
 
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
@@ -1416,4 +1529,168 @@ export const getInitialExampleName = (item) => {
     }
     counter++;
   }
+};
+
+// Get the scope and raw value of a variable by checking all scopes in priority order
+export const getVariableScope = (variableName, collection, item) => {
+  if (!variableName || !collection) {
+    return null;
+  }
+
+  // 1. Check Request Variables (highest priority)
+  if (item) {
+    const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
+    const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
+    if (requestVar) {
+      return {
+        type: 'request',
+        value: requestVar.value,
+        data: { item, variable: requestVar }
+      };
+    }
+  }
+
+  // 2. Check Folder Variables
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  for (let i = requestTreePath.length - 1; i >= 0; i--) {
+    const pathItem = requestTreePath[i];
+    if (!pathItem) {
+      continue;
+    }
+
+    if (pathItem.type === 'folder') {
+      // Check draft first, then fall back to root
+      const folderRoot = pathItem.draft || pathItem.root;
+      const folderVars = get(folderRoot, 'request.vars.req', []);
+      const folderVar = folderVars.find((v) => v.name === variableName && v.enabled);
+      if (folderVar) {
+        return {
+          type: 'folder',
+          value: folderVar.value,
+          data: { folder: pathItem, variable: folderVar }
+        };
+      }
+    }
+  }
+
+  // 3. Check Environment Variables
+  if (collection.activeEnvironmentUid) {
+    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    if (environment && environment.variables) {
+      const envVar = environment.variables.find((v) => v.name === variableName && v.enabled);
+      if (envVar) {
+        return {
+          type: 'environment',
+          value: envVar.value,
+          data: { environment, variable: envVar }
+        };
+      }
+    }
+  }
+
+  // 4. Check Collection Variables
+  // Check draft first, then fall back to root
+  const collectionRoot = (collection.draft && collection.draft.root) || collection.root || {};
+  const collectionVars = get(collectionRoot, 'request.vars.req', []);
+  const collectionVar = collectionVars.find((v) => v.name === variableName && v.enabled);
+  if (collectionVar) {
+    return {
+      type: 'collection',
+      value: collectionVar.value,
+      data: { collection, variable: collectionVar }
+    };
+  }
+
+  // 5. Check Global Environment Variables
+  const { globalEnvironmentVariables = {} } = collection;
+  if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
+    return {
+      type: 'global',
+      value: globalEnvironmentVariables[variableName],
+      data: { variableName, value: globalEnvironmentVariables[variableName] }
+    };
+  }
+
+  // 6. Check Runtime Variables (set during request execution via scripts)
+  const { runtimeVariables = {} } = collection;
+  if (runtimeVariables && runtimeVariables[variableName]) {
+    return {
+      type: 'runtime',
+      value: runtimeVariables[variableName],
+      data: { variableName, value: runtimeVariables[variableName], readonly: true }
+    };
+  }
+
+  // Process.env variables are not checked here
+
+  return null;
+};
+
+// Check if a variable is marked as secret
+export const isVariableSecret = (scopeInfo) => {
+  if (!scopeInfo) {
+    return false;
+  }
+
+  // Only environment variables can be marked as secret
+  if (scopeInfo.type === 'environment') {
+    return !!scopeInfo.data.variable?.secret;
+  }
+
+  // Global variables are not checked here
+  if (scopeInfo.type === 'global') {
+    return false;
+  }
+
+  return false;
+};
+
+/**
+ * Generate a unique request name by checking existing filenames in the collection and filesystem
+ * @param {Object} collection - The collection object
+ * @param {string} baseName - The base name (default: 'Untitled')
+ * @param {string} itemUid - The parent item UID (null for root level, folder UID for folder level)
+ * @returns {Promise<string>} - A unique request name (Untitled, Untitled1, Untitled2, etc.)
+ */
+export const generateUniqueRequestName = async (collection, baseName = 'Untitled', itemUid = null) => {
+  if (!collection) {
+    return baseName;
+  }
+
+  const trim = require('lodash/trim');
+  const parentItem = itemUid ? findItemInCollection(collection, itemUid) : null;
+  const parentItems = parentItem ? (parentItem.items || []) : (collection.items || []);
+  const baseNamePattern = new RegExp(`^${baseName}(\\d+)?$`);
+  // Support .bru, .yml, and .yaml file extensions
+  const requestExtensions = /\.(bru|yml|yaml)$/i;
+  const matchingItems = parentItems
+    .filter((item) => {
+      if (item.type === 'folder') return false;
+
+      const filename = trim(item.filename);
+      if (!requestExtensions.test(filename)) return false;
+
+      const filenameWithoutExt = filename.replace(requestExtensions, '');
+      return baseNamePattern.test(filenameWithoutExt);
+    })
+    .map((item) => {
+      const filenameWithoutExt = trim(item.filename).replace(requestExtensions, '');
+      const match = filenameWithoutExt.match(baseNamePattern);
+
+      if (!match) return null;
+
+      const number = match[1] ? parseInt(match[1], 10) : 0;
+      return { name: filenameWithoutExt, number: isNaN(number) ? null : number };
+    })
+    .filter((item) => item !== null && item.number !== null);
+
+  if (matchingItems.length === 0) {
+    return baseName;
+  }
+
+  const sortedMatches = matchingItems.sort((a, b) => a.number - b.number);
+  const lastElement = sortedMatches[sortedMatches.length - 1];
+  const nextNumber = lastElement.number + 1;
+
+  return `${baseName}${nextNumber}`;
 };

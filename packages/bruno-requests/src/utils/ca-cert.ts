@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 type T_CACertificatesOptions = {
   caCertFilePath?: string;
   shouldKeepDefaultCerts?: boolean;
-}
+};
 
 type T_CACertificatesResult = {
   caCertificates: string;
@@ -14,7 +14,7 @@ type T_CACertificatesResult = {
     custom: number;
     extra: number;
   };
-}
+};
 
 let systemCertsCache: string[] | undefined;
 
@@ -70,20 +70,20 @@ function getNodeExtraCACerts(): string[] {
 
 /**
  * Get CA certificates
- * 
+ *
  * Generic function to get CA certificates
  * - System CA certificates (From OS)
  * - Root CA certificates (From Node)
  * - Custom CA certificates (From user-provided file)
  * - NODE_EXTRA_CA_CERTS (From environment variable)
- * 
+ *
  * If no custom CA certificate file path is provided
  *  → return system CA certificates and root certificates + NODE_EXTRA_CA_CERTS
- * 
+ *
  * If custom CA certificate file path is provided
  *  → use custom CA certificate file + NODE_EXTRA_CA_CERTS
  *  → ignore system + root certificates if shouldKeepDefaultCerts is false
- * 
+ *
  * @param caCertFilePath - path to custom CA certificate file
  * @param shouldKeepDefaultCerts - whether to keep default CA certificates
  * @returns {T_CACertificatesResult} - CA certificates and their count
@@ -97,13 +97,12 @@ const getCACertificates = ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_
       root: 0,
       custom: 0,
       extra: 0
-    }
+    };
 
     let systemCerts: string[] = [];
     let rootCerts: string[] = [];
     let customCerts: string[] = [];
     let nodeExtraCerts: string[] = [];
-
 
     // handle user-provided custom CA certificate file with optional default certificates
     if (caCertFilePath) {
@@ -153,12 +152,12 @@ const getCACertificates = ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_
     return {
       caCertificates,
       caCertificatesCount
-    }
+    };
   } catch (err) {
     console.error('Error configuring CA certificates:', (err as Error).message);
     throw err; // Re-throw certificate loading errors as they're critical
   }
-}
+};
 
 export {
   getCACertificates

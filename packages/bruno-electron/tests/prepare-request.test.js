@@ -26,21 +26,21 @@ describe('setAuthHeaders', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
-    
+
     // Reset crypto mock to return predictable values
     crypto.randomBytes.mockReturnValue(Buffer.from('1234567890abcdef', 'hex'));
-    
+
     // Setup default mock objects
     mockAxiosRequest = {
       headers: {}
     };
-    
+
     mockRequest = {
       auth: {
         mode: 'none'
       }
     };
-    
+
     mockCollectionRoot = {
       request: {
         auth: null
@@ -50,10 +50,10 @@ describe('setAuthHeaders', () => {
     // Setup a more sophisticated mock for lodash get function
     mockGet.mockImplementation((obj, path, defaultValue) => {
       if (!obj) return defaultValue;
-      
+
       const keys = path.split('.');
       let current = obj;
-      
+
       for (const key of keys) {
         if (current && typeof current === 'object' && key in current) {
           current = current[key];
@@ -61,7 +61,7 @@ describe('setAuthHeaders', () => {
           return defaultValue;
         }
       }
-      
+
       return current;
     });
   });
@@ -79,7 +79,7 @@ describe('setAuthHeaders', () => {
           profileName: 'default'
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -102,7 +102,7 @@ describe('setAuthHeaders', () => {
           password: 'testpass'
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -120,7 +120,7 @@ describe('setAuthHeaders', () => {
           token: 'test-token'
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -136,7 +136,7 @@ describe('setAuthHeaders', () => {
           password: 'testpass'
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -156,7 +156,7 @@ describe('setAuthHeaders', () => {
           domain: 'testdomain'
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -176,7 +176,7 @@ describe('setAuthHeaders', () => {
           password: 'testpass'
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -193,7 +193,7 @@ describe('setAuthHeaders', () => {
           placement: 'header'
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -210,7 +210,7 @@ describe('setAuthHeaders', () => {
           placement: 'queryparams'
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -231,7 +231,7 @@ describe('setAuthHeaders', () => {
           placement: 'header'
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -263,7 +263,7 @@ describe('setAuthHeaders', () => {
           additionalParameters: { authorization: [], token: [], refresh: [] }
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -312,7 +312,7 @@ describe('setAuthHeaders', () => {
           additionalParameters: { authorization: [], token: [], refresh: [] }
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -357,7 +357,7 @@ describe('setAuthHeaders', () => {
           additionalParameters: { authorization: [], token: [], refresh: [] }
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -398,7 +398,7 @@ describe('setAuthHeaders', () => {
           additionalParameters: { authorization: [], token: [], refresh: [] }
         }
       };
-      
+
       mockRequest.auth.mode = 'inherit';
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
@@ -434,7 +434,7 @@ describe('setAuthHeaders', () => {
           region: 'us-east-1',
           profileName: 'default'
         }
-      }
+      };
       mockRequest.auth = {
         mode: 'awsv4',
         awsv4: {
@@ -624,7 +624,7 @@ describe('setAuthHeaders', () => {
       });
     });
 
-        test('should set OAuth2 password grant at request level', () => {
+    test('should set OAuth2 password grant at request level', () => {
       mockCollectionRoot.request.auth = {
         mode: 'oauth2',
         oauth2: {
@@ -702,7 +702,7 @@ describe('setAuthHeaders', () => {
           username: 'collectionuser',
           password: 'collectionpass',
           clientId: 'collection-client',
-          clientSecret: 'collection-secret',
+          clientSecret: 'collection-secret'
         }
       };
       mockRequest.auth = {

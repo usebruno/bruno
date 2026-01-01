@@ -1,6 +1,6 @@
-import { mockDataFunctions } from "./faker-functions";
+import { mockDataFunctions } from './faker-functions';
 
-describe("mockDataFunctions Regex Validation", () => {
+describe('mockDataFunctions Regex Validation', () => {
   beforeAll(() => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
@@ -10,15 +10,15 @@ describe("mockDataFunctions Regex Validation", () => {
     jest.useRealTimers();
   });
 
-  test("timestamp and isoTimestamp should return mocked time values", () => {
-    const expectedTimestamp = '1704067200'; 
+  test('timestamp and isoTimestamp should return mocked time values', () => {
+    const expectedTimestamp = '1704067200';
     const expectedIsoTimestamp = '2024-01-01T00:00:00.000Z';
 
     expect(mockDataFunctions.timestamp()).toBe(expectedTimestamp);
     expect(mockDataFunctions.isoTimestamp()).toBe(expectedIsoTimestamp);
   });
 
-  test("all values should match their expected patterns", () => {
+  test('all values should match their expected patterns', () => {
     const patterns: Record<string, RegExp> = {
       guid: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
       randomUUID: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
@@ -137,7 +137,7 @@ describe("mockDataFunctions Regex Validation", () => {
       randomLoremParagraphs: /^[\s\S]+$/,
       randomLoremText: /^[\s\S]+$/,
       randomLoremSlug: /^[\s\S]+$/,
-      randomLoremLines: /^[\s\S]+$/,
+      randomLoremLines: /^[\s\S]+$/
     };
 
     const errors: string[] = [];
@@ -151,7 +151,7 @@ describe("mockDataFunctions Regex Validation", () => {
     });
 
     if (errors.length > 0) {
-      throw new Error(errors.join("\n"));
+      throw new Error(errors.join('\n'));
     }
   });
 });

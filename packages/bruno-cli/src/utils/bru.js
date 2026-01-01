@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const { 
+const {
   parseRequest: _parseRequest,
   parseCollection: _parseCollection
 } = require('@usebruno/filestore');
@@ -24,7 +24,7 @@ const collectionBruToJson = (bru) => {
     const sequence = _.get(json, 'meta.seq');
     if (json?.meta) {
       transformedJson.meta = {
-        name: json.meta.name,
+        name: json.meta.name
       };
 
       if (sequence) {
@@ -94,11 +94,11 @@ const bruToJson = (bru) => {
 
     if (requestType === 'grpc-request') {
       const selectedMethod = _.get(json, 'grpc.method');
-      if(selectedMethod) transformedJson.request.method = selectedMethod;
+      if (selectedMethod) transformedJson.request.method = selectedMethod;
       const selectedMethodType = _.get(json, 'grpc.methodType');
-      if(selectedMethodType) transformedJson.request.methodType = selectedMethodType;
+      if (selectedMethodType) transformedJson.request.methodType = selectedMethodType;
       const protoPath = _.get(json, 'grpc.protoPath');
-      if(protoPath) transformedJson.request.protoPath = protoPath;
+      if (protoPath) transformedJson.request.protoPath = protoPath;
       transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
       transformedJson.request.body = _.get(json, 'body', {
         mode: 'grpc',

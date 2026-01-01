@@ -10,7 +10,6 @@ import GrpcStatusCode from './GrpcStatusCode';
 import ResponseTime from '../ResponseTime/index';
 import Timeline from '../Timeline';
 import ClearTimeline from '../ClearTimeline';
-import ResponseSave from '../ResponseSave';
 import ResponseClear from '../ResponseClear';
 import StyledWrapper from './StyledWrapper';
 import ResponseTrailers from './ResponseTrailers';
@@ -108,7 +107,7 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
+      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist" data-testid="grpc-response-tabs">
         {tabConfig.map((tab) => (
           <Tab
             key={tab.name}

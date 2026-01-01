@@ -2,9 +2,9 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   div.method-selector-container {
-    border: solid 1px ${(props) => props.theme.modal.input.border};
+    border: solid 1px ${(props) => props.theme.input.border};
     border-right: none;
-    background-color: ${(props) => props.theme.modal.input.bg};
+    background-color: ${(props) => props.theme.input.bg};
     border-top-left-radius: 3px;
     border-bottom-left-radius: 3px;
     .method-selector {
@@ -13,15 +13,15 @@ const StyledWrapper = styled.div`
   }
   div.method-selector-container,
   div.input-container {
-    background-color: ${(props) => props.theme.modal.input.bg};
-    height: 2.3rem;
+    background-color: ${(props) => props.theme.input.bg};
+    height: 2.1rem;
   }
   div.input-container {
-    border: solid 1px ${(props) => props.theme.modal.input.border};
+    border: solid 1px ${(props) => props.theme.input.border};
     border-top-right-radius: 3px;
     border-bottom-right-radius: 3px;
     input {
-      background-color: ${(props) => props.theme.modal.input.bg};
+      background-color: ${(props) => props.theme.input.bg};
       outline: none;
       box-shadow: none;
       &:focus {

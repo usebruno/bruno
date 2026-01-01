@@ -1,6 +1,5 @@
 import React from 'react';
 import { Tooltip as ReactToolHint } from 'react-tooltip';
-import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 
 const ToolHint = ({
@@ -20,8 +19,8 @@ const ToolHint = ({
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
 
-  const toolhintBackgroundColor = appliedTheme?.sidebar.badge.bg || 'black';
-  const toolhintTextColor = appliedTheme?.text || 'white';
+  const toolhintBackgroundColor = appliedTheme?.background.surface1;
+  const toolhintTextColor = appliedTheme?.text;
 
   const combinedToolhintStyle = {
     ...tooltipStyle,
@@ -40,21 +39,19 @@ const ToolHint = ({
     <>
       {!anchorSelect && <span id={toolhintId} className={className}>{children}</span>}
       {anchorSelect && children}
-
-      <StyledWrapper theme={appliedTheme}>
-        <ReactToolHint
-          {...toolhintProps_final}
-          content={anchorSelect ? undefined : text}
-          className="toolhint"
-          offset={offset}
-          place={place}
-          hidden={hidden}
-          positionStrategy={positionStrategy}
-          noArrow={true}
-          delayShow={delayShow}
-          style={combinedToolhintStyle}
-        />
-      </StyledWrapper>
+      <ReactToolHint
+        {...toolhintProps_final}
+        content={anchorSelect ? undefined : text}
+        className="toolhint"
+        offset={offset}
+        place={place}
+        hidden={hidden}
+        positionStrategy={positionStrategy}
+        noArrow={true}
+        delayShow={delayShow}
+        style={combinedToolhintStyle}
+        opacity={1}
+      />
     </>
   );
 };

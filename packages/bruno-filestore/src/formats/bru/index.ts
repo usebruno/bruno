@@ -9,7 +9,7 @@ import {
 } from '@usebruno/lang';
 import { getOauth2AdditionalParameters } from './utils/oauth2-additional-params';
 
-export const bruRequestToJson = (data: string | any, parsed: boolean = false): any => {
+export const parseBruRequest = (data: string | any, parsed: boolean = false): any => {
   try {
     const json = parsed ? data : bruToJsonV2(data);
 
@@ -109,12 +109,12 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
     }
     return transformedJson;
   } catch (error) {
-    console.log('bruRequestToJson error', error);
+    console.log('parseBruRequest error', error);
     throw error;
   }
 };
 
-export const jsonRequestToBru = (json: any): string => {
+export const stringifyBruRequest = (json: any): string => {
   try {
     let type = _.get(json, 'type');
     switch (type) {
@@ -160,8 +160,8 @@ export const jsonRequestToBru = (json: any): string => {
         mode: 'json',
         json: '{}'
       });
-    } // For gRPC, add gRPC-specific structure but maintain field names
-    else if (type === 'grpc') {
+    } else if (type === 'grpc') {
+      // For gRPC, add gRPC-specific structure but maintain field names
       bruJson.grpc = {
         url: _.get(json, 'request.url'),
         auth: _.get(json, 'request.auth.mode', 'none'),
@@ -227,7 +227,7 @@ export const jsonRequestToBru = (json: any): string => {
   }
 };
 
-export const bruCollectionToJson = (data: string | any, parsed: boolean = false): any => {
+export const parseBruCollection = (data: string | any, parsed: boolean = false): any => {
   try {
     const json = parsed ? data : _collectionBruToJson(data);
 
@@ -273,7 +273,7 @@ export const bruCollectionToJson = (data: string | any, parsed: boolean = false)
   }
 };
 
-export const jsonCollectionToBru = (json: any, isFolder?: boolean): string => {
+export const stringifyBruCollection = (json: any, isFolder?: boolean): string => {
   try {
     const collectionBruJson: any = {
       headers: _.get(json, 'request.headers', []),
@@ -314,7 +314,7 @@ export const jsonCollectionToBru = (json: any, isFolder?: boolean): string => {
   }
 };
 
-export const bruEnvironmentToJson = (bru: string): any => {
+export const parseBruEnvironment = (bru: string): any => {
   try {
     const json = bruToEnvJsonV2(bru);
 
@@ -331,7 +331,7 @@ export const bruEnvironmentToJson = (bru: string): any => {
   }
 };
 
-export const jsonEnvironmentToBru = (json: any): string => {
+export const stringifyBruEnvironment = (json: any): string => {
   try {
     const bru = envJsonToBruV2(json);
     return bru;
