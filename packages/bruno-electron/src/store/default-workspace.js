@@ -164,12 +164,20 @@ class DefaultWorkspaceManager {
       const lastOpenedCollections = preferencesStore.get('lastOpenedCollections', []);
 
       if (lastOpenedCollections && lastOpenedCollections.length > 0) {
+        const seenPaths = new Set();
         const collections = lastOpenedCollections
           .map((collectionPath) => {
             if (!collectionPath || typeof collectionPath !== 'string') {
               return null;
             }
             const absolutePath = path.resolve(collectionPath);
+            const normalizedPath = path.normalize(absolutePath);
+
+            if (seenPaths.has(normalizedPath)) {
+              return null;
+            }
+            seenPaths.add(normalizedPath);
+
             const collectionName = path.basename(absolutePath);
 
             return {

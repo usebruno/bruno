@@ -177,10 +177,6 @@ const useIpcEvents = () => {
       }
     });
 
-    const removeCollectionAlreadyOpenedListener = ipcRenderer.on('main:collection-already-opened', (pathname) => {
-      toast.success('Collection is already opened');
-    });
-
     const removeDisplayErrorListener = ipcRenderer.on('main:display-error', (error) => {
       if (typeof error === 'string') {
         return toast.error(error || 'Something went wrong!');
@@ -290,7 +286,6 @@ const useIpcEvents = () => {
       removeWorkspaceEnvironmentAddedListener();
       removeWorkspaceEnvironmentChangedListener();
       removeWorkspaceEnvironmentDeletedListener();
-      removeCollectionAlreadyOpenedListener();
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
       removeGlobalEnvironmentVariablesUpdateListener();

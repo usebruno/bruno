@@ -400,15 +400,28 @@ const getWorkspaceCollections = (workspacePath) => {
   const config = readWorkspaceConfig(workspacePath);
   const collections = config.collections || [];
 
-  return collections.map((collection) => {
-    if (collection.path && !path.isAbsolute(collection.path)) {
-      return {
-        ...collection,
-        path: path.resolve(workspacePath, collection.path)
-      };
-    }
-    return collection;
-  });
+  const seenPaths = new Set();
+  return collections
+    .map((collection) => {
+      if (collection.path && !path.isAbsolute(collection.path)) {
+        return {
+          ...collection,
+          path: path.resolve(workspacePath, collection.path)
+        };
+      }
+      return collection;
+    })
+    .filter((collection) => {
+      if (!collection.path) {
+        return false;
+      }
+      const normalizedPath = path.normalize(collection.path);
+      if (seenPaths.has(normalizedPath)) {
+        return false;
+      }
+      seenPaths.add(normalizedPath);
+      return true;
+    });
 };
 
 const getWorkspaceApiSpecs = (workspacePath) => {
