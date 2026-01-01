@@ -6,7 +6,6 @@ import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunn
 import { resetCollectionRunner, updateRunnerTagsDetails } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading, getRequestItemsForCollectionRun } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink } from '@tabler/icons';
-import { useTheme } from 'providers/Theme';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
@@ -66,42 +65,19 @@ const FILTERS = {
 };
 
 // === Reusable filter button ===
-const FilterButton = ({ label, count, active, onClick, theme }) => (
+const FilterButton = ({ label, count, active, onClick }) => (
   <button
     onClick={onClick}
-    className="font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 pb-2 border-transparent"
-    style={{
-      fontFamily: 'Inter',
-      fontWeight: active ? theme.tabs.active.fontWeight : 500,
-      lineHeight: '100%',
-      letterSpacing: '0%',
-      color: active ? theme.tabs.active.color : theme.colors.text.subtext0,
-      borderBottomColor: active ? theme.tabs.active.border : 'transparent'
-    }}
+    aria-pressed={active}
+    className={`filter-button ${active ? 'active' : ''}`}
   >
     {label}
-    <span
-      className="px-[4.5px] py-[2px] rounded-[2px] border"
-      style={{
-        borderWidth: '1px',
-        fontFamily: 'Inter',
-        fontSize: '10px',
-        fontWeight: 500,
-        lineHeight: '100%',
-        letterSpacing: '0%',
-        backgroundColor: theme.background.surface0,
-        borderColor: theme.border.border0,
-        color: active ? theme.tabs.active.color : theme.colors.text.subtext0
-      }}
-    >
-      {count}
-    </span>
+    <span className="filter-count">{count}</span>
   </button>
 );
 
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
-  const { theme } = useTheme();
   const [selectedItem, setSelectedItem] = useState(null);
   const [delay, setDelay] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
@@ -367,30 +343,11 @@ export default function RunnerResults({ collection }) {
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       {/* Filter Bar and Actions */}
       <div className="flex items-center justify-between mb-4 pt-[14px] gap-4">
-        <div
-          className="flex items-stretch rounded-lg border max-h-[35px] flex-shrink-0"
-          style={{
-            borderWidth: '1px',
-            borderColor: theme.border.border0
-          }}
-        >
-          <div
-            className="flex items-center px-3 py-2 rounded-l-lg"
-            style={{
-              backgroundColor: theme.background.surface0
-            }}
-          >
-            <span
-              style={{
-                fontFamily: 'Inter',
-                fontWeight: 400,
-                color: theme.colors.text.subtext1
-              }}
-            >
-              Filter by:
-            </span>
+        <div className="filter-bar">
+          <div className="filter-label">
+            <span>Filter by:</span>
           </div>
-          <div className="flex items-center gap-5 px-3 pt-2 pb-0 rounded-r-lg bg-transparent">
+          <div className="filter-buttons">
             {Object.entries(FILTERS).map(([key, { label }]) => (
               <FilterButton
                 key={key}
@@ -398,7 +355,6 @@ export default function RunnerResults({ collection }) {
                 count={filterCounts[key]}
                 active={activeFilter === key}
                 onClick={() => setActiveFilter(key)}
-                theme={theme}
               />
             ))}
           </div>
