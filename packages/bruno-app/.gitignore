@@ -35,3 +35,4 @@ yarn-error.log*
 dist/
 
 .env
+storybook-static/
