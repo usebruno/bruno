@@ -62,20 +62,6 @@ palette.intent = {
 };
 
 palette.syntax = {
-  DEFINITION: palette.hues.INDIGO,
-  PROPERTY: palette.hues.BLUE,
-  STRING: palette.hues.BROWN,
-  NUMBER: palette.hues.GREEN,
-  ATOM: palette.hues.PURPLE,
-  VARIABLE: palette.hues.PINK,
-  KEYWORD: palette.hues.ROSE,
-  COMMENT: palette.text.SUBTEXT0,
-  OPERATOR: palette.hues.BLUE,
-  TAG: palette.hues.ROSE,
-  TAG_BRACKET: palette.text.SUBTEXT0
-};
-
-palette.syntax = {
   // Core language structure
   KEYWORD: palette.hues.ROSE,
   TAG: palette.hues.ROSE,
