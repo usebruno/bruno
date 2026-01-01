@@ -1,8 +1,8 @@
 import StyledWrapper from './StyledWrapper';
 
-const Network = ({ logs }) => {
+const Network = ({ logs, fontVariant = 'base', padding = false, height = '24rem' }) => {
   return (
-    <StyledWrapper>
+    <StyledWrapper fontVariant={fontVariant} padding={padding} height={height}>
       <div className="network-logs-container">
         <pre className="network-logs-pre">
           {logs.map((currentLog, index) => {

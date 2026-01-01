@@ -305,7 +305,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .network-logs-container {
+  .network-logs-wrapper {
     border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 4px;
     overflow: hidden;
@@ -313,13 +313,13 @@ const StyledWrapper = styled.div`
     min-height: 200px;
     max-height: 400px;
 
-    .network-logs {
+    .network-logs-container {
       background: ${(props) => props.theme.console.contentBg} !important;
       color: ${(props) => props.theme.console.messageColor} !important;
       height: 100% !important;
       max-height: 400px !important;
       
-      pre {
+      .network-logs-pre {
         color: ${(props) => props.theme.console.messageColor} !important;
         font-size: ${(props) => props.theme.font.size.xs} !important;
         line-height: 1.4 !important;

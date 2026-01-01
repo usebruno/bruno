@@ -6,11 +6,14 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     border-radius: 4px;
     overflow: auto;
-    height: 24rem;
+    height: ${(props) => props.height || '24rem'};
+    padding: ${(props) => (props.padding ? '0.5rem' : '0')};
   }
 
   .network-logs-pre {
     white-space: pre-wrap;
+    font-size: ${(props) => (props.fontVariant === 'small' ? props.theme.font.size.xs : props.theme.font.size.base)};
+    font-family: var(--font-family-mono);
   }
 
   .network-logs-entry {
