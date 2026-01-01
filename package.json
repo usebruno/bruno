@@ -54,7 +54,7 @@
   "scripts": {
     "setup": "node ./scripts/setup.js",
     "watch:converters": "npm run watch --workspace=packages/bruno-converters",
-    "dev": "concurrently --kill-others \"npm run dev:web\" \"npm run dev:electron\"",
+    "dev": "node ./scripts/dev.js",
     "watch": "npm run dev:watch",
     "dev:watch": "node ./scripts/dev-hot-reload.js",
     "dev:web": "npm run dev --workspace=packages/bruno-app",
