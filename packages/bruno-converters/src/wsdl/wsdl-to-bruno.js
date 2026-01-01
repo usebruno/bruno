@@ -662,8 +662,8 @@ class WSDLParser {
    * Extract service address from port
    */
   extractAddress(port) {
-    // Try different address formats
-    const address = port['soap:address'] || port['wsdl:address'] || port.address;
+    // Try different address formats (SOAP 1.1, SOAP 1.2, and generic)
+    const address = port['soap:address'] || port['soap12:address'] || port['wsdl:address'] || port.address;
     if (address && address.location) {
       return address.location;
     }
