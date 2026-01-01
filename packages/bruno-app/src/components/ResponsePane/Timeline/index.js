@@ -78,7 +78,7 @@ const Timeline = ({ collection, item }) => {
 
             if (isGrpcRequest) {
               return (
-                <div key={index} className="timeline-event mb-2">
+                <div key={index} className="timeline-event">
                   <GrpcTimelineItem
                     timestamp={eventTimestamp}
                     request={request}
@@ -94,7 +94,7 @@ const Timeline = ({ collection, item }) => {
 
             // Regular HTTP request
             return (
-              <div key={index} className="timeline-event mb-2">
+              <div key={index} className="timeline-event">
                 <TimelineItem
                   timestamp={timestamp}
                   request={request}
