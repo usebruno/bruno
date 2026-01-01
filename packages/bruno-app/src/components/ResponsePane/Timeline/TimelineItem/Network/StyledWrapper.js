@@ -18,26 +18,26 @@ const StyledWrapper = styled.div`
 
   .network-logs-entry {
     color: ${(props) => props.theme.colors.text.muted};
-  }
 
-  .network-logs-entry--request {
-    color: ${(props) => props.theme.request.methods.post};
-  }
+    &-request {
+      color: ${(props) => props.theme.request.methods.post};
+    }
 
-  .network-logs-entry--response {
-    color: ${(props) => props.theme.request.methods.get};
-  }
+    &-response {
+      color: ${(props) => props.theme.request.methods.get};
+    }
+    
+    &-error {
+      color: ${(props) => props.theme.requestTabPanel.responseError};
+    }
 
-  .network-logs-entry--error {
-    color: ${(props) => props.theme.requestTabPanel.responseError};
-  }
-
-  .network-logs-entry--tls {
-    color: ${(props) => props.theme.colors.text.purple};
-  }
-
-  .network-logs-entry--info {
-    color: ${(props) => props.theme.colors.text.warning};
+    &-tls {
+      color: ${(props) => props.theme.colors.text.purple};
+    }
+    
+    &-info {
+      color: ${(props) => props.theme.colors.text.warning};
+    }   
   }
 
   .network-logs-separator {

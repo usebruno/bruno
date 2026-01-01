@@ -5,10 +5,10 @@ const StyledWrapper = styled.div`
   .timeline-item {
     border-bottom: 2px solid ${(props) => rgba(props.theme.colors.text.warning, 0.5)};
     padding: 0.5rem 0;
-  }
 
-  .timeline-item--oauth2 {
-    border-bottom: 2px solid ${(props) => rgba(props.theme.primary.solid, 0.5)};
+    &--oauth2 {
+      border-bottom: 2px solid ${(props) => rgba(props.theme.primary.solid, 0.5)};
+    }
   }
 
   .timeline-item-header {
