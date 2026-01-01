@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { writeFile } = require('../utils/filesystem');
+const { writeFile, isValidCollectionDirectory } = require('../utils/filesystem');
 const { getPreferences, savePreferences } = require('./preferences');
 const { globalEnvironmentsStore } = require('./global-environments');
 const {
@@ -177,6 +177,10 @@ class DefaultWorkspaceManager {
               return null;
             }
             seenPaths.add(normalizedPath);
+
+            if (!isValidCollectionDirectory(absolutePath)) {
+              return null;
+            }
 
             const collectionName = path.basename(absolutePath);
 
