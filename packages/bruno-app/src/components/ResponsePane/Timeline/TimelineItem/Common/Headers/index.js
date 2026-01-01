@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import { useTheme } from 'providers/Theme';
+import { rgba } from 'polished';
 
 const HeadersBlock = ({ headers, type }) => {
+  const { theme } = useTheme();
   const [areHeadersCollapsed, toggleHeaders] = useState(true);
 
   return (
     <div className="collapsible-section mt-2">
       <div className="section-header" onClick={() => toggleHeaders(!areHeadersCollapsed)}>
-        <pre className="flex flex-row items-center text-indigo-500/80 dark:text-indigo-500/80">
-          <div className="opacity-70">{areHeadersCollapsed ? '▼' : '▶'}</div> Headers
+        <pre className="flex flex-row items-center" style={{ color: rgba(theme.primary.solid, 0.8) }}>
+          <div style={{ opacity: 0.7 }}>{areHeadersCollapsed ? '▼' : '▶'}</div> Headers
           {headers && Object.keys(headers).length > 0
             && <div className="ml-1">({Object.keys(headers).length})</div>}
         </pre>
@@ -16,7 +19,7 @@ const HeadersBlock = ({ headers, type }) => {
         <div className="mt-1">
           {headers && Object.keys(headers).length > 0
             ? <Headers headers={headers} type={type} />
-            : <div className="text-gray-500">No Headers found</div>}
+            : <div className="timeline-item-timestamp">No Headers found</div>}
         </div>
       )}
     </div>
