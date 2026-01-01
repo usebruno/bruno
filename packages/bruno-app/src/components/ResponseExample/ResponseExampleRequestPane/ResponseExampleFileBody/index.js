@@ -188,6 +188,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
         onReorder={handleParamDrag}
         showAddRow={editMode}
         showCheckbox={false}
+        showDelete={editMode}
       />
     </StyledWrapper>
   );
