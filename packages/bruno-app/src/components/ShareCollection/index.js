@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import Modal from 'components/Modal';
-import { IconUpload, IconLoader2, IconAlertTriangle, IconFileExport } from '@tabler/icons';
+import { IconUpload, IconLoader2, IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import Bruno from 'components/Bruno';
+import OpenCollectionIcon from 'components/Icons/OpenCollectionIcon';
 import exportBrunoCollection from 'utils/collections/export';
 import exportPostmanCollection from 'utils/exporters/postman-collection';
 import exportOpenCollection from 'utils/exporters/opencollection';
@@ -86,18 +87,19 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           </div>
 
           <div
-            className={`share-button ${
+            className={`share-button relative ${
               isCollectionLoading
                 ? 'opacity-50 cursor-not-allowed'
                 : 'cursor-pointer'
             }`}
             onClick={isCollectionLoading ? undefined : handleExportOpenCollection}
           >
+            <span className="beta-badge-corner">Beta</span>
             <div className="mr-3 p-1 rounded-full">
               {isCollectionLoading ? (
                 <IconLoader2 size={28} className="animate-spin" />
               ) : (
-                <IconFileExport size={28} strokeWidth={1} />
+                <OpenCollectionIcon size={28} />
               )}
             </div>
             <div className="flex-1">
