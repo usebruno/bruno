@@ -60,6 +60,12 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await createCollectionModal.getByLabel('Name').fill(collectionName);
     const locationInput = createCollectionModal.getByLabel('Location');
     if (await locationInput.isVisible()) {
+      // Location input can be read-only; drop the attribute so fill can type
+      await locationInput.evaluate((el) => {
+        const input = el as HTMLInputElement;
+        input.removeAttribute('readonly');
+        input.readOnly = false;
+      });
       await locationInput.fill(collectionLocation);
     }
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
