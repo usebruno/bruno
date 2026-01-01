@@ -44,7 +44,7 @@ const colors = {
   BORDER_LIGHT: '#3c3c3c',
 
   CODEMIRROR_TOKENS: {
-    DEFINITION: '#4ec9b0',
+    DEFINITION: '#9cdcfe',
     PROPERTY: '#9cdcfe',
     STRING: '#ce9178',
     NUMBER: '#b5cea8',

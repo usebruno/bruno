@@ -1,4 +1,4 @@
-import { rgba } from 'polished';
+import { rgba, lighten } from 'polished';
 
 export const palette = {
   primary: {
@@ -8,20 +8,20 @@ export const palette = {
     SUBTLE: 'hsl(39, 74%, 54%)'
   },
   hues: {
-    RED: 'hsl(0, 85%, 68%)',
-    ROSE: 'hsl(350, 78%, 75%)',
+    RED: 'hsl(8, 70%, 52%)',
+    ROSE: 'hsl(367, 84%, 70%)',
     BROWN: 'hsl(35,  65%, 72%)',
     ORANGE: 'hsl(24,  88%, 72%)',
     YELLOW: 'hsl(41, 93%, 72%)',
-    LIME: 'hsl(75,  80%, 68%)',
     GREEN: 'hsl(140, 72%, 68%)',
-    TEAL: 'hsl(170, 70%, 68%)',
+    GREEN_DARK: 'hsl(160, 90%, 44%)',
+    TEAL: 'hsl(170, 70%, 60%)',
     CYAN: 'hsl(190, 82%, 72%)',
     BLUE: 'hsl(210, 90%, 76%)',
-    INDIGO: 'hsl(225, 82%, 78%)',
+    INDIGO: 'hsl(202, 88%, 66%)',
     VIOLET: 'hsl(260, 75%, 78%)',
     PURPLE: 'hsl(285, 72%, 75%)',
-    PINK: 'hsl(320, 78%, 78%)'
+    PINK: 'hsl(305, 59%, 74%)'
   },
   system: {
     CONTROL_ACCENT: '#D9A342'
@@ -238,13 +238,13 @@ const darkTheme = {
       get: palette.hues.GREEN,
       post: palette.hues.INDIGO,
       put: palette.hues.ORANGE,
-      delete: palette.hues.RED,
+      delete: lighten(0.08, palette.hues.RED),
       patch: palette.hues.ORANGE,
       options: palette.hues.TEAL,
       head: palette.hues.CYAN
     },
 
-    grpc: palette.hues.BROWN,
+    grpc: palette.hues.TEAL,
     ws: palette.hues.ORANGE,
     gql: palette.hues.PINK
   },
@@ -410,7 +410,7 @@ const darkTheme = {
       bg: palette.background.BASE
     },
     variable: {
-      valid: palette.hues.GREEN,
+      valid: palette.hues.GREEN_DARK,
       invalid: palette.hues.RED,
       prompt: palette.hues.BLUE
     },
