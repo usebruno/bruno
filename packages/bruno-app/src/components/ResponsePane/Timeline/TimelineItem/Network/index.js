@@ -1,3 +1,14 @@
+// Safely stringify objects for display
+const formatMessage = (message) => {
+  if (message === null || message === undefined) return '';
+  if (typeof message === 'string') return message;
+  try {
+    return JSON.stringify(message, null, 2);
+  } catch (e) {
+    return '[Unserializable Object]';
+  }
+};
+
 const Network = ({ logs }) => {
   return (
     <div className="bg-black/5 text-white network-logs rounded overflow-auto h-96">
@@ -47,7 +58,7 @@ const NetworkLogsEntry = ({ entry }) => {
 
   return (
     <div className={`${className}`}>
-      <div>{message}</div>
+      <div>{formatMessage(message)}</div>
     </div>
   );
 };
