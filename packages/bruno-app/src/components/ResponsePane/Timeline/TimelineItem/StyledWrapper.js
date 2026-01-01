@@ -93,6 +93,21 @@ const StyledWrapper = styled.div`
   .timeline-item-tab-content {
     word-break: break-all;
   }
+
+  .timeline-item-metadata {
+    color: ${(props) => props.theme.colors.text.muted};
+    margin-left: 0.5rem;
+    font-size: ${(props) => props.theme.font.size.base};
+  }
+
+  .collapsible-section {
+    .section-header {
+      cursor: pointer;
+      pre {
+        color: ${(props) => rgba(props.theme.primary.solid, 0.8)};
+      }
+    }
+  }
 `;
 
 export default StyledWrapper;

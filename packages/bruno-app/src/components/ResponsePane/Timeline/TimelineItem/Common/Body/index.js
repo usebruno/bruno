@@ -1,16 +1,13 @@
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import { useState } from 'react';
-import { useTheme } from 'providers/Theme';
-import { rgba } from 'polished';
 
 const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type }) => {
-  const { theme } = useTheme();
   const [isBodyCollapsed, toggleBody] = useState(true);
   return (
     <div className="collapsible-section">
       <div className="section-header" onClick={() => toggleBody(!isBodyCollapsed)}>
-        <pre className="flex flex-row items-center" style={{ color: rgba(theme.primary.solid, 0.8) }}>
-          <div style={{ opacity: 0.7 }}>{isBodyCollapsed ? '▼' : '▶'}</div> Body
+        <pre className="flex flex-row items-center">
+          <div className="opacity-70">{isBodyCollapsed ? '▼' : '▶'}</div> Body
         </pre>
       </div>
       {isBodyCollapsed && (

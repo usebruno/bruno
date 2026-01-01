@@ -27,8 +27,8 @@ const Response = ({ collection, response, item }) => {
       {/* Status */}
       <div className="mb-1">
         <Status statusCode={status || statusCode} statusText={statusText} />
-        {response.duration && <span className="timeline-item-timestamp" style={{ marginLeft: '0.5rem' }}>{response.duration}ms</span>}
-        {response.size && <span className="timeline-item-timestamp" style={{ marginLeft: '0.5rem' }}>{response.size}B</span>}
+        {response.duration && <span className="timeline-item-metadata">{response.duration}ms</span>}
+        {response.size && <span className="timeline-item-metadata">{response.size}B</span>}
       </div>
 
       {/* Headers */}
