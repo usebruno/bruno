@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette } from '@tabler/icons';
+import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
@@ -96,6 +96,19 @@ const StatusBar = () => {
               <div className="status-bar-button">
                 <Notifications />
               </div>
+            </ToolHint>
+
+            <ToolHint text="GitHub Repository" toolhintId="GitHub" place="top" offset={10}>
+              <button
+                className="status-bar-button"
+                onClick={() => {
+                  window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno');
+                }}
+                tabIndex={0}
+                aria-label="Open GitHub Repository"
+              >
+                <IconBrandGithub size={16} strokeWidth={1.5} aria-hidden="true" />
+              </button>
             </ToolHint>
           </div>
         </div>
