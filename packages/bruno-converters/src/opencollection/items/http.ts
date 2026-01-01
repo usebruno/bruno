@@ -72,7 +72,7 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
       graphql: null,
       file: []
     },
-    auth: fromOpenCollectionAuth(runtime?.auth as Auth),
+    auth: fromOpenCollectionAuth(http?.auth as Auth),
     script: {
       req: scripts?.script?.req || null,
       res: scripts?.script?.res || null
@@ -178,6 +178,12 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     http.body = body;
   }
 
+  // auth
+  const auth = toOpenCollectionAuth(brunoRequest?.auth);
+  if (auth) {
+    http.auth = auth;
+  }
+
   ocRequest.http = http;
 
   const runtime: HttpRequestRuntime = {};
@@ -206,12 +212,6 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
   const actions = toOpenCollectionActions(resVars);
   if (actions) {
     runtime.actions = actions;
-    hasRuntime = true;
-  }
-
-  const auth = toOpenCollectionAuth(brunoRequest?.auth);
-  if (auth) {
-    runtime.auth = auth;
     hasRuntime = true;
   }
 

@@ -73,6 +73,12 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
       }
     }
 
+    // auth (in graphql block, not runtime)
+    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
+    if (auth) {
+      graphql.auth = auth;
+    }
+
     ocRequest.graphql = graphql;
 
     // runtime block
@@ -105,13 +111,6 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     const actions: Action[] | undefined = toOpenCollectionActions(resVars);
     if (actions) {
       runtime.actions = actions;
-      hasRuntime = true;
-    }
-
-    // auth
-    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
-    if (auth) {
-      runtime.auth = auth;
       hasRuntime = true;
     }
 

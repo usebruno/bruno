@@ -63,7 +63,7 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
       headers: fromOpenCollectionHeaders(graphql.headers),
       params: fromOpenCollectionParams(graphql.params),
       body: fromOpenCollectionBody(graphqlBody, 'graphql'),
-      auth: fromOpenCollectionAuth(runtime.auth as Auth),
+      auth: fromOpenCollectionAuth(graphql.auth as Auth),
       script: scripts?.script,
       vars: {
         req: variables.req,
@@ -136,12 +136,17 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
     graphql.body = body;
   }
 
+  // auth
+  const auth = toOpenCollectionAuth(request.auth as Parameters<typeof toOpenCollectionAuth>[0]);
+  if (auth) {
+    graphql.auth = auth;
+  }
+
   const ocRequest: GraphQLRequest = {
     info,
     graphql
   };
 
-  const auth = toOpenCollectionAuth(request.auth as Parameters<typeof toOpenCollectionAuth>[0]);
   const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
   const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
@@ -150,12 +155,8 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
   const vars = request.vars as { req?: unknown[]; res?: unknown[] } | undefined;
   const actions = toOpenCollectionActions(vars?.res as Parameters<typeof toOpenCollectionActions>[0]);
 
-  if (auth || scripts || variables || assertions || actions) {
+  if (scripts || variables || assertions || actions) {
     const runtime: GraphQLRequestRuntime = {};
-
-    if (auth) {
-      runtime.auth = auth;
-    }
 
     if (scripts) {
       runtime.scripts = scripts;

@@ -71,7 +71,7 @@ export const fromOpenCollectionWebsocketItem = (item: WebSocketRequest): BrunoIt
       url: websocket.url || '',
       headers: fromOpenCollectionHeaders(websocket.headers),
       body: wsBody,
-      auth: fromOpenCollectionAuth(runtime.auth as Auth),
+      auth: fromOpenCollectionAuth(websocket.auth as Auth),
       script: scripts?.script,
       vars: {
         req: variables.req,
@@ -133,12 +133,17 @@ export const toOpenCollectionWebsocketItem = (item: BrunoItem): WebSocketRequest
     }
   }
 
+  // auth
+  const auth = toOpenCollectionAuth(request.auth as Parameters<typeof toOpenCollectionAuth>[0]);
+  if (auth) {
+    websocket.auth = auth;
+  }
+
   const ocRequest: WebSocketRequest = {
     info,
     websocket
   };
 
-  const auth = toOpenCollectionAuth(request.auth as Parameters<typeof toOpenCollectionAuth>[0]);
   const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
 
@@ -146,12 +151,8 @@ export const toOpenCollectionWebsocketItem = (item: BrunoItem): WebSocketRequest
   const vars = request.vars as { req?: unknown[]; res?: unknown[] } | undefined;
   const actions = toOpenCollectionActions(vars?.res as Parameters<typeof toOpenCollectionActions>[0]);
 
-  if (auth || scripts || variables || actions) {
+  if (scripts || variables || actions) {
     const runtime: WebSocketRequestRuntime = {};
-
-    if (auth) {
-      runtime.auth = auth;
-    }
 
     if (scripts) {
       runtime.scripts = scripts;

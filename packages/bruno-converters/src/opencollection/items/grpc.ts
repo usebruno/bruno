@@ -78,7 +78,7 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
         mode: 'grpc',
         grpc: grpcMessages
       },
-      auth: fromOpenCollectionAuth(runtime.auth as Auth),
+      auth: fromOpenCollectionAuth(grpc.auth as Auth),
       script: scripts?.script,
       vars: {
         req: variables.req,
@@ -166,12 +166,17 @@ export const toOpenCollectionGrpcItem = (item: BrunoItem): GrpcRequest => {
     }
   }
 
+  // auth
+  const auth = toOpenCollectionAuth(request.auth as Parameters<typeof toOpenCollectionAuth>[0]);
+  if (auth) {
+    grpc.auth = auth;
+  }
+
   const ocRequest: GrpcRequest = {
     info,
     grpc
   };
 
-  const auth = toOpenCollectionAuth(request.auth as Parameters<typeof toOpenCollectionAuth>[0]);
   const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
   const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
@@ -180,12 +185,8 @@ export const toOpenCollectionGrpcItem = (item: BrunoItem): GrpcRequest => {
   const vars = request.vars as { req?: unknown[]; res?: unknown[] } | undefined;
   const actions = toOpenCollectionActions(vars?.res as Parameters<typeof toOpenCollectionActions>[0]);
 
-  if (auth || scripts || variables || assertions || actions) {
+  if (scripts || variables || assertions || actions) {
     const runtime: GrpcRequestRuntime = {};
-
-    if (auth) {
-      runtime.auth = auth;
-    }
 
     if (scripts) {
       runtime.scripts = scripts;
