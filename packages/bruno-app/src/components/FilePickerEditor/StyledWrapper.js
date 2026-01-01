@@ -41,6 +41,10 @@ const StyledWrapper = styled.div`
       line-height: 1;
     }
 
+    .label {
+      font-style: italic;
+    }
+
     svg {
       flex-shrink: 0;
     }

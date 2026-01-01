@@ -88,7 +88,7 @@ const FilePickerEditor = ({
       case 'labelAndIcon':
         return (
           <>
-            <span>{displayLabel}</span>
+            <span className="label">{displayLabel}</span>
             <IconComponent size={16} />
           </>
         );
