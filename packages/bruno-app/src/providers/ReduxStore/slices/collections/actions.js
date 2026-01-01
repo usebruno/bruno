@@ -235,12 +235,19 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
       .then(() => {
         // Save local vars for all items
         const localVarsPromises = localVarsToSave.map((lv) =>
-          ipcRenderer.invoke('renderer:save-local-vars', lv.pathname, lv.vars)
-            .catch((err) => {
-              console.error(`Failed to save local vars for ${lv.pathname}`, err);
-            })
+          ipcRenderer
+            .invoke('renderer:save-local-vars', lv.pathname, lv.vars)
+            .then(() => ({ status: 'fulfilled', pathname: lv.pathname }))
+            .catch((err) => ({ status: 'rejected', pathname: lv.pathname, error: err }))
         );
-        return Promise.all(localVarsPromises);
+
+        return Promise.all(localVarsPromises).then((results) => {
+          const failures = results.filter((r) => r.status === 'rejected');
+          if (failures.length > 0) {
+            console.error('Failed to save local variables for some requests:', failures);
+            toast.error(`Failed to save local variables for ${failures.length} request(s). Check console for details.`);
+          }
+        });
       })
       .then(resolve)
       .catch((err) => {
