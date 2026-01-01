@@ -203,7 +203,8 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
     each(items, (item) => {
       const collection = findCollectionByUid(collections, item.collectionUid);
       if (collection) {
-        const itemToSave = transformRequestToSaveToFilesystem(item);
+        // Clone to prevent mutating Redux state
+        const itemToSave = cloneDeep(transformRequestToSaveToFilesystem(item));
 
         // Handle non-persistent variables
         const allPreRequestVars = get(itemToSave, 'request.vars.req', []);
@@ -229,12 +230,11 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
             format: collection.format
           });
 
-          if (nonPersistentVars.length > 0) {
-            localVarsToSave.push({
-              pathname: item.pathname,
-              vars: nonPersistentVars
-            });
-          }
+          // Always push to ensure cleanup of local vars if they became persistent
+          localVarsToSave.push({
+            pathname: item.pathname,
+            vars: nonPersistentVars
+          });
         }
       }
     });
