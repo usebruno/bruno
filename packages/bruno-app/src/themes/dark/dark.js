@@ -18,7 +18,7 @@ export const palette = {
     TEAL: 'hsl(170, 70%, 60%)',
     CYAN: 'hsl(190, 82%, 72%)',
     BLUE: 'hsl(210, 90%, 76%)',
-    INDIGO: 'hsl(202, 88%, 66%)',
+    INDIGO: 'hsl(202, 88%, 72%)',
     VIOLET: 'hsl(260, 75%, 78%)',
     PURPLE: 'hsl(285, 72%, 75%)',
     PINK: 'hsl(305, 59%, 74%)'
@@ -470,7 +470,7 @@ const darkTheme = {
 
   console: {
     bg: '#1e1e1e',
-    headerBg: '#2d2d30',
+    headerBg: '#242424',
     contentBg: '#1e1e1e',
     border: '#3c3c3c',
     titleColor: '#cccccc',
