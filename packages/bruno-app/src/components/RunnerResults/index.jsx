@@ -68,7 +68,6 @@ const FILTERS = {
 const FilterButton = ({ label, count, active, onClick }) => (
   <button
     onClick={onClick}
-    aria-pressed={active}
     className={`filter-button ${active ? 'active' : ''}`}
   >
     {label}

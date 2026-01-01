@@ -98,7 +98,7 @@ const Wrapper = styled.div`
     align-items: center;
     gap: 0.375rem;
     padding: 0;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.4rem;
     border: none;
     border-bottom: 2px solid transparent;
     background: transparent;
