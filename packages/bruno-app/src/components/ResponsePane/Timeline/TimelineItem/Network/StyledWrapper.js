@@ -19,23 +19,23 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
 
     &--request {
-      color: ${(props) => props.theme.request.methods.post};
+      color: ${(props) => props.theme.colors.text.purple};
     }
 
     &--response {
-      color: ${(props) => props.theme.request.methods.get};
+      color: ${(props) => props.theme.colors.text.green};
     }
     
     &--error {
-      color: ${(props) => props.theme.request.delete};
+      color: ${(props) => props.theme.colors.text.danger};
     }
 
     &--tls {
-      color: ${(props) => props.theme.request.methods.options};
+      color: ${(props) => props.theme.colors.text.purple};
     }
     
     &--info {
-      color: ${(props) => props.theme.request.methods.head};
+      color: ${(props) => props.theme.colors.text.yellow};
     }   
   }
 
