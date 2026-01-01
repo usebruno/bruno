@@ -1,10 +1,11 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconWorld, IconApi, IconShare } from '@tabler/icons';
+import { IconFolder, IconWorld, IconApi, IconShare, IconBook } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
+import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
 
@@ -15,6 +16,7 @@ const Info = ({ collection }) => {
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
+  const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
 
@@ -111,6 +113,19 @@ const Info = ({ collection }) => {
             </div>
           </div>
           {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
+
+          <div className="flex items-start group cursor-pointer" onClick={() => setShowGenerateDocumentationModal(true)}>
+            <div className="icon-box generate-docs flex-shrink-0 p-3 rounded-lg">
+              <IconBook className="w-5 h-5" stroke={1.5} />
+            </div>
+            <div className="ml-4 h-full flex flex-col justify-start">
+              <div className="font-medium h-fit my-auto">Documentation</div>
+              <div className="group-hover:underline text-link">
+                Generate Docs
+              </div>
+            </div>
+          </div>
+          {showGenerateDocumentationModal && <GenerateDocumentation collectionUid={collection.uid} onClose={() => setShowGenerateDocumentationModal(false)} />}
         </div>
       </div>
     </StyledWrapper>

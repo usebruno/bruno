@@ -19,7 +19,8 @@ import {
   IconX,
   IconSettings,
   IconTerminal2,
-  IconFolder
+  IconFolder,
+  IconBook
 } from '@tabler/icons';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
@@ -40,6 +41,7 @@ import CloneCollection from './CloneCollection';
 import { areItemsLoading } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
+import GenerateDocumentation from './GenerateDocumentation';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -54,6 +56,7 @@ const Collection = ({ collection, searchText }) => {
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
+  const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
@@ -340,6 +343,15 @@ const Collection = ({ collection, searchText }) => {
       }
     },
     {
+      id: 'generate-docs',
+      leftSection: IconBook,
+      label: 'Generate Docs',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        setShowGenerateDocumentationModal(true);
+      }
+    },
+    {
       id: 'collapse',
       leftSection: IconFoldDown,
       label: 'Collapse',
@@ -392,6 +404,9 @@ const Collection = ({ collection, searchText }) => {
       )}
       {showShareCollectionModal && (
         <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
+      )}
+      {showGenerateDocumentationModal && (
+        <GenerateDocumentation collectionUid={collection.uid} onClose={() => setShowGenerateDocumentationModal(false)} />
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
