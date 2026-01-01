@@ -55,7 +55,7 @@ const Wrapper = styled.div`
     border-radius: 4px;
     padding: 4px 8px;
     position: absolute;
-    z-index: 1;
+    z-index: 3;
     bottom: 34px;
     left: 50%;
     transform: translateX(-50%);
