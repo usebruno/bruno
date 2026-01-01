@@ -103,15 +103,15 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
 
       <div className="flex justify-between mt-6">
         <div>
-          <Button size="sm" color="danger" onClick={handleDiscardAll}>
+          <Button color="danger" onClick={handleDiscardAll}>
             Discard and Remove
           </Button>
         </div>
         <div>
-          <Button size="sm" color="secondary" variant="ghost" onClick={onClose}>
+          <Button className="mr-2" color="secondary" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" onClick={handleSaveAll}>
+          <Button onClick={handleSaveAll}>
             {currentDrafts.length > 1 ? 'Save All and Remove' : 'Save and Remove'}
           </Button>
         </div>

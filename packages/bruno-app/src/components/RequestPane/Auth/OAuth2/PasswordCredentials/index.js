@@ -98,7 +98,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">
+        <span className="oauth2-section-label">
           Configuration
         </span>
       </div>
@@ -156,7 +156,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconKey size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Token
         </span>
       </div>
@@ -239,7 +239,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Advanced Settings
         </span>
       </div>
@@ -263,7 +263,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">Settings</span>
+        <span className="oauth2-section-label">Settings</span>
       </div>
 
       {/* Automatically Fetch Token */}

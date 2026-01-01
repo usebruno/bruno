@@ -41,7 +41,7 @@ const StyledWrapper = styled.div`
     min-height: 70vh;
     max-height: 70vh;
     overflow-y: auto;
-    max-width: 50vw;
+    width: clamp(300px, 45vw, 550px);
   }
 
   input[type="checkbox"],

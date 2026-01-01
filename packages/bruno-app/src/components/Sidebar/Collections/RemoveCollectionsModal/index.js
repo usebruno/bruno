@@ -227,15 +227,15 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
 
               <div className="flex justify-between mt-6">
                 <div>
-                  <Button size="sm" color="danger" onClick={handleDiscard}>
+                  <Button color="danger" onClick={handleDiscard}>
                     Discard and Close
                   </Button>
                 </div>
                 <div>
-                  <Button size="sm" color="secondary" variant="ghost" onClick={handleCancel}>
+                  <Button className="mr-2" color="secondary" variant="ghost" onClick={handleCancel}>
                     Cancel
                   </Button>
-                  <Button size="sm" onClick={handleSave}>
+                  <Button onClick={handleSave}>
                     Save and Close
                   </Button>
                 </div>
@@ -256,10 +256,10 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                 Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
               </div>
               <div className="flex justify-end mt-6">
-                <Button size="sm" color="secondary" variant="ghost" onClick={handleCancel} className="mr-2" data-testid="modal-close-button">
+                <Button className="mr-2" color="secondary" variant="ghost" onClick={handleCancel} data-testid="modal-close-button">
                   Cancel
                 </Button>
-                <Button size="sm" onClick={handleCloseAllCollections}>
+                <Button color="warning" onClick={handleCloseAllCollections}>
                   {hasMultipleCollections ? 'Close All' : 'Close'}
                 </Button>
               </div>

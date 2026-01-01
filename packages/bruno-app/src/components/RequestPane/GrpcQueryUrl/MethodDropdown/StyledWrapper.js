@@ -41,6 +41,16 @@ const StyledWrapper = styled.div`
     min-width: 15rem;
   }
 
+  input#search-input {
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.text};
+
+    &:focus {
+      outline: none;
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
+  }
+
   .method-dropdown-service-group {
     margin-bottom: 0.5rem;
   }

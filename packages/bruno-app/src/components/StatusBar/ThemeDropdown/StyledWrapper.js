@@ -103,9 +103,21 @@ const StyledWrapper = styled.div`
   }
 
   .theme-list-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 12px;
     color: ${(props) => props.theme.dropdown.mutedText};
     margin-bottom: 8px;
+  }
+
+  .active-badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.12)};
+    color: ${(props) => props.theme.dropdown.selectedColor};
   }
 
   /* Theme item */

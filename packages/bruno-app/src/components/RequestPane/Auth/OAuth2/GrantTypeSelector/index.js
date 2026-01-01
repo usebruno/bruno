@@ -77,7 +77,7 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconKey size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">
+        <span className="oauth2-section-label">
           Grant Type
         </span>
       </div>

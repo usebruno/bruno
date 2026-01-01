@@ -16,6 +16,10 @@ const Wrapper = styled.div`
     cursor: pointer;
     accent-color: ${(props) => props.theme.primary.solid};
   }
+
+  .oauth2-section-label {
+    color: ${(props) => props.theme.text};
+  }
 `;
 
 export default Wrapper;
