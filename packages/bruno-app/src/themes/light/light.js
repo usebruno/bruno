@@ -1,5 +1,4 @@
 import { rgba } from 'polished';
-
 export const palette = {
   primary: {
     SOLID: 'hsl(33, 80%, 46%)',
@@ -110,6 +109,29 @@ const lightTheme = {
     surface2: palette.background.SURFACE2,
     surface1: palette.background.SURFACE1,
     surface0: palette.background.SURFACE0
+  },
+
+  status: {
+    info: {
+      background: rgba(palette.intent.INFO, 0.15),
+      text: palette.intent.INFO,
+      border: palette.intent.INFO
+    },
+    success: {
+      background: rgba(palette.intent.SUCCESS, 0.15),
+      text: palette.intent.SUCCESS,
+      border: palette.intent.SUCCESS
+    },
+    warning: {
+      background: rgba(palette.intent.WARNING, 0.15),
+      text: palette.intent.WARNING,
+      border: palette.intent.WARNING
+    },
+    danger: {
+      background: rgba(palette.intent.DANGER, 0.15),
+      text: palette.intent.DANGER,
+      border: palette.intent.DANGER
+    }
   },
 
   overlay: {

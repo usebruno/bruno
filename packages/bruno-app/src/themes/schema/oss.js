@@ -42,6 +42,55 @@ export const ossSchema = {
       additionalProperties: false
     },
 
+    status: {
+      type: 'object',
+      description: 'Status colors for info, success, warning, and danger states',
+      properties: {
+        info: {
+          type: 'object',
+          properties: {
+            background: { type: 'string', description: 'Info status background color' },
+            text: { type: 'string', description: 'Info status text color' },
+            border: { type: 'string', description: 'Info status border color' }
+          },
+          required: ['background', 'text', 'border'],
+          additionalProperties: false
+        },
+        success: {
+          type: 'object',
+          properties: {
+            background: { type: 'string', description: 'Success status background color' },
+            text: { type: 'string', description: 'Success status text color' },
+            border: { type: 'string', description: 'Success status border color' }
+          },
+          required: ['background', 'text', 'border'],
+          additionalProperties: false
+        },
+        warning: {
+          type: 'object',
+          properties: {
+            background: { type: 'string', description: 'Warning status background color' },
+            text: { type: 'string', description: 'Warning status text color' },
+            border: { type: 'string', description: 'Warning status border color' }
+          },
+          required: ['background', 'text', 'border'],
+          additionalProperties: false
+        },
+        danger: {
+          type: 'object',
+          properties: {
+            background: { type: 'string', description: 'Danger status background color' },
+            text: { type: 'string', description: 'Danger status text color' },
+            border: { type: 'string', description: 'Danger status border color' }
+          },
+          required: ['background', 'text', 'border'],
+          additionalProperties: false
+        }
+      },
+      required: ['info', 'success', 'warning', 'danger'],
+      additionalProperties: false
+    },
+
     overlay: {
       type: 'object',
       properties: {
@@ -1126,7 +1175,7 @@ export const ossSchema = {
     }
   },
   required: [
-    'mode', 'brand', 'text', 'textLink', 'bg', 'primary', 'accents', 'background', 'overlay', 'font', 'shadow', 'border', 'colors', 'input',
+    'mode', 'brand', 'text', 'textLink', 'bg', 'primary', 'accents', 'background', 'status', 'overlay', 'font', 'shadow', 'border', 'colors', 'input',
     'sidebar', 'dropdown', 'workspace', 'request',
     'requestTabPanel', 'notifications', 'modal', 'button', 'button2', 'tabs',
     'requestTabs', 'codemirror', 'table', 'plainGrid', 'scrollbar', 'dragAndDrop',

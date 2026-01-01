@@ -38,6 +38,13 @@ const colors = {
   }
 };
 
+colors.intent = {
+  INFO: '#a3a3a3',
+  SUCCESS: '#a3a3a3',
+  WARNING: '#b0b0b0',
+  DANGER: '#c0c0c0'
+};
+
 const darkMonochromeTheme = {
   mode: 'dark',
   brand: colors.BRAND,
@@ -63,6 +70,29 @@ const darkMonochromeTheme = {
     surface0: colors.GRAY_2,
     surface1: colors.GRAY_3,
     surface2: colors.GRAY_4
+  },
+
+  status: {
+    info: {
+      background: rgba(colors.intent.INFO, 0.15),
+      text: colors.intent.INFO,
+      border: colors.intent.INFO
+    },
+    success: {
+      background: rgba(colors.intent.SUCCESS, 0.15),
+      text: colors.intent.SUCCESS,
+      border: colors.intent.SUCCESS
+    },
+    warning: {
+      background: rgba(colors.intent.WARNING, 0.15),
+      text: colors.intent.WARNING,
+      border: colors.intent.WARNING
+    },
+    danger: {
+      background: rgba(colors.intent.DANGER, 0.15),
+      text: colors.intent.DANGER,
+      border: colors.intent.DANGER
+    }
   },
 
   overlay: {

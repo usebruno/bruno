@@ -19,7 +19,7 @@ const StyledWrapper = styled.div`
   /* Checkbox */
   input[type='checkbox'] {
     cursor: pointer;
-    accent-color: ${(props) => props.theme.colors.accent};
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 `;
 

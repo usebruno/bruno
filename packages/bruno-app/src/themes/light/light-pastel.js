@@ -5,6 +5,8 @@
  */
 import { rgba } from 'polished';
 
+import { rgba } from 'polished';
+
 const colors = {
   // Primary palette - soft yet deep
   BRAND: '#d16c6c', // Dusty coral - warm but calm
@@ -56,6 +58,13 @@ const colors = {
   }
 };
 
+colors.intent = {
+  INFO: colors.BLUE,
+  SUCCESS: colors.GREEN,
+  WARNING: colors.ORANGE,
+  DANGER: colors.RED
+};
+
 const lightPastelTheme = {
   mode: 'light',
   brand: colors.BRAND,
@@ -81,6 +90,29 @@ const lightPastelTheme = {
     surface0: colors.GRAY_3,
     surface1: colors.GRAY_4,
     surface2: colors.GRAY_5
+  },
+
+  status: {
+    info: {
+      background: rgba(colors.intent.INFO, 0.15),
+      text: colors.intent.INFO,
+      border: colors.intent.INFO
+    },
+    success: {
+      background: rgba(colors.intent.SUCCESS, 0.15),
+      text: colors.intent.SUCCESS,
+      border: colors.intent.SUCCESS
+    },
+    warning: {
+      background: rgba(colors.intent.WARNING, 0.15),
+      text: colors.intent.WARNING,
+      border: colors.intent.WARNING
+    },
+    danger: {
+      background: rgba(colors.intent.DANGER, 0.15),
+      text: colors.intent.DANGER,
+      border: colors.intent.DANGER
+    }
   },
 
   overlay: {

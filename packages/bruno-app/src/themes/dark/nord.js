@@ -58,6 +58,13 @@ const colors = {
   }
 };
 
+colors.intent = {
+  INFO: colors.NORD10,
+  SUCCESS: colors.NORD14,
+  WARNING: colors.NORD12,
+  DANGER: colors.NORD11
+};
+
 const nordTheme = {
   mode: 'dark',
   brand: colors.BRAND,
@@ -83,6 +90,29 @@ const nordTheme = {
     surface0: colors.NORD2,
     surface1: colors.NORD3,
     surface2: '#5d6b83'
+  },
+
+  status: {
+    info: {
+      background: rgba(colors.intent.INFO, 0.15),
+      text: colors.intent.INFO,
+      border: colors.intent.INFO
+    },
+    success: {
+      background: rgba(colors.intent.SUCCESS, 0.15),
+      text: colors.intent.SUCCESS,
+      border: colors.intent.SUCCESS
+    },
+    warning: {
+      background: rgba(colors.intent.WARNING, 0.15),
+      text: colors.intent.WARNING,
+      border: colors.intent.WARNING
+    },
+    danger: {
+      background: rgba(colors.intent.DANGER, 0.15),
+      text: colors.intent.DANGER,
+      border: colors.intent.DANGER
+    }
   },
 
   overlay: {
