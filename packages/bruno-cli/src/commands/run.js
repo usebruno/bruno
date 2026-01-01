@@ -410,29 +410,6 @@ const handler = async function (argv) {
         return null;
       };
 
-      const isCollectionInWorkspace = (wsPath, colPath) => {
-        const workspaceYmlPath = path.join(wsPath, 'workspace.yml');
-        if (!fs.existsSync(workspaceYmlPath)) {
-          return false;
-        }
-        try {
-          const realWsPath = fs.realpathSync(wsPath);
-          const realColPath = fs.realpathSync(colPath);
-          const yamlContent = fs.readFileSync(workspaceYmlPath, 'utf8');
-          const workspaceConfig = yaml.load(yamlContent);
-          const collections = workspaceConfig.collections || [];
-          return collections.some((c) => {
-            const resolvedPath = path.isAbsolute(c.path)
-              ? c.path
-              : path.resolve(realWsPath, c.path);
-            const realResolvedPath = fs.existsSync(resolvedPath) ? fs.realpathSync(resolvedPath) : resolvedPath;
-            return path.normalize(realResolvedPath) === path.normalize(realColPath);
-          });
-        } catch (err) {
-          return false;
-        }
-      };
-
       if (!workspacePath) {
         workspacePath = findWorkspacePath(collectionPath);
       }
@@ -453,13 +430,6 @@ const handler = async function (argv) {
       if (!workspaceYmlExists) {
         console.error(chalk.red(`Invalid workspace: workspace.yml not found in `) + chalk.dim(workspacePath));
         process.exit(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
-      }
-
-      if (!isCollectionInWorkspace(workspacePath, collectionPath)) {
-        console.error(chalk.red(`Collection is not part of the specified workspace.`));
-        console.error(chalk.dim(`Collection: ${collectionPath}`));
-        console.error(chalk.dim(`Workspace: ${workspacePath}`));
-        process.exit(constants.EXIT_STATUS.ERROR_COLLECTION_NOT_IN_WORKSPACE);
       }
 
       const globalEnvFilePath = path.join(workspacePath, 'environments', `${globalEnv}.yml`);
