@@ -7,9 +7,6 @@ const StyledWrapper = styled.div`
     background-color: ${(props) => props.theme.input.bg};
     border-top-left-radius: 3px;
     border-bottom-left-radius: 3px;
-    .method-selector {
-      min-width: 80px;
-    }
   }
   div.method-selector-container,
   div.input-container {
@@ -36,7 +33,7 @@ const StyledWrapper = styled.div`
   }
   .dropdown {
     width: fit-content;
-  
+
     .dropdown-item {
       padding: 0.2rem 0.6rem !important;
     }
