@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const yaml = require('js-yaml');
 const crypto = require('node:crypto');
-const { writeFile, validateName } = require('./filesystem');
+const { writeFile, validateName, isValidCollectionDirectory } = require('./filesystem');
 const { generateUidBasedOnHash } = require('./common');
 const { withLock, getWorkspaceLockKey } = require('./workspace-lock');
 
@@ -420,6 +420,9 @@ const getWorkspaceCollections = (workspacePath) => {
         return false;
       }
       seenPaths.add(normalizedPath);
+      if (!isValidCollectionDirectory(collection.path)) {
+        return false;
+      }
       return true;
     });
 };
