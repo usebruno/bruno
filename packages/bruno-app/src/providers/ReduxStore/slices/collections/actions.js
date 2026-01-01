@@ -1,6 +1,6 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
-import { REQUEST_TYPES } from 'utils/common/constants';
+import { REQUEST_TYPES, LOCAL_VAR_SENTINEL } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -84,6 +84,21 @@ import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 // generate a unique names
+const prepareVarsForSave = (itemToSave) => {
+  const allPreRequestVars = get(itemToSave, 'request.vars.req', []);
+  const nonPersistentVars = filter(allPreRequestVars, (v) => v.persist === false);
+
+  const varsForBruFile = allPreRequestVars.map((v) => {
+    const { persist, ...rest } = v;
+    if (persist === false) {
+      return { ...rest, value: LOCAL_VAR_SENTINEL };
+    }
+    return rest;
+  });
+
+  return { nonPersistentVars, varsForBruFile };
+};
+
 const generateUniqueName = (originalName, existingItems, isFolder) => {
   // Extract base name by removing any existing " (number)" suffix
   const baseName = originalName.replace(/\s*\(\d+\)$/, '');
@@ -150,20 +165,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
-    // Separate persistent and non-persistent pre-request vars
-    const allPreRequestVars = get(itemToSave, 'request.vars.req', []);
-    const nonPersistentVars = filter(allPreRequestVars, (v) => v.persist === false);
-
-    // For .bru file: keep all vars, but clear values for non-persistent ones
-    // This way the variable structure is visible in version control but value is local
-    const varsForBruFile = allPreRequestVars.map((v) => {
-      const { persist, ...rest } = v;
-      if (persist === false) {
-        // Save structure with sentinel to .bru file
-        return { ...rest, value: '__BRUNO_LOCAL__' };
-      }
-      return rest;
-    });
+    const { nonPersistentVars, varsForBruFile } = prepareVarsForSave(itemToSave);
     set(itemToSave, 'request.vars.req', varsForBruFile);
 
     itemSchema
@@ -206,20 +208,7 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
         // Clone to prevent mutating Redux state
         const itemToSave = cloneDeep(transformRequestToSaveToFilesystem(item));
 
-        // Handle non-persistent variables
-        const allPreRequestVars = get(itemToSave, 'request.vars.req', []);
-        const nonPersistentVars = filter(allPreRequestVars, (v) => v.persist === false);
-
-        // For .bru file: keep all vars, but clear values for non-persistent ones
-        // This way the variable structure is visible in version control but value is local
-        const varsForBruFile = allPreRequestVars.map((v) => {
-          const { persist, ...rest } = v;
-          if (persist === false) {
-            // Save structure with sentinel to .bru file
-            return { ...rest, value: '__BRUNO_LOCAL__' };
-          }
-          return rest;
-        });
+        const { nonPersistentVars, varsForBruFile } = prepareVarsForSave(itemToSave);
         set(itemToSave, 'request.vars.req', varsForBruFile);
 
         const itemIsValid = itemSchema.validateSync(itemToSave);
@@ -247,6 +236,9 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
         // Save local vars for all items
         const localVarsPromises = localVarsToSave.map((lv) =>
           ipcRenderer.invoke('renderer:save-local-vars', lv.pathname, lv.vars)
+            .catch((err) => {
+              console.error(`Failed to save local vars for ${lv.pathname}`, err);
+            })
         );
         return Promise.all(localVarsPromises);
       })
@@ -934,18 +926,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
     const filename = resolveRequestFilename(newFilename, collection.format);
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
 
-    // Handle non-persistent variables
-    const allPreRequestVars = get(itemToSave, 'request.vars.req', []);
-    const nonPersistentVars = filter(allPreRequestVars, (v) => v.persist === false);
-
-    const varsForBruFile = allPreRequestVars.map((v) => {
-      const clone = { ...v };
-      if (clone.persist === false) {
-        clone.value = '__BRUNO_LOCAL__';
-      }
-      delete clone.persist;
-      return clone;
-    });
+    const { nonPersistentVars, varsForBruFile } = prepareVarsForSave(itemToSave);
     set(itemToSave, 'request.vars.req', varsForBruFile);
 
     set(itemToSave, 'name', trim(newName));
@@ -1080,6 +1061,10 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           const filename = resolveRequestFilename(newFilename, targetCollection.format);
           const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+
+          const { nonPersistentVars, varsForBruFile } = prepareVarsForSave(itemToSave);
+          set(itemToSave, 'request.vars.req', varsForBruFile);
+
           set(itemToSave, 'name', trim(newName));
           set(itemToSave, 'filename', trim(filename));
 
@@ -1090,6 +1075,10 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           await itemSchema.validate(itemToSave);
           await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
+
+          if (nonPersistentVars.length > 0) {
+            await ipcRenderer.invoke('renderer:save-local-vars', fullPathname, nonPersistentVars);
+          }
 
           dispatch(insertTaskIntoQueue({
             uid: uuid(),

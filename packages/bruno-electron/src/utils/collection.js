@@ -4,6 +4,7 @@ const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
+const { LOCAL_VAR_SENTINEL } = require('./constants');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -467,7 +468,7 @@ const hydrateRequestWithLocalVars = (request, localVars = []) => {
     const localVar = localVarsByName[v.name];
 
     // Check if this is a marked non-persistent var (sentinel value)
-    const isSentinel = v.value === '__BRUNO_LOCAL__';
+    const isSentinel = v.value === LOCAL_VAR_SENTINEL;
 
     if (localVar) {
       // This var has a local value - hydrate it and mark as non-persistent
