@@ -14,6 +14,10 @@ const StyledWrapper = styled.div`
     .more-tabs {
       color: ${(props) => props.theme.colors.text.subtext0} !important;
       border-bottom: solid 2px transparent;
+
+      &:hover {
+        color: ${(props) => props.theme.tabs.active.color} !important;
+      }
     }
 
     .tab {
@@ -37,6 +41,10 @@ const StyledWrapper = styled.div`
       &:target {
         outline: none !important;
         box-shadow: none !important;
+      }
+
+      &:hover {
+        color: ${(props) => props.theme.tabs.active.color} !important;
       }
 
       &.active {

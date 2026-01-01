@@ -19,6 +19,10 @@ const StyledWrapper = styled.div`
         box-shadow: none !important;
       }
 
+      &:hover {
+        color: ${(props) => props.theme.tabs.active.color} !important;
+      }
+
       &.active {
         font-weight: ${(props) => props.theme.tabs.active.fontWeight} !important;
         color: ${(props) => props.theme.tabs.active.color} !important;

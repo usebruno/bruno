@@ -18,24 +18,18 @@ const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2
   return (
     <StyledWrapper>
       <div className={`timeline-item ${isOauth2 ? 'timeline-item--oauth2' : ''}`}>
-        <div className="timeline-item-header" onClick={toggleCollapse}>
-          <div className="timeline-item-header-content">
-            <div className="timeline-item-header-items">
-              <Status statusCode={responseStatus || responseStatusCode} statusText={responseStatusText} />
-              <Method method={method} />
-              <Status statusCode={status || statusCode} statusText={statusText} />
-              {isOauth2 && <pre className="timeline-item-oauth-label">[oauth2.0]</pre>}
-              {!hideTimestamp && (
-                <>
-                  <pre className="timeline-item-timestamp-iso">[{new Date(timestamp).toISOString()}]</pre>
-                  <span className="timeline-item-timestamp">
-                    <RelativeTime timestamp={timestamp} />
-                  </span>
-                </>
-              )}
-            </div>
+        <div className="oauth-request-item-header relative cursor-pointer flex items-center justify-between gap-3 min-w-0" onClick={toggleCollapse}>
+          <Status statusCode={responseStatus || responseStatusCode} statusText={responseStatusText} />
+          <div className="flex items-center gap-1">
+            <Method method={method} />
+            <div className="truncate flex-1 min-w-0">{url}</div>
           </div>
-          <div className="timeline-item-url">{url}</div>
+          {isOauth2 && <span className="opacity-50 text-xs flex-shrink-0">[oauth2.0]</span>}
+          {!hideTimestamp && (
+            <span className="text-gray-400 text-xs flex-shrink-0 ml-auto">
+              <RelativeTime timestamp={timestamp} />
+            </span>
+          )}
         </div>
         {isCollapsed && (
           <div className="timeline-item-content">

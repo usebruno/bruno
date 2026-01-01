@@ -3,11 +3,11 @@ import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .timeline-item {
-    border-bottom: 2px solid ${(props) => rgba(props.theme.colors.text.warning, 0.5)};
+    border-bottom: 1px solid ${(props) => props.theme.border.border1};
     padding: 0.5rem 0;
 
     &--oauth2 {
-      border-bottom: 2px solid ${(props) => rgba(props.theme.primary.solid, 0.5)};
+      border-bottom: 1px solid ${(props) => props.theme.border.border1};
     }
   }
 

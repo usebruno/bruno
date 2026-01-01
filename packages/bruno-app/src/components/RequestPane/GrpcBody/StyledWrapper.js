@@ -50,6 +50,7 @@ const Wrapper = styled.div`
     justify-content: flex-end;
     gap: 4px;
     padding: 4px 0px;
+    padding-top: 0px;
     height: 32px;
     flex-shrink: 0;
 

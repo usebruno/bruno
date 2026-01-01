@@ -9,7 +9,7 @@ const Vars = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col">
-      <div className="mt-2">
+      <div>
         <div className="mb-3 title text-xs">Pre Request</div>
         <VarsTable item={item} collection={collection} vars={requestVars} varType="request" />
       </div>

@@ -176,6 +176,11 @@ const Wrapper = styled.div`
       border-bottom-right-radius: ${(props) => props.theme.border.radius.base};
     }
   }
+
+  input[type='radio'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
 `;
 
 export default Wrapper;

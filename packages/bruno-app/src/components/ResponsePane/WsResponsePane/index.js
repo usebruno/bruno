@@ -135,7 +135,7 @@ const WSResponsePane = ({ item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col flex-grow pl-3 pr-4 h-0 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className="flex flex-col flex-grow pl-3 pr-4 h-0 mt-4"
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {!item?.response ? (

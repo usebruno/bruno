@@ -124,8 +124,8 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     <StyledWrapper>
       <div className="flex items-center h-full">
         <div className="flex items-center input-container flex-1 w-full input-container pr-2 h-full relative">
-          <div className="flex items-center justify-center w-16">
-            <span className="text-xs font-bold method-ws">WS</span>
+          <div className="flex items-center justify-center px-[10px]">
+            <span className="text-xs font-medium method-ws">WS</span>
           </div>
           <SingleLineEditor
             value={url}

@@ -36,7 +36,7 @@ const PresetsSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <div className="text-xs mb-4 mt-4 text-muted">
+      <div className="text-xs mb-4 text-muted">
         These presets will be used as the default values for new requests in this collection.
       </div>
       <div className="bruno-form">

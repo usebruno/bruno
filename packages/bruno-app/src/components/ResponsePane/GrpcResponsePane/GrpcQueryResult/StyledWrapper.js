@@ -6,7 +6,6 @@ const StyledWrapper = styled.div`
 
   .empty-state {
     color: ${(props) => props.theme.colors.text.muted};
-    padding: 1rem;
   }
 
   .responses-container {

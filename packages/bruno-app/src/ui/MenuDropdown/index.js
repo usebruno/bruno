@@ -419,16 +419,17 @@ const MenuDropdown = forwardRef(({
     });
   };
 
-  // Clone children to attach click handler
+  // Clone children to attach click handler and aria-expanded
   const triggerElement = React.isValidElement(children)
     ? React.cloneElement(children, {
         'onClick': (e) => {
           children.props.onClick?.(e);
           handleTriggerClick();
         },
+        'aria-expanded': isOpen,
         'data-testid': testId
       })
-    : <div onClick={handleTriggerClick} data-testid={testId}>{children}</div>;
+    : <div onClick={handleTriggerClick} aria-expanded={isOpen} data-testid={testId}>{children}</div>;
 
   return (
     <Dropdown

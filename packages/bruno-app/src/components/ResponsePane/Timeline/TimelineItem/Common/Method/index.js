@@ -1,13 +1,17 @@
+import { useMemo } from 'react';
 import { useTheme } from 'providers/Theme';
 
 const Method = ({ method }) => {
   const { theme } = useTheme();
-  const methodUpper = method?.toUpperCase();
-  const methodColor = theme.request.methods[methodUpper?.toLowerCase()] || theme.text;
+
+  const methodColor = useMemo(() => {
+    const methodLower = method?.toLowerCase();
+    return theme.request.methods[methodLower] || theme.text;
+  }, [method, theme]);
 
   return (
-    <span className="timeline-method" style={{ color: methodColor, fontWeight: 'bold' }}>
-      {methodUpper}
+    <span className="font-medium" style={{ color: methodColor, fontSize: theme.font.size.xs }}>
+      {method}
     </span>
   );
 };

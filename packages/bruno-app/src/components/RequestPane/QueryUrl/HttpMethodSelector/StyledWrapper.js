@@ -2,13 +2,29 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   font-size: ${(props) => props.theme.font.size.base};
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
 
   .dropdown {
     width: 100%;
+    display: flex;
+    align-items: stretch;
   }
 
   .method-selector {
-    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    margin: 2px;
+    border-radius: ${(props) => props.theme.border.radius.base};
+
+    &:not(.custom-input-mode):hover,
+    &:has(button[aria-expanded="true"]) {
+      background-color: color-mix(in srgb, currentColor 15%, transparent);
+    }
+
 
     .tippy-box {
       max-width: 150px !important;
@@ -37,15 +53,15 @@ const Wrapper = styled.div`
   }
 
   .method-span {
-    width: fit-content;
-    max-width: 10ch;
+    display: block;
+    max-width: 15ch;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
-    display: inline-block;
-    text-align: center;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
+    padding: 0 8px;
+    line-height: 1.5;
   }
 
   .caret {

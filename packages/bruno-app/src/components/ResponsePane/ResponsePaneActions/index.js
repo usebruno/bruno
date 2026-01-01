@@ -20,7 +20,7 @@ const StyledMenuIcon = styled.button`
   border-radius: 4px;
 
   &:hover {
-    background-color: ${(props) => props.theme.workspace.button.bg};
+    border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder} !important;
     color: ${(props) => props.theme.text};
   }
 `;

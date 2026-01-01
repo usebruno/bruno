@@ -71,7 +71,6 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
     });
   };
 
-  const isMultipleContentTab = ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab);
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
@@ -107,9 +106,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         </div>
       </div>
       <section
-        className={classnames('flex w-full flex-1 h-full', {
-          'mt-2': !isMultipleContentTab
-        })}
+        className={classnames('flex w-full flex-1 h-full mt-4')}
       >
         <HeightBoundContainer>{getTabPanel(focusedTab.requestPaneTab)}</HeightBoundContainer>
       </section>
