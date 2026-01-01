@@ -21,7 +21,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     method: http?.method || 'GET',
     headers: toBrunoHttpHeaders(http?.headers) || [],
     params: toBrunoParams(http?.params) || [],
-    auth: toBrunoAuth(runtime?.auth),
+    auth: toBrunoAuth(http?.auth),
     body: toBrunoBody(http?.body as HttpRequestBody) || {
       mode: 'none',
       json: null,

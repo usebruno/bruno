@@ -60,6 +60,12 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       http.body = body;
     }
 
+    // auth
+    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
+    if (auth) {
+      http.auth = auth;
+    }
+
     ocRequest.http = http;
 
     // runtime block
@@ -92,13 +98,6 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     const actions: Action[] | undefined = toOpenCollectionActions(resVars);
     if (actions) {
       runtime.actions = actions;
-      hasRuntime = true;
-    }
-
-    // auth
-    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
-    if (auth) {
-      runtime.auth = auth;
       hasRuntime = true;
     }
 
