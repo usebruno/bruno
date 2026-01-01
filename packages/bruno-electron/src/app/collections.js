@@ -146,10 +146,19 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
 };
 
 const openCollectionsByPathname = async (win, watcher, collectionPaths, options = {}) => {
+  const seenPaths = new Set();
+
   for (const collectionPath of collectionPaths) {
     const resolvedPath = path.isAbsolute(collectionPath)
       ? collectionPath
       : normalizeAndResolvePath(collectionPath);
+
+    const normalizedPath = path.normalize(resolvedPath);
+    if (seenPaths.has(normalizedPath)) {
+      continue;
+    }
+    seenPaths.add(normalizedPath);
+
     if (isDirectory(resolvedPath)) {
       await openCollection(win, watcher, resolvedPath, options);
     } else {

@@ -184,8 +184,12 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
         .map((wc) => wc.path)
         .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
-      if (collectionPaths.length > 0) {
-        await openCollectionsFunction(collectionPaths, updatedWorkspace.pathname);
+      const uniqueCollectionPaths = [...new Map(
+        collectionPaths.map((p) => [normalizePath(p), p])
+      ).values()];
+
+      if (uniqueCollectionPaths.length > 0) {
+        await openCollectionsFunction(uniqueCollectionPaths, updatedWorkspace.pathname);
       }
     }
 
@@ -405,9 +409,14 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
             .map((workspaceCollection) => workspaceCollection.path)
             .filter((collectionPath) => collectionPath && !openCollections.includes(normalizePath(collectionPath)));
 
-          if (newCollectionPaths.length > 0) {
+          // Deduplicate paths to prevent "collection already opened" toast
+          const uniqueNewCollectionPaths = [...new Map(
+            newCollectionPaths.map((p) => [normalizePath(p), p])
+          ).values()];
+
+          if (uniqueNewCollectionPaths.length > 0) {
             try {
-              await dispatch(openMultipleCollections(newCollectionPaths, { workspaceId: workspace.pathname }));
+              await dispatch(openMultipleCollections(uniqueNewCollectionPaths, { workspaceId: workspace.pathname }));
             } catch (error) {
             }
           }
