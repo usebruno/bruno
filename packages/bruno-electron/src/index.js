@@ -195,8 +195,9 @@ app.on('ready', async () => {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
+  const devPort = process.env.BRUNO_DEV_PORT || 3000;
   const url = isDev
-    ? 'http://localhost:3000'
+    ? `http://localhost:${devPort}`
     : format({
         pathname: path.join(__dirname, '../web/index.html'),
         protocol: 'file:',

@@ -1,27 +1,27 @@
-import { rgba } from 'polished';
+import { rgba, lighten } from 'polished';
 
 export const palette = {
   primary: {
     SOLID: 'hsl(39, 74%, 59%)',
     TEXT: 'hsl(39, 74%, 64%)',
-    STRONG: 'hsl(39, 74%, 69%)',
+    STRONG: 'hsl(39, 74%, 64%)',
     SUBTLE: 'hsl(39, 74%, 54%)'
   },
   hues: {
-    RED: 'hsl(0,   70%, 71%)',
-    ROSE: 'hsl(350, 65%, 78%)',
-    BROWN: 'hsl(41,  52%, 77%)',
-    ORANGE: 'hsl(24,  75%, 75%)',
-    YELLOW: 'hsl(48,  68%, 74%)',
-    LIME: 'hsl(75,  65%, 71%)',
-    GREEN: 'hsl(140, 59%, 71%)',
-    TEAL: 'hsl(170, 55%, 71%)',
-    CYAN: 'hsl(190, 70%, 76%)',
-    BLUE: 'hsl(202, 82%, 80%)',
-    INDIGO: 'hsl(225, 73%, 82%)',
-    VIOLET: 'hsl(260, 65%, 81%)',
-    PURPLE: 'hsl(285, 60%, 78%)',
-    PINK: 'hsl(320, 65%, 81%)'
+    RED: 'hsl(8, 70%, 52%)',
+    ROSE: 'hsl(367, 84%, 70%)',
+    BROWN: 'hsl(35,  65%, 72%)',
+    ORANGE: 'hsl(24,  88%, 72%)',
+    YELLOW: 'hsl(41, 93%, 72%)',
+    GREEN: 'hsl(140, 72%, 68%)',
+    GREEN_DARK: 'hsl(160, 90%, 44%)',
+    TEAL: 'hsl(170, 70%, 60%)',
+    CYAN: 'hsl(190, 82%, 72%)',
+    BLUE: 'hsl(210, 90%, 76%)',
+    INDIGO: 'hsl(202, 88%, 66%)',
+    VIOLET: 'hsl(260, 75%, 78%)',
+    PURPLE: 'hsl(285, 72%, 75%)',
+    PINK: 'hsl(305, 59%, 74%)'
   },
   system: {
     CONTROL_ACCENT: '#D9A342'
@@ -64,17 +64,25 @@ palette.intent = {
 };
 
 palette.syntax = {
-  DEFINITION: palette.hues.GREEN,
-  PROPERTY: palette.hues.BLUE,
-  STRING: palette.hues.BROWN,
-  NUMBER: palette.hues.GREEN,
-  ATOM: palette.hues.YELLOW,
-  VARIABLE: palette.hues.ROSE,
+  // Core language structure
   KEYWORD: palette.hues.ROSE,
-  COMMENT: palette.text.SUBTEXT1,
-  OPERATOR: palette.hues.BROWN,
   TAG: palette.hues.ROSE,
-  TAG_BRACKET: palette.text.SUBTEXT1
+  // Identifiers & properties (collapsed)
+  VARIABLE: palette.hues.PINK,
+  PROPERTY: palette.hues.BLUE,
+  DEFINITION: palette.hues.BLUE,
+
+  // Literals
+  STRING: palette.hues.BROWN,
+  NUMBER: palette.hues.PINK,
+  ATOM: palette.hues.ROSE,
+
+  // Operators & punctuation (quiet)
+  OPERATOR: palette.text.SUBTEXT1,
+  TAG_BRACKET: palette.text.SUBTEXT1,
+
+  // Comments should recede
+  COMMENT: palette.text.SUBTEXT0
 };
 
 const colors = {
@@ -230,13 +238,13 @@ const darkTheme = {
       get: palette.hues.GREEN,
       post: palette.hues.INDIGO,
       put: palette.hues.ORANGE,
-      delete: palette.hues.RED,
+      delete: lighten(0.08, palette.hues.RED),
       patch: palette.hues.ORANGE,
       options: palette.hues.TEAL,
       head: palette.hues.CYAN
     },
 
-    grpc: palette.hues.BROWN,
+    grpc: palette.hues.TEAL,
     ws: palette.hues.ORANGE,
     gql: palette.hues.PINK
   },
@@ -402,7 +410,7 @@ const darkTheme = {
       bg: palette.background.BASE
     },
     variable: {
-      valid: palette.hues.GREEN,
+      valid: palette.hues.GREEN_DARK,
       invalid: palette.hues.RED,
       prompt: palette.hues.BLUE
     },

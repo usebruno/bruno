@@ -62,17 +62,25 @@ palette.intent = {
 };
 
 palette.syntax = {
-  DEFINITION: palette.hues.INDIGO,
-  PROPERTY: palette.hues.BLUE,
-  STRING: palette.hues.BROWN,
-  NUMBER: palette.hues.GREEN,
-  ATOM: palette.hues.PURPLE,
-  VARIABLE: palette.hues.PINK,
+  // Core language structure
   KEYWORD: palette.hues.ROSE,
-  COMMENT: palette.text.SUBTEXT0,
-  OPERATOR: palette.hues.BLUE,
   TAG: palette.hues.ROSE,
-  TAG_BRACKET: palette.text.SUBTEXT0
+  // Identifiers & properties (collapsed)
+  VARIABLE: palette.hues.PINK,
+  PROPERTY: palette.hues.BLUE,
+  DEFINITION: palette.hues.BLUE,
+
+  // Literals
+  STRING: palette.hues.BROWN,
+  NUMBER: palette.hues.PINK,
+  ATOM: palette.hues.ROSE,
+
+  // Operators & punctuation (quiet)
+  OPERATOR: palette.text.SUBTEXT1,
+  TAG_BRACKET: palette.text.SUBTEXT1,
+
+  // Comments should recede
+  COMMENT: palette.text.SUBTEXT0
 };
 
 const lightTheme = {
