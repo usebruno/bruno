@@ -47,6 +47,11 @@ const Wrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
   }
+
+  .caret {
+    color: ${(props) => props.theme.colors.text.muted};
+    fill: ${(props) => props.theme.colors.text.muted};
+  }
 `;
 
 export default Wrapper;

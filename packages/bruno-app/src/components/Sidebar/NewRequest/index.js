@@ -507,6 +507,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                         <HttpMethodSelector
                           method={formik.values.requestMethod}
                           onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
+                          showCaret
                         />
                       </div>
                     ) : null}

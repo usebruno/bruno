@@ -10,7 +10,7 @@ const KEY = Object.freeze({ ENTER: 'Enter', ESCAPE: 'Escape' });
 
 const DEFAULT_METHOD = 'GET';
 
-const TriggerButton = ({ method, ...props }) => {
+const TriggerButton = ({ method, showCaret, ...props }) => {
   const { theme } = useTheme();
   const methodColor = useMemo(() => {
     const colorMap = {
@@ -34,11 +34,12 @@ const TriggerButton = ({ method, ...props }) => {
       >
         {method}
       </span>
+      {showCaret && <IconCaretDown className="caret" size={14} strokeWidth={2} />}
     </button>
   );
 };
 
-const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
+const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret = false }) => {
   const [isCustomMode, setIsCustomMode] = useState(false);
   const inputRef = useRef();
   const selectedMethodRef = useRef(method);
@@ -159,7 +160,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
           placement="bottom-start"
           selectedItemId={selectedItemId}
         >
-          <TriggerButton method={method} />
+          <TriggerButton method={method} showCaret={showCaret} />
         </MenuDropdown>
       </div>
     </StyledWrapper>
