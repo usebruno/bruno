@@ -19,7 +19,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
 
     &--request {
-      color: ${(props) => props.theme.colors.text.purple};
+      color: ${(props) => props.theme.textLink};
     }
 
     &--response {
