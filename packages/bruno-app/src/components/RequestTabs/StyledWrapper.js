@@ -113,7 +113,7 @@ const Wrapper = styled.div`
         border: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
         border-bottom-color: ${(props) => props.theme.bg || '#ffffff'};
         border-radius: 8px 8px 0 0;
-        z-index: 2;
+        z-index: 1;
         margin-bottom: -2px;
         padding-bottom: 12px;
 
