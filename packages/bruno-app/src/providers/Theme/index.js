@@ -27,8 +27,8 @@ const applyThemeToRoot = (theme) => {
 
 export const ThemeContext = createContext();
 export const ThemeProvider = (props) => {
-  const [displayedTheme, setDisplayedTheme] = useState(() => getEffectiveTheme('system'));
   const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', 'system');
+  const [displayedTheme, setDisplayedTheme] = useState(() => getEffectiveTheme(storedTheme));
   const [themeVariantLight, setThemeVariantLight] = useLocalStorage('bruno.themeVariantLight', 'light');
   const [themeVariantDark, setThemeVariantDark] = useLocalStorage('bruno.themeVariantDark', 'dark');
 
