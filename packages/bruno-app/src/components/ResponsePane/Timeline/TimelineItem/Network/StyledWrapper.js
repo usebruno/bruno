@@ -27,15 +27,15 @@ const StyledWrapper = styled.div`
     }
     
     &--error {
-      color: ${(props) => props.theme.requestTabPanel.responseError};
+      color: ${(props) => props.theme.request.delete};
     }
 
     &--tls {
-      color: ${(props) => props.theme.colors.text.purple};
+      color: ${(props) => props.theme.request.methods.options};
     }
     
     &--info {
-      color: ${(props) => props.theme.colors.text.warning};
+      color: ${(props) => props.theme.request.methods.head};
     }   
   }
 
