@@ -7,6 +7,7 @@ import { useTheme } from 'providers/Theme';
 import TruncatedText from 'components/TruncatedText';
 import { updateResponseExampleName, updateResponseExampleDescription } from 'providers/ReduxStore/slices/collections';
 import get from 'lodash/get';
+import Button from 'ui/Button';
 
 const ResponseExampleTopBar = ({
   item,
@@ -130,21 +131,22 @@ const ResponseExampleTopBar = ({
             </div>
 
             <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
-              <button
-                className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
+              <Button
+                color="secondary"
                 onClick={handleCancel}
                 data-testid="response-example-cancel-btn"
               >
                 Cancel
-              </button>
-              <button
-                className="primary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
+              </Button>
+              <Button
+                color="primary"
+                style={{ padding: '6px 12px' }}
+                icon={<IconDeviceFloppy size={16} />}
                 onClick={handleSave}
                 data-testid="response-example-save-btn"
               >
-                <IconDeviceFloppy size={16} />
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -178,23 +180,23 @@ const ResponseExampleTopBar = ({
           </div>
 
           <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
-            <button
-              className="secondary-btn flex items-center gap-1.5 p-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
+            <Button
+              color="secondary"
+              size="sm"
+              icon={<IconCode size={16} color={theme.examples.buttonIconColor} />}
               onClick={handleGenerateCode}
               title="Generate Code"
               data-testid="response-example-generate-code-btn"
-            >
-              <IconCode size={16} color={theme.examples.buttonIconColor} />
-            </button>
-            <button
-              className="secondary-btn flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium cursor-pointer border whitespace-nowrap"
-              style={{ color: theme.examples.buttonText }}
+            />
+            <Button
+              color="secondary"
+              size="sm"
+              icon={<IconEdit size={16} color={theme.examples.buttonIconColor} />}
               onClick={onEditToggle}
               data-testid="response-example-edit-btn"
             >
-              <IconEdit size={16} color={theme.examples.buttonIconColor} />
               Edit Example
-            </button>
+            </Button>
           </div>
         </div>
       </div>
