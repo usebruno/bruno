@@ -31,8 +31,6 @@ const EXIT_STATUS = {
   ERROR_GLOBAL_ENV_REQUIRES_WORKSPACE: 12,
   // The specified global environment was not found
   ERROR_GLOBAL_ENV_NOT_FOUND: 13,
-  // Collection not found in workspace
-  ERROR_COLLECTION_NOT_IN_WORKSPACE: 14,
   // Everything else
   ERROR_GENERIC: 255
 };
