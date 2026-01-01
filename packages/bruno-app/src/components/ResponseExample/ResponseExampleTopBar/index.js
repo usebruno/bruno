@@ -132,18 +132,15 @@ const ResponseExampleTopBar = ({
 
             <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
               <Button
-                variant="outline"
                 color="secondary"
-                size="sm"
                 onClick={handleCancel}
                 data-testid="response-example-cancel-btn"
               >
                 Cancel
               </Button>
               <Button
-                variant="filled"
                 color="primary"
-                size="sm"
+                style={{ padding: '6px 12px' }}
                 icon={<IconDeviceFloppy size={16} />}
                 onClick={handleSave}
                 data-testid="response-example-save-btn"
@@ -184,7 +181,6 @@ const ResponseExampleTopBar = ({
 
           <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
             <Button
-              variant="outline"
               color="secondary"
               size="sm"
               icon={<IconCode size={16} color={theme.examples.buttonIconColor} />}
@@ -193,7 +189,6 @@ const ResponseExampleTopBar = ({
               data-testid="response-example-generate-code-btn"
             />
             <Button
-              variant="outline"
               color="secondary"
               size="sm"
               icon={<IconEdit size={16} color={theme.examples.buttonIconColor} />}
