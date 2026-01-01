@@ -4,6 +4,7 @@ const fsExtra = require('fs-extra');
 const archiver = require('archiver');
 const extractZip = require('extract-zip');
 const { ipcMain, dialog } = require('electron');
+const isDev = require('electron-is-dev');
 const { createDirectory, sanitizeName } = require('../utils/filesystem');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
@@ -609,11 +610,22 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  // Guard to prevent main:renderer-ready from running multiple times (only needed in dev mode due to strict mode)
+  let rendererReadyProcessed = false;
+
   ipcMain.on('main:renderer-ready', async (win) => {
+    if (isDev && rendererReadyProcessed) {
+      return;
+    }
+    rendererReadyProcessed = true;
+
     try {
+      let defaultWorkspacePath = null;
+
       const defaultResult = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
       if (defaultResult) {
         const { workspacePath, workspaceUid } = defaultResult;
+        defaultWorkspacePath = workspacePath;
         const workspaceConfig = readWorkspaceConfig(workspacePath);
         const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, true);
 
@@ -628,6 +640,10 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const invalidPaths = [];
 
       for (const workspacePath of workspacePaths) {
+        if (defaultWorkspacePath && workspacePath === defaultWorkspacePath) {
+          continue;
+        }
+
         const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
 
         if (fs.existsSync(workspaceYmlPath)) {
