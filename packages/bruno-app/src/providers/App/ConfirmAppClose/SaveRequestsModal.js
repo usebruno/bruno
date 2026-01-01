@@ -135,13 +135,13 @@ const SaveRequestsModal = ({ onClose }) => {
       <ul className="mt-4">
         {allDrafts.slice(0, MAX_UNSAVED_ITEMS_TO_SHOW).map((item, index) => {
           const prefix
-            = item.type === 'collection'
+            = item.draftType === 'collection'
               ? 'Collection: '
-              : item.type === 'folder'
+              : item.draftType === 'folder'
                 ? 'Folder: '
                 : 'Request: ';
           return (
-            <li key={`${item.type}-${item.collectionUid || item.uid}-${index}`} className="mt-1 text-xs">
+            <li key={`${item.draftType}-${item.collectionUid || item.uid}-${index}`} className="mt-1 text-xs">
               {prefix}
               {item.name || item.filename}
             </li>
