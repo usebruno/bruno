@@ -318,12 +318,12 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.console.messageColor} !important;
       height: 100% !important;
       max-height: 400px !important;
+      padding: 0.5rem !important;
       
       .network-logs-pre {
         color: ${(props) => props.theme.console.messageColor} !important;
         font-size: ${(props) => props.theme.font.size.xs} !important;
         line-height: 1.4 !important;
-        padding: 12px !important;
       }
     }
   }
