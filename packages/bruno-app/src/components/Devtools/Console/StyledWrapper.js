@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   width: 100%;
@@ -334,10 +335,44 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
     font-size: 10px;
     font-weight: 500;
-    color: white;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     min-width: 45px;
+    &.get {
+      color: ${(props) => props.theme.request.methods.get};
+      background: ${(props) => rgba(props.theme.request.methods.get, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.get, 0.2)};
+    }
+    &.post {
+      color: ${(props) => props.theme.request.methods.post};
+      background: ${(props) => rgba(props.theme.request.methods.post, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.post, 0.2)};
+    }
+    &.put {
+      color: ${(props) => props.theme.request.methods.put};
+      background: ${(props) => rgba(props.theme.request.methods.put, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.put, 0.2)};
+    }
+    &.delete {
+      color: ${(props) => props.theme.request.methods.delete};
+      background: ${(props) => rgba(props.theme.request.methods.delete, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.delete, 0.2)};
+    }
+    &.patch {
+      color: ${(props) => props.theme.request.methods.patch};
+      background: ${(props) => rgba(props.theme.request.methods.patch, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.patch, 0.2)};
+    }
+    &.head {
+      color: ${(props) => props.theme.request.methods.head};
+      background: ${(props) => rgba(props.theme.request.methods.head, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.head, 0.2)};
+    }
+    &.options {
+      color: ${(props) => props.theme.request.methods.options};
+      background: ${(props) => rgba(props.theme.request.methods.options, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.options, 0.2)};
+    }
   }
 
   .log-entry {

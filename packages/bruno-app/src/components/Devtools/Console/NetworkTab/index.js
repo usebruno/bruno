@@ -13,24 +13,10 @@ import {
 import StyledWrapper from './StyledWrapper';
 
 const MethodBadge = ({ method }) => {
-  const getMethodColor = (method) => {
-    switch (method?.toUpperCase()) {
-      case 'GET': return '#10b981';
-      case 'POST': return '#8b5cf6';
-      case 'PUT': return '#f59e0b';
-      case 'DELETE': return '#ef4444';
-      case 'PATCH': return '#06b6d4';
-      case 'HEAD': return '#6b7280';
-      case 'OPTIONS': return '#84cc16';
-      default: return '#6b7280';
-    }
-  };
+  const methodLower = method?.toLowerCase() || 'get';
 
   return (
-    <span
-      className="method-badge"
-      style={{ backgroundColor: getMethodColor(method) }}
-    >
+    <span className={`method-badge ${methodLower}`}>
       {method?.toUpperCase() || 'GET'}
     </span>
   );
