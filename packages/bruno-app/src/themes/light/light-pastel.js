@@ -431,7 +431,7 @@ const lightPastelTheme = {
   console: {
     bg: colors.GRAY_1,
     headerBg: colors.GRAY_1,
-    contentBg: colors.WHITE,
+    contentBg: colors.BACKGROUND,
     border: colors.GRAY_3,
     titleColor: colors.TEXT,
     countColor: colors.TEXT_MUTED,
@@ -444,7 +444,7 @@ const lightPastelTheme = {
     logHoverBg: colors.GRAY_1,
     resizeHandleHover: colors.BRAND,
     resizeHandleActive: colors.BRAND,
-    dropdownBg: colors.WHITE,
+    dropdownBg: colors.BACKGROUND,
     dropdownHeaderBg: colors.GRAY_1,
     optionHoverBg: colors.GRAY_1,
     optionLabelColor: colors.TEXT,

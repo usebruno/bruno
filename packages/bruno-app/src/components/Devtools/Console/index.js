@@ -228,9 +228,6 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
                   onChange={(e) => onFilterToggle(method, e.target.checked)}
                 />
                 <div className="filter-option-content">
-                  <span className={`method-badge ${method?.toLowerCase() || 'get'}`}>
-                    {method}
-                  </span>
                   <span className="filter-option-label">{method}</span>
                   <span className="filter-option-count">({requestCounts[method] || 0})</span>
                 </div>

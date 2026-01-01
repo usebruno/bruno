@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   width: 100%;
@@ -14,7 +13,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 8px;
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     flex-shrink: 0;
@@ -31,7 +30,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 4px 8px;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
@@ -39,8 +38,6 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: ${(props) => props.theme.font.size.sm};
-    font-weight: 500;
-    border-radius: 4px 4px 0 0;
 
     &:hover {
       background: ${(props) => props.theme.console.buttonHoverBg};
@@ -48,9 +45,9 @@ const StyledWrapper = styled.div`
     }
 
     &.active {
-      color: ${(props) => props.theme.console.checkboxColor};
-      border-bottom-color: ${(props) => props.theme.console.checkboxColor};
-      background: ${(props) => props.theme.console.contentBg};
+      color: ${(props) => props.theme.primary.strong};
+      border-bottom-color: ${(props) => props.theme.primary.strong};
+      background: ${(props) => props.theme.background.mantle};
     }
   }
 
@@ -145,9 +142,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-right: 8px;
-    padding-right: 8px;
-    border-right: 1px solid ${(props) => props.theme.console.border};
   }
 
   .action-controls {
@@ -160,23 +154,21 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: ${(props) => props.theme.console.buttonColor};
+    color: ${(props) => props.theme.text};
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-      background: ${(props) => props.theme.console.buttonHoverBg};
-      color: ${(props) => props.theme.console.buttonHoverColor};
+      background: ${(props) => props.theme.background.surface0};
     }
 
     &.close-button:hover {
-      background: #e81123;
-      color: white;
+      background: ${(props) => props.theme.background.surface0};
     }
   }
 
@@ -188,19 +180,17 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 8px;
+    padding: 2px 8px;
     background: transparent;
-    border: 1px solid ${(props) => props.theme.console.border};
-    border-radius: 4px;
-    color: ${(props) => props.theme.console.buttonColor};
+    border: 1px solid ${(props) => props.theme.border.border0};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    color: ${(props) => props.theme.text};
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: ${(props) => props.theme.font.size.sm};
 
     &:hover {
-      background: ${(props) => props.theme.console.buttonHoverBg};
-      color: ${(props) => props.theme.console.buttonHoverColor};
-      border-color: ${(props) => props.theme.console.border};
+      background: ${(props) => props.theme.background.surface0};
     }
 
     .filter-summary {
@@ -233,7 +223,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 4px 12px;
     background: ${(props) => props.theme.console.dropdownHeaderBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     font-size: ${(props) => props.theme.font.size.sm};
@@ -264,7 +254,7 @@ const StyledWrapper = styled.div`
   .filter-option {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 4px 12px;
     cursor: pointer;
     transition: background-color 0.2s ease;
 
@@ -325,54 +315,6 @@ const StyledWrapper = styled.div`
 
   .logs-container {
     padding: 8px 0;
-  }
-    
-  .method-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    min-width: 45px;
-    &.get {
-      color: ${(props) => props.theme.request.methods.get};
-      background: ${(props) => rgba(props.theme.request.methods.get, 0.1)};
-      border: 1px solid ${(props) => rgba(props.theme.request.methods.get, 0.2)};
-    }
-    &.post {
-      color: ${(props) => props.theme.request.methods.post};
-      background: ${(props) => rgba(props.theme.request.methods.post, 0.1)};
-      border: 1px solid ${(props) => rgba(props.theme.request.methods.post, 0.2)};
-    }
-    &.put {
-      color: ${(props) => props.theme.request.methods.put};
-      background: ${(props) => rgba(props.theme.request.methods.put, 0.1)};
-      border: 1px solid ${(props) => rgba(props.theme.request.methods.put, 0.2)};
-    }
-    &.delete {
-      color: ${(props) => props.theme.request.methods.delete};
-      background: ${(props) => rgba(props.theme.request.methods.delete, 0.1)};
-      border: 1px solid ${(props) => rgba(props.theme.request.methods.delete, 0.2)};
-    }
-    &.patch {
-      color: ${(props) => props.theme.request.methods.patch};
-      background: ${(props) => rgba(props.theme.request.methods.patch, 0.1)};
-      border: 1px solid ${(props) => rgba(props.theme.request.methods.patch, 0.2)};
-    }
-    &.head {
-      color: ${(props) => props.theme.request.methods.head};
-      background: ${(props) => rgba(props.theme.request.methods.head, 0.1)};
-      border: 1px solid ${(props) => rgba(props.theme.request.methods.head, 0.2)};
-    }
-    &.options {
-      color: ${(props) => props.theme.request.methods.options};
-      background: ${(props) => rgba(props.theme.request.methods.options, 0.1)};
-      border: 1px solid ${(props) => rgba(props.theme.request.methods.options, 0.2)};
-    }
   }
 
   .log-entry {
