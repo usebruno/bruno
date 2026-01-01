@@ -10,42 +10,46 @@ import { ThemeProvider as SCThemeProvider } from 'styled-components';
 
 const validator = new Validator();
 
+// Helper: Get effective theme ('light' or 'dark') based on storedTheme
+const getEffectiveTheme = (storedTheme) => {
+  if (storedTheme === 'system') {
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  return storedTheme;
+};
+
+// Helper: Apply theme class to root element
+const applyThemeToRoot = (theme) => {
+  const root = window.document.documentElement;
+  root.classList.remove('light', 'dark');
+  root.classList.add(theme);
+};
+
 export const ThemeContext = createContext();
 export const ThemeProvider = (props) => {
-  const isBrowserThemeLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-  const [displayedTheme, setDisplayedTheme] = useState(isBrowserThemeLight ? 'light' : 'dark');
   const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', 'system');
+  const [displayedTheme, setDisplayedTheme] = useState(() => getEffectiveTheme(storedTheme));
   const [themeVariantLight, setThemeVariantLight] = useLocalStorage('bruno.themeVariantLight', 'light');
   const [themeVariantDark, setThemeVariantDark] = useLocalStorage('bruno.themeVariantDark', 'dark');
-  const toggleHtml = () => {
-    const html = document.querySelector('html');
-    if (html) {
-      html.classList.toggle('dark');
-    }
-  };
 
+  // Listen for system theme changes (only affects 'system' mode)
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
     const handleChange = (e) => {
       if (storedTheme !== 'system') return;
-      setDisplayedTheme(e.matches ? 'light' : 'dark');
-      toggleHtml();
+      const newTheme = e.matches ? 'light' : 'dark';
+      setDisplayedTheme(newTheme);
+      applyThemeToRoot(newTheme);
     };
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [storedTheme]);
 
+  // Apply theme when storedTheme changes
   useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-    if (storedTheme === 'system') {
-      const isBrowserThemeLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-      setDisplayedTheme(isBrowserThemeLight ? 'light' : 'dark');
-      root.classList.add(isBrowserThemeLight ? 'light' : 'dark');
-    } else {
-      setDisplayedTheme(storedTheme);
-      root.classList.add(storedTheme);
-    }
+    const effectiveTheme = getEffectiveTheme(storedTheme);
+    setDisplayedTheme(effectiveTheme);
+    applyThemeToRoot(effectiveTheme);
 
     if (window.ipcRenderer) {
       window.ipcRenderer.send('renderer:theme-change', storedTheme);
@@ -55,9 +59,9 @@ export const ThemeProvider = (props) => {
   // storedTheme can have 3 values: 'light', 'dark', 'system'
   // displayedTheme can have 2 values: 'light', 'dark'
 
-  // Get the appropriate variant based on the current display mode
+  // Compute theme object directly from storedTheme to avoid race conditions
   const theme = useMemo(() => {
-    const isLightMode = displayedTheme === 'light';
+    const isLightMode = getEffectiveTheme(storedTheme) === 'light';
     const variantName = isLightMode ? themeVariantLight : themeVariantDark;
     const fallbackTheme = isLightMode ? themes.light : themes.dark;
     const fallbackName = isLightMode ? 'light' : 'dark';
@@ -88,7 +92,7 @@ export const ThemeProvider = (props) => {
     }
 
     return selectedTheme;
-  }, [displayedTheme, themeVariantLight, themeVariantDark]);
+  }, [storedTheme, themeVariantLight, themeVariantDark]);
 
   const value = {
     theme,
