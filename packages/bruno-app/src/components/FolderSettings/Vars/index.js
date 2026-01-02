@@ -14,11 +14,11 @@ const Vars = ({ collection, folder }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1">
+      <div>
         <div className="mb-3 title text-xs">Pre Request</div>
         <VarsTable folder={folder} collection={collection} vars={requestVars} varType="request" />
       </div>
-      <div className="flex-1">
+      <div>
         <div className="mt-3 mb-3 title text-xs">Post Response</div>
         <VarsTable folder={folder} collection={collection} vars={responseVars} varType="response" />
       </div>
