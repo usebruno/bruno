@@ -3,8 +3,12 @@ import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import { createPortal } from 'react-dom';
 import Button from 'ui/Button';
+import { useTheme } from 'providers/Theme';
 
 const ConfirmSwitchEnv = ({ onCancel }) => {
+  const { theme } = useTheme();
+  const warningColor = theme.status.warning.text;
+
   const modalContent = (
     <Modal
       size="md"
@@ -20,7 +24,7 @@ const ConfirmSwitchEnv = ({ onCancel }) => {
       hideFooter={true}
     >
       <div className="flex items-center font-normal">
-        <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
+        <IconAlertTriangle color={warningColor} size={32} strokeWidth={1.5} />
         <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
       </div>
       <div className="font-normal mt-4">You have unsaved changes in this environment.</div>

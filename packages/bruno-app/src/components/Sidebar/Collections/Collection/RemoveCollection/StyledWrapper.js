@@ -21,6 +21,9 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
     word-break: break-all;
   }
+  .warning-icon {
+    color: ${(props) => props.theme.status.warning.text};
+  }
 `;
 
 export default StyledWrapper;

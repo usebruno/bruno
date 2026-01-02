@@ -40,6 +40,10 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
+  .error {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
+
   .response-filter {
     position: absolute;
     bottom: 0;
