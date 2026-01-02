@@ -7,7 +7,7 @@ import { useTheme } from 'providers/Theme';
 
 const ConfirmSwitchEnv = ({ onCancel }) => {
   const { theme } = useTheme();
-  const warningColor = theme.button2.color.warning.bg;
+  const warningColor = theme.status.warning.text;
 
   const modalContent = (
     <Modal
