@@ -126,7 +126,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     'text/xml',
     'application/xml'
   ];
-  console.log('Theme', theme);
 
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
