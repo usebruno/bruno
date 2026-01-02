@@ -77,7 +77,7 @@ const StyledWrapper = styled.div`
 
     &--active {
       color: ${(props) => props.theme.tabs.active.color};
-      
+
       &:after {
         content: '';
         position: absolute;
@@ -104,7 +104,7 @@ const StyledWrapper = styled.div`
     .section-header {
       cursor: pointer;
       pre {
-        color: ${(props) => rgba(props.theme.primary.solid, 0.8)};
+        color: ${(props) => rgba(props.theme.primary.text, 0.8)};
       }
     }
   }

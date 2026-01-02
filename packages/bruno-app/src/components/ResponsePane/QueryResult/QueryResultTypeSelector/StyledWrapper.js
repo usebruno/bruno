@@ -19,7 +19,7 @@ const StyledWrapper = styled.div`
   }
 
   .active {
-    color: ${(props) => props.theme.colors.text.yellow};
+    color: ${(props) => props.theme.primary.text};
   }
 
   .icon-muted {

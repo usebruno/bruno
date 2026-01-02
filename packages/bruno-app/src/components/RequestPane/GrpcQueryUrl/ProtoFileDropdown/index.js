@@ -150,7 +150,7 @@ const ProtoFileDropdown = ({
               <div className="proto-file-dropdown-mode-controls">
                 <span>Mode</span>
                 <div className="proto-file-dropdown-mode-options">
-                  <span className={`proto-file-dropdown-mode-option ${!isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: !isReflectionMode ? theme.primary.solid : undefined }}>
+                  <span className={`proto-file-dropdown-mode-option ${!isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: !isReflectionMode ? theme.primary.text : undefined }}>
                     Proto File
                   </span>
                   <ToggleSwitch
@@ -159,7 +159,7 @@ const ProtoFileDropdown = ({
                     size="2xs"
                     activeColor={theme.primary.solid}
                   />
-                  <span className={`proto-file-dropdown-mode-option ${isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: isReflectionMode ? theme.primary.solid : undefined }}>
+                  <span className={`proto-file-dropdown-mode-option ${isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: isReflectionMode ? theme.primary.text : undefined }}>
                     Reflection
                   </span>
                 </div>

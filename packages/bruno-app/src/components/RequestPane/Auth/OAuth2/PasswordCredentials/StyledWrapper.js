@@ -7,7 +7,7 @@ const Wrapper = styled.div`
   }
 
   .oauth2-icon {
-    color: ${(props) => props.theme.primary.solid};
+    color: ${(props) => props.theme.primary.text};
   }
 
   label {
