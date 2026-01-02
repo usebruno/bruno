@@ -1,7 +1,7 @@
 // Catppuccin Mocha - Dark Theme (Original)
 // Based on https://catppuccin.com/palette/
 
-import { rgba } from 'polished';
+import { rgba, darken, lighten } from 'polished';
 
 const colors = {
   // Catppuccin Mocha Palette
@@ -208,11 +208,11 @@ const catppuccinMochaTheme = {
   dropdown: {
     color: colors.TEXT,
     iconColor: colors.SUBTEXT1,
-    bg: colors.SURFACE0,
+    bg: lighten(0.03, colors.BASE),
     hoverBg: 'rgba(108, 112, 134, 0.16)',
     shadow: 'none',
     border: rgba(colors.SURFACE1, 0.5),
-    separator: colors.SURFACE1,
+    separator: rgba(colors.SURFACE1, 0.5),
     selectedColor: colors.MAUVE,
     mutedText: colors.SUBTEXT0
   },

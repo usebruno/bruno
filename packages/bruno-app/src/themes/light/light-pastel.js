@@ -192,7 +192,7 @@ const lightPastelTheme = {
     collection: {
       item: {
         bg: colors.GRAY_2,
-        hoverBg: colors.GRAY_3,
+        hoverBg: rgba(colors.GRAY_3, 0.5),
         focusBorder: colors.BRAND,
         indentBorder: `solid 1px ${colors.GRAY_4}`,
         active: {

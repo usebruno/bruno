@@ -8,8 +8,9 @@ const StyledWrapper = styled.div`
     height: 325px;
     padding: 8px;
     background: ${(props) => props.theme.dropdown.bg};
+    border: 1px solid ${(props) => props.theme.dropdown.border};
     border-radius: 6px;
-    box-shadow: 0px 1px 4px 0px #0000000D;
+    box-shadow: ${(props) => props.theme.dropdown.shadow};
     outline: none;
 
     &.two-columns {

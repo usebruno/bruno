@@ -220,7 +220,7 @@ const darkTheme = {
     collection: {
       item: {
         bg: palette.background.SURFACE0,
-        hoverBg: palette.background.SURFACE0,
+        hoverBg: palette.background.MANTLE,
         focusBorder: palette.border.BORDER2,
         indentBorder: `solid 1px ${palette.border.BORDER1}`,
         active: {
@@ -240,8 +240,8 @@ const darkTheme = {
   dropdown: {
     color: palette.text.BASE,
     iconColor: palette.text.SUBTEXT2,
-    bg: palette.background.MANTLE,
-    hoverBg: palette.background.SURFACE1,
+    bg: palette.background.CRUST,
+    hoverBg: palette.background.MANTLE,
     shadow: 'none',
     border: palette.border.BORDER1,
     separator: palette.border.BORDER1,
