@@ -141,7 +141,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
     const contentWidth = Math.min(method.length + 1, 16);
     // Use previous method width as minimum, content-based width as current
     const minWidthPx = previousMethodWidth ? `${previousMethodWidth}px` : '5ch';
-    // Use calc to add padding space (px-3 = 0.5rem * 2 = 1rem) to the ch width
+    // Use calc to add padding space (px-2 = 0.5rem per side = 1rem total) to the ch width
     const currentWidth = `calc(${Math.max(contentWidth, 1)}ch + 1rem)`;
 
     return (

@@ -42,7 +42,7 @@ const colors = {
 export const palette = {};
 
 palette.intent = {
-  INFO: '#525252',
+  INFO: '#737373',
   SUCCESS: '#525252',
   WARNING: '#666666',
   DANGER: '#404040'

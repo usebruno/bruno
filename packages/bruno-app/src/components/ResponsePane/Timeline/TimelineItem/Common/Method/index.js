@@ -10,7 +10,7 @@ const Method = ({ method }) => {
   }, [method, theme]);
 
   return (
-    <span className="font-medium" style={{ color: methodColor, fontSize: theme.font.size.xs }}>
+    <span className="font-medium uppercase" style={{ color: methodColor, fontSize: theme.font.size.xs }}>
       {method}
     </span>
   );

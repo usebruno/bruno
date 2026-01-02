@@ -36,10 +36,10 @@ export const RelativeTime = ({ timestamp }) => {
 
   return (
     <span
-      className="text-xs"
       title={new Date(timestamp).toLocaleString()}
       style={{
-        fontSize: theme.font.size.xs
+        fontSize: theme.font.size.xs,
+        color: theme.colors.text.muted
       }}
     >
       {relativeTime}

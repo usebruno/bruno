@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTheme } from 'providers/Theme';
 import Network from './Network/index';
 import Request from './Request/index';
 import Response from './Response/index';
@@ -8,6 +9,7 @@ import { RelativeTime } from './Common/Time/index';
 import StyledWrapper from './StyledWrapper';
 
 const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
+  const { theme } = useTheme();
   const [isCollapsed, _toggleCollapse] = useState(false);
   const [activeTab, setActiveTab] = useState('request');
   const toggleCollapse = () => _toggleCollapse((prev) => !prev);
@@ -23,10 +25,10 @@ const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2
           <div className="flex items-center gap-1">
             <Method method={method} />
             <div className="truncate flex-1 min-w-0">{url}</div>
+            {isOauth2 && <span className="text-xs flex-shrink-0" style={{ color: theme.colors.text.muted }}>[oauth2.0]</span>}
           </div>
-          {isOauth2 && <span className="opacity-50 text-xs flex-shrink-0">[oauth2.0]</span>}
           {!hideTimestamp && (
-            <span className="text-gray-400 text-xs flex-shrink-0 ml-auto">
+            <span className="flex-shrink-0 ml-auto">
               <RelativeTime timestamp={timestamp} />
             </span>
           )}
