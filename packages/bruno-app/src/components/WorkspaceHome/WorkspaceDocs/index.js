@@ -7,7 +7,7 @@ import { saveWorkspaceDocs } from 'providers/ReduxStore/slices/workspaces/action
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconFileText, IconEdit, IconX } from '@tabler/icons';
+import { IconFileText, IconEdit, IconX, IconPlus } from '@tabler/icons';
 import Button from 'ui/Button';
 import toast from 'react-hot-toast';
 import ActionIcon from 'ui/ActionIcon/index';
@@ -103,7 +103,7 @@ const WorkspaceDocs = ({ workspace }) => {
         ) : (
           <div className="empty-state">
             <div className="empty-icon-wrapper">
-              <IconFileText size={28} strokeWidth={1} />
+              <IconFileText size={52} strokeWidth={1} />
             </div>
             <p className="empty-text">
               Add documentation to help your team work smoothly.
@@ -115,7 +115,7 @@ const WorkspaceDocs = ({ workspace }) => {
               <li>Key workflows</li>
               <li>Resources & FAQs</li>
             </ul>
-            <Button color="secondary" size="md" onClick={handleAddDocumentation}>
+            <Button color="light" size="sm" icon={<IconPlus size={14} strokeWidth={1.5} />} onClick={handleAddDocumentation}>
               Add Documentation
             </Button>
           </div>

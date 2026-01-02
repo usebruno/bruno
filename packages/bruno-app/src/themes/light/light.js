@@ -89,6 +89,7 @@ const lightTheme = {
   brand: palette.primary.SOLID,
   text: palette.text.BASE,
   textLink: palette.hues.BLUE,
+  draftColor: '#cc7b1b',
   bg: palette.background.BASE,
 
   primary: {
@@ -356,10 +357,15 @@ const lightTheme = {
         text: palette.utility.WHITE,
         border: palette.primary.SOLID
       },
-      secondary: {
+      light: {
         bg: rgba(palette.primary.SOLID, 0.08),
         text: palette.primary.SOLID,
         border: rgba(palette.primary.SOLID, 0.06)
+      },
+      secondary: {
+        bg: palette.background.MANTLE,
+        border: palette.border.BORDER2,
+        text: palette.text.BASE
       },
       success: {
         bg: palette.hues.GREEN,

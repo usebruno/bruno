@@ -65,6 +65,7 @@ const catppuccinLatteTheme = {
   brand: colors.MAUVE,
   text: colors.TEXT,
   textLink: colors.BLUE,
+  draftColor: '#cc7b1b',
   bg: colors.BASE,
 
   primary: {
@@ -332,10 +333,15 @@ const catppuccinLatteTheme = {
         text: colors.BASE,
         border: colors.MAUVE
       },
-      secondary: {
+      light: {
         bg: rgba(colors.MAUVE, 0.08),
         text: colors.MAUVE,
         border: rgba(colors.MAUVE, 0.06)
+      },
+      secondary: {
+        bg: colors.SURFACE1,
+        text: colors.TEXT,
+        border: colors.SURFACE2
       },
       success: {
         bg: colors.GREEN,

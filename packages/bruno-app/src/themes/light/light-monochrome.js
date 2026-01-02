@@ -53,6 +53,7 @@ const lightMonochromeTheme = {
   brand: colors.BRAND,
   text: colors.TEXT,
   textLink: colors.TEXT_LINK,
+  draftColor: '#8a8a8a',
   bg: colors.BACKGROUND,
 
   primary: {
@@ -320,10 +321,15 @@ const lightMonochromeTheme = {
         text: '#fff',
         border: colors.BRAND
       },
-      secondary: {
+      light: {
         bg: rgba(colors.TEXT, 0.08),
         text: colors.TEXT,
         border: rgba(colors.TEXT, 0.06)
+      },
+      secondary: {
+        bg: '#e5e7eb',
+        text: colors.TEXT,
+        border: '#d1d5db'
       },
       success: {
         bg: '#525252',

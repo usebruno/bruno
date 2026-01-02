@@ -25,6 +25,8 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
         </div>
         <IconRefresh size={24} className="loading-icon" />
         <Button
+          color="secondary"
+          size="sm"
           onClick={handleCancelRequest}
           className="mt-4"
         >

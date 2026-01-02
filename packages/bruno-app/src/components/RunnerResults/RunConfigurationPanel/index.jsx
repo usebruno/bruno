@@ -14,6 +14,32 @@ const ItemTypes = {
   REQUEST_ITEM: 'request-item'
 };
 
+const getMethodInfo = (item) => {
+  const isGrpc = item.type === 'grpc-request';
+  const isWS = item.type === 'ws-request';
+  const isGraphQL = item.type === 'graphql-request';
+
+  let methodText;
+  let methodClass;
+
+  if (isGrpc) {
+    methodText = 'GRPC';
+    methodClass = 'method-grpc';
+  } else if (isWS) {
+    methodText = 'WS';
+    methodClass = 'method-ws';
+  } else if (isGraphQL) {
+    methodText = 'GQL';
+    methodClass = 'method-gql';
+  } else {
+    const method = item.request?.method || '';
+    methodText = method.length > 5 ? method.substring(0, 3).toUpperCase() : method.toUpperCase();
+    methodClass = `method-${method.toLowerCase()}`;
+  }
+
+  return { methodText, methodClass };
+};
+
 const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) => {
   const ref = useRef(null);
   const [dropType, setDropType] = useState(null);
@@ -111,8 +137,8 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
         </div>
       </div>
 
-      <div className={`method method-${item.request?.method.toLowerCase()}`}>
-        {item.request?.method.toUpperCase()}
+      <div className={`method ${getMethodInfo(item).methodClass}`}>
+        {getMethodInfo(item).methodText}
       </div>
 
       <div className="request-name">

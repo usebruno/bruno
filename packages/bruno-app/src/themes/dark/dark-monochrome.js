@@ -52,6 +52,7 @@ const darkMonochromeTheme = {
   brand: colors.BRAND,
   text: colors.TEXT,
   textLink: colors.TEXT_LINK,
+  draftColor: '#8a8a8a',
   bg: colors.BG,
 
   primary: {
@@ -321,10 +322,15 @@ const darkMonochromeTheme = {
         text: colors.BLACK,
         border: colors.BRAND
       },
-      secondary: {
+      light: {
         bg: rgba(colors.TEXT, 0.08),
         text: colors.TEXT,
         border: rgba(colors.TEXT, 0.06)
+      },
+      secondary: {
+        bg: colors.BG,
+        text: colors.TEXT,
+        border: colors.GRAY_5
       },
       success: {
         bg: '#666666',

@@ -73,6 +73,7 @@ const darkPastelTheme = {
   brand: colors.BRAND,
   text: colors.TEXT,
   textLink: colors.TEXT_LINK,
+  draftColor: '#cc7b1b',
   bg: colors.BG,
 
   primary: {
@@ -338,10 +339,15 @@ const darkPastelTheme = {
         text: colors.BLACK,
         border: colors.BRAND
       },
-      secondary: {
+      light: {
         bg: rgba(colors.BRAND, 0.08),
         text: colors.BRAND,
         border: rgba(colors.BRAND, 0.06)
+      },
+      secondary: {
+        bg: colors.GRAY_4,
+        text: colors.TEXT,
+        border: colors.GRAY_5
       },
       success: {
         bg: colors.GREEN,
