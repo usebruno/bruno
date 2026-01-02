@@ -1,6 +1,8 @@
 // Catppuccin Latte - Light Theme
 // Based on https://catppuccin.com/palette/
 
+import { rgba } from 'polished';
+
 const colors = {
   // Catppuccin Latte Palette
   ROSEWATER: '#dc8a78',
@@ -299,9 +301,9 @@ const catppuccinLatteTheme = {
         border: colors.MAUVE
       },
       secondary: {
-        bg: colors.SURFACE1,
-        text: colors.TEXT,
-        border: colors.SURFACE2
+        bg: rgba(colors.MAUVE, 0.08),
+        text: colors.MAUVE,
+        border: rgba(colors.MAUVE, 0.06)
       },
       success: {
         bg: colors.GREEN,

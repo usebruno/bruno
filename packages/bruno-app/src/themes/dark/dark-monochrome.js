@@ -1,3 +1,5 @@
+import { rgba } from 'polished';
+
 const colors = {
   BRAND: '#a3a3a3',
   TEXT: '#d4d4d4',
@@ -288,9 +290,9 @@ const darkMonochromeTheme = {
         border: colors.BRAND
       },
       secondary: {
-        bg: colors.BG,
+        bg: rgba(colors.TEXT, 0.08),
         text: colors.TEXT,
-        border: colors.GRAY_5
+        border: rgba(colors.TEXT, 0.06)
       },
       success: {
         bg: '#666666',

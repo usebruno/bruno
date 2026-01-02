@@ -1,3 +1,5 @@
+import { rgba } from 'polished';
+
 const colors = {
   BRAND: '#525252',
   TEXT: 'rgb(52, 52, 52)',
@@ -287,9 +289,9 @@ const lightMonochromeTheme = {
         border: colors.BRAND
       },
       secondary: {
-        bg: '#e5e7eb',
+        bg: rgba(colors.TEXT, 0.08),
         text: colors.TEXT,
-        border: '#d1d5db'
+        border: rgba(colors.TEXT, 0.06)
       },
       success: {
         bg: '#525252',

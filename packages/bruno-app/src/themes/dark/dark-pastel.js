@@ -5,6 +5,8 @@
  * Deep enough to be easy on the eyes, vibrant enough to inspire.
  */
 
+import { rgba } from 'polished';
+
 const colors = {
   // Primary palette - glowing pastels against deep purple-black
   BRAND: '#f0a6ca', // Soft rose - warm and inviting
@@ -305,9 +307,9 @@ const darkPastelTheme = {
         border: colors.BRAND
       },
       secondary: {
-        bg: colors.GRAY_4,
-        text: colors.TEXT,
-        border: colors.GRAY_5
+        bg: rgba(colors.BRAND, 0.08),
+        text: colors.BRAND,
+        border: rgba(colors.BRAND, 0.06)
       },
       success: {
         bg: colors.GREEN,

@@ -308,9 +308,9 @@ const vscodeLightTheme = {
         border: colors.BRAND
       },
       secondary: {
-        bg: colors.GRAY_3,
-        text: colors.TEXT,
-        border: colors.GRAY_4
+        bg: rgba(colors.BRAND, 0.08),
+        text: colors.BRAND,
+        border: rgba(colors.BRAND, 0.06)
       },
       success: {
         bg: colors.GREEN,

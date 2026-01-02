@@ -303,9 +303,9 @@ const catppuccinMochaTheme = {
         border: colors.MAUVE
       },
       secondary: {
-        bg: colors.SURFACE0,
-        text: colors.TEXT,
-        border: colors.SURFACE1
+        bg: rgba(colors.MAUVE, 0.08),
+        text: colors.MAUVE,
+        border: rgba(colors.MAUVE, 0.06)
       },
       success: {
         bg: colors.GREEN,
