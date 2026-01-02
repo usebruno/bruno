@@ -1,6 +1,5 @@
 // VS Code Dark+ Theme for Bruno
 // Based on the default Visual Studio Code Dark+ theme
-import { rgba } from 'polished';
 
 import { rgba } from 'polished';
 

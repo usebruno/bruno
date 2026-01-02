@@ -5,8 +5,6 @@
  */
 import { rgba } from 'polished';
 
-import { rgba } from 'polished';
-
 const colors = {
   // Primary palette - soft yet deep
   BRAND: '#d16c6c', // Dusty coral - warm but calm
