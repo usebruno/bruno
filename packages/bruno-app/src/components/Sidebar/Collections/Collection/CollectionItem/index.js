@@ -340,6 +340,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       });
     }
 
+    items.push(
+      {
+        id: 'rename',
+        leftSection: IconEdit,
+        label: 'Rename',
+        onClick: () => setRenameItemModalOpen(true)
+      }
+    );
     if (!isFolder && isItemARequest(item) && !(item.type === 'http-request' || item.type === 'graphql-request')) {
       items.push({
         id: 'run',
@@ -350,15 +358,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         }
       });
     }
-
-    items.push(
-      {
-        id: 'rename',
-        leftSection: IconEdit,
-        label: 'Rename',
-        onClick: () => setRenameItemModalOpen(true)
-      }
-    );
 
     if (!isFolder && (item.type === 'http-request' || item.type === 'graphql-request')) {
       items.push({
