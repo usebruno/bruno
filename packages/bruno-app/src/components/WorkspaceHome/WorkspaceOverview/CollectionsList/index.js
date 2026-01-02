@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconBox, IconTrash, IconEdit, IconShare, IconDots } from '@tabler/icons';
-import { removeCollectionFromWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { IconBox, IconTrash, IconEdit, IconShare, IconDots, IconX } from '@tabler/icons';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
-import Modal from 'components/Modal';
 import RenameCollection from 'components/Sidebar/Collections/Collection/RenameCollection';
+import RemoveCollection from 'components/Sidebar/Collections/Collection/RemoveCollection';
+import DeleteCollection from 'components/Sidebar/Collections/Collection/DeleteCollection';
 import ShareCollection from 'components/ShareCollection';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
@@ -17,8 +17,9 @@ const CollectionsList = ({ workspace }) => {
   const { collections } = useSelector((state) => state.collections);
   const dropdownRefs = useRef({});
 
-  const [collectionToRemove, setCollectionToRemove] = useState(null);
   const [renameCollectionModalOpen, setRenameCollectionModalOpen] = useState(false);
+  const [removeCollectionModalOpen, setRemoveCollectionModalOpen] = useState(false);
+  const [deleteCollectionModalOpen, setDeleteCollectionModalOpen] = useState(false);
   const [shareCollectionModalOpen, setShareCollectionModalOpen] = useState(false);
   const [selectedCollectionUid, setSelectedCollectionUid] = useState(null);
 
@@ -64,35 +65,6 @@ const CollectionsList = ({ workspace }) => {
       };
     });
   }, [workspace.collections, collections]);
-
-  const isInternalCollection = (collection) => {
-    if (!workspace.pathname || !collection.pathname) return false;
-    const workspaceCollectionsFolder = normalizePath(`${workspace.pathname}/collections`);
-    const collectionPath = normalizePath(collection.pathname);
-    return collectionPath.startsWith(workspaceCollectionsFolder);
-  };
-
-  const getCollectionWorkspaceInfo = (collection) => {
-    if (Object.prototype.hasOwnProperty.call(collection, 'isGitBacked')) {
-      return {
-        isGitBacked: collection.isGitBacked,
-        gitRemoteUrl: collection.gitRemoteUrl,
-        isLoaded: collection.isLoaded !== false,
-        isInternal: isInternalCollection(collection)
-      };
-    }
-
-    const workspaceCollection = workspace.collections?.find(
-      (wc) => normalizePath(collection.pathname) === normalizePath(wc.path)
-    );
-
-    return {
-      isGitBacked: !!workspaceCollection?.remote,
-      gitRemoteUrl: workspaceCollection?.remote,
-      isLoaded: true,
-      isInternal: isInternalCollection(collection)
-    };
-  };
 
   const handleOpenCollectionClick = (collection, event) => {
     if (event.target.closest('.collection-menu')) {
@@ -156,59 +128,22 @@ const CollectionsList = ({ workspace }) => {
 
   const handleRemoveCollection = (collection) => {
     dropdownRefs.current[collection.uid]?.hide();
-    setCollectionToRemove(collection);
-  };
-
-  const confirmRemoveCollection = async () => {
-    if (!collectionToRemove) return;
-
-    try {
-      const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
-      const isDelete = collectionInfo.isInternal && !collectionInfo.isGitBacked;
-
-      await dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collectionToRemove.pathname));
-
-      if (isDelete) {
-        toast.success(`Deleted "${collectionToRemove.name}" collection`);
-      } else {
-        toast.success(`Removed "${collectionToRemove.name}" from workspace`);
-      }
-
-      setCollectionToRemove(null);
-    } catch (error) {
-      console.error('Error removing collection:', error);
-      toast.error(error.message || 'Failed to remove collection from workspace');
+    if (collection.isLoaded === false) {
+      toast.error('Cannot remove collections that are not loaded');
+      return;
     }
+    setSelectedCollectionUid(collection.uid);
+    setRemoveCollectionModalOpen(true);
   };
 
-  const renderRemoveModal = () => {
-    if (!collectionToRemove) return null;
-
-    const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
-    const isDelete = collectionInfo.isInternal && !collectionInfo.isGitBacked;
-
-    return (
-      <Modal
-        size="sm"
-        title={isDelete ? 'Delete Collection' : 'Remove Collection'}
-        handleCancel={() => setCollectionToRemove(null)}
-        handleConfirm={confirmRemoveCollection}
-        confirmText={isDelete ? 'Delete' : 'Remove'}
-        cancelText="Cancel"
-        confirmButtonColor={isDelete ? 'warning' : 'primary'}
-        style="new"
-      >
-        <p className="text-gray-600 dark:text-gray-300">
-          Are you sure you want to {isDelete ? 'delete' : 'remove'}{' '}
-          <strong>"{collectionToRemove.name}"</strong>?
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-          {isDelete
-            ? 'This will permanently delete the collection files from the workspace collections folder.'
-            : 'This will remove the collection from the workspace. The collection files will not be deleted.'}
-        </p>
-      </Modal>
-    );
+  const handleDeleteCollection = (collection) => {
+    dropdownRefs.current[collection.uid]?.hide();
+    if (collection.isLoaded === false) {
+      toast.error('Cannot delete collections that are not loaded');
+      return;
+    }
+    setSelectedCollectionUid(collection.uid);
+    setDeleteCollectionModalOpen(true);
   };
 
   return (
@@ -223,6 +158,27 @@ const CollectionsList = ({ workspace }) => {
         />
       )}
 
+      {removeCollectionModalOpen && selectedCollectionUid && (
+        <RemoveCollection
+          collectionUid={selectedCollectionUid}
+          onClose={() => {
+            setRemoveCollectionModalOpen(false);
+            setSelectedCollectionUid(null);
+          }}
+        />
+      )}
+
+      {deleteCollectionModalOpen && selectedCollectionUid && (
+        <DeleteCollection
+          collectionUid={selectedCollectionUid}
+          workspaceUid={workspace.uid}
+          onClose={() => {
+            setDeleteCollectionModalOpen(false);
+            setSelectedCollectionUid(null);
+          }}
+        />
+      )}
+
       {shareCollectionModalOpen && selectedCollectionUid && (
         <ShareCollection
           collectionUid={selectedCollectionUid}
@@ -232,8 +188,6 @@ const CollectionsList = ({ workspace }) => {
           }}
         />
       )}
-
-      {renderRemoveModal()}
 
       <div className="collections-list">
         {workspaceCollections.length === 0 ? (
@@ -289,14 +243,24 @@ const CollectionsList = ({ workspace }) => {
                       <span>Share</span>
                     </div>
                     <div
-                      className="dropdown-item delete-item"
+                      className="dropdown-item"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveCollection(collection);
                       }}
                     >
-                      <IconTrash size={16} strokeWidth={1.5} />
+                      <IconX size={16} strokeWidth={1.5} />
                       <span>Remove</span>
+                    </div>
+                    <div
+                      className="dropdown-item delete-item"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCollection(collection);
+                      }}
+                    >
+                      <IconTrash size={16} strokeWidth={1.5} />
+                      <span>Delete</span>
                     </div>
                   </div>
                 </Dropdown>

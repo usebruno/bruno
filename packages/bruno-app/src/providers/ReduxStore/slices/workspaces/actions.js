@@ -122,9 +122,10 @@ export const openWorkspaceDialog = () => {
   };
 };
 
-export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath) => {
+export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath, options = {}) => {
   return async (dispatch, getState) => {
     try {
+      const { deleteFiles = false } = options;
       const workspacesState = getState().workspaces;
       const collectionsState = getState().collections;
       const workspace = workspacesState.workspaces.find((w) => w.uid === workspaceUid);
@@ -142,7 +143,8 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
       await ipcRenderer.invoke('renderer:remove-collection-from-workspace',
         workspaceUid,
         workspace.pathname,
-        collectionPath);
+        collectionPath,
+        { deleteFiles });
 
       if (collection) {
         const workspaceCollection = workspace.collections?.find(
