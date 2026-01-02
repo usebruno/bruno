@@ -367,7 +367,7 @@ const lightPastelTheme = {
     },
     secondary: {
       active: {
-        bg: colors.WHITE,
+        bg: colors.GRAY_2,
         color: colors.TEXT
       },
       inactive: {

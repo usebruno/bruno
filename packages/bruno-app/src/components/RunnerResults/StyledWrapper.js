@@ -2,7 +2,6 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .textbox {
-    border: 1px solid #ccc;
     padding: 0.2rem 0.5rem;
     box-shadow: none;
     border-radius: 0px;
@@ -49,6 +48,28 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
+  .text-muted {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .text-green {
+    color: ${(props) => props.theme.colors.text.green};
+  }
+
+  .text-subtext0 {
+    color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
+  .text-subtext1 {
+    color: ${(props) => props.theme.colors.text.subtext1};
+  }
+
+  .hover-bg-surface {
+    &:hover {
+      background-color: ${(props) => props.theme.background.surface1};
+    }
+  }
+
   .button-sm {
     font-size: ${(props) => props.theme.font.size.sm};
   }
@@ -60,7 +81,7 @@ const Wrapper = styled.div`
   .filter-bar {
     display: flex;
     align-items: stretch;
-    border-radius: ${(props) => props.theme.border.radius.lg};
+    border-radius: ${(props) => props.theme.border.radius.base};
     border: 1px solid ${(props) => props.theme.border.border0};
     max-height: 35px;
     flex-shrink: 0;
@@ -70,15 +91,15 @@ const Wrapper = styled.div`
       display: flex;
       align-items: center;
       padding: 0.5rem 0.75rem;
-      border-top-left-radius: ${(props) => props.theme.border.radius.lg};
-      border-bottom-left-radius: ${(props) => props.theme.border.radius.lg};
-      background-color: ${(props) => props.theme.background.surface0};
+      border-top-left-radius: ${(props) => props.theme.border.radius.base};
+      border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
+      background-color: ${(props) => props.theme.background.mantle};
 
       span {
         font-family: Inter, sans-serif;
         font-weight: 400;
         font-size: ${(props) => props.theme.font.size.sm};
-        color: ${(props) => props.theme.colors.text.subtext1};
+        color: ${(props) => props.theme.colors.text.text};
       }
     }
 
@@ -87,8 +108,8 @@ const Wrapper = styled.div`
       align-items: center;
       gap: 1.25rem;
       padding: 0.5rem 0.75rem 0 0.75rem;
-      border-top-right-radius: ${(props) => props.theme.border.radius.lg};
-      border-bottom-right-radius: ${(props) => props.theme.border.radius.lg};
+      border-top-right-radius: ${(props) => props.theme.border.radius.base};
+      border-bottom-right-radius: ${(props) => props.theme.border.radius.base};
       background: transparent;
     }
   }

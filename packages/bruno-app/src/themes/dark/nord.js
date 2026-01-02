@@ -373,7 +373,7 @@ const nordTheme = {
         color: colors.NORD4
       },
       inactive: {
-        bg: colors.NORD3,
+        bg: colors.NORD2,
         color: colors.NORD4
       }
     }

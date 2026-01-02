@@ -10,6 +10,7 @@ import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { isBrunoCollection } from 'utils/importers/bruno-collection';
 import { isOpenCollection } from 'utils/importers/opencollection';
 import FullscreenLoader from './FullscreenLoader/index';
+import { useTheme } from 'providers/Theme';
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
@@ -35,6 +36,7 @@ const convertFileToObject = async (file) => {
 };
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
+  const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
@@ -155,8 +157,9 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
               <p className="text-gray-600 dark:text-gray-300 mb-2">
                 Drop file to import or{' '}
                 <button
-                  className="text-blue-500 underline cursor-pointer"
+                  className="underline cursor-pointer"
                   onClick={handleBrowseFiles}
+                  style={{ color: theme.textLink }}
                 >
                   choose a file
                 </button>

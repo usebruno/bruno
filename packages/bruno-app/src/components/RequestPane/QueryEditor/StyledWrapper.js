@@ -60,10 +60,10 @@ const StyledWrapper = styled.div`
 
   /* Variable validation colors */
   .cm-variable-valid {
-    color: #5fad89 !important; /* Soft sage */
+    color: ${(props) => props.theme.codemirror.variable.valid};
   }
   .cm-variable-invalid {
-    color: #d17b7b !important; /* Soft coral */
+    color: ${(props) => props.theme.codemirror.variable.invalid};
   }
 
 

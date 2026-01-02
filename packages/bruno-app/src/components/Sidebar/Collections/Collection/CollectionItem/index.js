@@ -49,6 +49,7 @@ import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent a
 import { isEqual } from 'lodash';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
@@ -345,12 +346,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         leftSection: IconEdit,
         label: 'Rename',
         onClick: () => setRenameItemModalOpen(true)
-      },
-      {
-        id: 'show-in-folder',
-        leftSection: IconFolder,
-        label: 'Show in Folder',
-        onClick: handleShowInFolder
       }
     );
     if (!isFolder && isItemARequest(item) && !(item.type === 'http-request' || item.type === 'graphql-request')) {
@@ -381,6 +376,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onClick: () => setCreateExampleModalOpen(true)
       });
     }
+
+    items.push(
+      {
+        id: 'show-in-folder',
+        leftSection: IconFolder,
+        label: getRevealInFolderLabel(),
+        onClick: handleShowInFolder
+      }
+    );
 
     items.push({ id: 'separator-1', type: 'divider' });
 

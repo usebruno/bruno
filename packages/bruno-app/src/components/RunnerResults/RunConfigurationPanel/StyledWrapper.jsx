@@ -87,7 +87,7 @@ const StyledWrapper = styled.div`
       background-color: ${(props) => props.theme.sidebar.bg};
       border: 1px dashed ${(props) => props.theme.sidebar.dragbar};
       transform: scale(0.98);
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+      box-shadow: ${(props) => props.theme.shadow.md};
       z-index: 5;
     }
 

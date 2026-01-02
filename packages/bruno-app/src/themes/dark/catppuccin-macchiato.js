@@ -370,7 +370,7 @@ const catppuccinMacchiatoTheme = {
         color: colors.TEXT
       },
       inactive: {
-        bg: colors.SURFACE1,
+        bg: colors.SURFACE0,
         color: colors.SUBTEXT0
       }
     }

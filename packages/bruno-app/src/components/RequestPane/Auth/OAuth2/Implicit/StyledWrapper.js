@@ -7,7 +7,7 @@ const Wrapper = styled.div`
   }
 
   .oauth2-icon {
-    color: ${(props) => props.theme.primary.solid};
+    color: ${(props) => props.theme.primary.text};
   }
 
   label {
@@ -62,7 +62,7 @@ const Wrapper = styled.div`
       padding: 0.2rem 0.6rem !important;
     }
   }
-  
+
   .checkbox-label {
     color: ${(props) => props.theme.colors.text.primary};
     user-select: none;
