@@ -22,45 +22,53 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .cm-s-monokai span.cm-property,
-  .cm-s-monokai span.cm-attribute {
-    color: #9cdcfe !important;
+  .cm-s-default, .cm-s-monokai {
+    span.cm-def {
+      color: ${(props) => props.theme.codemirror.tokens.definition} !important;
+    }
+    span.cm-property {
+      color: ${(props) => props.theme.codemirror.tokens.property} !important;
+    }
+    span.cm-string {
+      color: ${(props) => props.theme.codemirror.tokens.string} !important;
+    }
+    span.cm-number {
+      color: ${(props) => props.theme.codemirror.tokens.number} !important;
+    }
+    span.cm-atom {
+      color: ${(props) => props.theme.codemirror.tokens.atom} !important;
+    }
+    span.cm-variable, span.cm-variable-2 {
+      color: ${(props) => props.theme.codemirror.tokens.variable} !important;
+    }
+    span.cm-keyword {
+      color: ${(props) => props.theme.codemirror.tokens.keyword} !important;
+    }
+    span.cm-comment {
+      color: ${(props) => props.theme.codemirror.tokens.comment} !important;
+    }
+    span.cm-operator {
+      color: ${(props) => props.theme.codemirror.tokens.operator} !important;
+    }
+    span.cm-tag {
+      color: ${(props) => props.theme.codemirror.tokens.tag} !important;
+    }
+    span.cm-tag.cm-bracket {
+      color: ${(props) => props.theme.codemirror.tokens.tagBracket} !important;
+    }
   }
 
-  .cm-s-monokai span.cm-property,
-  .cm-s-monokai span.cm-attribute {
-    color: #9cdcfe !important;
-  }
-
-  .cm-s-monokai span.cm-string {
-    color: #ce9178 !important;
-  }
-
-  .cm-s-monokai span.cm-number {
-    color: #b5cea8 !important;
-  }
-
-  .cm-s-monokai span.cm-atom {
-    color: #569cd6 !important;
-  }
-
+  /* Variable validation colors */
   .cm-variable-valid {
-    color: green;
+    color: #5fad89 !important; /* Soft sage */
   }
   .cm-variable-invalid {
-    color: red;
+    color: #d17b7b !important; /* Soft coral */
   }
+
 
   .CodeMirror-search-hint {
     display: inline;
-  }
-
-  .cm-s-default span.cm-property {
-    color: #1f61a0 !important;
-  }
-
-  .cm-s-default span.cm-variable {
-    color: #397d13 !important;
   }
 `;
 
