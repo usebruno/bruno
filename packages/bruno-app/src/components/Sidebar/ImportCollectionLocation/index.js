@@ -163,7 +163,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   return (
     <StyledWrapper>
       <Modal
-        size="sm"
+        size="md"
         title="Import Collection"
         confirmText="Import"
         handleConfirm={onSubmit}
