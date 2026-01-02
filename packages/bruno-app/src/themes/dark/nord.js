@@ -72,6 +72,7 @@ const nordTheme = {
   brand: colors.BRAND,
   text: colors.TEXT,
   textLink: colors.TEXT_LINK,
+  draftColor: '#cc7b1b',
   bg: colors.BG,
 
   primary: {
@@ -337,10 +338,15 @@ const nordTheme = {
         text: colors.NORD0,
         border: colors.BRAND
       },
-      secondary: {
+      light: {
         bg: rgba(colors.BRAND, 0.08),
         text: colors.BRAND,
         border: rgba(colors.BRAND, 0.06)
+      },
+      secondary: {
+        bg: colors.NORD1,
+        text: colors.NORD4,
+        border: colors.NORD3
       },
       success: {
         bg: colors.NORD14,

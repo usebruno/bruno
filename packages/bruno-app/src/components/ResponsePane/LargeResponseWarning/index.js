@@ -65,6 +65,7 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
           onClick={onRevealResponse}
           title="Show response content"
           color="secondary"
+          size="sm"
         >
           View
         </Button>
@@ -75,6 +76,7 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
           disabled={!response.dataBuffer}
           title="Save response to file"
           color="secondary"
+          size="sm"
         >
           Save
         </Button>
@@ -85,6 +87,7 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
           disabled={!response.data}
           title="Copy response to clipboard"
           color="secondary"
+          size="sm"
         >
           Copy
         </Button>

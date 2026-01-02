@@ -5,6 +5,7 @@ export const ossSchema = {
     brand: { type: 'string', description: 'Primary brand color' },
     text: { type: 'string', description: 'Default text color' },
     textLink: { type: 'string', description: 'Link text color' },
+    draftColor: { type: 'string', description: 'Color for draft/unsaved indicator' },
     bg: { type: 'string', description: 'Background color' },
 
     primary: {
@@ -525,6 +526,16 @@ export const ossSchema = {
               required: ['bg', 'text', 'border'],
               additionalProperties: false
             },
+            light: {
+              type: 'object',
+              properties: {
+                bg: { type: 'string' },
+                text: { type: 'string' },
+                border: { type: 'string' }
+              },
+              required: ['bg', 'text', 'border'],
+              additionalProperties: false
+            },
             secondary: {
               type: 'object',
               properties: {
@@ -566,7 +577,7 @@ export const ossSchema = {
               additionalProperties: false
             }
           },
-          required: ['primary', 'secondary', 'success', 'warning', 'danger'],
+          required: ['primary', 'light', 'secondary', 'success', 'warning', 'danger'],
           additionalProperties: false
         }
       },
@@ -1175,7 +1186,7 @@ export const ossSchema = {
     }
   },
   required: [
-    'mode', 'brand', 'text', 'textLink', 'bg', 'primary', 'accents', 'background', 'status', 'overlay', 'font', 'shadow', 'border', 'colors', 'input',
+    'mode', 'brand', 'text', 'textLink', 'draftColor', 'bg', 'primary', 'accents', 'background', 'status', 'overlay', 'font', 'shadow', 'border', 'colors', 'input',
     'sidebar', 'dropdown', 'workspace', 'request',
     'requestTabPanel', 'notifications', 'modal', 'button', 'button2', 'tabs',
     'requestTabs', 'codemirror', 'table', 'plainGrid', 'scrollbar', 'dragAndDrop',

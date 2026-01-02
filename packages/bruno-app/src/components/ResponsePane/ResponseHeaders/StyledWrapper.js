@@ -5,6 +5,7 @@ const Wrapper = styled.div`
     border: 1px solid ${(props) => props.theme.table.border};
     border-radius: 4px;
     overflow: hidden;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   table {
@@ -23,7 +24,7 @@ const Wrapper = styled.div`
 
     td {
       border: 1px solid ${(props) => props.theme.table.border};
-      padding: 6px 10px;
+      padding: 4px 8px;
 
       &:first-child {
         border-left: none;

@@ -65,6 +65,7 @@ const catppuccinMacchiatoTheme = {
   brand: colors.MAUVE,
   text: colors.TEXT,
   textLink: colors.BLUE,
+  draftColor: '#cc7b1b',
   bg: colors.BASE,
 
   primary: {
@@ -334,10 +335,15 @@ const catppuccinMacchiatoTheme = {
         text: colors.CRUST,
         border: colors.MAUVE
       },
-      secondary: {
+      light: {
         bg: rgba(colors.MAUVE, 0.08),
         text: colors.MAUVE,
         border: rgba(colors.MAUVE, 0.06)
+      },
+      secondary: {
+        bg: colors.SURFACE0,
+        text: colors.TEXT,
+        border: colors.SURFACE1
       },
       success: {
         bg: colors.GREEN,

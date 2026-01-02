@@ -412,7 +412,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             }}
           >
             <IconDeviceFloppy
-              color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
               strokeWidth={1.5}
               size={20}
               className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}

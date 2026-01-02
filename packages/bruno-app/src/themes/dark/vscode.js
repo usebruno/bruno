@@ -75,6 +75,7 @@ const vscodeDarkTheme = {
   brand: colors.BRAND,
   text: colors.TEXT,
   textLink: colors.TEXT_LINK,
+  draftColor: '#cc7b1b',
   bg: colors.EDITOR_BG,
 
   primary: {
@@ -340,10 +341,15 @@ const vscodeDarkTheme = {
         text: colors.WHITE,
         border: colors.BRAND
       },
-      secondary: {
+      light: {
         bg: rgba(colors.BRAND_TEXT, 0.08),
         text: colors.BRAND_TEXT,
         border: rgba(colors.BRAND_TEXT, 0.06)
+      },
+      secondary: {
+        bg: colors.GRAY_4,
+        text: colors.WHITE,
+        border: colors.GRAY_5
       },
       success: {
         bg: '#388a34',

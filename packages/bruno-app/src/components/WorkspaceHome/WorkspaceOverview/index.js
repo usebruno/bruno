@@ -109,7 +109,7 @@ const WorkspaceOverview = ({ workspace }) => {
             <div className="section-title">Quick Actions</div>
             <div className="quick-actions-buttons">
               <Button
-                color="secondary"
+                color="light"
                 size="sm"
                 icon={<IconPlus size={14} strokeWidth={1.5} />}
                 onClick={handleCreateCollection}
@@ -117,7 +117,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 Create Collection
               </Button>
               <Button
-                color="secondary"
+                color="light"
                 size="sm"
                 icon={<IconFolder size={14} strokeWidth={1.5} />}
                 onClick={handleOpenCollection}
@@ -125,7 +125,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 Open Collection
               </Button>
               <Button
-                color="secondary"
+                color="light"
                 size="sm"
                 icon={<IconDownload size={14} strokeWidth={1.5} />}
                 onClick={handleImportCollection}

@@ -381,7 +381,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             }}
           >
             <IconDeviceFloppy
-              color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              color={item.draft ? theme.draftColor : theme.requestTabs.icon.color}
               strokeWidth={1.5}
               size={20}
               className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}

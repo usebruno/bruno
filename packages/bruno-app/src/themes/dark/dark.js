@@ -97,6 +97,7 @@ const darkTheme = {
   brand: palette.primary.SOLID,
   text: palette.text.BASE,
   textLink: palette.hues.BLUE,
+  draftColor: '#cc7b1b',
   bg: palette.background.BASE,
 
   primary: {
@@ -366,10 +367,15 @@ const darkTheme = {
         text: palette.utility.BLACK,
         border: palette.primary.SOLID
       },
-      secondary: {
+      light: {
         bg: rgba(palette.primary.SOLID, 0.08),
         text: palette.primary.SOLID,
         border: rgba(palette.primary.SOLID, 0.06)
+      },
+      secondary: {
+        bg: palette.background.MANTLE,
+        text: palette.text.BASE,
+        border: palette.border.BORDER1
       },
       success: {
         bg: palette.hues.GREEN,

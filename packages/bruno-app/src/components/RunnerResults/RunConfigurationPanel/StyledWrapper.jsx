@@ -201,6 +201,18 @@ const StyledWrapper = styled.div`
       &.method-head {
         color: ${(props) => props.theme.request.methods.head};
       }
+
+      &.method-grpc {
+        color: ${(props) => props.theme.request.grpc};
+      }
+
+      &.method-ws {
+        color: ${(props) => props.theme.request.ws};
+      }
+
+      &.method-gql {
+        color: ${(props) => props.theme.request.gql};
+      }
     }
 
     .request-name {
