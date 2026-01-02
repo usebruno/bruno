@@ -1,5 +1,6 @@
 // VS Code Dark+ Theme for Bruno
 // Based on the default Visual Studio Code Dark+ theme
+import { rgba } from 'polished';
 
 const colors = {
   // VS Code Dark+ Core Colors
@@ -12,6 +13,7 @@ const colors = {
   TEXT: '#d4d4d4',
   TEXT_MUTED: '#808080',
   TEXT_LINK: '#3794ff',
+  BRAND_TEXT: '#47a9eb',
 
   // Brand - VS Code blue
   BRAND: '#007acc',
@@ -306,9 +308,9 @@ const vscodeDarkTheme = {
         border: colors.BRAND
       },
       secondary: {
-        bg: colors.GRAY_4,
-        text: colors.WHITE,
-        border: colors.GRAY_5
+        bg: rgba(colors.BRAND_TEXT, 0.08),
+        text: colors.BRAND_TEXT,
+        border: rgba(colors.BRAND_TEXT, 0.06)
       },
       success: {
         bg: '#388a34',

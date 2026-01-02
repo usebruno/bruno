@@ -344,9 +344,9 @@ const darkTheme = {
         border: palette.primary.SOLID
       },
       secondary: {
-        bg: palette.background.MANTLE,
-        text: palette.text.BASE,
-        border: palette.border.BORDER1
+        bg: rgba(palette.primary.SOLID, 0.08),
+        text: palette.primary.SOLID,
+        border: rgba(palette.primary.SOLID, 0.06)
       },
       success: {
         bg: palette.hues.GREEN,

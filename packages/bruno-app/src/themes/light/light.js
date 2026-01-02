@@ -1,3 +1,5 @@
+import { rgba } from 'polished';
+
 export const palette = {
   primary: {
     SOLID: 'hsl(33, 80%, 46%)',
@@ -333,9 +335,9 @@ const lightTheme = {
         border: palette.primary.SOLID
       },
       secondary: {
-        bg: palette.background.MANTLE,
-        border: palette.border.BORDER2,
-        text: palette.text.BASE
+        bg: rgba(palette.primary.SOLID, 0.08),
+        text: palette.primary.SOLID,
+        border: rgba(palette.primary.SOLID, 0.06)
       },
       success: {
         bg: palette.hues.GREEN,
