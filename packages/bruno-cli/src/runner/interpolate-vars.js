@@ -10,7 +10,8 @@ const getContentType = (headers = {}) => {
     }
   });
 
-  return contentType;
+  // Return empty string if contentType is not a string (e.g., null/false for no body requests)
+  return typeof contentType === 'string' ? contentType : '';
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
