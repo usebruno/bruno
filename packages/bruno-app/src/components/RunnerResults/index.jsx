@@ -269,7 +269,7 @@ export default function RunnerResults({ collection }) {
             <div className="mt-6">
               You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
               {isCollectionLoading && (
-                <span className="ml-2 text-gray-500">
+                <span className="ml-2 text-muted">
                   (Loading...)
                 </span>
               )}
@@ -403,10 +403,10 @@ export default function RunnerResults({ collection }) {
             <div className="pb-2 text-xs flex flex-row gap-1">
               Tags:
               <div className="flex flex-row items-center gap-x-2">
-                <div className="text-green-500">
+                <div className="text-green">
                   {tags.include.join(', ')}
                 </div>
-                <div className="text-gray-500">
+                <div className="text-muted">
                   {tags.exclude.join(', ')}
                 </div>
               </div>
@@ -458,7 +458,7 @@ export default function RunnerResults({ collection }) {
                       )}
                     </div>
                     {tagsEnabled && areTagsAdded && item?.tags?.length > 0 && (
-                      <div className="pl-7 text-xs text-gray-500">
+                      <div className="pl-7 text-xs text-muted">
                         Tags: {item.tags.filter((t) => tags.include.includes(t)).join(', ')}
                       </div>
                     )}
@@ -571,7 +571,7 @@ export default function RunnerResults({ collection }) {
                 </div>
                 <button
                   onClick={() => setSelectedItem(null)}
-                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer flex items-center justify-center"
+                  className="p-1 rounded hover-bg-surface transition-colors cursor-pointer flex items-center justify-center"
                   title="Close"
                   aria-label="Close response view"
                 >
@@ -584,10 +584,10 @@ export default function RunnerResults({ collection }) {
         ) : (
           <div className="flex flex-1 w-[50%] overflow-y-auto">
             <div className="flex flex-col w-full h-full items-center justify-center text-center">
-              <div className="mb-4 text-gray-400 dark:text-gray-500">
+              <div className="mb-4 text-subtext0">
                 <IconExternalLink size={64} strokeWidth={1.5} />
               </div>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-subtext1">
                 Click on the status code to view the response
               </p>
             </div>
