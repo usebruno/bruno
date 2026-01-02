@@ -85,8 +85,8 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
             height: 100vh;
         }
     </style>
-    <link rel="stylesheet" href="https://cdn.opencollection.com/core.css">
-    <script src="https://cdn.opencollection.com/playground.umd.js"></script>
+    <link rel="stylesheet" href="https://cdn.opencollection.com/docs.css">
+    <script src="https://cdn.opencollection.com/docs.js"></script>
 </head>
 <body>
     <div id="opencollection-container"></div>
