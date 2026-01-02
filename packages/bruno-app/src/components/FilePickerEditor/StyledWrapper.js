@@ -4,6 +4,8 @@ const StyledWrapper = styled.div`
   display: flex;
   align-items: center;
   width: 100%;
+  overflow: hidden;
+  min-width: 0;
 
   .file-picker-btn {
     display: flex;
@@ -18,6 +20,9 @@ const StyledWrapper = styled.div`
     transition: color 0.15s ease;
     font-size: 12px;
     white-space: nowrap;
+    overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
 
     &:hover {
       color: ${(props) => props.theme.text} !important;
@@ -30,6 +35,7 @@ const StyledWrapper = styled.div`
 
     &.icon-only {
       padding: 4px;
+      flex-shrink: 0;
     }
 
     &.icon-right {
@@ -39,6 +45,9 @@ const StyledWrapper = styled.div`
 
     span {
       line-height: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
     }
 
     .label {
