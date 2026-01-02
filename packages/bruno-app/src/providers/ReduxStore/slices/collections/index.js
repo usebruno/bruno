@@ -1917,12 +1917,12 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       item.draft.request.vars = item.draft.request.vars || {};
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, persist = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
-        ...(type === 'response' ? { local } : {})
+        ...(type === 'request' ? { persist } : { local })
       }));
       if (type === 'request') {
         item.draft.request.vars.req = mappedVars;
