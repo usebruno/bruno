@@ -398,12 +398,12 @@ const darkTheme = {
     },
     secondary: {
       active: {
-        bg: '#2D2D2D',
-        color: '#CCCCCC'
+        bg: palette.background.SURFACE0,
+        color: palette.text.BASE
       },
       inactive: {
-        bg: '#3F3F3F',
-        color: '#CCCCCC'
+        bg: palette.background.SURFACE0,
+        color: palette.text.SUBTEXT1
       }
     }
   },

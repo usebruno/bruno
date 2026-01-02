@@ -376,7 +376,7 @@ const vscodeDarkTheme = {
         color: colors.TEXT
       },
       inactive: {
-        bg: colors.GRAY_4,
+        bg: colors.GRAY_3,
         color: colors.TEXT_MUTED
       }
     }

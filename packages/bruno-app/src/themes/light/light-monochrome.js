@@ -351,7 +351,7 @@ const lightMonochromeTheme = {
     },
     secondary: {
       active: {
-        bg: '#FFFFFF',
+        bg: '#ECECEE',
         color: '#343434'
       },
       inactive: {
