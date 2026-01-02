@@ -83,7 +83,6 @@ const StyledWrapper = styled.div`
   }
 
   .tooltip-mod {
-    font-size: 11px !important;
     max-width: 200px !important;
   }
 

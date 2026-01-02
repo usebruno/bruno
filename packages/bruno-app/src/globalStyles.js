@@ -19,6 +19,18 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
+  .tooltip-mod {
+    background-color: ${(props) => props.theme.infoTip.bg} !important;
+    color: ${(props) => props.theme.text} !important;
+    border: 1px solid ${(props) => props.theme.infoTip.border} !important;
+    box-shadow: ${(props) => props.theme.infoTip.boxShadow} !important;
+    font-size: ${(props) => props.theme.font.size.xs} !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    opacity: 1 !important;
+    z-index: 9999 !important;
+  }
+
   .btn {
     text-align: center;
     white-space: nowrap;
