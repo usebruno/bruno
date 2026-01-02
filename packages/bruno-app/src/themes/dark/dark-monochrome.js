@@ -353,12 +353,12 @@ const darkMonochromeTheme = {
     },
     secondary: {
       active: {
-        bg: '#2D2D2D',
+        bg: '#3F3F3F',
         color: '#CCCCCC'
       },
       inactive: {
         bg: '#3F3F3F',
-        color: '#CCCCCC'
+        color: '#999999'
       }
     }
   },

@@ -387,12 +387,12 @@ const lightTheme = {
     },
     secondary: {
       active: {
-        bg: palette.background.BASE,
+        bg: palette.background.SURFACE1,
         color: palette.text.BASE
       },
       inactive: {
-        bg: palette.background.SURFACE1,
-        color: palette.text.BASE
+        bg: palette.background.SURFACE0,
+        color: palette.text.SUBTEXT1
       }
     }
   },

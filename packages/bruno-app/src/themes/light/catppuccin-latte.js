@@ -363,7 +363,7 @@ const catppuccinLatteTheme = {
     },
     secondary: {
       active: {
-        bg: colors.BASE,
+        bg: colors.SURFACE0,
         color: colors.TEXT
       },
       inactive: {
