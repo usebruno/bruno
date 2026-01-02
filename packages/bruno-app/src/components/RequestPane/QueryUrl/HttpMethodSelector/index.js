@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
@@ -179,7 +180,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
           placement="bottom-start"
           selectedItemId={selectedItemId}
         >
-          <TriggerButton method={method} showCaret={showCaret} methodSpanRef={methodSpanRef}/>
+          <TriggerButton method={method} showCaret={showCaret} methodSpanRef={methodSpanRef} />
         </MenuDropdown>
       </div>
     </StyledWrapper>

@@ -18,7 +18,7 @@ const Wrapper = styled.div`
     display: flex;
     align-items: center;
     margin: 2px;
-    border-radius: ${(props) => props.theme.border.radius.base};
+    border-radius: ${(props) => props.theme.border.radius.sm};
 
     &:not(.custom-input-mode):hover,
     &:has(button[aria-expanded="true"]) {
@@ -60,13 +60,12 @@ const Wrapper = styled.div`
     white-space: nowrap;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
-    padding: 0 8px;
     line-height: 1.5;
   }
 
   .caret {
-    color: ${(props) => props.theme.colors.text.muted};
-    fill: ${(props) => props.theme.colors.text.muted};
+    color: currentColor;
+    fill: currentColor;
   }
 `;
 

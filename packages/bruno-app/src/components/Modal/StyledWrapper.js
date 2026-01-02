@@ -181,6 +181,11 @@ const Wrapper = styled.div`
     cursor: pointer;
     accent-color: ${(props) => props.theme.primary.solid};
   }
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
 `;
 
 export default Wrapper;
