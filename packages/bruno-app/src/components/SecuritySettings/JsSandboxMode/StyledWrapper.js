@@ -12,19 +12,19 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     transition: all 0.15s ease;
 
+    &.safe-mode {
+      color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.safeMode.color};
+      background-color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.safeMode.bg};
+    }
+
+    &.developer-mode {
+      color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.developerMode.color};
+      background-color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.developerMode.bg};
+    }
+
     &:hover {
       opacity: 0.8;
     }
-  }
-
-  .safe-mode {
-    color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.safeMode.color};
-    background-color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.safeMode.bg};
-  }
-
-  .developer-mode {
-    color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.developerMode.color};
-    background-color: ${(props) => props.theme.app.collection.toolbar.sandboxMode.developerMode.bg};
   }
 
   .sandbox-dropdown {
