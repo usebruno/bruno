@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { wsResponseReceived, runWsRequestEvent } from 'providers/ReduxStore/slices/collections/index';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -7,20 +7,6 @@ import { updateActiveConnectionsInStore } from 'providers/ReduxStore/slices/coll
 const useWsEventListeners = () => {
   const { ipcRenderer } = window;
   const dispatch = useDispatch();
-
-  // requestId -> seq
-  const seqByRequestRef = useRef(new Map());
-
-  const nextSeq = (requestId) => {
-    const map = seqByRequestRef.current;
-    const next = (map.get(requestId) ?? 0) + 1;
-    map.set(requestId, next);
-    return next;
-  };
-
-  const resetSeq = (requestId) => {
-    seqByRequestRef.current.delete(requestId);
-  };
 
   useEffect(() => {
     if (!isElectron()) {
@@ -34,7 +20,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         requestUid: requestId,
-        eventData: { ...eventData, seq: nextSeq(requestId) }
+        eventData
       }));
     });
 
@@ -43,7 +29,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'upgrade',
-        eventData: { ...eventData, seq: nextSeq(requestId) }
+        eventData: eventData
       }));
     });
 
@@ -52,7 +38,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'redirect',
-        eventData: { ...eventData, seq: nextSeq(requestId) }
+        eventData: eventData
       }));
     });
 
@@ -62,7 +48,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'message',
-        eventData: { ...eventData, seq: nextSeq(requestId) }
+        eventData: eventData
       }));
     });
 
@@ -72,7 +58,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'open',
-        eventData: { ...eventData, seq: nextSeq(requestId) }
+        eventData: eventData
       }));
     });
 
@@ -82,9 +68,8 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'close',
-        eventData: { ...eventData, seq: nextSeq(requestId) }
+        eventData: eventData
       }));
-      resetSeq(requestId);
     });
 
     // Handle WebSocket error event
@@ -93,7 +78,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'error',
-        eventData: { ...eventData, seq: nextSeq(requestId) }
+        eventData: eventData
       }));
     });
 
@@ -103,7 +88,7 @@ const useWsEventListeners = () => {
         itemUid: requestId,
         collectionUid: collectionUid,
         eventType: 'connecting',
-        eventData: { ...eventData, seq: nextSeq(requestId) }
+        eventData: eventData
       }));
     });
 

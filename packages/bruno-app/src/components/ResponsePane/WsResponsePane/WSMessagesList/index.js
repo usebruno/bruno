@@ -183,7 +183,7 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
   if (!messages.length) {
     return <StyledWrapper><div className="empty-state">No messages yet.</div></StyledWrapper>;
   }
-  const ordered = order === -1 ? messages : messages.slice().reverse();
+  const ordered = order === -1 ? messages.toSorted((x, y) => x.seq - y.seq) : messages.toSorted((x, y) => y.seq - x.seq);
   return (
     <StyledWrapper className="ws-messages-list mt-2 flex flex-col">
       {ordered.map((msg, idx, src) => {
