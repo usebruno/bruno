@@ -1,11 +1,10 @@
 // To implement grpc event handlers
 const { ipcMain, app } = require('electron');
-const { GrpcClient } = require('@usebruno/requests');
+const { GrpcClient, interpolateString } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
 const { getCertsAndProxyConfig } = require('./cert-utils');
-const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
 const prepareGrpcRequest = require('./prepare-grpc-request');
 const { configureRequest } = require('./prepare-grpc-request');
