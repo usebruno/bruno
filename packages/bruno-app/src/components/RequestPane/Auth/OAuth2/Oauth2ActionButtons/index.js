@@ -133,7 +133,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
   };
 
   return (
-    <div className="flex flex-row gap-4 mt-4">
+    <div className="flex flex-row gap-2 mt-4">
       <Button
         size="sm"
         color="secondary"
@@ -171,6 +171,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
       <Button
         size="sm"
         color="secondary"
+        variant="ghost"
         onClick={handleClearCache}
       >
         Clear Cache

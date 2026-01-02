@@ -19,18 +19,18 @@ const StyledWrapper = styled.div`
       border: none !important;
       border-bottom: none !important;
       margin-right: 0;
-      
+
       &:hover {
         background-color: ${(props) => rgba(props.theme.primary.solid, 0.1)};
       }
-      
+
       &.active {
         background-color: ${(props) => {
           return props.theme.mode === 'dark'
             ? rgba(props.theme.primary.solid, 0.2)
             : rgba(props.theme.primary.solid, 0.1);
         }};
-        color: ${(props) => props.theme.primary.solid} !important;
+        color: ${(props) => props.theme.primary.text} !important;
         border-bottom: none !important;
         font-weight: normal !important;
       }
@@ -57,7 +57,7 @@ const StyledWrapper = styled.div`
       padding: 6px 10px;
     }
   }
-  
+
   .additional-parameter-sends-in-selector {
     select {
       height: 32px;
@@ -65,14 +65,14 @@ const StyledWrapper = styled.div`
       border: 1px solid ${(props) => props.theme.input.border};
       border-radius: 4px;
       padding: 0 8px;
-      
+
       &:focus {
         outline: none;
         border-color: ${(props) => props.theme.primary.solid};
       }
     }
   }
-  
+
   .add-additional-param-actions {
     &:hover {
       color: ${(props) => props.theme.primary.solid};
