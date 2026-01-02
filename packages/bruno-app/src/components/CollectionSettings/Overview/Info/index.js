@@ -69,7 +69,7 @@ const Info = ({ collection }) => {
                 </button>
                 <button
                   type="button"
-                  className="text-sm text-link cursor-pointer hover:underline text-left bg-transparent"
+                  className="text-link cursor-pointer hover:underline text-left bg-transparent"
                   onClick={() => {
                     dispatch(
                       addTab({
