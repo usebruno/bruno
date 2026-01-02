@@ -23,7 +23,7 @@ const DeleteCollection = ({ onClose, collectionUid, workspaceUid }) => {
     }
 
     try {
-      await dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collection.pathname));
+      await dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collection.pathname, { deleteFiles: true }));
       toast.success(`Deleted "${collection.name}" collection`);
       onClose();
     } catch (error) {

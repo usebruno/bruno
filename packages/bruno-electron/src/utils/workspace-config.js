@@ -358,7 +358,6 @@ const removeCollectionFromWorkspace = async (workspacePath, collectionPath) => {
     const config = readWorkspaceConfig(workspacePath);
 
     let removedCollection = null;
-    let shouldDeleteFiles = false;
 
     config.collections = (config.collections || []).filter((c) => {
       const collectionPathFromYml = c.path;
@@ -373,12 +372,6 @@ const removeCollectionFromWorkspace = async (workspacePath, collectionPath) => {
 
       if (path.normalize(absoluteCollectionPath) === path.normalize(collectionPath)) {
         removedCollection = c;
-
-        const hasRemote = c.remote;
-        const isExternalPath = path.isAbsolute(collectionPathFromYml);
-
-        shouldDeleteFiles = !hasRemote && !isExternalPath;
-
         return false;
       }
 
@@ -390,7 +383,6 @@ const removeCollectionFromWorkspace = async (workspacePath, collectionPath) => {
 
     return {
       removedCollection,
-      shouldDeleteFiles,
       updatedConfig: config
     };
   });

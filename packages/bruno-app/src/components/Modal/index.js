@@ -96,9 +96,8 @@ const Modal = ({
         return closeModal({ type: 'esc' });
       }
       case ENTER_KEY_CODE: {
-        // Skip if a submit button is focused - let native button click handle it to avoid double-fire
         const isSubmitButton = event.target?.type === 'submit';
-        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm && !isSubmitButton) {
+        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm && !isSubmitButton && !confirmDisabled) {
           return handleConfirm();
         }
       }
@@ -117,7 +116,7 @@ const Modal = ({
     return () => {
       document.removeEventListener('keydown', handleKeydown);
     };
-  }, [disableEscapeKey, document, handleConfirm]);
+  }, [disableEscapeKey, document, handleConfirm, confirmDisabled]);
 
   let classes = 'bruno-modal';
   if (isClosing) {
