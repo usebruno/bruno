@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createRequest, selectRequestPaneTab } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest, selectRequestPaneTab } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Tag persistence', () => {
@@ -14,17 +14,8 @@ test.describe('Tag persistence', () => {
     const requestUrl = 'https://httpfaker.org/api/echo';
     const tagName = 'smoke';
 
-    // Create first collection - click plus icon button to open dropdown
-    await locators.plusMenu.button().click();
-    await locators.plusMenu.createCollection().click();
-    await page.getByLabel('Name').fill(collectionName);
-    const locationInput = locators.modal.byTitle('Create Collection').getByLabel('Location');
-    if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir(collectionName));
-    }
-    await locators.modal.button('Create').click();
-    await locators.sidebar.collection(collectionName).click();
-    await page.waitForTimeout(1000);
+    // Create first collection
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
     // Create three requests via the dialog/modal flow, then add a tag to each
     const requestNames = ['request-1', 'request-2', 'request-3'];
     for (const requestName of requestNames) {
@@ -69,16 +60,8 @@ test.describe('Tag persistence', () => {
 
   test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
     const locators = buildCommonLocators(page);
-    // Create first collection - click plus icon button to open dropdown
-    await locators.plusMenu.button().click();
-    await locators.plusMenu.createCollection().click();
-    await page.getByLabel('Name').fill('test-collection');
-    const locationInput = locators.modal.byTitle('Create Collection').getByLabel('Location');
-    if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir('test-collection'));
-    }
-    await locators.modal.button('Create').click();
-    await locators.sidebar.collection('test-collection').click();
+    // Create first collection
+    await createCollection(page, 'test-collection', await createTmpDir('test-collection'));
 
     // Create a new folder
     await locators.sidebar.collectionRow('test-collection').hover();

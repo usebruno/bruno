@@ -162,8 +162,8 @@ const SaveRequestsModal = ({ onClose }) => {
             Don't Save
           </Button>
         </div>
-        <div>
-          <Button className="mr-2" color="secondary" variant="ghost" onClick={onClose}>
+        <div className="flex gap-2">
+          <Button size="sm" color="secondary" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={closeWithSave}>

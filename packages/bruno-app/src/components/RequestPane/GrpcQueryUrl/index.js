@@ -296,8 +296,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper className="flex items-center relative" data-testid="grpc-query-url-container">
       <div className="flex items-center h-full method-selector-container">
-        <div className="flex items-center justify-center h-full w-16" data-testid="grpc-method-indicator">
-          <span className="text-xs font-bold" style={{ color: theme.request.grpc }}>gRPC</span>
+        <div className="flex items-center justify-center h-full px-[10px]" data-testid="grpc-method-indicator">
+          <span className="text-xs font-medium" style={{ color: theme.request.grpc }}>gRPC</span>
         </div>
       </div>
       <div className="flex items-center w-full input-container h-full relative">

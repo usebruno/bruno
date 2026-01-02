@@ -38,7 +38,7 @@ const Documentation = ({ collection, folder }) => {
   }
 
   return (
-    <StyledWrapper className="mt-1 w-full relative flex flex-col">
+    <StyledWrapper className="w-full relative flex flex-col">
       <div className="editing-mode flex justify-between items-center flex-shrink-0" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
       </div>

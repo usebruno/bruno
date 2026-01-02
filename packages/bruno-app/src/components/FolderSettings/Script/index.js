@@ -58,7 +58,7 @@ const Script = ({ collection, folder }) => {
   };
 
   return (
-    <StyledWrapper className="w-full flex flex-col h-full pt-4">
+    <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
         Pre and post-request scripts that will run before and after any request inside this folder is sent.
       </div>

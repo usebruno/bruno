@@ -1,5 +1,6 @@
 // VS Code Dark+ Theme for Bruno
 // Based on the default Visual Studio Code Dark+ theme
+
 import { rgba } from 'polished';
 
 const colors = {
@@ -60,6 +61,15 @@ const colors = {
   }
 };
 
+export const palette = {};
+
+palette.intent = {
+  INFO: colors.BLUE,
+  SUCCESS: colors.GREEN,
+  WARNING: colors.ORANGE,
+  DANGER: colors.RED
+};
+
 const vscodeDarkTheme = {
   mode: 'dark',
   brand: colors.BRAND,
@@ -85,6 +95,29 @@ const vscodeDarkTheme = {
     surface0: colors.GRAY_3,
     surface1: colors.GRAY_4,
     surface2: colors.GRAY_5
+  },
+
+  status: {
+    info: {
+      background: rgba(palette.intent.INFO, 0.15),
+      text: palette.intent.INFO,
+      border: palette.intent.INFO
+    },
+    success: {
+      background: rgba(palette.intent.SUCCESS, 0.15),
+      text: palette.intent.SUCCESS,
+      border: palette.intent.SUCCESS
+    },
+    warning: {
+      background: rgba(palette.intent.WARNING, 0.15),
+      text: palette.intent.WARNING,
+      border: palette.intent.WARNING
+    },
+    danger: {
+      background: rgba(palette.intent.DANGER, 0.15),
+      text: palette.intent.DANGER,
+      border: palette.intent.DANGER
+    }
   },
 
   overlay: {

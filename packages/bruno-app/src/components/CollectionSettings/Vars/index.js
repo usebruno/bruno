@@ -14,7 +14,7 @@ const Vars = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
+      <div className="flex-1">
         <div className="mb-3 title text-xs">Pre Request</div>
         <VarsTable collection={collection} vars={requestVars} varType="request" />
       </div>

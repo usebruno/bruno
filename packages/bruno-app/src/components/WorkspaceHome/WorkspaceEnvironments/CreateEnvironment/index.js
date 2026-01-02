@@ -61,7 +61,7 @@ const CreateEnvironment = ({ onClose, onEnvironmentCreated }) => {
   return (
     <Portal>
       <Modal
-        size="sm"
+        size="md"
         title="Create Global Environment"
         confirmText="Create"
         handleConfirm={onSubmit}

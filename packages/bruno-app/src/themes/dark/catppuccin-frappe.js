@@ -51,6 +51,15 @@ const colors = {
   }
 };
 
+export const palette = {};
+
+palette.intent = {
+  INFO: colors.BLUE,
+  SUCCESS: colors.GREEN,
+  WARNING: colors.PEACH,
+  DANGER: colors.RED
+};
+
 const catppuccinFrappeTheme = {
   mode: 'dark',
   brand: colors.MAUVE,
@@ -76,6 +85,29 @@ const catppuccinFrappeTheme = {
     surface0: colors.SURFACE0,
     surface1: colors.SURFACE1,
     surface2: colors.SURFACE2
+  },
+
+  status: {
+    info: {
+      background: rgba(palette.intent.INFO, 0.15),
+      text: palette.intent.INFO,
+      border: palette.intent.INFO
+    },
+    success: {
+      background: rgba(palette.intent.SUCCESS, 0.15),
+      text: palette.intent.SUCCESS,
+      border: palette.intent.SUCCESS
+    },
+    warning: {
+      background: rgba(palette.intent.WARNING, 0.15),
+      text: palette.intent.WARNING,
+      border: palette.intent.WARNING
+    },
+    danger: {
+      background: rgba(palette.intent.DANGER, 0.15),
+      text: palette.intent.DANGER,
+      border: palette.intent.DANGER
+    }
   },
 
   overlay: {

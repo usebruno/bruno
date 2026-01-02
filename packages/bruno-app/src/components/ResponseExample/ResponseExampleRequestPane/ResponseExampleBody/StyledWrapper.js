@@ -26,12 +26,12 @@ const StyledWrapper = styled.div`
     }
 
     .selected-body-mode {
-      color: ${(props) => props.theme.brand};
+      color: ${(props) => props.theme.primary.text};
     }
 
     &.cursor-default {
       opacity: 0.6;
-      
+
       .selected-body-mode {
         color: ${(props) => props.theme.colors.text.muted};
       }
@@ -53,11 +53,11 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: center;
     color: ${(props) => props.theme.colors.text.muted};
-    
+
     &:hover {
       opacity: 0.9;
     }
-    
+
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;

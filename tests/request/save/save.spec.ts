@@ -1,5 +1,5 @@
 import { test, expect, Locator, Page } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createCollection } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { waitForPredicate } from '../../utils/wait';
 
@@ -9,16 +9,8 @@ const isRequestSaved = async (saveButton: Locator) => {
 };
 
 const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Promise<string>) => {
-  await page.getByTestId('collections-header-add-menu').click();
-  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-  await page.getByLabel('Name').fill('source-collection');
-  const locationInput = page.getByLabel('Location');
-  if (await locationInput.isVisible()) {
-    await locationInput.fill(await createTmpDir('source-collection'));
-  }
-  await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
-  await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-  await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
+  await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
+
   const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection' });
   await sourceCollection.hover();
   await sourceCollection.locator('.collection-actions .icon').click();

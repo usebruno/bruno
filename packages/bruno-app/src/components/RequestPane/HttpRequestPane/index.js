@@ -19,8 +19,6 @@ import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
 
-const MULTIPLE_CONTENT_TABS = new Set(['params', 'script', 'vars', 'auth', 'docs']);
-
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
   { key: 'body', label: 'Body' },
@@ -120,8 +118,6 @@ const HttpRequestPane = ({ item, collection }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const isMultipleContentTab = MULTIPLE_CONTENT_TABS.has(requestPaneTab);
-
   const rightContent = requestPaneTab === 'body' ? (
     <div ref={rightContentRef}>
       <RequestBodyMode item={item} collection={collection} />
@@ -143,7 +139,7 @@ const HttpRequestPane = ({ item, collection }) => {
         delayedTabs={['body']}
       />
 
-      <section className={classnames('flex w-full flex-1', { 'mt-3': !isMultipleContentTab })}>
+      <section className={classnames('flex w-full flex-1 mt-4')}>
         <HeightBoundContainer>{tabPanel}</HeightBoundContainer>
       </section>
     </div>

@@ -17,8 +17,6 @@ const Wrapper = styled.div`
   .tabs-scroll-container {
     overflow-x: auto;
     overflow-y: clip;
-    padding-bottom: 10px;
-    margin-bottom: -10px;
 
     &::-webkit-scrollbar {
       display: none;
@@ -196,6 +194,10 @@ const Wrapper = styled.div`
 
   &.has-chevrons ul {
     padding-left: 0;
+  }
+
+  .special-tab-icon {
+    color: ${(props) => props.theme.primary.text};
   }
 `;
 
