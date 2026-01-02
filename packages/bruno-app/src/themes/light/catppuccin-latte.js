@@ -166,7 +166,7 @@ const catppuccinLatteTheme = {
   },
 
   input: {
-    bg: colors.SURFACE0,
+    bg: rgba(colors.SURFACE0, 0.2),
     border: colors.SURFACE1,
     focusBorder: colors.LAVENDER,
     placeholder: {
@@ -186,8 +186,8 @@ const catppuccinLatteTheme = {
 
     collection: {
       item: {
-        bg: colors.SURFACE0,
-        hoverBg: colors.SURFACE1,
+        bg: rgba(colors.SURFACE0, 0.5),
+        hoverBg: rgba(colors.SURFACE0, 0.7),
         focusBorder: colors.LAVENDER,
         indentBorder: `solid 1px ${colors.SURFACE1}`,
         active: {
@@ -208,7 +208,7 @@ const catppuccinLatteTheme = {
     color: colors.TEXT,
     iconColor: colors.SUBTEXT1,
     bg: colors.BASE,
-    hoverBg: colors.SURFACE0,
+    hoverBg: rgba(colors.SURFACE0, 0.5),
     shadow: 'rgba(76, 79, 105, 0.25) 0px 6px 12px -2px, rgba(76, 79, 105, 0.3) 0px 3px 7px -3px',
     border: 'none',
     separator: colors.SURFACE1,
@@ -375,7 +375,7 @@ const catppuccinLatteTheme = {
 
   requestTabs: {
     color: colors.TEXT,
-    bg: colors.SURFACE0,
+    bg: '#E4E7EC',
     bottomBorder: colors.SURFACE1,
     icon: {
       color: colors.OVERLAY0,
