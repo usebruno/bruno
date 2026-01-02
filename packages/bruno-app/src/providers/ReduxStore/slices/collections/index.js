@@ -3133,7 +3133,10 @@ export const collectionsSlice = createSlice({
             timestamp: timestamp || Date.now()
           }].concat(item.response.data);
         }
-        item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        if (item.response.dataBuffer && item.response.dataBuffer.length && data.dataBuffer) {
+          item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        }
+
         item.response.size = data.data?.length + (item.response.size || 0);
       }
     },
