@@ -152,17 +152,24 @@ const prepareRequest = async (item = {}, collection = {}) => {
       const password = get(collectionAuth, 'wsse.password', '');
 
       const ts = new Date().toISOString();
-      const nonce = crypto.randomBytes(16).toString('hex');
+      const nonceBytes = crypto.randomBytes(16);
 
       // Create the password digest using SHA-1 as required for WSSE
-      const hash = crypto.createHash('sha1');
-      hash.update(nonce + ts + password);
-      const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
+      // WSSE spec: PasswordDigest = Base64(SHA1(nonce_bytes + created_bytes + password_bytes))
+      const passwordDigest = crypto
+        .createHash('sha1')
+        .update(
+          Buffer.concat([nonceBytes, Buffer.from(ts, 'utf8'), Buffer.from(password, 'utf8')])
+        )
+        .digest('base64');
+
+      // Nonce must be base64-encoded in the header
+      const nonce = nonceBytes.toString('base64');
 
       // Construct the WSSE header
       axiosRequest.headers[
         'X-WSSE'
-      ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+      ] = `UsernameToken Username="${username}", PasswordDigest="${passwordDigest}", Nonce="${nonce}", Created="${ts}"`;
     }
 
     console.log('axiosRequest', axiosRequest);
