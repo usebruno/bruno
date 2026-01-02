@@ -24,7 +24,7 @@ const ConfirmSwitchEnv = ({ onCancel }) => {
       hideFooter={true}
     >
       <div className="flex items-center font-normal">
-        <IconAlertTriangle style={{ color: warningColor }} size={32} strokeWidth={1.5} />
+        <IconAlertTriangle color={warningColor} size={32} strokeWidth={1.5} />
         <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
       </div>
       <div className="font-normal mt-4">You have unsaved changes in this environment.</div>
