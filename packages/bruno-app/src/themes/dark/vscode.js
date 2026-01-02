@@ -13,7 +13,7 @@ const colors = {
   TEXT: '#d4d4d4',
   TEXT_MUTED: '#808080',
   TEXT_LINK: '#3794ff',
-  BRAND_TEXT: '#47a9eb',
+  BRAND_TEXT: '#4dabfc', // VS Code blue
 
   // Brand - VS Code blue
   BRAND: '#007acc',
