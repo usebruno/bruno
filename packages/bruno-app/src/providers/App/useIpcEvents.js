@@ -105,8 +105,6 @@ const useIpcEvents = () => {
       }
     };
 
-    ipcRenderer.invoke('renderer:ready');
-
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
     const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);

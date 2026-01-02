@@ -32,6 +32,7 @@ export const test = baseTest.extend<
     newPage: Page;
     pageWithUserData: Page;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
+    restartAppWithPersistentState: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
     createTmpDir: (tag?: string) => Promise<string>;
@@ -207,6 +208,85 @@ export const test = baseTest.extend<
 
     // Clean up all app instances
     for (const { app } of appInstances) {
+      await app.context().close();
+      await app.close();
+    }
+  },
+
+  restartAppWithPersistentState: async ({ launchElectronApp, createTmpDir }, use, testInfo) => {
+    const appInstances: ElectronApplication[] = [];
+    let persistentUserDataPath: string | null = null;
+
+    // Helper function for template replacement (reused from launchElectronApp pattern)
+    const replaceTemplates = (content: string, filePath: string): string => {
+      const replacements = {
+        projectRoot: path.posix.join(__dirname, '..')
+      };
+      return content.replace(/{{(\w+)}}/g, (_, key) => {
+        if (replacements[key]) {
+          return replacements[key];
+        } else {
+          throw new Error(`\tNo replacement for {{${key}}} in ${filePath}`);
+        }
+      });
+    };
+
+    // Helper function to process files and replace templates recursively
+    const processFilesForTemplates = async (dir: string): Promise<void> => {
+      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          await processFilesForTemplates(fullPath);
+        } else {
+          // Only process text files (common config file extensions)
+          const textExtensions = ['.json', '.yml', '.yaml', '.txt', '.md', '.js', '.ts'];
+          const ext = path.extname(entry.name).toLowerCase();
+          if (textExtensions.includes(ext)) {
+            try {
+              const content = await fs.promises.readFile(fullPath, 'utf-8');
+              const replaced = replaceTemplates(content, fullPath);
+              await fs.promises.writeFile(fullPath, replaced, 'utf-8');
+            } catch (err) {
+              // Skip files that can't be read as text (e.g., binary files)
+            }
+          }
+        }
+      }
+    };
+
+    // Helper function to copy directory with template replacement
+    const copyWithReplacement = async (src: string, dest: string): Promise<void> => {
+      // Use cpSync for efficient recursive copy
+      fs.cpSync(src, dest, { recursive: true });
+      // Then process all files to replace templates
+      await processFilesForTemplates(dest);
+    };
+
+    await use(async ({ initUserDataPath } = {}) => {
+      const testDir = path.dirname(testInfo.file);
+      const defaultInitUserDataPath = path.join(testDir, 'init-user-data');
+      const sourceInitUserDataPath = initUserDataPath
+        || (await fs.promises.stat(defaultInitUserDataPath).then(() => defaultInitUserDataPath).catch(() => null));
+
+      // Create a persistent temp directory once and reuse it across restarts
+      // This preserves state (preferences, workspace selection, etc.) between app restarts
+      if (!persistentUserDataPath) {
+        persistentUserDataPath = await createTmpDir('restart-app-userdata');
+        if (sourceInitUserDataPath) {
+          await copyWithReplacement(sourceInitUserDataPath, persistentUserDataPath);
+        }
+      }
+
+      // Reuse the same userDataPath for all restarts to preserve state
+      const app = await launchElectronApp({ userDataPath: persistentUserDataPath });
+      appInstances.push(app);
+      return app;
+    });
+
+    // Clean up all app instances
+    for (const app of appInstances) {
       await app.context().close();
       await app.close();
     }
