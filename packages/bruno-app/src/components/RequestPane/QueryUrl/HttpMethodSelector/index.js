@@ -13,7 +13,7 @@ const TriggerButton = ({ method, methodSpanRef, showCaret, ...props }) => {
   return (
     <button
       type="button"
-      className="cursor-pointer flex items-center text-left w-full select-none "
+      className="cursor-pointer flex items-center gap-2 text-left w-full select-none px-2"
       {...props}
     >
       <span

@@ -39,7 +39,9 @@ const colors = {
   }
 };
 
-colors.intent = {
+export const palette = {};
+
+palette.intent = {
   INFO: '#525252',
   SUCCESS: '#525252',
   WARNING: '#666666',
@@ -75,24 +77,24 @@ const lightMonochromeTheme = {
 
   status: {
     info: {
-      background: rgba(colors.intent.INFO, 0.15),
-      text: colors.intent.INFO,
-      border: colors.intent.INFO
+      background: rgba(palette.intent.INFO, 0.15),
+      text: palette.intent.INFO,
+      border: palette.intent.INFO
     },
     success: {
-      background: rgba(colors.intent.SUCCESS, 0.15),
-      text: colors.intent.SUCCESS,
-      border: colors.intent.SUCCESS
+      background: rgba(palette.intent.SUCCESS, 0.15),
+      text: palette.intent.SUCCESS,
+      border: palette.intent.SUCCESS
     },
     warning: {
-      background: rgba(colors.intent.WARNING, 0.15),
-      text: colors.intent.WARNING,
-      border: colors.intent.WARNING
+      background: rgba(palette.intent.WARNING, 0.15),
+      text: palette.intent.WARNING,
+      border: palette.intent.WARNING
     },
     danger: {
-      background: rgba(colors.intent.DANGER, 0.15),
-      text: colors.intent.DANGER,
-      border: colors.intent.DANGER
+      background: rgba(palette.intent.DANGER, 0.15),
+      text: palette.intent.DANGER,
+      border: palette.intent.DANGER
     }
   },
 

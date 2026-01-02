@@ -20,8 +20,13 @@ test.describe('Default Collection Location Feature', () => {
     // open preferences
     await page.locator('.preferences-button').click();
 
-    // clear the default location field
+    // clear the default location field (readonly input, remove readonly then clear)
     const defaultLocationInput = page.locator('.default-collection-location-input');
+    await defaultLocationInput.evaluate((el) => {
+      const input = el;
+      input.removeAttribute('readonly');
+      input.readOnly = false;
+    });
     await defaultLocationInput.clear();
 
     // wait for auto-save to complete (debounce is 500ms)
@@ -38,10 +43,13 @@ test.describe('Default Collection Location Feature', () => {
     // open preferences
     await page.locator('.preferences-button').click();
 
-    // set a default location
+    // set a default location (readonly input, remove readonly then fill)
     const defaultLocationInput = page.locator('.default-collection-location-input');
-
-    // fill the default location input
+    await defaultLocationInput.evaluate((el) => {
+      const input = el;
+      input.removeAttribute('readonly');
+      input.readOnly = false;
+    });
     await defaultLocationInput.fill('/tmp/bruno-collections');
 
     // wait for auto-save to complete (debounce is 500ms)
