@@ -150,7 +150,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "message": "Hello World",
   "count": 42
 }`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle GET requests', () => {
@@ -207,7 +207,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "message": "Hello World",
   "count": 42
 }`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle complex nested JSON body', () => {
@@ -269,7 +269,7 @@ describe('Snippet Generator - Simple Tests', () => {
       }
     }, null, 2);
 
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
   });
 
   it('should handle errors gracefully', () => {
@@ -375,7 +375,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "age": 30
 }`;
 
-    expect(result).toBe(`curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.test.com/users -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
   });
 
   it('should NOT interpolate when shouldInterpolate is false', () => {
@@ -425,6 +425,55 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
+  });
+
+  it('should interpolate path params with collection variables (issue #6365)', () => {
+    // Note: In real usage, the parent component (GenerateCodeItem) would have already
+    // replaced :language with {{current_language}} via interpolateUrlPathParams.
+    // This test simulates receiving that already-processed URL.
+    const requestWithPathParam = {
+      uid: 'test-request-with-path-param',
+      name: 'test path param interpolation',
+      type: 'http-request',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/{{current_language}}',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        assertions: [],
+        tests: '',
+        docs: '',
+        params: [],
+        vars: { req: [] }
+      }
+    };
+
+    const collectionWithLanguageVar = {
+      root: {
+        request: {
+          auth: { mode: 'none' },
+          headers: []
+        }
+      },
+      globalEnvironmentVariables: {
+        current_language: 'en'
+      },
+      runtimeVariables: {},
+      processEnvVariables: {}
+    };
+
+    const result = generateSnippet({
+      language: curlLanguage,
+      item: requestWithPathParam,
+      collection: collectionWithLanguageVar,
+      shouldInterpolate: true
+    });
+
+    // The URL should have the interpolated variable value
+    expect(result).toContain('https://api.example.com/en');
+    // And not contain the variable placeholder
+    expect(result).not.toContain('{{current_language}}');
   });
 });
 
