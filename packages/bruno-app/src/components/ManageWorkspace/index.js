@@ -14,6 +14,7 @@ import DeleteWorkspace from './DeleteWorkspace';
 import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown/index';
 import Button from 'ui/Button';
+import { getRevealInFolderLabel } from 'utils/common/platform';
 
 const ManageWorkspace = () => {
   const dispatch = useDispatch();
@@ -133,7 +134,7 @@ const ManageWorkspace = () => {
                       onClick={() => handleShowInFolder(workspace)}
                     >
                       <IconFolder size={14} strokeWidth={1.5} />
-                      <span>Show in folder</span>
+                      <span>{getRevealInFolderLabel()}</span>
                     </button>
                   )}
                   {!isDefault && (

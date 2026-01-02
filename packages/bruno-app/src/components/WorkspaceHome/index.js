@@ -10,6 +10,7 @@ import WorkspaceEnvironments from './WorkspaceEnvironments';
 import WorkspaceTabs from 'components/WorkspaceTabs';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
+import { getRevealInFolderLabel } from 'utils/common/platform';
 
 const WorkspaceHome = () => {
   const dispatch = useDispatch();
@@ -225,7 +226,7 @@ const WorkspaceHome = () => {
                   </div>
                   <div className="dropdown-item" onClick={handleShowInFolder}>
                     <IconFolder size={16} strokeWidth={1.5} />
-                    <span>Show in Folder</span>
+                    <span>{getRevealInFolderLabel()}</span>
                   </div>
                   <div className="dropdown-item" onClick={handleExportWorkspace}>
                     <IconUpload size={16} strokeWidth={1.5} />

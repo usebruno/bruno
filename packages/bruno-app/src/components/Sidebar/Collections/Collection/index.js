@@ -44,6 +44,7 @@ import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from './GenerateDocumentation';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -360,7 +361,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'show-in-folder',
       leftSection: IconFolder,
-      label: 'Show in File Explorer',
+      label: getRevealInFolderLabel(),
       onClick: handleShowInFolder
     },
     {
