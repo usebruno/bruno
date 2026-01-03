@@ -178,9 +178,9 @@ const lightMonochromeTheme = {
         bg: colors.GRAY_3,
         hoverBg: colors.GRAY_3,
         focusBorder: colors.GRAY_5,
-        indentBorder: `solid 1px ${colors.GRAY_4}`,
+        indentBorder: colors.GRAY_4,
         active: {
-          indentBorder: `solid 1px ${colors.GRAY_4}`
+          indentBorder: colors.GRAY_4
         },
         example: {
           iconColor: colors.GRAY_7

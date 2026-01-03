@@ -199,9 +199,9 @@ const vscodeDarkTheme = {
         bg: colors.GRAY_2,
         hoverBg: colors.GRAY_3,
         focusBorder: colors.GRAY_4,
-        indentBorder: `solid 1px ${colors.BORDER}`,
+        indentBorder: colors.BORDER_LIGHT,
         active: {
-          indentBorder: `solid 1px ${colors.BORDER}`
+          indentBorder: colors.BORDER_LIGHT
         },
         example: {
           iconColor: colors.GRAY_7
@@ -440,7 +440,7 @@ const vscodeDarkTheme = {
     thead: {
       color: colors.TEXT
     },
-    striped: colors.GRAY_2,
+    striped: colors.GRAY_1,
     input: {
       color: colors.TEXT
     }

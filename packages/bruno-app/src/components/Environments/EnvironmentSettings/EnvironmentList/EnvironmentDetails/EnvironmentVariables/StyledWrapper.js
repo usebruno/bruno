@@ -154,7 +154,7 @@ const Wrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.base};
     background: transparent;
     color: ${(props) => props.theme.text};
-    border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
+    border: 1px solid ${(props) => props.theme.border.border1};
     cursor: pointer;
     transition: all 0.15s ease;
 

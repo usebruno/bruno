@@ -19,7 +19,7 @@ const ToolHint = ({
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
 
-  const toolhintBackgroundColor = appliedTheme?.background.surface1;
+  const toolhintBackgroundColor = appliedTheme?.background.surface0;
   const toolhintTextColor = appliedTheme?.text;
 
   const combinedToolhintStyle = {

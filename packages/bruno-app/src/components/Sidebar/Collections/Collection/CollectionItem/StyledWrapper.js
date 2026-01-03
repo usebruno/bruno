@@ -17,7 +17,7 @@ const Wrapper = styled.div`
   }
 
   .indent-block {
-    border-right: 1px solid ${(props) => props.theme.border.border1};
+    border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
   }
 
   .collection-item-name {
@@ -133,7 +133,7 @@ const Wrapper = styled.div`
       }
 
       .indent-block {
-        border-right: 1px solid ${(props) => props.theme.border.border1} !important;
+        border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder} !important;
       }
     }
 

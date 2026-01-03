@@ -177,9 +177,9 @@ const darkMonochromeTheme = {
         bg: '#37373D',
         hoverBg: '#2A2D2F',
         focusBorder: '#4e4e4e',
-        indentBorder: 'solid 1px #585858',
+        indentBorder: colors.GRAY_2,
         active: {
-          indentBorder: 'solid 1px #4c4c4c'
+          indentBorder: colors.GRAY_2
         },
         example: {
           iconColor: colors.GRAY_5

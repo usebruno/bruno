@@ -190,9 +190,9 @@ const catppuccinFrappeTheme = {
         bg: colors.SURFACE0,
         hoverBg: colors.SURFACE0,
         focusBorder: colors.SURFACE1,
-        indentBorder: `solid 1px ${colors.SURFACE2}`,
+        indentBorder: colors.SURFACE0,
         active: {
-          indentBorder: `solid 1px ${colors.MAUVE}`
+          indentBorder: colors.SURFACE0
         },
         example: {
           iconColor: colors.OVERLAY1

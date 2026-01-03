@@ -190,9 +190,9 @@ const catppuccinLatteTheme = {
         bg: rgba(colors.SURFACE0, 0.5),
         hoverBg: rgba(colors.SURFACE0, 0.7),
         focusBorder: colors.LAVENDER,
-        indentBorder: `solid 1px ${colors.SURFACE1}`,
+        indentBorder: colors.SURFACE0,
         active: {
-          indentBorder: `solid 1px ${colors.MAUVE}`
+          indentBorder: colors.SURFACE0
         },
         example: {
           iconColor: colors.OVERLAY1

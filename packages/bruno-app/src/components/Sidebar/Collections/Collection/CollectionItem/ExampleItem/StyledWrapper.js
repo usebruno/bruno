@@ -17,10 +17,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .indent-block {
-    border-right: 1px solid ${(props) => props.theme.border.border1};
-  }
-
   .collection-item-name {
     height: 1.6rem;
     cursor: pointer;

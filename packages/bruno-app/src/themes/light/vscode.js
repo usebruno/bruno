@@ -198,9 +198,9 @@ const vscodeLightTheme = {
         bg: colors.GRAY_2,
         hoverBg: colors.GRAY_3,
         focusBorder: colors.GRAY_5,
-        indentBorder: `solid 1px ${colors.BORDER}`,
+        indentBorder: colors.BORDER,
         active: {
-          indentBorder: `solid 1px ${colors.BORDER}`
+          indentBorder: colors.BORDER
         },
         example: {
           iconColor: colors.GRAY_7
