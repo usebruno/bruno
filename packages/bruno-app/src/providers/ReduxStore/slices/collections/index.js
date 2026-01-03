@@ -326,12 +326,11 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, runtimeVariables, persistentEnvVariables } = action.payload;
+      const { collectionUid, envVariables, runtimeVariables, persistentEnvVariables, requestEnvUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const activeEnvironmentUid = collection.activeEnvironmentUid;
-        const activeEnvironment = findEnvironmentInCollection(collection, activeEnvironmentUid);
+        const activeEnvironment = findEnvironmentInCollection(collection, requestEnvUid);
 
         if (activeEnvironment) {
           forOwn(envVariables, (value, key) => {
