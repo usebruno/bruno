@@ -1,71 +1,38 @@
 import { interpolate } from '@usebruno/common';
-import { cloneDeep } from 'lodash';
+import { isPlainObject, mapValues } from 'lodash-es';
 
-export const interpolateHeaders = (headers = [], variables = {}) => {
-  return headers.map((header) => ({
-    ...header,
-    name: interpolate(header.name, variables),
-    value: interpolate(header.value, variables)
-  }));
-};
+/**
+ * Traverses an object and interpolates any strings it finds.
+ */
+export const interpolateObject = (obj, variables) => {
+  const seen = new WeakSet();
 
-export const interpolateBody = (body, variables = {}) => {
-  if (!body) return null;
+  const walk = (value) => {
+    if (value == null) return value;
 
-  const interpolatedBody = cloneDeep(body);
+    if (typeof value === 'string') {
+      return interpolate(value, variables);
+    }
 
-  switch (body.mode) {
-    case 'json':
-      let parsed = body.json;
-      // If it's already a string, use it directly; if it's an object, stringify it first
-      if (typeof parsed === 'object') {
-        parsed = JSON.stringify(parsed);
+    if (typeof value === 'object') {
+      if (seen.has(value)) {
+        throw new Error(
+          'Circular reference detected during interpolation.'
+        );
       }
-      parsed = interpolate(parsed, variables, { escapeJSONStrings: true });
-      try {
-        const jsonObj = JSON.parse(parsed);
-        interpolatedBody.json = JSON.stringify(jsonObj, null, 2);
-      } catch {
-        interpolatedBody.json = parsed;
-      }
-      break;
+      seen.add(value);
+    }
 
-    case 'text':
-      interpolatedBody.text = interpolate(body.text, variables);
-      break;
+    if (Array.isArray(value)) {
+      return value.map(walk);
+    }
 
-    case 'xml':
-      interpolatedBody.xml = interpolate(body.xml, variables);
-      break;
+    if (isPlainObject(value)) {
+      return mapValues(value, walk);
+    }
 
-    case 'sparql':
-      interpolatedBody.sparql = interpolate(body.sparql, variables);
-      break;
+    return value;
+  };
 
-    case 'formUrlEncoded':
-      interpolatedBody.formUrlEncoded = Array.isArray(body.formUrlEncoded)
-        ? body.formUrlEncoded.map((param) => ({
-            ...param,
-            value: param.enabled ? interpolate(param.value, variables) : param.value
-          }))
-        : [];
-      break;
-
-    case 'multipartForm':
-      interpolatedBody.multipartForm = Array.isArray(body.multipartForm)
-        ? body.multipartForm.map((param) => ({
-            ...param,
-            value:
-              param.type === 'text' && param.enabled
-                ? interpolate(param.value, variables)
-                : param.value
-          }))
-        : [];
-      break;
-
-    default:
-      break;
-  }
-
-  return interpolatedBody;
+  return walk(obj);
 };
