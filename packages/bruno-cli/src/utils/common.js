@@ -42,8 +42,33 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+/**
+ * Checks if an object is a FormData instance
+ * Works with both native FormData (Node 18+/browser) and the form-data npm package
+ * Uses Symbol.toStringTag for primary detection and falls back to duck typing
+ * @param {*} obj - The object to check
+ * @returns {boolean} True if the object is a FormData instance
+ */
+const isFormData = (obj) => {
+  // Check Symbol.toStringTag first (most reliable)
+  if (Object.prototype.toString.call(obj) === '[object FormData]') {
+    return true;
+  }
+
+  // Fall back to duck typing for compatibility
+  return (
+    obj != null
+    && typeof obj.append === 'function'
+    && typeof obj.delete === 'function'
+    && typeof obj.get === 'function'
+    && typeof obj.has === 'function'
+    && typeof obj.set === 'function'
+  );
+};
+
 module.exports = {
   lpad,
   rpad,
-  parseDataFromResponse
+  parseDataFromResponse,
+  isFormData
 };
