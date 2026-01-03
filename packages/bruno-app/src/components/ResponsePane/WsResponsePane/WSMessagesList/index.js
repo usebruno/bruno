@@ -183,7 +183,11 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
   if (!messages.length) {
     return <StyledWrapper><div className="empty-state">No messages yet.</div></StyledWrapper>;
   }
-  const ordered = order === -1 ? messages.toSorted((x, y) => x.seq - y.seq) : messages.toSorted((x, y) => y.seq - x.seq);
+
+  // sort based on order, seq was newly added and might be missing in some cases and when missing,
+  // the timestamp will be used instead
+  const ordered = messages.toSorted((x, y) => ((x.seq ?? x.timestamp) - (y.seq ?? y.timestamp)) * order);
+
   return (
     <StyledWrapper className="ws-messages-list mt-2 flex flex-col">
       {ordered.map((msg, idx, src) => {
