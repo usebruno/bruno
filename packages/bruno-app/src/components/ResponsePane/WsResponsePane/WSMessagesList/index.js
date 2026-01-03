@@ -6,7 +6,6 @@ import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
-import _ from 'lodash';
 import { useRef } from 'react';
 import { useEffect } from 'react';
 
