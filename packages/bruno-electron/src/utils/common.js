@@ -135,7 +135,7 @@ const parseDataFromRequest = (request) => {
   // File uploads are redacted, multipart FormData is formatted from original data for readability, and other types are stringified as-is.
   if (request.mode === 'file') {
     requestDataString = '<request body redacted>';
-  } else if (request?.data instanceof FormData && Array.isArray(request._originalMultipartData)) {
+  } else if (isFormData(request?.data) && Array.isArray(request._originalMultipartData)) {
     const boundary = request.data._boundary || 'boundary';
     requestDataString = formatMultipartData(request._originalMultipartData, boundary);
   } else {
@@ -150,6 +150,17 @@ const parseDataFromRequest = (request) => {
   return parseDataFromResponse(requestCopy);
 };
 
+/**
+ * Determines if the given object is a FormData instance.
+ * Supports native FormData (Node 18+, browser) and the 'form-data' npm package.
+ * @param {*} obj - Object to check.
+ * @returns {boolean} True if obj is a FormData instance, false otherwise.
+ */
+const isFormData = (obj) => {
+  // Check constructor name (works for both native FormData and form-data npm package)
+  return obj?.constructor?.name === 'FormData';
+};
+
 module.exports = {
   uuid,
   stringifyJson,
@@ -160,5 +171,6 @@ module.exports = {
   generateUidBasedOnHash,
   flattenDataForDotNotation,
   parseDataFromResponse,
-  parseDataFromRequest
+  parseDataFromRequest,
+  isFormData
 };
