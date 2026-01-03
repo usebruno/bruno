@@ -49,6 +49,36 @@ const normalizeMessageByFormat = (message, format) => {
   }
 };
 
+const createSequencer = () => {
+  const seq = {};
+
+  const nextSeq = (requestId, collectionId) => {
+    seq[requestId] ||= {};
+    seq[requestId][collectionId] ||= 0;
+    return ++seq[requestId][collectionId];
+  };
+
+  /**
+   * @param {string} requestId
+   * @param {string} [collectionId]
+   */
+  const clean = (requestId, collectionId = undefined) => {
+    if (collectionId) {
+      delete seq[requestId][collectionId];
+    }
+    if (!Object.keys(seq[requestId]).length) {
+      delete seq[requestId];
+    }
+  };
+
+  return {
+    next: nextSeq,
+    clean
+  };
+};
+
+const seq = createSequencer();
+
 class WsClient {
   messageQueues = {};
   activeConnections = new Map();
@@ -181,6 +211,7 @@ class WsClient {
             message: payload,
             messageHexdump: hexdump(payload),
             type: 'outgoing',
+            seq: seq.next(requestId, collectionUid),
             timestamp: Date.now()
           });
         }
@@ -204,6 +235,7 @@ class WsClient {
     if (connectionMeta?.connection) {
       connectionMeta.connection.close(code, reason);
       this.#removeConnection(requestId);
+      seq.clean(requestId);
     }
   }
 
@@ -283,7 +315,8 @@ class WsClient {
 
       this.eventCallback('main:ws:open', requestId, collectionUid, {
         timestamp: Date.now(),
-        url: ws.url
+        url: ws.url,
+        seq: seq.next(requestId, collectionUid)
       });
     });
 
@@ -294,7 +327,8 @@ class WsClient {
         message: `Redirected to ${url}`,
         type: 'info',
         timestamp: Date.now(),
-        headers: headers
+        headers: headers,
+        seq: seq.next(requestId, collectionUid)
       });
     });
 
@@ -302,6 +336,7 @@ class WsClient {
       this.eventCallback('main:ws:upgrade', requestId, collectionUid, {
         type: 'info',
         timestamp: Date.now(),
+        seq: seq.next(requestId, collectionUid),
         headers: { ...response.headers }
       });
     });
@@ -313,6 +348,7 @@ class WsClient {
           message,
           messageHexdump: hexdump(Buffer.from(data)),
           type: 'incoming',
+          seq: seq.next(requestId, collectionUid),
           timestamp: Date.now()
         });
       } catch (error) {
@@ -321,6 +357,7 @@ class WsClient {
           message: data.toString(),
           messageHexdump: hexdump(data),
           type: 'incoming',
+          seq: seq.next(requestId, collectionUid),
           timestamp: Date.now()
         });
       }
@@ -330,14 +367,17 @@ class WsClient {
       this.eventCallback('main:ws:close', requestId, collectionUid, {
         code,
         reason: Buffer.from(reason).toString(),
+        seq: seq.next(requestId, collectionUid),
         timestamp: Date.now()
       });
+      seq.clean(requestId, collectionUid);
       this.#removeConnection(requestId);
     });
 
     ws.on('error', (error) => {
       this.eventCallback('main:ws:error', requestId, collectionUid, {
         error: error.message,
+        seq: seq.next(requestId, collectionUid),
         timestamp: Date.now()
       });
     });
@@ -356,6 +396,7 @@ class WsClient {
     this.eventCallback('main:ws:connections-changed', {
       type: 'added',
       requestId,
+      seq: seq.next(requestId, collectionUid),
       activeConnectionIds: this.getActiveConnectionIds()
     });
   }

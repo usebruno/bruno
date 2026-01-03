@@ -6,7 +6,6 @@ import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
-import _ from 'lodash';
 import { useRef } from 'react';
 import { useEffect } from 'react';
 
@@ -183,12 +182,16 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
   if (!messages.length) {
     return <StyledWrapper><div className="empty-state">No messages yet.</div></StyledWrapper>;
   }
-  const ordered = order === -1 ? messages : messages.slice().reverse();
+
+  // sort based on order, seq was newly added and might be missing in some cases and when missing,
+  // the timestamp will be used instead
+  const ordered = messages.toSorted((x, y) => ((x.seq ?? x.timestamp) - (y.seq ?? y.timestamp)) * order);
+
   return (
     <StyledWrapper className="ws-messages-list flex flex-col">
       {ordered.map((msg, idx, src) => {
         const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
-        return <WSMessageItem key={msg.timestamp} inFocus={inFocus} id={idx} message={msg} />;
+        return <WSMessageItem key={msg.seq ? msg.seq : msg.timestamp} inFocus={inFocus} id={idx} message={msg} />;
       })}
     </StyledWrapper>
   );

@@ -1003,6 +1003,7 @@ const registerNetworkIpc = (mainWindow) => {
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
+    let seq = 0;
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
@@ -1012,16 +1013,29 @@ const registerNetworkIpc = (mainWindow) => {
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
       stream.on('data', (newData) => {
+        seq += 1;
+
         const parsed = parseDataFromResponse({ data: newData, headers: {} });
-        mainWindow.webContents.send('main:http-stream-new-data', { collectionUid, itemUid: item.uid, data: parsed });
+
+        mainWindow.webContents.send('main:http-stream-new-data', {
+          collectionUid,
+          itemUid: item.uid,
+          seq,
+          timestamp: Date.now(),
+          data: parsed
+        });
       });
 
       stream.on('close', () => {
-        if (!cancelTokens[response.cancelTokenUid]) {
-          return;
-        }
+        if (!cancelTokens[response.cancelTokenUid]) return;
 
-        mainWindow.webContents.send('main:http-stream-end', { collectionUid, itemUid: item.uid });
+        mainWindow.webContents.send('main:http-stream-end', {
+          collectionUid,
+          itemUid: item.uid,
+          seq: seq + 1,
+          timestamp: Date.now()
+        });
+
         deleteCancelToken(response.cancelTokenUid);
       });
     }
