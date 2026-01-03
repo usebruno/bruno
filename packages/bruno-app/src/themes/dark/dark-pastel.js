@@ -196,10 +196,10 @@ const darkPastelTheme = {
       item: {
         bg: colors.GRAY_2,
         hoverBg: colors.GRAY_3,
-        focusBorder: colors.BRAND,
-        indentBorder: `solid 1px ${colors.GRAY_4}`,
+        focusBorder: colors.GRAY_5,
+        indentBorder: colors.GRAY_3,
         active: {
-          indentBorder: `solid 1px ${colors.BRAND}50`
+          indentBorder: colors.GRAY_3
         },
         example: {
           iconColor: colors.GRAY_6
@@ -295,7 +295,7 @@ const darkPastelTheme = {
     },
     body: {
       color: colors.TEXT,
-      bg: colors.GRAY_2
+      bg: colors.GRAY_1
     },
     input: {
       bg: 'transparent',
@@ -434,11 +434,11 @@ const darkPastelTheme = {
   },
 
   table: {
-    border: colors.GRAY_4,
+    border: colors.GRAY_3,
     thead: {
       color: colors.TEXT_MUTED
     },
-    striped: colors.GRAY_2,
+    striped: colors.GRAY_1,
     input: {
       color: colors.TEXT
     }

@@ -194,9 +194,9 @@ const lightPastelTheme = {
         bg: colors.GRAY_2,
         hoverBg: rgba(colors.GRAY_3, 0.5),
         focusBorder: colors.BRAND,
-        indentBorder: `solid 1px ${colors.GRAY_4}`,
+        indentBorder: colors.GRAY_3,
         active: {
-          indentBorder: `solid 1px ${colors.BRAND}40`
+          indentBorder: colors.GRAY_3
         },
         example: {
           iconColor: colors.GRAY_7

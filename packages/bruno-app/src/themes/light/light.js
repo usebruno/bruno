@@ -214,9 +214,9 @@ const lightTheme = {
         bg: palette.background.SURFACE1,
         hoverBg: palette.background.SURFACE1,
         focusBorder: palette.border.BORDER2,
-        indentBorder: `solid 1px ${palette.border.BORDER1}`,
+        indentBorder: palette.border.BORDER1,
         active: {
-          indentBorder: `solid 1px ${palette.border.BORDER1}`
+          indentBorder: palette.border.BORDER1
         },
         example: {
           iconColor: palette.text.SUBTEXT2

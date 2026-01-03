@@ -23,14 +23,12 @@ const StyledWrapper = styled.div`
     z-index: 10;
     background: ${(props) => props.theme.bg};
     padding: 12px;
-    border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
   }
 
   /* Left Sidebar */
   .sidebar {
     width: 240px;
     min-width: 240px;
-    border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
     display: flex;
     flex-direction: column;
   }
@@ -87,7 +85,7 @@ const StyledWrapper = styled.div`
       padding: 6px 8px 6px 28px;
       font-size: 12px;
       background: transparent;
-      border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
+      border: 1px solid ${(props) => props.theme.border.border1};
       border-radius: 5px;
       color: ${(props) => props.theme.text};
       transition: all 0.15s ease;

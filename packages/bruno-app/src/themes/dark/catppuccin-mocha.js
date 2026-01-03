@@ -190,9 +190,9 @@ const catppuccinMochaTheme = {
         bg: colors.SURFACE0,
         hoverBg: colors.SURFACE0,
         focusBorder: colors.SURFACE1,
-        indentBorder: `solid 1px ${colors.SURFACE2}`,
+        indentBorder: colors.SURFACE0,
         active: {
-          indentBorder: `solid 1px ${colors.MAUVE}`
+          indentBorder: colors.SURFACE0
         },
         example: {
           iconColor: colors.OVERLAY1
@@ -434,7 +434,7 @@ const catppuccinMochaTheme = {
     thead: {
       color: colors.TEXT
     },
-    striped: colors.SURFACE0,
+    striped: rgba(colors.SURFACE0, 0.2),
     input: {
       color: colors.TEXT
     }

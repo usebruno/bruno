@@ -28,7 +28,7 @@ export const palette = {
   },
   background: {
     BASE: 'hsl(0deg 0% 10%)',
-    MANTLE: '#252526',
+    MANTLE: '#222224',
     CRUST: '#1e1e1e',
     SURFACE0: '#26292b',
     SURFACE1: 'hsl(204, 4%, 23%)',
@@ -222,9 +222,9 @@ const darkTheme = {
         bg: palette.background.SURFACE0,
         hoverBg: palette.background.MANTLE,
         focusBorder: palette.border.BORDER2,
-        indentBorder: `solid 1px ${palette.border.BORDER1}`,
+        indentBorder: palette.background.SURFACE0,
         active: {
-          indentBorder: 'solid 1px #4c4c4c'
+          indentBorder: palette.background.SURFACE0
         },
         example: {
           iconColor: palette.text.BASE
@@ -240,7 +240,7 @@ const darkTheme = {
   dropdown: {
     color: palette.text.BASE,
     iconColor: palette.text.SUBTEXT2,
-    bg: palette.background.CRUST,
+    bg: palette.background.MANTLE,
     hoverBg: palette.background.MANTLE,
     shadow: 'none',
     border: palette.border.BORDER1,
@@ -288,7 +288,7 @@ const darkTheme = {
     responseOk: palette.hues.GREEN,
     responseError: palette.hues.RED,
     responsePending: palette.hues.BLUE,
-    responseOverlayBg: 'rgba(30, 30, 30, 0.6)',
+    responseOverlayBg: rgba(palette.background.BASE, 0.8),
 
     card: {
       bg: '#252526',
@@ -466,7 +466,7 @@ const darkTheme = {
     thead: {
       color: 'rgb(204, 204, 204)'
     },
-    striped: '#2A2D2F',
+    striped: '#1e1e1e',
     input: {
       color: '#ccc'
     }
@@ -487,7 +487,7 @@ const darkTheme = {
     transition: 'all 0.1s ease'
   },
   infoTip: {
-    bg: '#1f1f1f',
+    bg: palette.background.MANTLE,
     border: '#333333',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
   },

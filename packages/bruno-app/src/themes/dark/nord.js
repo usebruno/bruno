@@ -196,9 +196,9 @@ const nordTheme = {
         bg: colors.NORD1,
         hoverBg: colors.NORD2,
         focusBorder: colors.NORD3,
-        indentBorder: `solid 1px ${colors.NORD3}`,
+        indentBorder: colors.NORD2,
         active: {
-          indentBorder: `solid 1px ${colors.NORD3}`
+          indentBorder: colors.NORD2
         },
         example: {
           iconColor: colors.TEXT_MUTED
