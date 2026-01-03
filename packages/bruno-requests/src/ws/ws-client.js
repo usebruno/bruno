@@ -64,7 +64,6 @@ const createSequencer = () => {
 const seq = createSequencer();
 
 class WsClient {
-  sequenceState = {};
   messageQueues = {};
   activeConnections = new Map();
   connectionKeepAlive = new Map();
