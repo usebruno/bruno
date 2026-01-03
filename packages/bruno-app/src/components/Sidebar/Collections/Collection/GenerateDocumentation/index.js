@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { cloneDeep } from 'lodash';
 import * as FileSaver from 'file-saver';
 import jsyaml from 'js-yaml';
+import jsesc from 'jsesc';
 import toast from 'react-hot-toast';
 import { IconBook, IconCheck, IconAlertTriangle, IconLoader2 } from '@tabler/icons';
 
@@ -22,10 +23,7 @@ const FEATURES = [
   'Host on any static file server'
 ];
 
-const escapeForTemplate = (content) =>
-  content.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
-
-const buildHtmlDocument = (collectionName, yamlContent) => `<!DOCTYPE html>
+const buildHtmlDocument = (collectionName, escapedYamlContent) => `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -41,7 +39,7 @@ const buildHtmlDocument = (collectionName, yamlContent) => `<!DOCTYPE html>
 <body>
     <div id="opencollection-container"></div>
     <script>
-        const collectionData = \`${yamlContent}\`;
+        const collectionData = ${escapedYamlContent};
         new window.OpenCollection({
             target: document.getElementById('opencollection-container'),
             opencollection: collectionData,
@@ -95,9 +93,15 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
         sortKeys: false
       });
 
+      // jsesc handles all edge cases: Unicode, special chars, quotes, template literals, etc.
+      let escapedYaml = jsesc(yamlContent, { quotes: 'double', wrap: true });
+
+      // Escape closing tags to prevent HTML parser from breaking out of the script block
+      escapedYaml = escapedYaml.replace(/<\//g, '<\\/');
+
       const htmlContent = buildHtmlDocument(
         escapeHtml(collection.name),
-        escapeForTemplate(yamlContent)
+        escapedYaml
       );
 
       const fileName = `${sanitizeName(collection.name)}-documentation.html`;
