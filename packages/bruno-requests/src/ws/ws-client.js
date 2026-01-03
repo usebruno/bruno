@@ -51,13 +51,29 @@ const normalizeMessageByFormat = (message, format) => {
 
 const createSequencer = () => {
   const seq = {};
+
   const nextSeq = (requestId, collectionId) => {
     seq[requestId] ||= {};
     seq[requestId][collectionId] ||= 0;
     return ++seq[requestId][collectionId];
   };
+
+  /**
+   * @param {string} requestId
+   * @param {string} [collectionId]
+   */
+  const clean = (requestId, collectionId = undefined) => {
+    if (collectionId) {
+      delete seq[requestId][collectionId];
+    }
+    if (!Object.keys(seq[requestId]).length) {
+      delete seq[requestId];
+    }
+  };
+
   return {
-    next: nextSeq
+    next: nextSeq,
+    clean
   };
 };
 
@@ -219,6 +235,7 @@ class WsClient {
     if (connectionMeta?.connection) {
       connectionMeta.connection.close(code, reason);
       this.#removeConnection(requestId);
+      seq.clean(requestId);
     }
   }
 
@@ -353,6 +370,7 @@ class WsClient {
         seq: seq.next(requestId, collectionUid),
         timestamp: Date.now()
       });
+      seq.clean(requestId, collectionUid);
       this.#removeConnection(requestId);
     });
 
