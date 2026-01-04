@@ -20,7 +20,8 @@ import {
   isItemARequest,
   getAllVariables,
   transformRequestToSaveToFilesystem,
-  transformCollectionRootToSave
+  transformCollectionRootToSave,
+  ensureRequestLoaded
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -516,9 +517,33 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    let collectionCopy = cloneDeep(collection);
+    // Check if request is partial and load it on demand if needed
+    let loadedItem = item;
+    let collectionToUse = collection;
+    if (item.partial || !item.request) {
+      try {
+        loadedItem = await ensureRequestLoaded(item, collection, dispatch, getState);
 
-    const itemCopy = cloneDeep(item);
+        // If loading failed and item is still partial, reject
+        if (loadedItem.partial || !loadedItem.request) {
+          return reject(new Error('Failed to load request: request data is not available'));
+        }
+
+        // Refresh collection reference from state after loading (collection may have been updated)
+        const updatedState = getState();
+        const updatedCollection = findCollectionByUid(updatedState.collections.collections, collectionUid);
+        if (updatedCollection) {
+          collectionToUse = updatedCollection;
+        }
+      } catch (error) {
+        console.error('Error loading request on demand:', error);
+        return reject(new Error(`Failed to load request: ${error.message}`));
+      }
+    }
+
+    let collectionCopy = cloneDeep(collectionToUse);
+
+    const itemCopy = cloneDeep(loadedItem);
 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({
