@@ -42,20 +42,8 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
-/**
- * Determines if the given object is a FormData instance.
- * Supports native FormData (Node 18+, browser) and the 'form-data' npm package.
- * @param {*} obj - Object to check.
- * @returns {boolean} True if obj is a FormData instance, false otherwise.
- */
-const isFormData = (obj) => {
-  // Check constructor name (works for both native FormData and form-data npm package)
-  return obj?.constructor?.name === 'FormData';
-};
-
 module.exports = {
   lpad,
   rpad,
-  parseDataFromResponse,
-  isFormData
+  parseDataFromResponse
 };
