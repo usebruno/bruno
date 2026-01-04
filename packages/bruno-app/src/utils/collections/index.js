@@ -1703,6 +1703,30 @@ export const isVariableSecret = (scopeInfo) => {
 };
 
 /**
+ * Recursively collect all requests from a folder
+ * @param {Object} folder - The folder object
+ * @param {boolean} recursive - Whether to collect requests recursively
+ * @returns {Array} - Array of request items
+ */
+export const getAllRequestsInFolder = (folder = {}, recursive = false) => {
+  let requests = [];
+
+  if (!folder.items || !folder.items.length) {
+    return requests;
+  }
+
+  folder.items.forEach((item) => {
+    if (isItemARequest(item)) {
+      requests.push(item);
+    } else if (isItemAFolder(item) && recursive) {
+      requests = requests.concat(getAllRequestsInFolder(item, recursive));
+    }
+  });
+
+  return requests;
+};
+
+/**
  * Generate a unique request name by checking existing filenames in the collection and filesystem
  * @param {Object} collection - The collection object
  * @param {string} baseName - The base name (default: 'Untitled')

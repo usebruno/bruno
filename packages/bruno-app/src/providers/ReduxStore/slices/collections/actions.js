@@ -21,7 +21,8 @@ import {
   getAllVariables,
   transformRequestToSaveToFilesystem,
   transformCollectionRootToSave,
-  ensureRequestLoaded
+  ensureRequestLoaded,
+  getAllRequestsInFolder
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -666,12 +667,12 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
 };
 
 export const runCollectionFolder
-  = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => (dispatch, getState) => {
+  = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => async (dispatch, getState) => {
     const state = getState();
     const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (!collection) {
         return reject(new Error('Collection not found'));
       }
@@ -685,38 +686,84 @@ export const runCollectionFolder
       });
       collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
-      const folder = findItemInCollection(collectionCopy, folderUid);
+      const folder = folderUid ? findItemInCollection(collectionCopy, folderUid) : collectionCopy;
 
       if (folderUid && !folder) {
         return reject(new Error('Folder not found'));
       }
 
-      const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+      // Collect all requests that will be run (before filtering by tags/selectedRequestUids)
+      // This ensures we load all potentially needed requests
+      const allRequests = getAllRequestsInFolder(folder, recursive);
 
-      dispatch(
-        resetRunResults({
-          collectionUid: collection.uid
-        })
-      );
-
-      const { ipcRenderer } = window;
-      ipcRenderer
-        .invoke(
-          'renderer:run-collection-folder',
-          folder,
-          collectionCopy,
-          environment,
-          collectionCopy.runtimeVariables,
-          recursive,
-          delay,
-          tags,
-          selectedRequestUids
-        )
-        .then(resolve)
-        .catch((err) => {
-          toast.error(get(err, 'error.message') || 'Something went wrong!');
-          reject(err);
+      // Load all partial requests before execution
+      try {
+        const loadPromises = allRequests.map(async (request) => {
+          // Check if request is partial and needs loading
+          if (request.partial === true || !request.request) {
+            try {
+              return await ensureRequestLoaded(request, collectionCopy, dispatch, getState);
+            } catch (error) {
+              console.warn(`Failed to load request ${request.pathname}:`, error);
+              // Return original request on error - IPC handler will handle it
+              return request;
+            }
+          }
+          return request;
         });
+
+        // Wait for all requests to be loaded (use allSettled to continue even if some fail)
+        await Promise.allSettled(loadPromises);
+
+        // After loading, get the updated collection from state
+        const updatedState = getState();
+        const updatedCollection = findCollectionByUid(updatedState.collections.collections, collectionUid);
+
+        if (!updatedCollection) {
+          return reject(new Error('Collection not found after loading requests'));
+        }
+
+        // Rebuild collectionCopy and folder with updated data
+        collectionCopy = cloneDeep(updatedCollection);
+        collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+
+        const updatedFolder = folderUid ? findItemInCollection(collectionCopy, folderUid) : collectionCopy;
+
+        if (folderUid && !updatedFolder) {
+          return reject(new Error('Folder not found after loading requests'));
+        }
+
+        const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+
+        dispatch(
+          resetRunResults({
+            collectionUid: collection.uid
+          })
+        );
+
+        const { ipcRenderer } = window;
+        ipcRenderer
+          .invoke(
+            'renderer:run-collection-folder',
+            updatedFolder,
+            collectionCopy,
+            environment,
+            collectionCopy.runtimeVariables,
+            recursive,
+            delay,
+            tags,
+            selectedRequestUids
+          )
+          .then(resolve)
+          .catch((err) => {
+            toast.error(get(err, 'error.message') || 'Something went wrong!');
+            reject(err);
+          });
+      } catch (error) {
+        console.error('Error loading requests for collection runner:', error);
+        toast.error('Failed to load some requests. Please try again.');
+        reject(error);
+      }
     });
   };
 
