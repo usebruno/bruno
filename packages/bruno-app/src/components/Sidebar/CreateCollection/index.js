@@ -224,7 +224,19 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                     </p>
                   </Help>
                   {formik.values.format === 'yml' && (
-                    <span className="beta-badge">Beta</span>
+                    <>
+                      <span className="beta-badge">Beta</span>
+                      <a
+                        href="#"
+                        className="discussion-link"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.open('https://github.com/usebruno/bruno/discussions/6634', '_blank', 'noopener,noreferrer');
+                        }}
+                      >
+                        Join the discussion
+                      </a>
+                    </>
                   )}
                 </label>
                 <select
