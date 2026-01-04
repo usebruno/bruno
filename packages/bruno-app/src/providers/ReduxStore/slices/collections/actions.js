@@ -29,6 +29,7 @@ import brunoClipboard from 'utils/bruno-clipboard';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
+  collectionAddFileEvent,
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
@@ -2616,6 +2617,25 @@ export const loadRequest
       return new Promise(async (resolve, reject) => {
         const { ipcRenderer } = window;
         ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
+      });
+    };
+
+export const loadRequestOnDemand
+  = ({ collectionUid, pathname }) =>
+    (dispatch, getState) => {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const { ipcRenderer } = window;
+          const file = await ipcRenderer.invoke('renderer:load-request-on-demand', { collectionUid, pathname });
+
+          // Dispatch collectionAddFileEvent to update Redux state with the loaded request
+          dispatch(collectionAddFileEvent({ file }));
+
+          resolve(file);
+        } catch (error) {
+          console.error('Error loading request on demand:', error);
+          reject(error);
+        }
       });
     };
 
