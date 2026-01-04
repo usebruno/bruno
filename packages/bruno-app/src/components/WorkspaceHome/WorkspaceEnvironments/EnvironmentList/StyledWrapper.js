@@ -5,7 +5,6 @@ const StyledWrapper = styled.div`
   display: flex;
   height: 100%;
   overflow: hidden;
-  background-color: ${(props) => props.theme.bg};
   position: relative;
 
   .environments-container {
