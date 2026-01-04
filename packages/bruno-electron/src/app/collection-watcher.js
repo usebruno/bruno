@@ -325,7 +325,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
 
   const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
-    watcher.addFileToProcessing(collectionUid, pathname);
+    // Don't track partial files in processing queue - metadata parsing is instant
+    // The directory watcher will still detect changes automatically
 
     const file = {
       meta: {
@@ -338,58 +339,29 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     const fileStats = fs.statSync(pathname);
     let content = fs.readFileSync(pathname, 'utf8');
 
-    // If worker thread is not used, we can directly parse the file
-    if (!useWorkerThread) {
-      try {
-        file.data = await parseRequest(content, { format });
-        file.partial = false;
-        file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        watcher.markFileAsProcessed(win, collectionUid, pathname);
-      }
-      return;
-    }
-
     try {
-      // we need to send a partial file info to the UI
-      // so that the UI can display the file in the collection tree
-      file.data = {
-        name: path.basename(pathname),
-        type: 'http-request'
-      };
-
+      // Parse only metadata for requests during mount
+      // Full request will be loaded on demand when accessed
       const metaJson = parseFileMeta(content, format);
-      file.data = metaJson;
+
+      if (metaJson) {
+        file.data = metaJson;
+      } else {
+        // Fallback if metadata parsing fails
+        file.data = {
+          name: path.basename(pathname),
+          type: 'http-request'
+        };
+      }
+
+      // Always set partial: true and loading: false for requests during mount
       file.partial = true;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-      if (fileStats.size < MAX_FILE_SIZE) {
-        // This is to update the loading indicator in the UI
-        file.data = metaJson;
-        file.partial = false;
-        file.loading = true;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-        // This is to update the file info in the UI
-        file.data = await parseRequestViaWorker(content, {
-          format,
-          filename: pathname
-        });
-        file.partial = false;
-        file.loading = false;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      }
     } catch (error) {
+      // Error handling: still send partial file info
       file.data = {
         name: path.basename(pathname),
         type: 'http-request'
@@ -402,9 +374,9 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
-    } finally {
-      watcher.markFileAsProcessed(win, collectionUid, pathname);
     }
+    // Removed: watcher.addFileToProcessing and watcher.markFileAsProcessed
+    // Metadata parsing is instant, no need to track in processing queue
   }
 };
 
