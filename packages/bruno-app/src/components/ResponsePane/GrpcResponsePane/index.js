@@ -40,13 +40,14 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   const metadataCount = Array.isArray(response.metadata) ? response.metadata.length : 0;
   const trailersCount = Array.isArray(response.trailers) ? response.trailers.length : 0;
+  const responsesCount = Array.isArray(response.responses) ? response.responses.length : 0;
 
   const allTabs = useMemo(() => {
     return [
       {
         key: 'response',
         label: 'Response',
-        indicator: null
+        indicator: responsesCount > 0 ? <sup className="ml-1 font-medium">{responsesCount}</sup> : null
       },
       {
         key: 'headers',
@@ -64,7 +65,7 @@ const GrpcResponsePane = ({ item, collection }) => {
         indicator: null
       }
     ];
-  }, [metadataCount, trailersCount]);
+  }, [metadataCount, trailersCount, responsesCount]);
 
   const getTabPanel = (tab) => {
     switch (tab) {

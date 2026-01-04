@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
@@ -96,6 +96,13 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       }
     ];
   }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth?.mode, docs]);
+
+  // Initialize tab to 'body' if no tab is currently set
+  useEffect(() => {
+    if (activeTabUid && focusedTab?.uid && !requestPaneTab) {
+      selectTab('body');
+    }
+  }, [activeTabUid, focusedTab?.uid, requestPaneTab, selectTab]);
 
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
