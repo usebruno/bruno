@@ -2,10 +2,10 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { IconGripVertical, IconCheck, IconAdjustmentsAlt } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
-import { updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
+import { useDispatch, useSelector, useStore } from 'react-redux';
+import { updateRunnerConfiguration, loadRequestOnDemand } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { isItemARequest } from 'utils/collections';
+import { isItemARequest, findItemInCollectionByPathname, findCollectionByUid } from 'utils/collections';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
 import Button from 'ui/Button/index';
@@ -32,9 +32,10 @@ const getMethodInfo = (item) => {
     methodText = 'GQL';
     methodClass = 'method-gql';
   } else {
-    const method = item.request?.method || '';
+    // For partial requests, method might be in metadata or request object
+    const method = item.request?.method || item.method || '';
     methodText = method.length > 5 ? method.substring(0, 3).toUpperCase() : method.toUpperCase();
-    methodClass = `method-${method.toLowerCase()}`;
+    methodClass = method ? `method-${method.toLowerCase()}` : 'method-unknown';
   }
 
   return { methodText, methodClass };
@@ -153,9 +154,11 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
 
 const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) => {
   const dispatch = useDispatch();
+  const store = useStore();
   const [flattenedRequests, setFlattenedRequests] = useState([]);
   const [originalRequests, setOriginalRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingRequests, setLoadingRequests] = useState(new Set());
 
   const flattenRequests = useCallback((collection) => {
     const result = [];
@@ -164,7 +167,9 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
       if (!items?.length) return;
 
       items.forEach((item) => {
-        if (isItemARequest(item) && !item.partial) {
+        // Include all requests, not just loaded ones
+        // Partial requests will be loaded on demand when needed
+        if (isItemARequest(item)) {
           const relativePath = path.relative(collection.pathname, path.dirname(item.pathname));
           const folderPath = relativePath !== '.' ? relativePath : '';
 
@@ -184,42 +189,95 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
     return result;
   }, []);
 
+  // Load partial requests on demand
+  const loadPartialRequest = useCallback(async (item) => {
+    if (!item.partial || !item.pathname || loadingRequests.has(item.uid)) {
+      return item;
+    }
+
+    setLoadingRequests((prev) => new Set(prev).add(item.uid));
+
+    try {
+      await dispatch(loadRequestOnDemand({
+        collectionUid: collection.uid,
+        pathname: item.pathname
+      }));
+
+      // Get updated item from state
+      const state = store.getState();
+      const updatedCollection = findCollectionByUid(state.collections.collections, collection.uid);
+      if (updatedCollection) {
+        const loadedItem = findItemInCollectionByPathname(updatedCollection, item.pathname);
+        if (loadedItem && !loadedItem.partial) {
+          return loadedItem;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading partial request:', error);
+    } finally {
+      setLoadingRequests((prev) => {
+        const next = new Set(prev);
+        next.delete(item.uid);
+        return next;
+      });
+    }
+
+    return item;
+  }, [collection.uid, dispatch, store, loadingRequests]);
+
   useEffect(() => {
     setIsLoading(true);
 
-    try {
-      const structureCopy = cloneDeep(collection);
-      const requests = flattenRequests(structureCopy);
+    const loadRequests = async () => {
+      try {
+        const structureCopy = cloneDeep(collection);
+        let requests = flattenRequests(structureCopy);
 
-      const savedConfiguration = get(collection, 'runnerConfiguration', null);
-      if (savedConfiguration?.requestItemsOrder?.length > 0) {
-        const orderedRequests = [];
-        const requestMap = new Map(requests.map((req) => [req.uid, req]));
-
-        savedConfiguration.requestItemsOrder.forEach((uid) => {
-          const request = requestMap.get(uid);
-          if (request) {
-            orderedRequests.push(request);
-            requestMap.delete(uid);
+        // Load all partial requests
+        const loadPromises = requests.map((req) => {
+          if (req.partial && req.pathname) {
+            return loadPartialRequest(req);
           }
+          return Promise.resolve(req);
         });
 
-        requestMap.forEach((request) => {
-          orderedRequests.push(request);
-        });
+        requests = await Promise.all(loadPromises);
 
-        setFlattenedRequests(orderedRequests);
-      } else {
-        setFlattenedRequests(requests);
+        // Filter out requests that are still partial (failed to load)
+        requests = requests.filter((req) => !req.partial || req.request);
+
+        const savedConfiguration = get(collection, 'runnerConfiguration', null);
+        if (savedConfiguration?.requestItemsOrder?.length > 0) {
+          const orderedRequests = [];
+          const requestMap = new Map(requests.map((req) => [req.uid, req]));
+
+          savedConfiguration.requestItemsOrder.forEach((uid) => {
+            const request = requestMap.get(uid);
+            if (request) {
+              orderedRequests.push(request);
+              requestMap.delete(uid);
+            }
+          });
+
+          requestMap.forEach((request) => {
+            orderedRequests.push(request);
+          });
+
+          setFlattenedRequests(orderedRequests);
+        } else {
+          setFlattenedRequests(requests);
+        }
+
+        setOriginalRequests(cloneDeep(requests));
+      } catch (error) {
+        console.error('Error loading collection structure:', error);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      setOriginalRequests(cloneDeep(requests));
-    } catch (error) {
-      console.error('Error loading collection structure:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [collection, flattenRequests]);
+    loadRequests();
+  }, [collection, flattenRequests, loadPartialRequest]);
 
   const moveItem = useCallback((draggedItemUid, hoverIndex) => {
     setFlattenedRequests((prevRequests) => {
