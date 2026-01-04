@@ -87,7 +87,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       {
         key: 'auth',
         label: 'Auth',
-        indicator: auth.mode !== 'none' ? <StatusDot type="default" /> : null
+        indicator: auth?.mode && auth.mode !== 'none' ? <StatusDot type="default" /> : null
       },
       {
         key: 'docs',
@@ -95,7 +95,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth.mode, docs]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth?.mode, docs]);
 
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
