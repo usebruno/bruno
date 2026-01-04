@@ -185,7 +185,7 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
 
   // sort based on order, seq was newly added and might be missing in some cases and when missing,
   // the timestamp will be used instead
-  const ordered = messages.toSorted((x, y) => ((x.seq ?? x.timestamp) - (y.seq ?? y.timestamp)) * order);
+  const ordered = messages.toSorted((x, y) => ((x.seq ?? x.timestamp) - (y.seq ?? y.timestamp)) * (-order));
 
   return (
     <StyledWrapper className="ws-messages-list flex flex-col">
