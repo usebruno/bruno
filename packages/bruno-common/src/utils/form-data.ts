@@ -40,5 +40,6 @@ export const buildFormUrlEncodedPayload = (params: Array<{ name: string; value: 
  */
 export const isFormData = (obj: unknown): boolean => {
   // Check constructor name (works for both native FormData and form-data npm package)
+  // todo: checking constructor.name can produce false positives for objects that have a constructor.name property set to 'FormData', but this is rare.
   return obj?.constructor?.name === 'FormData';
 };
