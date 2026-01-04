@@ -1,12 +1,12 @@
-import classnames from 'classnames';
+import React, { useMemo, useCallback } from 'react';
 import Documentation from 'components/Documentation/index';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
 import { find } from 'lodash';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
-import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import WsBody from '../WsBody/index';
 import StyledWrapper from './StyledWrapper';
@@ -18,15 +18,57 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
-  const selectTab = (tab) => {
-    dispatch(updateRequestPaneTab({
-      uid: item.uid,
-      requestPaneTab: tab
-    }));
-  };
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const requestPaneTab = focusedTab?.requestPaneTab;
 
-  const getTabPanel = (tab) => {
-    switch (tab) {
+  const selectTab = useCallback(
+    (tab) => {
+      dispatch(updateRequestPaneTab({
+        uid: item.uid,
+        requestPaneTab: tab
+      }));
+    },
+    [dispatch, item.uid]
+  );
+
+  const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
+  const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
+  const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
+
+  const activeHeadersLength = headers.filter((header) => header.enabled).length;
+
+  const allTabs = useMemo(() => {
+    return [
+      {
+        key: 'body',
+        label: 'Message',
+        indicator: null
+      },
+      {
+        key: 'headers',
+        label: 'Headers',
+        indicator: activeHeadersLength > 0 ? <sup className="ml-[.125rem] font-medium">{activeHeadersLength}</sup> : null
+      },
+      {
+        key: 'auth',
+        label: 'Auth',
+        indicator: auth.mode !== 'none' ? <StatusDot type="default" /> : null
+      },
+      {
+        key: 'settings',
+        label: 'Settings',
+        indicator: null
+      },
+      {
+        key: 'docs',
+        label: 'Docs',
+        indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
+      }
+    ];
+  }, [activeHeadersLength, auth.mode, docs]);
+
+  const tabPanel = useMemo(() => {
+    switch (requestPaneTab) {
       case 'body': {
         return (
           <WsBody
@@ -54,61 +96,22 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         return <div className="mt-4">404 | Not found</div>;
       }
     }
-  };
+  }, [requestPaneTab, item, collection, handleRun]);
 
-  if (!activeTabUid) {
-    return <div>Something went wrong</div>;
-  }
-
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  if (!focusedTab || !focusedTab.uid || !focusedTab.requestPaneTab) {
+  if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const getTabClassname = (tabName) => {
-    return classnames(`tab select-none ${tabName}`, {
-      active: tabName === focusedTab.requestPaneTab
-    });
-  };
-
-  const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
-  const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
-  const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
-
-  const activeHeadersLength = headers.filter((header) => header.enabled).length;
-
-  useEffect(() => {
-    if (!focusedTab?.requestPaneTab) {
-      selectTab('body');
-    }
-  }, []);
-
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center tabs" role="tablist">
-        <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
-          Message
-        </div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
-          Headers
-          {activeHeadersLength > 0 && <sup className="ml-[.125rem] font-medium">{activeHeadersLength}</sup>}
-        </div>
-        <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
-          Auth
-          {auth.mode !== 'none' && <StatusDot type="default" />}
-        </div>
-        <div className={getTabClassname('settings')} role="tab" onClick={() => selectTab('settings')}>
-          Settings
-        </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
-          Docs
-          {docs && docs.length > 0 && <StatusDot type="default" />}
-        </div>
-      </div>
-      <section
-        className={classnames('flex w-full flex-1 h-full mt-4')}
-      >
-        <HeightBoundContainer>{getTabPanel(focusedTab.requestPaneTab)}</HeightBoundContainer>
+      <ResponsiveTabs
+        tabs={allTabs}
+        activeTab={requestPaneTab}
+        onTabSelect={selectTab}
+      />
+
+      <section className="flex w-full flex-1 h-full mt-4">
+        <HeightBoundContainer>{tabPanel}</HeightBoundContainer>
       </section>
     </StyledWrapper>
   );
