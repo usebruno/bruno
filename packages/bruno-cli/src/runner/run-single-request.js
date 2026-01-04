@@ -5,25 +5,31 @@ const fs = require('fs');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
-const interpolateVars = require('./interpolate-vars');
-const { interpolateString } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
-const { makeAxiosInstance } = require('../utils/axios-instance');
-const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
-const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
-const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
-const { createFormData } = require('../utils/form-data');
+const { getCookieStringForUrl, saveCookies, addCookieToJar } = require('../utils/cookies');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor } = require('@usebruno/requests');
-const { getCACertificates } = require('@usebruno/requests');
+const { CLI_VERSION } = require('../constants');
+const {
+  addDigestInterceptor,
+  getCACertificates,
+  interpolateString,
+  interpolateVars,
+  addAwsV4Interceptor,
+  resolveAwsV4Credentials,
+  shouldUseProxy,
+  PatchedHttpsProxyAgent,
+  getSystemProxyEnvVariables,
+  makeAxiosInstance,
+  createFormData
+} = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables } = require('@usebruno/common').utils;
 
@@ -492,8 +498,14 @@ const runSingleRequest = async function (
       }
 
       let axiosInstance = makeAxiosInstance({
-        requestMaxRedirects: requestMaxRedirects,
-        disableCookies: options.disableCookies
+        maxRedirects: requestMaxRedirects,
+        disableCookies: options.disableCookies,
+        cookieHandlers: !options.disableCookies ? {
+          getCookieStringForUrl,
+          saveCookies: (url, headers) => saveCookies(url, headers)
+        } : undefined,
+        createFormData,
+        userAgent: `bruno-runtime/${CLI_VERSION}`
       });
 
       if (request.ntlmConfig) {

@@ -38,6 +38,33 @@ module.exports = [
       typescript({ tsconfig: './tsconfig.json' }),
       terser()
     ],
-    external: ['axios', 'qs', 'ws', 'debug']
+    external: [
+      'axios',
+      'qs',
+      'ws',
+      'debug',
+      '@aws-sdk/credential-providers',
+      'aws4-axios',
+      'http-proxy-agent',
+      'https-proxy-agent',
+      'socks-proxy-agent',
+      'form-data',
+      'lodash',
+      'crypto',
+      'node:crypto',
+      'node:fs',
+      'node:path',
+      'fs',
+      'path',
+      'net',
+      'tls',
+      'http',
+      'https',
+      'stream',
+      'events',
+      'util',
+      'buffer',
+      'url'
+    ]
   }
 ];
