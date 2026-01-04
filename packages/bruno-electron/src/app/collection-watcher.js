@@ -560,6 +560,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         file.data = await parseRequest(content, { format });
       }
 
+      // Set partial: false after parsing full request
+      file.partial = false;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
