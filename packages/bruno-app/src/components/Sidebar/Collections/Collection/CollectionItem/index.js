@@ -22,7 +22,7 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest, loadRequestOnDemand } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
@@ -210,7 +210,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     );
   };
 
-  const handleClick = (event) => {
+  const handleClick = async (event) => {
     if (event && event.detail != 1) return;
     // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
@@ -224,6 +224,28 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         );
         return;
       }
+
+      // Check if request is partial and needs to be loaded
+      if (item.partial || !item.request) {
+        // Check if pathname exists (required for loading)
+        if (!item.pathname) {
+          toast.error('Cannot load request: missing pathname');
+          return;
+        }
+
+        // Load request on demand
+        try {
+          await dispatch(loadRequestOnDemand({
+            collectionUid: collectionUid,
+            pathname: item.pathname
+          }));
+        } catch (error) {
+          console.error('Error loading request on demand:', error);
+          toast.error('Failed to load request');
+          return;
+        }
+      }
+
       dispatch(
         addTab({
           uid: item.uid,
