@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useRef } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -42,30 +42,33 @@ const GrpcResponsePane = ({ item, collection }) => {
   const trailersCount = Array.isArray(response.trailers) ? response.trailers.length : 0;
   const responsesCount = Array.isArray(response.responses) ? response.responses.length : 0;
 
-  const allTabs = useMemo(() => {
-    return [
-      {
-        key: 'response',
-        label: 'Response',
-        indicator: responsesCount > 0 ? <sup className="ml-1 font-medium">{responsesCount}</sup> : null
-      },
-      {
-        key: 'headers',
-        label: 'Metadata',
-        indicator: metadataCount > 0 ? <sup className="ml-1 font-medium">{metadataCount}</sup> : null
-      },
-      {
-        key: 'trailers',
-        label: 'Trailers',
-        indicator: trailersCount > 0 ? <sup className="ml-1 font-medium">{trailersCount}</sup> : null
-      },
-      {
-        key: 'timeline',
-        label: 'Timeline',
-        indicator: null
-      }
-    ];
-  }, [metadataCount, trailersCount, responsesCount]);
+  const allTabs = [
+    {
+      key: 'response',
+      label: 'Response',
+      indicator:
+        responsesCount > 0 ? (
+          <sup data-testid="grpc-tab-response-count" className="ml-1 font-medium">
+            {responsesCount}
+          </sup>
+        ) : null
+    },
+    {
+      key: 'headers',
+      label: 'Metadata',
+      indicator: metadataCount > 0 ? <sup className="ml-1 font-medium">{metadataCount}</sup> : null
+    },
+    {
+      key: 'trailers',
+      label: 'Trailers',
+      indicator: trailersCount > 0 ? <sup className="ml-1 font-medium">{trailersCount}</sup> : null
+    },
+    {
+      key: 'timeline',
+      label: 'Timeline',
+      indicator: null
+    }
+  ];
 
   const getTabPanel = (tab) => {
     switch (tab) {
