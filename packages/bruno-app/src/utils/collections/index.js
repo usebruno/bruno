@@ -4,6 +4,7 @@ import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
+import { loadRequestOnDemand } from 'providers/ReduxStore/slices/collections/actions';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -1624,6 +1625,62 @@ export const getVariableScope = (variableName, collection, item) => {
   // Process.env variables are not checked here
 
   return null;
+};
+
+/**
+ * Ensure a request is fully loaded in Redux state.
+ * If the request is partial, loads it on demand and returns the updated item.
+ * @param {Object} item - The request item (may be partial)
+ * @param {Object} collection - The collection containing the item
+ * @param {Function} dispatch - Redux dispatch function
+ * @param {Function} getState - Redux getState function
+ * @returns {Promise<Object>} - The fully loaded request item
+ */
+export const ensureRequestLoaded = async (item, collection, dispatch, getState) => {
+  // Check if request is already fully loaded
+  // A request is considered loaded if:
+  // 1. partial is explicitly false (or undefined for backwards compatibility)
+  // 2. request object exists
+  if (item.partial !== true && item.request) {
+    return item;
+  }
+
+  // Check if pathname exists (required for loading)
+  if (!item.pathname) {
+    console.warn('Cannot load request: missing pathname');
+    return item;
+  }
+
+  try {
+    // Load the request on demand
+    await dispatch(loadRequestOnDemand({
+      collectionUid: collection.uid,
+      pathname: item.pathname
+    }));
+
+    // Get the updated state and find the loaded item
+    const state = getState();
+    const updatedCollection = findCollectionByUid(state.collections.collections, collection.uid);
+
+    if (!updatedCollection) {
+      console.warn('Collection not found after loading request');
+      return item;
+    }
+
+    // Find the updated item by pathname
+    const loadedItem = findItemInCollectionByPathname(updatedCollection, item.pathname);
+
+    if (!loadedItem) {
+      console.warn('Request item not found after loading');
+      return item;
+    }
+
+    return loadedItem;
+  } catch (error) {
+    console.error('Error loading request on demand:', error);
+    // Return original item on error
+    return item;
+  }
 };
 
 // Check if a variable is marked as secret
