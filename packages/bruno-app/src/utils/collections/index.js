@@ -1533,21 +1533,50 @@ export const getInitialExampleName = (item) => {
 };
 
 // Get the scope and raw value of a variable by checking all scopes in priority order
-export const getVariableScope = (variableName, collection, item) => {
+export const getVariableScope = async (variableName, collection, item, dispatch, getState) => {
   if (!variableName || !collection) {
     return null;
   }
 
   // 1. Check Request Variables (highest priority)
   if (item) {
-    const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
-    const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
-    if (requestVar) {
-      return {
-        type: 'request',
-        value: requestVar.value,
-        data: { item, variable: requestVar }
-      };
+    // Check if item is a request and if it's partial
+    // If partial, we need to load it before accessing request variables
+    if (item.type === 'request' && (item.partial === true || !item.request)) {
+      // Only load if dispatch and getState are provided
+      if (dispatch && getState) {
+        try {
+          // Load the request on demand
+          const loadedItem = await ensureRequestLoaded(item, collection, dispatch, getState);
+          // Use the loaded item for variable resolution
+          const requestVars = loadedItem.draft ? get(loadedItem, 'draft.request.vars.req', []) : get(loadedItem, 'request.vars.req', []);
+          const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
+          if (requestVar) {
+            return {
+              type: 'request',
+              value: requestVar.value,
+              data: { item: loadedItem, variable: requestVar }
+            };
+          }
+        } catch (error) {
+          console.error('Error loading request for variable resolution:', error);
+          // Continue to check other scopes if loading fails
+        }
+      } else {
+        // If dispatch/getState not provided, skip request variable check for partial requests
+        // This maintains backward compatibility for synchronous callers
+      }
+    } else {
+      // Request is already loaded or item is not a request, proceed normally
+      const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
+      const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
+      if (requestVar) {
+        return {
+          type: 'request',
+          value: requestVar.value,
+          data: { item, variable: requestVar }
+        };
+      }
     }
   }
 

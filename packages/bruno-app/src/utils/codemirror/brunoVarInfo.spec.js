@@ -339,14 +339,19 @@ describe('renderVarInfo', () => {
 
     // mock console.error
     console.error = jest.fn();
+
+    // Setup getVariableScope mock to return a promise that resolves to null (variable not found)
+    // This allows tests to work with async getVariableScope
+    const { getVariableScope } = require('utils/collections');
+    getVariableScope.mockResolvedValue(null);
   });
 
   afterEach(() => {
     jest.useRealTimers();
   });
 
-  function setupRender(variables, collection = null, item = null) {
-    const result = renderVarInfo({ string: '{{apiKey}}' }, { variables, collection, item });
+  async function setupRender(variables, collection = null, item = null) {
+    const result = await renderVarInfo({ string: '{{apiKey}}' }, { variables, collection, item });
     if (!result) return { result: null, containerDiv: null, valueDisplay: null, copyButton: null };
 
     const containerDiv = result;
@@ -357,20 +362,20 @@ describe('renderVarInfo', () => {
   }
 
   describe('popup functionality', () => {
-    it('should create a popup', () => {
-      const { result } = setupRender({ apiKey: 'test-value' });
+    it('should create a popup', async () => {
+      const { result } = await setupRender({ apiKey: 'test-value' });
 
       expect(result).toBeDefined();
     });
 
-    it('should create a popup with the correct variable name and value', () => {
-      const { valueDisplay } = setupRender({ apiKey: 'test-value' });
+    it('should create a popup with the correct variable name and value', async () => {
+      const { valueDisplay } = await setupRender({ apiKey: 'test-value' });
 
       expect(valueDisplay.textContent).toBe('test-value');
     });
 
-    it('should correctly mask the variable value in the popup', () => {
-      const { valueDisplay } = setupRender({
+    it('should correctly mask the variable value in the popup', async () => {
+      const { valueDisplay } = await setupRender({
         apiKey: 'test-value',
         maskedEnvVariables: ['apiKey']
       });
@@ -380,14 +385,14 @@ describe('renderVarInfo', () => {
   });
 
   describe('copy button functionality', () => {
-    it('should create a copy button', () => {
-      const { copyButton } = setupRender({ apiKey: 'test-value' });
+    it('should create a copy button', async () => {
+      const { copyButton } = await setupRender({ apiKey: 'test-value' });
 
       expect(copyButton).toBeDefined();
     });
 
-    it('should copy the variable value to the clipboard', () => {
-      const { copyButton } = setupRender({ apiKey: 'test-value' });
+    it('should copy the variable value to the clipboard', async () => {
+      const { copyButton } = await setupRender({ apiKey: 'test-value' });
 
       copyButton.click();
 
@@ -395,8 +400,8 @@ describe('renderVarInfo', () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-value');
     });
 
-    it('should copy the variable value of masked variables to the clipboard', () => {
-      const { copyButton } = setupRender({ apiKey: 'test-value', maskedEnvVariables: ['apiKey'] });
+    it('should copy the variable value of masked variables to the clipboard', async () => {
+      const { copyButton } = await setupRender({ apiKey: 'test-value', maskedEnvVariables: ['apiKey'] });
 
       copyButton.click();
 
@@ -405,7 +410,7 @@ describe('renderVarInfo', () => {
     });
 
     it('should show a success checkmark when the variable value is copied', async () => {
-      const { copyButton } = setupRender({ apiKey: 'test-value' });
+      const { copyButton } = await setupRender({ apiKey: 'test-value' });
 
       expect(copyButton.classList.contains('copy-success')).toBe(false);
 
@@ -419,7 +424,7 @@ describe('renderVarInfo', () => {
     });
 
     it('should log to the console when the variable value is not copied', async () => {
-      const { copyButton } = setupRender({ apiKey: 'cause-clipboard-error' });
+      const { copyButton } = await setupRender({ apiKey: 'cause-clipboard-error' });
 
       copyButton.click();
 
@@ -432,8 +437,8 @@ describe('renderVarInfo', () => {
   });
 
   describe('dynamic/faker variable rendering', () => {
-    function setupDynamicRender(variableName, variables = {}) {
-      const result = renderVarInfo({ string: `{{${variableName}}}` }, { variables, collection: null, item: null });
+    async function setupDynamicRender(variableName, variables = {}) {
+      const result = await renderVarInfo({ string: `{{${variableName}}}` }, { variables, collection: null, item: null });
       if (!result) return { result: null, containerDiv: null };
 
       const containerDiv = result;
@@ -446,22 +451,22 @@ describe('renderVarInfo', () => {
       return { result, containerDiv, header, scopeBadge, readOnlyNote, warningNote, valueContainer };
     }
 
-    it('should show read-only note for dynamic variables', () => {
-      const { readOnlyNote } = setupDynamicRender('$randomFirstName');
+    it('should show read-only note for dynamic variables', async () => {
+      const { readOnlyNote } = await setupDynamicRender('$randomFirstName');
 
       expect(readOnlyNote).not.toBeNull();
       expect(readOnlyNote.textContent).toBe('Generates random value on each request');
     });
 
-    it('should not show value container for valid dynamic variables', () => {
-      const { valueContainer } = setupDynamicRender('$randomFirstName');
+    it('should not show value container for valid dynamic variables', async () => {
+      const { valueContainer } = await setupDynamicRender('$randomFirstName');
 
       // Value is generated at runtime, so no value display
       expect(valueContainer).toBeNull();
     });
 
-    it('should show warning for unknown dynamic variable', () => {
-      const { warningNote, scopeBadge } = setupDynamicRender('$unknownFaker');
+    it('should show warning for unknown dynamic variable', async () => {
+      const { warningNote, scopeBadge } = await setupDynamicRender('$unknownFaker');
 
       expect(scopeBadge.textContent).toBe('Dynamic');
       expect(warningNote).not.toBeNull();
@@ -470,8 +475,8 @@ describe('renderVarInfo', () => {
   });
 
   describe('OAuth2 variable rendering', () => {
-    function setupOAuth2Render(variableName, variables = {}) {
-      const result = renderVarInfo({ string: `{{${variableName}}}` }, { variables, collection: null, item: null });
+    async function setupOAuth2Render(variableName, variables = {}) {
+      const result = await renderVarInfo({ string: `{{${variableName}}}` }, { variables, collection: null, item: null });
       if (!result) return { result: null, containerDiv: null };
 
       const containerDiv = result;
@@ -485,16 +490,16 @@ describe('renderVarInfo', () => {
       return { result, containerDiv, header, scopeBadge, readOnlyNote, warningNote, valueContainer, valueDisplay };
     }
 
-    it('should show OAuth2 scope badge for $oauth2 variables', () => {
-      const { scopeBadge } = setupOAuth2Render('$oauth2.credentials.access_token', {
+    it('should show OAuth2 scope badge for $oauth2 variables', async () => {
+      const { scopeBadge } = await setupOAuth2Render('$oauth2.credentials.access_token', {
         '$oauth2.credentials.access_token': 'test-token-123'
       });
 
       expect(scopeBadge.textContent).toBe('OAuth2');
     });
 
-    it('should show read-only note for valid OAuth2 variables', () => {
-      const { readOnlyNote } = setupOAuth2Render('$oauth2.credentials.access_token', {
+    it('should show read-only note for valid OAuth2 variables', async () => {
+      const { readOnlyNote } = await setupOAuth2Render('$oauth2.credentials.access_token', {
         '$oauth2.credentials.access_token': 'test-token-123'
       });
 
@@ -502,8 +507,8 @@ describe('renderVarInfo', () => {
       expect(readOnlyNote.textContent).toBe('read-only');
     });
 
-    it('should display the token value for valid OAuth2 variables', () => {
-      const { valueDisplay } = setupOAuth2Render('$oauth2.credentials.access_token', {
+    it('should display the token value for valid OAuth2 variables', async () => {
+      const { valueDisplay } = await setupOAuth2Render('$oauth2.credentials.access_token', {
         '$oauth2.credentials.access_token': 'test-token-123'
       });
 
@@ -511,8 +516,8 @@ describe('renderVarInfo', () => {
       expect(valueDisplay.textContent).toBe('test-token-123');
     });
 
-    it('should show warning for OAuth2 variable when token is not found', () => {
-      const { warningNote, scopeBadge } = setupOAuth2Render('$oauth2.credentials.access_token', {});
+    it('should show warning for OAuth2 variable when token is not found', async () => {
+      const { warningNote, scopeBadge } = await setupOAuth2Render('$oauth2.credentials.access_token', {});
 
       expect(scopeBadge.textContent).toBe('OAuth2');
       expect(warningNote).not.toBeNull();
