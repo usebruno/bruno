@@ -1,5 +1,4 @@
-import React from 'react';
-import classnames from 'classnames';
+import React, { useMemo, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
@@ -7,28 +6,31 @@ import GrpcBody from 'components/RequestPane/GrpcBody';
 import GrpcAuth from './GrpcAuth/index';
 import StatusDot from 'components/StatusDot/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
-import StyledWrapper from './StyledWrapper';
-import { find, get } from 'lodash';
+import { find } from 'lodash';
 import Documentation from 'components/Documentation/index';
-import { useEffect } from 'react';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
+import StyledWrapper from './StyledWrapper';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
-  const selectTab = (tab) => {
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const requestPaneTab = focusedTab?.requestPaneTab;
+
+  const selectTab = useCallback((tab) => {
     dispatch(
       updateRequestPaneTab({
         uid: item.uid,
         requestPaneTab: tab
       })
     );
-  };
+  }, [dispatch, item.uid]);
 
-  const getTabPanel = (tab) => {
-    switch (tab) {
+  const tabPanel = useMemo(() => {
+    switch (requestPaneTab) {
       case 'body': {
         return <GrpcBody item={item} collection={collection} hideModeSelector={true} hidePrettifyButton={true} handleRun={handleRun} />;
       }
@@ -45,22 +47,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         return <div className="mt-4">404 | Not found</div>;
       }
     }
-  };
-
-  if (!activeTabUid) {
-    return <div>Something went wrong</div>;
-  }
-
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  if (!focusedTab || !focusedTab.uid || !focusedTab.requestPaneTab) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
-  }
-
-  const getTabClassname = (tabName) => {
-    return classnames(`tab select-none ${tabName}`, {
-      active: tabName === focusedTab.requestPaneTab
-    });
-  };
+  }, [requestPaneTab, item, collection, handleRun]);
 
   const body = getPropertyFromDraftOrRequest(item, 'request.body');
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
@@ -74,44 +61,59 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const request = item.draft ? item.draft.request : item.request;
   const isClientStreaming = request.methodType === 'client-streaming' || request.methodType === 'bidi-streaming';
 
-  useEffect(() => {
-    // Only set the tab to 'body' if no tab is currently set
-    if (!focusedTab?.requestPaneTab) {
-      selectTab('body');
-    }
-  }, []);
+  const allTabs = useMemo(() => {
+    const getMessageIndicator = () => {
+      if (grpcMessagesCount > 0) {
+        return isClientStreaming ? (
+          <sup className="ml-[.125rem] font-medium">{grpcMessagesCount}</sup>
+        ) : (
+          <StatusDot />
+        );
+      }
+      return null;
+    };
+
+    return [
+      {
+        key: 'body',
+        label: 'Message',
+        indicator: getMessageIndicator()
+      },
+      {
+        key: 'headers',
+        label: 'Metadata',
+        indicator: activeHeadersLength > 0 ? <sup className="ml-[.125rem] font-medium">{activeHeadersLength}</sup> : null
+      },
+      {
+        key: 'auth',
+        label: 'Auth',
+        indicator: auth.mode !== 'none' ? <StatusDot type="default" /> : null
+      },
+      {
+        key: 'docs',
+        label: 'Docs',
+        indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
+      }
+    ];
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth.mode, docs]);
+
+  if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
+    return <div className="pb-4 px-4">An error occurred!</div>;
+  }
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center tabs" role="tablist">
-        <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
-          Message
-          {grpcMessagesCount > 0 && (
-            isClientStreaming ? (
-              <sup className="ml-[.125rem] font-medium">{grpcMessagesCount}</sup>
-            ) : (
-              <StatusDot />
-            )
-          )}
-        </div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
-          Metadata
-          {activeHeadersLength > 0 && <sup className="ml-[.125rem] font-medium">{activeHeadersLength}</sup>}
-        </div>
-        <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
-          Auth
-          {auth.mode !== 'none' && <StatusDot type="default" />}
-        </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
-          Docs
-          {docs && docs.length > 0 && <StatusDot type="default" />}
-        </div>
-      </div>
+      <ResponsiveTabs
+        tabs={allTabs}
+        activeTab={requestPaneTab}
+        onTabSelect={selectTab}
+      />
+
       <section
-        className={classnames('flex w-full flex-1 h-full mt-4')}
+        className="flex w-full flex-1 h-full mt-4"
       >
         <HeightBoundContainer>
-          {getTabPanel(focusedTab.requestPaneTab)}
+          {tabPanel}
         </HeightBoundContainer>
       </section>
     </StyledWrapper>
