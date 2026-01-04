@@ -14,6 +14,18 @@ const StyledWrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.sm};
   }
 
+  .discussion-link {
+    margin-left: 0.5rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.textLink};
+    cursor: pointer;
+    font-weight: 400;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
   .report-issue-link {
     display: inline-flex;
     align-items: center;
