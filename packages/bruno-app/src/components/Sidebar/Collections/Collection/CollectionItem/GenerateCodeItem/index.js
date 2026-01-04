@@ -61,8 +61,9 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     if (currentItem.partial && !currentItem.loading && loadingRequestRef.current !== currentItem.uid) {
       // Check if pathname exists (required for loading)
       if (!currentItem.pathname) {
-        console.warn('Cannot load request: missing pathname');
-        setLoadError('Cannot load request: missing pathname');
+        const errorMessage = 'Cannot load request: missing file path. The request file may have been moved or deleted.';
+        console.warn(errorMessage);
+        setLoadError(errorMessage);
         return;
       }
 
@@ -81,21 +82,24 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
           if (loadingRequestRef.current === currentItem.uid) {
             loadingRequestRef.current = null;
             setIsLoading(false);
+            setLoadError(null);
           }
         })
         .catch((error) => {
           console.error('Error loading request on demand:', error);
-          // Clear loading state on error
+          // Clear loading state on error and set user-friendly error message
           if (loadingRequestRef.current === currentItem.uid) {
             loadingRequestRef.current = null;
             setIsLoading(false);
-            setLoadError('Failed to load request');
+            const errorMessage = error?.message || 'Failed to load request. Please try again.';
+            setLoadError(errorMessage);
           }
         });
     } else if (!currentItem.partial && loadingRequestRef.current === currentItem.uid) {
       // Clear loading state if request is now fully loaded
       loadingRequestRef.current = null;
       setIsLoading(false);
+      setLoadError(null);
     }
   }, [currentItem, collection, dispatch]);
 

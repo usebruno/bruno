@@ -525,9 +525,12 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       try {
         loadedItem = await ensureRequestLoaded(item, collection, dispatch, getState);
 
-        // If loading failed and item is still partial, reject
+        // If loading failed and item is still partial, reject with user-friendly message
         if (loadedItem.partial || !loadedItem.request) {
-          return reject(new Error('Failed to load request: request data is not available'));
+          const errorMessage = item.pathname
+            ? 'Failed to load request: request data is not available. The file may be corrupted or inaccessible.'
+            : 'Failed to load request: missing file path.';
+          return reject(new Error(errorMessage));
         }
 
         // Refresh collection reference from state after loading (collection may have been updated)
@@ -538,7 +541,9 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         }
       } catch (error) {
         console.error('Error loading request on demand:', error);
-        return reject(new Error(`Failed to load request: ${error.message}`));
+        // Use user-friendly error message if available
+        const errorMessage = error?.message || 'Failed to load request. Please try again.';
+        return reject(new Error(errorMessage));
       }
     }
 
@@ -698,24 +703,59 @@ export const runCollectionFolder
 
       // Load all partial requests before execution
       try {
-        const loadPromises = allRequests.map(async (request) => {
-          // Check if request is partial and needs loading
-          if (request.partial === true || !request.request) {
-            try {
-              return await ensureRequestLoaded(request, collectionCopy, dispatch, getState);
-            } catch (error) {
-              console.warn(`Failed to load request ${request.pathname}:`, error);
-              // Return original request on error - IPC handler will handle it
-              return request;
-            }
-          }
-          return request;
-        });
+        const loadResults = await Promise.allSettled(
+          allRequests.map(async (request) => {
+            // Check if request is partial and needs loading
+            if (request.partial === true || !request.request) {
+              try {
+                const loadedRequest = await ensureRequestLoaded(request, collectionCopy, dispatch, getState);
 
-        // Wait for all requests to be loaded (use allSettled to continue even if some fail)
-        await Promise.allSettled(loadPromises);
+                // Verify request was actually loaded
+                if (loadedRequest.partial || !loadedRequest.request) {
+                  throw new Error(`Request ${request.name || request.pathname} failed to load: data not available`);
+                }
+
+                return { success: true, request: loadedRequest };
+              } catch (error) {
+                console.warn(`Failed to load request ${request.pathname}:`, error);
+                return {
+                  success: false,
+                  request,
+                  error: error?.message || 'Failed to load request'
+                };
+              }
+            }
+            return { success: true, request };
+          })
+        );
+
+        // Check for failed loads and provide user feedback
+        const failedLoads = loadResults
+          .filter((result) => result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success))
+          .map((result) => {
+            if (result.status === 'rejected') {
+              return result.reason?.message || 'Unknown error';
+            }
+            return result.value.error || 'Failed to load request';
+          });
+
+        if (failedLoads.length > 0) {
+          const failedCount = failedLoads.length;
+          const totalCount = allRequests.length;
+          console.warn(`Failed to load ${failedCount} out of ${totalCount} requests:`, failedLoads);
+
+          // Show warning toast but continue execution
+          if (failedCount === totalCount) {
+            // All requests failed - reject
+            return reject(new Error(`Failed to load all ${totalCount} request(s). Please check the files and try again.`));
+          } else {
+            // Some requests failed - warn but continue
+            toast.error(`Failed to load ${failedCount} out of ${totalCount} request(s). These will be skipped.`);
+          }
+        }
 
         // After loading, get the updated collection from state
+        // This ensures we have the latest loaded request data
         const updatedState = getState();
         const updatedCollection = findCollectionByUid(updatedState.collections.collections, collectionUid);
 
@@ -2696,9 +2736,29 @@ export const loadRequestOnDemand
   = ({ collectionUid, pathname }) =>
     (dispatch, getState) => {
       return new Promise(async (resolve, reject) => {
+        // Validate inputs
+        if (!collectionUid) {
+          const error = new Error('Collection UID is required');
+          console.error('Error loading request on demand:', error);
+          return reject(error);
+        }
+
+        if (!pathname) {
+          const error = new Error('Request pathname is required');
+          console.error('Error loading request on demand:', error);
+          return reject(error);
+        }
+
         try {
           const { ipcRenderer } = window;
           const file = await ipcRenderer.invoke('renderer:load-request-on-demand', { collectionUid, pathname });
+
+          // Validate file was returned
+          if (!file) {
+            const error = new Error('Failed to load request: No data returned');
+            console.error('Error loading request on demand:', error);
+            return reject(error);
+          }
 
           // Dispatch collectionAddFileEvent to update Redux state with the loaded request
           dispatch(collectionAddFileEvent({ file }));
@@ -2706,7 +2766,34 @@ export const loadRequestOnDemand
           resolve(file);
         } catch (error) {
           console.error('Error loading request on demand:', error);
-          reject(error);
+
+          // Create user-friendly error message
+          let userMessage = 'Failed to load request';
+
+          if (error.message) {
+            // Use the error message if it's already user-friendly
+            if (error.message.includes('Collection path not found')) {
+              userMessage = 'Request file not found. The file may have been moved or deleted.';
+            } else if (error.message.includes('not a valid request file')) {
+              userMessage = 'Invalid request file format.';
+            } else if (error.message.includes('ENOENT') || error.message.includes('no such file')) {
+              userMessage = 'Request file not found. The file may have been moved or deleted.';
+            } else if (error.message.includes('EACCES') || error.message.includes('permission denied')) {
+              userMessage = 'Permission denied. Unable to read the request file.';
+            } else if (error.message.includes('parse') || error.message.includes('syntax')) {
+              userMessage = 'Failed to parse request file. The file may be corrupted or invalid.';
+            } else {
+              userMessage = `Failed to load request: ${error.message}`;
+            }
+          }
+
+          // Create enhanced error object with user-friendly message
+          const enhancedError = new Error(userMessage);
+          enhancedError.originalError = error;
+          enhancedError.pathname = pathname;
+          enhancedError.collectionUid = collectionUid;
+
+          reject(enhancedError);
         }
       });
     };

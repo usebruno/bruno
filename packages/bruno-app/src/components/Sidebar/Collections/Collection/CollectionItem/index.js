@@ -229,7 +229,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       if (item.partial || !item.request) {
         // Check if pathname exists (required for loading)
         if (!item.pathname) {
-          toast.error('Cannot load request: missing pathname');
+          toast.error('Cannot load request: missing file path. The request file may have been moved or deleted.');
           return;
         }
 
@@ -241,7 +241,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           }));
         } catch (error) {
           console.error('Error loading request on demand:', error);
-          toast.error('Failed to load request');
+          // Use user-friendly error message
+          const errorMessage = error?.message || 'Failed to load request. Please try again.';
+          toast.error(errorMessage);
           return;
         }
       }
