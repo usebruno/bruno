@@ -18,10 +18,10 @@ const closeAllCollections = async (page) => {
       await firstCollection.locator('.collection-actions .icon').click();
       await page.locator('.dropdown-item').getByText('Remove').click();
       // Wait for the remove collection modal to be visible
-      await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
+      await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
       await page.locator('.bruno-modal-footer .submit').click();
       // Wait for the remove collection modal to be hidden
-      await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
+      await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
     }
 
     // Wait until no collections are left open (check sidebar only)
@@ -60,6 +60,12 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await createCollectionModal.getByLabel('Name').fill(collectionName);
     const locationInput = createCollectionModal.getByLabel('Location');
     if (await locationInput.isVisible()) {
+      // Location input can be read-only; drop the attribute so fill can type
+      await locationInput.evaluate((el) => {
+        const input = el as HTMLInputElement;
+        input.removeAttribute('readonly');
+        input.readOnly = false;
+      });
       await locationInput.fill(collectionLocation);
     }
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
@@ -288,9 +294,9 @@ const removeCollection = async (page: Page, collectionName: string) => {
     await locators.dropdown.item('Remove').click();
 
     // Wait for and confirm modal
-    await locators.modal.title('Remove Collection').waitFor({ state: 'visible' });
+    await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
     await locators.modal.button('Remove').click();
-    await locators.modal.title('Remove Collection').waitFor({ state: 'hidden' });
+    await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
 
     // Verify collection is removed
     await expect(
@@ -650,7 +656,7 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
       await overflowButton.click();
 
       // Wait for dropdown to appear and click the menu item (overflow tabs are rendered as menuitems)
-      const dropdownItem = page.locator('.tippy-content').getByRole('menuitem', { name: tabName });
+      const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
       await expect(dropdownItem).toBeVisible();
       await dropdownItem.click();
       return;

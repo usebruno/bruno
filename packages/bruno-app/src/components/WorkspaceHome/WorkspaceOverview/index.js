@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
+import Button from 'ui/Button';
 import CollectionsList from './CollectionsList';
 import WorkspaceDocs from '../WorkspaceDocs';
 import StyledWrapper from './StyledWrapper';
@@ -56,8 +57,8 @@ const WorkspaceOverview = ({ workspace }) => {
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
-    dispatch(importCollection(convertedCollection, collectionLocation))
+  const handleImportCollectionLocation = (convertedCollection, collectionLocation, options = {}) => {
+    dispatch(importCollection(convertedCollection, collectionLocation, options))
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
@@ -107,18 +108,30 @@ const WorkspaceOverview = ({ workspace }) => {
           <div className="quick-actions-section">
             <div className="section-title">Quick Actions</div>
             <div className="quick-actions-buttons">
-              <button className="quick-action-btn" onClick={handleCreateCollection}>
-                <IconPlus size={14} strokeWidth={1.5} />
-                <span>Create Collection</span>
-              </button>
-              <button className="quick-action-btn" onClick={handleOpenCollection}>
-                <IconFolder size={14} strokeWidth={1.5} />
-                <span>Open Collection</span>
-              </button>
-              <button className="quick-action-btn" onClick={handleImportCollection}>
-                <IconDownload size={14} strokeWidth={1.5} />
-                <span>Import Collection</span>
-              </button>
+              <Button
+                color="light"
+                size="sm"
+                icon={<IconPlus size={14} strokeWidth={1.5} />}
+                onClick={handleCreateCollection}
+              >
+                Create Collection
+              </Button>
+              <Button
+                color="light"
+                size="sm"
+                icon={<IconFolder size={14} strokeWidth={1.5} />}
+                onClick={handleOpenCollection}
+              >
+                Open Collection
+              </Button>
+              <Button
+                color="light"
+                size="sm"
+                icon={<IconDownload size={14} strokeWidth={1.5} />}
+                onClick={handleImportCollection}
+              >
+                Import Collection
+              </Button>
             </div>
           </div>
 

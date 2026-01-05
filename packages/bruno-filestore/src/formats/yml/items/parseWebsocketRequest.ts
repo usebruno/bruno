@@ -7,14 +7,7 @@ import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { uuid } from '../../../utils';
 
-interface WebSocketRequestWithSettings extends WebSocketRequest {
-  settings?: {
-    timeout?: number;
-    keepAliveInterval?: number;
-  };
-}
-
-const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoItem => {
+const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
   const info = ocRequest.info;
   const websocket = ocRequest.websocket;
   const runtime = ocRequest.runtime;
@@ -22,7 +15,7 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
   const brunoRequest: BrunoWebSocketRequest = {
     url: websocket?.url || '',
     headers: toBrunoHttpHeaders(websocket?.headers) || [],
-    auth: toBrunoAuth(runtime?.auth),
+    auth: toBrunoAuth(websocket?.auth),
     body: {
       mode: 'ws',
       ws: []

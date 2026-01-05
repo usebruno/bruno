@@ -9,7 +9,9 @@
     "preview": "rsbuild preview",
     "test": "jest",
     "test:prettier": "prettier --check \"./src/**/*.{js,jsx,json,ts,tsx}\"",
-    "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\""
+    "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\"",
+    "storybook": "storybook dev -p 6006 --config-dir storybook",
+    "build-storybook": "storybook build --config-dir storybook"
   },
   "dependencies": {
     "@fontsource/inter": "^5.0.15",
@@ -50,6 +52,7 @@
     "json5": "^2.2.3",
     "jsonc-parser": "^3.2.1",
     "jsonpath-plus": "^10.3.0",
+    "jsonschema": "^1.5.0",
     "know-your-http-well": "^0.5.0",
     "linkify-it": "^5.0.0",
     "lodash": "^4.17.21",
@@ -63,6 +66,7 @@
     "path": "^0.12.7",
     "pdfjs-dist": "4.4.168",
     "platform": "^1.3.6",
+    "polished": "^4.3.1",
     "posthog-node": "4.2.1",
     "prettier": "^2.7.1",
     "qs": "^6.11.0",

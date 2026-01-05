@@ -36,6 +36,10 @@ const transformCollection = async (collection, type) => {
       const { convertOpenapiToBruno } = await import('utils/importers/openapi-collection');
       return convertOpenapiToBruno(collection);
     }
+    case 'opencollection': {
+      const { processOpenCollection } = await import('utils/importers/opencollection');
+      return processOpenCollection(collection);
+    }
     case 'wsdl': {
       const { wsdlToBruno } = await import('@usebruno/converters');
       return wsdlToBruno(collection);
@@ -118,9 +122,10 @@ export const openWorkspaceDialog = () => {
   };
 };
 
-export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath) => {
+export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath, options = {}) => {
   return async (dispatch, getState) => {
     try {
+      const { deleteFiles = false } = options;
       const workspacesState = getState().workspaces;
       const collectionsState = getState().collections;
       const workspace = workspacesState.workspaces.find((w) => w.uid === workspaceUid);
@@ -138,7 +143,8 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
       await ipcRenderer.invoke('renderer:remove-collection-from-workspace',
         workspaceUid,
         workspace.pathname,
-        collectionPath);
+        collectionPath,
+        { deleteFiles });
 
       if (collection) {
         const workspaceCollection = workspace.collections?.find(
@@ -180,8 +186,12 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
         .map((wc) => wc.path)
         .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
-      if (collectionPaths.length > 0) {
-        await openCollectionsFunction(collectionPaths, updatedWorkspace.pathname);
+      const uniqueCollectionPaths = [...new Map(
+        collectionPaths.map((p) => [normalizePath(p), p])
+      ).values()];
+
+      if (uniqueCollectionPaths.length > 0) {
+        await openCollectionsFunction(uniqueCollectionPaths, updatedWorkspace.pathname);
       }
     }
 
@@ -401,9 +411,14 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
             .map((workspaceCollection) => workspaceCollection.path)
             .filter((collectionPath) => collectionPath && !openCollections.includes(normalizePath(collectionPath)));
 
-          if (newCollectionPaths.length > 0) {
+          // Deduplicate paths to prevent "collection already opened" toast
+          const uniqueNewCollectionPaths = [...new Map(
+            newCollectionPaths.map((p) => [normalizePath(p), p])
+          ).values()];
+
+          if (uniqueNewCollectionPaths.length > 0) {
             try {
-              await dispatch(openMultipleCollections(newCollectionPaths, { workspaceId: workspace.pathname }));
+              await dispatch(openMultipleCollections(uniqueNewCollectionPaths, { workspaceId: workspace.pathname }));
             } catch (error) {
             }
           }
@@ -425,13 +440,11 @@ export const saveWorkspaceDocs = (workspaceUid, docs) => {
         throw new Error('Workspace not found');
       }
 
-      if (workspace.type === 'default' || !workspace.pathname) {
-        await ipcRenderer.invoke('renderer:save-preferences', {
-          defaultWorkspaceDocs: docs || ''
-        });
-      } else {
-        await ipcRenderer.invoke('renderer:save-workspace-docs', workspace.pathname, docs || '');
+      if (!workspace.pathname) {
+        throw new Error('Workspace path not found');
       }
+
+      await ipcRenderer.invoke('renderer:save-workspace-docs', workspace.pathname, docs || '');
 
       dispatch(updateWorkspace({
         uid: workspaceUid,

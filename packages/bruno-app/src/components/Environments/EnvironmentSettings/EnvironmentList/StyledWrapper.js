@@ -1,10 +1,10 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   display: flex;
   height: 100%;
   overflow: hidden;
-  background-color: ${(props) => props.theme.bg};
   position: relative;
 
   .environments-container {
@@ -22,14 +22,12 @@ const StyledWrapper = styled.div`
     z-index: 10;
     background: ${(props) => props.theme.bg};
     padding: 12px;
-    border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
   }
 
   /* Left Sidebar */
   .sidebar {
     width: 240px;
     min-width: 240px;
-    border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
     display: flex;
     flex-direction: column;
   }
@@ -86,7 +84,7 @@ const StyledWrapper = styled.div`
       padding: 6px 8px 6px 28px;
       font-size: 12px;
       background: transparent;
-      border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
+      border: 1px solid ${(props) => props.theme.border.border1};
       border-radius: 5px;
       color: ${(props) => props.theme.text};
       transition: all 0.15s ease;
@@ -174,7 +172,7 @@ const StyledWrapper = styled.div`
     }
     
     &.active {
-      background: ${(props) => props.theme.workspace.environments.activeBg};
+      background: ${(props) => props.theme.background.surface0};
       color: ${(props) => props.theme.text};
     }
     
@@ -235,35 +233,34 @@ const StyledWrapper = styled.div`
         gap: 2px;
         margin-left: 4px;
       }
+    }
+
+    .inline-action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
       
-      .inline-action-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        padding: 0;
-        background: transparent;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.15s ease;
+      &.save {
+        color: ${(props) => props.theme.colors.text.green};
         
-        &.save {
-          color: ${(props) => props.theme.textLink};
-          
-          &:hover {
-            background: ${(props) => props.theme.listItem.hoverBg};
-          }
+        &:hover {
+          background: ${(props) => rgba(props.theme.colors.text.green, 0.1)};
         }
+      }
+      
+      &.cancel {
+        color: ${(props) => props.theme.colors.text.danger};
         
-        &.cancel {
-          color: ${(props) => props.theme.colors.text.muted};
-          
-          &:hover {
-            background: ${(props) => props.theme.listItem.hoverBg};
-            color: ${(props) => props.theme.text};
-          }
+        &:hover {
+          background: ${(props) => rgba(props.theme.colors.text.danger, 0.1)};
         }
       }
     }

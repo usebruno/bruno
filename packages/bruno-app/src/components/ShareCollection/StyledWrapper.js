@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .tabs {
@@ -7,7 +8,7 @@ const StyledWrapper = styled.div`
       border: none;
       border-bottom: solid 2px transparent;
       margin-right: ${(props) => props.theme.tabs.marginRight};
-      color: var(--color-tab-inactive);
+      color: ${(props) => props.theme.colors.text.subtext0};
       cursor: pointer;
 
       &:focus,
@@ -24,6 +25,46 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.tabs.active.color} !important;
         border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }
+    }
+  }
+
+  .beta-badge-corner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.15)};
+    color: ${(props) => props.theme.colors.text.yellow};
+    border-top-right-radius: ${(props) => props.theme.border.radius.base};
+    border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
+  }
+
+  .share-button {
+    display: flex;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 10px;
+    border: 1px solid ${(props) => props.theme.border.border0};
+    background-color: ${(props) => props.theme.background.base};
+    color: ${(props) => props.theme.text};
+    cursor: pointer;
+    transition: all 0.1s ease;
+
+    &.no-padding {
+      padding: 0px;
+    }
+
+    .note-warning {
+      color: ${(props) => props.theme.colors.text.warning};
+      background-color: ${(props) => rgba(props.theme.colors.text.warning, 0.06)};
+    }
+
+    &:hover {
+      background-color: ${(props) => props.theme.background.mantle};
+      border-color: ${(props) => props.theme.border.border2};
     }
   }
 `;

@@ -51,7 +51,7 @@ const {
 } = require('../utils/filesystem');
 const { openCollectionDialog, openCollectionsByPathname } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
-const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
+const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
@@ -62,7 +62,7 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
-const { transformBrunoConfigBeforeSave } = require('../utils/transfomBrunoConfig');
+const { transformBrunoConfigBeforeSave } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 
@@ -348,6 +348,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
+
+      // Sync example UIDs cache to maintain consistency when examples are added/deleted/reordered
+      syncExampleUidsCache(pathname, request.examples);
 
       const content = await stringifyRequestViaWorker(request, { format });
       await writeFile(pathname, content);
@@ -851,11 +854,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`collection: ${collectionPath} already exists`);
       }
 
+      const getFilenameWithFormat = (item, format) => {
+        if (item?.filename) {
+          const ext = path.extname(item.filename);
+          if (ext === '.bru' || ext === '.yml') {
+            return item.filename.replace(ext, `.${format}`);
+          }
+          return item.filename;
+        }
+        return `${item.name}.${format}`;
+      };
+
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = async (items = [], currentPath) => {
         await Promise.all(items.map(async (item) => {
           if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-            let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.${format}`);
+            let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
             const content = await stringifyRequestViaWorker(item, { format });
             const filePath = path.join(currentPath, sanitizedFilename);
             safeWriteFileSync(filePath, content);

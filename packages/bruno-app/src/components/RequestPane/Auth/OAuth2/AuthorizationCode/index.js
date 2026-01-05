@@ -153,10 +153,10 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">
+        <span className="oauth2-section-label">
           Configuration
         </span>
       </div>
@@ -172,7 +172,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
               onRun={handleRun}
               collection={collection}
               item={item}
-              placeholder={useSystemBrowser ? 'https://oauth2.usebruno.com/callback' : undefined}
+              placeholder={useSystemBrowser ? 'https://oauth.usebruno.com/callback' : undefined}
+              isCompact
             />
           </div>
         </div>
@@ -215,6 +216,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                 collection={collection}
                 item={item}
                 isSecret={isSecret}
+                isCompact
               />
               {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
             </div>
@@ -256,10 +258,10 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         />
       </div>
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconKey size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Token
         </span>
       </div>
@@ -274,6 +276,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             onRun={handleRun}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>
@@ -315,13 +318,14 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                     onChange={(val) => handleChange('tokenHeaderPrefix', val)}
                     onRun={handleRun}
                     collection={collection}
+                    isCompact
                   />
                 </div>
               </div>
             )
           : (
               <div className="flex items-center gap-4 w-full" key="input-token-query-param-key">
-                <label className="block font-medium min-w-[140px]">Query Param Key</label>
+                <label className="block min-w-[140px]">Query Param Key</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
                     value={oAuth['tokenQueryKey'] || ''}
@@ -330,16 +334,17 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                     onChange={(val) => handleChange('tokenQueryKey', val)}
                     onRun={handleRun}
                     collection={collection}
+                    isCompact
                   />
                 </div>
               </div>
             )
       }
       <div className="flex items-center gap-2.5 mt-4 mb-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Advanced Settings
         </span>
       </div>
@@ -354,13 +359,14 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             onChange={(val) => handleChange('refreshTokenUrl', val)}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>
 
       <div className="flex items-center gap-2.5 mt-4">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
         <span className="font-medium">Settings</span>
       </div>

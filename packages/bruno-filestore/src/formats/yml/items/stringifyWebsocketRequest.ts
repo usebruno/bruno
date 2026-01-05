@@ -12,16 +12,9 @@ import { toOpenCollectionHttpHeaders } from '../common/headers';
 import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionScripts } from '../common/scripts';
 
-interface WebSocketRequestWithSettings extends WebSocketRequest {
-  settings?: {
-    timeout?: number;
-    keepAliveInterval?: number;
-  };
-}
-
 const stringifyWebsocketRequest = (item: BrunoItem): string => {
   try {
-    const ocRequest: WebSocketRequestWithSettings = {};
+    const ocRequest: WebSocketRequest = {};
     const brunoRequest = item.request as BrunoWebSocketRequest;
 
     // info block
@@ -66,6 +59,12 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
       }
     }
 
+    // auth
+    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
+    if (auth) {
+      websocket.auth = auth;
+    }
+
     ocRequest.websocket = websocket;
 
     // runtime block
@@ -83,13 +82,6 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
     const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
     if (scripts) {
       runtime.scripts = scripts;
-      hasRuntime = true;
-    }
-
-    // auth
-    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
-    if (auth) {
-      runtime.auth = auth;
       hasRuntime = true;
     }
 

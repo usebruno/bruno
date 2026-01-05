@@ -265,6 +265,8 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
         reorderable={editMode}
         onReorder={handleParamDrag}
         showAddRow={editMode}
+        showDelete={editMode}
+        disableCheckbox={!editMode}
       />
     </StyledWrapper>
   );

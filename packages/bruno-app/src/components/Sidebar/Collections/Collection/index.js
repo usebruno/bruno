@@ -19,12 +19,12 @@ import {
   IconX,
   IconSettings,
   IconTerminal2,
-  IconFolder
+  IconFolder,
+  IconBook
 } from '@tabler/icons';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
-import { hideApiSpecPage, hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -41,18 +41,23 @@ import CloneCollection from './CloneCollection';
 import { areItemsLoading } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
+import GenerateDocumentation from './GenerateDocumentation';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
 const Collection = ({ collection, searchText }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
+  const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
@@ -111,8 +116,6 @@ const Collection = ({ collection, searchText }) => {
     }
 
     if (!isChevronClick) {
-      dispatch(hideHomePage()); // @TODO Playwright tests are often stuck on home page, rather than collection settings tab. Revisit for a proper fix.
-      dispatch(hideApiSpecPage());
       dispatch(
         addTab({
           uid: collection.uid,
@@ -341,6 +344,15 @@ const Collection = ({ collection, searchText }) => {
       }
     },
     {
+      id: 'generate-docs',
+      leftSection: IconBook,
+      label: 'Generate Docs',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        setShowGenerateDocumentationModal(true);
+      }
+    },
+    {
       id: 'collapse',
       leftSection: IconFoldDown,
       label: 'Collapse',
@@ -349,7 +361,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'show-in-folder',
       leftSection: IconFolder,
-      label: 'Show in File Explorer',
+      label: getRevealInFolderLabel(),
       onClick: handleShowInFolder
     },
     {
@@ -394,6 +406,9 @@ const Collection = ({ collection, searchText }) => {
       {showShareCollectionModal && (
         <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
       )}
+      {showGenerateDocumentationModal && (
+        <GenerateDocumentation collectionUid={collection.uid} onClose={() => setShowGenerateDocumentationModal(false)} />
+      )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
@@ -437,6 +452,8 @@ const Collection = ({ collection, searchText }) => {
               ref={menuDropdownRef}
               items={menuItems}
               placement="bottom-start"
+              appendTo={dropdownContainerRef?.current || document.body}
+              popperOptions={{ strategy: 'fixed' }}
               data-testid="collection-actions"
             >
               <ActionIcon className="collection-actions">

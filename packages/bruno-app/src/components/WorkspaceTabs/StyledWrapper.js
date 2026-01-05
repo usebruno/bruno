@@ -59,7 +59,6 @@ const Wrapper = styled.div`
       border: 1px solid transparent;
       padding: 6px 0;
       flex-shrink: 0;
-      transition: background-color 0.15s ease;
       margin-bottom: 3px;
 
       .tab-container {
@@ -160,7 +159,7 @@ const Wrapper = styled.div`
         display: inline-flex;
         justify-content: center;
         align-items: center;
-        color: ${(props) => props.theme.requestTabs.shortTab.color};
+        color: ${(props) => props.theme.text};
         background-color: transparent;
         border: 1px solid transparent;
         border-radius: ${(props) => props.theme.border.radius.base};
@@ -182,8 +181,8 @@ const Wrapper = styled.div`
 
         &:hover {
           > div {
-            background-color: ${(props) => props.theme.requestTabs.shortTab.hoverBg};
-            color: ${(props) => props.theme.requestTabs.shortTab.hoverColor};
+            background-color: ${(props) => props.theme.background.surface0};
+            color: ${(props) => props.theme.text};
           }
         }
       }

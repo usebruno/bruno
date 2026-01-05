@@ -88,7 +88,8 @@ const buildPkce = (pkce?: boolean | null): OAuth2PKCE | undefined => {
     return undefined;
   }
 
-  return { enabled: Boolean(pkce) };
+  // If pkce is false, set disabled: true; if true, return empty object (enabled by default)
+  return pkce ? {} : { disabled: true };
 };
 
 const buildTokenConfig = (oauth: BrunoOAuth2): OAuth2TokenConfig | undefined => {
@@ -540,8 +541,9 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
   if (brunoOAuth.grantType === 'authorization_code' && oauth.flow === 'authorization_code') {
     const authCodeFlow = oauth as OAuth2AuthorizationCodeFlow;
-    if (authCodeFlow.pkce?.enabled !== undefined) {
-      brunoOAuth.pkce = authCodeFlow.pkce.enabled;
+    if (authCodeFlow.pkce !== undefined) {
+      // If pkce.disabled is true, set pkce to false; otherwise set to true
+      brunoOAuth.pkce = !authCodeFlow.pkce.disabled;
     }
   }
 

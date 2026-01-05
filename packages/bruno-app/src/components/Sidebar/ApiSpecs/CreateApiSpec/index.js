@@ -166,7 +166,7 @@ const CreateApiSpec = ({ onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="sm" title="Create API Spec" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
+      <Modal size="md" title="Create API Spec" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
         <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
             <label htmlFor="api-spec-location" className="block font-semibold mb-2">

@@ -124,8 +124,8 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     <StyledWrapper>
       <div className="flex items-center h-full">
         <div className="flex items-center input-container flex-1 w-full input-container pr-2 h-full relative">
-          <div className="flex items-center justify-center w-16">
-            <span className="text-xs font-bold method-ws">WS</span>
+          <div className="flex items-center justify-center px-[10px]">
+            <span className="text-xs font-medium method-ws">WS</span>
           </div>
           <SingleLineEditor
             value={url}
@@ -148,9 +148,9 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               }}
             >
               <IconDeviceFloppy
-                color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+                color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
                 strokeWidth={1.5}
-                size={22}
+                size={20}
                 className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
               />
               <span className="infotip-text text-xs">
@@ -164,7 +164,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                   <IconPlugConnectedX
                     color={theme.colors.text.danger}
                     strokeWidth={1.5}
-                    size={22}
+                    size={20}
                     className="cursor-pointer"
                   />
                   <span className="infotip-text text-xs">Close Connection</span>
@@ -181,7 +181,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                     })}
                     color={theme.colors.text.green}
                     strokeWidth={1.5}
-                    size={22}
+                    size={20}
                   />
                   <span className="infotip-text text-xs">Connect</span>
                 </div>
@@ -189,7 +189,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             )}
 
             <div data-testid="run-button" className="cursor-pointer" onClick={handleRunClick}>
-              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={20} />
             </div>
           </div>
         </div>

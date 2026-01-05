@@ -56,7 +56,7 @@ const Script = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <div className="w-full h-full flex flex-col pt-4">
+    <div className="w-full h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="pre-request">Pre Request</TabsTrigger>

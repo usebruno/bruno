@@ -7,7 +7,7 @@ const StyledWrapper = styled.div`
   }
 
   div.dropdown-item.menu-item {
-    color: ${(props) => props.theme.colors.danger};
+    color: ${(props) => props.theme.colors.text.danger};
     &:hover {
       background-color: ${(props) => props.theme.colors.bg.danger};
       color: white;

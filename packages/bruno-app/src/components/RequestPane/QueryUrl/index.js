@@ -32,17 +32,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
-  const isGrpc = item.type === 'grpc-request';
   const isLoading = ['queued', 'sending'].includes(item.requestState);
 
-  const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
-
-  useEffect(() => {
-    const el = document.querySelector('.method-selector-container');
-    setMethodSelectorWidth(el.offsetWidth);
-  }, [method]);
 
   const onSave = () => {
     dispatch(saveRequest(item.uid, collection.uid));
@@ -376,24 +369,13 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     dispatch(cancelRequest(item.cancelTokenUid, item, collection));
   };
   return (
-    <StyledWrapper className="flex items-center">
-      <div className="flex flex-1 items-center h-full method-selector-container">
-        {isGrpc ? (
-          <div className="flex items-center justify-center h-full w-16">
-            <span className="text-xs text-indigo-500 font-bold">gRPC</span>
-          </div>
-        ) : (
-          <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
-        )}
+    <StyledWrapper className="flex items-center w-full">
+      <div className="flex items-center h-full min-w-fit">
+        <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
       </div>
       <div
         id="request-url"
-        className="flex items-center flex-grow input-container h-full"
-        style={{
-          color: 'yellow',
-          width: `calc(100% - ${methodSelectorWidth}px)`,
-          maxWidth: `calc(100% - ${methodSelectorWidth}px)`
-        }}
+        className="h-full w-full flex flex-row input-container"
       >
         <SingleLineEditor
           ref={editorRef}
@@ -430,7 +412,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             }}
           >
             <IconDeviceFloppy
-              color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
               strokeWidth={1.5}
               size={20}
               className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}

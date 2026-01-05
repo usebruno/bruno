@@ -47,18 +47,19 @@ const BasicAuth = ({ collection }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">Username</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Username</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={basicAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleUsernameChange(val)}
           collection={collection}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Password</label>
+      <label className="block mb-1">Password</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={basicAuth.password || ''}
@@ -67,6 +68,7 @@ const BasicAuth = ({ collection }) => {
           onChange={(val) => handlePasswordChange(val)}
           collection={collection}
           isSecret={true}
+          isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
       </div>

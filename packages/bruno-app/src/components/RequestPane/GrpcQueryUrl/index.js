@@ -296,8 +296,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper className="flex items-center relative" data-testid="grpc-query-url-container">
       <div className="flex items-center h-full method-selector-container">
-        <div className="flex items-center justify-center h-full w-16" data-testid="grpc-method-indicator">
-          <span className="text-xs text-indigo-500 font-bold">gRPC</span>
+        <div className="flex items-center justify-center h-full px-[10px]" data-testid="grpc-method-indicator">
+          <span className="text-xs font-medium" style={{ color: theme.request.grpc }}>gRPC</span>
         </div>
       </div>
       <div className="flex items-center w-full input-container h-full relative">
@@ -348,7 +348,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             <IconRefresh
               color={theme.requestTabs.icon.color}
               strokeWidth={1.5}
-              size={22}
+              size={20}
               className={`${(isReflectionMode ? reflectionManagement.isLoadingMethods : protoFileManagement.isLoadingMethods) ? 'animate-spin' : 'cursor-pointer'}`}
               data-testid="refresh-methods-icon"
             />
@@ -367,7 +367,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             <IconCode
               color={theme.requestTabs.icon.color}
               strokeWidth={1.5}
-              size={22}
+              size={20}
             />
             <span className="infotip-text text-xs">Generate grpcurl command</span>
           </div>
@@ -381,9 +381,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             }}
           >
             <IconDeviceFloppy
-              color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              color={item.draft ? theme.draftColor : theme.requestTabs.icon.color}
               strokeWidth={1.5}
-              size={22}
+              size={20}
               className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
             />
             <span className="infotip-text text-xs">
@@ -394,7 +394,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           {isConnectionActive && isStreamingMethod && (
             <div className="connection-controls relative flex items-center h-full gap-3">
               <div className="infotip" onClick={handleCancelConnection} data-testid="grpc-cancel-connection-button">
-                <IconX color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className="cursor-pointer" />
+                <IconX color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
                 <span className="infotip-text text-xs">Cancel</span>
               </div>
 
@@ -403,7 +403,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                   <IconCheck
                     color={theme.colors.text.green}
                     strokeWidth={2}
-                    size={22}
+                    size={20}
                     className="cursor-pointer"
                   />
                 </div>
@@ -420,7 +420,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                 handleRun(e);
               }}
             >
-              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={20} />
             </div>
           )}
         </div>

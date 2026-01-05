@@ -10,7 +10,6 @@ import {
 } from '@tabler/icons';
 import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -246,8 +245,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     expandItemPath(result);
 
     if (result.type === SEARCH_TYPES.REQUEST) {
-      dispatch(hideHomePage());
-
       const existingTab = tabs.find((tab) => tab.uid === result.item.uid);
 
       if (existingTab) {

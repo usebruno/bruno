@@ -12,11 +12,13 @@ import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateUntitledRequest from 'components/CreateUntitledRequest';
 import { IconPlus } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon/index';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const scrollContainerRef = useRef();
+  const collectionTabsRef = useRef();
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [tabOverflowStates, setTabOverflowStates] = useState({});
   const [showChevrons, setShowChevrons] = useState(false);
@@ -115,22 +117,19 @@ const RequestTabs = () => {
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center pl-2">
-            <ul role="tablist">
-              {showChevrons ? (
-                <li className="select-none short-tab" onClick={leftSlide}>
-                  <div className="flex items-center">
-                    <IconChevronLeft size={18} strokeWidth={1.5} />
-                  </div>
-                </li>
-              ) : null}
-              {/* Moved to post mvp */}
-              {/* <li className="select-none new-tab mr-1" onClick={createNewTab}>
-                <div className="flex items-center home-icon-container">
-                  <IconHome2 size={18} strokeWidth={1.5}/>
-                </div>
-              </li> */}
-            </ul>
+          <div className="flex items-center gap-2 pl-2" ref={collectionTabsRef}>
+
+            {showChevrons ? (
+              <ActionIcon size="lg" onClick={leftSlide} aria-label="Left Chevron" style={{ marginBottom: '3px' }}>
+                <IconChevronLeft size={18} strokeWidth={1.5} />
+              </ActionIcon>
+            ) : null}
+            {/* Moved to post mvp */}
+            {/* <li className="select-none new-tab mr-1" onClick={createNewTab}>
+              <div className="flex items-center home-icon-container">
+                <IconHome2 size={18} strokeWidth={1.5}/>
+              </div>
+            </li> */}
             <div className="tabs-scroll-container" style={{ maxWidth: maxTablistWidth }} ref={scrollContainerRef}>
               <ul role="tablist" ref={tabsRef}>
                 {collectionRequestTabs && collectionRequestTabs.length
@@ -158,6 +157,7 @@ const RequestTabs = () => {
                             folderUid={tab.folderUid}
                             hasOverflow={tabOverflowStates[tab.uid]}
                             setHasOverflow={createSetHasOverflow(tab.uid)}
+                            dropdownContainerRef={collectionTabsRef}
                           />
                         </DraggableTab>
                       );
@@ -166,34 +166,28 @@ const RequestTabs = () => {
               </ul>
             </div>
 
-            <ul role="tablist">
-              {showChevrons ? (
-                <li className="select-none short-tab" onClick={rightSlide}>
-                  <div className="flex items-center">
-                    <IconChevronRight size={18} strokeWidth={1.5} />
-                  </div>
-                </li>
-              ) : null}
-              <div className="flex items-center cursor-pointer short-tab">
-                {
-                  activeCollection && (
-                    <IconPlus
-                      size={18}
-                      strokeWidth={1.5}
-                      onClick={() => setNewRequestModalOpen(true)}
-                    />
-                  )
-                }
-              </div>
-              {/* Moved to post mvp */}
-              {/* <li className="select-none new-tab choose-request">
+            {activeCollection && (
+              <ActionIcon onClick={() => setNewRequestModalOpen(true)} aria-label="New Request" size="lg" style={{ marginBottom: '3px' }}>
+                <IconPlus
+                  size={18}
+                  strokeWidth={1.5}
+                />
+              </ActionIcon>
+            )}
+
+            {showChevrons ? (
+              <ActionIcon size="lg" onClick={rightSlide} aria-label="Right Chevron" style={{ marginBottom: '3px' }}>
+                <IconChevronRight size={18} strokeWidth={1.5} />
+              </ActionIcon>
+            ) : null}
+            {/* Moved to post mvp */}
+            {/* <li className="select-none new-tab choose-request">
                 <div className="flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
                   </svg>
                 </div>
               </li> */}
-            </ul>
           </div>
         </>
       ) : null}

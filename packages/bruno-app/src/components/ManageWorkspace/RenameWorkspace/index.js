@@ -58,7 +58,7 @@ const RenameWorkspace = ({ onClose, workspace }) => {
   return (
     <Portal>
       <Modal
-        size="sm"
+        size="md"
         title="Rename Workspace"
         confirmText="Rename"
         handleConfirm={onSubmit}

@@ -38,6 +38,15 @@ const isDirectory = (dirPath) => {
   }
 };
 
+const isValidCollectionDirectory = (dirPath) => {
+  if (!isDirectory(dirPath)) {
+    return false;
+  }
+  const brunoJsonPath = path.join(dirPath, 'bruno.json');
+  const opencollectionYmlPath = path.join(dirPath, 'opencollection.yml');
+  return fs.existsSync(brunoJsonPath) || fs.existsSync(opencollectionYmlPath);
+};
+
 const hasSubDirectories = (dir) => {
   const files = fs.readdirSync(dir);
   return files.some((file) => fs.statSync(path.join(dir, file)).isDirectory());
@@ -452,6 +461,7 @@ module.exports = {
   isSymbolicLink,
   isFile,
   isDirectory,
+  isValidCollectionDirectory,
   normalizeAndResolvePath,
   isWSLPath,
   normalizeWSLPath,

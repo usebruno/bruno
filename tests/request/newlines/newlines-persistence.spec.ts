@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { openCollection } from '../../utils/page';
+import { createCollection, openCollection } from '../../utils/page';
 import { getTableCell } from '../../utils/page/locators';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
@@ -10,11 +10,7 @@ test('should persist request with newlines across app restarts', async ({ create
   const app1 = await launchElectronApp({ userDataPath });
   const page = await app1.firstWindow();
 
-  await page.getByTestId('collections-header-add-menu').click();
-  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-  await page.locator('.bruno-modal').getByLabel('Name').fill('newlines-persistence');
-  await page.locator('.bruno-modal').getByLabel('Location').fill(collectionPath);
-  await page.locator('.bruno-modal').getByRole('button', { name: 'Create' }).click();
+  await createCollection(page, 'newlines-persistence', collectionPath);
 
   const collection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' });
   await collection.hover();

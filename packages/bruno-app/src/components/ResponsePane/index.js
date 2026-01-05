@@ -26,7 +26,7 @@ import WSMessagesList from './WsResponsePane/WSMessagesList';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 
 // Width threshold for expanded right-side action buttons
-const RIGHT_CONTENT_EXPANDED_WIDTH = 375;
+const RIGHT_CONTENT_EXPANDED_WIDTH = 135;
 
 const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -68,10 +68,9 @@ const ResponsePane = ({ item, collection }) => {
     dispatch(updateResponseFormat({ uid: item.uid, responseFormat: newFormat }));
   }, [dispatch, item.uid]);
 
-  const handleViewTabToggle = useCallback(() => {
-    const newViewTab = selectedViewTab === 'editor' ? 'preview' : 'editor';
+  const handleViewTabChange = useCallback((newViewTab) => {
     dispatch(updateResponseViewTab({ uid: item.uid, responseViewTab: newViewTab }));
-  }, [dispatch, item.uid, selectedViewTab]);
+  }, [dispatch, item.uid]);
 
   const requestTimeline = ([...(collection.timeline || [])]).filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -226,15 +225,24 @@ const ResponsePane = ({ item, collection }) => {
           onClick={() => setShowScriptErrorCard(true)}
         />
       )}
-      {focusedTab?.responsePaneTab === 'response' ? (
+      {focusedTab?.responsePaneTab === 'response' && item?.response && !(item.response?.stream ?? false) ? (
         <>
-          <QueryResultTypeSelector
-            formatOptions={previewFormatOptions}
-            formatValue={selectedFormat}
-            onFormatChange={handleFormatChange}
-            onPreviewTabSelect={handleViewTabToggle}
-            selectedTab={selectedViewTab}
-          />
+          {/* Result View Tabs (Visualizations + Response Format) */}
+          <div className="result-view-tabs">
+
+            {/* Response Format */}
+            <QueryResultTypeSelector
+              formatOptions={previewFormatOptions}
+              formatValue={selectedFormat}
+              onFormatChange={handleFormatChange}
+              onPreviewTabSelect={handleViewTabChange}
+              selectedTab={selectedViewTab}
+              isActiveTab={selectedViewTab === 'editor' || selectedViewTab === 'preview'}
+              onTabSelect={() => {
+                handleViewTabChange('editor');
+              }}
+            />
+          </div>
         </>
       ) : null}
       <div className="flex items-center response-pane-status">
@@ -276,7 +284,7 @@ const ResponsePane = ({ item, collection }) => {
         />
       </div>
       <section
-        className="flex flex-col min-h-0 relative px-4 pt-3 auto overflow-auto"
+        className="flex flex-col min-h-0 relative px-4 auto overflow-auto mt-4"
         style={{
           flex: '1 1 0',
           height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'

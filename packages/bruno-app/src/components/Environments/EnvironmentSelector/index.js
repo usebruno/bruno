@@ -186,7 +186,7 @@ const EnvironmentSelector = ({ collection }) => {
       <div className="environment-selector flex align-center cursor-pointer">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           {/* Tab Headers */}
-          <div className="tab-header flex p-[0.75rem]">
+          <div className="tab-header flex pt-3 pb-2 px-3">
             {tabs.map((tab) => (
               <button
                 key={tab.id}

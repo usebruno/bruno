@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
+import { useTheme } from 'providers/Theme';
 
 const STANDARD_METHODS = Object.freeze(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT']);
 
@@ -9,28 +10,41 @@ const KEY = Object.freeze({ ENTER: 'Enter', ESCAPE: 'Escape' });
 
 const DEFAULT_METHOD = 'GET';
 
-const TriggerButton = ({ method, ...props }) => {
+const TriggerButton = ({ method, methodSpanRef, showCaret, ...props }) => {
   return (
     <button
       type="button"
-      className="cursor-pointer flex items-center text-left w-full pr-4 select-none"
+      className="cursor-pointer flex items-center gap-2 text-left w-full select-none px-2"
       {...props}
     >
       <span
-        className="px-3 truncate method-span"
+        ref={methodSpanRef}
+        className="truncate method-span"
         id="create-new-request-method"
         title={method}
       >
         {method}
       </span>
-      <IconCaretDown className="caret" size={16} strokeWidth={2} />
+      {showCaret && <IconCaretDown className="caret" size={14} strokeWidth={2} />}
     </button>
   );
 };
 
-const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
+const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret = false }) => {
   const [isCustomMode, setIsCustomMode] = useState(false);
   const inputRef = useRef();
+  const selectedMethodRef = useRef(method);
+  const methodSpanRef = useRef();
+  const [previousMethodWidth, setPreviousMethodWidth] = useState(null);
+
+  const { theme } = useTheme();
+  const methodColor = useMemo(() => {
+    const colorMap = {
+      ...theme.request.methods,
+      ...theme.request
+    };
+    return colorMap[method.toLocaleLowerCase()];
+  }, [method, theme]);
 
   const blurInput = () => inputRef.current?.blur();
 
@@ -41,18 +55,29 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
 
   const handleMethodSelect = useCallback((verb) => {
     onMethodSelect(verb);
+    selectedMethodRef.current = verb;
     setIsCustomMode(false);
     blurInput();
   }, [onMethodSelect]);
 
   const handleBlur = (e) => {
     // Keep the current value when blurring
-    const currentValue = e.target.value ? e.target.value.toUpperCase() : method;
+    let currentValue = '';
+    if (e.target.value && e.target.value.length > 0) {
+      currentValue = e.target.value.toUpperCase();
+      selectedMethodRef.current = currentValue;
+    } else {
+      currentValue = selectedMethodRef.current;
+    }
     onMethodSelect(currentValue);
     setIsCustomMode(false);
   };
 
   const handleAddCustomMethod = useCallback(() => {
+    // Capture the width of the current method span before switching to custom mode
+    if (methodSpanRef.current) {
+      setPreviousMethodWidth(methodSpanRef.current.offsetWidth);
+    }
     setIsCustomMode(true);
     onMethodSelect('');
 
@@ -112,14 +137,28 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
 
   // If in custom mode, render input field instead of dropdown
   if (isCustomMode) {
+    // Calculate width based on content length (in ch units), clamped to max 16ch
+    // Add 1ch for cursor space
+    const contentWidth = Math.min(method.length + 1, 16);
+    // Use previous method width as minimum, content-based width as current
+    const minWidthPx = previousMethodWidth ? `${previousMethodWidth}px` : '5ch';
+    // Use calc to add padding space (px-2 = 0.5rem per side = 1rem total) to the ch width
+    const currentWidth = `calc(${Math.max(contentWidth, 1)}ch + 1rem)`;
+
     return (
       <StyledWrapper>
-        <div className="flex method-selector">
+        <div className="flex method-selector custom-input-mode" style={{ color: methodColor }}>
           <div className="flex flex-col w-full">
             <input
               ref={inputRef}
               type="text"
-              className="px-2 w-full focus:bg-transparent"
+              className="px-2 focus:bg-transparent"
+              style={{
+                minWidth: minWidthPx,
+                width: currentWidth,
+                maxWidth: 'calc(16ch + 1rem)',
+                fontSize: '12px'
+              }}
               value={method}
               onChange={handleInputChange}
               onBlur={handleBlur}
@@ -135,13 +174,13 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex method-selector">
+      <div className="flex method-selector" style={{ color: methodColor }}>
         <MenuDropdown
           items={menuItems}
           placement="bottom-start"
           selectedItemId={selectedItemId}
         >
-          <TriggerButton method={method} />
+          <TriggerButton method={method} showCaret={showCaret} methodSpanRef={methodSpanRef} />
         </MenuDropdown>
       </div>
     </StyledWrapper>

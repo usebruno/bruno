@@ -17,8 +17,6 @@ const Wrapper = styled.div`
   .tabs-scroll-container {
     overflow-x: auto;
     overflow-y: clip;
-    padding-bottom: 10px;
-    margin-bottom: -10px;
 
     &::-webkit-scrollbar {
       display: none;
@@ -59,7 +57,6 @@ const Wrapper = styled.div`
       border: 1px solid transparent;
       padding: 6px 0;
       flex-shrink: 0;
-      transition: background-color 0.15s ease;
       margin-bottom: 3px;
 
       .tab-container {
@@ -114,7 +111,7 @@ const Wrapper = styled.div`
         border: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
         border-bottom-color: ${(props) => props.theme.bg || '#ffffff'};
         border-radius: 8px 8px 0 0;
-        z-index: 2;
+        z-index: 1;
         margin-bottom: -2px;
         padding-bottom: 12px;
 
@@ -155,7 +152,7 @@ const Wrapper = styled.div`
         display: inline-flex;
         justify-content: center;
         align-items: center;
-        color: ${(props) => props.theme.requestTabs.shortTab.color};
+        color: ${(props) => props.theme.text};
         background-color: transparent;
         border: 1px solid transparent;
         border-radius: ${(props) => props.theme.border.radius.base};
@@ -187,8 +184,8 @@ const Wrapper = styled.div`
 
         &:hover {
           > div {
-            background-color: ${(props) => props.theme.requestTabs.shortTab.hoverBg};
-            color: ${(props) => props.theme.requestTabs.shortTab.hoverColor};
+            background-color: ${(props) => props.theme.background.surface0};
+            color: ${(props) => props.theme.text};
           }
         }
       }
@@ -197,6 +194,10 @@ const Wrapper = styled.div`
 
   &.has-chevrons ul {
     padding-left: 0;
+  }
+
+  .special-tab-icon {
+    color: ${(props) => props.theme.primary.text};
   }
 `;
 
