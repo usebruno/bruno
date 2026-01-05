@@ -337,6 +337,14 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.text};
   }
 
+  .CodeMirror-lint-message-warning {
+    color: ${(props) => props.theme.status.warning.text};
+  }
+
+  .CodeMirror-lint-message-error {
+    color: ${(props) => props.theme.status.danger.text};
+  }
+
   /* Header */
   .CodeMirror-brunoVarInfo .var-info-header {
     display: flex;
