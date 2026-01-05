@@ -1,29 +1,10 @@
-**English**
-| [Українська](docs/contributing/contributing_ua.md)
-| [Русский](docs/contributing/contributing_ru.md)
-| [Türkçe](docs/contributing/contributing_tr.md)
-| [Deutsch](docs/contributing/contributing_de.md)
-| [Français](docs/contributing/contributing_fr.md)
-| [Português (BR)](docs/contributing/contributing_pt_br.md)
-| [한국어](docs/contributing/contributing_kr.md)
-| [বাংলা](docs/contributing/contributing_bn.md)
-| [Español](docs/contributing/contributing_es.md)
-| [Bahasa Indonesia](docs/contributing/contributing_id.md)
-| [Italiano](docs/contributing/contributing_it.md)
-| [Română](docs/contributing/contributing_ro.md)
-| [Polski](docs/contributing/contributing_pl.md)
-| [简体中文](docs/contributing/contributing_cn.md)
-| [正體中文](docs/contributing/contributing_zhtw.md)
-| [日本語](docs/contributing/contributing_ja.md)
-| [हिंदी](docs/contributing/contributing_hi.md)
-| [Dutch](docs/contributing/contributing_nl.md)
-| [فارسی](docs/contributing/contributing_fa.md)
+[English](../../contributing.md)
 
 ## Mari buat Bruno lebih baik, bersama!!
 
 Kami senang Anda ingin meningkatkan Bruno. Berikut adalah panduan untuk menjalankan Bruno di komputer Anda.
 
-### Technology Stack
+### Stack Teknologi
 
 Bruno dibangun menggunakan React dan Electron.
 
@@ -58,7 +39,7 @@ nvm use
 npm i --legacy-peer-deps
 ```
 
-### Local Development
+### Pengembangan Lokal
 
 #### Build packages
 
@@ -116,7 +97,7 @@ ELECTRON_USER_DATA_PATH=$(realpath ~/Desktop/bruno-test) npm run dev:electron
 
 Ini akan membuat folder bruno-test di Desktop Anda dan menggunakannya sebagai `userData` path.
 
-### Troubleshooting
+### Pemecahan Masalah
 
 Anda mungkin mengalami error `Unsupported platform` ketika menjalankan `npm install`. Untuk memperbaikinya, Anda perlu menghapus `node_modules` dan `package-lock.json` lalu menjalankan `npm install`. Ini akan menginstal semua paket yang diperlukan untuk menjalankan aplikasi.
 
@@ -161,11 +142,11 @@ npm run test --workspace=packages/bruno-toml
 npm test --workspaces --if-present
 ```
 
-### Raising Pull Requests
+### Membuat Pull Request
 
 - Harap buat PR yang kecil dan fokus pada satu hal
 - Harap ikuti format pembuatan branch
-  - feature/[nama fitur]: Branch ini harus berisi perubahan untuk fitur tertentu
-    - Contoh: feature/dark-mode
+  - fitur/[nama fitur]: Branch ini harus berisi perubahan untuk fitur tertentu
+    - Contoh: fitur/dark-mode
   - bugfix/[nama bug]: Branch ini harus hanya berisi perbaikan bug untuk bug tertentu
     - Contoh: bugfix/bug-1

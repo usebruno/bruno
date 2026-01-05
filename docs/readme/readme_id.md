@@ -1,7 +1,7 @@
 <br />
 <img src="assets/images/logo-transparent.png" width="80"/>
 
-### Bruno - Opensource IDE untuk menjelajah dan menguji API.
+### Bruno - IDE Sumber Terbuka untuk menjelajah dan menguji API.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
@@ -11,26 +11,26 @@
 [![Unduh](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
 [English](../../readme.md)
-| [Українська](docs/readme/readme_ua.md)
-| [Русский](docs/readme/readme_ru.md)
-| [Türkçe](docs/readme/readme_tr.md)
-| [Deutsch](docs/readme/readme_de.md)
-| [Français](docs/readme/readme_fr.md)
-| [Português (BR)](docs/readme/readme_pt_br.md)
-| [한국어](docs/readme/readme_kr.md)
-| [বাংলা](docs/readme/readme_bn.md)
-| [Español](docs/readme/readme_es.md)
-| [Bahasa Indonesia](docs/readme/readme_id.md)
-| [Italiano](docs/readme/readme_it.md)
-| [Română](docs/readme/readme_ro.md)
-| [Polski](docs/readme/readme_pl.md)
-| [简体中文](docs/readme/readme_cn.md)
-| [正體中文](docs/readme/readme_zhtw.md)
-| [العربية](docs/readme/readme_ar.md)
-| [日本語](docs/readme/readme_ja.md)
-| [ქართული](docs/readme/readme_ka.md)
-| [Nederlands](docs/readme/readme_nl.md)
-| [فارسی](docs/readme/readme_fa.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Bahasa Indonesia](./readme_id.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
+| [Nederlands](./readme_nl.md)
+| [فارسی](./readme_fa.md)
 
 Bruno adalah klien API yang baru dan inovatif, yang bertujuan untuk merevolusi status quo yang diwakili oleh Postman dan alat serupa lainnya.
 
@@ -52,22 +52,6 @@ Sebagian besar fitur kami gratis dan open source.
 Kami berusaha untuk mencapai keseimbangan harmonis antara [prinsip open-source dan keberlanjutan](https://github.com/usebruno/bruno/discussions/269)
 
 Anda dapat menjelajahi [versi berbayar](https://www.usebruno.com/pricing) kami untuk melihat apakah ada fitur tambahan yang mungkin berguna bagi Anda atau tim Anda! <br/>
-
-## Daftar Isi
-
-- [Instalasi](#Instalasi)
-- [Fitur](#fitur)
-  - [Berjalan di berbagai platform 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
-  - [Berkolaborasi via Git 👩‍💻🧑‍💻](#collaborate-via-git-%E2%80%8D%E2%80%8D)
-- [Link Penting 📌](#important-links-)
-- [Showcase 🎥](#showcase-)
-- [Bagikan Testimoni 📣](#bagikan-testimoni-)
-- [Mempublikasikan ke Package Manager Baru](#mempublikasikan-ke-package-manager-baru)
-- [Tetap Terhubung 🌐](#stay-in-touch-)
-- [Merek Dagang](#merek-dagang)
-- [Kontribusi 👩‍💻🧑‍💻](#kontribusi-%E2%80%8D%E2%80%8D)
-- [Penulis](#penulis)
-- [Lisensi 📄](#lisensi)
 
 ## Instalasi
 
@@ -122,7 +106,7 @@ Atau sistem kontrol versi pilihan Anda
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
-## Important Links 📌
+## Tautan Penting 📌
 
 - [Visi Jangka Panjang Kami](https://github.com/usebruno/bruno/discussions/269)
 - [Roadmap](https://www.usebruno.com/roadmap)
@@ -132,10 +116,10 @@ Atau sistem kontrol versi pilihan Anda
 - [Harga](https://www.usebruno.com/pricing)
 - [Unduh](https://www.usebruno.com/downloads)
 
-## Showcase 🎥
+## Pameran 🎥
 
 - [Testimoni](https://github.com/usebruno/bruno/discussions/343)
-- [Knowledge Hub](https://github.com/usebruno/bruno/discussions/386)
+- [Pusat Pengetahuan](https://github.com/usebruno/bruno/discussions/386)
 - [Scriptmania](https://github.com/usebruno/bruno/discussions/385)
 
 ## Bagikan Testimoni 📣
