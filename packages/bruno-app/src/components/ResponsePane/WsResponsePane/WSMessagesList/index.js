@@ -177,11 +177,6 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
 const WSMessagesList = ({ messages = [] }) => {
   const virtuosoRef = useRef(null);
   const [openMessages, setOpenMessages] = useState(new Set());
-  const [isAtBottom, setIsAtBottom] = useState(true);
-
-  // Use ref for immediate access in effects (avoids state timing issues)
-  const openMessagesRef = useRef(openMessages);
-  openMessagesRef.current = openMessages;
 
   // Toggle message open/closed state by timestamp
   const handleMessageToggle = useCallback((timestamp) => {
@@ -196,34 +191,36 @@ const WSMessagesList = ({ messages = [] }) => {
     });
   }, []);
 
-  // Track when user scrolls away from bottom
-  const handleAtBottomStateChange = useCallback((atBottom) => {
-    setIsAtBottom(atBottom);
-  }, []);
+  const followOutput = useCallback((isAtBottom) => {
+    if (openMessages.size === 0 && isAtBottom) {
+      return 'smooth';
+    }
+    return false;
+  }, [openMessages.size]);
 
-  // Auto-scroll enabled when no messages are open AND user is at bottom
-  const shouldAutoScroll = openMessagesRef.current.size === 0 && isAtBottom;
-
-  const renderItem = useCallback((index) => {
-    const msg = messages[index];
+  const renderItem = useCallback((index, msg) => {
     const isOpen = openMessages.has(msg.timestamp);
-    return <WSMessageItem key={msg.timestamp} message={msg} isOpen={isOpen} onToggle={handleMessageToggle} />;
-  }, [messages, openMessages, handleMessageToggle]);
+    return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} />;
+  }, [openMessages, handleMessageToggle]);
+
+  const computeItemKey = useCallback((index, msg) => {
+    return msg.seq ?? msg.timestamp;
+  }, []);
 
   if (!messages.length) {
     return <StyledWrapper><div className="empty-state">No messages yet.</div></StyledWrapper>;
   }
 
-  // sort based on order, seq was newly added and might be missing in some cases and when missing,
-  // the timestamp will be used instead
-  const ordered = messages.toSorted((x, y) => ((x.seq ?? x.timestamp) - (y.seq ?? y.timestamp)) * (-order));
-
   return (
     <StyledWrapper className="ws-messages-list flex flex-col">
-      {ordered.map((msg, idx, src) => {
-        const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
-        return <WSMessageItem key={msg.seq ? msg.seq : msg.timestamp} inFocus={inFocus} id={idx} message={msg} />;
-      })}
+      <Virtuoso
+        ref={virtuosoRef}
+        data={messages}
+        itemContent={renderItem}
+        computeItemKey={computeItemKey}
+        followOutput={followOutput}
+        initialTopMostItemIndex={messages.length - 1}
+      />
     </StyledWrapper>
   );
 };
