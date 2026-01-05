@@ -15,7 +15,7 @@ const { rpad } = require('../utils/common');
 const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
-const { findItemInCollection, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
@@ -359,21 +359,21 @@ const handler = async function (argv) {
     }
 
     if (envFile || env) {
+      const envExt = FORMAT_CONFIG[collection.format].ext;
       const envFilePath = envFile
         ? path.resolve(collectionPath, envFile)
-        : path.join(collectionPath, 'environments', `${env}.bru`);
+        : path.join(collectionPath, 'environments', `${env}${envExt}`);
 
       const envFileExists = await exists(envFilePath);
       if (!envFileExists) {
-        const errorPath = envFile || `environments/${env}.bru`;
+        const errorPath = envFile || `environments/${env}${envExt}`;
         console.error(chalk.red(`Environment file not found: `) + chalk.dim(errorPath));
 
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
 
-      const ext = path.extname(envFilePath).toLowerCase();
-      if (ext === '.json') {
-        // Parse Bruno schema JSON environment
+      const fileExt = path.extname(envFilePath).toLowerCase();
+      if (fileExt === '.json') {
         let envJsonContent;
         try {
           envJsonContent = fs.readFileSync(envFilePath, 'utf8');
@@ -387,8 +387,12 @@ const handler = async function (argv) {
           console.error(chalk.red(`Failed to parse Environment JSON: ${err.message}`));
           process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
         }
+      } else if (fileExt === '.yml' || fileExt === '.yaml') {
+        const envContent = fs.readFileSync(envFilePath, 'utf8');
+        const envJson = parseEnvironment(envContent, { format: 'yml' });
+        envVars = getEnvVars(envJson);
+        envVars.__name__ = envFile ? path.basename(envFilePath, fileExt) : env;
       } else {
-        // Default to .bru parsing
         const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
         const envJson = parseEnvironment(envBruContent);
         envVars = getEnvVars(envJson);
@@ -596,10 +600,11 @@ const handler = async function (argv) {
     const runtime = getJsSandboxRuntime(sandbox);
 
     const runSingleRequestByPathname = async (relativeItemPathname) => {
+      const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
         let itemPathname = path.join(collectionPath, relativeItemPathname);
-        if (itemPathname && !itemPathname?.endsWith('.bru')) {
-          itemPathname = `${itemPathname}.bru`;
+        if (itemPathname && !itemPathname?.endsWith(ext)) {
+          itemPathname = `${itemPathname}${ext}`;
         }
         const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
         if (requestItem) {
