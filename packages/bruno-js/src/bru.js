@@ -20,6 +20,7 @@ class Bru {
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
     this.sendRequest = sendRequest;
+    this.runtime = runtime;
     this.cookies = {
       jar: () => {
         const cookieJar = createCookieJar();
