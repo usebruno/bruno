@@ -3,6 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   flex: 1;
   min-height: 0; 
+  height: 100%;
 
   .empty-state {
     padding: 1rem;
