@@ -1,8 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const yaml = require('js-yaml');
-const crypto = require('node:crypto');
 const { writeFile, validateName, isValidCollectionDirectory } = require('./filesystem');
 const { generateUidBasedOnHash } = require('./common');
 const { withLock, getWorkspaceLockKey } = require('./workspace-lock');
@@ -25,24 +23,29 @@ const quoteYamlValue = (value) => {
 
 const writeWorkspaceFileAtomic = async (workspacePath, content) => {
   const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-  const tempFilePath = path.join(os.tmpdir(), `workspace-${Date.now()}-${crypto.randomBytes(16).toString('hex')}.yml`);
+  await writeFile(workspaceFilePath, content);
 
-  try {
-    await writeFile(tempFilePath, content);
+  // Previous atomic write implementation commented out due to permission issues on Linux
+  // when temp directory is on a different filesystem (cross-device link error)
 
-    if (fs.existsSync(workspaceFilePath)) {
-      fs.unlinkSync(workspaceFilePath);
-    }
+  // const tempFilePath = path.join(os.tmpdir(), `workspace-${Date.now()}-${crypto.randomBytes(16).toString('hex')}.yml`);
 
-    fs.renameSync(tempFilePath, workspaceFilePath);
-  } catch (error) {
-    if (fs.existsSync(tempFilePath)) {
-      try {
-        fs.unlinkSync(tempFilePath);
-      } catch (_) {}
-    }
-    throw error;
-  }
+  // try {
+  //   await writeFile(tempFilePath, content);
+
+  //   if (fs.existsSync(workspaceFilePath)) {
+  //     fs.unlinkSync(workspaceFilePath);
+  //   }
+
+  //   fs.renameSync(tempFilePath, workspaceFilePath);
+  // } catch (error) {
+  //   if (fs.existsSync(tempFilePath)) {
+  //     try {
+  //       fs.unlinkSync(tempFilePath);
+  //     } catch (_) {}
+  //   }
+  //   throw error;
+  // }
 };
 
 const isValidCollectionEntry = (collection) => {
