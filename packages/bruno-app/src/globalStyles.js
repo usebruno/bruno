@@ -324,6 +324,19 @@ const GlobalStyle = createGlobalStyle`
     margin: 1em 0;
   }
 
+  .CodeMirror-lint-tooltip {
+    padding: 4px 8px;
+    background-color: ${(props) => props.theme.infoTip.bg};
+    border: 1px solid ${(props) => props.theme.infoTip.border};
+    box-shadow: ${(props) => props.theme.infoTip.boxShadow};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+
+  .CodeMirror-lint-message {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.text};
+  }
+
   /* Header */
   .CodeMirror-brunoVarInfo .var-info-header {
     display: flex;
