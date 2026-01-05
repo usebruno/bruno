@@ -18,7 +18,7 @@ import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'uti
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { sensitiveFields } from './constants';
 
-const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '' }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
@@ -382,6 +382,21 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     };
   }, []);
 
+  const filteredVariables = useMemo(() => {
+    if (!searchQuery?.trim()) {
+      return formik.values.map((variable, index) => ({ variable, index }));
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return formik.values
+      .map((variable, index) => ({ variable, index }))
+      .filter(({ variable }) => {
+        const nameMatch = variable.name?.toLowerCase().includes(query);
+        const valueMatch = typeof variable.value === 'string' && variable.value?.toLowerCase().includes(query);
+        return nameMatch || valueMatch;
+      });
+  }, [formik.values, searchQuery]);
+
   return (
     <StyledWrapper>
       <div className="table-container">
@@ -396,7 +411,14 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
             </tr>
           </thead>
           <tbody>
-            {formik.values.map((variable, index) => {
+            {filteredVariables.length === 0 && searchQuery && (
+              <tr>
+                <td colSpan={5} className="text-center text-muted py-4">
+                  No variables found matching "{searchQuery}"
+                </td>
+              </tr>
+            )}
+            {filteredVariables.map(({ variable, index }) => {
               const isLastRow = index === formik.values.length - 1;
               const isEmptyRow = !variable.name || variable.name.trim() === '';
               const isLastEmptyRow = isLastRow && isEmptyRow;
