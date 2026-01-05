@@ -288,13 +288,16 @@ const prepareRequest = async (item = {}, collection = {}) => {
   request.body = request.body || {};
 
   if (request.body.mode === 'json') {
-    if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'application/json';
-    }
-    try {
-      axiosRequest.data = decomment(request?.body?.json);
-    } catch (error) {
-      axiosRequest.data = request?.body?.json;
+    const jsonBody = request.body.json;
+    if (jsonBody && jsonBody.length > 0) {
+      if (!contentTypeDefined) {
+        axiosRequest.headers['content-type'] = 'application/json';
+      }
+      try {
+        axiosRequest.data = decomment(jsonBody);
+      } catch (error) {
+        axiosRequest.data = jsonBody;
+      }
     }
   }
 
