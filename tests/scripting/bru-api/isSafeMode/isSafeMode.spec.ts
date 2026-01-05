@@ -31,8 +31,6 @@ const selectResponsePaneTab = async (page: Page, tabName: string) => {
 
 test.describe.serial('bru.isSafeMode() API', () => {
   test('returns false when running in developer mode', async ({ pageWithUserData: page }) => {
-    test.setTimeout(2 * 60 * 1000);
-
     // Open the request
     const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'is-safe-mode-test' });
     await collectionContainer.click();
