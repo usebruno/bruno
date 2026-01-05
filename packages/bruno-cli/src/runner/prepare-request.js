@@ -288,8 +288,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
   request.body = request.body || {};
 
   if (request.body.mode === 'json') {
-    const jsonBody = request?.body?.json;
-    if (jsonBody && jsonBody.trim().length > 0) {
+    const jsonBody = request.body.json;
+    if (jsonBody && jsonBody.length > 0) {
       if (!contentTypeDefined) {
         axiosRequest.headers['content-type'] = 'application/json';
       }
