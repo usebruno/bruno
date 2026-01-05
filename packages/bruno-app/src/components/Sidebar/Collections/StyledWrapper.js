@@ -16,7 +16,13 @@ const Wrapper = styled.div`
     padding-bottom: 4px;
     overflow-y: auto;
     overflow-x: hidden;
+  }
 
+  .no-results-found {
+    padding: 16px;
+    text-align: center;
+    color: ${(props) => props.theme.colors.text.muted};
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 `;
 
