@@ -37,6 +37,7 @@ const RenameWorkspace = ({ onClose, workspace }) => {
       dispatch(renameWorkspaceAction(workspace.uid, values.name))
         .then(() => {
           onClose();
+          toast.success('Workspace renamed successfully');
         })
         .catch((error) => {
           toast.error(error?.message || 'An error occurred while renaming the workspace');
