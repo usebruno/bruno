@@ -333,7 +333,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-lint-message {
-    font-size: ${(props) => props.theme.font.size.sm};
+    font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.text};
   }
 
