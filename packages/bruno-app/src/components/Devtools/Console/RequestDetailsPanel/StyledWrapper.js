@@ -259,10 +259,6 @@ const StyledWrapper = styled.div`
     height: 400px;
     display: flex;
     flex-direction: column;
-    
-    pre {
-      padding: 8px !important;
-    }
 
     .w-full.h-full.relative.flex {
       height: 100% !important;
@@ -321,7 +317,7 @@ const StyledWrapper = styled.div`
       height: 100% !important;
       max-height: 400px !important;
       padding: 0.5rem !important;
-      
+
       .network-logs-pre {
         color: ${(props) => props.theme.console.messageColor} !important;
         font-size: ${(props) => props.theme.font.size.xs} !important;
