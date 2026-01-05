@@ -561,6 +561,25 @@ const GlobalStyle = createGlobalStyle`
     cursor: pointer;
     color: ${(props) => props.theme.textLink} !important;
   }
+
+  // Native select styling
+  select {
+    background-color: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 400;
+  }
+
+  select option {
+    background-color: ${(props) => props.theme.dropdown.bg};
+    color: ${(props) => props.theme.dropdown.color};
+  }
+
+  select option:hover,
+  select option:focus {
+    background-color: ${(props) => props.theme.dropdown.hoverBg} !important;
+    color: ${(props) => props.theme.dropdown.color} !important;
+  }
 `;
 
 export default GlobalStyle;
