@@ -71,7 +71,7 @@ const createRedirectConfig = (error, redirectUrl) => {
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedirects } = {}) {
+function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedirects = true } = {}) {
   let redirectCount = 0;
 
   /** @type {axios.AxiosInstance} */
