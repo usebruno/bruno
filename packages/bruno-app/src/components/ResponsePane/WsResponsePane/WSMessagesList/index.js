@@ -198,12 +198,12 @@ const WSMessagesList = ({ messages = [] }) => {
     return false;
   }, [openMessages.size]);
 
-  const renderItem = useCallback((index, msg) => {
+  const renderItem = useCallback((_, msg) => {
     const isOpen = openMessages.has(msg.timestamp);
     return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} />;
   }, [openMessages, handleMessageToggle]);
 
-  const computeItemKey = useCallback((index, msg) => {
+  const computeItemKey = useCallback((_, msg) => {
     return msg.seq ?? msg.timestamp;
   }, []);
 
