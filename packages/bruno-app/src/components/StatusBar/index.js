@@ -97,19 +97,6 @@ const StatusBar = () => {
                 <Notifications />
               </div>
             </ToolHint>
-
-            <ToolHint text="GitHub Repository" toolhintId="GitHub" place="top" offset={10}>
-              <button
-                className="status-bar-button"
-                onClick={() => {
-                  window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno');
-                }}
-                tabIndex={0}
-                aria-label="Open GitHub Repository"
-              >
-                <IconBrandGithub size={16} strokeWidth={1.5} aria-hidden="true" />
-              </button>
-            </ToolHint>
           </div>
         </div>
 
@@ -162,6 +149,19 @@ const StatusBar = () => {
             <div className="status-bar-version">
               v{version}
             </div>
+
+            <ToolHint text="GitHub Repository" toolhintId="GitHub" place="top-end" offset={10}>
+              <button
+                className="status-bar-button"
+                onClick={() => {
+                  window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno');
+                }}
+                tabIndex={0}
+                aria-label="Open GitHub Repository"
+              >
+                <IconBrandGithub size={16} strokeWidth={1.5} aria-hidden="true" />
+              </button>
+            </ToolHint>
           </div>
         </div>
       </div>
