@@ -492,7 +492,8 @@ const runSingleRequest = async function (
 
       let axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
-        disableCookies: options.disableCookies
+        disableCookies: options.disableCookies,
+        followRedirects: followRedirects
       });
 
       if (request.ntlmConfig) {
