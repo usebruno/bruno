@@ -1,6 +1,7 @@
 import { default as axios, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import http from 'node:http';
 import https from 'node:https';
+import { normalizeAccessControlAllowHeadersValue, resolveAllowInvalidHeaders } from './invalid-header-tolerance';
 
 /**
  *
@@ -26,10 +27,11 @@ type ModifiedAxiosResponse = AxiosResponse & {
   responseTime: number;
 };
 
-const baseRequestConfig: Partial<AxiosRequestConfig> = {
+const baseRequestConfig: Partial<AxiosRequestConfig> & { insecureHTTPParser?: boolean } = {
   proxy: false,
   httpAgent: new http.Agent({ keepAlive: true }),
   httpsAgent: new https.Agent({ keepAlive: true }),
+  insecureHTTPParser: resolveAllowInvalidHeaders(),
   transformRequest: function transformRequest(data: any, headers: AxiosRequestHeaders) {
     const contentType = headers.getContentType() || '';
     const hasJSONContentType = contentType.includes('json');
@@ -66,6 +68,10 @@ const makeAxiosInstance = (customRequestConfig?: AxiosRequestConfig) => {
     const config = response.config as ModifiedInternalAxiosRequestConfig;
     const startTime = config.startTime;
     const endTime = Date.now();
+    const acah = response.headers?.['access-control-allow-headers'];
+    if (typeof acah === 'string' && acah.length) {
+      response.headers['access-control-allow-headers'] = normalizeAccessControlAllowHeadersValue(acah) as string;
+    }
     const modifiedResponse: ModifiedAxiosResponse = {
       ...response,
       responseTime: endTime - startTime

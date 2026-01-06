@@ -22,6 +22,7 @@ const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
+const { applyInvalidHeaderToleranceToRequest, normalizeObsFoldedResponseHeaders } = require('../utils/invalid-header-tolerance');
 const { getCACertificates } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
@@ -490,6 +491,8 @@ const runSingleRequest = async function (
         request.timeout = requestTimeout;
       }
 
+      applyInvalidHeaderToleranceToRequest(request);
+
       let axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies
@@ -525,6 +528,7 @@ const runSingleRequest = async function (
 
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
+      normalizeObsFoldedResponseHeaders(response.headers, request);
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
@@ -544,6 +548,7 @@ const runSingleRequest = async function (
         err.response.data = data;
         err.response.dataBuffer = dataBuffer;
         response = err.response;
+        normalizeObsFoldedResponseHeaders(response.headers, request);
 
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
