@@ -50,7 +50,8 @@ const defaultPreferences = {
     hasLaunchedBefore: false
   },
   general: {
-    defaultCollectionLocation: ''
+    defaultCollectionLocation: '',
+    defaultWorkspacePath: ''
   },
   autoSave: {
     enabled: false,
@@ -103,7 +104,8 @@ const preferencesSchema = Yup.object().shape({
     hasLaunchedBefore: Yup.boolean()
   }),
   general: Yup.object({
-    defaultCollectionLocation: Yup.string().max(1024).nullable()
+    defaultCollectionLocation: Yup.string().max(1024).nullable(),
+    defaultWorkspacePath: Yup.string().max(1024).nullable()
   }),
   autoSave: Yup.object({
     enabled: Yup.boolean(),
