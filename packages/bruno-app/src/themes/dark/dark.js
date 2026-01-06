@@ -241,7 +241,7 @@ const darkTheme = {
     color: palette.text.BASE,
     iconColor: palette.text.SUBTEXT2,
     bg: palette.background.MANTLE,
-    hoverBg: palette.background.MANTLE,
+    hoverBg: palette.background.SURFACE0,
     shadow: 'none',
     border: palette.border.BORDER1,
     separator: palette.border.BORDER1,

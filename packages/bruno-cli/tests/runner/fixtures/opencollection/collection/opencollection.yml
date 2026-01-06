@@ -1,0 +1,14 @@
+opencollection: "1.0.0"
+info:
+  name: Test OpenCollection
+
+extensions:
+  ignore:
+    - node_modules
+    - .git
+
+request:
+  headers:
+    - name: X-Collection-Header
+      value: collection-header-value
+      enabled: true

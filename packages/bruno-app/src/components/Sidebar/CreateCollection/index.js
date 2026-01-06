@@ -224,7 +224,19 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                     </p>
                   </Help>
                   {formik.values.format === 'yml' && (
-                    <span className="beta-badge">Beta</span>
+                    <>
+                      <span className="beta-badge">Beta</span>
+                      <a
+                        href="#"
+                        className="discussion-link"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.open('https://github.com/usebruno/bruno/discussions/6634', '_blank', 'noopener,noreferrer');
+                        }}
+                      >
+                        Join the discussion
+                      </a>
+                    </>
                   )}
                 </label>
                 <select
@@ -240,21 +252,6 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                 {formik.touched.format && formik.errors.format ? (
                   <div className="text-red-500">{formik.errors.format}</div>
                 ) : null}
-                {formik.values.format === 'yml' && (
-                  <div className="mt-2">
-                    <a
-                      href="#"
-                      className="report-issue-link"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.open('https://github.com/usebruno/bruno/discussions/6466', '_blank', 'noopener,noreferrer');
-                      }}
-                    >
-                      <IconExternalLink size={14} strokeWidth={1.5} />
-                      <span>Report an issue</span>
-                    </a>
-                  </div>
-                )}
               </div>
             </div>
             <div className="flex justify-end items-center mt-8 bruno-modal-footer">

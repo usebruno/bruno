@@ -23,7 +23,7 @@
     "@eslint/compat": "^1.3.2",
     "@faker-js/faker": "^7.6.0",
     "@jest/globals": "^29.2.0",
-    "@opencollection/types": "~0.6.0",
+    "@opencollection/types": "~0.7.0",
     "@playwright/test": "^1.51.1",
     "@rollup/plugin-json": "^6.1.0",
     "@storybook/addon-webpack5-compiler-babel": "^4.0.0",

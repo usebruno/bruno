@@ -295,7 +295,7 @@ const darkPastelTheme = {
     },
     body: {
       color: colors.TEXT,
-      bg: colors.GRAY_1
+      bg: colors.GRAY_2
     },
     input: {
       bg: 'transparent',

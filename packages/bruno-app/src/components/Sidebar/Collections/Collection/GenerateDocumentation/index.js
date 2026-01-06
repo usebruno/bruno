@@ -9,6 +9,7 @@ import { IconBook, IconCheck, IconAlertTriangle, IconLoader2 } from '@tabler/ico
 
 import Modal from 'components/Modal';
 import StyledWrapper from './StyledWrapper';
+import demoImage from './demo.png';
 import { useApp } from 'providers/App';
 import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading } from 'utils/collections/index';
 import { brunoToOpenCollection } from '@usebruno/converters';
@@ -148,12 +149,16 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
               <IconBook size={18} />
               <span>Interactive API Documentation</span>
             </h3>
-            <p className="description mb-5">
-              Generate a standalone HTML file containing interactive documentation for your API collection.
-              This file can be hosted anywhere or shared with your team.
+            <p className="description mb-4">
+              Generate a standalone HTML file that can be hosted anywhere or shared with your team.
             </p>
 
-            <ul className="features flex flex-col list-none gap-2.5 p-0 mb-5">
+            <div className="preview-container relative mb-4">
+              <span className="preview-label absolute">Sample Output</span>
+              <img src={demoImage} alt="Documentation preview" className="preview-image" />
+            </div>
+
+            <ul className="features flex flex-col list-none gap-2 p-0 mb-4">
               {FEATURES.map((feature) => (
                 <li key={feature} className="flex items-center gap-2.5">
                   <IconCheck size={16} className="check-icon flex-shrink-0" />
@@ -163,7 +168,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
             </ul>
 
             <p className="note m-0">
-              The generated file does not embed all assets. It loads OpenCollection’s JavaScript and CSS files from a CDN when viewing docs, which requires an internet connection.
+              The generated file loads OpenCollection's JavaScript and CSS files from a CDN, which requires an internet connection.
             </p>
           </div>
         )}
