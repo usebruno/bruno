@@ -877,14 +877,12 @@ export const extractVariableInfo = (str, variables) => {
       return { variableName: undefined, variableValue: undefined };
     }
     variableValue = variables?.pathParams?.[variableName];
-  } else if (str.startsWith('{{') && str.endsWith('}}')) {
-    // Handle cases like {{}} or {{   }} (empty or whitespace only)
-    // These don't match the pattern but look like variables
-    return { variableName: undefined, variableValue: undefined };
-  } else {
-    // direct variable reference (e.g., for numeric values in JSON mode or plain variable names)
+  } else if (variableNameRegex.test(str)) {
     variableName = str;
     variableValue = interpolate(get(variables, variableName), variables);
+  } else {
+    // If it's just "{", "}", or random JSON syntax, return undefined
+    return { variableName: undefined, variableValue: undefined };
   }
 
   return { variableName, variableValue };
