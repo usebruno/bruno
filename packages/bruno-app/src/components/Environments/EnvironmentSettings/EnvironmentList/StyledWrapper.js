@@ -191,9 +191,12 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       flex: 1;
+      min-width: 0;
+      overflow: hidden;
       
       .environment-name-input {
         flex: 1;
+        min-width: 0;
         background: transparent;
         border: none;
         outline: none;
@@ -210,12 +213,14 @@ const StyledWrapper = styled.div`
         display: flex;
         gap: 2px;
         margin-left: 4px;
+        flex-shrink: 0;
       }
     }
 
     &.creating {
       .environment-name-input {
         flex: 1;
+        min-width: 0;
         background: transparent;
         border: none;
         outline: none;
@@ -232,6 +237,7 @@ const StyledWrapper = styled.div`
         display: flex;
         gap: 2px;
         margin-left: 4px;
+        flex-shrink: 0;
       }
     }
 
