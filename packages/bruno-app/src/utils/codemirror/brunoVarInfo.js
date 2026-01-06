@@ -6,7 +6,7 @@
  *  LICENSE file at https://github.com/graphql/codemirror-graphql/tree/v0.8.3
  */
 
-import { interpolate, mockDataFunctions } from '@usebruno/common';
+import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
 import { getVariableScope, isVariableSecret, getAllVariables } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import store from 'providers/ReduxStore';
@@ -194,11 +194,13 @@ export const renderVarInfo = (token, options) => {
   } else if (variableName.startsWith('$')) {
     const fakerKeyword = variableName.substring(1); // Remove the $ prefix
     const fakerFunction = mockDataFunctions[fakerKeyword];
+    const isTimeBased = timeBasedDynamicVars.has(fakerKeyword);
     scopeInfo = {
       type: 'dynamic',
       value: '',
       data: null,
-      isValidFakerVariable: !!fakerFunction
+      isValidDynamicVariable: !!fakerFunction,
+      isTimeBased
     };
   } else if (variableName.startsWith('process.env.')) {
     // Check if this is a process.env variable (starts with "process.env.")
@@ -300,8 +302,8 @@ export const renderVarInfo = (token, options) => {
     return into;
   }
 
-  // Show warning for invalid faker variable (starts with $ but not a valid faker function)
-  if (scopeInfo.type === 'dynamic' && !scopeInfo.isValidFakerVariable) {
+  // Show warning for invalid dynamic variable (starts with $ but not a valid dynamic function)
+  if (scopeInfo.type === 'dynamic' && !scopeInfo.isValidDynamicVariable) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
     warningNote.textContent = `Unknown dynamic variable "${variableName}". Check the variable name.`;
@@ -309,11 +311,13 @@ export const renderVarInfo = (token, options) => {
     return into;
   }
 
-  // For valid dynamic variables, just show the read-only note (no value display since it's generated at runtime)
-  if (scopeInfo.type === 'dynamic' && scopeInfo.isValidFakerVariable) {
+  // For valid dynamic variables, show appropriate read-only note based on type
+  if (scopeInfo.type === 'dynamic' && scopeInfo.isValidDynamicVariable) {
     const readOnlyNote = document.createElement('div');
     readOnlyNote.className = 'var-readonly-note';
-    readOnlyNote.textContent = 'Generates random value on each request';
+    readOnlyNote.textContent = scopeInfo.isTimeBased
+      ? 'Generates current timestamp on each request'
+      : 'Generates random value on each request';
     into.appendChild(readOnlyNote);
     return into;
   }

@@ -1,5 +1,8 @@
 import { faker } from '@faker-js/faker';
 
+// Time-based dynamic variables (not random, generated based on current time)
+export const timeBasedDynamicVars = new Set(['timestamp', 'isoTimestamp']);
+
 export const mockDataFunctions = {
   guid: () => faker.string.uuid(),
   timestamp: () => Math.floor(Date.now() / 1000).toString(),
