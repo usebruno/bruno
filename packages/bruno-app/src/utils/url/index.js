@@ -90,6 +90,36 @@ export const isValidUrl = (url) => {
   }
 };
 
+export const looksLikeUrl = (str) => {
+  if (!str || typeof str !== 'string') {
+    return false;
+  }
+
+  const trimmed = str.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  // Check if it's a valid URL with protocol
+  if (isValidUrl(trimmed)) {
+    return true;
+  }
+
+  // Check if it looks like a domain (with or without path)
+  const domainPattern = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+(\/[^\s]*)?(\?[^\s]*)?$/;
+  if (domainPattern.test(trimmed)) {
+    return true;
+  }
+
+  // Check for protocol-like patterns
+  const protocolPattern = /^(https?|ws|wss|grpc):\/\//i;
+  if (protocolPattern.test(trimmed)) {
+    return true;
+  }
+
+  return false;
+};
+
 export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;

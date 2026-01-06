@@ -23,6 +23,7 @@ import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
 import Button from 'ui/Button';
+import { looksLikeUrl } from 'utils/url';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -38,6 +39,8 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   );
   const [curlRequestTypeDetected, setCurlRequestTypeDetected] = useState(null);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
+  const [urlDetectedInName, setUrlDetectedInName] = useState(false);
+  const urlDetectionTimeoutRef = useRef(null);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -259,6 +262,14 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     }
   }, [inputRef]);
 
+  useEffect(() => {
+    return () => {
+      if (urlDetectionTimeoutRef.current) {
+        clearTimeout(urlDetectionTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const onSubmit = () => formik.handleSubmit();
 
   const handlePaste = useCallback(
@@ -426,12 +437,47 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 autoCapitalize="off"
                 spellCheck="false"
                 onChange={(e) => {
-                  formik.setFieldValue('requestName', e.target.value);
-                  !isEditing && formik.setFieldValue('filename', sanitizeName(e.target.value));
+                  const value = e.target.value;
+                  formik.setFieldValue('requestName', value);
+                  !isEditing && formik.setFieldValue('filename', sanitizeName(value));
+
+                  // Clear hint if user is typing something new
+                  if (urlDetectedInName) {
+                    setUrlDetectedInName(false);
+                  }
+
+                  // Clear previous timeout
+                  if (urlDetectionTimeoutRef.current) {
+                    clearTimeout(urlDetectionTimeoutRef.current);
+                  }
+
+                  // Debounce URL detection
+                  urlDetectionTimeoutRef.current = setTimeout(() => {
+                    if (value && looksLikeUrl(value) && !formik.values.requestUrl) {
+                      formik.setFieldValue('requestUrl', value);
+                      formik.setFieldValue('requestName', '');
+                      formik.setFieldValue('filename', '');
+                      setUrlDetectedInName(true);
+                    }
+                  }, 500);
+                }}
+                onBlur={() => {
+                  const value = formik.values.requestName;
+                  if (value && looksLikeUrl(value) && !formik.values.requestUrl) {
+                    formik.setFieldValue('requestUrl', value);
+                    formik.setFieldValue('requestName', '');
+                    formik.setFieldValue('filename', '');
+                    setUrlDetectedInName(true);
+                  }
                 }}
                 value={formik.values.requestName || ''}
                 data-testid="request-name"
               />
+              {urlDetectedInName && (
+                <div className="text-xs text-muted mt-1">
+                  URL detected and moved to URL field
+                </div>
+              )}
               {formik.touched.requestName && formik.errors.requestName ? (
                 <div className="text-red-500">{formik.errors.requestName}</div>
               ) : null}
