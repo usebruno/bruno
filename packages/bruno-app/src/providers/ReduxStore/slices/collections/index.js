@@ -334,6 +334,9 @@ export const collectionsSlice = createSlice({
         const activeEnvironment = findEnvironmentInCollection(collection, activeEnvironmentUid);
 
         if (activeEnvironment) {
+          const envVariablesKeys = new Set(Object.keys(envVariables));
+
+          // Update or add variables that exist in envVariables
           forOwn(envVariables, (value, key) => {
             const variable = find(activeEnvironment.variables, (v) => v.name === key);
             const isPersistent = persistentEnvVariables && persistentEnvVariables[key] !== undefined;
@@ -368,6 +371,34 @@ export const collectionsSlice = createSlice({
                 });
               }
             }
+          });
+
+          // Handle variables that were deleted via bru.deleteEnvVar()
+          activeEnvironment.variables = activeEnvironment.variables.filter((variable) => {
+            // Always keep __name__ (private environment variable)
+            if (variable.name === '__name__') {
+              return true;
+            }
+
+            // Variable still exists in envVariables - keep it
+            if (envVariablesKeys.has(variable.name)) {
+              return true;
+            }
+
+            // Variable was deleted - handle based on its type
+            // Remove ephemeral variables (created by scripts)
+            if (variable.ephemeral) {
+              return false;
+            }
+
+            // Restore persisted variables to their original value
+            if (variable.persistedValue !== undefined) {
+              variable.value = variable.persistedValue;
+              variable.ephemeral = false;
+              delete variable.persistedValue;
+            }
+
+            return true;
           });
         }
 
