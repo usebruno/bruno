@@ -678,54 +678,82 @@ if (!SERVER_RENDERED) {
 
     const state = cm.state.brunoVarInfo;
     const options = state.options;
-    let token = cm.getTokenAt(pos, true);
 
-    if (token) {
-      const line = cm.getLine(pos.line);
+    // Get the full line text where the hover happened
+    const line = cm.getLine(pos.line);
+    if (!line) return;
 
-      // Find the opening {{ before the cursor
-      let start = token.start;
-      while (start > 0 && !line.substring(start - 2, start).includes('{{')) {
-        // Stop if we encounter }} - we've gone past the start of our variable
-        if (line.substring(start - 2, start) === '}}') {
-          break;
-        }
-        start--;
-      }
-      if (line.substring(start - 2, start) === '{{') {
-        start = start - 2;
-      }
+    // Use cursor position (pos.ch) instead of token boundaries.
+    // This fixes cases like "{{123}}" and "{{val1}}" inside strings.
+    let start = pos.ch;
+    let end = pos.ch;
 
-      // Find the closing }} after the cursor
-      let end = token.end;
-      while (end < line.length && !line.substring(end, end + 2).includes('}}')) {
-        // Stop if we encounter {{ - we've gone past the end of our variable
-        if (line.substring(end, end + 2) === '{{') {
-          break;
-        }
-        end++;
-      }
-      if (line.substring(end, end + 2) === '}}') {
-        end = end + 2;
+    // ---------- Find opening '{{' to the LEFT ----------
+    while (start > 0) {
+      const leftTwo = line.substring(start - 2, start);
+
+      // If we find opening braces, stop
+      if (leftTwo === '{{') {
+        start -= 2;
+        break;
       }
 
-      // Extract the full variable string including {{ and }}
-      const fullVariableString = line.substring(start, end);
-
-      // Only use the expanded string if it looks like a complete variable
-      if (fullVariableString.startsWith('{{') && fullVariableString.endsWith('}}')) {
-        token = {
-          ...token,
-          string: fullVariableString,
-          start: start,
-          end: end
-        };
+      // If we cross a closing braces before finding '{{', we're not inside a variable
+      if (leftTwo === '}}') {
+        return;
       }
 
-      const brunoVarInfo = renderVarInfo(token, options);
-      if (brunoVarInfo) {
-        showPopup(cm, box, brunoVarInfo);
+      start--;
+    }
+
+    // If we reached the start of the line and didn't match '{{', bail
+    if (start < 0 || line.substring(start, start + 2) !== '{{') {
+      return;
+    }
+
+    // ---------- Find closing '}}' to the RIGHT ----------
+    while (end < line.length) {
+      const rightTwo = line.substring(end, end + 2);
+
+      // If we find closing braces, stop
+      if (rightTwo === '}}') {
+        end += 2;
+        break;
       }
+
+      // If we hit another '{{' before a '}}', then this isn't a valid enclosing pair
+      if (rightTwo === '{{') {
+        return;
+      }
+
+      end++;
+    }
+    // If we reached end-of-line without finding '}}', bail
+    if (end > line.length || line.substring(end - 2, end) !== '}}') {
+      return;
+    }
+
+    const fullVariableString = line.substring(start, end);
+
+    // Basic validation to ensure it's a non-empty variable
+    if (!fullVariableString.startsWith('{{') || !fullVariableString.endsWith('}}')) {
+      return;
+    }
+
+    // Prevent tooltips for empty variables like {{   }}
+    const inner = fullVariableString.slice(2, -2).trim();
+    if (!inner) return;
+
+    // Build a token object compatible with renderVarInfo
+    const token = {
+      string: fullVariableString,
+      start: start,
+      end: end
+    };
+
+    const brunoVarInfo = renderVarInfo(token, options);
+    if (brunoVarInfo) {
+      showPopup(cm, box, brunoVarInfo);
     }
   }
 
@@ -877,12 +905,14 @@ export const extractVariableInfo = (str, variables) => {
       return { variableName: undefined, variableValue: undefined };
     }
     variableValue = variables?.pathParams?.[variableName];
-  } else if (variableNameRegex.test(str)) {
+  } else if (str.startsWith('{{') && str.endsWith('}}')) {
+    // Handle cases like {{}} or {{   }} (empty or whitespace only)
+    // These don't match the pattern but look like variables
+    return { variableName: undefined, variableValue: undefined };
+  } else {
+    // direct variable reference (e.g., for numeric values in JSON mode or plain variable names)
     variableName = str;
     variableValue = interpolate(get(variables, variableName), variables);
-  } else {
-    // If it's just "{", "}", or random JSON syntax, return undefined
-    return { variableName: undefined, variableValue: undefined };
   }
 
   return { variableName, variableValue };
