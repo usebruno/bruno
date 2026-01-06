@@ -1,4 +1,4 @@
-import { IconCopy, IconEdit, IconTrash, IconCheck, IconX } from '@tabler/icons';
+import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch } from '@tabler/icons';
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { renameGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -18,7 +18,10 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const validateEnvironmentName = (name) => {
     if (!name || name.trim() === '') {
@@ -110,6 +113,24 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
     }
   };
 
+  const handleSearchVariablesClick = () => {
+    setIsSearching(!isSearching);
+    setSearchQuery('');
+    if (!isSearching) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    }
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsSearching(false);
+      setSearchQuery('');
+    }
+  };
+
   return (
     <StyledWrapper>
       {openDeleteModal && (
@@ -163,21 +184,51 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
           )}
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
-        <div className="actions">
-          <button onClick={handleRenameClick} title="Rename">
-            <IconEdit size={15} strokeWidth={1.5} />
-          </button>
-          <button onClick={() => setOpenCopyModal(true)} title="Copy">
-            <IconCopy size={15} strokeWidth={1.5} />
-          </button>
-          <button onClick={() => setOpenDeleteModal(true)} title="Delete">
-            <IconTrash size={15} strokeWidth={1.5} />
-          </button>
+        <div className="right-section">
+          {isSearching && (
+            <div className="search-container">
+              <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+            </div>
+          )}
+          <div className="actions">
+            {!isSearching && (
+              <button onClick={handleSearchVariablesClick} title="Search Variables">
+                <IconSearch size={15} strokeWidth={1.5} />
+              </button>
+            )}
+            <button onClick={handleRenameClick} title="Rename">
+              <IconEdit size={15} strokeWidth={1.5} />
+            </button>
+            <button onClick={() => setOpenCopyModal(true)} title="Copy">
+              <IconCopy size={15} strokeWidth={1.5} />
+            </button>
+            <button onClick={() => setOpenDeleteModal(true)} title="Delete">
+              <IconTrash size={15} strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="content">
-        <EnvironmentVariables environment={environment} setIsModified={setIsModified} collection={collection} />
+        <EnvironmentVariables
+          environment={environment}
+          setIsModified={setIsModified}
+          collection={collection}
+          searchQuery={searchQuery}
+        />
       </div>
     </StyledWrapper>
   );
