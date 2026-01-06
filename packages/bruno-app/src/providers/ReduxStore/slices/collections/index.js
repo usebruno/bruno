@@ -386,16 +386,16 @@ export const collectionsSlice = createSlice({
             }
 
             // Variable was deleted - handle based on its type
-            // Remove ephemeral variables (created by scripts)
-            if (variable.ephemeral) {
-              return false;
-            }
-
-            // Restore persisted variables to their original value
+            // First, restore persisted variables to their original value
             if (variable.persistedValue !== undefined) {
               variable.value = variable.persistedValue;
               variable.ephemeral = false;
               delete variable.persistedValue;
+            }
+
+            // Then, remove ephemeral variables (created by scripts without persist)
+            if (variable.ephemeral) {
+              return false;
             }
 
             return true;
