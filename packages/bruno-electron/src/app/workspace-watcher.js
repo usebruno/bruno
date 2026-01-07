@@ -147,7 +147,7 @@ class WorkspaceWatcher {
       }
 
       const watcher = chokidar.watch(workspaceFilePath, {
-        ignoreInitial: false,
+        ignoreInitial: true,
         persistent: true,
         ignorePermissionErrors: true,
         awaitWriteFinish: {
@@ -156,8 +156,11 @@ class WorkspaceWatcher {
         }
       });
 
+      // Only listen for 'change' events - 'add' event is not needed because:
+      // 1. The workspace is already loaded when the watcher is started
+      // 2. ignoreInitial: true prevents firing for existing files
+      // 3. If workspace.yml is deleted and recreated, 'change' will catch it
       watcher.on('change', () => handleWorkspaceFileChange(win, workspacePath));
-      watcher.on('add', () => handleWorkspaceFileChange(win, workspacePath));
 
       self.watchers[workspacePath] = watcher;
 
