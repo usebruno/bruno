@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
 import Documentation from 'components/Documentation/index';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
@@ -11,12 +11,15 @@ import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import WsBody from '../WsBody/index';
 import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
+import WSAuthMode from './WSAuth/WSAuthMode';
 import WSSettingsPane from '../WSSettingsPane/index';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  const rightContentRef = useRef(null);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
@@ -102,12 +105,20 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
+  const rightContent = requestPaneTab === 'auth' ? (
+    <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+      <WSAuthMode item={item} collection={collection} />
+    </div>
+  ) : null;
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <ResponsiveTabs
         tabs={allTabs}
         activeTab={requestPaneTab}
         onTabSelect={selectTab}
+        rightContent={rightContent}
+        rightContentRef={rightContent ? rightContentRef : null}
       />
 
       <section className="flex w-full flex-1 h-full mt-4">
