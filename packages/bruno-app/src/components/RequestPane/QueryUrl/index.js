@@ -375,7 +375,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       </div>
       <div
         id="request-url"
-        className="h-full w-full flex flex-row input-container overflow-auto pr-2"
+        className="h-full w-full flex flex-row input-container overflow-auto"
       >
         <SingleLineEditor
           ref={editorRef}
@@ -393,10 +393,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         />
 
       </div>
-      <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
+      <div className="flex items-center h-full mx-2 gap-3 cursor-pointer" id="send-request" onClick={handleRun}>
         <div
           title="Generate Code"
-          className="infotip mr-3"
+          className="infotip"
           onClick={(e) => {
             handleGenerateCode(e);
           }}
@@ -406,7 +406,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         </div>
         <div
           title="Save Request"
-          className="infotip mr-3"
+          className="infotip"
           onClick={(e) => {
             e.stopPropagation();
             if (!hasChanges) return;
