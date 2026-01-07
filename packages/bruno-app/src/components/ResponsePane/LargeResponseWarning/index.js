@@ -11,9 +11,6 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
   const response = item.response || {};
 
   const downloadResponseToFile = () => {
-    if (!response.dataBuffer) {
-      return;
-    }
     return new Promise((resolve, reject) => {
       ipcRenderer
         .invoke('renderer:save-response-to-file', response, item?.requestSent?.url, item.pathname)
