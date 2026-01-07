@@ -300,7 +300,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           <span className="text-xs font-medium" style={{ color: theme.request.grpc }}>gRPC</span>
         </div>
       </div>
-      <div className="flex items-center w-full input-container h-full relative overflow-auto pr-2">
+      <div className="flex items-center w-full input-container h-full relative overflow-auto">
         <SingleLineEditor
           ref={editorRef}
           value={url}
@@ -315,7 +315,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
       </div>
 
-      <div className="flex items-center h-full mr-2 gap-3" id="send-request">
+      <div className="flex items-center h-full mx-2 gap-3" id="send-request">
         <MethodDropdown
           grpcMethods={grpcMethods}
           selectedGrpcMethod={selectedGrpcMethod}
