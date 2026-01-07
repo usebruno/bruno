@@ -447,7 +447,6 @@ const Collection = ({ collection, searchText }) => {
         onClick={handleCollectionCollapse}
         onDoubleClick={handleCollectionDoubleClick}
         onContextMenu={handleRightClick}
-        data-testid="collection-row"
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
@@ -468,7 +467,7 @@ const Collection = ({ collection, searchText }) => {
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
         <div className="collection-actions flex items-center" data-testid="collection-actions">
-          <ActionIcon
+          {/* <ActionIcon
             className="new-request-icon mr-1"
             onClick={(e) => {
               e.stopPropagation();
@@ -477,7 +476,7 @@ const Collection = ({ collection, searchText }) => {
             title="New Request"
           >
             <IconPlus size={18} strokeWidth={1.5} />
-          </ActionIcon>
+          </ActionIcon> */}
           <ActionIcon
             className="settings-icon mr-1"
             onClick={handleSettingsClick}

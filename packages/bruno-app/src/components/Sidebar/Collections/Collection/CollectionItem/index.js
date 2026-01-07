@@ -219,6 +219,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
     if (isRequest) {
+      // For requests with examples: if tab is already active, toggle examples instead
+      if (hasExamples && isTabForItemActive) {
+        setExamplesExpanded(!examplesExpanded);
+        return;
+      }
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
@@ -624,25 +629,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onContextMenu={handleContextMenu}
         data-testid="sidebar-collection-item-row"
         onClick={handleItemClick}
-        onDoubleClick={handleDoubleClick}
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => (
-              <div
-                className="indent-block"
-                key={i}
-                style={{ width: 16, minWidth: 16, height: '100%' }}
-              >
+                <div
+                  className="indent-block"
+                  key={i}
+                  style={{ width: 16, minWidth: 16, height: '100%' }}
+                >
                 &nbsp;{/* Indent */}
-              </div>
-            ))
+                </div>
+              ))
             : null}
           <div
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{ paddingLeft: 8 }}
-            onClick={handleItemClick}
-            onDoubleClick={handleDoubleClick}
           >
 
             {isFolder ? (
@@ -679,10 +681,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           <div className="menu-icon pr-2 flex items-center">
             {isFolder && (
               <>
-                <ActionIcon title="New Request" className="new-request-icon mr-1" onClick={(e) => { e.stopPropagation(); setNewRequestModalOpen(true); }}>
+                {/* <ActionIcon title="New Request" className="new-request-icon mr-1" onClick={(e) => { e.stopPropagation(); setNewRequestModalOpen(true); }}>
                   <IconPlus size={18} strokeWidth={1.5} />
-                </ActionIcon>
-                <ActionIcon title="Folder Settings" className="settings-icon mr-1" onClick={handleSettingsClick} data-testid="folder-settings-icon">
+                </ActionIcon> */}
+                <ActionIcon title="Folder Settings" className="settings-icon mr-1" onClick={handleSettingsClick} onDoubleClick={handleDoubleClick} data-testid="folder-settings-icon">
                   <IconSettings size={18} strokeWidth={1.5} />
                 </ActionIcon>
               </>
@@ -706,13 +708,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
-            })
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+              })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
-            })
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+              })
             : null}
         </div>
       ) : null}
