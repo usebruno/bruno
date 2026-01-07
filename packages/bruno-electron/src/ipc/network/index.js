@@ -1717,7 +1717,9 @@ const registerNetworkIpc = (mainWindow) => {
         } else {
           await writeFile(filePath, data, true);
         }
+        return { success: true, filePath };
       }
+      return { success: false, cancelled: true };
     } catch (error) {
       return Promise.reject(error);
     }
