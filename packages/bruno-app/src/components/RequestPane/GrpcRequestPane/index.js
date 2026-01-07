@@ -1,9 +1,10 @@
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import GrpcBody from 'components/RequestPane/GrpcBody';
 import GrpcAuth from './GrpcAuth/index';
+import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
 import StatusDot from 'components/StatusDot/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { find } from 'lodash';
@@ -16,6 +17,8 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  const rightContentRef = useRef(null);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
@@ -108,12 +111,20 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
+  const rightContent = requestPaneTab === 'auth' ? (
+    <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+      <GrpcAuthMode item={item} collection={collection} />
+    </div>
+  ) : null;
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <ResponsiveTabs
         tabs={allTabs}
         activeTab={requestPaneTab}
         onTabSelect={selectTab}
+        rightContent={rightContent}
+        rightContentRef={rightContent ? rightContentRef : null}
       />
 
       <section
