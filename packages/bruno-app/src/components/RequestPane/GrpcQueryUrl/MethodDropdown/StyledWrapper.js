@@ -6,7 +6,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     height: 100%;
-    margin-right: 0.5rem;
   }
 
   .method-dropdown-trigger {
