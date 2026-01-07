@@ -2032,14 +2032,10 @@ export const mergeAndPersistEnvironment
           return reject(new Error('Environment not found'));
         }
 
-        // Only proceed if there are persistent variables to save
-        if (!persistentEnvVariables || Object.keys(persistentEnvVariables).length === 0) {
-          return resolve();
-        }
-
         let existingVars = environment.variables || [];
+        const persistentEnvVars = persistentEnvVariables || {};
 
-        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
+        let normalizedNewVars = Object.entries(persistentEnvVars).map(([name, value]) => ({
           uid: uuid(),
           name,
           value,
@@ -2062,12 +2058,16 @@ export const mergeAndPersistEnvironment
         });
 
         // Save all non-ephemeral vars and all variables that were previously persisted
-        const persistedNames = new Set(Object.keys(persistentEnvVariables));
+        const persistedNames = new Set(Object.keys(persistentEnvVars));
 
         // Add all existing non-ephemeral variables to persistedNames so they are preserved
+        // Exclude variables that were deleted via bru.deleteEnvVar() (not in persistentEnvVariables)
         existingVars.forEach((v) => {
           if (!v.ephemeral) {
-            persistedNames.add(v.name);
+            // Only preserve if variable still exists in persistentEnvVariables (not deleted)
+            if (persistentEnvVars[v.name] !== undefined) {
+              persistedNames.add(v.name);
+            }
           }
         });
 
