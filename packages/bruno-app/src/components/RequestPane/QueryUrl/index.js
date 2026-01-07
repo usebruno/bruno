@@ -375,7 +375,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       </div>
       <div
         id="request-url"
-        className="h-full w-full flex flex-row input-container"
+        className="h-full w-full flex flex-row input-container overflow-auto"
       >
         <SingleLineEditor
           ref={editorRef}
@@ -391,53 +391,54 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           item={item}
           showNewlineArrow={true}
         />
-        <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
-          <div
-            title="Generate Code"
-            className="infotip mr-3"
-            onClick={(e) => {
-              handleGenerateCode(e);
-            }}
-          >
-            <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
-            <span className="infotiptext text-xs">Generate Code</span>
-          </div>
-          <div
-            title="Save Request"
-            className="infotip mr-3"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!hasChanges) return;
-              onSave();
-            }}
-          >
-            <IconDeviceFloppy
-              color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={20}
-              className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
-            />
-            <span className="infotiptext text-xs">
-              Save <span className="shortcut">({saveShortcut})</span>
-            </span>
-          </div>
-          {isLoading || item.response?.stream?.running ? (
-            <IconSquareRoundedX
-              color={theme.requestTabPanel.url.iconDanger}
-              strokeWidth={1.5}
-              size={20}
-              data-testid="cancel-request-icon"
-              onClick={handleCancelRequest}
-            />
-          ) : (
-            <IconArrowRight
-              color={theme.requestTabPanel.url.icon}
-              strokeWidth={1.5}
-              size={20}
-              data-testid="send-arrow-icon"
-            />
-          )}
+
+      </div>
+      <div className="flex items-center h-full mx-2 gap-3 cursor-pointer" id="send-request" onClick={handleRun}>
+        <div
+          title="Generate Code"
+          className="infotip"
+          onClick={(e) => {
+            handleGenerateCode(e);
+          }}
+        >
+          <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
+          <span className="infotiptext text-xs">Generate Code</span>
         </div>
+        <div
+          title="Save Request"
+          className="infotip"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!hasChanges) return;
+            onSave();
+          }}
+        >
+          <IconDeviceFloppy
+            color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
+            strokeWidth={1.5}
+            size={20}
+            className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
+          />
+          <span className="infotiptext text-xs">
+            Save <span className="shortcut">({saveShortcut})</span>
+          </span>
+        </div>
+        {isLoading || item.response?.stream?.running ? (
+          <IconSquareRoundedX
+            color={theme.requestTabPanel.url.iconDanger}
+            strokeWidth={1.5}
+            size={20}
+            data-testid="cancel-request-icon"
+            onClick={handleCancelRequest}
+          />
+        ) : (
+          <IconArrowRight
+            color={theme.requestTabPanel.url.icon}
+            strokeWidth={1.5}
+            size={20}
+            data-testid="send-arrow-icon"
+          />
+        )}
       </div>
       {generateCodeItemModalOpen && (
         <GenerateCodeItem
