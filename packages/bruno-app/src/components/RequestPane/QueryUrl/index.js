@@ -95,7 +95,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
     const curlCommandRegex = /^\s*curl\s/i;
     if (!curlCommandRegex.test(pastedData)) {
-      toast.error('Invalid cURL command');
+      // Not a curl command, allow normal paste behavior
       return;
     }
     event.preventDefault();
