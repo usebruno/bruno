@@ -1,35 +1,63 @@
 import { uuid } from './common/index';
 
 const isPersistableEnvVarForMerge = (persistedNames) => (v) => {
-  return !v?.ephemeral || v?.persistedValue !== undefined || (v?.name && persistedNames.has(v.name));
+  if (!v?.ephemeral) {
+    return true;
+  }
+  if (v?.persistedValue !== undefined) {
+    return true;
+  }
+  if (v?.name && persistedNames.has(v.name)) {
+    return true;
+  }
+  return false;
 };
 
 const toPersistedEnvVarForMerge = (persistedNames) => (v) => {
   const { ephemeral, persistedValue, ...rest } = v || {};
+
   if (v?.ephemeral && persistedValue !== undefined && !(v?.name && persistedNames.has(v.name))) {
     return { ...rest, value: persistedValue };
   }
+
   return rest;
+};
+
+const isPersistableEnvVarForSave = (v) => {
+  if (!v?.ephemeral) {
+    return true;
+  }
+  if (v?.persistedValue !== undefined) {
+    return true;
+  }
+  return false;
 };
 
 const toPersistedEnvVarForSave = (v) => {
   const { ephemeral, persistedValue, ...rest } = v || {};
-  return v?.ephemeral ? (persistedValue !== undefined ? { ...rest, value: persistedValue } : rest) : rest;
+
+  if (v?.ephemeral && persistedValue !== undefined) {
+    return { ...rest, value: persistedValue };
+  }
+
+  return rest;
 };
 
-/*
- High-level builder for persisted variables
- - mode 'save': write what the user sees
- - mode 'merge': write only allowed vars (non-ephemeral, ephemerals with persistedValue, or explicitly persisted this run)
-*/
+// mode 'save': filters out ephemeral vars without persistedValue (script-created, never on disk)
+// mode 'merge': same as 'save', but also includes ephemeral vars explicitly persisted this run
 export const buildPersistedEnvVariables = (variables, { mode, persistedNames } = {}) => {
   const src = Array.isArray(variables) ? variables : [];
+
   if (mode === 'merge') {
     const names = persistedNames instanceof Set ? persistedNames : new Set();
-    return src.filter(isPersistableEnvVarForMerge(names)).map(toPersistedEnvVarForMerge(names));
+    return src
+      .filter(isPersistableEnvVarForMerge(names))
+      .map(toPersistedEnvVarForMerge(names));
   }
-  // default to save mode
-  return src.map(toPersistedEnvVarForSave);
+
+  return src
+    .filter(isPersistableEnvVarForSave)
+    .map(toPersistedEnvVarForSave);
 };
 
 export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
