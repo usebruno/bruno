@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { isValidHtml } from 'utils/common/index';
-import { escapeHtml, isValidHtmlSnippet } from 'utils/response/index';
+import { escapeHtml } from 'utils/response/index';
 
 const HtmlPreview = React.memo(({ data, baseUrl }) => {
   const webviewContainerRef = useRef(null);
@@ -31,7 +30,7 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
     return () => mutationObserver.disconnect();
   }, []);
 
-  if (isValidHtml(data) || isValidHtmlSnippet(data)) {
+  if (typeof data === 'string') {
     const htmlContent = data.includes('<head>')
       ? data.replace('<head>', `<head><base href="${escapeHtml(baseUrl)}">`)
       : `<head><base href="${escapeHtml(baseUrl)}"></head>${data}`;
