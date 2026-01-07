@@ -8,6 +8,7 @@ const { getCertsAndProxyConfig } = require('./cert-utils');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
 const prepareGrpcRequest = require('./prepare-grpc-request');
+const { normalizeAndResolvePath } = require('../../utils/filesystem');
 const { configureRequest } = require('./prepare-grpc-request');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
@@ -89,6 +90,16 @@ const registerGrpcEventHandlers = (window) => {
         body: preparedRequest.body,
         timestamp: Date.now()
       };
+
+      // Extract import paths from collection's protobuf config (synchronous, no IPC needed)
+      let includeDirs = [];
+      const protobufConfig = collection.draft?.brunoConfig?.protobuf || collection.brunoConfig?.protobuf;
+      if (protobufConfig?.importPaths) {
+        includeDirs = protobufConfig.importPaths
+          .filter((importPath) => importPath.enabled !== false)
+          .map((importPath) => normalizeAndResolvePath(path.resolve(collection.pathname, importPath.path)));
+      }
+
       // Start gRPC connection with the processed request and certificates
       await grpcClient.startConnection({
         request: preparedRequest,
@@ -98,7 +109,8 @@ const registerGrpcEventHandlers = (window) => {
         certificateChain,
         passphrase,
         pfx,
-        verifyOptions
+        verifyOptions,
+        includeDirs
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
@@ -260,8 +272,19 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Load methods from proto file
-  ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, includeDirs }) => {
+  ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, collection }) => {
     try {
+      // Extract import paths from collection's protobuf config (synchronous, no IPC needed)
+      let includeDirs = [];
+      if (collection) {
+        const protobufConfig = collection.draft?.brunoConfig?.protobuf || collection.brunoConfig?.protobuf;
+        if (protobufConfig?.importPaths) {
+          includeDirs = protobufConfig.importPaths
+            .filter((importPath) => importPath.enabled !== false)
+            .map((importPath) => normalizeAndResolvePath(path.resolve(collection.pathname, importPath.path)));
+        }
+      }
+
       const methods = await grpcClient.loadMethodsFromProtoFile(filePath, includeDirs);
       return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };
     } catch (error) {
