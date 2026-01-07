@@ -25,12 +25,26 @@ import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import * as exampleReducers from './exampleReducers';
 
+// Helper to find query string delimiter index, skipping ? inside {{...}} template blocks
+const findQueryStringDelimiterIndex = (url) => {
+  return url.replace(/\{\{.*?\}\}/g, (m) => '_'.repeat(m.length)).indexOf('?');
+};
+
+// Helper to split URL on query string delimiter, respecting template variables
+const splitUrlOnQueryString = (url) => {
+  const delimiterIndex = findQueryStringDelimiterIndex(url);
+  if (delimiterIndex === -1) {
+    return [url];
+  }
+  return [url.substring(0, delimiterIndex), url.substring(delimiterIndex + 1)];
+};
+
 // Helper to sync URL with enabled query params (reused in setQueryParams and file event handlers)
 const syncUrlWithQueryParams = (url, params) => {
   if (!params) return url;
   const enabledQueryParams = filter(params, (p) => p.type === 'query' && p.enabled);
   const queryString = stringifyQueryParams(enabledQueryParams);
-  const parts = splitOnFirst(url, '?');
+  const parts = splitUrlOnQueryString(url);
 
   if (queryString && queryString.length > 0) {
     return `${parts[0]}?${queryString}`;
