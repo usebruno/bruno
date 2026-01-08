@@ -205,10 +205,6 @@ export const detectContentTypeFromBuffer = (buffer) => {
   if (bytes[0] === 0x3C && bytes[1] === 0x73 && bytes[2] === 0x76 && bytes[3] === 0x67 && bytes[4] === 0x20) {
     return 'image/svg+xml';
   }
-  // EPS
-  if (bytes[0] === 0x25 && bytes[1] === 0x21 && bytes[2] === 0x50 && bytes[3] === 0x53 && bytes[4] === 0x46) {
-    return 'image/eps';
-  }
   // PDF
   if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
     return 'application/pdf';
