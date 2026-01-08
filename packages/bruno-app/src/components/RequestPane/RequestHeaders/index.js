@@ -44,15 +44,6 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       collection: (collectionHeaders || []).map((h) => ({ ...h, source: 'collection', editable: false, description: 'Collection' }))
     };
 
-    // Filter out auto headers if they are already defined in request, folder or collection
-    const allDefinedHeaderNames = [
-      ...categorizedHeaders.request,
-      ...categorizedHeaders.folder,
-      ...categorizedHeaders.collection
-    ].map((h) => h.name?.toLowerCase());
-
-    categorizedHeaders.auto = categorizedHeaders.auto.filter((h) => !allDefinedHeaderNames.includes(h.name?.toLowerCase()));
-
     return [
       ...categorizedHeaders.request,
       ...categorizedHeaders.folder,
