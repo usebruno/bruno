@@ -19,8 +19,8 @@ test.describe.serial('bru.deleteEnvVar(name)', () => {
       const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
       await expect(envTab).toBeVisible();
 
-      await expect(page.locator('.table-container tbody')).toContainText('host');
-      await expect(page.locator('.table-container tbody')).not.toContainText('tempToken');
+      await expect(page.getByRole('row', { name: 'host' })).toBeVisible();
+      await expect(page.getByRole('row', { name: 'tempToken' })).not.toBeVisible();
     });
 
     await test.step('Cleanup', async () => {
