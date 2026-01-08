@@ -189,7 +189,8 @@ export const detectContentTypeFromBuffer = (buffer) => {
   if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
     return 'image/webp';
   }
-  if (bytes[0] === 0x66 && bytes[1] === 0x74 && bytes[2] === 0x79 && bytes[3] === 0x70 && bytes[4] === 0x41 && bytes[5] === 0x76 && bytes[6] === 0x69 && bytes[7] === 0x66) {
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70
+    && bytes[8] === 0x61 && bytes[9] === 0x76 && bytes[10] === 0x69 && bytes[11] === 0x66) {
     return 'image/avif';
   }
   if (bytes[0] === 0x42 && bytes[1] === 0x4D) {
