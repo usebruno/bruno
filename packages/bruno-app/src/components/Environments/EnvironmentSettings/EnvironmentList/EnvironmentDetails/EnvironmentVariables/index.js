@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useMemo, useEffect, useState } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { get } from 'lodash';
-import { IconTrash, IconAlertCircle, IconInfoCircle, IconEye, IconEyeOff } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import MultiLineEditor from 'components/MultiLineEditor/index';
@@ -22,12 +22,11 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const [activeEditorUid, setActiveEditorUid] = useState(null);
-  const [visibleSecretUids, setVisibleSecretUids] = useState(() => new Set());
 
   const environmentsDraft = collection?.environmentsDraft;
   const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
 
+  const [activeEditorUid, setActiveEditorUid] = useState(null);
   // Track environment changes for draft restoration
   const prevEnvUidRef = React.useRef(null);
   const mountedRef = React.useRef(false);
@@ -38,37 +37,6 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   if (_collection) {
     _collection.globalEnvironmentVariables = globalEnvironmentVariables;
   }
-
-  const toggleSecretVisibility = (uid) => {
-    setVisibleSecretUids((prev) => {
-      const next = new Set(prev);
-      if (next.has(uid)) next.delete(uid);
-      else next.add(uid);
-      return next;
-    });
-  };
-
-  const valueCellRefs = useRef({});
-
-  const activateEditor = (uid) => {
-    setActiveEditorUid(uid);
-
-    setTimeout(() => {
-      const el = valueCellRefs.current[uid];
-      if (!el) return;
-
-      // Focus CodeMirror wrapper
-      const cmEl = el.querySelector('.CodeMirror');
-      if (cmEl?.CodeMirror) {
-        cmEl.CodeMirror.focus();
-        cmEl.CodeMirror.setCursor(cmEl.CodeMirror.lineCount(), 0);
-      } else {
-        cmEl?.focus();
-      }
-    }, 0);
-  };
-
-  const isSecretVisible = (uid) => visibleSecretUids.has(uid);
 
   // Check for non-secret variables used in sensitive fields
   const nonSecretSensitiveVarUsageMap = useMemo(() => {
@@ -467,77 +435,28 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                       <ErrorMessage name={`${index}.name`} index={index} />
                     </div>
                   </td>
-                  {/* This is minimal patch fix - A <MultiLineEditor/> or <SingleLineEditor/> is in every row and has almost 6 event listeners warning coming in console.
-                  Their should be some sort of focus on row or tab based editing.
-                  If we are using MultiLineEditor or SingleLineEditor in list or table to we should avoid unnecessary events until active. */}
                   <td
-                    ref={(el) => (valueCellRefs.current[variable.uid] = el)}
                     className="flex flex-row flex-nowrap items-center"
-                    onMouseDown={(e) => {
-                      if (activeEditorUid !== variable.uid) {
-                        e.preventDefault();
-                        activateEditor(variable.uid);
-                      }
-                    }}
+                    onMouseDown={() => setActiveEditorUid(variable.uid)}
+                    onFocusCapture={() => setActiveEditorUid(variable.uid)}
+                    tabIndex={-1}
                   >
-                    <div className="overflow-hidden grow w-full relative flex items-center gap-2 min-h-[34px]">
-                      <div className="grow min-w-0 min-h-[34px] flex items-center px-2">
-                        {activeEditorUid === variable.uid ? (
-                          <div className="[&>div>button]:hidden w-full">
-                            <MultiLineEditor
-                              theme={storedTheme}
-                              collection={_collection}
-                              name={`${index}.value`}
-                              value={variable.value}
-                              placeholder={isLastEmptyRow ? 'Value' : ''}
-                              isSecret={variable.secret && !isSecretVisible(variable.uid)}
-                              readOnly={typeof variable.value !== 'string'}
-                              onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
-                              onSave={handleSave}
-                            />
-                          </div>
-                        ) : (
-                          <input
-                            type="text"
-                            className="mousetrap"
-                            value={
-                              typeof variable.value === 'string'
-                                ? variable.secret && !isSecretVisible(variable.uid)
-                                  ? variable.value
-                                    ? '*'.repeat(variable.value.length)
-                                    : ''
-                                  : variable.value
-                                : ''
-                            }
-                            placeholder={isLastEmptyRow ? 'Value' : ''}
-                            readOnly
-                            autoComplete="off"
-                            autoCorrect="off"
-                            autoCapitalize="off"
-                            spellCheck="false"
-                          />
-                        )}
-                      </div>
-
-                      {/* ✅ Always reserve space so icon never shifts / hides */}
-                      <div className="w-[34px] shrink-0 flex justify-center items-center">
-                        {variable.secret && !isLastEmptyRow && (
-                          <button
-                            type="button"
-                            className="text-muted"
-                            onMouseDown={(e) => e.stopPropagation()} // ✅ don't trigger activateEditor
-                            onClick={() => toggleSecretVisibility(variable.uid)}
-                            title={isSecretVisible(variable.uid) ? 'Hide' : 'Show'}
-                          >
-                            {isSecretVisible(variable.uid) ? (
-                              <IconEye size={18} strokeWidth={1.5} />
-                            ) : (
-                              <IconEyeOff size={18} strokeWidth={1.5} />
-                            )}
-                          </button>
-                        )}
-                      </div>
+                    <div className="overflow-hidden grow w-full relative">
+                      <MultiLineEditor
+                        isActive={activeEditorUid === variable.uid}
+                        autoFocus={activeEditorUid === variable.uid}
+                        theme={storedTheme}
+                        collection={_collection}
+                        name={`${index}.value`}
+                        value={variable.value}
+                        placeholder={isLastEmptyRow ? 'Value' : ''}
+                        isSecret={variable.secret}
+                        readOnly={typeof variable.value !== 'string'}
+                        onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                        onSave={handleSave}
+                      />
                     </div>
+
                     {typeof variable.value !== 'string' && (
                       <span className="ml-2 flex items-center">
                         <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
@@ -548,6 +467,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                         />
                       </span>
                     )}
+
                     {!variable.secret && hasSensitiveUsage(variable.name) && (
                       <SensitiveFieldWarning
                         fieldName={variable.name}
