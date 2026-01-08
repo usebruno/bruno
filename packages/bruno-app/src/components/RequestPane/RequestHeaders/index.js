@@ -113,7 +113,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
             placeholder={isLastEmptyRow ? 'Name' : ''}
           />
           {row.editable === false && (
-            <div className="ml-1 flex items-center text-muted" aria-description={`Inherited from ${row.description}`}>
+            <div className="ml-1 flex items-center text-muted" aria-label={`Inherited from ${row.description}`}>
               <IconInfoCircle size={16} strokeWidth={1.5} data-tooltip-id={`info-${row.uid}`} />
               <Tooltip className="tooltip-mod" id={`info-${row.uid}`} html={`Inherited from ${row.description}`} />
             </div>
