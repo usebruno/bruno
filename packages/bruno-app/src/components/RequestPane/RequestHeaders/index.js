@@ -3,7 +3,6 @@ import EditableTable from 'components/EditableTable';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import get from 'lodash/get';
-import { useApp } from 'providers/App';
 import { moveRequestHeader, setRequestHeaders } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -20,7 +19,6 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const { version } = useApp();
 
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
 
@@ -47,10 +45,9 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     return [
       ...categorizedHeaders.request,
       ...categorizedHeaders.folder,
-      ...categorizedHeaders.collection,
-      ...categorizedHeaders.auto
+      ...categorizedHeaders.collection
     ];
-  }, [headers, collection, item, version]);
+  }, [headers, collection, item]);
 
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
