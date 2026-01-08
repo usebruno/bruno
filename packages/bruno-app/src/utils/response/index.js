@@ -38,6 +38,9 @@ export const getDefaultResponseFormat = (contentType) => {
       result: { format: 'javascript', tab: 'editor' }
     },
 
+    // ====== SVG → HTML preview (since SVG is XML-based and renders well in webview) ======
+    { test: /^image\/svg\+xml$/, result: { format: 'html', tab: 'preview' } },
+
     // ====== Images, audio, video, PDFs → preview (base64) ======
     { test: /^image\//, result: { format: 'base64', tab: 'preview' } },
     { test: /^audio\//, result: { format: 'base64', tab: 'preview' } },
