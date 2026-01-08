@@ -934,6 +934,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       let brunoConfig = getBrunoJsonConfig(collection);
 
       if (format === 'yml') {
+        brunoConfig.opencollection = '1.0.0';
         const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
         await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
       } else if (format === 'bru') {

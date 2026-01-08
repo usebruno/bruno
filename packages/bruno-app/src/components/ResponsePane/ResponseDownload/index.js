@@ -24,7 +24,12 @@ const ResponseDownload = forwardRef(({ item, children }, ref) => {
     return new Promise((resolve, reject) => {
       ipcRenderer
         .invoke('renderer:save-response-to-file', response, item?.requestSent?.url, item.pathname)
-        .then(resolve)
+        .then((result) => {
+          if (result && result.success) {
+            toast.success('Response downloaded to file');
+          }
+          resolve();
+        })
         .catch((err) => {
           toast.error(get(err, 'error.message') || 'Something went wrong!');
           reject(err);
