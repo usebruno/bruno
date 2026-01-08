@@ -66,6 +66,7 @@ export const useResponsePreviewFormatOptions = (dataBuffer, headers) => {
     const byteFormatTypes = ['image', 'video', 'audio', 'pdf', 'zip'];
 
     const isByteFormatType = (contentType) => {
+      if (contentType.includes('svg')) return false; // SVG is text-based
       return byteFormatTypes.some((type) => contentType.includes(type));
     };
 
