@@ -1129,7 +1129,7 @@ export const handleCollectionItemDrop
 
         // Update sequences in the target directory (if dropping adjacent)
         if (dropType === 'adjacent') {
-          const targetItemSequence = targetItemDirectoryItems.findIndex((i) => i.uid === targetItemUid)?.seq;
+          const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
 
           const draggedItemWithNewPathAndSequence = {
             ...draggedItem,
@@ -1176,6 +1176,14 @@ export const handleCollectionItemDrop
           });
           if (!newPathname) return;
           if (targetItemPathname?.startsWith(draggedItemPathname)) return;
+
+          // Discard operation if dragging a root item to the collection name (same location)
+          const isTargetTheCollection = targetItemPathname === collection.pathname;
+          const isDraggedItemAtRoot = draggedItemDirectory === sourceCollection;
+          if (isTargetTheCollection && isDraggedItemAtRoot && !isCrossCollectionMove) {
+            return;
+          }
+
           if (newPathname !== draggedItemPathname) {
             await handleMoveToNewLocation({
               targetItem,
