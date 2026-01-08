@@ -43,7 +43,8 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 📢 Watch our recent talk at India FOSS 3.0 Conference [here](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](assets/images/landing-2-dark.png#gh-light-mode-only)
+![bruno](assets/images/landing-2-light.png#gh-dark-mode-only) <br /><br />
 
 ## Commercial Versions ✨
 
