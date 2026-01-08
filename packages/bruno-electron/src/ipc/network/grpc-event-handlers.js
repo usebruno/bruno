@@ -23,13 +23,13 @@ const getProtobufIncludeDirs = (collection) => {
   if (!collection) {
     return [];
   }
-  const protobufConfig = collection.draft?.brunoConfig?.protobuf || collection.brunoConfig?.protobuf;
-  if (!protobufConfig?.importPaths) {
-    return [];
-  }
-  return protobufConfig.importPaths
-    .filter((importPath) => Boolean(importPath.enabled))
-    .map((importPath) => normalizeAndResolvePath(path.resolve(collection.pathname, importPath.path)));
+
+  const brunoConfig = collection.draft?.brunoConfig || collection.brunoConfig;
+  const importPaths = brunoConfig?.protobuf?.importPaths ?? [];
+
+  return importPaths
+    .filter(({ enabled }) => Boolean(enabled))
+    .map(({ path: relativePath }) => normalizeAndResolvePath(path.resolve(collection.pathname, relativePath)));
 };
 
 /**
