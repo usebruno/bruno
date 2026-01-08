@@ -19,7 +19,15 @@ const Wrapper = styled.div`
     }
     td {
       padding: 6px 10px;
+    }
+    tr.read-only {
+      color: ${(props) => props.theme.colors?.text?.muted || 'inherit'};
+      opacity: 0.7;
+      background-color: ${(props) => props.theme.table?.row?.readonly?.bg || 'transparent'};
+      .single-line-editor {
+        font-style: italic;
       }
+    }
   }
 
   .btn-action {
