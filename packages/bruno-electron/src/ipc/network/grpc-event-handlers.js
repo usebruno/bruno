@@ -109,7 +109,6 @@ const registerGrpcEventHandlers = (window) => {
         timestamp: Date.now()
       };
 
-      // Extract import paths from collection's protobuf config
       const includeDirs = getProtobufIncludeDirs(collection);
 
       // Start gRPC connection with the processed request and certificates
@@ -286,7 +285,6 @@ const registerGrpcEventHandlers = (window) => {
   // Load methods from proto file
   ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, collection }) => {
     try {
-      // Extract import paths from collection's protobuf config
       const includeDirs = getProtobufIncludeDirs(collection);
 
       const methods = await grpcClient.loadMethodsFromProtoFile(filePath, includeDirs);
