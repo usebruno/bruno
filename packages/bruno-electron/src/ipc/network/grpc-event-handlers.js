@@ -28,7 +28,7 @@ const getProtobufIncludeDirs = (collection) => {
     return [];
   }
   return protobufConfig.importPaths
-    .filter((importPath) => importPath.enabled !== false)
+    .filter((importPath) => Boolean(importPath.enabled))
     .map((importPath) => normalizeAndResolvePath(path.resolve(collection.pathname, importPath.path)));
 };
 
