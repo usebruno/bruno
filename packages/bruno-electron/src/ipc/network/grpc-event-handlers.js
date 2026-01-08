@@ -15,6 +15,24 @@ const { configureRequest } = require('./prepare-grpc-request');
 let grpcClient;
 
 /**
+ * Extract protobuf include directories from collection config
+ * @param {Object} collection - The collection object
+ * @returns {string[]} Array of resolved include directory paths
+ */
+const getProtobufIncludeDirs = (collection) => {
+  if (!collection) {
+    return [];
+  }
+  const protobufConfig = collection.draft?.brunoConfig?.protobuf || collection.brunoConfig?.protobuf;
+  if (!protobufConfig?.importPaths) {
+    return [];
+  }
+  return protobufConfig.importPaths
+    .filter((importPath) => importPath.enabled !== false)
+    .map((importPath) => normalizeAndResolvePath(path.resolve(collection.pathname, importPath.path)));
+};
+
+/**
  * Register IPC handlers for gRPC
  */
 const registerGrpcEventHandlers = (window) => {
@@ -91,14 +109,8 @@ const registerGrpcEventHandlers = (window) => {
         timestamp: Date.now()
       };
 
-      // Extract import paths from collection's protobuf config (synchronous, no IPC needed)
-      let includeDirs = [];
-      const protobufConfig = collection.draft?.brunoConfig?.protobuf || collection.brunoConfig?.protobuf;
-      if (protobufConfig?.importPaths) {
-        includeDirs = protobufConfig.importPaths
-          .filter((importPath) => importPath.enabled !== false)
-          .map((importPath) => normalizeAndResolvePath(path.resolve(collection.pathname, importPath.path)));
-      }
+      // Extract import paths from collection's protobuf config
+      const includeDirs = getProtobufIncludeDirs(collection);
 
       // Start gRPC connection with the processed request and certificates
       await grpcClient.startConnection({
@@ -274,16 +286,8 @@ const registerGrpcEventHandlers = (window) => {
   // Load methods from proto file
   ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, collection }) => {
     try {
-      // Extract import paths from collection's protobuf config (synchronous, no IPC needed)
-      let includeDirs = [];
-      if (collection) {
-        const protobufConfig = collection.draft?.brunoConfig?.protobuf || collection.brunoConfig?.protobuf;
-        if (protobufConfig?.importPaths) {
-          includeDirs = protobufConfig.importPaths
-            .filter((importPath) => importPath.enabled !== false)
-            .map((importPath) => normalizeAndResolvePath(path.resolve(collection.pathname, importPath.path)));
-        }
-      }
+      // Extract import paths from collection's protobuf config
+      const includeDirs = getProtobufIncludeDirs(collection);
 
       const methods = await grpcClient.loadMethodsFromProtoFile(filePath, includeDirs);
       return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };
