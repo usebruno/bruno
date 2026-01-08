@@ -1,8 +1,12 @@
 import { faker } from '@faker-js/faker';
+import moment from 'moment';
 
 export const mockDataFunctions = {
   guid: () => faker.string.uuid(),
-  timestamp: () => Math.floor(Date.now() / 1000).toString(),
+  timestamp: (format?: string) => { 
+    if (!format) { return Math.floor(Date.now() / 1000).toString() }
+    else { return moment.utc().format(format); }
+  },
   isoTimestamp: () => new Date().toISOString(),
   randomUUID: () => faker.string.uuid(),
   randomNanoId: () => faker.string.nanoid(),
