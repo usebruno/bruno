@@ -1,5 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import get from 'lodash/get';
+import find from 'lodash/find';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import Tab from 'components/Tab';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import StatusCode from 'components/ResponsePane/StatusCode';
@@ -10,7 +13,20 @@ import StyledWrapper from './StyledWrapper';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 
 const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, onSave }) => {
-  const [activeTab, setActiveTab] = useState('response');
+  const dispatch = useDispatch();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  // Get the focused tab for reading persisted tab state
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const activeTab = focusedTab?.responsePaneTab || 'response';
+
+  const selectTab = (tab) => {
+    dispatch(updateResponsePaneTab({
+      uid: exampleUid,
+      responsePaneTab: tab
+    }));
+  };
 
   const exampleData = useMemo(() => {
     return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid) || {} : get(item, 'examples', []).find((e) => e.uid === exampleUid) || {};
@@ -67,7 +83,7 @@ const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, o
             name={tab.name}
             label={tab.label}
             isActive={activeTab === tab.name}
-            onClick={setActiveTab}
+            onClick={selectTab}
             count={tab.count}
           />
         ))}
