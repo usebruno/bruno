@@ -538,21 +538,21 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                         )}
                       </div>
                     </div>
-
-                    {/* ✅ Keep info icon behavior unchanged */}
                     {typeof variable.value !== 'string' && (
                       <span className="ml-2 flex items-center">
-                        <IconInfoCircle
-                          id={`${variable.uid}-disabled-info-icon`}
-                          className="text-muted"
-                          size={16}
-                        />
+                        <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
                         <Tooltip
                           anchorId={`${variable.uid}-disabled-info-icon`}
                           content="Non-string values set via scripts are read-only and can only be updated through scripts."
                           place="top"
                         />
                       </span>
+                    )}
+                    {!variable.secret && hasSensitiveUsage(variable.name) && (
+                      <SensitiveFieldWarning
+                        fieldName={variable.name}
+                        warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
+                      />
                     )}
                   </td>
                   <td className="text-center">
