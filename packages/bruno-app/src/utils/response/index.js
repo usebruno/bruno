@@ -93,6 +93,36 @@ const isLikelyText = (buffer) => {
 };
 
 /**
+ * Helper to detect SVG content from text buffer
+ * SVG files may start with XML declaration, comments, or whitespace before the <svg tag
+ * @param {Buffer} buffer - The data buffer to analyze
+ * @returns {boolean} - true if buffer contains SVG content
+ */
+const isSvgContent = (buffer) => {
+  const length = buffer.length;
+  if (length < 4 || buffer[0] !== 0x3C) return false;
+
+  // Fast path: <svg
+  if (buffer[1] === 0x73 && buffer[2] === 0x76 && buffer[3] === 0x67) {
+    return true;
+  }
+
+  // Slow path: <?xml or <!DOCTYPE or <!--
+  if (buffer[1] !== 0x3F && buffer[1] !== 0x21) return false;
+
+  // Search for <svg in first 512 bytes
+  const limit = Math.min(512, length - 3);
+  for (let i = 2; i < limit; i++) {
+    if (buffer[i] === 0x3C && buffer[i + 1] === 0x73
+      && buffer[i + 2] === 0x76 && buffer[i + 3] === 0x67) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+/**
  * Decode only the first N bytes from a Base64 string
  * Returns an empty buffer for invalid/missing input
  */
@@ -245,6 +275,10 @@ export const detectContentTypeFromBase64 = (base64) => {
 
   // 2. If not binary → decode up to 512 bytes for text detection
   const textHead = decodeBase64Head(base64, 512);
+
+  if (isSvgContent(textHead)) {
+    return 'image/svg+xml';
+  }
 
   if (isLikelyText(textHead)) return 'text/plain';
 
