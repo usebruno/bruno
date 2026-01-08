@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import Modal from 'components/Modal';
 import { IconUpload, IconLoader2, IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
@@ -9,14 +9,18 @@ import exportPostmanCollection from 'utils/exporters/postman-collection';
 import exportOpenCollection from 'utils/exporters/opencollection';
 import { cloneDeep } from 'lodash';
 import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch, useStore } from 'react-redux';
 import { findCollectionByUid, areItemsLoading } from 'utils/collections/index';
 import { useApp } from 'providers/App';
+import toast from 'react-hot-toast';
 
 const ShareCollection = ({ onClose, collectionUid }) => {
   const { version } = useApp();
+  const dispatch = useDispatch();
+  const store = useStore();
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const isCollectionLoading = areItemsLoading(collection);
+  const [isExporting, setIsExporting] = useState(false);
 
   const hasNonExportableRequestTypes = useMemo(() => {
     let types = new Set();
@@ -40,10 +44,20 @@ const ShareCollection = ({ onClose, collectionUid }) => {
     };
   }, [collection]);
 
-  const handleExportBrunoCollection = () => {
-    const collectionCopy = cloneDeep(collection);
-    exportBrunoCollection(transformCollectionToSaveToExportAsFile(collectionCopy), version);
-    onClose();
+  const handleExportBrunoCollection = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const collectionCopy = cloneDeep(collection);
+      const transformedCollection = await transformCollectionToSaveToExportAsFile(collectionCopy, {}, dispatch, store.getState);
+      exportBrunoCollection(transformedCollection, version);
+      onClose();
+    } catch (error) {
+      console.error('Error exporting Bruno collection:', error);
+      toast.error('Failed to export collection. Some requests may not have loaded.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleExportPostmanCollection = () => {
@@ -52,10 +66,20 @@ const ShareCollection = ({ onClose, collectionUid }) => {
     onClose();
   };
 
-  const handleExportOpenCollection = () => {
-    const collectionCopy = cloneDeep(collection);
-    exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy), version);
-    onClose();
+  const handleExportOpenCollection = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const collectionCopy = cloneDeep(collection);
+      const transformedCollection = await transformCollectionToSaveToExportAsFile(collectionCopy, {}, dispatch, store.getState);
+      exportOpenCollection(transformedCollection, version);
+      onClose();
+    } catch (error) {
+      console.error('Error exporting OpenCollection:', error);
+      toast.error('Failed to export collection. Some requests may not have loaded.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -71,28 +95,28 @@ const ShareCollection = ({ onClose, collectionUid }) => {
         <div className="space-y-2">
           <div
             className={`share-button ${
-              isCollectionLoading
+              isCollectionLoading || isExporting
                 ? 'opacity-50 cursor-not-allowed'
                 : 'cursor-pointer'
             }`}
-            onClick={isCollectionLoading ? undefined : handleExportBrunoCollection}
+            onClick={isCollectionLoading || isExporting ? undefined : handleExportBrunoCollection}
           >
             <div className="mr-3 p-1 rounded-full">
               {isCollectionLoading ? <IconLoader2 size={28} className="animate-spin" /> : <Bruno width={28} />}
             </div>
             <div className="flex-1">
               <div className="font-medium">Bruno Collection</div>
-              <div className="text-xs">{isCollectionLoading ? 'Loading collection...' : 'Export in Bruno format'}</div>
+              <div className="text-xs">{isCollectionLoading || isExporting ? (isCollectionLoading ? 'Loading collection...' : 'Exporting...') : 'Export in Bruno format'}</div>
             </div>
           </div>
 
           <div
             className={`share-button relative ${
-              isCollectionLoading
+              isCollectionLoading || isExporting
                 ? 'opacity-50 cursor-not-allowed'
                 : 'cursor-pointer'
             }`}
-            onClick={isCollectionLoading ? undefined : handleExportOpenCollection}
+            onClick={isCollectionLoading || isExporting ? undefined : handleExportOpenCollection}
           >
             <span className="beta-badge-corner">Beta</span>
             <div className="mr-3 p-1 rounded-full">
@@ -104,7 +128,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             </div>
             <div className="flex-1">
               <div className="font-medium">OpenCollection</div>
-              <div className="text-xs">{isCollectionLoading ? 'Loading collection...' : 'Export in OpenCollection format'}</div>
+              <div className="text-xs">{isCollectionLoading || isExporting ? (isCollectionLoading ? 'Loading collection...' : 'Exporting...') : 'Export in OpenCollection format'}</div>
             </div>
           </div>
 

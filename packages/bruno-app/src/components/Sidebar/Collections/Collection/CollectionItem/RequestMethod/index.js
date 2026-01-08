@@ -12,9 +12,10 @@ const getMethodText = (item, { isGrpc, isWS, isGraphQL }) => {
   if (isGrpc) return 'grpc';
   if (isWS) return 'ws';
   if (isGraphQL) return 'gql';
-  return item.request.method.length > 5
-    ? item.request.method.substring(0, 3)
-    : item.request.method;
+  const method = item.request?.method || '';
+  return method.length > 5
+    ? method.substring(0, 3)
+    : method;
 };
 
 const getClassname = (method = '', { isGrpc, isWS, isGraphQL }) => {
@@ -40,7 +41,8 @@ const RequestMethod = ({ item }) => {
 
   const flags = getMethodFlags(item);
   const methodText = getMethodText(item, flags);
-  const className = getClassname(item.request.method, flags);
+  // Use optional chaining to handle partial requests
+  const className = getClassname(item.request?.method || '', flags);
 
   return (
     <StyledWrapper>

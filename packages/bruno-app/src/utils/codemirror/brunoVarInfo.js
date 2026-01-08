@@ -96,7 +96,7 @@ const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed)
 };
 
 // Check if the raw value contains references to secret variables
-const containsSecretVariableReferences = (rawValue, collection, item) => {
+const containsSecretVariableReferences = async (rawValue, collection, item) => {
   if (!rawValue || typeof rawValue !== 'string') {
     return false;
   }
@@ -105,11 +105,14 @@ const containsSecretVariableReferences = (rawValue, collection, item) => {
   const variableReferencePattern = /\{\{([^}]+)\}\}/g;
   const matches = rawValue.matchAll(variableReferencePattern);
 
+  const dispatch = store.dispatch;
+  const getState = store.getState;
+
   for (const match of matches) {
     const referencedVarName = match[1].trim();
 
-    // Get scope info for the referenced variable
-    const referencedScopeInfo = getVariableScope(referencedVarName, collection, item);
+    // Get scope info for the referenced variable (now async)
+    const referencedScopeInfo = await getVariableScope(referencedVarName, collection, item, dispatch, getState);
 
     // Check if the referenced variable is a secret
     if (referencedScopeInfo && isVariableSecret(referencedScopeInfo)) {
@@ -168,7 +171,7 @@ const getCopyButton = (variableValue, onCopyCallback) => {
   return copyButton;
 };
 
-export const renderVarInfo = (token, options) => {
+export const renderVarInfo = async (token, options) => {
   // Extract variable name and value based on token
   const { variableName, variableValue } = extractVariableInfo(token.string, options.variables);
 
@@ -179,6 +182,10 @@ export const renderVarInfo = (token, options) => {
 
   const collection = options.collection;
   const item = options.item;
+
+  // Get dispatch and getState from store for async operations
+  const dispatch = store.dispatch;
+  const getState = store.getState;
 
   // Check if this is a dynamic/faker variable (starts with "$")
   let scopeInfo;
@@ -208,8 +215,8 @@ export const renderVarInfo = (token, options) => {
       data: null
     };
   } else {
-    // Detect variable scope
-    scopeInfo = getVariableScope(variableName, collection, item);
+    // Detect variable scope (now async)
+    scopeInfo = await getVariableScope(variableName, collection, item, dispatch, getState);
 
     // If variable doesn't exist in any scope, determine scope based on context
     if (!scopeInfo) {
@@ -258,7 +265,7 @@ export const renderVarInfo = (token, options) => {
 
   // Check if variable should be masked:
   const isSecret = scopeInfo.type !== 'undefined' ? isVariableSecret(scopeInfo) : false;
-  const hasSecretReferences = containsSecretVariableReferences(rawValue, collection, item);
+  const hasSecretReferences = await containsSecretVariableReferences(rawValue, collection, item);
   const shouldMaskValue = isSecret || hasSecretReferences;
 
   const isMasked = options.variables?.maskedEnvVariables?.includes(variableName);
@@ -507,12 +514,12 @@ export const renderVarInfo = (token, options) => {
         // Dispatch Redux action to update variable
         const dispatch = store.dispatch;
         dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
-          .then(() => {
+          .then(async () => {
             originalValue = newValue;
             // Re-interpolate the new value to show the resolved value in display
             const interpolatedValue = interpolate(newValue, allVariables);
-            // Check if the NEW value contains secret references
-            const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
+            // Check if the NEW value contains secret references (now async)
+            const newHasSecretRefs = await containsSecretVariableReferences(newValue, collection, item);
             const newShouldMask = isSecret || newHasSecretRefs;
             updateValueDisplay(valueDisplay, interpolatedValue, newShouldMask, isMasked, isRevealed);
           })
@@ -670,7 +677,7 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
 
-  function onMouseHover(cm, box) {
+  async function onMouseHover(cm, box) {
     const pos = cm.coordsChar({
       left: (box.left + box.right) / 2,
       top: (box.top + box.bottom) / 2
@@ -722,7 +729,8 @@ if (!SERVER_RENDERED) {
         };
       }
 
-      const brunoVarInfo = renderVarInfo(token, options);
+      // renderVarInfo is now async, so await it
+      const brunoVarInfo = await renderVarInfo(token, options);
       if (brunoVarInfo) {
         showPopup(cm, box, brunoVarInfo);
       }

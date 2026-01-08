@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { flattenItems } from 'utils/collections';
 import { IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
@@ -11,7 +11,14 @@ const RequestsNotLoaded = ({ collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const flattenedItems = flattenItems(collection.items);
-  const itemsFailedLoading = flattenedItems?.filter((item) => item?.partial && !item?.loading);
+  // Only show requests that actually failed to load (have an error)
+  // With lazy loading, partial requests without errors are normal and expected
+  const itemsFailedLoading = useMemo(() => flattenedItems?.filter((item) =>
+    isItemARequest(item)
+    && item?.partial
+    && !item?.loading
+    && (item?.error || item?.loadError)
+  ), [flattenedItems]);
 
   if (!itemsFailedLoading?.length) {
     return null;
@@ -57,17 +64,15 @@ const RequestsNotLoaded = ({ collection }) => {
           </tr>
         </thead>
         <tbody>
-          {flattenedItems?.map((item, index) => (
-            item?.partial && !item?.loading ? (
-              <tr key={index} className="cursor-pointer" onClick={handleRequestClick(item)}>
-                <td className="py-1.5 px-3">
-                  {item?.pathname?.split(`${collection?.pathname}/`)?.[1]}
-                </td>
-                <td className="py-1.5 px-3">
-                  {item?.size?.toFixed?.(2)}&nbsp;MB
-                </td>
-              </tr>
-            ) : null
+          {itemsFailedLoading?.map((item, index) => (
+            <tr key={index} className="cursor-pointer" onClick={handleRequestClick(item)}>
+              <td className="py-1.5 px-3">
+                {item?.pathname?.split(`${collection?.pathname}/`)?.[1]}
+              </td>
+              <td className="py-1.5 px-3">
+                {item?.size?.toFixed?.(2)}&nbsp;MB
+              </td>
+            </tr>
           ))}
         </tbody>
       </table>
