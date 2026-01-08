@@ -7,7 +7,7 @@ import GrpcAuth from './GrpcAuth/index';
 import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
 import StatusDot from 'components/StatusDot/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
-import { find } from 'lodash';
+import find from 'lodash/find';
 import Documentation from 'components/Documentation/index';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
@@ -17,9 +17,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-
   const rightContentRef = useRef(null);
-
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
 
@@ -107,8 +105,14 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
     }
   }, [activeTabUid, focusedTab?.uid, requestPaneTab, selectTab]);
 
-  if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
+  // Return error for truly missing active/focused tabs
+  if (!activeTabUid || !focusedTab?.uid) {
     return <div className="pb-4 px-4">An error occurred!</div>;
+  }
+
+  // Return null during initialization while requestPaneTab is being set by useEffect
+  if (!requestPaneTab) {
+    return null;
   }
 
   const rightContent = requestPaneTab === 'auth' ? (
