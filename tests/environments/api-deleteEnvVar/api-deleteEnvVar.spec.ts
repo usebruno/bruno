@@ -3,23 +3,29 @@ import { sendRequest, openRequest, selectEnvironment, openEnvironmentSelector, c
 
 test.describe.serial('bru.deleteEnvVar(name)', () => {
   test('should remove ephemeral variable from UI after deletion', async ({ pageWithUserData: page }) => {
-    await openRequest(page, 'collection', 'api-deleteEnvVar');
+    await test.step('Open request and select environment', async () => {
+      await openRequest(page, 'collection', 'api-deleteEnvVar');
+      await selectEnvironment(page, 'Stage');
+    });
 
-    await selectEnvironment(page, 'Stage');
+    await test.step('Send request to set and delete variable', async () => {
+      await sendRequest(page, 200);
+    });
 
-    await sendRequest(page, 200);
+    await test.step('Verify variable is removed from UI', async () => {
+      await openEnvironmentSelector(page, 'collection');
+      await page.getByText('Configure', { exact: true }).click();
 
-    await openEnvironmentSelector(page, 'collection');
-    await page.getByText('Configure', { exact: true }).click();
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(envTab).toBeVisible();
 
-    const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
-    await expect(envTab).toBeVisible();
+      await expect(page.locator('.table-container tbody')).toContainText('host');
+      await expect(page.locator('.table-container tbody')).not.toContainText('tempToken');
+    });
 
-    await expect(page.locator('.table-container tbody')).toContainText('host');
-    await expect(page.locator('.table-container tbody')).not.toContainText('tempToken');
-
-    await closeEnvironmentPanel(page, 'collection');
-
-    await closeAllCollections(page);
+    await test.step('Cleanup', async () => {
+      await closeEnvironmentPanel(page, 'collection');
+      await closeAllCollections(page);
+    });
   });
 });
