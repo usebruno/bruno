@@ -1,5 +1,5 @@
+import { IconAlertCircle, IconGripVertical, IconMinusVertical, IconTrash } from '@tabler/icons';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
@@ -249,11 +249,12 @@ const EditableTable = ({
           <tbody>
             {rowsWithEmpty.map((row, rowIndex) => {
               const isEmpty = isLastEmptyRow(row, rowIndex);
-              const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
+              const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && row.editable !== false;
 
               return (
                 <tr
                   key={row.uid}
+                  className={row.editable === false ? 'read-only' : ''}
                   draggable={canDrag}
                   onDragStart={canDrag ? (e) => handleDragStart(e, rowIndex) : undefined}
                   onDragOver={canDrag ? (e) => handleDragOver(e, rowIndex) : undefined}
@@ -289,7 +290,7 @@ const EditableTable = ({
                           className="mousetrap"
                           data-testid="column-checkbox"
                           checked={row[checkboxKey] ?? true}
-                          disabled={disableCheckbox}
+                          disabled={disableCheckbox || row.editable === false}
                           onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
                         />
                       )}
@@ -302,7 +303,7 @@ const EditableTable = ({
                   ))}
                   {showDelete && (
                     <td>
-                      {!isEmpty && (
+                      {!isEmpty && row.editable !== false && (
                         <button
                           data-testid="column-delete"
                           onClick={() => handleRemoveRow(row.uid)}
