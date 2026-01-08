@@ -115,13 +115,23 @@ const scheduleAutoSave = (key, save, interval) => {
 
 // Helper to find and schedule saves for all existing drafts
 const saveExistingDrafts = (dispatch, getState, interval) => {
-  const collections = getState().collections.collections;
+  const state = getState();
+  const collections = state.collections.collections;
 
   collections.forEach((collection) => {
     // Check collection-level draft
     if (collection.draft) {
       const key = `collection-${collection.uid}`;
       scheduleAutoSave(key, () => dispatch(saveCollectionSettings(collection.uid, null, true)), interval);
+    }
+
+    // Check collection environment drafts
+    if (collection.environmentsDraft) {
+      const { environmentUid, variables } = collection.environmentsDraft;
+      if (environmentUid && variables) {
+        const key = `environment-${collection.uid}-${environmentUid}`;
+        scheduleAutoSave(key, () => dispatch(saveEnvironment(variables, environmentUid, collection.uid)), interval);
+      }
     }
 
     // Check all items (requests and folders) for drafts
@@ -138,6 +148,16 @@ const saveExistingDrafts = (dispatch, getState, interval) => {
       }
     });
   });
+
+  // Check global environment drafts
+  const globalEnvironmentDraft = state.globalEnvironments?.globalEnvironmentDraft;
+  if (globalEnvironmentDraft) {
+    const { environmentUid, variables } = globalEnvironmentDraft;
+    if (environmentUid && variables) {
+      const key = `global-environment-${environmentUid}`;
+      scheduleAutoSave(key, () => dispatch(saveGlobalEnvironment({ variables, environmentUid })), interval);
+    }
+  }
 };
 
 // Helper to determine entity type and create save handler
