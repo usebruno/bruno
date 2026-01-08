@@ -109,6 +109,14 @@ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebr
 sudo apt update && sudo apt install bruno
 ```
 
+## Runtime configuration
+
+Bruno tolerates some common-but-nonstandard HTTP response headers (e.g. obsolete line folding / obs-fold) by default.
+This uses Node.js `insecureHTTPParser` (more tolerant, less strict than RFC parsing).
+
+- `BRUNO_ALLOW_INVALID_HEADERS=0` disables tolerant header parsing (strict mode).
+- Request-level override: set `settings.allowInvalidHeaders` to `true`/`false`.
+
 ## Features
 
 ### Run across multiple platforms 🖥️
