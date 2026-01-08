@@ -64,7 +64,7 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
   }
 
   return (
-    renderHtmlPreview(displayContent, baseUrl, isDragging, webviewContainerRef)
+    <>{renderHtmlPreview(displayContent, baseUrl, isDragging, webviewContainerRef)}</>
   );
 });
 
