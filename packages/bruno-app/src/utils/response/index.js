@@ -38,9 +38,6 @@ export const getDefaultResponseFormat = (contentType) => {
       result: { format: 'javascript', tab: 'editor' }
     },
 
-    // ====== SVG → HTML preview (since SVG is XML-based and renders well in webview) ======
-    { test: /^image\/svg\+xml$/, result: { format: 'html', tab: 'preview' } },
-
     // ====== Images, audio, video, PDFs → preview (base64) ======
     { test: /^image\//, result: { format: 'base64', tab: 'preview' } },
     { test: /^audio\//, result: { format: 'base64', tab: 'preview' } },
@@ -162,6 +159,9 @@ export const detectContentTypeFromBuffer = (buffer) => {
   if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
     return 'image/webp';
   }
+  if (bytes[0] === 0x66 && bytes[1] === 0x74 && bytes[2] === 0x79 && bytes[3] === 0x70 && bytes[4] === 0x41 && bytes[5] === 0x76 && bytes[6] === 0x69 && bytes[7] === 0x66) {
+    return 'image/avif';
+  }
   if (bytes[0] === 0x42 && bytes[1] === 0x4D) {
     return 'image/bmp';
   }
@@ -172,7 +172,13 @@ export const detectContentTypeFromBuffer = (buffer) => {
   if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) {
     return 'image/x-icon';
   }
-
+  if (bytes[0] === 0x3C && bytes[1] === 0x73 && bytes[2] === 0x76 && bytes[3] === 0x67 && bytes[4] === 0x20) {
+    return 'image/svg+xml';
+  }
+  // EPS
+  if (bytes[0] === 0x25 && bytes[1] === 0x21 && bytes[2] === 0x50 && bytes[3] === 0x53 && bytes[4] === 0x46) {
+    return 'image/eps';
+  }
   // PDF
   if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
     return 'application/pdf';
