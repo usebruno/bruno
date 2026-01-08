@@ -24,7 +24,7 @@ const StyledWrapper = styled.div`
     background: transparent;
     height: fit-content;
     font-size: ${(props) => props.theme.font.size.base};
-    line-height: 30px;
+    line-height: 20px;
     display: flex;
     flex-direction: column;
     max-height: 200px;
@@ -43,6 +43,7 @@ const StyledWrapper = styled.div`
 
     .CodeMirror-lines {
       padding: 0;
+      min-height: 20px;
     }
 
     .CodeMirror-cursor {
@@ -59,6 +60,8 @@ const StyledWrapper = styled.div`
     .CodeMirror-line {
       color: ${(props) => props.theme.text};
       padding: 0;
+      min-height: 20px;
+      line-height: 20px;
     }
 
     .CodeMirror-selected {
