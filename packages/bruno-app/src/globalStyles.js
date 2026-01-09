@@ -259,6 +259,20 @@ const GlobalStyle = createGlobalStyle`
       color: ${(props) => props.theme.codemirror.variable.prompt};
     }
   }
+
+  // Variable highlighting for inactive MultiLineEditor state
+  .variable-highlight-container {
+    .cm-variable-valid {
+      color: ${(props) => props.theme.codemirror.variable.valid};
+    }
+    .cm-variable-invalid {
+      color: ${(props) => props.theme.codemirror.variable.invalid};
+    }
+    .cm-variable-prompt {
+      color: ${(props) => props.theme.codemirror.variable.prompt};
+    }
+  }
+    
   .CodeMirror-brunoVarInfo {
     color: ${(props) => props.theme.text};
     background: ${(props) => props.theme.dropdown.bg};

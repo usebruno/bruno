@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useMemo, useEffect } from 'react';
+import React, { useCallback, useRef, useMemo, useEffect, useState } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { get } from 'lodash';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
@@ -26,6 +26,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   const environmentsDraft = collection?.environmentsDraft;
   const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
 
+  const [activeEditorUid, setActiveEditorUid] = useState(null);
   // Track environment changes for draft restoration
   const prevEnvUidRef = React.useRef(null);
   const mountedRef = React.useRef(false);
@@ -299,6 +300,28 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       formik.setFieldTouched(`${index}.name`, true, true);
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      // Tab key: move focus to Value field
+      e.preventDefault();
+      const variable = formik.values[index];
+      if (variable) {
+        setActiveEditorUid(variable.uid);
+        // Wait for editor to initialize, then focus the CodeMirror input directly
+        setTimeout(() => {
+          // Find the CodeMirror editor input element for this variable
+          const valueCell = document.querySelector(`[data-value-cell-id="${variable.uid}"]`);
+          if (valueCell) {
+            // Look for the CodeMirror input/textarea inside the editor
+            const codeMirrorInput = valueCell.querySelector('.CodeMirror textarea, .CodeMirror-input');
+            if (codeMirrorInput) {
+              codeMirrorInput.focus();
+            } else {
+              // Fallback: focus the cell if editor not ready yet
+              valueCell.focus();
+            }
+          }
+        }, 50);
+      }
     }
   };
 
@@ -434,9 +457,17 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                       <ErrorMessage name={`${index}.name`} index={index} />
                     </div>
                   </td>
-                  <td className="flex flex-row flex-nowrap items-center">
+                  <td
+                    className="flex flex-row flex-nowrap items-center"
+                    onMouseDown={() => setActiveEditorUid(variable.uid)}
+                    onFocusCapture={() => setActiveEditorUid(variable.uid)}
+                    tabIndex={0}
+                    data-value-cell-id={variable.uid}
+                  >
                     <div className="overflow-hidden grow w-full relative">
                       <MultiLineEditor
+                        isActive={activeEditorUid === variable.uid}
+                        tabFocus={activeEditorUid === variable.uid}
                         theme={storedTheme}
                         collection={_collection}
                         name={`${index}.value`}
@@ -448,6 +479,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                         onSave={handleSave}
                       />
                     </div>
+
                     {typeof variable.value !== 'string' && (
                       <span className="ml-2 flex items-center">
                         <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
@@ -458,6 +490,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                         />
                       </span>
                     )}
+
                     {!variable.secret && hasSensitiveUsage(variable.name) && (
                       <SensitiveFieldWarning
                         fieldName={variable.name}

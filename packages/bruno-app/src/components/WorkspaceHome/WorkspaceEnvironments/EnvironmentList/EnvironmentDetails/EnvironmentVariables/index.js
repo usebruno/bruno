@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
@@ -25,6 +25,8 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
   const { globalEnvironments, activeGlobalEnvironmentUid, globalEnvironmentDraft } = useSelector(
     (state) => state.globalEnvironments
   );
+
+  const [activeEditorUid, setActiveEditorUid] = useState(null);
 
   const hasDraftForThisEnv = globalEnvironmentDraft?.environmentUid === environment.uid;
 
@@ -237,6 +239,28 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     if (e.key === 'Enter') {
       e.preventDefault();
       formik.setFieldTouched(`${index}.name`, true, true);
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      // Tab key: move focus to Value field
+      e.preventDefault();
+      const variable = formik.values[index];
+      if (variable) {
+        setActiveEditorUid(variable.uid);
+        // Wait for editor to initialize, then focus the CodeMirror input directly
+        setTimeout(() => {
+          // Find the CodeMirror editor input element for this variable
+          const valueCell = document.querySelector(`[data-value-cell-id="${variable.uid}"]`);
+          if (valueCell) {
+            // Look for the CodeMirror input/textarea inside the editor
+            const codeMirrorInput = valueCell.querySelector('.CodeMirror textarea, .CodeMirror-input');
+            if (codeMirrorInput) {
+              codeMirrorInput.focus();
+            } else {
+              // Fallback: focus the cell if editor not ready yet
+              valueCell.focus();
+            }
+          }
+        }, 50);
+      }
     }
   };
 
@@ -372,9 +396,17 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       <ErrorMessage name={`${index}.name`} index={index} />
                     </div>
                   </td>
-                  <td className="flex flex-row flex-nowrap items-center">
-                    <div className="overflow-hidden grow w-full relative">
+                  <td
+                    className="p-0 align-middle"
+                    onMouseDown={() => setActiveEditorUid(variable.uid)}
+                    onFocusCapture={() => setActiveEditorUid(variable.uid)}
+                    tabIndex={0}
+                    data-value-cell-id={variable.uid}
+                  >
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <MultiLineEditor
+                        isActive={activeEditorUid === variable.uid}
+                        tabFocus={activeEditorUid === variable.uid}
                         theme={storedTheme}
                         collection={_collection}
                         name={`${index}.value`}
@@ -388,11 +420,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                     </div>
                     {typeof variable.value !== 'string' && (
                       <span className="ml-2 flex items-center">
-                        <IconInfoCircle
-                          id={`${variable.uid}-disabled-info-icon`}
-                          className="text-muted"
-                          size={16}
-                        />
+                        <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
                         <Tooltip
                           anchorId={`${variable.uid}-disabled-info-icon`}
                           content="Non-string values set via scripts are read-only and can only be updated through scripts."
