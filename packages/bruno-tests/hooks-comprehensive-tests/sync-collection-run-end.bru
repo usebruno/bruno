@@ -1,0 +1,18 @@
+meta {
+  name: sync-collection-run-end
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("request should execute successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
