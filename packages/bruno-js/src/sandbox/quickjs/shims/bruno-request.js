@@ -42,6 +42,24 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'setUrl', setUrl);
   setUrl.dispose();
 
+  let getHost = vm.newFunction('getHost', function () {
+    return marshallToVm(req.getHost(), vm);
+  });
+  vm.setProp(reqObject, 'getHost', getHost);
+  getHost.dispose();
+
+  let getPath = vm.newFunction('getPath', function () {
+    return marshallToVm(req.getPath(), vm);
+  });
+  vm.setProp(reqObject, 'getPath', getPath);
+  getPath.dispose();
+
+  let getQueryString = vm.newFunction('getQueryString', function () {
+    return marshallToVm(req.getQueryString(), vm);
+  });
+  vm.setProp(reqObject, 'getQueryString', getQueryString);
+  getQueryString.dispose();
+
   let getMethod = vm.newFunction('getMethod', function () {
     return marshallToVm(req.getMethod(), vm);
   });

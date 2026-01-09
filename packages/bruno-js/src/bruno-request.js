@@ -42,6 +42,34 @@ class BrunoRequest {
     this.req.url = url;
   }
 
+  getHost() {
+    try {
+      const url = new URL(this.req.url);
+      return url.host;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  getPath() {
+    try {
+      const url = new URL(this.req.url);
+      return url.pathname;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  getQueryString() {
+    try {
+      const url = new URL(this.req.url);
+      // Return query string without the leading '?'
+      return url.search ? url.search.substring(1) : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
   getMethod() {
     return this.req.method;
   }
@@ -193,9 +221,13 @@ class BrunoRequest {
   }
 
   getPathParams() {
-    return this.req.pathParams;
+    return this.req.pathParams.map((param) => ({
+      name: param.name,
+      value: param.value,
+      type: param.type
+    })) || [];
   }
-  
+
   /**
    * Get the tags associated with this request
    * @returns {Array<string>} Array of tag strings
