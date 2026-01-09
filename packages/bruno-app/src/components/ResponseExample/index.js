@@ -1,3 +1,4 @@
+import { itemSchema } from '@usebruno/schema';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
 import { filter } from 'lodash';
 import cloneDeep from 'lodash/cloneDeep';
@@ -25,27 +26,29 @@ const MIN_BOTTOM_PANE_HEIGHT = 150;
 // Helper function to generate unique name with auto-incrementing numbers
 const generateUniqueName = async (baseName, parentItem) => {
   const items = parentItem.items || [];
-  const existingNames = new Set(
-    items
-      .filter((i) => !isItemAFolder(i))
-      .map((i) => i.name)
-  );
+  const existingNames = items
+    .filter((i) => !isItemAFolder(i))
+    .map((i) => i.name);
 
   // Try base name first
   const candidateBase = `${baseName} (Example Copy)`;
-  if (!existingNames.has(candidateBase)) {
+  if (!existingNames.includes(candidateBase)) {
     return candidateBase;
   }
 
-  // Find next available number
-  let counter = 2;
-  while (true) {
-    const candidateName = `${baseName} (Example Copy ${counter})`;
-    if (!existingNames.has(candidateName)) {
-      return candidateName;
+  // Find the highest existing counter
+  const pattern = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\(Example Copy (\\d+)\\)$`);
+  let maxCounter = 1;
+
+  for (const name of existingNames) {
+    const match = name.match(pattern);
+    if (match) {
+      maxCounter = Math.max(maxCounter, parseInt(match[1], 10));
     }
-    counter++;
   }
+
+  // Return the next available number
+  return `${baseName} (Example Copy ${maxCounter + 1})`;
 };
 
 const ResponseExample = ({ item, collection, example }) => {
@@ -172,16 +175,18 @@ const ResponseExample = ({ item, collection, example }) => {
       const filename = `${sanitizeName(uniqueName)}.${collection.format || 'bru'}`;
 
       // Create complete request item structure matching Bruno's format
+      const clonedRequest = cloneDeep(example.request);
+
       const newRequestItem = {
         uid: newRequestUid,
         name: uniqueName,
         filename: filename,
         type: item.type,
         request: {
-          ...cloneDeep(example.request),
-          headers: example.request.headers || [],
-          params: example.request.params || [],
-          body: example.request.body || {
+          ...clonedRequest,
+          headers: clonedRequest.headers ?? [],
+          params: clonedRequest.params ?? [],
+          body: clonedRequest.body ?? {
             mode: 'none',
             json: null,
             text: null,
@@ -191,17 +196,17 @@ const ResponseExample = ({ item, collection, example }) => {
             formUrlEncoded: [],
             file: []
           },
-          vars: example.request.vars || {
+          vars: clonedRequest.vars ?? {
             req: [],
             res: []
           },
-          script: example.request.script || {
+          script: clonedRequest.script ?? {
             req: null,
             res: null
           },
-          assertions: example.request.assertions || [],
-          tests: example.request.tests || null,
-          auth: example.request.auth || {
+          assertions: clonedRequest.assertions ?? [],
+          tests: clonedRequest.tests ?? null,
+          auth: clonedRequest.auth ?? {
             mode: 'inherit'
           }
         }
@@ -211,21 +216,18 @@ const ResponseExample = ({ item, collection, example }) => {
       const requestItems = filter(parentItems, (i) => !isItemAFolder(i));
       newRequestItem.seq = requestItems ? requestItems.length + 1 : 1;
 
-      // V.Imp: Normalise the full pathname for the new file
+      // Very Important: Normalise the full pathname for the new file
       const fullPathname = path.normalize(
         parentItem
           ? path.join(parentItem.pathname, filename)
           : path.join(collection.pathname, filename)
       );
 
-      console.log('[handleTryExample] Creating file at:', fullPathname);
-
       const { ipcRenderer } = window;
 
       // Save to filesystem
-      await ipcRenderer.invoke('renderer:new-request', fullPathname, newRequestItem);
-
-      toast.success(`Request from example "${example.name}" created successfully`);
+      const validatedItem = await itemSchema.validate(newRequestItem);
+      await ipcRenderer.invoke('renderer:new-request', fullPathname, validatedItem);
 
       // Wait for filesystem watcher using store subscription
       const waitForItem = () => {
@@ -247,11 +249,8 @@ const ResponseExample = ({ item, collection, example }) => {
             reject(new Error('Timeout waiting for item to be added by filesystem watcher'));
           }, 5000); // 5 second timeout
 
-          let checkCount = 0;
-
           // Subscribe to store changes
           const unsubscribe = store.subscribe(() => {
-            checkCount++;
             const state = store.getState();
             const currentCollection = findCollectionByUid(state.collections.collections, collection.uid);
 
@@ -274,7 +273,7 @@ const ResponseExample = ({ item, collection, example }) => {
                   && !i.loading
                   && !i.partial
                 );
-                // Found item by filename match
+                // Fallback: if no item was found by pathname, select a fully loaded, non-partial sibling item matching the filename
               }
             }
 
@@ -290,7 +289,7 @@ const ResponseExample = ({ item, collection, example }) => {
           const currentCollection = findCollectionByUid(state.collections.collections, collection.uid);
           let existingItem = findItemInCollectionByPathname(currentCollection, fullPathname);
 
-          // Fallback:  find by filename
+          // Fallback: find by filename
           if (!existingItem) {
             const parent = parentItem
               ? findItemInCollectionByPathname(currentCollection, parentItem.pathname)
