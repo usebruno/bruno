@@ -249,12 +249,12 @@ const EditableTable = ({
           <tbody>
             {rowsWithEmpty.map((row, rowIndex) => {
               const isEmpty = isLastEmptyRow(row, rowIndex);
-              const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && row.editable !== false;
+              const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && row?.editable !== false;
 
               return (
                 <tr
-                  key={row.uid}
-                  className={row.editable === false ? 'read-only' : ''}
+                  key={row?.rowKey ?? row.uid}
+                  className={row?.editable === false ? 'read-only' : ''}
                   draggable={canDrag}
                   onDragStart={canDrag ? (e) => handleDragStart(e, rowIndex) : undefined}
                   onDragOver={canDrag ? (e) => handleDragOver(e, rowIndex) : undefined}
@@ -290,7 +290,7 @@ const EditableTable = ({
                           className="mousetrap"
                           data-testid="column-checkbox"
                           checked={row[checkboxKey] ?? true}
-                          disabled={disableCheckbox || row.editable === false}
+                          disabled={disableCheckbox || row?.editable === false}
                           onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
                         />
                       )}
@@ -303,7 +303,7 @@ const EditableTable = ({
                   ))}
                   {showDelete && (
                     <td>
-                      {!isEmpty && row.editable !== false && (
+                      {!isEmpty && row?.editable !== false && (
                         <button
                           data-testid="column-delete"
                           onClick={() => handleRemoveRow(row.uid)}

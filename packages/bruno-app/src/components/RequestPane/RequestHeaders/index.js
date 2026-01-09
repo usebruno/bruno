@@ -25,28 +25,42 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const allHeaders = useMemo(() => {
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     const folderHeaders = [];
-    requestTreePath.forEach((pathItem) => {
-      if (pathItem.type === 'folder' && pathItem.uid !== item.uid) {
+    for (const pathItem of requestTreePath) {
+      if (pathItem.type === 'folder') {
         const fHeaders = pathItem.draft ? get(pathItem, 'draft.request.headers', []) : get(pathItem, 'root.request.headers', []);
         folderHeaders.push(...fHeaders);
       }
-    });
+    }
 
     const collectionHeaders = collection.draft?.root
       ? get(collection, 'draft.root.request.headers', [])
       : get(collection, 'root.request.headers', []);
 
     const categorizedHeaders = {
-      request: (headers || []).map((h) => ({ ...h, source: 'request', editable: true, description: 'Request' })),
-      folder: (folderHeaders || []).map((h) => ({ ...h, source: 'folder', editable: false, description: 'Folder' })),
-      collection: (collectionHeaders || []).map((h) => ({ ...h, source: 'collection', editable: false, description: 'Collection' }))
+      request: (headers || []).map((h) => ({
+        ...h,
+        source: 'request',
+        editable: true,
+        description: 'Request',
+        rowKey: `request-${h.uid}`
+      })),
+      folder: (folderHeaders || []).map((h) => ({
+        ...h,
+        source: 'folder',
+        editable: false,
+        description: 'Folder',
+        rowKey: `folder-${h.uid}`
+      })),
+      collection: (collectionHeaders || []).map((h) => ({
+        ...h,
+        source: 'collection',
+        editable: false,
+        description: 'Collection',
+        rowKey: `collection-${h.uid}`
+      }))
     };
 
-    return [
-      ...categorizedHeaders.request,
-      ...categorizedHeaders.folder,
-      ...categorizedHeaders.collection
-    ];
+    return Object.values(categorizedHeaders).flat();
   }, [headers, collection, item]);
 
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
@@ -59,7 +73,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       const requestHeaders = updatedHeaders
         .filter((h) => h.source === 'request' || !h.source)
         .map((h) => {
-          const { source, editable, description, ...rest } = h;
+          const { source, editable, description, rowKey, ...rest } = h;
           return rest;
         });
 
@@ -76,11 +90,17 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
 
   const handleHeaderDrag = useCallback(
     ({ updateReorderedItem }) => {
+      // Filter to only include request header UIDs - folder and collection headers
+      const requestHeaderUids = new Set(
+        allHeaders.filter((h) => h.source === 'request').map((h) => h.uid)
+      );
+      const filteredReorderedItem = updateReorderedItem.filter((uid) => requestHeaderUids.has(uid));
+
       dispatch(
         moveRequestHeader({
           collectionUid: collection.uid,
           itemUid: item.uid,
-          updateReorderedItem
+          updateReorderedItem: filteredReorderedItem
         })
       );
     },
@@ -114,8 +134,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           />
           {row.editable === false && (
             <div className="ml-1 flex items-center text-muted" aria-label={`Inherited from ${row.description}`}>
-              <IconInfoCircle size={16} strokeWidth={1.5} data-tooltip-id={`info-${row.uid}`} />
-              <Tooltip className="tooltip-mod" id={`info-${row.uid}`} html={`Inherited from ${row.description}`} />
+              <IconInfoCircle size={16} strokeWidth={1.5} data-tooltip-id={`row-info-${row.source}-${row.uid}`} />
+              <Tooltip className="tooltip-mod" id={`row-info-${row.source}-${row.uid}`} html={`Inherited from ${row.description}`} />
             </div>
           )}
         </div>
