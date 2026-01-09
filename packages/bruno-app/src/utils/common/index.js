@@ -459,14 +459,6 @@ export const prettifyJsonString = (jsonDataString) => {
  * @returns {string} - The converted title-case string.
  */
 
-export const toTitleCase = (str) => {
-  if (!str) return '';
-  if (str === 'default') return 'Default';
-  return str
-    .split(/[\s-_]+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-};
 // Simple HTML formatter that indents HTML properly
 export function prettifyHtmlString(htmlString) {
   if (typeof htmlString !== 'string') return htmlString;
