@@ -239,6 +239,28 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     if (e.key === 'Enter') {
       e.preventDefault();
       formik.setFieldTouched(`${index}.name`, true, true);
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      // Tab key: move focus to Value field
+      e.preventDefault();
+      const variable = formik.values[index];
+      if (variable) {
+        setActiveEditorUid(variable.uid);
+        // Wait for editor to initialize, then focus the CodeMirror input directly
+        setTimeout(() => {
+          // Find the CodeMirror editor input element for this variable
+          const valueCell = document.querySelector(`[data-value-cell-id="${variable.uid}"]`);
+          if (valueCell) {
+            // Look for the CodeMirror input/textarea inside the editor
+            const codeMirrorInput = valueCell.querySelector('.CodeMirror textarea, .CodeMirror-input');
+            if (codeMirrorInput) {
+              codeMirrorInput.focus();
+            } else {
+              // Fallback: focus the cell if editor not ready yet
+              valueCell.focus();
+            }
+          }
+        }, 50);
+      }
     }
   };
 
@@ -378,7 +400,8 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                     className="p-0 align-middle"
                     onMouseDown={() => setActiveEditorUid(variable.uid)}
                     onFocusCapture={() => setActiveEditorUid(variable.uid)}
-                    tabIndex={-1}
+                    tabIndex={0}
+                    data-value-cell-id={variable.uid}
                   >
                     <div className="flex-1 min-w-0 overflow-hidden">
                       <MultiLineEditor

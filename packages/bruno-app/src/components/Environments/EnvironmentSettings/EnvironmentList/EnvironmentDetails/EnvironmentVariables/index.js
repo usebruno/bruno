@@ -300,6 +300,28 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       formik.setFieldTouched(`${index}.name`, true, true);
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      // Tab key: move focus to Value field
+      e.preventDefault();
+      const variable = formik.values[index];
+      if (variable) {
+        setActiveEditorUid(variable.uid);
+        // Wait for editor to initialize, then focus the CodeMirror input directly
+        setTimeout(() => {
+          // Find the CodeMirror editor input element for this variable
+          const valueCell = document.querySelector(`[data-value-cell-id="${variable.uid}"]`);
+          if (valueCell) {
+            // Look for the CodeMirror input/textarea inside the editor
+            const codeMirrorInput = valueCell.querySelector('.CodeMirror textarea, .CodeMirror-input');
+            if (codeMirrorInput) {
+              codeMirrorInput.focus();
+            } else {
+              // Fallback: focus the cell if editor not ready yet
+              valueCell.focus();
+            }
+          }
+        }, 50);
+      }
     }
   };
 
@@ -439,12 +461,13 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                     className="flex flex-row flex-nowrap items-center"
                     onMouseDown={() => setActiveEditorUid(variable.uid)}
                     onFocusCapture={() => setActiveEditorUid(variable.uid)}
-                    tabIndex={-1}
+                    tabIndex={0}
+                    data-value-cell-id={variable.uid}
                   >
                     <div className="overflow-hidden grow w-full relative">
                       <MultiLineEditor
                         isActive={activeEditorUid === variable.uid}
-                        autoFocus={activeEditorUid === variable.uid}
+                        tabFocus={activeEditorUid === variable.uid}
                         theme={storedTheme}
                         collection={_collection}
                         name={`${index}.value`}
