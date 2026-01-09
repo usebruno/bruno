@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useRef } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -11,7 +11,7 @@ import ClearTimeline from '../ClearTimeline';
 import ResponseClear from '../ResponseClear';
 import StyledWrapper from './StyledWrapper';
 import ResponseLayoutToggle from '../ResponseLayoutToggle';
-import Tab from 'components/Tab';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
 import WSMessagesList from './WSMessagesList';
 import WSResponseSortOrder from './WSResponseSortOrder';
 import WSResponseHeaders from './WSResponseHeaders';
@@ -25,6 +25,7 @@ const WSResponsePane = ({ item, collection }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
+  const rightContentRef = useRef(null);
 
   const requestTimeline = [...(collection?.timeline || [])].filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -38,6 +39,29 @@ const WSResponsePane = ({ item, collection }) => {
   };
 
   const response = item.response || {};
+
+  const messagesCount = Array.isArray(response.responses) ? response.responses.length : 0;
+  const headersCount = response.headers ? Object.keys(response.headers).length : 0;
+
+  const allTabs = useMemo(() => {
+    return [
+      {
+        key: 'response',
+        label: 'Messages',
+        indicator: messagesCount > 0 ? <sup className="ml-1 font-medium">{messagesCount}</sup> : null
+      },
+      {
+        key: 'headers',
+        label: 'Headers',
+        indicator: headersCount > 0 ? <sup className="ml-1 font-medium">{headersCount}</sup> : null
+      },
+      {
+        key: 'timeline',
+        label: 'Timeline',
+        indicator: null
+      }
+    ];
+  }, [messagesCount, headersCount]);
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -81,62 +105,41 @@ const WSResponsePane = ({ item, collection }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const tabConfig = [
-    {
-      name: 'response',
-      label: 'Messages',
-      count: Array.isArray(response.responses) ? response.responses.length : 0
-    },
-    {
-      name: 'headers',
-      label: 'Headers',
-      count: response.headers ? Object.keys(response.headers).length : 0
-    },
-    {
-      name: 'timeline',
-      label: 'Timeline'
-    }
-  ];
+  const rightContent = !isLoading ? (
+    <div ref={rightContentRef} className="flex items-center">
+      {focusedTab?.responsePaneTab === 'timeline' ? (
+        <>
+          <ResponseLayoutToggle />
+          <ClearTimeline item={item} collection={collection} />
+        </>
+      ) : item?.response ? (
+        <>
+          <ResponseLayoutToggle />
+          <ResponseClear item={item} collection={collection} />
+          <WSResponseSortOrder item={item} collection={collection} />
+          <WSStatusCode
+            status={response.statusCode}
+            text={response.statusText}
+            details={response.statusDescription}
+          />
+          <ResponseTime duration={response.duration} />
+        </>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
-        {tabConfig.map((tab) => (
-          <Tab
-            key={tab.name}
-            name={tab.name}
-            label={tab.label}
-            isActive={focusedTab.responsePaneTab === tab.name}
-            onClick={selectTab}
-            count={tab.count}
-          />
-        ))}
-        {!isLoading ? (
-          <div className="flex flex-grow justify-end items-center">
-            {focusedTab?.responsePaneTab === 'timeline' ? (
-              <>
-                <ResponseLayoutToggle />
-                <ClearTimeline item={item} collection={collection} />
-              </>
-            ) : item?.response ? (
-              <>
-                <ResponseLayoutToggle />
-                <ResponseClear item={item} collection={collection} />
-                <WSResponseSortOrder item={item} collection={collection} />
-                <WSStatusCode
-                  status={response.statusCode}
-                  text={response.statusText}
-                  details={response.statusDescription}
-                />
-                <ResponseTime duration={response.duration} />
-              </>
-            ) : null}
-          </div>
-        ) : null}
+      <div className="px-4">
+        <ResponsiveTabs
+          tabs={allTabs}
+          activeTab={focusedTab.responsePaneTab}
+          onTabSelect={selectTab}
+          rightContent={rightContent}
+          rightContentRef={rightContentRef}
+        />
       </div>
-      <section
-        className="flex flex-col flex-grow pl-3 pr-4 h-0 mt-4"
-      >
+      <section className="flex flex-col flex-grow px-4 h-0 mt-4">
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {!item?.response ? (
           focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
