@@ -1,0 +1,20 @@
+meta {
+  name: api-deleteEnvVar
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setEnvVar("tempToken", "abc123");
+}
+
+script:post-response {
+  bru.deleteEnvVar("tempToken");
+}
+

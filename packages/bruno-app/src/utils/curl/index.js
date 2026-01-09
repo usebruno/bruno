@@ -1,6 +1,7 @@
 import { forOwn } from 'lodash';
-import { prettifyJSON } from 'utils/common';
 import curlToJson from './curl-to-json';
+import { prettifyJsonString } from 'utils/common/index';
+import { isJsonLikeContentType, isPlainTextContentType, isXmlLikeContentType } from './content-type';
 
 export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
   const parseFormData = (parsedBody) => {
@@ -39,9 +40,9 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     }
 
     const parsedHeaders = request?.headers;
-    const headers =
-      parsedHeaders &&
-      Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
+    const headers
+      = parsedHeaders
+        && Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
 
     const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
     const parsedBody = request.data;
@@ -59,25 +60,27 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     };
 
     if (parsedBody && contentType && typeof contentType === 'string') {
-      if (requestType === 'graphql-request' && (contentType.includes('application/json') || contentType.includes('application/graphql'))) {
+      const normalizedContentType = contentType.toLowerCase();
+
+      if (requestType === 'graphql-request' && (isJsonLikeContentType(contentType) || normalizedContentType.includes('application/graphql'))) {
         body.mode = 'graphql';
         body.graphql = parseGraphQL(parsedBody);
       } else if (requestType === 'http-request' && request.isDataBinary) {
         body.mode = 'file';
         body.file = parsedBody;
-      }else if (contentType.includes('application/json')) {
+      } else if (isJsonLikeContentType(contentType)) {
         body.mode = 'json';
-        body.json = prettifyJSON(parsedBody);
-      } else if (contentType.includes('xml')) {
+        body.json = prettifyJsonString(parsedBody);
+      } else if (isXmlLikeContentType(contentType) || normalizedContentType.includes('xml')) {
         body.mode = 'xml';
         body.xml = parsedBody;
-      } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      } else if (normalizedContentType.includes('application/x-www-form-urlencoded')) {
         body.mode = 'formUrlEncoded';
         body.formUrlEncoded = parseFormData(parsedBody);
-      } else if (contentType.includes('multipart/form-data')) {
+      } else if (normalizedContentType.includes('multipart/form-data')) {
         body.mode = 'multipartForm';
         body.multipartForm = parsedBody;
-      } else if (contentType.includes('text/plain')) {
+      } else if (isPlainTextContentType(contentType)) {
         body.mode = 'text';
         body.text = parsedBody;
       }

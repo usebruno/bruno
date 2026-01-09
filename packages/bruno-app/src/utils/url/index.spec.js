@@ -166,7 +166,6 @@ describe('Url Utils - parsePathParams', () => {
     const params = parsePathParams('https://example.com/start/1:2:AHLS-HASD/form');
     expect(params).toEqual([]);
   });
-
 });
 
 describe('Url Utils - URN parsing', () => {
@@ -294,7 +293,7 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const url = '{{host}}/api/:id/path?foo={{foo}}&bar={{bar}}&baz={{process.env.baz}}';
     const expectedUrl = 'https://example.com/api/:id/path?foo=foo_value&bar=bar_value&baz=baz_value';
 
-    const result = interpolateUrl({ url, variables: { host: 'https://example.com', foo: 'foo_value', bar: 'bar_value', 'process.env.baz': 'baz_value' } });
+    const result = interpolateUrl({ url, variables: { 'host': 'https://example.com', 'foo': 'foo_value', 'bar': 'bar_value', 'process.env.baz': 'baz_value' } });
 
     expect(result).toEqual(expectedUrl);
   });
@@ -314,7 +313,7 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
     const expectedUrl = 'https://example.com/api/123/path?foo=foo_value&bar=bar_value&baz=baz_value';
 
-    const intermediateResult = interpolateUrl({ url, variables: { host: 'https://example.com', foo: 'foo_value', bar: 'bar_value', 'process.env.baz': 'baz_value' } });
+    const intermediateResult = interpolateUrl({ url, variables: { 'host': 'https://example.com', 'foo': 'foo_value', 'bar': 'bar_value', 'process.env.baz': 'baz_value' } });
     const result = interpolateUrlPathParams(intermediateResult, params);
 
     expect(result).toEqual(expectedUrl);

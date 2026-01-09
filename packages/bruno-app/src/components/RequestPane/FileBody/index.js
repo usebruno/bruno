@@ -20,7 +20,7 @@ const FileBody = ({ item, collection }) => {
     dispatch(
       _addFile({
         itemUid: item.uid,
-        collectionUid: collection.uid,
+        collectionUid: collection.uid
       })
     );
   };
@@ -33,7 +33,7 @@ const FileBody = ({ item, collection }) => {
     switch (type) {
       case 'filePath': {
         param.filePath = e.target.filePath;
-        param.contentType = "";
+        param.contentType = '';
         break;
       }
       case 'contentType': {
@@ -42,7 +42,7 @@ const FileBody = ({ item, collection }) => {
       }
       case 'selected': {
         param.selected = e.target.selected;
-        setEnableFileUid(param.uid)
+        setEnableFileUid(param.uid);
         break;
       }
     }
@@ -100,9 +100,9 @@ const FileBody = ({ item, collection }) => {
                             },
                             param,
                             'filePath'
-                          )
-                        }
+                          )}
                         collection={collection}
+                        displayMode="labelAndIcon"
                       />
                     </td>
                     <td>
@@ -121,8 +121,7 @@ const FileBody = ({ item, collection }) => {
                             },
                             param,
                             'contentType'
-                          )
-                        }
+                          )}
                         onRun={handleRun}
                         collection={collection}
                       />

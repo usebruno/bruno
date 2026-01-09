@@ -47,7 +47,7 @@ export const validateSchema = (collection = {}) => {
     collectionSchema.validateSync(collection);
     return collection;
   } catch (err) {
-    console.log("Error validating schema", err);
+    console.log('Error validating schema', err);
     throw new Error('The Collection has an invalid schema');
   }
 };
@@ -95,7 +95,6 @@ export const updateUidsInCollection = (_collection) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
-
       if (['http', 'graphql'].includes(item.type)) {
         item.type = `${item.type}-request`;
 

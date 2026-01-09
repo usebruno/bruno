@@ -160,8 +160,7 @@ const AssertionRow = ({
               },
               assertion,
               'value'
-            )
-          }
+            )}
         />
       </td>
       <td>
@@ -169,7 +168,6 @@ const AssertionRow = ({
           <SingleLineEditor
             value={value}
             theme={storedTheme}
-            readOnly={true}
             onSave={onSave}
             onChange={(newValue) => {
               handleAssertionChange(
@@ -180,9 +178,8 @@ const AssertionRow = ({
                 },
                 assertion,
                 'value'
-              )
-              }
-            }
+              );
+            }}
             onRun={handleRun}
             collection={collection}
             item={item}

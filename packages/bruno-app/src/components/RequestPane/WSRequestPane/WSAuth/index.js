@@ -40,7 +40,8 @@ const WSAuth = ({ item, collection }) => {
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
 
-    const collectionAuth = get(collection, 'root.request.auth');
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    const collectionAuth = get(collectionRoot, 'request.auth');
     let effectiveSource = {
       type: 'collection',
       name: 'Collection',
@@ -117,7 +118,7 @@ const WSAuth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full mt-1 overflow-y-scroll">
+    <StyledWrapper className="w-full overflow-y-scroll">
       <div className="flex flex-grow justify-start items-center">
         <WSAuthMode item={item} collection={collection} />
       </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconBug } from '@tabler/icons';
-import { 
+import {
   setSelectedError,
   clearDebugErrors
 } from 'providers/ReduxStore/slices/logs';
@@ -10,10 +10,10 @@ import StyledWrapper from './StyledWrapper';
 const ErrorRow = ({ error, isSelected, onClick }) => {
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { 
-      hour12: false, 
-      hour: '2-digit', 
-      minute: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
       second: '2-digit',
       fractionalSecondDigits: 3
     });
@@ -38,18 +38,18 @@ const ErrorRow = ({ error, isSelected, onClick }) => {
   };
 
   return (
-    <div 
+    <div
       className={`error-row ${isSelected ? 'selected' : ''}`}
       onClick={onClick}
     >
       <div className="error-message" title={error.message}>
         {getShortMessage(error.message)}
       </div>
-      
+
       <div className="error-location" title={error.filename}>
         {getLocation(error)}
       </div>
-      
+
       <div className="error-time">
         {formatTime(error.timestamp)}
       </div>
@@ -59,7 +59,7 @@ const ErrorRow = ({ error, isSelected, onClick }) => {
 
 const DebugTab = () => {
   const dispatch = useDispatch();
-  const { debugErrors, selectedError } = useSelector(state => state.logs);
+  const { debugErrors, selectedError } = useSelector((state) => state.logs);
 
   const handleErrorClick = (error) => {
     dispatch(setSelectedError(error));
@@ -85,7 +85,7 @@ const DebugTab = () => {
               <div>Location</div>
               <div className="text-right">Time</div>
             </div>
-            
+
             <div className="errors-list">
               {debugErrors.map((error, index) => (
                 <ErrorRow
@@ -103,4 +103,4 @@ const DebugTab = () => {
   );
 };
 
-export default DebugTab; 
+export default DebugTab;

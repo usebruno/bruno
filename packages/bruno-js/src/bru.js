@@ -7,9 +7,10 @@ const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
+    this.promptVariables = promptVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
     this.collectionVariables = collectionVariables || {};
     this.folderVariables = folderVariables || {};
@@ -22,7 +23,7 @@ class Bru {
     this.cookies = {
       jar: () => {
         const cookieJar = createCookieJar();
-                
+
         return {
           getCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
@@ -134,6 +135,7 @@ class Bru {
       ...this.requestVariables,
       ...this.oauth2CredentialVariables,
       ...this.runtimeVariables,
+      ...this.promptVariables,
       process: {
         env: {
           ...this.processEnvVars
@@ -223,19 +225,19 @@ class Bru {
 
     if (variableNameRegex.test(key) === false) {
       throw new Error(
-        `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
-    this.runtimeVariables[key] = value;
+    this.runtimeVariables[key] = this.interpolate(value);
   }
 
   getVar(key) {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
-        `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 

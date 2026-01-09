@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   /* Screen reader only content */
@@ -40,9 +41,9 @@ const StyledWrapper = styled.div`
   }
   .command-k-modal {
     background: ${(props) => props.theme.modal.body.bg};
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    border: 1px solid ${(props) => props.theme.border.border1};
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: ${(props) => props.theme.shadow.md};
     width: 90%;
     max-width: 600px;
     max-height: 70vh;
@@ -55,8 +56,7 @@ const StyledWrapper = styled.div`
   }
   .command-k-header {
     padding: 12px;
-    border-bottom: 1px solid ${(props) => props.theme.modal.input.border};
-    background: ${(props) => props.theme.modal.title.bg};
+    border-bottom: 1px solid ${(props) => props.theme.border.border1};
   }
   .search-input-container {
     position: relative;
@@ -64,13 +64,11 @@ const StyledWrapper = styled.div`
     align-items: center;
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    border: 1px solid ${(props) => props.theme.input.border};
     border-radius: 6px;
-    background: ${(props) => props.theme.modal.input.bg};
     transition: all 0.2s ease;
     &:focus-within {
-      border-color: ${(props) => props.theme.colors.text.muted};
-      box-shadow: 0 0 0 1px ${(props) => props.theme.colors.text.muted}40;
+      border: 1px solid ${(props) => props.theme.input.focusBorder};
     }
     .search-icon {
       color: ${(props) => props.theme.colors.text.muted};
@@ -92,7 +90,7 @@ const StyledWrapper = styled.div`
       border-radius: 4px;
       flex-shrink: 0;
       &:hover {
-        background: ${(props) => props.theme.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
+        background: ${(props) => rgba(props.theme.text, 0.1)};
       }
     }
   }
@@ -102,7 +100,7 @@ const StyledWrapper = styled.div`
     border: none;
     outline: none;
     color: ${(props) => props.theme.text};
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     width: 100%;
     padding: 0;
     &::placeholder {
@@ -114,9 +112,8 @@ const StyledWrapper = styled.div`
     flex: 1;
     overflow-y: auto;
     max-height: 400px;
-    background: ${(props) => props.theme.modal.body.bg};
     scrollbar-width: thin;
-    padding: 4px;
+    padding: 6px 0;
     scroll-behavior: smooth;
     /* Webkit scrollbar styling */
     &::-webkit-scrollbar {
@@ -127,26 +124,27 @@ const StyledWrapper = styled.div`
       background: transparent;
     }
     &::-webkit-scrollbar-thumb {
-      background: ${(props) => props.theme.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
+      background: ${(props) => rgba(props.theme.text, 0.2)};
       border-radius: 4px;
       &:hover {
-        background: ${(props) => props.theme.mode === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'};
+        background: ${(props) => rgba(props.theme.text, 0.3)};
       }
     }
   }
   .result-item {
     display: flex;
     align-items: center;
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 10px 12px;
+    margin: 2px 8px;
+    gap: 10px;
     cursor: pointer;
-    border-left: 2px solid transparent;
-    &:hover {
-      background: ${(props) => props.theme.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    transition: background 0.1s ease;
+    &:hover:not(.selected) {
+      background: ${(props) => rgba(props.theme.text, 0.05)};
     }
     &.selected {
-      background: ${(props) => `${props.theme.colors.text.yellow}15`};
-      border-left: 2px solid ${(props) => props.theme.colors.text.yellow};
+      background: ${(props) => props.theme.dropdown.hoverBg};
     }
   }
   .result-icon {
@@ -179,7 +177,7 @@ const StyledWrapper = styled.div`
     flex-shrink: 0;
   }
   .result-name {
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     margin-bottom: 3px;
     white-space: nowrap;
     overflow: hidden;
@@ -188,7 +186,7 @@ const StyledWrapper = styled.div`
     letter-spacing: 0.2px;
   }
   .result-path {
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
     white-space: nowrap;
     overflow: hidden;
@@ -196,74 +194,82 @@ const StyledWrapper = styled.div`
     letter-spacing: 0.1px;
   }
   .method-badge {
-    font-size: 11px;
+    font-size: 0.625rem;
     font-weight: 500;
-    padding: 3px 8px;
+    padding: 2px 6px;
     border-radius: 4px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     flex-shrink: 0;
-    min-width: 55px;
+    min-width: 48px;
     text-align: center;
     &.get {
-      color: #2ecc71;
-      background: rgba(46, 204, 113, 0.1);
+      color: ${(props) => props.theme.request.methods.get};
+      background: ${(props) => rgba(props.theme.request.methods.get, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.get, 0.2)};
     }
     &.post {
-      color: #3498db;
-      background: rgba(52, 152, 219, 0.1);
+      color: ${(props) => props.theme.request.methods.post};
+      background: ${(props) => rgba(props.theme.request.methods.post, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.post, 0.2)};
     }
     &.put {
-      color: #e67e22;
-      background: rgba(230, 126, 34, 0.1);
+      color: ${(props) => props.theme.request.methods.put};
+      background: ${(props) => rgba(props.theme.request.methods.put, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.put, 0.2)};
     }
     &.delete {
-      color: #e74c3c;
-      background: rgba(231, 76, 60, 0.1);
+      color: ${(props) => props.theme.request.methods.delete};
+      background: ${(props) => rgba(props.theme.request.methods.delete, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.delete, 0.2)};
     }
     &.patch {
-      color: #9b59b6;
-      background: rgba(155, 89, 182, 0.1);
+      color: ${(props) => props.theme.request.methods.patch};
+      background: ${(props) => rgba(props.theme.request.methods.patch, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.patch, 0.2)};
     }
     &.head {
-      color: #2980b9;
-      background: rgba(41, 128, 185, 0.1);
+      color: ${(props) => props.theme.request.methods.head};
+      background: ${(props) => rgba(props.theme.request.methods.head, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.head, 0.2)};
     }
     &.options {
-      color: #f1c40f;
-      background: rgba(241, 196, 15, 0.1);
+      color: ${(props) => props.theme.request.methods.options};
+      background: ${(props) => rgba(props.theme.request.methods.options, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.options, 0.2)};
     }
     &.unary {
-      color: #27ae60;
-      background: rgba(39, 174, 96, 0.12);
-      font-weight: 600;
+      color: ${(props) => props.theme.request.methods.get};
+      background: ${(props) => rgba(props.theme.request.methods.get, 0.12)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.get, 0.2)};
     }
     &.client-streaming {
-      color: #2980b9;
-      background: rgba(41, 128, 185, 0.12);
-      font-weight: 600;
+      color: ${(props) => props.theme.request.methods.post};
+      background: ${(props) => rgba(props.theme.request.methods.post, 0.12)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.post, 0.2)};
     }
     &.server-streaming {
-      color: #f39c12;
-      background: rgba(243, 156, 18, 0.12);
-      font-weight: 600;
+      color: ${(props) => props.theme.request.methods.put};
+      background: ${(props) => rgba(props.theme.request.methods.put, 0.12)};
+      border: 1px solid ${(props) => rgba(props.theme.request.methods.put, 0.2)};
     }
     &.bidirectional-streaming,
     &.bidi-streaming {
-      color: #8e44ad;
-      background: rgba(142, 68, 173, 0.12);
-      font-weight: 600;
+      color: ${(props) => props.theme.colors.text.purple};
+      background: ${(props) => rgba(props.theme.colors.text.purple, 0.12)};
+      border: 1px solid ${(props) => rgba(props.theme.colors.text.purple, 0.2)};
     }
   }
   .result-type {
-    font-size: 11px;
-    color: ${(props) => props.theme.colors.text.muted};
+    font-size: 0.625rem;
+    color: ${(props) => props.theme.textLink};
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    background: ${(props) => props.theme.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'};
-    opacity: 0.8;
+    font-weight: 500;
+    background: ${(props) => rgba(props.theme.textLink, 0.1)};
+    border: 1px solid ${(props) => rgba(props.theme.textLink, 0.2)};
     flex-shrink: 0;
   }
   .result-item[data-type="documentation"] {
@@ -272,7 +278,7 @@ const StyledWrapper = styled.div`
       opacity: 0.8;
     }
     .result-path {
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       color: ${(props) => props.theme.colors.text.muted};
       white-space: nowrap;
       overflow: hidden;
@@ -280,20 +286,17 @@ const StyledWrapper = styled.div`
       letter-spacing: 0.1px;
       opacity: 0.8;
     }
-    &:hover:not(.selected) {
-      background: ${(props) => props.theme.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
-    }
   }
   .no-results,
   .empty-state {
     padding: 24px 16px;
     text-align: center;
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
   }
   .command-k-footer {
     padding: 8px 12px;
-    border-top: 1px solid ${(props) => props.theme.modal.input.border};
+    border-top: 1px solid ${(props) => props.theme.border.border1};
     background: ${(props) => props.theme.colors.surface};
   }
   .keyboard-hints {
@@ -301,7 +304,7 @@ const StyledWrapper = styled.div`
     justify-content: center;
     gap: 24px;
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     letter-spacing: 0.2px;
     span {
       display: flex;
@@ -319,11 +322,10 @@ const StyledWrapper = styled.div`
         align-items: center;
         justify-content: center;
         padding: 2px 6px;
-        border: 1px solid ${(props) => props.theme.modal.input.border};
+        border: 1px solid ${(props) => props.theme.border.border2};
         border-radius: 4px;
-        background: ${(props) =>
-          props.theme.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'};
-        font-size: 11px;
+        background: ${(props) => rgba(props.theme.text, 0.08)};
+        font-size: ${(props) => props.theme.font.size.xs};
         font-weight: 500;
         font-family: inherit;
         line-height: 1;
@@ -332,11 +334,10 @@ const StyledWrapper = styled.div`
     }
   }
   .highlight {
-    background: ${(props) => `${props.theme.colors.text.yellow}30`};
+    color: ${(props) => props.theme.brand};
     border-radius: 2px;
-    padding: 0 2px;
+    padding: 1px 2px;
     margin: 0 -1px;
-    font-weight: 500;
   }
   @keyframes fade-in {
     from {
@@ -358,4 +359,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

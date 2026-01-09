@@ -5,7 +5,8 @@ test.describe('Invalid Insomnia Collection - Missing Collection Array', () => {
   test('Handle Insomnia v5 collection missing collection array', async ({ page }) => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5-invalid-missing-collection.yaml');
 
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
     const importModal = page.getByRole('dialog');
@@ -14,14 +15,10 @@ test.describe('Invalid Insomnia Collection - Missing Collection Array', () => {
 
     await page.setInputFiles('input[type="file"]', insomniaFile);
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-
-    // Check for error message
-    const hasError = await page.getByText('Import collection failed').first().isVisible();
-    expect(hasError).toBe(true);
+    const errorLocator = page.getByText('Unsupported collection format').first();
+    await expect(errorLocator).toBeVisible({ timeout: 10000 });
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });

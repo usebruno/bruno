@@ -10,12 +10,11 @@ export const isElectron = () => {
   return window.ipcRenderer ? true : false;
 };
 
-export const resolveRequestFilename = (name) => {
-  return `${trim(name)}.bru`;
+export const resolveRequestFilename = (name, extension = 'bru') => {
+  return `${trim(name)}.${extension}`;
 };
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
-
   const relativePath = path.relative(rootPath, pathname);
   return relativePath ? relativePath.split(path.sep) : [];
 };
@@ -32,6 +31,19 @@ export const isMacOS = () => {
   const osFamily = os.family.toLowerCase();
 
   return osFamily.includes('os x');
+};
+
+export const isLinuxOS = () => {
+  const os = platform.os;
+  const osFamily = os.family.toLowerCase();
+
+  return osFamily.includes('linux') || osFamily.includes('ubuntu') || osFamily.includes('debian') || osFamily.includes('fedora') || osFamily.includes('centos') || osFamily.includes('arch');
+};
+
+export const getRevealInFolderLabel = () => {
+  if (isMacOS()) return 'Reveal in Finder';
+  if (isWindowsOS()) return 'Reveal in File Explorer';
+  return 'Reveal in File Manager';
 };
 
 export const getAppInstallDate = () => {

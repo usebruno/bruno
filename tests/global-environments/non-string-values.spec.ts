@@ -1,8 +1,9 @@
 import { test, expect } from '../../playwright';
-import { openCollectionAndAcceptSandbox, closeAllCollections } from '../utils/page';
+import { openCollection, closeAllCollections, sendRequest, addEnvironmentVariables } from '../utils/page';
+import { buildCommonLocators } from '../utils/page/locators';
 
 test.describe('Global Environment Variables - Non-string Values', () => {
-  test.afterAll(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     // Cleanup: close all collections
     await closeAllCollections(page);
   });
@@ -10,7 +11,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
   test('should seed non-string globals via request and verify read-only + tooltip', async ({
     pageWithUserData: page
   }) => {
-    await openCollectionAndAcceptSandbox(page, 'global-env-non-string', 'safe');
+    await openCollection(page, 'global-env-non-string');
 
     await test.step('Create a new global environment with a string variable', async () => {
       await page.getByTestId('environment-selector-trigger').click();
@@ -22,44 +23,39 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       await page.locator('#environment-name').fill('Test Env');
       await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-      // Add a string variable.
-      await page.getByTestId('add-variable').click();
-      const newRow = page.locator('tbody tr').last();
-      await newRow.locator('input[name$=".name"]').fill('stringVar');
-      await newRow.locator('.CodeMirror').click();
-      await page.keyboard.type('hello world');
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+      await expect(envTab).toBeVisible();
 
-      // Save
+      await addEnvironmentVariables(page, [
+        { name: 'stringVar', value: 'hello world' },
+        { name: 'numericVar', value: '170001' },
+        { name: 'booleanVar', value: 'true' }
+      ]);
+
       await page.getByTestId('save-env').click();
 
-      // Verify that the string variable value is saved and displayed correctly.
-      await expect(newRow.locator('.CodeMirror-line').first()).toContainText('hello world');
-      // Close the environment modal
-      await page.locator('[data-test-id="modal-close-button"]').click();
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click();
     });
 
     // Request contains a script that sets the non-string global variables.
     await test.step('Run the request to seed non-string global variables via post-script', async () => {
-      await page.getByText('set-global-nonstring').click();
-      await page.getByTestId('send-arrow-icon').click();
-
-      // wait for the response to arrive
-      await page.getByTestId('response-status-code').waitFor({ state: 'visible' });
-      await expect(page.getByTestId('response-status-code')).toHaveText(/200/);
+      const locators = buildCommonLocators(page);
+      await locators.sidebar.request('set-global-nonstring').click();
+      await sendRequest(page, 200);
     });
 
     await test.step('Re-open Global Environments to see the seeded variables', async () => {
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByTestId('env-tab-global').click();
       await page.getByRole('button', { name: 'Configure' }).click();
+
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+      await expect(envTab).toBeVisible();
     });
 
-    const envModal = page
-      .locator('.bruno-modal-card')
-      .filter({ has: page.locator('.bruno-modal-header-title', { hasText: 'Global Environments' }) });
-
-    const numericInput = envModal.locator('input[value="numericVar"]');
-    const booleanInput = envModal.locator('input[value="booleanVar"]');
+    const numericInput = page.locator('input[value="numericVar"]');
+    const booleanInput = page.locator('input[value="booleanVar"]');
     await expect(numericInput).toBeVisible();
     await expect(booleanInput).toBeVisible();
     const numericRow = numericInput.locator('xpath=ancestor::tr');
@@ -76,9 +72,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       await page.keyboard.type('999');
       await expect(numericRow.locator('.CodeMirror-line').first()).toContainText(/170001/);
 
-      // Hovering over the info icon reveals the tooltip.
-      // It is anchored to the info icon element id, so hover/click reveals it reliably.
-      const infoIcon = page.locator('#numericVar-disabled-info-icon');
+      const infoIcon = numericRow.locator('[id$="-disabled-info-icon"]').nth(0);
       await infoIcon.hover();
 
       // The tooltip explains why the field is locked.
@@ -105,8 +99,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       await page.keyboard.type('false');
       await expect(booleanRow.locator('.CodeMirror-line').first()).toContainText(/true/);
 
-      // Hovering over the info icon reveals the tooltip.
-      const infoIcon = page.locator('#booleanVar-disabled-info-icon');
+      const infoIcon = booleanRow.locator('[id$="-disabled-info-icon"]').nth(0);
       await infoIcon.hover();
 
       // The tooltip explains why the field is locked.
@@ -116,8 +109,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
     });
 
     await test.step('Verify that stringVar remains editable', async () => {
-      // Unlike script-managed values above, this one is user-managed.
-      const stringInput = envModal.locator('input[value="stringVar"]');
+      const stringInput = page.locator('input[value="stringVar"]');
       await expect(stringInput).toBeVisible();
       const stringRow = stringInput.locator('xpath=ancestor::tr');
 
@@ -127,8 +119,12 @@ test.describe('Global Environment Variables - Non-string Values', () => {
 
       // Verify the user edit persists in the UI.
       await expect(stringRow.locator('.CodeMirror-line').first()).toContainText('hello world updated');
-      // Close the environment modal
-      await page.locator('[data-test-id="modal-close-button"]').click();
+
+      await page.getByTestId('save-env').click();
+
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click();
     });
   });
 });

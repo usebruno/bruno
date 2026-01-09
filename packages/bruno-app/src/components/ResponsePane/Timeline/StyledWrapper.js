@@ -10,8 +10,11 @@ const StyledWrapper = styled.div`
     flex: 1;
   }
 
+  .timeline-item {
+    border-color: ${(props) => props.theme.border.border1};
+  }
+
   .timeline-event {
-    padding: 8px 0 0 0;
     cursor: pointer;
   }
 
@@ -26,27 +29,27 @@ const StyledWrapper = styled.div`
   }
 
   .method-label {
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .status-code {
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .url-text {
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 0.875rem;
+    font-size: ${(props) => props.theme.font.size.base};
     margin-top: 0.25rem;
   }
 
   .timestamp {
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 0.875rem;
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   .meta-info {
     color: ${(props) => props.theme.colors.text.muted};
-    font-size: 0.875rem;
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   .oauth-section {
@@ -54,7 +57,7 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       color: ${(props) => props.theme.text};
-      font-weight: 600;
+      font-weight: 500;
 
       span {
         margin-left: 0.5rem;
@@ -63,9 +66,9 @@ const StyledWrapper = styled.div`
   }
 
   .tabs-switcher {
-    border-bottom: 1px solid ${(props) => props.theme.modal.input.border};
+    border-bottom: 1px solid ${(props) => props.theme.border.border1};
     margin-bottom: 16px;
-    
+
     button {
       position: relative;
       padding: 8px 16px;
@@ -126,9 +129,9 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.purple};
     }
   }
-    
+
   .request-label {
-    font-size: 0.75rem;
+    font-size: ${(props) => props.theme.font.size.base};
     padding: 2px 6px;
     border-radius: 3px;
     margin-left: 8px;
@@ -138,7 +141,7 @@ const StyledWrapper = styled.div`
   table {
     width: 100%;
     border-collapse: collapse;
-    font-weight: 600;
+    font-weight: 500;
     table-layout: fixed;
 
     thead,
@@ -148,7 +151,7 @@ const StyledWrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
     }
     td {

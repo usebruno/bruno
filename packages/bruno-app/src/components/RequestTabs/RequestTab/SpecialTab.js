@@ -1,55 +1,63 @@
 import React from 'react';
-import CloseTabIcon from './CloseTabIcon';
-import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
+import GradientCloseButton from './GradientCloseButton';
+import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock, IconDatabase, IconWorld } from '@tabler/icons';
 
-const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick }) => {
+const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
   const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
         return (
-          <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
-            <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Collection</span>
-          </div>
+          <>
+            <IconSettings size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">Collection</span>
+          </>
         );
       }
       case 'collection-overview': {
         return (
           <>
-            <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Collection</span>
+            <IconSettings size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">Overview</span>
           </>
         );
       }
-      case 'security-settings': {
-        return (
-          <>
-            <IconShieldLock size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1">Security</span>
-          </>
-        )
-      }
       case 'folder-settings': {
         return (
-          <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
-            <IconFolder size={18} strokeWidth={1.5} className="text-yellow-600 min-w-[18px]" />
-            <span className="ml-1 leading-6 truncate">{tabName || 'Folder'}</span>
-          </div>
+          <>
+            <IconFolder size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">{tabName || 'Folder'}</span>
+          </>
         );
       }
       case 'variables': {
         return (
           <>
-            <IconVariable size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Variables</span>
+            <IconVariable size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">Variables</span>
           </>
         );
       }
       case 'collection-runner': {
         return (
           <>
-            <IconRun size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1 leading-6">Runner</span>
+            <IconRun size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">Runner</span>
+          </>
+        );
+      }
+      case 'environment-settings': {
+        return (
+          <>
+            <IconDatabase size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">Environments</span>
+          </>
+        );
+      }
+      case 'global-environment-settings': {
+        return (
+          <>
+            <IconWorld size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">Global Environments</span>
           </>
         );
       }
@@ -58,10 +66,13 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick }) => {
 
   return (
     <>
-      <div className="flex items-center tab-label pl-2">{getTabInfo(type, tabName)}</div>
-      <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
-        <CloseTabIcon />
+      <div
+        className="flex items-center tab-label"
+        onDoubleClick={handleDoubleClick}
+      >
+        {getTabInfo(type, tabName)}
       </div>
+      <GradientCloseButton hasChanges={hasDraft} onClick={(e) => handleCloseClick(e)} />
     </>
   );
 };

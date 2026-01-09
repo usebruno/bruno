@@ -90,5 +90,4 @@ describe('prepareGqlIntrospectionRequest', () => {
 
     expect(result.headers['X-API-Key']).toBe('{{process.env.MISSING_VAR}}');
   });
-
 });

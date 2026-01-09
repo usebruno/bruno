@@ -19,13 +19,15 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, preview } = action.payload;
+      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid } = action.payload;
+
       const nonReplaceableTabTypes = [
-        "variables",
-        "collection-runner",
-        "security-settings",
+        'variables',
+        'collection-runner',
+        'environment-settings',
+        'global-environment-settings'
       ];
-    
+
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
         state.activeTabUid = existingTab.uid;
@@ -56,17 +58,21 @@ export const tabsSlice = createSlice({
           requestPaneWidth: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
+          responseFormat: null,
+          responseViewTab: null,
           type: type || 'request',
           preview: preview !== undefined
             ? preview
-          : !nonReplaceableTabTypes.includes(type),
-          ...(uid ? { folderUid: uid } : {})
+            : !nonReplaceableTabTypes.includes(type),
+          ...(uid ? { folderUid: uid } : {}),
+          ...(exampleUid ? { exampleUid } : {}),
+          ...(itemUid ? { itemUid } : {})
         };
 
         state.activeTabUid = uid;
         return;
       }
-    
+
       state.tabs.push({
         uid,
         collectionUid,
@@ -74,11 +80,15 @@ export const tabsSlice = createSlice({
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
         responsePaneScrollPosition: null,
+        responseFormat: null,
+        responseViewTab: null,
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
-            ? preview
-          : !nonReplaceableTabTypes.includes(type)
+          ? preview
+          : !nonReplaceableTabTypes.includes(type),
+        ...(exampleUid ? { exampleUid } : {}),
+        ...(itemUid ? { itemUid } : {})
       });
       state.activeTabUid = uid;
     },
@@ -112,6 +122,13 @@ export const tabsSlice = createSlice({
         tab.requestPaneWidth = action.payload.requestPaneWidth;
       }
     },
+    updateRequestPaneTabHeight: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.requestPaneHeight = action.payload.requestPaneHeight;
+      }
+    },
     updateRequestPaneTab: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -131,6 +148,20 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responsePaneScrollPosition = action.payload.scrollY;
+      }
+    },
+    updateResponseFormat: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFormat = action.payload.responseFormat;
+      }
+    },
+    updateResponseViewTab: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseViewTab = action.payload.responseViewTab;
       }
     },
     closeTabs: (state, action) => {
@@ -213,9 +244,12 @@ export const {
   focusTab,
   switchTab,
   updateRequestPaneTabWidth,
+  updateRequestPaneTabHeight,
   updateRequestPaneTab,
   updateResponsePaneTab,
   updateResponsePaneScrollPosition,
+  updateResponseFormat,
+  updateResponseViewTab,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,

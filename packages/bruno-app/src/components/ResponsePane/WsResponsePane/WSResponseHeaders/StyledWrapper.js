@@ -6,9 +6,9 @@ const StyledWrapper = styled.div`
     border-collapse: collapse;
 
     thead {
-      color: #777777;
-      font-size: 0.75rem;
-      font-weight: 600;
+      color: ${(props) => props.theme.table.thead.color};
+      font-size: ${(props) => props.theme.font.size.sm};
+      font-weight: 500;
       text-transform: uppercase;
     }
 

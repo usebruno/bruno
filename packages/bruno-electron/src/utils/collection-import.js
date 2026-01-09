@@ -11,18 +11,18 @@ const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, st
 async function findUniqueFolderName(baseName, collectionLocation, counter = 0) {
   const folderName = counter === 0 ? baseName : `${baseName} - ${counter}`;
   const collectionPath = path.join(collectionLocation, sanitizeName(folderName));
-  
+
   if (fs.existsSync(collectionPath)) {
     return findUniqueFolderName(baseName, collectionLocation, counter + 1);
   }
-  
+
   return folderName;
 }
 
 /**
  * Import a collection - shared logic used by both IPC handler and onboarding service
  */
-async function importCollection(collection, collectionLocation, mainWindow, lastOpenedCollections, uniqueFolderName = null) {
+async function importCollection(collection, collectionLocation, mainWindow, uniqueFolderName = null, format = 'bru') {
   // Use provided unique folder name or use collection name
   let folderName = uniqueFolderName ? sanitizeName(uniqueFolderName) : sanitizeName(collection.name);
   let collectionPath = path.join(collectionLocation, folderName);
@@ -35,8 +35,8 @@ async function importCollection(collection, collectionLocation, mainWindow, last
   const parseCollectionItems = async (items = [], currentPath) => {
     for (const item of items) {
       if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
-        let sanitizedFilename = sanitizeName(item.filename || `${item.name}.bru`);
-        const content = await stringifyRequestViaWorker(item);
+        let sanitizedFilename = sanitizeName(item.filename || `${item.name}.${format}`);
+        const content = await stringifyRequestViaWorker(item, { format });
         const filePath = path.join(currentPath, sanitizedFilename);
         safeWriteFileSync(filePath, content);
       }
@@ -46,10 +46,10 @@ async function importCollection(collection, collectionLocation, mainWindow, last
         fs.mkdirSync(folderPath);
 
         if (item.root?.meta?.name) {
-          const folderBruFilePath = path.join(folderPath, 'folder.bru');
+          const folderFilePath = path.join(folderPath, `folder.${format}`);
           item.root.meta.seq = item.seq;
-          const folderContent = await stringifyFolder(item.root);
-          safeWriteFileSync(folderBruFilePath, folderContent);
+          const folderContent = await stringifyFolder(item.root, { format });
+          safeWriteFileSync(folderFilePath, folderContent);
         }
 
         if (item.items && item.items.length) {
@@ -72,8 +72,8 @@ async function importCollection(collection, collectionLocation, mainWindow, last
     }
 
     for (const env of environments) {
-      const content = await stringifyEnvironment(env);
-      let sanitizedEnvFilename = sanitizeName(`${env.name}.bru`);
+      const content = await stringifyEnvironment(env, { format });
+      let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
       const filePath = path.join(envDirPath, sanitizedEnvFilename);
       safeWriteFileSync(filePath, content);
     }
@@ -98,13 +98,19 @@ async function importCollection(collection, collectionLocation, mainWindow, last
 
   const uid = generateUidBasedOnHash(collectionPath);
   let brunoConfig = getBrunoJsonConfig(collection);
-  const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
 
-  // Write the Bruno configuration to a file
-  await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
+  if (format === 'yml') {
+    const collectionContent = await stringifyCollection(collection.root, { format });
+    await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
+  } else if (format === 'bru') {
+    const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+    await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
-  const collectionContent = await stringifyCollection(collection.root);
-  await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
+    const collectionContent = await stringifyCollection(collection.root, { format });
+    await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
+  } else {
+    throw new Error(`Invalid format: ${format}`);
+  }
 
   const { size, filesCount } = await getCollectionStats(collectionPath);
   brunoConfig.size = size;
@@ -112,8 +118,6 @@ async function importCollection(collection, collectionLocation, mainWindow, last
 
   mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
   ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
-
-  lastOpenedCollections.add(collectionPath);
 
   // create folder and files based on collection
   await parseCollectionItems(collection.items, collectionPath);

@@ -1,14 +1,30 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  font-size: 0.8125rem;
+  font-size: ${(props) => props.theme.font.size.base};
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
 
   .dropdown {
     width: 100%;
+    display: flex;
+    align-items: stretch;
   }
 
   .method-selector {
-    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    margin: 2px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+
+    &:not(.custom-input-mode):hover,
+    &:has(button[aria-expanded="true"]) {
+      background-color: color-mix(in srgb, currentColor 15%, transparent);
+    }
+
 
     .tippy-box {
       max-width: 150px !important;
@@ -17,6 +33,10 @@ const Wrapper = styled.div`
 
     .dropdown-item {
       padding: 0.25rem 0.6rem !important;
+    }
+
+    .text-link {
+      color: ${(props) => props.theme.textLink};
     }
   }
 
@@ -33,18 +53,19 @@ const Wrapper = styled.div`
   }
 
   .method-span {
-    width: 70px;
-    min-width: 70px;
-    max-width: 90px;
+    display: block;
+    max-width: 15ch;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
-    display: inline-block;
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 500;
+    line-height: 1.5;
   }
 
   .caret {
-    color: rgb(140, 140, 140);
-    fill: rgb(140 140 140);
+    color: currentColor;
+    fill: currentColor;
   }
 `;
 

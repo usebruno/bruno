@@ -1,6 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
+const parseExample = require('./example/bruToJson');
 
 /**
  * A Bru file is made up of blocks.
@@ -29,7 +30,7 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -51,7 +52,8 @@ const grammar = ohm.grammar(`Bru {
 
    // Multiline text block surrounded by '''
   multilinetextblockdelimiter = "'''"
-  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter st* contenttypeannotation?
+  contenttypeannotation = "@contentType(" (~")" any)* ")"
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
@@ -64,7 +66,8 @@ const grammar = ohm.grammar(`Bru {
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = list | multilinetextblock | valuechar*
+  value = list | multilinetextblock | singlelinevalue
+  singlelinevalue = valuechar*
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -144,6 +147,11 @@ const grammar = ohm.grammar(`Bru {
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
   bodyfile = "body:file" dictionary
+
+
+  // Examples - multiple example blocks
+  example = "example" st* "{" nl* examplecontent tagend
+  examplecontent = (~tagend any)*
   
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -205,7 +213,7 @@ const mapRequestParams = (pairList = [], type) => {
 
 const multipartExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
-    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/s);
     if (match != null && match.length > 2) {
       pair.value = match[1];
       pair.contentType = match[2];
@@ -217,7 +225,7 @@ const multipartExtractContentType = (pair) => {
 
 const fileExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
-    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/s);
     if (match && match.length > 2) {
       pair.value = match[1].trim();
       pair.contentType = match[2].trim();
@@ -226,7 +234,6 @@ const fileExtractContentType = (pair) => {
     }
   }
 };
-
 
 const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) => {
   const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
@@ -251,10 +258,10 @@ const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
     fileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');      
+      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.filePath = filePath;
-      pair.selected = pair.enabled
-      
+      pair.selected = pair.enabled;
+
       // Remove pair.value as it only contains the file path reference
       delete pair.value;
       // Remove pair.name as it is auto-generated (e.g., file1, file2, file3, etc.)
@@ -293,6 +300,37 @@ const createGetNumFromRecord = (obj) => (key, { fallback } = {}) => {
   return asNumber;
 };
 
+// Parse example content using dedicated example parser
+const parseExampleContent = (content) => {
+  try {
+    // Unindent the content by removing leading whitespace from each line
+    const lines = content.split('\n');
+
+    // Find the minimum indentation (excluding empty lines)
+    let minIndent = Infinity;
+    lines.forEach((line) => {
+      if (line.trim() !== '') {
+        const indent = line.match(/^[ \t]*/)[0].length;
+        minIndent = Math.min(minIndent, indent);
+      }
+    });
+
+    // Remove the minimum indentation from all lines
+    const unindentedLines = lines.map((line) => {
+      if (line.trim() === '') return line; // Keep empty lines as is
+      return line.substring(minIndent);
+    });
+
+    const unindentedContent = unindentedLines.join('\n').trim();
+
+    // Parse the unindented content using the dedicated example parser
+    return parseExample(unindentedContent);
+  } catch (error) {
+    console.error('Error parsing example content:', error);
+    return { error: error.message };
+  }
+};
+
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
@@ -328,28 +366,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   quoted_key(disabled, _1, chars, _2) {
     // unquote
-    return (disabled? disabled.sourceString : "") + chars.ast.join("");
+    return (disabled ? disabled.sourceString : '') + chars.ast.join('');
   },
   key(chars) {
-    return chars.sourceString ? chars.sourceString.trim() : '';
-  },
-  value(chars) {
-    if (chars.ctorName === 'list') {
-      return chars.ast;
-    }
-    try {
-      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
-      if (isMultiline) {
-        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
-        return multilineString
-          .split('\n')
-          .map((line) => line.slice(4))
-          .join('\n');
-      }
-      return chars.sourceString ? chars.sourceString.trim() : '';
-    } catch (err) {
-      console.error(err);
-    }
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   assertdictionary(_1, _2, pairlist, _3) {
@@ -367,10 +386,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   list(_1, _2, _3, listitems, _4, _5, _6, _7) {
-    return listitems.ast.flat()
+    return listitems.ast.flat();
   },
   listitems(listitem, _1, rest) {
-    return [listitem.ast, ...rest.ast]
+    return [listitem.ast, ...rest.ast];
   },
   listitem(_1, textchar, _2) {
     return textchar.sourceString;
@@ -393,15 +412,25 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   tagend(_1, _2) {
     return '';
   },
-  _terminal(){
+  _terminal() {
     return this.sourceString;
   },
   multilinetextblockdelimiter(_) {
     return '';
   },
-  multilinetextblock(_1, content, _2) {
-    // Join all the content between the triple quotes and trim it
-    return content.sourceString.trim();
+  multilinetextblock(_1, content, _2, _3, contentType) {
+    const multilineString = content.sourceString
+      .split('\n')
+      .map((line) => line.slice(4))
+      .join('\n');
+
+    if (!contentType.sourceString) {
+      return multilineString;
+    }
+    return `${multilineString} ${contentType.sourceString}`;
+  },
+  singlelinevalue(chars) {
+    return chars.sourceString?.trim() || '';
   },
   _iter(...elements) {
     return elements.map((e) => e.ast);
@@ -680,7 +709,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         }
       }
     };
-  },  
+  },
   authOAuth2(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
     const grantTypeKey = _.find(auth, { name: 'grant_type' });
@@ -724,56 +753,56 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
-            ? {
-                grantType: grantTypeKey ? grantTypeKey.value : '',
-                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
-                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
-                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
-                refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
-                clientId: clientIdKey ? clientIdKey.value : '',
-                clientSecret: clientSecretKey ? clientSecretKey.value : '',
-                scope: scopeKey ? scopeKey.value : '',
-                state: stateKey ? stateKey.value : '',
-                pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
-                credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
-                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
-                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
-                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
-                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
-                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
-              }
-            : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
-            ? {
-                grantType: grantTypeKey ? grantTypeKey.value : '',
-                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
-                refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
-                clientId: clientIdKey ? clientIdKey.value : '',
-                clientSecret: clientSecretKey ? clientSecretKey.value : '',
-                scope: scopeKey ? scopeKey.value : '',
-                credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
-                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
-                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
-                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
-                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
-                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
-              }
-            : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
-            ? {
-                grantType: grantTypeKey ? grantTypeKey.value : '',
-                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
-                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
-                clientId: clientIdKey ? clientIdKey.value : '',
-                scope: scopeKey ? scopeKey.value : '',
-                state: stateKey ? stateKey.value : '',
-                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
-                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
-                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
-                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
-              }
-            : {}
+              ? {
+                  grantType: grantTypeKey ? grantTypeKey.value : '',
+                  callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                  authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                  accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                  refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
+                  clientId: clientIdKey ? clientIdKey.value : '',
+                  clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                  scope: scopeKey ? scopeKey.value : '',
+                  state: stateKey ? stateKey.value : '',
+                  pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
+                  credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                  credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                  tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                  tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                  tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                  autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                  autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
+                }
+              : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
+                ? {
+                    grantType: grantTypeKey ? grantTypeKey.value : '',
+                    accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                    refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
+                    clientId: clientIdKey ? clientIdKey.value : '',
+                    clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                    scope: scopeKey ? scopeKey.value : '',
+                    credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                    credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                    tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                    tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                    tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                    autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                    autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
+                  }
+                : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
+                  ? {
+                      grantType: grantTypeKey ? grantTypeKey.value : '',
+                      callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                      authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                      clientId: clientIdKey ? clientIdKey.value : '',
+                      scope: scopeKey ? scopeKey.value : '',
+                      state: stateKey ? stateKey.value : '',
+                      credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                      tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                      tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                      tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                      autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true
+                    }
+                  : {}
       }
     };
   },
@@ -1002,26 +1031,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
     const namePair = _.find(pairs, { name: 'name' });
     const contentPair = _.find(pairs, { name: 'content' });
-    
+
     const messageName = namePair ? namePair.value : '';
     const messageContent = contentPair ? contentPair.value : '';
-    
-    try {
-      // Validate JSON by parsing (but don't modify the original string)
-      JSON.parse(messageContent);
-    } catch (error) {
-      console.error("Error validating gRPC message JSON:", error);
-      return {
-        body: {
-          mode: 'grpc',
-          grpc: [{
-            name: messageName,
-            content: '{}'
-          }]
-        }
-      };
-    }
-    
+
     return {
       body: {
         mode: 'grpc',
@@ -1054,6 +1067,16 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         ]
       }
     };
+  },
+  example(_1, _2, _3, _4, examplecontent, _5) {
+    const content = examplecontent.sourceString;
+    const parsedExample = parseExampleContent(content);
+    return {
+      examples: [parsedExample]
+    };
+  },
+  examplecontent(chars) {
+    return outdentString(chars.sourceString);
   }
 });
 
@@ -1061,7 +1084,7 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    let ast = sem(match).ast
+    let ast = sem(match).ast;
 
     return ast;
   } else {

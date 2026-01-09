@@ -16,5 +16,6 @@ test.describe.serial('headers', () => {
 
     // Check if the message has the authorisation header
     await expect(locators.messages().nth(2).locator('.text-ellipsis')).toHaveText(/\"(authorization)\"\:\s+\"Dummy\"/);
+    await expect(locators.messages().nth(2).locator('.text-ellipsis')).toHaveText(/\"(x-bruno-collection-var)\"\:\s+\"Variable Value\"/);
   });
 });

@@ -5,7 +5,7 @@
       "name": "Development Environment",
       "variables": [
         {
-          "uid": "dev-var-1",
+          "uid": "lflBDSYBdHkUedYhBF4Ty",
           "name": "env_type",
           "value": "development",
           "type": "text",
@@ -19,7 +19,7 @@
       "name": "Production Environment",
       "variables": [
         {
-          "uid": "prod-var-1",
+          "uid": "TZljXLErzW1nUWoozntZE",
           "name": "env_type",
           "value": "production",
           "type": "text",
@@ -33,7 +33,7 @@
       "name": "Staging Environment",
       "variables": [
         {
-          "uid": "staging-var-1",
+          "uid": "FwoWhHvu9eLhA8H4brG6f",
           "name": "env_type",
           "value": "staging",
           "type": "text",

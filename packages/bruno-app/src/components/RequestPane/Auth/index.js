@@ -1,6 +1,5 @@
 import React from 'react';
 import get from 'lodash/get';
-import AuthMode from './AuthMode';
 import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
@@ -31,9 +30,9 @@ const Auth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-  
+
   // Create a request object to pass to the auth components
-  const request = item.draft 
+  const request = item.draft
     ? get(item, 'draft.request', {})
     : get(item, 'request', {});
 
@@ -45,7 +44,8 @@ const Auth = ({ item, collection }) => {
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
 
-    const collectionAuth = get(collection, 'root.request.auth');
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    const collectionAuth = get(collectionRoot, 'request.auth');
     let effectiveSource = {
       type: 'collection',
       name: 'Collection',
@@ -72,6 +72,9 @@ const Auth = ({ item, collection }) => {
 
   const getAuthView = () => {
     switch (authMode) {
+      case 'none': {
+        return <div className="mt-2">No Auth</div>;
+      }
       case 'awsv4': {
         return <AwsV4Auth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
@@ -86,7 +89,7 @@ const Auth = ({ item, collection }) => {
       }
       case 'ntlm': {
         return <NTLMAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
-      }      
+      }
       case 'oauth2': {
         return <OAuth2 collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
@@ -100,7 +103,7 @@ const Auth = ({ item, collection }) => {
         const source = getEffectiveAuthSource();
         return (
           <>
-            <div className="flex flex-row w-full mt-2 gap-2">
+            <div className="flex flex-row w-full gap-2">
               <div>Auth inherited from {source.name}: </div>
               <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
             </div>
@@ -111,10 +114,7 @@ const Auth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full mt-1 overflow-auto">
-      <div className="flex flex-grow justify-start items-center">
-        <AuthMode item={item} collection={collection} />
-      </div>
+    <StyledWrapper className="w-full overflow-auto">
       {getAuthView()}
     </StyledWrapper>
   );

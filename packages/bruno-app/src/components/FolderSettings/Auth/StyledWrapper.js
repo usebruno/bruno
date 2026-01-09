@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   label {
-    font-size: 0.8125rem;
+    font-size: ${(props) => props.theme.font.size.base};
   }
   .single-line-editor-wrapper {
     max-width: 400px;
@@ -12,11 +12,11 @@ const Wrapper = styled.div`
     background-color: ${(props) => props.theme.input.bg};
   }
   .inherit-mode-text {
-    color: ${(props) => props.theme.colors.text.yellow};
+    color: ${(props) => props.theme.primary.text};
   }
   .auth-mode-label {
     color: ${(props) => props.theme.colors.text.yellow};
   }
 `;
 
-export default Wrapper; 
+export default Wrapper;

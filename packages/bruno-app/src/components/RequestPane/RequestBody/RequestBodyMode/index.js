@@ -1,32 +1,57 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import get from 'lodash/get';
-import { IconCaretDown } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
+import {
+  IconCaretDown,
+  IconForms,
+  IconBraces,
+  IconCode,
+  IconFileText,
+  IconDatabase,
+  IconFile,
+  IconX
+} from '@tabler/icons';
+import MenuDropdown from 'ui/MenuDropdown';
 import { useDispatch } from 'react-redux';
 import { updateRequestBodyMode } from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestBodyMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { toastError } from 'utils/common/error';
-import { prettifyJSON } from 'utils/common';
+import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
+
+const DEFAULT_MODES = [
+  {
+    name: 'Form',
+    options: [
+      { id: 'multipartForm', label: 'Multipart Form', leftSection: IconForms },
+      { id: 'formUrlEncoded', label: 'Form URL Encoded', leftSection: IconForms }
+    ]
+  },
+  {
+    name: 'Raw',
+    options: [
+      { id: 'json', label: 'JSON', leftSection: IconBraces },
+      { id: 'xml', label: 'XML', leftSection: IconCode },
+      { id: 'text', label: 'TEXT', leftSection: IconFileText },
+      { id: 'sparql', label: 'SPARQL', leftSection: IconDatabase }
+    ]
+  },
+  {
+    name: 'Other',
+    options: [
+      { id: 'file', label: 'File / Binary', leftSection: IconFile },
+      { id: 'none', label: 'No Body', leftSection: IconX }
+    ]
+  }
+];
 
 const RequestBodyMode = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = body?.mode;
 
-  const Icon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
-        {humanizeRequestBodyMode(bodyMode)} <IconCaretDown className="caret ml-2" size={14} strokeWidth={2} />
-      </div>
-    );
-  });
-
-  const onModeChange = (value) => {
+  const onModeChange = useCallback((value) => {
     dispatch(
       updateRequestBodyMode({
         itemUid: item.uid,
@@ -34,12 +59,12 @@ const RequestBodyMode = ({ item, collection }) => {
         mode: value
       })
     );
-  };
+  }, [dispatch, item.uid, collection.uid]);
 
   const onPrettify = () => {
     if (body?.json && bodyMode === 'json') {
       try {
-        const prettyBodyJson = prettifyJSON(body.json);
+        const prettyBodyJson = prettifyJsonString(body.json);
         dispatch(
           updateRequestBody({
             content: prettyBodyJson,
@@ -66,86 +91,30 @@ const RequestBodyMode = ({ item, collection }) => {
     }
   };
 
+  const menuItems = useMemo(() => {
+    return DEFAULT_MODES.map((group) => ({
+      ...group,
+      options: group.options.map((option) => ({
+        ...option,
+        onClick: () => onModeChange(option.id)
+      }))
+    }));
+  }, [onModeChange]);
+
   return (
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer body-mode-selector">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-        <div className="label-item font-medium">Form</div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('multipartForm');
-          }}
+        <MenuDropdown
+          items={menuItems}
+          placement="bottom-end"
+          selectedItemId={bodyMode}
+          showGroupDividers={false}
+          groupStyle="select"
         >
-          Multipart Form
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('formUrlEncoded');
-          }}
-        >
-          Form URL Encoded
-        </div>
-        <div className="label-item font-medium">Raw</div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('json');
-          }}
-        >
-          JSON
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('xml');
-          }}
-        >
-          XML
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('text');
-          }}
-        >
-          TEXT
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('sparql');
-          }}
-        >
-          SPARQL
-        </div>
-        <div className="label-item font-medium">Other</div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('file');
-          }}
-        >
-          File / Binary
-        </div>
-        <div
-          className="dropdown-item"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            onModeChange('none');
-          }}
-        >
-          No Body
-        </div>
-        </Dropdown>
+          <div className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
+            {humanizeRequestBodyMode(bodyMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
+          </div>
+        </MenuDropdown>
       </div>
       {(bodyMode === 'json' || bodyMode === 'xml') && (
         <button className="ml-2" onClick={onPrettify}>

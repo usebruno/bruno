@@ -14,7 +14,7 @@ class LastOpenedCollections {
 
   getAll() {
     let collections = this.store.get('lastOpenedCollections') || [];
-    collections = collections.map(collection => path.resolve(collection));
+    collections = collections.map((collection) => path.resolve(collection));
     return collections;
   }
 

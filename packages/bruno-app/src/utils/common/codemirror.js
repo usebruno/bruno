@@ -1,5 +1,6 @@
 import get from 'lodash/get';
 import { mockDataFunctions } from '@usebruno/common';
+import { PROMPT_VARIABLE_TEXT_PATTERN } from '@usebruno/common/utils';
 
 const CodeMirror = require('codemirror');
 
@@ -12,7 +13,7 @@ const pathFoundInVariables = (path, obj) => {
  * Defines a custom CodeMirror mode for Bruno variables highlighting.
  * This function creates a specialized mode that can highlight both Bruno template
  * variables (in the format {{variable}}) and URL path parameters (in the format /:param).
- * 
+ *
  * @param {Object} _variables - The variables object containing data to validate against
  * @param {string} mode - The base CodeMirror mode to extend (e.g., 'javascript', 'application/json')
  * @param {boolean} highlightPathParams - Whether to highlight URL path parameters
@@ -30,6 +31,12 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
           while ((ch = stream.next()) != null) {
             if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
+
+              // Prompt variable: starts with '?', no leading/trailing spaces, no braces
+              if (PROMPT_VARIABLE_TEXT_PATTERN.test(word)) {
+                return `variable-prompt`;
+              }
+
               // Check if it's a mock variable (starts with $) and exists in mockDataFunctions
               const isMockVariable = word.startsWith('$') && mockDataFunctions.hasOwnProperty(word.substring(1));
               const found = isMockVariable || pathFoundInVariables(word, variables);
@@ -96,6 +103,8 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
 
   if (contentType.includes('json')) {
     return 'application/ld+json';
+  } else if (contentType.includes('javascript') || contentType.includes('ecmascript')) {
+    return 'application/javascript';
   } else if (contentType.includes('image')) {
     return 'application/image';
   } else if (contentType.includes('xml')) {

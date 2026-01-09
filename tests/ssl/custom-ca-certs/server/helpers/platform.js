@@ -2,18 +2,18 @@ const { execSync } = require('node:child_process');
 const os = require('node:os');
 
 function execCommand(command, cwd = process.cwd()) {
-  return execSync(command, { 
-    cwd, 
+  return execSync(command, {
+    cwd,
     stdio: 'inherit',
-    timeout: 30000 
+    timeout: 30000
   });
 }
 
 function execCommandSilent(command, cwd = process.cwd()) {
-  return execSync(command, { 
-    cwd, 
+  return execSync(command, {
+    cwd,
     stdio: 'pipe',
-    timeout: 30000 
+    timeout: 30000
   });
 }
 
@@ -29,7 +29,7 @@ function detectPlatform() {
 
 function killProcessOnPort(port) {
   const platform = detectPlatform();
-  
+
   try {
     switch (platform) {
       case 'macos':

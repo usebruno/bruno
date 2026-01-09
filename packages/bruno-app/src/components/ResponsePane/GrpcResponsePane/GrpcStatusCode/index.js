@@ -14,14 +14,14 @@ const GrpcStatusCode = ({ status, text }) => {
     });
   };
 
-  const statusText = text || grpcStatusCodePhraseMap[status]
+  const statusText = text || grpcStatusCodePhraseMap[status];
 
   return (
     <StyledWrapper className={getTabClassname(status)}>
-      {Number.isInteger(status) ? <div className="mr-1">{status}</div> : null}
-      {statusText && <div>{statusText}</div>}
+      {Number.isInteger(status) ? <div className="mr-1" data-testid="grpc-response-status-code">{status}</div> : null}
+      {statusText && <div data-testid="grpc-response-status-text">{statusText}</div>}
     </StyledWrapper>
   );
 };
 
-export default GrpcStatusCode; 
+export default GrpcStatusCode;

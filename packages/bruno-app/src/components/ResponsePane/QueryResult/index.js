@@ -1,71 +1,38 @@
 import { debounce } from 'lodash';
+import { useTheme } from 'providers/Theme/index';
+import React, { useMemo, useState } from 'react';
+import { formatResponse, getContentType } from 'utils/common';
+import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
+import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
-import { JSONPath } from 'jsonpath-plus';
-import React from 'react';
-import classnames from 'classnames';
-import iconv from 'iconv-lite';
-import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
-import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
-import { useState, useMemo, useEffect } from 'react';
-import { useTheme } from 'providers/Theme/index';
-import { getEncoding, uuid } from 'utils/common/index';
-import LargeResponseWarning from '../LargeResponseWarning';
 
-const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
-  if (data === undefined || !dataBuffer || !mode) {
-    return '';
-  }
+// Raw format options (for byte format types)
+const RAW_FORMAT_OPTIONS = [
+  { id: 'raw', label: 'Raw', type: 'item', codeMirrorMode: 'text/plain' },
+  { id: 'hex', label: 'Hex', type: 'item', codeMirrorMode: 'text/plain' },
+  { id: 'base64', label: 'Base64', type: 'item', codeMirrorMode: 'text/plain' }
+];
 
-  // TODO: We need a better way to get the raw response-data here instead
-  // of using this dataBuffer param.
-  // Also, we only need the raw response-data and content-type to show the preview.
-  const rawData = iconv.decode(
-    Buffer.from(dataBuffer, "base64"),
-    iconv.encodingExists(encoding) ? encoding : "utf-8"
-  );
-
-  if (mode.includes('json')) {
-    try {
-      JSON.parse(rawData);
-    } catch (error) {
-      // If the response content-type is JSON and it fails parsing, its an invalid JSON.
-      // In that case, just show the response as it is in the preview.
-      return rawData;
-    }
-
-    if (filter) {
-      try {
-        data = JSONPath({ path: filter, json: data });
-      } catch (e) {
-        console.warn('Could not apply JSONPath filter:', e.message);
-      }
-    }
-
-    return safeStringifyJSON(data, true);
-  }
-
-  if (mode.includes('xml')) {
-    let parsed = safeParseXML(data, { collapseContent: true });
-    if (typeof parsed === 'string') {
-      return parsed;
-    }
-    return safeStringifyJSON(parsed, true);
-  }
-
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  return safeStringifyJSON(data, true);
-};
+// Preview format options
+const PREVIEW_FORMAT_OPTIONS = [
+  // Structured formats
+  { id: 'json', label: 'JSON', type: 'item', codeMirrorMode: 'application/ld+json' },
+  { id: 'html', label: 'HTML', type: 'item', codeMirrorMode: 'xml' },
+  { id: 'xml', label: 'XML', type: 'item', codeMirrorMode: 'xml' },
+  { id: 'javascript', label: 'JavaScript', type: 'item', codeMirrorMode: 'javascript' },
+  // Divider
+  { type: 'divider', id: 'divider-structured-raw' },
+  // Raw formats
+  ...RAW_FORMAT_OPTIONS
+];
 
 const formatErrorMessage = (error) => {
   if (!error) return 'Something went wrong';
 
-  const remoteMethodError = "Error invoking remote method 'send-http-request':";
-  
+  const remoteMethodError = 'Error invoking remote method \'send-http-request\':';
+
   if (error?.includes(remoteMethodError)) {
     const parts = error.split(remoteMethodError);
     return parts[1]?.trim() || error;
@@ -74,12 +41,67 @@ const formatErrorMessage = (error) => {
   return error;
 };
 
-const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListener, headers, error }) => {
+// Custom hook to determine the initial format and tab based on the data buffer and headers
+export const useInitialResponseFormat = (dataBuffer, headers) => {
+  return useMemo(() => {
+    const detectedContentType = detectContentTypeFromBase64(dataBuffer);
+    const contentType = getContentType(headers);
+
+    // Wait until both content types are available
+    if (detectedContentType === null || contentType === undefined) {
+      return { initialFormat: null, initialTab: null };
+    }
+
+    const initial = getDefaultResponseFormat(contentType);
+    return { initialFormat: initial.format, initialTab: initial.tab };
+  }, [dataBuffer, headers]);
+};
+
+// Custom hook to determine preview format options based on content type
+export const useResponsePreviewFormatOptions = (dataBuffer, headers) => {
+  return useMemo(() => {
+    const detectedContentType = detectContentTypeFromBase64(dataBuffer);
+    const contentType = getContentType(headers);
+
+    const byteFormatTypes = ['image', 'video', 'audio', 'pdf', 'zip'];
+
+    const isByteFormatType = (contentType) => {
+      return byteFormatTypes.some((type) => contentType.includes(type));
+    };
+
+    const getContentTypeToCheck = () => {
+      if (detectedContentType) {
+        return detectedContentType;
+      }
+      return contentType;
+    };
+
+    const contentTypeToCheck = getContentTypeToCheck();
+
+    if (contentTypeToCheck && isByteFormatType(contentTypeToCheck)) {
+      // Return only raw format options (no structured formats)
+      return RAW_FORMAT_OPTIONS;
+    }
+
+    // Return all format options
+    return PREVIEW_FORMAT_OPTIONS;
+  }, [dataBuffer, headers]);
+};
+
+const QueryResult = ({
+  item,
+  collection,
+  data,
+  dataBuffer,
+  disableRunEventListener,
+  headers,
+  error,
+  selectedFormat, // one of the options in PREVIEW_FORMAT_OPTIONS
+  selectedTab // 'editor' or 'preview'
+}) => {
   const contentType = getContentType(headers);
-  const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
-  const responseEncoding = getEncoding(headers);
   const { displayedTheme } = useTheme();
 
   const responseSize = useMemo(() => {
@@ -87,84 +109,64 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
     if (typeof response.size === 'number') {
       return response.size;
     }
-    
-    if (!dataBuffer) return 0;
 
-    try {
-      // dataBuffer is base64 encoded, so we need to calculate the actual size
-      const buffer = Buffer.from(dataBuffer, 'base64');
-      return buffer.length;
-    } catch (error) {
-      return 0;
+    // Fallback: estimate from base64 length (base64 is ~4/3 of original size)
+    if (dataBuffer && typeof dataBuffer === 'string') {
+      return Math.floor(dataBuffer.length * 0.75);
     }
+    return 0;
   }, [dataBuffer, item.response]);
 
   const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
+
+  const detectedContentType = useMemo(() => {
+    return detectContentTypeFromBase64(dataBuffer);
+  }, [dataBuffer, isLargeResponse]);
 
   const formattedData = useMemo(
     () => {
       if (isLargeResponse && !showLargeResponse) {
         return '';
       }
-      return formatResponse(data, dataBuffer, responseEncoding, mode, filter);
+      return formatResponse(data, dataBuffer, selectedFormat, filter);
     },
-    [data, dataBuffer, responseEncoding, mode, filter, isLargeResponse, showLargeResponse]
+    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
   );
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
   }, 250);
 
-  const allowedPreviewModes = useMemo(() => {
-    // Always show raw
-    const allowedPreviewModes = [{ mode: 'raw', name: 'Raw', uid: uuid() }];
+  const previewMode = useMemo(() => {
+    // Derive preview mode based on selected format
+    if (selectedFormat === 'html') return 'preview-web';
+    if (selectedFormat === 'json') return 'preview-json';
+    if (selectedFormat === 'xml') return 'preview-xml';
+    if (selectedFormat === 'raw') return 'preview-text';
+    if (selectedFormat === 'javascript') return 'preview-web';
 
-    if (!mode || !contentType) return allowedPreviewModes;
-
-    if (mode?.includes('html') && typeof data === 'string') {
-      allowedPreviewModes.unshift({ mode: 'preview-web', name: 'Web', uid: uuid() });
-    } else if (mode.includes('image')) {
-      allowedPreviewModes.unshift({ mode: 'preview-image', name: 'Image', uid: uuid() });
-    } else if (contentType.includes('pdf')) {
-      allowedPreviewModes.unshift({ mode: 'preview-pdf', name: 'PDF', uid: uuid() });
-    } else if (contentType.includes('audio')) {
-      allowedPreviewModes.unshift({ mode: 'preview-audio', name: 'Audio', uid: uuid() });
-    } else if (contentType.includes('video')) {
-      allowedPreviewModes.unshift({ mode: 'preview-video', name: 'Video', uid: uuid() });
+    // For base64/hex, check content type to determine binary preview type
+    if (selectedFormat === 'base64' || selectedFormat === 'hex') {
+      if (detectedContentType) {
+        if (detectedContentType.includes('image')) return 'preview-image';
+        if (detectedContentType.includes('pdf')) return 'preview-pdf';
+        if (detectedContentType.includes('audio')) return 'preview-audio';
+        if (detectedContentType.includes('video')) return 'preview-video';
+      }
+      // for all other content types, return preview-text
+      return 'preview-text';
     }
+    return 'preview-text';
+  }, [selectedFormat, detectedContentType]);
 
-    return allowedPreviewModes;
-  }, [mode, data, formattedData]);
+  const codeMirrorMode = useMemo(() => {
+    // Find the codeMirrorMode from PREVIEW_FORMAT_OPTIONS (contains all format options)
+    return PREVIEW_FORMAT_OPTIONS
+      .filter((option) => option.type === 'item' || !option.type)
+      .find((option) => option.id === selectedFormat)?.codeMirrorMode || 'text/plain';
+  }, [selectedFormat]);
 
-  const [previewTab, setPreviewTab] = useState(allowedPreviewModes[0]);
-  // Ensure the active Tab is always allowed
-  useEffect(() => {
-    if (!allowedPreviewModes.find((previewMode) => previewMode?.uid == previewTab?.uid)) {
-      setPreviewTab(allowedPreviewModes[0]);
-    }
-  }, [previewTab, allowedPreviewModes]);
-
-  const tabs = useMemo(() => {
-    if (allowedPreviewModes.length === 1) {
-      return null;
-    }
-
-    return allowedPreviewModes.map((previewMode) => (
-      <div
-        className={classnames(
-          'select-none capitalize',
-          previewMode?.uid === previewTab?.uid ? 'active' : 'cursor-pointer'
-        )}
-        role="tab"
-        onClick={() => setPreviewTab(previewMode)}
-        key={previewMode?.uid}
-      >
-        {previewMode?.name}
-      </div>
-    ));
-  }, [allowedPreviewModes, previewTab]);
-
-  const queryFilterEnabled = useMemo(() => mode.includes('json'), [mode]);
+  const queryFilterEnabled = useMemo(() => codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor', [codeMirrorMode, selectedFormat, selectedTab]);
   const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
@@ -172,13 +174,10 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
       className="w-full h-full relative flex"
       queryFilterEnabled={queryFilterEnabled}
     >
-      <div className="flex justify-end gap-2 text-xs" role="tablist">
-        {tabs}
-      </div>
       {error ? (
         <div>
           {hasScriptError ? null : (
-            <div className="text-red-500" style={{ whiteSpace: 'pre-line' }}>{formatErrorMessage(error)}</div>
+            <div className="error" style={{ whiteSpace: 'pre-line' }}>{formatErrorMessage(error)}</div>
           )}
 
           {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
@@ -197,21 +196,23 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
       ) : (
         <div className="h-full flex flex-col">
           <div className="flex-1 relative">
-            <QueryResultPreview
-              previewTab={previewTab}
-              data={data}
-              dataBuffer={dataBuffer}
-              formattedData={formattedData}
-              item={item}
-              contentType={contentType}
-              mode={mode}
-              collection={collection}
-              allowedPreviewModes={allowedPreviewModes}
-              disableRunEventListener={disableRunEventListener}
-              displayedTheme={displayedTheme}
-            />
+            <div className="absolute top-0 left-0 h-full w-full" data-testid="response-preview-container">
+              <QueryResultPreview
+                selectedTab={selectedTab}
+                data={data}
+                dataBuffer={dataBuffer}
+                formattedData={formattedData}
+                item={item}
+                contentType={contentType}
+                previewMode={previewMode}
+                codeMirrorMode={codeMirrorMode}
+                collection={collection}
+                disableRunEventListener={disableRunEventListener}
+                displayedTheme={displayedTheme}
+              />
+            </div>
             {queryFilterEnabled && (
-              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={codeMirrorMode} />
             )}
           </div>
         </div>

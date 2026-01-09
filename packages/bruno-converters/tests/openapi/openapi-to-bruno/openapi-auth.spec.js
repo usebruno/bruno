@@ -59,7 +59,7 @@ servers:
     const req = collection.items[0];
     expect(req.request.auth.mode).toBe('apikey');
     expect(req.request.auth.apikey.placement).toBe('queryparams');
-    const hasQueryParam = req.request.params.some(p => p.name === 'api_key' && p.type === 'query');
+    const hasQueryParam = req.request.params.some((p) => p.name === 'api_key' && p.type === 'query');
     expect(hasQueryParam).toBe(true);
   });
 
@@ -88,7 +88,7 @@ servers:
     const { items: [req] } = openApiToBruno(spec);
     expect(req.request.auth.mode).toBe('apikey');
     expect(req.request.auth.apikey.placement).toBe('header');
-    const apiKeyHeader = req.request.headers.find(h => h.name === 'DEMO_API_KEY');
+    const apiKeyHeader = req.request.headers.find((h) => h.name === 'DEMO_API_KEY');
     expect(apiKeyHeader).toBeDefined();
     expect(apiKeyHeader.value).toBe('{{apiKey}}');
   });

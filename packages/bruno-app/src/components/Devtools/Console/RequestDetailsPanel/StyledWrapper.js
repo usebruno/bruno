@@ -15,7 +15,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 16px;
+    padding: 2px 8px;
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     flex-shrink: 0;
@@ -26,12 +26,11 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 8px;
     color: ${(props) => props.theme.console.titleColor};
-    font-size: 13px;
-    font-weight: 500;
+    font-size: ${(props) => props.theme.font.size.base};
 
     .request-time {
       color: ${(props) => props.theme.console.countColor};
-      font-size: 11px;
+      font-size: ${(props) => props.theme.font.size.xs};
       font-weight: 400;
     }
   }
@@ -66,14 +65,14 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
+    padding: 4px 8px;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
 
     &:hover {
@@ -92,7 +91,7 @@ const StyledWrapper = styled.div`
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 16px;
+    padding: 8px;
     min-height: 0;
     height: 0;
   }
@@ -111,8 +110,8 @@ const StyledWrapper = styled.div`
 
     h4 {
       margin: 0;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: ${(props) => props.theme.font.size.base};
+      font-weight: 500;
       color: ${(props) => props.theme.console.titleColor};
       padding-bottom: 4px;
       border-bottom: 1px solid ${(props) => props.theme.console.border};
@@ -131,15 +130,15 @@ const StyledWrapper = styled.div`
     gap: 2px;
 
     .label {
-      font-size: 11px;
-      font-weight: 600;
+      font-size: ${(props) => props.theme.font.size.xs};
+      font-weight: 500;
       color: ${(props) => props.theme.console.countColor};
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .value {
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       color: ${(props) => props.theme.console.messageColor};
       font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
       word-break: break-all;
@@ -160,7 +159,7 @@ const StyledWrapper = styled.div`
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       background: ${(props) => props.theme.console.headerBg};
 
       thead {
@@ -168,13 +167,12 @@ const StyledWrapper = styled.div`
         position: sticky;
         top: 0;
         z-index: 10;
-        
+
         td {
-          padding: 8px 12px;
-          font-weight: 600;
+          padding: 4px 8px;
           color: ${(props) => props.theme.console.titleColor};
           text-transform: uppercase;
-          font-size: 11px;
+          font-size: ${(props) => props.theme.font.size.xs};
           letter-spacing: 0.5px;
           border-bottom: 1px solid ${(props) => props.theme.console.border};
         }
@@ -198,7 +196,7 @@ const StyledWrapper = styled.div`
         }
 
         td {
-          padding: 8px 12px;
+          padding: 2px 8px;
           vertical-align: top;
           word-break: break-word;
         }
@@ -209,7 +207,7 @@ const StyledWrapper = styled.div`
   .header-name,
   .timeline-phase {
     color: ${(props) => props.theme.console.countColor};
-    font-weight: 600;
+    font-weight: 500;
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     min-width: 120px;
   }
@@ -234,7 +232,7 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
     padding: 12px;
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     line-height: 1.4;
     color: ${(props) => props.theme.console.messageColor};
     overflow: auto;
@@ -249,17 +247,15 @@ const StyledWrapper = styled.div`
     text-align: center;
     color: ${(props) => props.theme.console.emptyColor};
     font-style: italic;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     background: ${(props) => props.theme.console.headerBg};
     border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 4px;
   }
 
   .response-body-container {
-    border: 1px solid ${(props) => props.theme.console.border};
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     overflow: hidden;
-    background: ${(props) => props.theme.console.headerBg};
     height: 400px;
     display: flex;
     flex-direction: column;
@@ -267,14 +263,12 @@ const StyledWrapper = styled.div`
     .w-full.h-full.relative.flex {
       height: 100% !important;
       width: 100% !important;
-      background: ${(props) => props.theme.console.headerBg} !important;
       display: flex !important;
       flex-direction: column !important;
     }
 
     div[role="tablist"] {
-      background: ${(props) => props.theme.console.dropdownHeaderBg};
-      padding: 8px 12px;
+      padding: 4px 8px;
       border-bottom: 1px solid ${(props) => props.theme.console.border};
       display: flex !important;
       gap: 8px !important;
@@ -282,27 +276,16 @@ const StyledWrapper = styled.div`
       align-items: center !important;
       min-height: 40px !important;
       flex-shrink: 0 !important;
-      
+
       > div {
         color: ${(props) => props.theme.console.buttonColor};
-        font-size: 12px !important;
-        padding: 6px 12px !important;
-        border-radius: 4px;
-        transition: all 0.2s ease;
+        font-size: ${(props) => props.theme.font.size.sm} !important;
         cursor: pointer;
-        border: 1px solid ${(props) => props.theme.console.border};
-        background: ${(props) => props.theme.console.contentBg};
         white-space: nowrap !important;
         min-width: auto !important;
         height: auto !important;
         line-height: 1.2 !important;
         font-weight: 500 !important;
-
-        &:hover {
-          background: ${(props) => props.theme.console.buttonHoverBg};
-          color: ${(props) => props.theme.console.buttonHoverColor};
-          border-color: ${(props) => props.theme.console.buttonHoverBg};
-        }
 
         &.active {
           background: ${(props) => props.theme.console.checkboxColor};
@@ -320,7 +303,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .network-logs-container {
+  .network-logs-wrapper {
     border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 4px;
     overflow: hidden;
@@ -328,20 +311,20 @@ const StyledWrapper = styled.div`
     min-height: 200px;
     max-height: 400px;
 
-    .network-logs {
+    .network-logs-container {
       background: ${(props) => props.theme.console.contentBg} !important;
       color: ${(props) => props.theme.console.messageColor} !important;
       height: 100% !important;
       max-height: 400px !important;
-      
-      pre {
+      padding: 0.5rem !important;
+
+      .network-logs-pre {
         color: ${(props) => props.theme.console.messageColor} !important;
-        font-size: 11px !important;
+        font-size: ${(props) => props.theme.font.size.xs} !important;
         line-height: 1.4 !important;
-        padding: 12px !important;
       }
     }
   }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

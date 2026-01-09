@@ -6,7 +6,7 @@ describe('getValueString', () => {
   });
 
   it('wraps multiline value in triple quotes with indentation', () => {
-    expect(getValueString('line1\nline2\nline3')).toBe("'''\n  line1\n  line2\n  line3\n'''");
+    expect(getValueString('line1\nline2\nline3')).toBe('\'\'\'\n  line1\n  line2\n  line3\n\'\'\'');
   });
 
   it('normalizes different newline types', () => {

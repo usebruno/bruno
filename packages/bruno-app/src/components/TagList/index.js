@@ -49,22 +49,24 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
         onChange={handleInputChange}
         onRun={handleKeyDown}
         onSave={onSave}
+        data-testid="tag-input"
       />
-      {error && <span className='text-xs text-red-500'>{error}</span>}
+      {error && <span className="text-xs text-red-500">{error}</span>}
       <ul className="flex flex-wrap gap-1">
         {tags && tags.length
           ? tags.map((_tag) => (
               <li key={_tag}>
                 <button
                   className="tag-item"
-                  onClick={() => handleRemoveTag(_tag)}
                   type="button"
                 >
                   <IconTag size={12} className="tag-icon" aria-hidden="true" />
                   <span className="tag-text" title={_tag}>
                     {_tag}
                   </span>
-                  <IconX size={12} strokeWidth={2} aria-hidden="true" />
+                  <span className="tag-remove" title="Remove tag" onClick={() => handleRemoveTag(_tag)}>
+                    <IconX size={12} strokeWidth={2} aria-hidden="true" />
+                  </span>
                 </button>
               </li>
             ))

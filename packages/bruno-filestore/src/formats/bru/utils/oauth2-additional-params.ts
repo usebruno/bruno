@@ -5,7 +5,7 @@ export interface T_OAuth2AdditionalParam {
   name: string;
   value: string;
   enabled: boolean;
-  sendIn: T_Oauth2ParameterSendInType
+  sendIn: T_Oauth2ParameterSendInType;
 }
 
 export interface T_OAuth2AdditionalParameters {
@@ -43,16 +43,16 @@ const PARAMETER_MAPPINGS: T_Oauth2ParameterMapping[] = [
   // Authorization parameters (only for authorization_code grant type)
   { type: 'authorization', sendIn: 'headers', source: 'oauth2_additional_parameters_auth_req_headers' },
   { type: 'authorization', sendIn: 'queryparams', source: 'oauth2_additional_parameters_auth_req_queryparams' },
-  
+
   // Token parameters (for all grant types)
   { type: 'token', sendIn: 'headers', source: 'oauth2_additional_parameters_access_token_req_headers' },
   { type: 'token', sendIn: 'queryparams', source: 'oauth2_additional_parameters_access_token_req_queryparams' },
   { type: 'token', sendIn: 'body', source: 'oauth2_additional_parameters_access_token_req_bodyvalues' },
-  
+
   // Refresh parameters (for grant types that support refresh)
   { type: 'refresh', sendIn: 'headers', source: 'oauth2_additional_parameters_refresh_token_req_headers' },
   { type: 'refresh', sendIn: 'queryparams', source: 'oauth2_additional_parameters_refresh_token_req_queryparams' },
-  { type: 'refresh', sendIn: 'body', source: 'oauth2_additional_parameters_refresh_token_req_bodyvalues' },
+  { type: 'refresh', sendIn: 'body', source: 'oauth2_additional_parameters_refresh_token_req_bodyvalues' }
 ];
 
 /**
@@ -62,8 +62,8 @@ const mapParametersFromSource = (sourceParams: any[], sendIn: T_Oauth2ParameterS
   if (!sourceParams?.length) {
     return [];
   }
-  
-  return sourceParams.map(param => ({
+
+  return sourceParams.map((param) => ({
     ...param,
     sendIn
   }));
@@ -81,7 +81,7 @@ const shouldIncludeParameterType = (type: T_Oauth2ParameterType, grantType: stri
   if (type === 'token' || type === 'refresh') {
     return grantType !== 'implicit';
   }
-  
+
   // Token and refresh parameters are valid for all grant types
   return true;
 };
@@ -90,15 +90,15 @@ const shouldIncludeParameterType = (type: T_Oauth2ParameterType, grantType: stri
  * Collects all parameters for a specific type (authorization, token, or refresh)
  */
 const collectParametersForType = (
-  json: T_BruJson, 
-  type: T_Oauth2ParameterType, 
+  json: T_BruJson,
+  type: T_Oauth2ParameterType,
   grantType: string
 ): T_OAuth2AdditionalParam[] => {
   if (!shouldIncludeParameterType(type, grantType)) {
     return [];
   }
 
-  const relevantMappings = PARAMETER_MAPPINGS.filter(mapping => mapping.type === type);
+  const relevantMappings = PARAMETER_MAPPINGS.filter((mapping) => mapping.type === type);
   const allParams: T_OAuth2AdditionalParam[] = [];
 
   for (const mapping of relevantMappings) {
@@ -113,29 +113,28 @@ const collectParametersForType = (
 /**
  * This function extracts OAuth2 additional parameters from various sources in the bru json data and organizes
  * them into a structured format based on their usage context (authorization, token, refresh).
- * 
+ *
  * @param json - json object containing OAuth2 configuration and additional parameters
  * @returns OAuth2 additional parameters
  */
-export const getOauth2AdditionalParameters = (json: T_BruJson): T_OAuth2AdditionalParameters  => {
+export const getOauth2AdditionalParameters = (json: T_BruJson): T_OAuth2AdditionalParameters => {
   const grantType = json.auth.oauth2.grantType;
   const additionalParameters: T_OAuth2AdditionalParameters = {};
 
   try {
     // Collect parameters for each type
     const parameterTypes: T_Oauth2ParameterType[] = ['authorization', 'token', 'refresh'];
-    
+
     for (const type of parameterTypes) {
       const params = collectParametersForType(json, type, grantType);
       if (params.length > 0) {
         additionalParameters[type] = params;
       }
     }
-  }
-  catch(error) {
+  } catch (error) {
     console.error(error);
-    console.error("Error while getting the oauth2 additional parameters!");
+    console.error('Error while getting the oauth2 additional parameters!');
   }
-  
+
   return additionalParameters;
 };

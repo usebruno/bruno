@@ -43,13 +43,6 @@ Bruno ist ein reines Offline-Tool. Es gibt keine Pläne, Bruno um eine Cloud-Syn
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
-### Golden Edition ✨
-
-Die meisten unserer Funktionen sind kostenlos und quelloffen.
-Wir bemühen uns um ein Gleichgewicht zwischen [Open-Source-Prinzipien und Nachhaltigkeit](https://github.com/usebruno/bruno/discussions/269)
-
-Du kannst die [Golden Edition](https://www.usebruno.com/pricing) bestellen **$19**! <br/>
-
 ### Installation
 
 Bruno ist als Download [auf unserer Website](https://www.usebruno.com/downloads) für Mac, Windows und Linux verfügbar.

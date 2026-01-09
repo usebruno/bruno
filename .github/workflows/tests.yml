@@ -13,7 +13,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
@@ -30,6 +30,7 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-schema-types
           npm run build --workspace=packages/bruno-filestore
 
       - name: Lint Check
@@ -66,7 +67,7 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
@@ -83,6 +84,7 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-schema-types
           npm run build --workspace=packages/bruno-filestore
 
       - name: Run Local Testbench
@@ -94,7 +96,7 @@ jobs:
         run: |
           cd packages/bruno-tests/collection
           npm install
-          node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
+          node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer
 
       - name: Publish Test Report
         uses: EnricoMi/publish-unit-test-result-action@v2
@@ -108,7 +110,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-node@v5
       with:
         node-version: v22.11.x
@@ -134,12 +136,13 @@ jobs:
         npm run sandbox:bundle-libraries --workspace=packages/bruno-js
         npm run build:bruno-converters
         npm run build:bruno-requests
+        npm run build:schema-types
         npm run build:bruno-filestore
 
     - name: Run Playwright tests
       run: |
         xvfb-run npm run test:e2e
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       if: ${{ !cancelled() }}
       with:
         name: playwright-report

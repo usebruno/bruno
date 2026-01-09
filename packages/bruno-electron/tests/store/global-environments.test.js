@@ -12,21 +12,21 @@ describe('global environment variable type backward compatibility', () => {
     // Mock global environments without type field
     const mockGlobalEnvironments = [
       {
-        uid: "env-1",
-        name: "Test Environment",
+        uid: 'yDlwWe3qgimPG20G7AbF7',
+        name: 'Test Environment',
         variables: [
           {
-            uid: "var-1",
-            name: "regular_var",
-            value: "regular_value",
+            uid: 'b6BIHGaCrm4m97YA2dIdx',
+            name: 'regular_var',
+            value: 'regular_value',
             enabled: true,
             secret: false
             // Missing: type field
           },
           {
-            uid: "var-2", 
-            name: "secret_var",
-            value: "secret_value",
+            uid: 'yQTqanPoMdRjKnHyIOZNc',
+            name: 'secret_var',
+            value: 'secret_value',
             enabled: true,
             secret: true
             // Missing: type field
@@ -42,8 +42,8 @@ describe('global environment variable type backward compatibility', () => {
     expect(processedEnvironments).toHaveLength(1);
     expect(processedEnvironments[0].variables).toHaveLength(2);
 
-    const regularVar = processedEnvironments[0].variables.find(v => v.name === 'regular_var');
-    const secretVar = processedEnvironments[0].variables.find(v => v.name === 'secret_var');
+    const regularVar = processedEnvironments[0].variables.find((v) => v.name === 'regular_var');
+    const secretVar = processedEnvironments[0].variables.find((v) => v.name === 'secret_var');
 
     expect(regularVar.name).toBe('regular_var');
     expect(regularVar.type).toBe('text');

@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   label {
-    font-size: 0.8125rem;
+    font-size: ${(props) => props.theme.font.size.base};
   }
   .single-line-editor-wrapper {
     max-width: 400px;
@@ -10,6 +10,15 @@ const Wrapper = styled.div`
     border-radius: 3px;
     border: solid 1px ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
+  }
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
+
+  .oauth2-section-label {
+    color: ${(props) => props.theme.text};
   }
 `;
 

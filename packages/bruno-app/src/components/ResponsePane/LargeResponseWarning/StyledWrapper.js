@@ -21,7 +21,7 @@ const StyledWrapper = styled.div`
   }
 
   .warning-title {
-    font-weight: 600;
+    font-weight: 500;
     color: ${(props) => props.theme.text};
     margin-bottom: 1rem;
   }
@@ -49,16 +49,6 @@ const StyledWrapper = styled.div`
   .warning-actions {
     display: flex;
     gap: 0.75rem;
-  }
-
-  button {
-    align-items: center;
-    display: flex;
-    gap: 0.5rem;
-    background: ${(props) => props.theme.button.secondary.bg};
-    border-radius: 4px;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
   }
 `;
 

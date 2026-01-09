@@ -14,7 +14,7 @@ const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
-  const brunoConfig = get(collection, 'brunoConfig', {});
+  const brunoConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig', {}) : get(collection, 'brunoConfig', {});
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
@@ -48,7 +48,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
     responseType: 'arraybuffer'
   };
 
-  const collectionAuth = get(collection, 'root.request.auth');
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth?.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.basicAuth = {
@@ -65,7 +66,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
       if (collectionAuth.apikey?.placement === 'header') {
         axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
       }
-      
+
       if (collectionAuth.apikey?.placement === 'queryparams') {
         if (axiosRequest.url && collectionAuth.apikey?.key) {
           try {
@@ -88,7 +89,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
     if (collectionAuth.mode === 'oauth2') {
       const grantType = get(collectionAuth, 'oauth2.grantType');
-      
+
       if (grantType === 'client_credentials') {
         axiosRequest.oauth2 = {
           grantType,
@@ -225,7 +226,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
     if (request.auth.mode === 'oauth2') {
       const grantType = get(request, 'auth.oauth2.grantType');
-      
+
       if (grantType === 'client_credentials') {
         axiosRequest.oauth2 = {
           grantType: grantType,
@@ -264,12 +265,12 @@ const prepareRequest = async (item = {}, collection = {}) => {
         };
       }
     }
-    
+
     if (request.auth.mode === 'apikey') {
       if (request.auth.apikey?.placement === 'header') {
         axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
       }
-      
+
       if (request.auth.apikey?.placement === 'queryparams') {
         if (axiosRequest.url && request.auth.apikey?.key) {
           try {
@@ -287,13 +288,16 @@ const prepareRequest = async (item = {}, collection = {}) => {
   request.body = request.body || {};
 
   if (request.body.mode === 'json') {
-    if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'application/json';
-    }
-    try {
-      axiosRequest.data = decomment(request?.body?.json);
-    } catch (error) {
-      axiosRequest.data = request?.body?.json;
+    const jsonBody = request.body.json;
+    if (jsonBody && jsonBody.length > 0) {
+      if (!contentTypeDefined) {
+        axiosRequest.headers['content-type'] = 'application/json';
+      }
+      try {
+        axiosRequest.data = decomment(jsonBody);
+      } catch (error) {
+        axiosRequest.data = jsonBody;
+      }
     }
   }
 
@@ -323,7 +327,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
       axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
     }
 
-    const bodyFile = find(request.body.file, param => param.selected);
+    const bodyFile = find(request.body.file, (param) => param.selected);
     if (bodyFile) {
       let { filePath, contentType } = bodyFile;
 
@@ -373,6 +377,17 @@ const prepareRequest = async (item = {}, collection = {}) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     axiosRequest.data = graphqlQuery;
+  }
+
+  // if the mode is 'none' then set the content-type header to null to prevent axios from adding default. #1693
+  // AWS SigV4 requires Content-Type header in canonical request for signature calculation,
+  // even with no body. Omitting it would cause authentication failures.
+  if (request.body.mode === 'none' && (!request.auth || request.auth.mode !== 'awsv4')) {
+    if (!contentTypeDefined) {
+      // Setting to null tells axios not to add a default Content-Type header
+      // Use lowercase to match what scripts use, avoiding duplicate headers
+      axiosRequest.headers['content-type'] = null;
+    }
   }
 
   if (request.script) {

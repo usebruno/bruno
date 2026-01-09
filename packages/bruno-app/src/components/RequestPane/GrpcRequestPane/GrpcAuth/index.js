@@ -24,7 +24,7 @@ const GrpcAuth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
-  const request = item.draft 
+  const request = item.draft
     ? get(item, 'draft.request', {})
     : get(item, 'request', {});
 
@@ -48,7 +48,8 @@ const GrpcAuth = ({ item, collection }) => {
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
 
-    const collectionAuth = get(collection, 'root.request.auth');
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    const collectionAuth = get(collectionRoot, 'request.auth');
     let effectiveSource = {
       type: 'collection',
       name: 'Collection',
@@ -75,6 +76,9 @@ const GrpcAuth = ({ item, collection }) => {
 
   const getAuthView = () => {
     switch (authMode) {
+      case 'none': {
+        return <div>No Auth</div>;
+      }
       case 'basic': {
         return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
@@ -92,12 +96,12 @@ const GrpcAuth = ({ item, collection }) => {
       }
       case 'inherit': {
         const source = getEffectiveAuthSource();
-        
+
         // Only show inherited auth if it's one of the supported types
         if (source && supportedGrpcAuthModes.includes(source.auth?.mode)) {
           return (
             <>
-              <div className="flex flex-row w-full mt-2 gap-2">
+              <div className="flex flex-row w-full gap-2">
                 <div>Auth inherited from {source.name}: </div>
                 <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
               </div>
@@ -106,7 +110,7 @@ const GrpcAuth = ({ item, collection }) => {
         } else {
           return (
             <>
-              <div className="flex flex-row w-full mt-2 gap-2">
+              <div className="flex flex-row w-full gap-2">
                 <div>Inherited auth not supported by gRPC. Using no auth instead.</div>
               </div>
             </>
@@ -120,13 +124,10 @@ const GrpcAuth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full mt-1 overflow-y-scroll">
-      <div className="flex flex-grow justify-start items-center">
-        <GrpcAuthMode item={item} collection={collection} />
-      </div>
+    <StyledWrapper className="w-full overflow-y-scroll">
       {getAuthView()}
     </StyledWrapper>
   );
 };
 
-export default GrpcAuth; 
+export default GrpcAuth;

@@ -13,7 +13,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 8px;
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     flex-shrink: 0;
@@ -30,16 +30,14 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 4px 8px;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 4px 4px 0 0;
+    font-size: ${(props) => props.theme.font.size.sm};
 
     &:hover {
       background: ${(props) => props.theme.console.buttonHoverBg};
@@ -47,9 +45,9 @@ const StyledWrapper = styled.div`
     }
 
     &.active {
-      color: ${(props) => props.theme.console.checkboxColor};
-      border-bottom-color: ${(props) => props.theme.console.checkboxColor};
-      background: ${(props) => props.theme.console.contentBg};
+      color: ${(props) => props.theme.primary.strong};
+      border-bottom-color: ${(props) => props.theme.primary.strong};
+      background: ${(props) => props.theme.background.mantle};
     }
   }
 
@@ -89,12 +87,12 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 8px;
     color: ${(props) => props.theme.console.titleColor};
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
 
     .log-count {
       color: ${(props) => props.theme.console.countColor};
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       font-weight: 400;
     }
   }
@@ -144,9 +142,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-right: 8px;
-    padding-right: 8px;
-    border-right: 1px solid ${(props) => props.theme.console.border};
   }
 
   .action-controls {
@@ -159,23 +154,21 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: ${(props) => props.theme.console.buttonColor};
+    color: ${(props) => props.theme.text};
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-      background: ${(props) => props.theme.console.buttonHoverBg};
-      color: ${(props) => props.theme.console.buttonHoverColor};
+      background: ${(props) => props.theme.background.surface0};
     }
 
     &.close-button:hover {
-      background: #e81123;
-      color: white;
+      background: ${(props) => props.theme.background.surface0};
     }
   }
 
@@ -187,19 +180,17 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 8px;
+    padding: 2px 8px;
     background: transparent;
-    border: 1px solid ${(props) => props.theme.console.border};
-    border-radius: 4px;
-    color: ${(props) => props.theme.console.buttonColor};
+    border: 1px solid ${(props) => props.theme.border.border0};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    color: ${(props) => props.theme.text};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
 
     &:hover {
-      background: ${(props) => props.theme.console.buttonHoverBg};
-      color: ${(props) => props.theme.console.buttonHoverColor};
-      border-color: ${(props) => props.theme.console.border};
+      background: ${(props) => props.theme.background.surface0};
     }
 
     .filter-summary {
@@ -232,10 +223,10 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 4px 12px;
     background: ${(props) => props.theme.console.dropdownHeaderBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
     color: ${(props) => props.theme.console.titleColor};
   }
@@ -245,7 +236,7 @@ const StyledWrapper = styled.div`
     border: none;
     color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 500;
     padding: 2px 4px;
     border-radius: 2px;
@@ -263,7 +254,7 @@ const StyledWrapper = styled.div`
   .filter-option {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 4px 12px;
     cursor: pointer;
     transition: background-color 0.2s ease;
 
@@ -288,13 +279,13 @@ const StyledWrapper = styled.div`
 
   .filter-option-label {
     color: ${(props) => props.theme.console.optionLabelColor};
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 400;
   }
 
   .filter-option-count {
     color: ${(props) => props.theme.console.optionCountColor};
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 400;
     margin-left: auto;
   }
@@ -312,32 +303,18 @@ const StyledWrapper = styled.div`
 
     p {
       margin: 0;
-      font-size: 14px;
+      font-size: ${(props) => props.theme.font.size.base};
       font-weight: 500;
     }
 
     span {
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       opacity: 0.7;
     }
   }
 
   .logs-container {
     padding: 8px 0;
-  }
-    
-  .method-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    color: white;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    min-width: 45px;
   }
 
   .log-entry {
@@ -346,7 +323,7 @@ const StyledWrapper = styled.div`
     gap: 12px;
     padding: 4px 16px;
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     line-height: 1.4;
     border-left: 2px solid transparent;
     transition: background-color 0.1s ease;
@@ -431,13 +408,13 @@ const StyledWrapper = styled.div`
 
   .log-timestamp {
     color: ${(props) => props.theme.console.timestampColor};
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 400;
   }
 
   .log-level {
     font-size: 9px;
-    font-weight: 600;
+    font-weight: 500;
     padding: 2px 4px;
     border-radius: 2px;
     text-transform: uppercase;
@@ -465,7 +442,7 @@ const StyledWrapper = styled.div`
         background: transparent !important;
         
         .object-key-val {
-          font-size: 12px !important;
+          font-size: ${(props) => props.theme.font.size.sm} !important;
         }
         
         .object-key {
@@ -517,4 +494,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

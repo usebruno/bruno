@@ -28,15 +28,13 @@ test.describe('Collection Environment Configuration Selection Tests', () => {
     await page.getByTestId('env-tab-collection').click();
     await page.getByText('Configure', { exact: true }).click();
 
-    // Verify the config modal opens with the currently active environment selected
-    const collectionEnvModal = page.locator('.bruno-modal').filter({ hasText: 'Environments' });
-    await expect(collectionEnvModal).toBeVisible();
+    const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+    await expect(envTab).toBeVisible();
 
-    // Check that the active environment in the config matches prod
-    const activeEnvItem = collectionEnvModal.locator('.environment-item.active');
+    const activeEnvItem = page.locator('.environment-item.active');
     await expect(activeEnvItem).toContainText('prod');
 
-    // Close the collection environment config modal
-    await page.getByText('×').click();
+    await envTab.hover();
+    await envTab.getByTestId('request-tab-close-icon').click();
   });
 });

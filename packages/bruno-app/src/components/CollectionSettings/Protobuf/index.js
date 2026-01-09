@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import {
   IconTrash,
@@ -10,8 +11,11 @@ import {
 import { getBasename } from 'utils/common/path';
 import { Tooltip } from 'react-tooltip';
 import useProtoFileManagement from '../../../hooks/useProtoFileManagement';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import Button from 'ui/Button';
 
 const ProtobufSettings = ({ collection }) => {
+  const dispatch = useDispatch();
   const {
     protoFiles,
     importPaths,
@@ -26,6 +30,8 @@ const ProtobufSettings = ({ collection }) => {
     replaceProtoFileInCollection
   } = useProtoFileManagement(collection);
   const fileInputRef = useRef(null);
+
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   // Get file path using the ipcRenderer
   const getProtoFile = async (event) => {
@@ -107,12 +113,12 @@ const ProtobufSettings = ({ collection }) => {
       <div className="mb-6" data-testid="protobuf-proto-files-section">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
-            <label className="font-semibold text-sm flex items-center" htmlFor="protoFiles">
+            <label className="flex items-center" htmlFor="protoFiles">
               Proto Files (
               {protoFiles.length}
               )
               <span id="proto-files-tooltip" className="ml-2">
-                <IconAlertCircle size={16} className="text-gray-500 cursor-pointer" />
+                <IconAlertCircle size={16} className="tooltip-icon" />
               </span>
               <Tooltip
                 anchorId="proto-files-tooltip"
@@ -125,7 +131,7 @@ const ProtobufSettings = ({ collection }) => {
 
         <div>
           {protoFiles.some((file) => !file.exists) && (
-            <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-testid="protobuf-invalid-files-message">
+            <div className="error-message text-xs mb-2 flex items-center p-2" data-testid="protobuf-invalid-files-message">
               <IconAlertCircle size={14} className="mr-1" />
               Some proto files cannot be found. Use the replace option to update their locations.
             </div>
@@ -134,13 +140,13 @@ const ProtobufSettings = ({ collection }) => {
           <table className="w-full border-collapse" data-testid="protobuf-proto-files-table">
             <thead>
               <tr>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th>
                   File
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th>
                   Path
                 </th>
-                <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th className="text-right">
                   Actions
                 </th>
               </tr>
@@ -148,10 +154,10 @@ const ProtobufSettings = ({ collection }) => {
             <tbody>
               {protoFiles.length === 0 ? (
                 <tr>
-                  <td colSpan="3" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
-                    <div className="flex flex-col items-center">
-                      <IconFile size={24} className="text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">No proto files added</span>
+                  <td colSpan="3" className="text-center">
+                    <div className="empty-state flex flex-col items-center">
+                      <IconFile size={24} className="empty-icon mb-2" />
+                      <span className="empty-text">No proto files added</span>
                     </div>
                   </td>
                 </tr>
@@ -161,27 +167,27 @@ const ProtobufSettings = ({ collection }) => {
 
                   return (
                     <tr key={index}>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      <td>
                         <div className="flex items-center">
-                          <IconFile size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
-                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <IconFile size={16} className="file-icon mr-2" />
+                          <span className="file-name" data-testid="protobuf-proto-file-name">
                             {getBasename(collection.pathname, file.path)}
                           </span>
-                          {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
+                          {!isValid && <IconAlertCircle size={12} className="invalid-indicator ml-2" />}
                         </div>
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                      <td>
+                        <div className="path-text">
                           {file.path}
                         </div>
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
+                      <td className="text-right">
                         <div className="flex items-center justify-end space-x-1">
                           {!isValid && (
                             <button
                               type="button"
                               onClick={() => handleReplaceProtoFile(index)}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
+                              className="action-button replace-button"
                               title="Replace file"
                             >
                               <IconFileImport size={14} />
@@ -190,7 +196,7 @@ const ProtobufSettings = ({ collection }) => {
                           <button
                             type="button"
                             onClick={() => handleRemoveProtoFile(index)}
-                            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
+                            className="action-button remove-button"
                             title="Remove file"
                             data-testid="protobuf-remove-file-button"
                           >
@@ -214,12 +220,12 @@ const ProtobufSettings = ({ collection }) => {
       <div className="mb-6" data-testid="protobuf-import-paths-section">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
-            <label className="font-semibold text-sm flex items-center" htmlFor="importPaths">
+            <label className="flex items-center" htmlFor="importPaths">
               Import Paths (
               {importPaths.length}
               )
               <span id="import-paths-tooltip" className="ml-2">
-                <IconAlertCircle size={16} className="text-gray-500 cursor-pointer" />
+                <IconAlertCircle size={16} className="tooltip-icon" />
               </span>
               <Tooltip
                 anchorId="import-paths-tooltip"
@@ -232,7 +238,7 @@ const ProtobufSettings = ({ collection }) => {
 
         <div>
           {importPaths.some((path) => !path.exists) && (
-            <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-testid="protobuf-invalid-import-paths-message">
+            <div className="error-message text-xs mb-2 flex items-center p-2" data-testid="protobuf-invalid-import-paths-message">
               <IconAlertCircle size={14} className="mr-1" />
               Some import paths cannot be found at their specified locations.
             </div>
@@ -241,15 +247,15 @@ const ProtobufSettings = ({ collection }) => {
           <table className="w-full border-collapse" data-testid="protobuf-import-paths-table">
             <thead>
               <tr>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th>
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th>
                   Directory
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th>
                   Path
                 </th>
-                <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                <th className="text-right">
                   Actions
                 </th>
               </tr>
@@ -257,10 +263,10 @@ const ProtobufSettings = ({ collection }) => {
             <tbody>
               {importPaths.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
-                    <div className="flex flex-col items-center">
-                      <IconFolder size={24} className="text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">No import paths added</span>
+                  <td colSpan="4" className="text-center">
+                    <div className="empty-state flex flex-col items-center">
+                      <IconFolder size={24} className="empty-icon mb-2" />
+                      <span className="empty-text">No import paths added</span>
                     </div>
                   </td>
                 </tr>
@@ -270,37 +276,37 @@ const ProtobufSettings = ({ collection }) => {
 
                   return (
                     <tr key={index}>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      <td>
                         <input
                           type="checkbox"
                           checked={importPath.enabled}
                           onChange={() => handleToggleImportPath(index)}
-                          className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 dark:border-gray-600 rounded"
+                          className="h-4 w-4"
                           title={importPath.enabled ? 'Disable this import path' : 'Enable this import path'}
                           data-testid="protobuf-import-path-checkbox"
                         />
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      <td>
                         <div className="flex items-center">
-                          <IconFolder size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
-                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <IconFolder size={16} className="folder-icon mr-2" />
+                          <span className="directory-name">
                             {getBasename(collection.pathname, importPath.path)}
                           </span>
-                          {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
+                          {!isValid && <IconAlertCircle size={12} className="invalid-indicator ml-2" />}
                         </div>
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                      <td>
+                        <div className="path-text">
                           {importPath.path}
                         </div>
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
+                      <td className="text-right">
                         <div className="flex items-center justify-end space-x-1">
                           {!isValid && (
                             <button
                               type="button"
                               onClick={() => handleReplaceImportPath(index)}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
+                              className="action-button replace-button"
                               title="Replace directory"
                             >
                               <IconFileImport size={14} />
@@ -309,7 +315,7 @@ const ProtobufSettings = ({ collection }) => {
                           <button
                             type="button"
                             onClick={() => handleRemoveImportPath(index)}
-                            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
+                            className="action-button remove-button"
                             title="Remove import path"
                             data-testid="protobuf-remove-import-path-button"
                           >
@@ -327,6 +333,12 @@ const ProtobufSettings = ({ collection }) => {
             + Add Import Path
           </button>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <Button type="button" size="sm" onClick={handleSave}>
+          Save
+        </Button>
       </div>
 
     </StyledWrapper>

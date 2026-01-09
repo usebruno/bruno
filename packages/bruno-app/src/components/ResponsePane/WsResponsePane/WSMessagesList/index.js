@@ -6,7 +6,6 @@ import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
-import _ from 'lodash';
 import { useRef } from 'react';
 import { useEffect } from 'react';
 
@@ -100,15 +99,17 @@ const WSMessageItem = ({ message, inFocus }) => {
       }}
       className={classnames('ws-message flex flex-col p-2', {
         'ws-incoming': isIncoming,
-        'ws-outgoing': !isIncoming,
+        'ws-outgoing': isOutgoing,
+        'ws-info': isInfo,
+        'ws-error': isError,
         'open': isOpen,
         'new': isNew
       })}
     >
       <div
         className={classnames('flex items-center justify-between', {
-          'cursor-pointer': !isInfo,
-          'cursor-not-allowed': isInfo
+          'cursor-pointer': canOpenMessage,
+          'cursor-not-allowed': !canOpenMessage
         })}
         onClick={(e) => {
           if (!canOpenMessage) return;
@@ -116,35 +117,26 @@ const WSMessageItem = ({ message, inFocus }) => {
         }}
       >
         <div className="flex min-w-0 shrink">
-          <span
-            className={classnames('font-semibold flex items-center gap-1',
-              {
-                'text-green-700': isIncoming,
-                'text-yellow-700': isOutgoing,
-                'text-blue-700': isInfo,
-                'text-red-700': isError,
-                'text-red-700': isError
-              })}
-          >
+          <span className="message-type-icon">
             <TypeIcon type={message.type} />
           </span>
-          <span className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap">{parsedContent.content}</span>
+          <span className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap message-content">{parsedContent.content}</span>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 gap-2 items-center">
           {message.timestamp && (
-            <span className="text-xs text-gray-400">{new Date(message.timestamp).toISOString()}</span>
+            <span className="message-timestamp">{new Date(message.timestamp).toISOString()}</span>
           )}
           {canOpenMessage
             ? (
-                <span className="text-gray-600">
+                <span className="chevron-icon">
                   {isOpen ? (
-                    <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                    <IconChevronDown size={16} strokeWidth={1.5} />
                   ) : (
-                    <IconChevronRight size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                    <IconChevronRight size={16} strokeWidth={1.5} />
                   )}
                 </span>
               )
-            : <span class="w-4"></span>}
+            : <span className="w-4"></span>}
         </div>
       </div>
       {isOpen && (
@@ -188,14 +180,18 @@ const WSMessageItem = ({ message, inFocus }) => {
 
 const WSMessagesList = ({ order = -1, messages = [] }) => {
   if (!messages.length) {
-    return <div className="p-4 text-gray-500">No messages yet.</div>;
+    return <StyledWrapper><div className="empty-state">No messages yet.</div></StyledWrapper>;
   }
-  const ordered = order === -1 ? messages : messages.slice().reverse();
+
+  // sort based on order, seq was newly added and might be missing in some cases and when missing,
+  // the timestamp will be used instead
+  const ordered = messages.toSorted((x, y) => ((x.seq ?? x.timestamp) - (y.seq ?? y.timestamp)) * (-order));
+
   return (
-    <StyledWrapper className="ws-messages-list mt-1 flex flex-col">
+    <StyledWrapper className="ws-messages-list flex flex-col">
       {ordered.map((msg, idx, src) => {
         const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
-        return <WSMessageItem inFocus={inFocus} id={idx} message={msg} />;
+        return <WSMessageItem key={msg.seq ? msg.seq : msg.timestamp} inFocus={inFocus} id={idx} message={msg} />;
       })}
     </StyledWrapper>
   );
