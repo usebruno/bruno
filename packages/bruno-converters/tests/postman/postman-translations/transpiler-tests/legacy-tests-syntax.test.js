@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator';
+import translateCode from '../../../../src/utils/pm-to-bru-translator';
 
 describe('Legacy Tests[] Syntax Translation', () => {
   it('should handle tests[] commands', () => {

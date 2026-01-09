@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator';
+import translateCode from '../../../../src/utils/pm-to-bru-translator';
 
 describe('Scoped Variables', () => {
   it.skip('should handle scoped variables correctly', () => {

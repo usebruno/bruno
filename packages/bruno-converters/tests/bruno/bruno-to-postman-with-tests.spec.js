@@ -204,11 +204,11 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
       'console.log("root-request script line 2")',
       '',
       '// Tests',
-      'test("Status code is 200", () => {',
-      '    expect(res.status).to.eql(200);',
+      'pm.test("Status code is 200", () => {',
+      '    pm.expect(res.status).to.eql(200);',
       '});',
-      'test("Body is not empty", () => {',
-      '    expect(res.text).not.to.eql("");',
+      'pm.test("Body is not empty", () => {',
+      '    pm.expect(res.text).not.to.eql("");',
       '});'
     ]);
   });
@@ -230,11 +230,11 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
       'console.log("scripts-folder script line 2")',
       '',
       '// Tests',
-      'test("Status code is 200", () => {',
-      '    expect(res.status).to.eql(200);',
+      'pm.test("Status code is 200", () => {',
+      '    pm.expect(res.status).to.eql(200);',
       '});',
-      'test("Body is not empty", () => {',
-      '    expect(res.text).not.to.eql("");',
+      'pm.test("Body is not empty", () => {',
+      '    pm.expect(res.text).not.to.eql("");',
       '});'
     ]);
   });
@@ -257,11 +257,11 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
       'console.log("scripts-inner-folder script line 2")',
       '',
       '// Tests',
-      'test("Status code is 200", () => {',
-      '    expect(res.status).to.eql(200);',
+      'pm.test("Status code is 200", () => {',
+      '    pm.expect(res.status).to.eql(200);',
       '});',
-      'test("Body is not empty", () => {',
-      '    expect(res.text).not.to.eql("");',
+      'pm.test("Body is not empty", () => {',
+      '    pm.expect(res.text).not.to.eql("");',
       '});'
     ]);
   });
@@ -282,11 +282,11 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
       'console.log("root-request script line 2")',
       '',
       '// Tests',
-      'test("Status code is 200", () => {',
-      '    expect(res.status).to.eql(200);',
+      'pm.test("Status code is 200", () => {',
+      '    pm.expect(res.status).to.eql(200);',
       '});',
-      'test("Body is not empty", () => {',
-      '    expect(res.text).not.to.eql("");',
+      'pm.test("Body is not empty", () => {',
+      '    pm.expect(res.text).not.to.eql("");',
       '});'
     ]);
   });

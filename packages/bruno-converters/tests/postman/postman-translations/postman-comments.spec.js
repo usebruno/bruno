@@ -1,4 +1,4 @@
-const { default: postmanTranslation } = require('../../../src/postman/postman-translations');
+import postmanTranslation from '../../../src/postman/postman-translations';
 
 describe('postmanTranslations - comment handling', () => {
   test('should not translate non-pm commands', () => {

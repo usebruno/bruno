@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator';
+import translateCode from '../../../../src/utils/pm-to-bru-translator';
 
 describe('Environment Variable Translation', () => {
   it('should translate pm.environment.get', () => {
