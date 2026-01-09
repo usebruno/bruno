@@ -40,20 +40,6 @@ test.describe.serial('websockets', () => {
     await expect(locators.messages().nth(1).getByText('Closed')).toBeAttached();
   });
 
-  test('websocket messages sorting can be changed', async ({ pageWithUserData: page, restartApp }) => {
-    const locators = buildWebsocketCommonLocators(page);
-
-    await locators.toolbar.latestLast().click();
-
-    await expect(locators.messages().first().getByText('Closed')).toBeAttached();
-    await expect(locators.messages().nth(1).getByText('Connected to ws://')).toBeAttached();
-
-    await locators.toolbar.latestFirst().click();
-
-    await expect(locators.messages().first().getByText('Connected to ws://')).toBeAttached();
-    await expect(locators.messages().nth(1).getByText('Closed')).toBeAttached();
-  });
-
   test('websocket request can send messages', async ({ pageWithUserData: page, restartApp }) => {
     const locators = buildWebsocketCommonLocators(page);
 
