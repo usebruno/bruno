@@ -32,7 +32,10 @@ const KeyMapping = {
     name: 'Move Tab Right'
   },
   closeAllTabs: { mac: 'command+shift+w', windows: 'ctrl+shift+w', name: 'Close All Tabs' },
-  collapseSidebar: { mac: 'command+\\', windows: 'ctrl+\\', name: 'Collapse Sidebar' }
+  collapseSidebar: { mac: 'command+\\', windows: 'ctrl+\\', name: 'Collapse Sidebar' },
+  zoomIn: { mac: 'command+=', windows: 'ctrl+=', name: 'Zoom In' },
+  zoomOut: { mac: 'command+-', windows: 'ctrl+-', name: 'Zoom Out' },
+  resetZoom: { mac: 'command+0', windows: 'ctrl+0', name: 'Reset Zoom' }
 };
 
 /**
