@@ -12,22 +12,22 @@ const BRUNO_OAUTH2_CALLBACK_URL = 'https://oauth.usebruno.com/callback';
 
 const oauth2Store = new Oauth2Store();
 
-const persistOauth2Credentials = ({ collectionUid, url, credentials, credentialsId }) => {
+const persistOauth2Credentials = ({ collectionUid, url, credentials, credentialsId, activeEnvironmentUid }) => {
   if (credentials?.error || !credentials?.access_token) return;
   const enhancedCredentials = {
     ...credentials,
     created_at: Date.now()
   };
-  oauth2Store.updateCredentialsForCollection({ collectionUid, url, credentials: enhancedCredentials, credentialsId });
+  oauth2Store.updateCredentialsForCollection({ collectionUid, url, credentials: enhancedCredentials, credentialsId, activeEnvironmentUid });
 };
 
-const clearOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
-  oauth2Store.clearCredentialsForCollection({ collectionUid, url, credentialsId });
+const clearOauth2Credentials = ({ collectionUid, url, credentialsId, activeEnvironmentUid }) => {
+  oauth2Store.clearCredentialsForCollection({ collectionUid, url, credentialsId, activeEnvironmentUid });
 };
 
-const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
+const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId, activeEnvironmentUid }) => {
   try {
-    const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
+    const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId, activeEnvironmentUid });
     return credentials;
   } catch (error) {
     return null;
@@ -132,7 +132,7 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
 
 // AUTHORIZATION CODE
 
-const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) => {
+const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig, activeEnvironmentUid }) => {
   let codeVerifier = generateCodeVerifier();
   let codeChallenge = generateCodeChallenge(codeVerifier);
 
@@ -192,7 +192,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
 
   if (!forceFetch) {
-    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
 
     if (storedCredentials) {
       // Token exists
@@ -204,11 +204,11 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
-            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig, activeEnvironmentUid });
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
             // Refresh failed
-            clearOauth2Credentials({ collectionUid, url, credentialsId });
+            clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
             if (autoFetchToken) {
               // Proceed to fetch new token
             } else {
@@ -220,14 +220,14 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
           // Cannot refresh; try autoFetchToken
           if (autoFetchToken) {
             // Proceed to fetch new token
-            clearOauth2Credentials({ collectionUid, url, credentialsId });
+            clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
           } else {
             // Proceed with expired token
             return { collectionUid, url, credentials: storedCredentials, credentialsId };
           }
         } else if (!autoRefreshToken && autoFetchToken) {
           // Proceed to fetch new token
-          clearOauth2Credentials({ collectionUid, url, credentialsId });
+          clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
         } else {
           // Proceed with expired token
           return { collectionUid, url, credentials: storedCredentials, credentialsId };
@@ -290,7 +290,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     }
 
     debugInfo.data.push(requestDetails);
-    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId, activeEnvironmentUid });
     return { collectionUid, url, credentials, credentialsId, debugInfo };
   } catch (error) {
     return Promise.reject(error);
@@ -365,7 +365,7 @@ const getAdditionalHeaders = (params) => {
 
 // CLIENT CREDENTIALS
 
-const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) => {
+const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig, activeEnvironmentUid }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const {
@@ -401,7 +401,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   }
 
   if (!forceFetch) {
-    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
 
     if (storedCredentials) {
       // Token exists
@@ -413,10 +413,10 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
-            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig, activeEnvironmentUid });
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
-            clearOauth2Credentials({ collectionUid, url, credentialsId });
+            clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
             if (autoFetchToken) {
               // Proceed to fetch new token
             } else {
@@ -427,14 +427,14 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
         } else if (autoRefreshToken && !storedCredentials.refresh_token) {
           if (autoFetchToken) {
             // Proceed to fetch new token
-            clearOauth2Credentials({ collectionUid, url, credentialsId });
+            clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
           } else {
             // Proceed with expired token
             return { collectionUid, url, credentials: storedCredentials, credentialsId };
           }
         } else if (!autoRefreshToken && autoFetchToken) {
           // Proceed to fetch new token
-          clearOauth2Credentials({ collectionUid, url, credentialsId });
+          clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
         } else {
           // Proceed with expired token
           return { collectionUid, url, credentials: storedCredentials, credentialsId };
@@ -483,7 +483,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   try {
     const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
     debugInfo.data.push(requestDetails);
-    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId, activeEnvironmentUid });
     return { collectionUid, url, credentials, credentialsId, debugInfo };
   } catch (error) {
     return Promise.reject(safeStringifyJSON(error?.response?.data));
@@ -492,7 +492,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 
 // PASSWORD CREDENTIALS
 
-const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) => {
+const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig, activeEnvironmentUid }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const {
@@ -547,7 +547,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   }
 
   if (!forceFetch) {
-    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
 
     if (storedCredentials) {
       // Token exists
@@ -559,10 +559,10 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
-            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig, activeEnvironmentUid });
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
-            clearOauth2Credentials({ collectionUid, url, credentialsId });
+            clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
             if (autoFetchToken) {
               // Proceed to fetch new token
             } else {
@@ -574,14 +574,14 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
           // Cannot refresh; try autoFetchToken
           if (autoFetchToken) {
             // Proceed to fetch new token
-            clearOauth2Credentials({ collectionUid, url, credentialsId });
+            clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
           } else {
             // Proceed with expired token
             return { collectionUid, url, credentials: storedCredentials, credentialsId };
           }
         } else if (!autoRefreshToken && autoFetchToken) {
           // Proceed to fetch new token
-          clearOauth2Credentials({ collectionUid, url, credentialsId });
+          clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
         } else {
           // Proceed with expired token
           return { collectionUid, url, credentials: storedCredentials, credentialsId };
@@ -632,21 +632,20 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   try {
     const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
     debugInfo.data.push(requestDetails);
-    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId, activeEnvironmentUid });
     return { collectionUid, url, credentials, credentialsId, debugInfo };
   } catch (error) {
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
 };
 
-const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyConfig }) => {
+const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyConfig, activeEnvironmentUid }) => {
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, credentialsId, credentialsPlacement, additionalParameters } = oAuth;
   const url = oAuth.refreshTokenUrl ? oAuth.refreshTokenUrl : oAuth.accessTokenUrl;
-
-  const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+  const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
   if (!credentials?.refresh_token) {
-    clearOauth2Credentials({ collectionUid, url, credentialsId });
+    clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
     // Proceed without token
     return { collectionUid, url, credentials: null, credentialsId };
   } else {
@@ -680,13 +679,13 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
       debugInfo.data.push(requestDetails);
       if (!credentials || credentials?.error) {
-        clearOauth2Credentials({ collectionUid, url, credentialsId });
+        clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
         return { collectionUid, url, credentials: null, credentialsId, debugInfo };
       }
-      credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+      credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId, activeEnvironmentUid });
       return { collectionUid, url, credentials, credentialsId, debugInfo };
     } catch (error) {
-      clearOauth2Credentials({ collectionUid, url, credentialsId });
+      clearOauth2Credentials({ collectionUid, url, credentialsId, activeEnvironmentUid });
       // Proceed without token
       return { collectionUid, url, credentials: null, credentialsId, debugInfo };
     }
@@ -738,7 +737,7 @@ const applyAdditionalParameters = (requestCopy, data, params = []) => {
   });
 };
 
-const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceFetch = false }) => {
+const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceFetch = false, activeEnvironmentUid }) => {
   const { oauth2 = {} } = request;
   const {
     authorizationUrl,
@@ -778,7 +777,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       const storedCredentials = getStoredOauth2Credentials({
         collectionUid,
         url: authorizationUrl,
-        credentialsId
+        credentialsId,
+        activeEnvironmentUid
       });
 
       if (storedCredentials) {
@@ -795,7 +795,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
           // Token is expired - unlike other grant types, implicit flow doesn't support refresh tokens
           if (autoFetchToken) {
             // Proceed to fetch new token
-            clearOauth2Credentials({ collectionUid, url: authorizationUrl, credentialsId });
+            clearOauth2Credentials({ collectionUid, url: authorizationUrl, credentialsId, activeEnvironmentUid });
           } else {
             // Proceed with expired token
             return {
@@ -821,7 +821,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       }
     } catch (error) {
       console.error('Error retrieving oauth2 credentials from cache', error);
-      clearOauth2Credentials({ collectionUid, url: authorizationUrl, credentialsId });
+      clearOauth2Credentials({ collectionUid, url: authorizationUrl, credentialsId, activeEnvironmentUid });
     }
   }
 
@@ -890,7 +890,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       collectionUid,
       url: authorizationUrl,
       credentials,
-      credentialsId
+      credentialsId,
+      activeEnvironmentUid
     });
 
     return {

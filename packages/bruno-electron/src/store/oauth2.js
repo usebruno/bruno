@@ -114,10 +114,12 @@ class Oauth2Store {
     }
   }
 
-  getCredentialsForCollection({ collectionUid, url, credentialsId }) {
+  getCredentialsForCollection({ collectionUid, url, credentialsId, activeEnvironmentUid }) {
     try {
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
-      let credentials = oauth2DataForCollection?.credentials?.find((c) => (c?.url == url) && (c?.credentialsId == credentialsId));
+      const requestedEnvUid = activeEnvironmentUid ?? null;
+      const allStoredCredentials = oauth2DataForCollection?.credentials || [];
+      let credentials = allStoredCredentials.find((c) => c?.url == url && c?.credentialsId == credentialsId && requestedEnvUid == (c?.activeEnvironmentUid ?? null));
       if (!credentials?.data) return null;
       const decryptionResult = decryptStringSafe(credentials?.data);
       const decryptedCredentialsData = safeParseJSON(decryptionResult.value);
@@ -127,17 +129,19 @@ class Oauth2Store {
     }
   }
 
-  updateCredentialsForCollection({ collectionUid, url, credentialsId, credentials = {} }) {
+  updateCredentialsForCollection({ collectionUid, url, credentialsId, credentials = {}, activeEnvironmentUid }) {
     try {
       const encryptionResult = encryptStringSafe(safeStringifyJSON(credentials));
       const encryptedCredentialsData = encryptionResult.value;
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
-      let filteredCredentials = oauth2DataForCollection?.credentials?.filter((c) => (c?.url !== url) || (c?.credentialsId !== credentialsId));
+      const envUidToMatch = activeEnvironmentUid ?? null;
+      let filteredCredentials = oauth2DataForCollection?.credentials?.filter((c) => !(c?.url == url && c?.credentialsId == credentialsId && envUidToMatch == (c?.activeEnvironmentUid ?? null)));
       if (!filteredCredentials) filteredCredentials = [];
       filteredCredentials.push({
         url,
         data: encryptedCredentialsData,
-        credentialsId
+        credentialsId,
+        activeEnvironmentUid: envUidToMatch
       });
       let newOauth2DataForCollection = {
         ...oauth2DataForCollection,
@@ -150,10 +154,13 @@ class Oauth2Store {
     }
   }
 
-  clearCredentialsForCollection({ collectionUid, url, credentialsId }) {
+  clearCredentialsForCollection({ collectionUid, url, credentialsId, activeEnvironmentUid }) {
     try {
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
-      let filteredCredentials = oauth2DataForCollection?.credentials?.filter((c) => (c?.url !== url) || (c?.credentialsId !== credentialsId));
+      const envUidToMatch = activeEnvironmentUid ?? null;
+      let filteredCredentials = oauth2DataForCollection?.credentials?.filter((c) =>
+        !(c?.url == url && c?.credentialsId == credentialsId && envUidToMatch == (c?.activeEnvironmentUid ?? null))
+      );
       let newOauth2DataForCollection = {
         ...oauth2DataForCollection,
         credentials: filteredCredentials

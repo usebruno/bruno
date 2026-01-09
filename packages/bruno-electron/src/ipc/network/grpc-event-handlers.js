@@ -133,6 +133,7 @@ const registerGrpcEventHandlers = (window) => {
           url: preparedRequest.oauth2Credentials?.url,
           collectionUid: collection.uid,
           credentialsId: preparedRequest.oauth2Credentials?.credentialsId,
+          activeEnvironmentUid: collection?.activeEnvironmentUid || null,
           ...(preparedRequest.oauth2Credentials?.folderUid ? { folderUid: preparedRequest.oauth2Credentials.folderUid } : { itemUid: preparedRequest.uid }),
           debugInfo: preparedRequest.oauth2Credentials.debugInfo
         });
@@ -258,6 +259,7 @@ const registerGrpcEventHandlers = (window) => {
           url: preparedRequest.oauth2Credentials?.url,
           collectionUid: collection.uid,
           credentialsId: preparedRequest.oauth2Credentials?.credentialsId,
+          activeEnvironmentUid: collection?.activeEnvironmentUid || null,
           ...(preparedRequest.oauth2Credentials?.folderUid ? { folderUid: preparedRequest.oauth2Credentials.folderUid } : { itemUid: preparedRequest.uid }),
           debugInfo: preparedRequest.oauth2Credentials.debugInfo
         });

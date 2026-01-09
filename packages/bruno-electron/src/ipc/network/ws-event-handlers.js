@@ -95,6 +95,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   if (wsRequest.oauth2) {
     let requestCopy = cloneDeep(wsRequest);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
+    const activeEnvironmentUid = collection?.activeEnvironmentUid || null;
     let credentials, credentialsId, oauth2Url, debugInfo;
 
     switch (grantType) {
@@ -108,7 +109,8 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         } = await getOAuth2TokenUsingAuthorizationCode({
           request: requestCopy,
           collectionUid: collection.uid,
-          certsAndProxyConfig
+          certsAndProxyConfig,
+          activeEnvironmentUid
         }));
         wsRequest.oauth2Credentials = {
           credentials,
@@ -138,7 +140,8 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         } = await getOAuth2TokenUsingClientCredentials({
           request: requestCopy,
           collectionUid: collection.uid,
-          certsAndProxyConfig
+          certsAndProxyConfig,
+          activeEnvironmentUid
         }));
         wsRequest.oauth2Credentials = {
           credentials,
@@ -168,7 +171,8 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         } = await getOAuth2TokenUsingPasswordCredentials({
           request: requestCopy,
           collectionUid: collection.uid,
-          certsAndProxyConfig
+          certsAndProxyConfig,
+          activeEnvironmentUid
         }));
         wsRequest.oauth2Credentials = {
           credentials,
@@ -282,6 +286,7 @@ const registerWsEventHandlers = (window) => {
             url: preparedRequest.oauth2Credentials?.url,
             collectionUid: collection.uid,
             credentialsId: preparedRequest.oauth2Credentials?.credentialsId,
+            activeEnvironmentUid: collection?.activeEnvironmentUid || null,
             ...(preparedRequest.oauth2Credentials?.folderUid
               ? { folderUid: preparedRequest.oauth2Credentials.folderUid }
               : { itemUid: preparedRequest.uid }),
