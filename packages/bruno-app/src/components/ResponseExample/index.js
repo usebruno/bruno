@@ -1,12 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
+import { filter } from 'lodash';
+import cloneDeep from 'lodash/cloneDeep';
+import path from 'path';
 import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
-import ResponseExampleTopBar from './ResponseExampleTopBar';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addTab, updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useDispatch, useSelector, useStore } from 'react-redux';
+import { findCollectionByUid, findItemInCollectionByPathname, findParentItemInCollection, isItemAFolder } from 'utils/collections';
+import { getDefaultRequestPaneTab } from 'utils/collections/index';
+import { uuid } from 'utils/common';
+import { sanitizeName } from 'utils/common/regex';
 import ResponseExampleRequestPane from './ResponseExampleRequestPane';
 import ResponseExampleResponsePane from './ResponseExampleResponsePane';
-import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
+import ResponseExampleTopBar from './ResponseExampleTopBar';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
@@ -14,8 +22,36 @@ const MIN_RIGHT_PANE_WIDTH = 350;
 const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
+// Helper function to generate unique name with auto-incrementing numbers
+const generateUniqueName = async (baseName, parentItem) => {
+  const items = parentItem.items || [];
+  const existingNames = new Set(
+    items
+      .filter((i) => !isItemAFolder(i))
+      .map((i) => i.name)
+  );
+
+  // Try base name first
+  const candidateBase = `${baseName} (Example Copy)`;
+  if (!existingNames.has(candidateBase)) {
+    return candidateBase;
+  }
+
+  // Find next available number
+  let counter = 2;
+  while (true) {
+    const candidateName = `${baseName} (Example Copy ${counter})`;
+    if (!existingNames.has(candidateName)) {
+      return candidateName;
+    }
+    counter++;
+  }
+};
+
 const ResponseExample = ({ item, collection, example }) => {
   const dispatch = useDispatch();
+  const store = useStore();
+  const state = store.getState();
   const preferences = useSelector((state) => state.app.preferences);
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
@@ -119,9 +155,182 @@ const ResponseExample = ({ item, collection, example }) => {
     setShowGenerateCodeModal(false);
   };
 
-  const handleTryExample = (example) => {
-    // TODO: Implement try example functionality
-  };
+  const handleTryExample = useCallback(async () => {
+    // Validate example
+    if (!example?.request) {
+      console.error('Invalid example data');
+      toast.error('Unable to create request from example');
+      return;
+    }
+
+    try {
+      const parentItem = findParentItemInCollection(collection, item.uid);
+      const newRequestUid = uuid();
+
+      // Generate unique name with auto-incrementing numbers
+      const uniqueName = await generateUniqueName(example.name, parentItem || collection);
+      const filename = `${sanitizeName(uniqueName)}.${collection.format || 'bru'}`;
+
+      // Create complete request item structure matching Bruno's format
+      const newRequestItem = {
+        uid: newRequestUid,
+        name: uniqueName,
+        filename: filename,
+        type: item.type,
+        request: {
+          ...cloneDeep(example.request),
+          headers: example.request.headers || [],
+          params: example.request.params || [],
+          body: example.request.body || {
+            mode: 'none',
+            json: null,
+            text: null,
+            xml: null,
+            sparql: null,
+            multipartForm: [],
+            formUrlEncoded: [],
+            file: []
+          },
+          vars: example.request.vars || {
+            req: [],
+            res: []
+          },
+          script: example.request.script || {
+            req: null,
+            res: null
+          },
+          assertions: example.request.assertions || [],
+          tests: example.request.tests || null,
+          auth: example.request.auth || {
+            mode: 'inherit'
+          }
+        }
+      };
+
+      const parentItems = parentItem ? parentItem.items : collection.items;
+      const requestItems = filter(parentItems, (i) => !isItemAFolder(i));
+      newRequestItem.seq = requestItems ? requestItems.length + 1 : 1;
+
+      // V.Imp: Normalise the full pathname for the new file
+      const fullPathname = path.normalize(
+        parentItem
+          ? path.join(parentItem.pathname, filename)
+          : path.join(collection.pathname, filename)
+      );
+
+      console.log('[handleTryExample] Creating file at:', fullPathname);
+
+      const { ipcRenderer } = window;
+
+      // Save to filesystem
+      await ipcRenderer.invoke('renderer:new-request', fullPathname, newRequestItem);
+
+      toast.success(`Request from example "${example.name}" created successfully`);
+
+      // Wait for filesystem watcher using store subscription
+      const waitForItem = () => {
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            unsubscribe();
+            console.error('[handleTryExample] Timeout waiting for filesystem watcher');
+            console.error('[handleTryExample] Expected pathname:', fullPathname);
+
+            // Log all items in parent to debug
+            const state = store.getState();
+            const currentCollection = findCollectionByUid(state.collections.collections, collection.uid);
+            const parent = parentItem ? findItemInCollectionByPathname(currentCollection, parentItem.pathname) : currentCollection;
+            console.error('[handleTryExample] Items in parent:', parent?.items?.map((i) => ({
+              name: i.name,
+              pathname: i.pathname
+            })));
+
+            reject(new Error('Timeout waiting for item to be added by filesystem watcher'));
+          }, 5000); // 5 second timeout
+
+          let checkCount = 0;
+
+          // Subscribe to store changes
+          const unsubscribe = store.subscribe(() => {
+            checkCount++;
+            const state = store.getState();
+            const currentCollection = findCollectionByUid(state.collections.collections, collection.uid);
+
+            if (!currentCollection) {
+              console.warn('[handleTryExample] Collection not found');
+              return;
+            }
+
+            // Try to find by normalized pathname
+            let loadedItem = findItemInCollectionByPathname(currentCollection, fullPathname);
+
+            if (!loadedItem) {
+              const parent = parentItem
+                ? findItemInCollectionByPathname(currentCollection, parentItem.pathname)
+                : currentCollection;
+
+              if (parent && parent.items) {
+                loadedItem = parent.items.find((i) =>
+                  i.filename === filename
+                  && !i.loading
+                  && !i.partial
+                );
+                // Found item by filename match
+              }
+            }
+
+            if (loadedItem && !loadedItem.loading && !loadedItem.partial) {
+              clearTimeout(timeout);
+              unsubscribe();
+              resolve(loadedItem);
+            }
+          });
+
+          // Also check immediately in case it's already there
+          const state = store.getState();
+          const currentCollection = findCollectionByUid(state.collections.collections, collection.uid);
+          let existingItem = findItemInCollectionByPathname(currentCollection, fullPathname);
+
+          // Fallback:  find by filename
+          if (!existingItem) {
+            const parent = parentItem
+              ? findItemInCollectionByPathname(currentCollection, parentItem.pathname)
+              : currentCollection;
+
+            if (parent && parent.items) {
+              existingItem = parent.items.find((i) =>
+                i.filename === filename
+                && !i.loading
+                && !i.partial
+              );
+            }
+          }
+
+          if (existingItem && !existingItem.loading && !existingItem.partial) {
+            clearTimeout(timeout);
+            unsubscribe();
+            resolve(existingItem);
+          }
+        });
+      };
+
+      // Wait for the item
+      const loadedItem = await waitForItem();
+
+      // Add tab
+      dispatch(addTab({
+        uid: loadedItem.uid,
+        collectionUid: collection.uid,
+        requestPaneTab: getDefaultRequestPaneTab(loadedItem),
+        type: loadedItem.type
+      }));
+
+      // Send request
+      dispatch(sendRequest(loadedItem, collection.uid));
+    } catch (error) {
+      console.error('Failed to create request from example:', error);
+      toast.error(error?.message || 'Failed to create request from example');
+    }
+  }, [example, collection, item, dispatch, store]);
 
   // Update width when screen width or sidebar width changes
   useEffect(() => {
