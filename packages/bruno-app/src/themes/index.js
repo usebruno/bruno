@@ -10,6 +10,8 @@ import catppuccinFrappe from './dark/catppuccin-frappe';
 import catppuccinMacchiato from './dark/catppuccin-macchiato';
 import catppuccinMocha from './dark/catppuccin-mocha';
 import nord from './dark/nord';
+import gruvboxDarkTheme from './dark/gruvbox';
+import gruvboxLightTheme from './light/gruvbox';
 import vscodeDark from './dark/vscode';
 
 const themes = {
@@ -23,6 +25,8 @@ const themes = {
   'catppuccin-frappe': catppuccinFrappe,
   'catppuccin-macchiato': catppuccinMacchiato,
   'catppuccin-mocha': catppuccinMocha,
+  'gruvbox-dark': gruvboxDarkTheme,
+  'gruvbox-light': gruvboxLightTheme,
   nord,
   'vscode-light': vscodeLight,
   'vscode-dark': vscodeDark
@@ -79,6 +83,16 @@ export const themeRegistry = {
     id: 'catppuccin-mocha',
     name: 'Catppuccin Mocha',
     mode: 'dark'
+  },
+  'gruvbox-dark': {
+    id: 'gruvbox-dark',
+    name: 'Gruvbox Dark',
+    mode: 'dark'
+  },
+  'gruvbox-light': {
+    id: 'gruvbox-light',
+    name: 'Gruvbox Light',
+    mode: 'light'
   },
   'nord': {
     id: 'nord',
