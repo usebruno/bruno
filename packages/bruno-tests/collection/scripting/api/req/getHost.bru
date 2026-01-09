@@ -1,0 +1,23 @@
+meta {
+  name: getHost
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("req.getHost()", function() {
+    const host = req.getHost();
+    expect(host).to.equal("testbench-sanity.usebruno.com");
+  });
+}

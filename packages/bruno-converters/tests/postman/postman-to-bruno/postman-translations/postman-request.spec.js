@@ -42,4 +42,20 @@ describe('postmanTranslations - request commands', () => {
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
+
+  test('should handle pm.request.url helper methods', () => {
+    const inputScript = `
+      const host = pm.request.url.getHost();
+      const path = pm.request.url.getPath();
+      const queryString = pm.request.url.getQueryString();
+      const pathVariables = pm.request.url.variables;
+    `;
+    const expectedOutput = `
+      const host = req.getHost();
+      const path = req.getPath();
+      const queryString = req.getQueryString();
+      const pathVariables = req.getPathParams();
+    `;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
 });
