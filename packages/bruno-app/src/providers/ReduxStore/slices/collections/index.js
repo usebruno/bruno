@@ -3047,7 +3047,7 @@ export const collectionsSlice = createSlice({
       }
     },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo } = action.payload;
+      const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, activeEnvironmentUid, debugInfo } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
@@ -3058,13 +3058,14 @@ export const collectionsSlice = createSlice({
       let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
 
       // Remove existing credentials for the same combination
+      const envUidToMatch = activeEnvironmentUid ?? null;
       const filteredOauth2Credentials = filter(
         collectionOauth2Credentials,
         (creds) =>
-          !(creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId)
+          !(creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId && envUidToMatch === (creds.activeEnvironmentUid ?? null))
       );
 
-      // Add the new credential with folderUid and itemUid
+      // Add the new credential with folderUid, itemUid, and activeEnvironmentUid
       filteredOauth2Credentials.push({
         collectionUid,
         folderUid,
@@ -3072,6 +3073,7 @@ export const collectionsSlice = createSlice({
         url,
         credentials,
         credentialsId,
+        activeEnvironmentUid: envUidToMatch,
         debugInfo
       });
 
